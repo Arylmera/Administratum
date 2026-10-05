@@ -4,7 +4,7 @@ mod registry;
 
 use registry::{Session, Tracker};
 use std::{path::PathBuf, thread, time::{Duration, Instant}};
-use sysinfo::{Pid, ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -43,14 +43,15 @@ fn poll_loop(app: AppHandle, demo: bool) {
         let roster = if demo {
             demo::roster(start.elapsed().as_secs())
         } else {
-            sys.refresh_processes(ProcessesToUpdate::All, true);
+            // We only need liveness + name, not the CPU/mem/disk/exe sampling `refresh_processes` does by default.
+            sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
             let alive = |pid: u32| {
                 sys.process(Pid::from_u32(pid))
                     .map(|p| p.name().to_string_lossy().eq_ignore_ascii_case("claude.exe"))
                     .unwrap_or(false)
             };
-            let scanned = registry::scan(&dir.join("sessions"), alive, |id| {
-                registry::read_transcript_tail(&dir.join("projects"), id)
+            let scanned = registry::scan(&dir.join("sessions"), alive, |id, cwd, tail| {
+                registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail)
             });
             registry::merge(&prev, scanned)
         };
@@ -74,9 +75,11 @@ fn toggle_window(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if w.is_visible().unwrap_or(false) {
             let _ = w.hide();
+            let _ = app.emit("visible", false);
         } else {
             let _ = w.show();
             let _ = w.set_focus();
+            let _ = app.emit("visible", true);
         }
     }
 }

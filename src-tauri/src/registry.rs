@@ -100,8 +100,13 @@ pub struct Scan {
 }
 
 /// One pass over `~/.claude/sessions`. A file that fails to parse is reported by the pid in its
-/// name so the caller can keep that session's last known state (Claude Code may be mid-write).
-pub fn scan(dir: &Path, alive: impl Fn(u32) -> bool, transcript: impl Fn(&str) -> Option<String>) -> Scan {
+/// name (only if that pid is still alive) so the caller can keep that session's last known state
+/// (Claude Code may be mid-write) without resurrecting a session whose process already died.
+pub fn scan(
+    dir: &Path,
+    alive: impl Fn(u32) -> bool,
+    transcript: impl Fn(&str, &str, u64) -> Option<String>,
+) -> Scan {
     let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
     let Ok(entries) = fs::read_dir(dir) else { return out };
     for entry in entries.flatten() {
@@ -112,7 +117,9 @@ pub fn scan(dir: &Path, alive: impl Fn(u32) -> bool, transcript: impl Fn(&str) -
         let stem_pid = path.file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<u32>().ok());
         let Some(rec) = fs::read_to_string(&path).ok().and_then(|t| parse_record(&t)) else {
             if let Some(pid) = stem_pid {
-                out.unreadable_pids.push(pid);
+                if alive(pid) {
+                    out.unreadable_pids.push(pid);
+                }
             }
             continue;
         };
@@ -120,8 +127,15 @@ pub fn scan(dir: &Path, alive: impl Fn(u32) -> bool, transcript: impl Fn(&str) -
             continue;
         }
         let status = normalize_status(rec.status.as_deref()).to_string();
+        let mut task = transcript(&rec.session_id, &rec.cwd, TAIL_BYTES).map(|t| task_line(&t)).unwrap_or_else(|| "—".into());
+        if task == "—" {
+            // The newest line didn't fit in the small tail; retry once with a bigger one.
+            if let Some(bigger) = transcript(&rec.session_id, &rec.cwd, BIG_TAIL_BYTES) {
+                task = task_line(&bigger);
+            }
+        }
         out.sessions.push(Session {
-            task: transcript(&rec.session_id).map(|t| task_line(&t)).unwrap_or_else(|| "—".into()),
+            task,
             dept: dept_of(&rec.cwd),
             name: rec.name.clone().unwrap_or_else(|| dept_of(&rec.cwd)),
             id: rec.session_id,
@@ -137,19 +151,33 @@ pub fn scan(dir: &Path, alive: impl Fn(u32) -> bool, transcript: impl Fn(&str) -
 }
 
 const TAIL_BYTES: u64 = 65536;
+const BIG_TAIL_BYTES: u64 = 512 * 1024;
 
-/// Last 64 KB of `<projects>/<any>/<session_id>.jsonl`, cut to whole lines.
-pub fn read_transcript_tail(projects: &Path, session_id: &str) -> Option<String> {
+/// `cwd` turned into the project-folder slug Claude Code uses under `~/.claude/projects`:
+/// every non-alphanumeric-ASCII char becomes `-` (e.g. `C:\Users\x\git\Foo` -> `C--Users-x-git-Foo`).
+fn slug(cwd: &str) -> String {
+    cwd.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect()
+}
+
+/// Last `tail_bytes` of `<projects>/<slug(cwd)>/<session_id>.jsonl`, cut to whole lines. Tries
+/// the direct slug path first (one stat, no directory scan); falls back to scanning every
+/// project folder only if that misses (e.g. cwd changed since the session started).
+pub fn read_transcript_tail(projects: &Path, session_id: &str, cwd: &str, tail_bytes: u64) -> Option<String> {
     use std::io::{Read, Seek, SeekFrom};
     let file = format!("{session_id}.jsonl");
-    let path = fs::read_dir(projects).ok()?.flatten().map(|e| e.path().join(&file)).find(|p| p.is_file())?;
+    let direct = projects.join(slug(cwd)).join(&file);
+    let path = if direct.is_file() {
+        direct
+    } else {
+        fs::read_dir(projects).ok()?.flatten().map(|e| e.path().join(&file)).find(|p| p.is_file())?
+    };
     let mut f = fs::File::open(path).ok()?;
     let len = f.metadata().ok()?.len();
-    f.seek(SeekFrom::Start(len.saturating_sub(TAIL_BYTES))).ok()?;
+    f.seek(SeekFrom::Start(len.saturating_sub(tail_bytes))).ok()?;
     let mut buf = Vec::new();
     f.read_to_end(&mut buf).ok()?;
     let text = String::from_utf8_lossy(&buf).into_owned();
-    Some(if len > TAIL_BYTES { text.split_once('\n').map(|(_, rest)| rest.to_string()).unwrap_or_default() } else { text })
+    Some(if len > tail_bytes { text.split_once('\n').map(|(_, rest)| rest.to_string()).unwrap_or_default() } else { text })
 }
 
 pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
@@ -278,7 +306,7 @@ mod tests {
         fs::write(d.join("12.json"), record(12, "c", "dead", "idle")).unwrap();
         fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
         fs::write(d.join("10.key"), "not a record").unwrap();
-        let out = scan(&d, |pid| pid != 12, |id| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()));
+        let out = scan(&d, |pid| pid != 12, |id, _cwd, _tail| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()));
         let names: Vec<_> = out.sessions.iter().map(|s| s.name.as_str()).collect();
         assert_eq!(names, ["terra-a", "terra-b"]);
         assert_eq!(out.unreadable_pids, [13]);
@@ -292,8 +320,26 @@ mod tests {
 
     #[test]
     fn scan_of_missing_dir_is_empty() {
-        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_| None);
+        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_, _, _| None);
         assert!(out.sessions.is_empty() && out.unreadable_pids.is_empty());
+    }
+
+    #[test]
+    fn scan_skips_unreadable_pid_if_dead() {
+        let d = temp_dir("scan-dead-unreadable");
+        fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
+        let out = scan(&d, |pid| pid != 13, |_, _, _| None);
+        assert!(out.unreadable_pids.is_empty(), "dead pid's malformed file is not carried forward");
+    }
+
+    #[test]
+    fn transcript_tail_prefers_direct_slug_path() {
+        let d = temp_dir("projects-direct");
+        let cwd = r"C:\Users\guill\Documents\git\Administratum";
+        fs::create_dir_all(d.join("C--Users-guill-Documents-git-Administratum")).unwrap();
+        fs::write(d.join("C--Users-guill-Documents-git-Administratum").join("abc.jsonl"), r#"{"type":"user","message":{"content":"x"}}"#).unwrap();
+        let tail = read_transcript_tail(&d, "abc", cwd, 65536).expect("found via direct slug path, no scan needed");
+        assert!(tail.contains("\"x\""));
     }
 
     #[test]
@@ -303,10 +349,19 @@ mod tests {
         let line = r#"{"type":"user","message":{"content":"x"}}"#;
         let big = std::iter::repeat(line).take(3000).collect::<Vec<_>>().join("\n");
         fs::write(d.join("C--git-Terra").join("abc.jsonl"), &big).unwrap();
-        let tail = read_transcript_tail(&d, "abc").expect("found");
+        let tail = read_transcript_tail(&d, "abc", "some-other-cwd", 65536).expect("found via fallback scan");
         assert!(tail.len() <= 65536);
         assert!(tail.lines().all(|l| l == line), "first partial line dropped");
-        assert!(read_transcript_tail(&d, "nope").is_none());
+        assert!(read_transcript_tail(&d, "nope", "some-other-cwd", 65536).is_none());
+    }
+
+    #[test]
+    fn scan_retries_with_bigger_tail_when_newest_line_overflows() {
+        let d = temp_dir("scan-retry-tail");
+        fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
+        // The 64 KB tail holds no whole line (task_line -> "—"); a bigger tail would.
+        let out = scan(&d, |_| true, |_, _, tail| if tail == TAIL_BYTES { Some("x".repeat(70_000)) } else { Some(r#"{"type":"user","message":{"content":"hi"}}"#.to_string()) });
+        assert_eq!(out.sessions[0].task, "“hi”");
     }
 
     #[test]

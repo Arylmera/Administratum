@@ -30,7 +30,10 @@ export class Cast {
 
   destination(a, seats, waiting, shell) {
     if (a.leaving) return { ...ENTRY, pose: 'gone' };
-    if (a.s.status === 'waiting') return { ...QUEUE_SLOTS[Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1)], pose: 'queue' };
+    if (a.s.status === 'waiting') {
+      const queueIdx = Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1);
+      return { ...QUEUE_SLOTS[queueIdx], pose: 'queue', queueIdx };
+    }
     if (a.s.status === 'shell') return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' };
     const seat = seats.get(a.id);
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
@@ -69,7 +72,7 @@ export class Cast {
     g.drawImage(sprite(SCRIBE.up[0], over), fx, fy);
     g.drawImage(sprite(MAPS.ARM), fx + 14, fy + 2);
     g.drawImage(sprite(MAPS.ARM_L), fx - 4, fy + 2);
-    if (a.pose === 'desk') g.drawImage(sprite(MAPS.CHAIN), fx - 6, fy + 15);
+    if (a.pose === 'desk' && a.s.status === 'busy') g.drawImage(sprite(MAPS.CHAIN), fx - 6, fy + 15);
     if (a.pose === 'queue') g.drawImage(sprite(MAPS.SCROLL), fx + 14, fy + 8);
   }
 }

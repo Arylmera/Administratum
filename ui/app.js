@@ -51,9 +51,10 @@ export function fit() {
 addEventListener('resize', fit);
 
 export const hooks = { beforeLights: () => [], afterFrame: () => {}, update: () => {} };
-let last = performance.now(), acc = 0;
+let last = performance.now(), acc = 0, visible = true;
 function frame(now) {
   requestAnimationFrame(frame);
+  if (document.hidden || !visible) { last = now; acc = 0; return; } // paused: skip drawing, keep rAF alive
   acc += Math.min(0.1, (now - last) / 1000);
   last = now;
   if (acc < 1 / 30) return;
@@ -80,6 +81,7 @@ let roster = [];
 let sel = null;
 const colorOf = dept => SASH[deptOrder.indexOf(dept) % SASH.length];
 const ago = ms => {
+  if (!ms) return '—'; // missing statusUpdatedAt, not a huge elapsed time
   const m = Math.max(0, Math.floor((Date.now() - ms) / 60000));
   return m < 1 ? '<1m' : m < 60 ? `${m}m` : `${Math.floor(m / 60)}h`;
 };
@@ -103,14 +105,15 @@ function onRoster(next) {
 
 function renderPlaques() {
   for (const el of overlay.querySelectorAll('.plaque, .empty')) el.remove();
-  const add = (cls, text, x, y, color) => {
+  const add = (cls, text, x, y, color, maxWidth) => {
     const el = document.createElement('div');
     el.className = cls; el.textContent = text;
     el.style.left = `${x * scale}px`; el.style.top = `${y * scale}px`;
+    if (maxWidth) el.style.maxWidth = `${maxWidth * scale}px`;
     if (color) { el.style.borderColor = color; el.style.color = color; }
     overlay.appendChild(el);
   };
-  for (const b of layout.blocks) add('plaque', b.name, b.x + 2, b.y + b.h - 7, b.color);
+  for (const b of layout.blocks) add('plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4);
   if (layout.overflow) add('plaque', `+${layout.overflow} in the stacks`, 120, 186, '#8a7a5c');
   if (!roster.length) add('empty', 'No scribes on duty', 0, 120);
 }
@@ -160,8 +163,10 @@ function syncLabels() {
       if (petition) line('sub', `${want} · ${ago(a.s.sinceMs)}`);
       el.setAttribute('aria-label', petition ? `${a.s.name}, petition: ${want}` : a.s.name);
     }
+    // Adjacent queue labels alternate height so their text doesn't overlap.
+    const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
     el.style.left = `${a.x * scale}px`;
-    el.style.top = `${(a.y - 18) * scale}px`;
+    el.style.top = `${(a.y - qOff) * scale}px`;
   }
 }
 
@@ -211,5 +216,6 @@ if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());
   T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
-  document.getElementById('hide').onclick = () => T.window.getCurrentWindow().hide();
+  T.event.listen('visible', e => { visible = e.payload; });
+  document.getElementById('hide').onclick = () => { visible = false; T.window.getCurrentWindow().hide(); };
 }

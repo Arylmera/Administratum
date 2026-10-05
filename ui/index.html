@@ -31,7 +31,8 @@
   .lbl.petition { background: #1e0a08; border-color: var(--red); animation: pulse 1.8s ease-in-out infinite; }
   .lbl .sub { color: var(--pink); }
   .lbl .zz { color: #a89a7c; }
-  .plaque { position: absolute; padding: 1px 6px; background: #140d09; border: 2px solid; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+  .plaque { position: absolute; padding: 1px 6px; background: #140d09; border: 2px solid; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+  header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; width: 57%; text-align: center; color: var(--dim); font-size: 14px; }
   #card { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(300px, 80%); padding: 8px 12px; background: #cdbb8f; color: #1a120c; border: 2px solid #6e3f17; border-radius: 2px; box-shadow: 0 4px 0 #0e0a08; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
   #card[hidden] { display: none; }
