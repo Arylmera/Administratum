@@ -142,17 +142,24 @@ function bayArch(g, y) {
     flange(g, x, y - 15, 4, 2); flange(g, x, y + 3, 4, 1.5); // capital and base
   }
 }
-// East of the scriptorium, below the sanctum: plain plated wall the length of the bays.
+// East of the scriptorium, below the sanctum: plated wall the length of the bays, a pipe run, cant and banners per bay.
 function bayWall(g, dy) {
   plates(g, 208, 226, 138, dy, '#2a2a2c', '#18191b');
   rect(g, 208, 226, 138, 3, '#100b08'); rect(g, 208, 228.5, 138, 0.5, '#6e3f17'); // the sanctum's bottom wall
-  pipeH(g, 208, 236, 138);
-  [222, 262, 302, 338].forEach(x => flange(g, x, 235, 3, 5));
-  g.fillStyle = 'rgba(124,255,158,.38)';
-  for (let i = 0; 210 + i < 344; i++) g.fillRect(210 + i, 246, 0.5, BIN[(i + 210) % BIN.length] === '1' ? 1 : 0.5);
+  for (let y = 226; y < 226 + dy; y += 64) {
+    pipeH(g, 220, y + 10, 114);
+    [232, 272, 312].forEach(x => flange(g, x, y + 9, 3, 5));
+    g.fillStyle = 'rgba(124,255,158,.38)';
+    for (let i = 0; 222 + i < 332; i++) g.fillRect(222 + i, y + 20, 0.5, BIN[(i + y) % BIN.length] === '1' ? 1 : 0.5);
+    blit(g, MAPS.BANNER, 240, y + 30); blit(g, MAPS.BANNER, 294, y + 30); blit(g, MAPS.WINDOW, 263, y + 28, WIN_NIGHT);
+  }
+  for (const x of [210, 334]) { // the sanctum's pillars carry on down
+    rect(g, x, 229, 10, dy - 3, '#1c1d20'); rect(g, x + 9, 229, 1, dy - 3, '#0e0a08');
+    pipeV(g, x + 3, 229, dy - 3);
+    for (let y = 266; y < 226 + dy; y += 64) blit(g, MAPS.GAUGE, x + 2, y);
+  }
 }
 
-let H = hallOf(0); // the hall drawn this frame
 const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 
 const PILE_FADE_MS = 4000;

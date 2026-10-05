@@ -27,7 +27,7 @@ const GRID = {
 // The growing hall: each bay adds BAY_H of scriptorium floor (one slot row) above the bottom aisle; the aisle,
 // the grand gate and the hall's queue slots move down with it. Sanctum and refectorium stay where they are.
 export const BAY_H = SLOT_H;
-export const MAX_BAYS = 3;
+export const MAX_BAYS = 6; // up to 8 slot rows; past that, the plaque
 export function hallOf(bays = 0) {
   const dy = bays * BAY_H;
   return {

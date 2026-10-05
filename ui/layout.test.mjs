@@ -106,7 +106,7 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
   assert.equal(P.blocks[0].w, 48 + 2);
   // capacity: empties waiting their grace are dropped at once rather than overflow a newcomer (in the largest hall)
   const many = k => ids('d', k).map(n => ({ name: n, color: '#fff', ids: [n] }));
-  P = planLayout(null, many(40), 0);
+  P = planLayout(null, many(60), 0);
   assert.equal(P.bays, MAX_BAYS);
   const fit = P.blocks.length;
   P = planLayout(P, many(fit).slice(1), 1000); // d-0 left: its block waits
