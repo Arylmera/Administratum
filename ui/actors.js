@@ -9,19 +9,19 @@ const RECAFF_S = 2; // seconds at the recaff dispenser on the way to a bench
 export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); } // naps: scribe id -> REFECTORY_SPOTS index
 
-  sync(roster, seats, colorOf, consoleSeats = new Map(), blocks = []) {
+  sync(roster, seats, colorOf, consoleSeats, blocks) {
     const live = new Set(roster.map(s => s.id));
-    for (const s of roster) {
-      const a = this.actors.get(s.id);
-      if (a) { a.s = s; a.leaving = false; a.sash = colorOf(s.dept); }
-      else this.actors.set(s.id, { id: s.id, s, x: ENTRY.x, y: ENTRY.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false, sash: colorOf(s.dept) });
-    }
+    // New actors walk in through the gate; known ones take the fresh data (and stop leaving if they were).
+    const upsert = (id, fields) => {
+      const a = this.actors.get(id);
+      if (a) Object.assign(a, fields, { leaving: false });
+      else this.actors.set(id, { id, x: ENTRY.x, y: ENTRY.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false, ...fields });
+    };
+    for (const s of roster) upsert(s.id, { s, sash: colorOf(s.dept) });
     for (const s of roster) for (const h of s.helpers ?? []) {
       const id = `${s.id}|${h.id}`;
       live.add(id);
-      const a = this.actors.get(id);
-      if (a) { a.h = h; a.leaving = false; }
-      else this.actors.set(id, { id, owner: s.id, h, x: ENTRY.x, y: ENTRY.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false });
+      upsert(id, { owner: s.id, h });
     }
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
     const waiting = roster.filter(s => s.status === 'waiting').sort((p, q) => p.sinceMs - q.sinceMs).map(s => s.id);
@@ -89,29 +89,29 @@ export class Cast {
       }
     }
   }
+}
 
-  // Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
-  drawActor(g, a) {
-    if (a.h) { // adept: 12x14, feet at (x, y)
-      const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14;
-      if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy);
-      else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0)); // typing bob, 1 art px
-      return;
-    }
-    const over = { y: a.sash };
-    const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
-    if (a.pose === 'walk') {
-      blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
-      if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
-      return;
-    }
-    blit(g, SCRIBE.up[0], fx, fy, over);
-    blit(g, MAPS.ARM, fx + 14, fy + 2);
-    blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
-    if (a.pose === 'desk' && a.s.status === 'busy') blit(g, MAPS.CHAIN, fx - 6, fy + 15);
-    if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
-    if (a.pose === 'nap' || (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+// Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
+export function drawActor(g, a) {
+  if (a.h) { // adept: 12x14, feet at (x, y)
+    const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14;
+    if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy);
+    else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0)); // typing bob, 1 art px
+    return;
   }
+  const over = { y: a.sash };
+  const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
+  if (a.pose === 'walk') {
+    blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
+    if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
+    return;
+  }
+  blit(g, SCRIBE.up[0], fx, fy, over);
+  blit(g, MAPS.ARM, fx + 14, fy + 2);
+  blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
+  if (a.pose === 'desk' && a.s.status === 'busy') blit(g, MAPS.CHAIN, fx - 6, fy + 15);
+  if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
+  if (a.pose === 'nap' || (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
 }
 
 // "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.

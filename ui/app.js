@@ -1,5 +1,5 @@
 import { SCENE, lightLevel, layoutDepartments } from './layout.js';
-import { drawStatic, drawDecorFrame, STATIC_LIGHTS, drawRugs, drawDoors, drawGate, deskDrawable, deskLight, consoleDrawable, consoleLight, paperFloor } from './scene.js';
+import { drawStatic, drawScene } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES } from './sprites.js';
 import { Cast } from './actors.js';
@@ -68,7 +68,6 @@ addEventListener('resize', () => { fit(); renderPlaques(); });
   document.body.style.backgroundImage = `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65)), url(${c.toDataURL()})`;
 }
 
-const hooks = { beforeLights: () => [], afterFrame: () => {}, update: () => {} };
 let last = performance.now(), acc = 0, visible = true;
 function frame(now) {
   requestAnimationFrame(frame);
@@ -77,13 +76,11 @@ function frame(now) {
   last = now;
   if (acc < 1 / 30) return;
   const dt = acc; acc = 0;
-  hooks.update(dt);
+  cast.update(dt);
   const level = lightLevel(state.mode, new Date().getHours());
   g.drawImage(background(level.beams), 0, 0, SCENE.w, SCENE.h);
-  const extra = hooks.beforeLights(g);
-  drawDecorFrame(g, now / 1000, [...cast.actors.values()].filter(a => a.pose === 'cog').length);
-  drawLighting(g, STATIC_LIGHTS.concat(extra), level, now / 1000);
-  hooks.afterFrame();
+  drawLighting(g, drawScene(g, layout, cast.actors, fillOf, now), level, now / 1000);
+  syncLabels();
 }
 
 renderModes();
@@ -286,31 +283,6 @@ function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state
 muteBtn.onclick = toggleMute;
 renderMute();
 
-hooks.update = dt => cast.update(dt);
-hooks.beforeLights = gg => {
-  drawRugs(gg, layout.blocks);
-  drawDoors(gg, [...cast.actors.values()]);
-  const items = [drawGate(gg, [...cast.actors.values()])], lights = [], now = performance.now();
-  const blockOf = dept => layout.blocks.find(b => b.name === dept);
-  for (const d of layout.desks) {
-    const a = cast.actors.get(d.id), fill = fillOf(a?.s.context);
-    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy', bgShell = !!a?.s.background;
-    paperFloor(gg, d.id, 'desk', fill, d, blockOf(d.dept), now);
-    items.push(deskDrawable(d, busy, fill, bgShell, now));
-    lights.push(deskLight(d, busy));
-  }
-  for (const c of layout.consoles) {
-    const a = cast.actors.get(c.id), fill = fillOf(a?.h?.context);
-    const lit = !!a && a.pose === 'console';
-    paperFloor(gg, c.id, 'console', fill, c, blockOf(c.dept), now);
-    items.push(consoleDrawable(c, lit, fill));
-    lights.push(consoleLight(c, lit));
-  }
-  for (const a of cast.actors.values()) items.push({ y: a.y, draw: g2 => cast.drawActor(g2, a) });
-  items.sort((p, q) => p.y - q.y).forEach(it => it.draw(gg));
-  return lights;
-};
-hooks.afterFrame = syncLabels;
 
 const T = window.__TAURI__;
 if (T) {

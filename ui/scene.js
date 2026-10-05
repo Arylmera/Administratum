@@ -1,5 +1,6 @@
 import { blit, sprite, MAPS } from './sprites.js';
 import { ENTRY } from './layout.js';
+import { drawActor } from './actors.js';
 
 const AMBER = 'rgba(240,168,60,.26)';
 const GREEN = 'rgba(124,255,158,.16)';
@@ -52,6 +53,7 @@ function coolant(g, x, y, w, h) {
   else { rect(g, x + 0.5, y, w - 1, h, '#3aa864'); rect(g, x + w / 2 - 0.25, y, 0.5, h, '#b4ffc8'); }
 }
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
+const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
 const DECOR = [
   ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
@@ -124,14 +126,42 @@ export function drawStatic(g, daylight) {
 
 const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 
-export function drawRugs(g, blocks) {
+// One frame of everything that moves or depends on the roster, over the static background.
+// actors: Cast.actors; fillOf: context -> paper fill. Returns every light of the frame for drawLighting.
+export function drawScene(g, layout, actors, fillOf, now) {
+  const all = [...actors.values()];
+  drawRugs(g, layout.blocks);
+  drawDoors(g, all);
+  const items = [drawGate(g, all)], lights = [];
+  const blockOf = dept => layout.blocks.find(b => b.name === dept);
+  for (const d of layout.desks) {
+    const a = actors.get(d.id), fill = fillOf(a?.s.context);
+    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
+    paperFloor(g, d.id, 'desk', fill, d, blockOf(d.dept), now);
+    items.push(deskDrawable(d, busy, fill, !!a?.s.background, now));
+    lights.push(deskLight(d, busy));
+  }
+  for (const c of layout.consoles) {
+    const a = actors.get(c.id), fill = fillOf(a?.h?.context);
+    const lit = !!a && a.pose === 'console';
+    paperFloor(g, c.id, 'console', fill, c, blockOf(c.dept), now);
+    items.push(consoleDrawable(c, lit, fill));
+    lights.push(consoleLight(c, lit));
+  }
+  for (const a of all) items.push({ y: a.y, draw: g2 => drawActor(g2, a) });
+  items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
+  drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
+  return STATIC_LIGHTS.concat(lights);
+}
+
+function drawRugs(g, blocks) {
   for (const b of blocks) {
     g.fillStyle = hexA(b.color, 0.07); g.fillRect(b.x, b.y, b.w, b.h);
     g.strokeStyle = hexA(b.color, 0.3); g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
   }
 }
 
-export function deskDrawable(desk, busy, fill, bgShell, now) {
+function deskDrawable(desk, busy, fill, bgShell, now) {
   return {
     y: desk.y + 21,
     draw(g) {
@@ -145,18 +175,17 @@ export function deskDrawable(desk, busy, fill, bgShell, now) {
 
 // A background shell still runs after the turn: a tiny brass cog turning on the desk corner (art px = 0.5).
 function spinCog(g, cx, cy, t) {
-  const snap = v => Math.round(v * 2) / 2;
   rect(g, cx - 2, cy - 1, 4, 3, '#0e0a08'); rect(g, cx - 1.5, cy - 1.5, 3, 4, '#0e0a08'); // outline
   for (let i = 0; i < 8; i++) { // 8 teeth, turning ~1 rev / 3 s
     const ang = t * 2 + i * Math.PI / 4;
-    rect(g, snap(cx - 0.25 + Math.cos(ang) * 2.25), snap(cy - 0.25 + Math.sin(ang) * 2.25), 1, 1, i ? '#8a4f22' : '#e8b45a');
+    rect(g, half(cx - 0.25 + Math.cos(ang) * 2.25), half(cy - 0.25 + Math.sin(ang) * 2.25), 1, 1, i ? '#8a4f22' : '#e8b45a');
   }
   rect(g, cx - 1.5, cy - 1, 3, 2, '#b8742e'); rect(g, cx - 1, cy - 1.5, 2, 3, '#b8742e');
   rect(g, cx - 1.5, cy - 1, 0.5, 1, '#e8b45a'); rect(g, cx - 1, cy - 1.5, 1, 0.5, '#e8b45a'); // lit upper-left
   rect(g, cx - 0.5, cy - 0.5, 1, 1, '#2a2c30'); // axle
 }
 
-export function consoleDrawable(con, lit, fill) {
+function consoleDrawable(con, lit, fill) {
   return {
     y: con.y + 10,
     draw(g) {
@@ -185,7 +214,7 @@ function pileOf(id, kind) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const k = PAPER[kind], half = v => Math.round(v * 2) / 2;
+  const k = PAPER[kind];
   const top = [];
   for (let r = 0; r < k.rows; r++) for (let c = 0; c < k.cols; c++) {
     top.push({ x: half(k.x0 + c * k.dx + rnd() * 1.5), y: half(k.y0 + r * k.dy + rnd()), w: rnd() < 0.5 ? 4 : 5 });
@@ -219,7 +248,7 @@ function paperTop(g, id, kind, fill, at) {
   for (const t of p.vis) for (let l = 0; l < t.layers; l++) sheet(g, at.x + t.x, at.y + t.y - l, t.w, 2.5, warn && t.red && l === t.layers - 1);
 }
 // Fallen sheets on the floor around it, kept inside the department block; new ones flutter down from the desk.
-export function paperFloor(g, id, kind, fill, at, block, now) {
+function paperFloor(g, id, kind, fill, at, block, now) {
   const p = pileOf(id, kind), [, m] = counts(p, fill), k = PAPER[kind];
   if (m > p.shown) for (let i = Math.max(0, p.shown); i < m; i++) p.born[i] = p.shown < 0 ? -1e9 : now;
   p.shown = m;
@@ -231,23 +260,23 @@ export function paperFloor(g, id, kind, fill, at, block, now) {
     const t = (now - p.born[i]) / 700;
     if (t < 1) { // flutter down from the desk edge
       const sx = at.x + k.cx, sy = at.y + k.cy - 6;
-      x = Math.round((sx + (x - sx) * t + Math.sin(t * 9) * 2 * (1 - t)) * 2) / 2;
-      y = Math.round((sy + (y - sy) * t * t) * 2) / 2;
+      x = half(sx + (x - sx) * t + Math.sin(t * 9) * 2 * (1 - t));
+      y = half(sy + (y - sy) * t * t);
     }
     sheet(g, x, y, s.w, s.h, warn && s.red);
   }
 }
 
-export const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
+const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
 
-export function deskLight(desk, busy) {
+function deskLight(desk, busy) {
   return busy
     ? { x: desk.x + 25, y: desk.y + 1, r: 22, color: AMBER, flicker: true }
     : { x: desk.x + 13, y: desk.y + 5, r: 10, color: GREEN };
 }
 
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
-export function drawDecorFrame(g, t, cog = 0) {
+function drawDecorFrame(g, t, cog = 0) {
   blit(g, MAPS.SKULL, 244, 50 + Math.round(2 * Math.sin(t * 4)));
   drawMagos(g, t);
   drawCogitator(g, t, cog);
@@ -261,7 +290,7 @@ function drawCogitator(g, t, cog) {
   const s = t * speed, top = Math.floor(s), off = (s - top) * 1.5;
   g.save(); g.beginPath(); g.rect(149, 15.5, 16, 16.5); g.clip();
   for (let i = 0; i < 12; i++) {
-    const row = top + i, y = Math.round((16 + i * 1.5 - off) * 2) / 2;
+    const row = top + i, y = half(16 + i * 1.5 - off);
     let x = 150, h = hash(row);
     rect(g, 149, y, 0.5, 0.5, h < 0.2 ? '#e6ffee' : '#2a8a50'); // line marker
     while (x < 163.5) {
@@ -289,7 +318,7 @@ function drawCogitator(g, t, cog) {
   // data-drums: a light notch turning on each reel
   for (const [cx, cy, dir] of [[125, 18, 1], [125, 29, -1], [188, 18, -1], [188, 29, 1]]) {
     const a = t * dir * (on ? 6 : 1.2);
-    rect(g, Math.round((cx + Math.cos(a) * 2) * 2) / 2 - 0.25, Math.round((cy + Math.sin(a) * 2) * 2) / 2 - 0.25, 0.5, 0.5, '#e8b45a');
+    rect(g, half(cx + Math.cos(a) * 2) - 0.25, half(cy + Math.sin(a) * 2) - 0.25, 0.5, 0.5, '#e8b45a');
   }
   // steam from the two vent stacks: a puff every few seconds idle, a steady plume while working
   for (const vx of [138, 175.5]) for (let i = 0; i < 3; i++) {
@@ -297,7 +326,7 @@ function drawCogitator(g, t, cog) {
     if (!on && Math.floor(c) % 3) continue;
     const r = 1 + p * 2.5;
     g.fillStyle = `rgba(214,206,190,${0.55 * (1 - p)})`;
-    g.fillRect(Math.round((vx - r + Math.sin(c * 5) * p) * 2) / 2, Math.round((5 - p * 9 - r) * 2) / 2, 2 * r, 2 * r);
+    g.fillRect(half(vx - r + Math.sin(c * 5) * p), half(5 - p * 9 - r), 2 * r, 2 * r);
   }
 }
 
@@ -311,7 +340,7 @@ function drawMagos(g, t) {
   if (Math.sin(t * 2.2) > 0.4) { rect(g, MAG.x + 13, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); rect(g, MAG.x + 14.5, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); }
 }
 
-export const STATIC_LIGHTS = [
+const STATIC_LIGHTS = [
   { x: 86, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
   { x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN },
   { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
@@ -342,7 +371,7 @@ function leaf(g, x, y, w, h) {
   if (h > 4) for (let j = y + 1.5; j < y + h - 1; j += 3) { rect(g, x + 1, j, 0.5, 0.5, '#8a9096'); rect(g, x + w - 1.5, j, 0.5, 0.5, '#8a9096'); }
   if (w > 4) for (let i = x + 1.5; i < x + w - 1; i += 3) { rect(g, i, y + 1, 0.5, 0.5, '#8a9096'); rect(g, i, y + h - 1.5, 0.5, 0.5, '#8a9096'); }
 }
-export function drawDoors(g, actors) {
+function drawDoors(g, actors) {
   for (const d of DOORS) {
     const open = actors.some(a => Math.hypot(Math.max(d.x0 - a.x, 0, a.x - d.x1), Math.max(d.y0 - a.y, 0, a.y - d.y1)) < 12);
     const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
@@ -358,13 +387,13 @@ export function drawDoors(g, actors) {
 // so anyone north of the wall walks behind the arch.
 const GATE = { x: ENTRY.x - 16, y: 196 }; // 32x30 frame; opening 16x22 at +8,+5
 let gateOpen = 0;
-export function drawGate(g, actors) {
+function drawGate(g, actors) {
   const ox = GATE.x + 8, oy = GATE.y + 5;
   const near = actors.some(a => Math.hypot(Math.max(ox - a.x, 0, a.x - ox - 16), Math.max(oy - a.y, 0, a.y - oy - 22)) < 12);
   gateOpen += ((near ? 1 : 0) - gateOpen) * 0.18;
   rect(g, ox, oy, 16, 22, '#060404');
   rect(g, ox + 2, oy + 16, 12, 6, '#2a0a07'); rect(g, ox + 5, oy + 18, 6, 4, '#4e110c'); // the void beyond, lit by the braziers
-  const s = Math.round(gateOpen * 7 * 2) / 2;
+  const s = half(gateOpen * 7);
   return {
     y: GATE.y + 30,
     draw(g2) {
