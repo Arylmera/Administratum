@@ -2,13 +2,13 @@
 export const SCENE = { w: 346, h: 226 };
 export const HALL = { x0: 3, x1: 197, y0: 58, y1: 196 };
 export const AISLE_Y = 206;
-export const ENTRY = { x: 8, y: 224 };
+export const ENTRY = { x: (HALL.x0 + HALL.x1) / 2, y: 224 }; // the grand gate, centred in the scriptorium's bottom wall
 export const DOOR_OUT = { x: 190, y: 172 };
 export const DOOR_IN = { x: 214, y: 172 };
 export const COG_SPOTS = [{ x: 160, y: 58 }, { x: 172, y: 58 }, { x: 184, y: 58 }];
 export const QUEUE_SLOTS = [
   { x: 276, y: 187 }, { x: 248, y: 189 }, { x: 220, y: 189 }, { x: 186, y: 213 },
-  { x: 158, y: 217 }, { x: 130, y: 217 }, { x: 102, y: 217 }, { x: 74, y: 217 },
+  { x: 162, y: 217 }, { x: 140, y: 217 }, { x: 60, y: 217 }, { x: 38, y: 217 }, // the line steps around the gate (x 72..128)
 ];
 
 const SLOT_W = 48;

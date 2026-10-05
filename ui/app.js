@@ -2,7 +2,7 @@ import { SCENE, lightLevel } from './layout.js';
 import { drawStatic, drawDecorFrame, STATIC_LIGHTS } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { layoutDepartments } from './layout.js';
-import { drawRugs, drawDoors, deskDrawable, deskLight, consoleDrawable, consoleLight, paperFloor } from './scene.js';
+import { drawRugs, drawDoors, drawGate, deskDrawable, deskLight, consoleDrawable, consoleLight, paperFloor } from './scene.js';
 import { SASH, RES } from './sprites.js';
 import { Cast } from './actors.js';
 
@@ -289,6 +289,7 @@ hooks.update = dt => cast.update(dt);
 hooks.beforeLights = gg => {
   drawRugs(gg, layout.blocks);
   drawDoors(gg, [...cast.actors.values()]);
+  drawGate(gg, [...cast.actors.values()]);
   const items = [], lights = [], now = performance.now();
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {

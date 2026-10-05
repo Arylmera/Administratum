@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL } from './layout.js';
+import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY } from './layout.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -45,6 +45,14 @@ assert.ok(r.some(p => p.x === DOOR_OUT.x && p.y === DOOR_OUT.y));
 assert.ok(r.some(p => p.x === DOOR_IN.x && p.y === DOOR_IN.y));
 assert.equal(route(QUEUE_SLOTS[1], QUEUE_SLOTS[0]).length, 1);
 assert.ok(route({ x: 24, y: 96 }, { x: 72, y: 96 }).every(p => p.y === AISLE_Y || p.x === 72));
+
+// the gate is centred in the scriptorium's bottom wall, below the aisle; newcomers walk up to the aisle first
+assert.equal(ENTRY.x, (HALL.x0 + HALL.x1) / 2);
+assert.ok(ENTRY.y > AISLE_Y && ENTRY.y <= 226);
+const inGate = route(ENTRY, { x: 24, y: 96 });
+assert.deepEqual(inGate[0], { x: ENTRY.x, y: AISLE_Y });
+assert.deepEqual(inGate.at(-1), { x: 24, y: 96 });
+for (const q of QUEUE_SLOTS.slice(3)) assert.ok(Math.abs(q.x - ENTRY.x) >= 36, `queue slot ${q.x} clear of the gate`);
 
 // lighting phases and modes
 assert.equal(phaseOf(5), 'night');

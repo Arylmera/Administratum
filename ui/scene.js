@@ -1,4 +1,5 @@
 import { blit, sprite, MAPS } from './sprites.js';
+import { ENTRY } from './layout.js';
 
 export const AMBER = 'rgba(240,168,60,.26)';
 export const GREEN = 'rgba(124,255,158,.16)';
@@ -65,13 +66,13 @@ const DECOR = [
   ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],
   ['BOOKS', 220, 172], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
   ['BRAZIER', 224, 196], ['BRAZIER', 320, 196], ['CENSER', 94, 7], ['CENSER', 196, 60],
-  ['CRATE', 172, 206], ['BRAZIER', 6, 196], ['CANDLES', 186, 46],
+  ['CRATE', 172, 206], ['CANDLES', 186, 46], ['BRAZIER', ENTRY.x - 28, 211], ['BRAZIER', ENTRY.x + 18, 211],
 ];
 const CLUTTER = [
   ['SCROLL_PILE', 58, 98], ['PAPER_STACK', 92, 92], ['PAPER_STACK', 99, 95], ['LOOSE_A', 46, 104], ['LOOSE_B', 140, 104],
   ['SCROLL_PILE', 160, 98], ['LOOSE_A', 190, 92], ['PAPER_STACK', 54, 132], ['PAPER_STACK', 61, 136], ['BOOKS', 76, 140],
   ['LOOSE_B', 8, 160], ['SCROLL_PILE', 150, 140], ['PAPER_STACK', 176, 128], ['LOOSE_A', 104, 160], ['SCROLL_PILE', 30, 188],
-  ['PAPER_STACK', 64, 196], ['PAPER_STACK', 71, 200], ['BOOKS', 96, 206], ['LOOSE_A', 120, 190], ['LOOSE_B', 134, 212],
+  ['PAPER_STACK', 50, 196], ['PAPER_STACK', 57, 200], ['BOOKS', 8, 206], ['LOOSE_A', 120, 190], ['LOOSE_B', 146, 212],
   ['SCROLL_PILE', 140, 196], ['LOOSE_A', 186, 186], ['LOOSE_B', 196, 172],
 ];
 
@@ -118,6 +119,7 @@ export function drawStatic(g, daylight) {
   rect(g, 254, 163, 44, 3, 'rgba(0,0,0,.45)');
   for (const [name, x, y] of DECOR) put(g, MAPS[name], x, y);
   for (const [name, x, y] of CLUTTER) put(g, MAPS[name], x, y);
+  rect(g, 0, 223, 200, 3, '#100b08'); rect(g, 0, 223, 200, 0.5, '#6e3f17'); // scriptorium's bottom wall, the gate sits in it
 }
 
 const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
@@ -268,18 +270,18 @@ export const STATIC_LIGHTS = [
   { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
   { x: 274, y: 153, r: 14, color: GREEN },
   { x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true },
-  { x: 10, y: 197, r: 26, color: AMBER, flicker: true }, { x: 276, y: 186, r: 26, color: RED },
+  { x: ENTRY.x - 23, y: 213, r: 26, color: AMBER, flicker: true }, { x: ENTRY.x + 23, y: 213, r: 26, color: AMBER, flicker: true }, // gate braziers
+  { x: ENTRY.x, y: 212, r: 18, color: RED }, { x: 276, y: 186, r: 26, color: RED },
   { x: 192, y: 50, r: 14, color: AMBER, flicker: true },
   { x: 96, y: 14, r: 10, color: AMBER, flicker: true }, { x: 198, y: 67, r: 10, color: AMBER, flicker: true },
   { x: 50, y: 117, r: 14 }, { x: 150, y: 117, r: 14 }, { x: 99, y: 150, r: 14 }, { x: 50, y: 183, r: 14 }, { x: 150, y: 183, r: 14 },
 ];
 
 // Doors, drawn each frame: open while any actor is within 12 logical px of the doorway.
-// v: leaves slide up/down inside the 200..208 wall; h: the exit, leaves slide apart in the bottom wall.
+// Leaves slide up/down inside the 200..208 wall.
 const DOORS = [
-  { x0: 200, x1: 208, y0: 150, y1: 186, v: true }, // scriptorium <-> sanctum (DOOR_OUT/DOOR_IN)
-  { x0: 200, x1: 208, y0: 78, y1: 98, v: true, floor: '#1c1d20' }, // scriptorium <-> refectorium, decor only
-  { x0: 1, x1: 15, y0: 220, y1: 226, floor: '#060404' }, // exit at ENTRY
+  { x0: 200, x1: 208, y0: 150, y1: 186 }, // scriptorium <-> sanctum (DOOR_OUT/DOOR_IN)
+  { x0: 200, x1: 208, y0: 78, y1: 98, floor: '#1c1d20' }, // scriptorium <-> refectorium, decor only
 ];
 function cog(g, cx, cy) {
   rect(g, cx - 0.5, cy - 3.5, 1, 7, '#b8742e'); rect(g, cx - 3.5, cy - 0.5, 7, 1, '#b8742e');
@@ -297,16 +299,25 @@ export function drawDoors(g, actors) {
   for (const d of DOORS) {
     const open = actors.some(a => Math.hypot(Math.max(d.x0 - a.x, 0, a.x - d.x1), Math.max(d.y0 - a.y, 0, a.y - d.y1)) < 12);
     const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
-    if (d.v) {
-      if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
-      else { leaf(g, d.x0 + 0.5, d.y0, 7, cy - d.y0); leaf(g, d.x0 + 0.5, cy, 7, d.y1 - cy); rect(g, d.x0 + 0.5, cy - 0.25, 7, 0.5, '#0e0a08'); cog(g, cx, cy); }
-      for (const y of [d.y0 - 2, d.y1]) flange(g, d.x0 - 1, y, 10, 2); // brass lintels
-      rect(g, d.x0, d.y0, 0.5, d.y1 - d.y0, '#b8742e'); rect(g, d.x1 - 0.5, d.y0, 0.5, d.y1 - d.y0, '#6e3f17');
-    } else {
-      rect(g, d.x1, d.y0, 14, d.y1 - d.y0, '#100b08'); rect(g, d.x1, d.y0, 14, 0.5, '#b8742e'); // wall stub
-      if (open) { rect(g, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, d.floor); leaf(g, d.x0, d.y0 + 0.5, 2, 5.5); leaf(g, d.x1 - 2, d.y0 + 0.5, 2, 5.5); }
-      else { leaf(g, d.x0, d.y0 + 0.5, cx - d.x0, 5.5); leaf(g, cx, d.y0 + 0.5, d.x1 - cx, 5.5); cog(g, cx, d.y0 + 3.5); }
-      for (const x of [d.x0 - 1, d.x1]) flange(g, x, d.y0 - 1, 2, d.y1 - d.y0 + 1); // brass posts
-    }
+    if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
+    else { leaf(g, d.x0 + 0.5, d.y0, 7, cy - d.y0); leaf(g, d.x0 + 0.5, cy, 7, d.y1 - cy); rect(g, d.x0 + 0.5, cy - 0.25, 7, 0.5, '#0e0a08'); cog(g, cx, cy); }
+    for (const y of [d.y0 - 2, d.y1]) flange(g, d.x0 - 1, y, 10, 2); // brass lintels
+    rect(g, d.x0, d.y0, 0.5, d.y1 - d.y0, '#b8742e'); rect(g, d.x1 - 0.5, d.y0, 0.5, d.y1 - d.y0, '#6e3f17');
   }
+}
+
+// The grand gate at ENTRY: the iron leaves slide apart into the piers (eased) while anyone is near.
+const GATE = { x: ENTRY.x - 16, y: 196 }; // 32x30 frame; opening 16x22 at +8,+5
+let gateOpen = 0;
+export function drawGate(g, actors) {
+  const ox = GATE.x + 8, oy = GATE.y + 5;
+  const near = actors.some(a => Math.hypot(Math.max(ox - a.x, 0, a.x - ox - 16), Math.max(oy - a.y, 0, a.y - oy - 22)) < 12);
+  gateOpen += ((near ? 1 : 0) - gateOpen) * 0.18;
+  rect(g, ox, oy, 16, 22, '#060404');
+  rect(g, ox + 2, oy + 16, 12, 6, '#2a0a07'); rect(g, ox + 5, oy + 18, 6, 4, '#4e110c'); // the void beyond, lit by the braziers
+  const s = Math.round(gateOpen * 7 * 2) / 2;
+  g.save(); g.beginPath(); g.rect(ox, oy, 16, 22); g.clip();
+  blit(g, MAPS.GATE_L, ox - s, oy); blit(g, MAPS.GATE_R, ox + 8 + s, oy);
+  g.restore();
+  blit(g, MAPS.GATE, GATE.x, GATE.y);
 }
