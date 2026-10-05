@@ -248,6 +248,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 for (dept, u) in demo::usage(&roster, now) {
                     c.add_usage(&dept, &u);
                 }
+                c.add_busy(&roster, elapsed, now);
                 let ev = demo::chronicle(last_t, t, &roster, now);
                 last_t = t;
                 ev
@@ -257,7 +258,6 @@ fn poll_loop(app: AppHandle, demo: bool) {
             if !first {
                 events.extend(chronicle::lifecycle(&prev, &roster, now));
             }
-            c.add_busy(&roster, elapsed, now);
             for e in &events {
                 c.record(e);
                 // The first scan backfills today; only fresh events play live in the scene.

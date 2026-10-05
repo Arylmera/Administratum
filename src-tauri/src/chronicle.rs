@@ -164,10 +164,18 @@ pub struct Src<'a> {
 const TEST_RUNNERS: [&str; 9] = ["cargo test", "npm test", "npm run test", "pnpm test", "yarn test", "pytest", "vitest", "jest", "go test"];
 const TASK_DONE_MS: u64 = 300_000;
 
-/// Events and token deltas in `text` (whole transcript lines). Entries stamped before `min_ts`
-/// are skipped (first scan: today only); tool_use -> tool_result pairing spans calls via `cur`.
-pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64) -> (Vec<Event>, Vec<Usage>) {
-    let (mut events, mut usage) = (vec![], vec![]);
+/// Working time of one finished main-session turn, stamped at the turn's end.
+#[derive(Debug, PartialEq)]
+pub struct Turn {
+    pub ts: i64,
+    pub ms: u64,
+}
+
+/// Events, token deltas and turn durations in `text` (whole transcript lines). Entries stamped
+/// before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing spans
+/// calls via `cur`.
+pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64) -> (Vec<Event>, Vec<Usage>, Vec<Turn>) {
+    let (mut events, mut usage, mut turns) = (vec![], vec![], vec![]);
     for line in text.lines() {
         let Ok(v) = serde_json::from_str::<Value>(line) else { continue };
         let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
@@ -220,6 +228,10 @@ pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64
             }
             Some("system") if v["subtype"] == "turn_duration" => {
                 let ms = v["durationMs"].as_u64().unwrap_or(0);
+                // A subagent's (sidechain) turn runs inside its parent's turn: counting it would double count.
+                if src.helper.is_none() && v["isSidechain"] != true {
+                    turns.push(Turn { ts, ms });
+                }
                 if ms >= TASK_DONE_MS {
                     emit("task-done", fmt_duration(ms));
                 }
@@ -227,7 +239,7 @@ pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64
             _ => {}
         }
     }
-    (events, usage)
+    (events, usage, turns)
 }
 
 fn classify(p: Option<&Pending>, b: &Value) -> Vec<(&'static str, String)> {
@@ -504,10 +516,15 @@ impl Chronicle {
                 let cur = self.cursors.entry(path.clone()).or_insert_with(|| Cursor { helper: sub.then(|| helper_kind(&path)), ..Default::default() });
                 let helper = cur.helper.clone();
                 let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
-                let (ev, usage) = extract(cur, &chunk.text, if chunk.today_only { today_start } else { i64::MIN }, &src, now_ms);
+                let (ev, usage, turns) = extract(cur, &chunk.text, if chunk.today_only { today_start } else { i64::MIN }, &src, now_ms);
                 events.extend(ev);
                 for u in usage {
                     self.add_usage(&s.dept, &u); // subagent tokens count toward the parent's project
+                }
+                for t in turns {
+                    if let Some(tithe) = self.tithe_at(t.ts) {
+                        tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
+                    }
                 }
             }
         }
@@ -535,7 +552,8 @@ impl Chronicle {
         }
     }
 
-    /// +`elapsed_ms` of working time for each session that is busy or running a shell.
+    /// Demo only (no transcripts): +`elapsed_ms` of working time for each busy or shell session.
+    /// Real working time comes from the transcripts' turn durations.
     pub fn add_busy(&mut self, roster: &[Session], elapsed_ms: u64, now_ms: i64) {
         for s in roster.iter().filter(|s| s.status == "busy" || s.status == "shell") {
             if let Some(t) = self.tithe_at(now_ms) {
@@ -715,14 +733,24 @@ mod tests {
     }
 
     #[test]
+    fn turn_durations_are_working_time_of_main_sessions_only() {
+        let line = |ms: u64, side: bool| serde_json::json!({"isSidechain":side,"type":"system","subtype":"turn_duration","durationMs":ms,"timestamp":iso(7_000)}).to_string();
+        let text = [line(42_000, false), line(9_000, true)].join("\n");
+        let (_, _, turns) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
+        assert_eq!(turns, [Turn { ts: 7_000, ms: 42_000 }], "a sidechain turn overlaps its parent's");
+        let sub = Src { helper: Some("Explore"), ..SRC };
+        assert!(extract(&mut Cursor::default(), &line(5_000, false), i64::MIN, &sub, 0).2.is_empty(), "subagent transcript");
+    }
+
+    #[test]
     fn usage_counts_each_message_id_once_at_its_last_usage() {
         let mut cur = Cursor::default();
         let line = |id: &str, out: u64| {
             serde_json::json!({"type":"assistant","timestamp":iso(1_791_000_000_000),"message":{"model":"claude-opus-5-5","id":id,
                 "usage":{"input_tokens":2,"cache_creation_input_tokens":100,"cache_read_input_tokens":1000,"output_tokens":out}}}).to_string()
         };
-        let (_, a) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
-        let (_, b) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
+        let (_, a, _) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
+        let (_, b, _) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
         let sum: u64 = a.iter().chain(&b).map(|u| u.tokens.total()).sum();
         assert_eq!(sum, (2 + 100 + 1000 + 589) + (2 + 100 + 1000 + 10));
         assert_eq!(a[0].tokens, Tokens { input: 2, output: 5, cache_read: 1000, cache_write: 100 });
@@ -736,7 +764,7 @@ mod tests {
         let mut cur = Cursor::default();
         let today = midnight_ms(now());
         let lines = [bash_use("y", "git push", today - 60_000), result("y", "ok".into(), None, today - 50_000), bash_use("t", "git push", today + 1), result("t", "ok".into(), None, today + 2)];
-        let (ev, _) = extract(&mut cur, &lines.join("\n"), today, &SRC, 0);
+        let (ev, ..) = extract(&mut cur, &lines.join("\n"), today, &SRC, 0);
         assert_eq!(ev.len(), 1);
         assert_eq!(ev[0].ts, today + 2);
     }
@@ -857,16 +885,19 @@ mod tests {
         let subs = base.join("s1").join("subagents");
         fs::create_dir_all(&subs).unwrap();
         let t = now();
-        fs::write(base.join("s1.jsonl"), format!("{}\n{}\n", bash_use("a", "git push origin main", t), result("a", "ok".into(), Some(false), t))).unwrap();
+        let turn = |ms: u64| serde_json::json!({"type":"system","subtype":"turn_duration","durationMs":ms,"timestamp":iso(t)}).to_string();
+        fs::write(base.join("s1.jsonl"), format!("{}\n{}\n{}\n", bash_use("a", "git push origin main", t), result("a", "ok".into(), Some(false), t), turn(90_000))).unwrap();
         let usage = serde_json::json!({"type":"assistant","timestamp":iso(t),"message":{"model":"claude-haiku-4-5","id":"m1","usage":{"input_tokens":3,"output_tokens":4}}}).to_string();
-        fs::write(subs.join("agent-x1.jsonl"), format!("{usage}\n{}\n", result("q", "boom".into(), Some(true), t))).unwrap();
+        fs::write(subs.join("agent-x1.jsonl"), format!("{usage}\n{}\n{}\n", result("q", "boom".into(), Some(true), t), turn(60_000))).unwrap();
         fs::write(subs.join("agent-x1.meta.json"), r#"{"agentType":"Explore"}"#).unwrap();
         let mut c = Chronicle::open(root.join("chronicon"), t, true);
         let s = Session { cwd: cwd.into(), dept: "Terra".into(), name: "terra-77".into(), ..crate::registry::tests_session("s1") };
         let ev = c.read_transcripts(&projects, &[s.clone()], t);
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
-        assert_eq!(c.tithe_of(&day_of(t)).by_project["Terra"].tokens, 7, "subagent tokens go to the parent's project");
+        let tithe = c.tithe_of(&day_of(t));
+        assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
+        assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
         assert!(c.read_transcripts(&projects, &[s.clone()], t).is_empty(), "nothing new");
         for e in &ev {
             c.record(e);
