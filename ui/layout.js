@@ -65,15 +65,37 @@ export function layoutDepartments(depts) {
 const roomOf = p => (p.x <= 200 ? 'hall' : p.y < 104 ? 'ref' : 'sanct');
 const DOORWAY = { sanct: [DOOR_OUT, DOOR_IN], ref: [REF_OUT, REF_IN] };
 
-export function route(a, b) {
+// Walk lanes: horizontal ones above the desks, in the gaps under each slot row (desk-free in every layout,
+// see layoutDepartments: slot rows start at 58 + 64k) and the bottom aisle; one vertical corridor at x 190,
+// east of every desk, which also holds both doorways' hall side.
+const LANES = [HALL.y0, HALL.y0 + 60, HALL.y0 + 124, AISLE_Y];
+const CORRIDOR_X = REF_OUT.x;
+const crosses = (x, y0, y1, blocks) => blocks.some(b => x > b.x && x < b.x + b.w && y0 < b.y + b.h && y1 > b.y);
+// Lanes a hall point can step onto straight up or down without walking through a department block.
+// Going down, the stretch to the first lane below is always clear (it's the point's own slot gap).
+function lanesOf(p, blocks) {
+  if (p.x === CORRIDOR_X) return [p.y];
+  const first = LANES.find(y => y >= p.y);
+  return LANES.filter(y => (y < p.y ? !crosses(p.x, y, p.y, blocks) : !crosses(p.x, first, y, blocks)));
+}
+const lengthOf = pts => pts.reduce((s, p, i) => s + (i ? Math.abs(p.x - pts[i - 1].x) + Math.abs(p.y - pts[i - 1].y) : 0), 0);
+
+// Axis-aligned path from a to b (both feet), the shortest over the lane choices. blocks: layoutDepartments().blocks.
+export function route(a, b, blocks = []) {
   const ra = roomOf(a), rb = roomOf(b);
   if (ra === rb && ra !== 'hall') return [{ x: b.x, y: b.y }];
-  const pts = [];
-  if (ra !== 'hall') { const [o, i] = DOORWAY[ra]; pts.push(i, o, { x: o.x, y: AISLE_Y }); }
-  else pts.push({ x: a.x, y: AISLE_Y });
-  if (rb !== 'hall') { const [o, i] = DOORWAY[rb]; pts.push({ x: o.x, y: AISLE_Y }, o, i, b); }
-  else pts.push({ x: b.x, y: AISLE_Y }, b);
-  return pts.map(p => ({ x: p.x, y: p.y }));
+  const head = ra === 'hall' ? [a] : [a, DOORWAY[ra][1], DOORWAY[ra][0]];
+  const tail = rb === 'hall' ? [b] : [DOORWAY[rb][0], DOORWAY[rb][1], b];
+  const p = head.at(-1), q = tail[0];
+  let best = null;
+  for (const la of lanesOf(p, blocks)) for (const lb of lanesOf(q, blocks)) {
+    const mid = la === lb ? [{ x: p.x, y: la }, { x: q.x, y: la }]
+      : [{ x: p.x, y: la }, { x: CORRIDOR_X, y: la }, { x: CORRIDOR_X, y: lb }, { x: q.x, y: lb }];
+    const pts = head.concat(mid, tail);
+    if (!best || lengthOf(pts) < lengthOf(best)) best = pts;
+  }
+  best ??= head.concat({ x: p.x, y: AISLE_Y }, { x: q.x, y: AISLE_Y }, tail); // ponytail: boxed in on every side, old aisle walk
+  return best.slice(1).filter((pt, i, arr) => pt.x !== (arr[i - 1] ?? a).x || pt.y !== (arr[i - 1] ?? a).y).map(pt => ({ x: pt.x, y: pt.y }));
 }
 
 export function phaseOf(hour) {

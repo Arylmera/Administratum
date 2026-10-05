@@ -9,7 +9,7 @@ const RECAFF_S = 2; // seconds at the recaff dispenser on the way to a bench
 export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); } // naps: scribe id -> REFECTORY_SPOTS index
 
-  sync(roster, seats, colorOf, consoleSeats = new Map()) {
+  sync(roster, seats, colorOf, consoleSeats = new Map(), blocks = []) {
     const live = new Set(roster.map(s => s.id));
     for (const s of roster) {
       const a = this.actors.get(s.id);
@@ -46,7 +46,7 @@ export class Cast {
       if (key !== a.destKey) {
         a.destKey = key;
         a.target = d;
-        a.path = d.pose === 'nap' ? route({ x: a.x, y: a.y }, RECAFF_SPOT).concat({ x: d.x, y: d.y }) : route({ x: a.x, y: a.y }, d);
+        a.path = d.pose === 'nap' ? route({ x: a.x, y: a.y }, RECAFF_SPOT, blocks).concat({ x: d.x, y: d.y }) : route({ x: a.x, y: a.y }, d, blocks);
         if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
         a.wait = 0;
         a.pose = 'walk';

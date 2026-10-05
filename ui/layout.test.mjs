@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS } from './layout.js';
+import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -44,13 +44,13 @@ assert.deepEqual(r.at(-1), QUEUE_SLOTS[0]);
 assert.ok(r.some(p => p.x === DOOR_OUT.x && p.y === DOOR_OUT.y));
 assert.ok(r.some(p => p.x === DOOR_IN.x && p.y === DOOR_IN.y));
 assert.equal(route(QUEUE_SLOTS[1], QUEUE_SLOTS[0]).length, 1);
-assert.ok(route({ x: 24, y: 96 }, { x: 72, y: 96 }).every(p => p.y === AISLE_Y || p.x === 72));
+assert.deepEqual(route({ x: 24, y: 96 }, { x: 72, y: 96 }), [{ x: 24, y: 118 }, { x: 72, y: 118 }, { x: 72, y: 96 }]); // the gap under the row
 
 // the gate is centred in the scriptorium's bottom wall, below the aisle; newcomers walk up to the aisle first
 assert.equal(ENTRY.x, (HALL.x0 + HALL.x1) / 2);
 assert.ok(ENTRY.y > AISLE_Y && ENTRY.y <= 226);
 const inGate = route(ENTRY, { x: 24, y: 96 });
-assert.deepEqual(inGate[0], { x: ENTRY.x, y: AISLE_Y });
+assert.equal(inGate[0].x, ENTRY.x);
 assert.deepEqual(inGate.at(-1), { x: 24, y: 96 });
 for (const q of QUEUE_SLOTS.slice(3)) assert.ok(Math.abs(q.x - ENTRY.x) >= 36, `queue slot ${q.x} clear of the gate`);
 
@@ -68,6 +68,29 @@ assert.ok(has(refToQueue, REF_IN) && has(refToQueue, DOOR_IN));
 assert.equal(REFECTORY_SPOTS.length, 6);
 assert.equal(new Set(REFECTORY_SPOTS.map(p => `${p.x},${p.y}`)).size, 6);
 for (const p of REFECTORY_SPOTS.concat(RECAFF_SPOT)) assert.ok(p.x > 208 && p.y > 40 && p.y < 100, 'refectory spot inside the room');
+
+// lanes: with several departments, every route is axis-aligned and only the legs into a seat touch its own block
+L = layoutDepartments([{ name: 'A', color: '#fff', ids: ids('a', 2) }, { name: 'B', color: '#fff', ids: ids('b', 1) }, { name: 'C', color: '#fff', ids: ids('c', 3) }]);
+assert.equal(new Set(L.blocks.map(b => b.y)).size, 2, 'two block rows');
+const inside = (b, p) => p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h;
+const cuts = (b, p, q) => Math.max(p.x, q.x) > b.x && Math.min(p.x, q.x) < b.x + b.w && Math.max(p.y, q.y) > b.y && Math.min(p.y, q.y) < b.y + b.h;
+const seats = [...L.seats.values()];
+const ends = seats.concat(ENTRY, COG_SPOTS, QUEUE_SLOTS, RECAFF_SPOT);
+const hallSide = p => p.x <= REF_IN.x;
+for (const s of seats) for (const e of ends) for (const [a, b] of [[s, e], [e, s]]) {
+  const rt = [a].concat(route(a, b, L.blocks));
+  rt.slice(1).forEach((q, i) => {
+    const p = rt[i];
+    if (hallSide(p) && hallSide(q)) assert.ok(p.x === q.x || p.y === q.y, `diagonal ${JSON.stringify([p, q])}`);
+    for (const blk of L.blocks) if (cuts(blk, p, q)) assert.ok(inside(blk, p) || inside(blk, q), `${JSON.stringify([p, q])} crosses block ${blk.name}`);
+  });
+}
+// a top-row desk reaches the refectorium by the gap under its row and the east corridor, not the bottom aisle
+const top = L.seats.get('a-0'), rt = route(top, RECAFF_SPOT, L.blocks);
+const oldLen = (AISLE_Y - top.y) + (REF_OUT.x - top.x) + (AISLE_Y - REF_OUT.y);
+const len = [top].concat(rt).slice(0, rt.findIndex(p => p.x === REF_OUT.x && p.y === REF_OUT.y) + 2).reduce((s, p, i, arr) => s + (i ? Math.abs(p.x - arr[i - 1].x) + Math.abs(p.y - arr[i - 1].y) : 0), 0);
+assert.ok(len < oldLen / 1.5, `refectorium walk ${len} vs ${oldLen}`);
+assert.ok(rt.every(p => p.y < AISLE_Y));
 
 // lighting phases and modes
 assert.equal(phaseOf(5), 'night');
