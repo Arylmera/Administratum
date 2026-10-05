@@ -7,9 +7,12 @@ fn start_ms() -> i64 {
     *START.get_or_init(|| SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64))
 }
 
-const DEMO_MODEL: &str = "claude-opus-5-5";
+// One model per rank (opus/fable high, sonnet standard, haiku novice) so the demo shows all three.
+const OPUS: &str = "claude-opus-5-5";
+const SONNET: &str = "claude-sonnet-5";
+const HAIKU: &str = "claude-haiku-4-5-20251001";
 
-fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str, tokens: u64) -> Session {
+fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str, tokens: u64, model: &str) -> Session {
     Session {
         id: name.into(),
         pid: 0,
@@ -21,15 +24,16 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         since_ms,
         task: task.into(),
         helpers: vec![],
-        context: Some(Context { tokens, model: DEMO_MODEL.to_string() }),
+        context: Some(Context { tokens, model: model.to_string() }),
         orca: None,
         web: Some(format!("https://claude.ai/code/session_demo_{name}")),
         background: false,
     }
 }
 
-fn helper(id: &str, kind: &str, task: &str, tokens: u64) -> Helper {
-    Helper { id: id.into(), kind: kind.into(), task: task.into(), model: None, context: Some(Context { tokens, model: DEMO_MODEL.to_string() }) }
+fn helper(id: &str, kind: &str, task: &str, tokens: u64, model: &str) -> Helper {
+    let alias = ["opus", "sonnet", "haiku"].into_iter().find(|a| model.contains(a)).map(str::to_string);
+    Helper { id: id.into(), kind: kind.into(), task: task.into(), model: alias, context: Some(Context { tokens, model: model.to_string() }) }
 }
 
 /// A 60 s scripted day in the office: work, shell, two petitions, an arrival.
@@ -39,22 +43,22 @@ pub fn roster(t: u64) -> Vec<Session> {
     // terra-77's context climbs the whole cycle so the UI shows every stage, light to blown-out.
     let terra_77_tokens = 50_000 + phase * ((950_000 - 50_000) / 60);
     let mut v = vec![
-        scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md", terra_77_tokens),
-        scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”", 120_000),
-        scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", 400_000),
-        scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", 520_000),
+        scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md", terra_77_tokens, OPUS),
+        scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”", 120_000, SONNET),
+        scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", 400_000, HAIKU),
+        scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", 520_000, SONNET),
     ];
     if phase >= 45 {
-        v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000));
+        v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000, HAIKU));
     }
     if (0..20).contains(&phase) {
         v[0].helpers = vec![
-            helper("a1", "general-purpose", "Implement Task 3", 30_000),
-            helper("a2", "Explore", "find callers", 80_000),
+            helper("a1", "general-purpose", "Implement Task 3", 30_000, OPUS),
+            helper("a2", "Explore", "find callers", 80_000, SONNET),
         ];
     }
     if (30..50).contains(&phase) {
-        v[3].helpers = vec![helper("b1", "general-purpose", "", 55_000)];
+        v[3].helpers = vec![helper("b1", "general-purpose", "", 55_000, HAIKU)];
     }
     v
 }

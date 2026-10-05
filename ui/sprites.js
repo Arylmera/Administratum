@@ -8,8 +8,22 @@ export const BASE = {
   R: '#8c2c1c', h: '#e8b45a', l: '#8a9096', O: '#e6ffee', L: '#6a4630',
   // adept robe: bone mid, bone shadow
   q: '#a89a78', Q: '#6a5e48',
+  // rank markers in the scribe maps (t hood rim, T shoulder seam, z cog, j cog hub): robe-coloured unless RANK gilds them
+  t: '#8c2c1c', T: '#3a0d09', z: '#5e1710', j: '#5e1710',
+  J: '#a89a78', I: '#a89a78', // adept hood cog, bone unless gilded
 };
 export const SASH = ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'];
+
+// Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
+export const rankOf = model => (/opus|fable/i.test(model ?? '') ? 'high' : /haiku/i.test(model ?? '') ? 'novice' : 'standard');
+// robe: scribe palette overrides; adept: adept palette overrides (x = hem/stripe trim).
+const gilt = (r, R, d) => ({ r, R, d, z: '#e8b45a', j: '#6e3f17', t: '#e8b45a', T: '#b8742e', g: '#e8b45a', G: '#b8742e' });
+const plain = (r, R, d) => ({ r, R, d, z: r, j: r, t: R, T: d, g: d, G: d });
+export const RANK = {
+  high: { name: 'Magos', robe: gilt('#6e120d', '#9a2a18', '#300806'), adept: { x: '#d9a84e', b: '#e8dcb8', J: '#e8b45a', I: '#6e3f17' } },
+  standard: { name: 'Tech-priest', robe: {}, adept: {} },
+  novice: { name: 'Novice', robe: plain('#6e3a30', '#8a5244', '#43231c'), adept: { x: '#5a564c', q: '#8e8a7e', Q: '#5a564c', b: '#a8a496', J: '#8e8a7e', I: '#8e8a7e' } },
+};
 
 export const RES = 2; // art pixels per logical pixel
 // Nearest-neighbour 2x upscale of a hand-written map: each char doubles horizontally, each row doubles vertically.
@@ -51,11 +65,11 @@ const withFeet = (body, feet) => body.slice(0, -feet.length).concat(feet);
 const SCRIBE_BACK = [
   '............kkkkkkkkkkkk........',
   '..........kkRRRRrrrrrrrrkk......',
-  '........kkRRRrrrrrrrrrrrrdkk....',
-  '.......kRRrrrrrrrrrrrrrrrrrdk...',
-  '......kRrrrrrrrrrrrrrrrrrrrrdk..',
-  '.....kRrrrrrrrrrrrrrrrrrrrrrrdk.',
-  '....kRrrrrrrrrrrrrrrrrrrrrrrrddk',
+  '........kkRRRrrzrzzrzrrrrdkk....',
+  '.......kRRrrrrrrzzzzrrrrrrrdk...',
+  '......kRrrrrrrrzzjjzzrrrrrrrdk..',
+  '.....kRrrrrrrrrrzzzzrrrrrrrrrdk.',
+  '....kRrrrrrrrrrzrzzrzrrrrrrrrddk',
   '....kRrrrrrrrrrrrrrrrrrrrrrrrddk',
   '....kRrrrrrrrrrkkkkkkrrrrrrrrddk',
   '....kRrrrrrrrrkmmmmmMkrrrrrrrddk',
@@ -67,7 +81,7 @@ const SCRIBE_BACK = [
   '....kdRrrrrrrrrrkmMkrrrrrrrrdddk',
   '.....kdRrrrrrrrrkMMkrrrrrrrrddk.',
   '......kddrrrrrrrkmMkrrrrrrrddk..',
-  '....kkRrddddddddkmMkddddddddddkk',
+  '....kktzTTTTTTTTkmMkTTTTTTTTTTkk',
   '....kRrrrrrrrrrrkMMkrrrrrrrrrddk',
   '....kRmmrrrrrrrrkmMkrrrrrrrrmmdk',
   '....kRmMrrrrrrrrkmMkrrrrrrrrmMdk',
@@ -91,7 +105,7 @@ const SCRIBE_FRONT = [
   '.......kRRrrrrrrrrrrrrrrrrrdk...',
   '......kRrrrrrrrrrrrrrrrrrrrrdk..',
   '.....kRrrrrrrrrrrrrrrrrrrrrrrdk.',
-  '....kRrrrrrrRRRRRRRRRRRRrrrrrddk',
+  '....kRrrrrrrttttttttttttrrrrrddk',
   '....kRrrrrRkkkkkkkkkkkkkkdrrrddk',
   '....kRrrrRkeeeeeeeeeeeeeekdrrddk',
   '....kRrrrRkeeeeeeeeeeeeeekdrrddk',
@@ -103,10 +117,10 @@ const SCRIBE_FRONT = [
   '....kdRrrrRkkkkkkkkkkkkkkdrrdddk',
   '.....kdRrrrrrrrrrrrrrrrrrrrrddk.',
   '......kddrrrrrrrrrrrrrrrrrrddk..',
-  '....kkRrddddddddddddddddddddddkk',
-  '....kRrrrrrrrrrrrrrrrrrrrrrrrddk',
-  '....kRlmrrrrrrrrrrrrrrrrrrrrlmdk',
-  '....kRmMrrkyykrrrrrrrrrrrrrrmMdk',
+  '....kktzTTTTTTTTTTTTTTTTTTTTTTkk',
+  '....kRrrrrrrrrrrzzzzrrrrrrrrrddk',
+  '....kRlmrrrrrrrzzjjzzrrrrrrrlmdk',
+  '....kRmMrrkyykrrzzzzrrrrrrrrmMdk',
   '....kyyyyyyyyyyyyyyyyyyyyyyyyyyk',
   '....kyyyyyyyyyyyyyyyyyyyyyyyyyyk',
   '....kRrrrkyyykrrrrrrrrrrrrrrdddk',
@@ -127,7 +141,7 @@ const SCRIBE_SIDE = [
   '.......kRRrrrrrrrrrrrrrrk.......',
   '......kRrrrrrrrrrrrrrrrrrk......',
   '......kRrrrrrrrrrrrrrrrrrrk.....',
-  '......kRrrrrrrrrrrrRRRRRRRRk....',
+  '......kRrrrrrrrrrrrttttttttk....',
   '......kRrrrrrrrrrRkkkkkkkkkk....',
   '......kRrrrrrrrrrRkeeeeeeeek....',
   '......kRrrrrrrrrrrkeeeeeeeek....',
@@ -139,10 +153,10 @@ const SCRIBE_SIDE = [
   '......kdRrrrrrrrrrkkkkkkkkk.....',
   '.......kdRrrrrrrrrrrrrrrdk......',
   '........kddrrrrrrrrrrrrdk.......',
-  '......kkRrdddddddddddddddkkk....',
-  '......kRrrrrrrrrrrrrrrrrrddk....',
-  '......kRrrrrrrrrrrrrdlmsssk.....',
-  '......kRrrrrrrrrrrrrdmMssBk.....',
+  '......kktzTTTTTTTTTTTTTTTkkk....',
+  '......kRrrzzzzrrrrrrrrrrrddk....',
+  '......kRrzzjjzzrrrrrdlmsssk.....',
+  '......kRrrzzzzrrrrrrdmMssBk.....',
   '......kyyyyyyyyyyyyyyyyyyyyk....',
   '......kyyyyyyyyyyyyyyyyyyyyk....',
   '......kRrrrrrrrrrrrrrrrrrddk....',
@@ -179,9 +193,9 @@ export const SCRIBE = {
 const ADEPT_FRONT = [
   '........kkkkkkkk........',
   '......kkbbqqqqqqkk......',
-  '.....kbbqqqqqqqqqQk.....',
-  '....kbqqqqqqqqqqqqQk....',
-  '....kbqqqqqqqqqqqqQk....',
+  '.....kbbqqqJJJqqqQk.....',
+  '....kbqqqqJJIJJqqqQk....',
+  '....kbqqqqqJJJqqqqQk....',
   '....kbqqqkkkkkkqqqQk....',
   '....kbqqkeeeeeekqqQk....',
   '....kbqkeeeeeeeekqQk....',
@@ -209,9 +223,9 @@ const ADEPT_FRONT = [
 const ADEPT_BACK = [
   '........kkkkkkkk........',
   '......kkbbqqqqqqkk......',
-  '.....kbbqqqqqqqqqQk.....',
-  '....kbqqqqqqqqqqqqQk....',
-  '....kbqqqqqqqqqqqqQk....',
+  '.....kbbqqqJJJqqqQk.....',
+  '....kbqqqqJJIJJqqqQk....',
+  '....kbqqqqqJJJqqqqQk....',
   '....kbqqqqqqqqqqqqQk....',
   '....kbqqqqqqqqqqqqQk....',
   '....kbqqqqqqQqqqqqQk....',
@@ -239,9 +253,9 @@ const ADEPT_BACK = [
 const ADEPT_SIDE = [
   '.......kkkkkkk..........',
   '.....kkbbqqqqqkk........',
-  '....kbbqqqqqqqqqk.......',
-  '....kbqqqqqqqqqqqk......',
-  '....kbqqqqqqqqqqqqk.....',
+  '....kbbqqJJJqqqqk.......',
+  '....kbqqJJIJJqqqqk......',
+  '....kbqqqJJJqqqqqqk.....',
   '....kbqqqqqqqqqkkkk.....',
   '....kbqqqqqqqqkeeek.....',
   '....kbqqqqqqqqkeeeek....',
