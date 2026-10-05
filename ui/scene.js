@@ -8,19 +8,48 @@ const WIN_DAY = { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' };
 const WIN_NIGHT = { u: '#3a2236', v: '#36401f', g: '#7a5a28' };
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
+// Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES).
 function grate(g, x, y, w, h) {
   g.fillStyle = '#2b2d30'; g.fillRect(x, y, w, h);
   g.fillStyle = '#141516';
-  for (let i = x; i < x + w; i += 4) g.fillRect(i, y, 1, h);
-  for (let j = y; j < y + h; j += 4) g.fillRect(x, j, w, 1);
+  for (let i = x; i < x + w; i += 4) g.fillRect(i, y, 0.5, h);
+  for (let j = y; j < y + h; j += 4) g.fillRect(x, j, w, 0.5);
+  g.fillStyle = '#383b3f'; // lit lip of each bar
+  for (let i = x; i < x + w; i += 4) g.fillRect(i + 0.5, y, 0.5, h);
+  for (let j = y; j < y + h; j += 4) g.fillRect(x, j + 0.5, w, 0.5);
 }
 function plates(g, x, y, w, h, base, line) {
   g.fillStyle = base; g.fillRect(x, y, w, h);
-  g.fillStyle = line;
-  for (let j = y + 9; j < y + h; j += 10) g.fillRect(x, j, w, 1);
+  for (let j = y + 9; j < y + h; j += 10) {
+    g.fillStyle = line; g.fillRect(x, j, w, 0.5);
+    g.fillStyle = 'rgba(255,240,220,.07)'; g.fillRect(x, j + 0.5, w, 0.5);
+    for (let i = x + 3; i < x + w; i += 12) { // rivets either side of the seam
+      g.fillStyle = line; g.fillRect(i, j - 2, 1, 1); g.fillRect(i, j + 1.5, 1, 1);
+      g.fillStyle = 'rgba(255,240,220,.18)'; g.fillRect(i, j - 2, 0.5, 0.5); g.fillRect(i, j + 1.5, 0.5, 0.5);
+    }
+  }
 }
-function pipeH(g, x, y, w) { g.fillStyle = '#c8853a'; g.fillRect(x, y, w, 1); g.fillStyle = '#8a4f22'; g.fillRect(x, y + 1, w, 2); }
-function pipeV(g, x, y, h) { g.fillStyle = '#c8853a'; g.fillRect(x, y, 1, h); g.fillStyle = '#8a4f22'; g.fillRect(x + 1, y, 2, h); }
+function pipeH(g, x, y, w) {
+  rect(g, x, y, w, 1, '#c8853a'); rect(g, x, y, w, 0.5, '#e8b070');
+  rect(g, x, y + 1, w, 2, '#8a4f22'); rect(g, x, y + 2.5, w, 0.5, '#5a3214');
+}
+function pipeV(g, x, y, h) {
+  rect(g, x, y, 1, h, '#c8853a'); rect(g, x, y, 0.5, h, '#e8b070');
+  rect(g, x + 1, y, 2, h, '#8a4f22'); rect(g, x + 2.5, y, 0.5, h, '#5a3214');
+}
+// Flange ring around a pipe: lit top/left edge, dark bottom/right edge, a bolt.
+function flange(g, x, y, w, h) {
+  rect(g, x, y, w, h, '#6e3f17');
+  rect(g, x, y, w, 0.5, '#b8742e'); rect(g, x, y, 0.5, h, '#b8742e');
+  rect(g, x, y + h - 0.5, w, 0.5, '#3a200c'); rect(g, x + w - 0.5, y, 0.5, h, '#3a200c');
+  rect(g, x + w / 2 - 0.5, y + h / 2 - 0.5, 1, 1, '#e8b45a');
+}
+// Coolant channel: dark glow edge, green body, bright inner core.
+function coolant(g, x, y, w, h) {
+  rect(g, x, y, w, h, '#2a8a50');
+  if (w > h) { rect(g, x, y + 0.5, w, h - 1, '#3aa864'); rect(g, x, y + h / 2 - 0.25, w, 0.5, '#b4ffc8'); }
+  else { rect(g, x + 0.5, y, w - 1, h, '#3aa864'); rect(g, x + w / 2 - 0.25, y, 0.5, h, '#b4ffc8'); }
+}
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
 function put(g, map, x, y, over) { blit(g, map, x, y, over); }
 
@@ -58,21 +87,22 @@ export function drawStatic(g, daylight) {
   rect(g, 200, 0, 8, 150, '#100b08'); rect(g, 200, 186, 8, 40, '#100b08'); rect(g, 200, 150, 8, 36, '#3a110e');
 
   g.save(); g.shadowColor = '#3aa864'; g.shadowBlur = 4;
-  rect(g, 0, 116, 200, 2, '#3aa864'); rect(g, 0, 182, 200, 2, '#3aa864'); rect(g, 98, 40, 2, 186, '#3aa864');
+  coolant(g, 0, 116, 200, 2); coolant(g, 0, 182, 200, 2); coolant(g, 98, 40, 2, 186);
   g.restore();
 
   pipeH(g, 0, 4, 200); pipeH(g, 208, 4, 138);
-  [20, 64, 110, 150, 190, 230, 280, 330].forEach(x => rect(g, x, 3, 3, 5, '#6e3f17'));
+  [20, 64, 110, 150, 190, 230, 280, 330].forEach(x => flange(g, x, 3, 3, 5));
   pipeV(g, 203, 0, 150); pipeV(g, 203, 186, 40);
-  [36, 74, 112].forEach(y => rect(g, 202, y, 5, 3, '#6e3f17'));
+  [36, 74, 112].forEach(y => flange(g, 202, y, 5, 3));
   pipeV(g, 144, 7, 29); pipeV(g, 194, 7, 29);
   [8, 26, 50, 74, 96, 128, 150, 172, 196, 220].forEach((x, i) => {
     const h = 10 + (i * 7) % 18;
-    rect(g, x, 7, 1, h, '#0e0a08'); rect(g, x + 1, 7 + h - 1, 2, 1, '#0e0a08');
+    rect(g, x, 7, 0.5, h, '#0e0a08'); rect(g, x + 0.5, 7, 0.5, h, 'rgba(255,240,220,.06)'); rect(g, x, 7 + h - 1, 2, 1, '#0e0a08');
   });
-  g.fillStyle = 'rgba(124,255,158,.32)';
+  // Binary cant: 1-art-px glyphs (ones tall, zeros a dot), one per logical px.
+  g.fillStyle = 'rgba(124,255,158,.38)';
   [[2, 32, 198], [74, 38, 198], [210, 32, 344], [210, 105, 344]].forEach(([x, y, end]) => {
-    for (let i = 0; i < BIN.length && x + i * 2 < end; i++) if (BIN[i] === '1') g.fillRect(x + i * 2, y, 1, 1);
+    for (let i = 0; x + i < end; i++) g.fillRect(x + i, y, 0.5, BIN[(i + x) % BIN.length] === '1' ? 1 : 0.5);
   });
   [[60, 104, 14, 1], [73, 104, 1, 6], [120, 204, 1, 12]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, '#0e0a08'));
   [[30, 120, 18, 8], [146, 186, 8, 6], [270, 196, 14, 6]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, 'rgba(10,6,4,.35)'));
