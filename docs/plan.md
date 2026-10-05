@@ -950,7 +950,7 @@ git commit -m "backend: poll loop, roster events, petition toast, tray, demo ros
   - `phaseOf(hour) -> 'day'|'dusk'|'night'`
   - `lightLevel(mode, hour) -> { phase, dark, glow, beams }`
 
-- [ ] **Step 1: Write the failing self-check** — `ui/layout.test.mjs`:
+- [x] **Step 1: Write the failing self-check** — `ui/layout.test.mjs`:
 
 ```js
 import assert from 'node:assert/strict';
@@ -995,12 +995,12 @@ assert.ok(lightLevel('full', 12).dark > 0, 'Tier II keeps a darkness floor in fu
 console.log('layout ok');
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `node ui/layout.test.mjs`
 Expected: `ERR_MODULE_NOT_FOUND` for `./layout.js`.
 
-- [ ] **Step 3: Implement `ui/layout.js`**
+- [x] **Step 3: Implement `ui/layout.js`**
 
 ```js
 // Pure scene geometry, in logical pixels. Every {x, y} point is a scribe's feet.
@@ -1075,12 +1075,12 @@ export function lightLevel(mode, hour) {
 }
 ```
 
-- [ ] **Step 4: Run it to verify it passes**
+- [x] **Step 4: Run it to verify it passes**
 
 Run: `node ui/layout.test.mjs`
 Expected: `layout ok`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add ui/layout.js ui/layout.test.mjs
