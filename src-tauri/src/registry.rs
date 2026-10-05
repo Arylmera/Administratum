@@ -30,6 +30,7 @@ pub struct Session {
     pub context: Option<Context>,
     pub orca: Option<String>,
     pub web: Option<String>,
+    pub background: bool,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -117,6 +118,26 @@ pub fn active_helpers(dir: &Path, now: SystemTime) -> Vec<Helper> {
     }
     out.sort_by(|a, b| a.id.cmp(&b.id));
     out
+}
+
+/// Whether the newest assistant/user/system entry in `tail` shows the turn has concluded.
+/// Scans newest-first; a `system` entry whose subtype isn't "turn_duration" or
+/// "stop_hook_summary" (e.g. the metadata-ish "away_summary") is noise and is skipped, same as
+/// non-assistant/user/system lines (last-prompt, ai-title, mode, ...). The first assistant/user
+/// message found means the turn is still in progress (e.g. a pending tool_use) -> false.
+pub fn turn_done(tail: &str) -> bool {
+    for line in tail.lines().rev() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        match v["type"].as_str() {
+            Some("assistant") | Some("user") => return false,
+            Some("system") => match v["subtype"].as_str() {
+                Some("turn_duration") | Some("stop_hook_summary") => return true,
+                _ => continue,
+            },
+            _ => continue,
+        }
+    }
+    false
 }
 
 pub fn parse_record(text: &str) -> Option<RawRecord> {
@@ -220,10 +241,11 @@ pub fn scan(
         if !alive(rec.pid) {
             continue;
         }
-        let status = normalize_status(rec.status.as_deref()).to_string();
+        let mut status = normalize_status(rec.status.as_deref()).to_string();
         let small_tail = transcript(&rec.session_id, &rec.cwd, TAIL_BYTES);
         let mut task = small_tail.as_deref().map(task_line).unwrap_or_else(|| "—".into());
         let mut context = small_tail.as_deref().and_then(context_of);
+        let mut tail_for_background = small_tail.clone();
         if task == "—" || context.is_none() {
             // The newest line didn't fit in the small tail; retry once with a bigger one.
             if let Some(bigger) = transcript(&rec.session_id, &rec.cwd, BIG_TAIL_BYTES) {
@@ -233,7 +255,12 @@ pub fn scan(
                 if context.is_none() {
                     context = context_of(&bigger);
                 }
+                tail_for_background = Some(bigger);
             }
+        }
+        let background = status == "shell" && tail_for_background.as_deref().is_some_and(turn_done);
+        if background {
+            status = "idle".to_string();
         }
         let helper_list = helpers(&rec.session_id, &rec.cwd);
         let orca = orca_handle(rec.pid);
@@ -252,6 +279,7 @@ pub fn scan(
             context,
             orca,
             web,
+            background,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -449,7 +477,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None, orca: None, web: None }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None, orca: None, web: None, background: false }
     }
 
     #[test]
@@ -594,6 +622,41 @@ mod tests {
     fn active_helpers_of_missing_dir_is_empty() {
         let out = active_helpers(&std::env::temp_dir().join("adm-helpers-does-not-exist"), SystemTime::now());
         assert!(out.is_empty());
+    }
+
+    const REAL_SHELL_TAIL: &str = concat!(
+        r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#, "\n",
+        r#"{"type":"user","message":{"content":[{"type":"tool_result","content":"done"}]}}"#, "\n",
+        r#"{"type":"assistant","message":{"content":[{"type":"text","text":"all set"}]}}"#, "\n",
+        r#"{"type":"system","subtype":"stop_hook_summary","hookCount":2}"#, "\n",
+        r#"{"type":"system","subtype":"turn_duration","durationMs":19925}"#, "\n",
+        r#"{"type":"last-prompt","lastPrompt":"go quand tu les as"}"#, "\n",
+        r#"{"type":"ai-title","aiTitle":"Public APIs repo integration"}"#, "\n",
+        r#"{"type":"mode","mode":"normal"}"#, "\n",
+        r#"{"type":"permission-mode","permissionMode":"bypassPermissions"}"#, "\n",
+        r#"{"type":"bridge-session","bridgeSessionId":"cse_018oaCXrud1SYhmpzjVcGZDY"}"#, "\n",
+        r#"{"type":"system","subtype":"away_summary","content":"on nettoie GyroidVault"}"#,
+    );
+
+    #[test]
+    fn turn_done_true_on_real_shaped_tail_with_trailing_noise() {
+        assert!(turn_done(REAL_SHELL_TAIL), "turn_duration precedes trailing away_summary noise");
+    }
+
+    #[test]
+    fn turn_done_false_when_tail_ends_in_pending_tool_use() {
+        let tail = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#;
+        assert!(!turn_done(tail));
+        assert!(!turn_done(""), "unknown -> false");
+    }
+
+    #[test]
+    fn scan_turns_finished_shell_into_idle_background() {
+        let d = temp_dir("scan-shell-background");
+        fs::write(d.join("10.json"), record(10, "a", "terra-b", "shell")).unwrap();
+        let out = scan(&d, |_| true, |_, _, _| Some(REAL_SHELL_TAIL.to_string()), |_, _| vec![], |_| None);
+        assert_eq!(out.sessions[0].status, "idle");
+        assert!(out.sessions[0].background);
     }
 
     #[test]
