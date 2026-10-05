@@ -7,7 +7,7 @@ const COG_HOLD_MS = 10000; // a busy scribe stays at the cogitator this long aft
 export class Cast {
   constructor() { this.actors = new Map(); }
 
-  sync(roster, seats, colorOf) {
+  sync(roster, seats, colorOf, consoleSeats = new Map()) {
     const live = new Set(roster.map(s => s.id));
     for (const s of roster) {
       const a = this.actors.get(s.id);
@@ -31,7 +31,7 @@ export class Cast {
     // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
     const all = [...this.actors.values()];
     for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
-      const d = a.h ? this.beside(a) : this.destination(a, seats, waiting, shell);
+      const d = a.h ? this.atConsole(a, consoleSeats) : this.destination(a, seats, waiting, shell);
       const key = `${d.x},${d.y},${d.pose}`;
       if (key !== a.destKey) {
         a.destKey = key;
@@ -53,20 +53,10 @@ export class Cast {
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
   }
 
-  // Adept spot from its owner's destination: beside the desk (right, left, then a second rank), else just behind.
-  beside(a) {
-    const o = this.actors.get(a.owner), d = o?.target;
-    if (a.leaving || !d || d.pose === 'gone') return { ...ENTRY, pose: 'gone' };
-    const mates = [...this.actors.values()].filter(b => b.owner === a.owner && !b.leaving);
-    const i = mates.indexOf(a), n = mates.length;
-    if (d.pose === 'desk') {
-      const spots = [0, 1, 2, 3].map(k => {
-        const side = k % 2 ? -1 : 1, rank = k >> 1;
-        return { x: d.x + side * 22, y: d.y - 12 + rank * 20, pose: 'adept', dir: side > 0 ? 'left' : 'right' };
-      }).filter(p => p.x > 8 && p.x < 192); // keep off the hall's edges
-      return spots[i % spots.length];
-    }
-    return { x: d.x + (i - (n - 1) / 2) * 12, y: Math.min(d.y + 8, 219), pose: 'adept', dir: 'up' };
+  // Adepts work at their own console in the owner's department block, whatever the owner is doing.
+  atConsole(a, consoleSeats) {
+    const seat = consoleSeats.get(a.id);
+    return a.leaving || !seat ? { ...ENTRY, pose: 'gone' } : { x: seat.x, y: seat.y, pose: 'console', dir: 'up' };
   }
 
   update(dt) {
@@ -91,7 +81,7 @@ export class Cast {
     if (a.h) { // adept: 12x14, feet at (x, y)
       const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14;
       if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy);
-      else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 3) > 0.6 ? 0.5 : 0)); // idle bob, 1 art px
+      else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0)); // typing bob, 1 art px
       return;
     }
     const over = { y: a.sash };

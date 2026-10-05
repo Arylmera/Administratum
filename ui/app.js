@@ -2,7 +2,7 @@ import { SCENE, lightLevel } from './layout.js';
 import { drawStatic, drawDecorFrame, STATIC_LIGHTS } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { layoutDepartments } from './layout.js';
-import { drawRugs, drawDoors, deskDrawable, deskLight } from './scene.js';
+import { drawRugs, drawDoors, deskDrawable, deskLight, consoleDrawable, consoleLight } from './scene.js';
 import { SASH, RES } from './sprites.js';
 import { Cast } from './actors.js';
 
@@ -96,7 +96,8 @@ requestAnimationFrame(frame);
 const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
 const cast = new Cast();
 const deptOrder = [];
-let layout = { blocks: [], desks: [], seats: new Map(), overflow: 0 };
+let layout = { blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0 };
+const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
 let roster = [];
 let sel = null;
 const colorOf = dept => SASH[deptOrder.indexOf(dept) % SASH.length];
@@ -110,17 +111,26 @@ function onRoster(next) {
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
   const depts = deptOrder
-    .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name).map(s => s.id) }))
+    .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length);
   layout = layoutDepartments(depts);
   // ponytail: sessions past the hall's capacity are not drawn; toast + counter still cover their petitions.
-  cast.sync(roster.filter(s => layout.seats.has(s.id)), layout.seats, colorOf);
+  cast.sync(roster.filter(s => layout.seats.has(s.id)), layout.seats, colorOf, layout.consoleSeats);
   const n = roster.filter(s => s.status === 'waiting').length;
   const count = document.getElementById('count');
   count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
   count.classList.toggle('on', n > 0);
   renderPlaques();
   renderCard();
+}
+
+function consolesOf(dept) {
+  const live = roster.filter(s => s.dept === dept).flatMap(s => (s.helpers ?? []).map(h => `${s.id}|${h.id}`));
+  const order = (consoleOrder.get(dept) ?? []).map(id => (live.includes(id) ? id : null));
+  for (const id of live) if (!order.includes(id)) { const free = order.indexOf(null); if (free < 0) order.push(id); else order[free] = id; }
+  while (order.length && order.at(-1) === null) order.pop();
+  consoleOrder.set(dept, order);
+  return order;
 }
 
 function renderPlaques() {
@@ -188,6 +198,7 @@ function syncLabels() {
       }
       el.style.left = `${a.x * scale}px`;
       el.style.top = `${(a.y + 0.5) * scale}px`;
+      el.style.maxWidth = `${21 * scale}px`; // one console cell: neighbours' labels never touch
       continue;
     }
     const adepts = a.s.helpers?.length ?? 0;
@@ -248,6 +259,12 @@ hooks.beforeLights = gg => {
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     items.push(deskDrawable(d, busy));
     lights.push(deskLight(d, busy));
+  }
+  for (const c of layout.consoles) {
+    const a = cast.actors.get(c.id);
+    const lit = !!a && a.pose === 'console';
+    items.push(consoleDrawable(c, lit));
+    lights.push(consoleLight(c, lit));
   }
   for (const a of cast.actors.values()) items.push({ y: a.y, draw: g2 => cast.drawActor(g2, a) });
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(gg));

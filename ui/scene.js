@@ -139,6 +139,18 @@ export function deskDrawable(desk, busy) {
   };
 }
 
+export function consoleDrawable(con, lit) {
+  return {
+    y: con.y + 10,
+    draw(g) {
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(con.x + 4, con.y + 10, 6, 1);
+      blit(g, MAPS.CONSOLE, con.x, con.y, lit ? {} : { c: '#2e6b47' });
+    },
+  };
+}
+
+export const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
+
 export function deskLight(desk, busy) {
   return busy
     ? { x: desk.x + 25, y: desk.y + 1, r: 22, color: AMBER, flicker: true }
