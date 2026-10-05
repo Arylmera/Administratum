@@ -2038,7 +2038,7 @@ git commit -m "ui: scribes walk between desk, cogitator and petition queue; labe
 - Modify: `README.md` (install line)
 - Create (Terra vault, via the `artisan` Legatus per Lex IV): `Armoury/Projects/Administratum.md`
 
-- [ ] **Step 1: Build the installer**
+- [x] **Step 1: Build the installer**
 
 ```powershell
 Set-Location src-tauri
@@ -2051,13 +2051,13 @@ Expected: `src-tauri/target/release/bundle/nsis/Administratum_0.1.0_x64-setup.ex
 
 Run the installer, start Administratum from the Start menu. Expected: no console window, tray icon present, toasts show "Administratum" as the app name, tray "Start at login" toggles and survives a re-login.
 
-- [ ] **Step 3: Add the install line to `README.md`** (under the Run bullets)
+- [x] **Step 3: Add the install line to `README.md`** (under the Run bullets)
 
 ```markdown
 - Install: `cd src-tauri; cargo tauri build`, then run `target/release/bundle/nsis/Administratum_0.1.0_x64-setup.exe`
 ```
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 ```powershell
 git add README.md
