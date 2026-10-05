@@ -89,7 +89,7 @@ pub fn compacted_at(tail: &str) -> Option<i64> {
 }
 
 /// "2026-04-10T18:08:48.679Z" -> Unix ms. ponytail: only the UTC "Z" form Claude Code writes, no offsets.
-fn iso_utc_ms(s: &str) -> Option<i64> {
+pub(crate) fn iso_utc_ms(s: &str) -> Option<i64> {
     let s = s.strip_suffix('Z')?;
     let (date, time) = s.split_once('T')?;
     let mut d = date.splitn(3, '-').map(|n| n.parse::<i64>().ok());
@@ -208,7 +208,7 @@ pub fn normalize_status(s: Option<&str>) -> &'static str {
     }
 }
 
-fn clip(s: &str) -> String {
+pub(crate) fn clip(s: &str) -> String {
     if s.chars().count() <= 60 {
         s.to_string()
     } else {
@@ -481,6 +481,13 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
     let find = |pred: &dyn Fn(&str) -> bool| opts.iter().find(|(_, l)| pred(l)).map(|(n, _)| *n);
     let yes = find(&|l| l == "Yes").filter(|&n| n == 1)?;
     Some(Prompt { yes, always: find(&|l| l.starts_with("Yes,")), no: find(&|l| l.starts_with("No"))? })
+}
+
+/// A plain idle session for other modules' tests.
+#[cfg(test)]
+pub fn tests_session(id: &str) -> Session {
+    Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), waiting_for: None,
+              since_ms: 0, task: "—".into(), helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
 }
 
 #[cfg(test)]
