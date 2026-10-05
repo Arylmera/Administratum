@@ -1,10 +1,29 @@
 // Settings: a parchment panel behind the header gear (opens and closes like the Chronicon).
-// UI values live in localStorage; always-on-top goes through the window API, start-at-login and
-// the stale-petition mark through the backend (start_at_login, set_stale_minutes).
+// UI values (every adm.* key) live in the backend's settings.json (survives a reinstall that wipes
+// the WebView), mirrored in memory and in localStorage as a cache; without a backend, localStorage
+// alone. Always-on-top goes through the window API, start-at-login and the stale-petition mark
+// through the backend (start_at_login, set_stale_minutes).
+
+const invokeTop = (cmd, args) => window.__TAURI__?.core?.invoke(cmd, args);
+const mem = {};
+let saved = null;
+try { saved = await invokeTop('settings_load', {}); } catch { /* no backend or failed: the cache */ }
+let saveTimer;
+const persist = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { invokeTop('settings_save', { values: { ...mem } })?.catch(err => console.warn('settings_save', err)); } catch { /* no backend */ } }, 300); };
+if (saved && typeof saved === 'object' && Object.keys(saved).length) Object.assign(mem, saved);
+else {
+  // First run with the file (or no backend): take the cached adm.* keys, and write them to the file.
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('adm.')) mem[k] = localStorage.getItem(k); } } catch { /* storage blocked */ }
+  if (Object.keys(mem).length) persist();
+}
 
 export const store = {
-  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: keep in memory */ } },
+  get(k, d) { return mem[k] ?? d; },
+  set(k, v) {
+    mem[k] = v;
+    try { localStorage.setItem(k, v); } catch { /* storage blocked: memory + file */ }
+    persist();
+  },
 };
 
 // Numbers: [default, min, max]. Context windows are in k tokens.

@@ -2,6 +2,7 @@
 mod chronicle;
 mod demo;
 mod registry;
+mod settings;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
@@ -159,6 +160,21 @@ fn start_at_login(enable: Option<bool>, app: AppHandle, login: State<CheckMenuIt
     Ok(on)
 }
 
+fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app.path().app_config_dir().map_err(|e| e.to_string())?.join("settings.json"))
+}
+
+/// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
+#[tauri::command]
+fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
+    Ok(settings::load(&settings_path(&app)?))
+}
+
+#[tauri::command]
+fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
+    settings::save(&settings_path(&app)?, &values)
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -169,7 +185,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, start_at_login])
+        .invoke_handler(tauri::generate_handler![open_session, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, start_at_login, settings_load, settings_save])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
