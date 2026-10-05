@@ -2,6 +2,7 @@ import { SCRIBE, ADEPT, MAPS, blit } from './sprites.js';
 import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY } from './layout.js';
 
 const SPEED = 80; // logical px per second
+const COG_HOLD_MS = 10000; // a busy scribe stays at the cogitator this long after its last shell command
 
 export class Cast {
   constructor() { this.actors = new Map(); }
@@ -22,7 +23,11 @@ export class Cast {
     }
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
     const waiting = roster.filter(s => s.status === 'waiting').sort((p, q) => p.sinceMs - q.sinceMs).map(s => s.id);
-    const shell = roster.filter(s => s.status === 'shell').map(s => s.id);
+    // Hysteresis: Bash calls flip a session busy<->shell every few seconds; don't walk back and forth for each one.
+    const now = Date.now();
+    for (const s of roster) { const a = this.actors.get(s.id); if (s.status === 'shell') a.lastShell = now; }
+    const atCog = s => s.status === 'shell' || (s.status === 'busy' && now - (this.actors.get(s.id).lastShell ?? 0) < COG_HOLD_MS);
+    const shell = roster.filter(atCog).map(s => s.id);
     // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
     const all = [...this.actors.values()];
     for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
@@ -43,7 +48,7 @@ export class Cast {
       const queueIdx = Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1);
       return { ...QUEUE_SLOTS[queueIdx], pose: 'queue', queueIdx };
     }
-    if (a.s.status === 'shell') return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' };
+    if (shell.includes(a.id)) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' };
     const seat = seats.get(a.id);
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
   }
