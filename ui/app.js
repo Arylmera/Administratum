@@ -2,7 +2,7 @@ import { SCENE, lightLevel, layoutDepartments } from './layout.js';
 import { drawStatic, drawScene } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES } from './sprites.js';
-import { Cast } from './actors.js';
+import { Cast, isStale } from './actors.js';
 
 const MODES = ['auto', 'full', 'candles'];
 const store = {
@@ -122,6 +122,7 @@ function onRoster(next) {
   const count = document.getElementById('count');
   count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
   count.classList.toggle('on', n > 0);
+  count.classList.toggle('alarm', roster.some(isStale));
   renderPlaques();
   renderCard();
 }
@@ -234,10 +235,11 @@ function syncLabels() {
       labels.set(a.id, el);
     }
     const want = a.s.waitingFor ?? 'input needed';
-    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s)].join('|');
+    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s), isStale(a.s)].join('|');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
       el.classList.toggle('sel', sel === a.id);
+      el.classList.toggle('stale', isStale(a.s));
       const who = document.createElement('button');
       who.className = 'who';
       who.onclick = () => pick(a.id);
@@ -308,12 +310,12 @@ canvas.onmouseleave = () => { mouse = null; };
 addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 
 let audio = null;
-function chime() {
+function chime(notes = [660, 990]) {
   if (state.muted) return;
   try {
     audio ??= new AudioContext();
     const t0 = audio.currentTime;
-    [660, 990].forEach((f, i) => {
+    notes.forEach((f, i) => {
       const o = audio.createOscillator(), v = audio.createGain(), at = t0 + i * 0.18;
       o.type = 'sine'; o.frequency.value = f;
       v.gain.setValueAtTime(0, at);
@@ -336,6 +338,7 @@ const T = window.__TAURI__;
 if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());
+  T.event.listen('petition-stale', () => chime([990, 660, 990, 660]));
   T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
   T.event.listen('visible', e => { visible = e.payload; });
   document.getElementById('hide').onclick = () => { visible = false; T.window.getCurrentWindow().hide(); };

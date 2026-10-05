@@ -345,10 +345,12 @@ pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
     out
 }
 
-/// Remembers open petition episodes (`id:since`) so each one notifies exactly once.
+/// Remembers open petition episodes (`id:since`) so each one notifies exactly once, and once more
+/// when it goes stale.
 #[derive(Default)]
 pub struct Tracker {
     open: HashSet<String>,
+    stale: HashSet<String>,
 }
 
 impl Tracker {
@@ -365,7 +367,24 @@ impl Tracker {
         self.open = now;
         fresh
     }
+
+    /// Petitions that have just crossed `STALE_MS` of waiting, once per episode (`id:since`).
+    /// A petition with no known start (`since_ms == 0`) never escalates.
+    pub fn stale_petitions(&mut self, roster: &[Session], now_ms: i64) -> Vec<Session> {
+        let waiting: Vec<_> = roster.iter().filter(|s| s.status == "waiting" && s.since_ms > 0).collect();
+        let keys: HashSet<String> = waiting.iter().map(|s| format!("{}:{}", s.id, s.since_ms)).collect();
+        self.stale.retain(|k| keys.contains(k));
+        let mut out = vec![];
+        for s in waiting {
+            if now_ms - s.since_ms > STALE_MS && self.stale.insert(format!("{}:{}", s.id, s.since_ms)) {
+                out.push(s.clone());
+            }
+        }
+        out
+    }
 }
+
+pub const STALE_MS: i64 = 5 * 60 * 1000;
 
 /// Option numbers of a Claude Code permission dialog: plain "Yes", the first "Yes, ..." (don't ask
 /// again / allow all edits) if offered, and the "No" option.
@@ -825,6 +844,18 @@ mod tests {
         let fake = " Do you want to proceed?\n ❯ 1. Yes\n   2. No\n";
         let screen = format!("{fake}{EDIT_PROMPT}");
         assert_eq!(parse_permission_prompt(&screen), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
+    }
+
+    #[test]
+    fn stale_petition_fires_once_after_five_minutes_per_episode() {
+        let mut t = Tracker::default();
+        let w = |since| [session("a", 1, "waiting", since)];
+        assert!(t.stale_petitions(&w(1_000), 1_000 + 299_000).is_empty(), "not yet");
+        assert_eq!(t.stale_petitions(&w(1_000), 1_000 + 301_000).len(), 1, "crossed 5 min");
+        assert!(t.stale_petitions(&w(1_000), 1_000 + 900_000).is_empty(), "same episode");
+        assert!(t.stale_petitions(&[session("a", 1, "busy", 2_000)], 2_000_000).is_empty());
+        assert_eq!(t.stale_petitions(&w(3_000), 3_000 + 400_000).len(), 1, "new episode");
+        assert!(t.stale_petitions(&w(0), 9_999_999).is_empty(), "unknown since never escalates");
     }
 
     #[test]

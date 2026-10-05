@@ -1,6 +1,6 @@
 import { blit, sprite, MAPS } from './sprites.js';
 import { ENTRY } from './layout.js';
-import { drawActor } from './actors.js';
+import { drawActor, isStale } from './actors.js';
 
 const AMBER = 'rgba(240,168,60,.26)';
 const GREEN = 'rgba(124,255,158,.16)';
@@ -152,7 +152,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   for (const a of all) items.push({ y: a.y, draw: g2 => drawActor(g2, a) });
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
   drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
-  return STATIC_LIGHTS.concat(lights);
+  return STATIC_LIGHTS.concat(lights, drawAlarm(g, all, now));
 }
 
 function drawRugs(g, blocks) {
@@ -405,4 +405,56 @@ function drawGate(g, actors) {
       blit(g2, MAPS.GATE, GATE.x, GATE.y);
     },
   };
+}
+
+// Escalation: while a petition has waited over 5 min, the beacon on the Sanctum wall turns (red sweep) and the
+// servo-skull leaves its perch by the Magos to hover by the oldest stale petitioner, eye and searchlight red.
+const BEACON = { x: 226, y: 118 };
+const PERCH = { x: 297, y: 128 };
+const skull = { x: PERCH.x, y: PERCH.y, last: 0 };
+const SKULL_SPEED = 60; // logical px per second
+function drawAlarm(g, actors, now) {
+  const t = now / 1000, lights = [];
+  const stale = actors.filter(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s)).sort((p, q) => p.s.sinceMs - q.s.sinceMs);
+  const on = stale.length > 0;
+  drawBeacon(g, t, on);
+  if (on) {
+    const sweep = Math.sin(t * 5); // the reflector's turn: the glow swings across the wall and the floor below
+    lights.push({ x: BEACON.x, y: BEACON.y, r: 14, color: 'rgba(255,58,32,.6)' },
+      { x: BEACON.x + 20 * sweep, y: BEACON.y + 16, r: 30 + 8 * Math.abs(Math.cos(t * 5)), color: 'rgba(255,40,20,.4)' });
+  }
+  const dt = skull.last ? Math.min(0.1, (now - skull.last) / 1000) : 0;
+  skull.last = now;
+  const who = stale[0], tgt = on ? { x: who.x + 34, y: who.y - 20 } : PERCH; // beside the petition label, clear of the Magos
+  const dx = tgt.x - skull.x, dy = tgt.y - skull.y, d = Math.hypot(dx, dy), step = SKULL_SPEED * dt;
+  if (d <= step) { skull.x = tgt.x; skull.y = tgt.y; } else { skull.x += (dx / d) * step; skull.y += (dy / d) * step; }
+  const y = skull.y + Math.round(2 * Math.sin(t * 4)) / 2;
+  if (on && d <= step) { // hovering: a red searchlight down onto the petitioner
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = `rgba(255,50,30,${0.1 + 0.04 * Math.sin(t * 8)})`;
+    g.beginPath(); g.moveTo(skull.x - 1.5, y + 4); g.lineTo(skull.x + 1.5, y + 4); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
+    g.restore();
+  }
+  blit(g, MAPS.SKULL, half(skull.x) - 5, half(y) - 5, on ? { o: '#ff3a20', O: '#ffd0b0' } : undefined);
+  lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? 'rgba(255,58,32,.45)' : GREEN });
+  return lights;
+}
+
+// Alarm beacon on its wall bracket (art px = 0.5): a caged red dome whose reflector strip sweeps round when on.
+function drawBeacon(g, t, on) {
+  const { x, y } = BEACON;
+  rect(g, x - 0.5, y + 3, 1, 3, '#3a200c'); // stem into the wall
+  rect(g, x - 3.5, y + 2.5, 7, 2.5, '#0e0a08'); rect(g, x - 3, y + 3, 6, 1.5, '#6e3f17'); rect(g, x - 3, y + 3, 6, 0.5, '#b8742e');
+  rect(g, x - 2.5, y + 3.5, 0.5, 0.5, '#e8b45a'); rect(g, x + 2, y + 3.5, 0.5, 0.5, '#e8b45a'); // bolts
+  rect(g, x - 3, y - 2.5, 6, 5.5, '#0e0a08'); rect(g, x - 2.5, y - 3, 5, 0.5, '#0e0a08'); // dome outline, rounded top
+  rect(g, x - 2.5, y - 2, 5, 4.5, on ? '#c8281a' : '#5e1710'); rect(g, x - 2, y - 2.5, 4, 0.5, on ? '#c8281a' : '#5e1710');
+  rect(g, x - 2.5, y + 1.5, 5, 1, on ? '#8e1c16' : '#3a0d09'); // shaded lower rim
+  if (on) {
+    const p = (t * 2.5) % 1, sx = half(x - 2.5 + p * 4.5);
+    rect(g, sx, y - 2, 0.5, 3.5, '#ffd0b0');
+    if (sx + 0.5 < x + 2.5) rect(g, sx + 0.5, y - 2, 0.5, 3.5, '#ff6a4a');
+  } else rect(g, x - 2, y - 1.5, 0.5, 1.5, '#8c2c1c'); // dull glint
+  rect(g, x - 2.5, y, 5, 0.5, '#2a2c30'); rect(g, x - 1, y - 2.5, 0.5, 4, '#2a2c30'); rect(g, x + 0.5, y - 2.5, 0.5, 4, '#2a2c30'); // cage
+  rect(g, x - 1.5, y - 4, 3, 1, '#6e3f17'); rect(g, x - 1.5, y - 4, 3, 0.5, '#e8b45a'); // brass cap
 }

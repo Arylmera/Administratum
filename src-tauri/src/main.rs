@@ -176,6 +176,16 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 .show();
             let _ = app.emit("petition", &s);
         }
+        let now_ms = SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
+        for s in tracker.stale_petitions(&roster, now_ms) {
+            let _ = app
+                .notification()
+                .builder()
+                .title(format!("Petition still waiting: {}", s.name))
+                .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                .show();
+            let _ = app.emit("petition-stale", &s);
+        }
         // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
         let _ = app.emit("roster", &roster);
         prev = roster;

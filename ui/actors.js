@@ -5,6 +5,8 @@ const SPEED = 80; // logical px per second
 const COG_HOLD_MS = 10000; // a busy scribe stays at the cogitator this long after its last shell command
 const NAP_MS = 120000; // idle this long (no background shell) and a scribe leaves for the refectorium
 const RECAFF_S = 2; // seconds at the recaff dispenser on the way to a bench
+const STALE_MS = 300000; // a petition waiting longer escalates (alarm beacon, servo-skull, header alarm); backend toasts at the same mark
+export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now() - s.sinceMs > STALE_MS;
 
 export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); } // naps: scribe id -> REFECTORY_SPOTS index
