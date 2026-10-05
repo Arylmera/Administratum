@@ -1,6 +1,6 @@
 import { blit, sprite, MAPS } from './sprites.js';
 import { ENTRY } from './layout.js';
-import { drawActor, isStale, BURN_S, PUFF_S } from './actors.js';
+import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 
 const AMBER = 'rgba(240,168,60,.26)';
 const GREEN = 'rgba(124,255,158,.16)';
@@ -136,7 +136,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const all = [...actors.values()];
   drawRugs(g, layout.blocks);
   drawDoors(g, all);
-  const items = [drawGate(g, all)], lights = [];
+  const items = [drawGate(g, all)], lights = [], over = [];
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key;
@@ -146,8 +146,9 @@ export function drawScene(g, layout, actors, fillOf, now) {
     if (d.id) lastFill.set(d.key, fill);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     paperFloor(g, pile, 'desk', fill, d, blockOf(d.dept), now);
-    items.push(deskDrawable({ ...d, id: pile }, busy, fill, !!a?.s.background, now));
+    items.push(deskDrawable({ ...d, id: pile }, busy, fill, !!a?.s.background, now, d.id && a));
     if (d.id) lights.push(deskLight(d, busy));
+    if (d.id && a) reactions(a, d, DESK_AT, over, lights, now);
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S;
       items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + 16, d.y + 11, k) });
@@ -158,11 +159,13 @@ export function drawScene(g, layout, actors, fillOf, now) {
     const a = actors.get(c.id), fill = fillOf(a?.h?.context);
     const lit = !!a && a.pose === 'console';
     paperFloor(g, c.id, 'console', fill, c, blockOf(c.dept), now);
-    items.push(consoleDrawable(c, lit, fill));
+    items.push(consoleDrawable(c, lit, fill, a));
     lights.push(consoleLight(c, lit));
+    if (a) reactions(a, c, CONSOLE_AT, over, lights, now);
   }
   for (const a of all) items.push({ y: a.y, draw: g2 => { drawActor(g2, a); if (a.burn) bundle(g2, a, fillOf(a.burn.old)); } });
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
+  over.forEach(f => f(g));
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier sits south of the burner: its fire draws over the robe hem
     const k = 1 - a.burn.left / BURN_S, f = a.burn.fire, heat = k < 0.25 ? k / 0.25 : (1 - k) / 0.75;
     flare(g, f, k, heat, now / 1000);
@@ -179,7 +182,7 @@ function drawRugs(g, blocks) {
   }
 }
 
-function deskDrawable(desk, busy, fill, bgShell, now) {
+function deskDrawable(desk, busy, fill, bgShell, now, a) {
   return {
     y: desk.y + 21,
     draw(g) {
@@ -187,6 +190,7 @@ function deskDrawable(desk, busy, fill, bgShell, now) {
       blit(g, MAPS.DESK, desk.x, desk.y, busy ? {} : { f: null, F: null, c: '#2e6b47' });
       paperTop(g, desk.id, 'desk', fill, desk);
       if (bgShell) spinCog(g, desk.x + 28, desk.y + 7, now / 1000);
+      if (a) furnitureFx(g, a, desk, DESK_AT);
     },
   };
 }
@@ -203,13 +207,14 @@ function spinCog(g, cx, cy, t) {
   rect(g, cx - 0.5, cy - 0.5, 1, 1, '#2a2c30'); // axle
 }
 
-function consoleDrawable(con, lit, fill) {
+function consoleDrawable(con, lit, fill, a) {
   return {
     y: con.y + 10,
     draw(g) {
       g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(con.x + 4, con.y + 10, 6, 1);
       blit(g, MAPS.CONSOLE, con.x, con.y, lit ? {} : { c: '#2e6b47' });
       paperTop(g, con.id, 'console', fill, con);
+      if (a) furnitureFx(g, a, con, CONSOLE_AT);
     },
   };
 }
@@ -325,6 +330,135 @@ function puff(g, x, y, k) {
     g.fillRect(half(x + Math.cos(ang) * d - r), half(y + Math.sin(ang) * d * 0.6 - r - 4 * k), 2 * r, 2 * r);
     if (k < 0.4) rect(g, half(x + Math.cos(ang) * d * 1.3), half(y + Math.sin(ang) * d - 2 * k), 0.5, 0.5, i % 2 ? '#ffe6a0' : '#f0a83c');
   }
+}
+
+// Chronicle reactions (actors.js Cast.chronicle). Offsets from the desk/console's top-left: the screen that sparks, the
+// test lamp on its frame, where the commit's purity seal goes (on a desk they stay: a.seals, max 3, hung on the front edge
+// clear of the seated scribe).
+const DESK_AT = { screen: [8.5, 2.5, 7, 4.5], lamp: [8, -3], seals: [[1.5, 8], [5.5, 8.5], [26.5, 8]], scale: 1 };
+const CONSOLE_AT = { screen: [3, 1.5, 7.5, 3.5], lamp: [10, -2.5], seals: [[15, 3.5]], scale: 0.6 };
+const STAMP_HIT = 0.9; // s into a commit: the stamp comes down and the seal is set
+const newest = a => Math.max(0, (a.seals ?? 1) - 1);
+const stamping = a => a.fx?.some(f => f.kind === 'commit' && f.t < STAMP_HIT);
+// The test lamp: green for LAMP_S after a pass, then dark; red blinking for LAMP_S after a fail, then dim red.
+function lampColor(l) {
+  if (l.ok) return l.t < LAMP_S ? 'on' : 'off';
+  return l.t >= LAMP_S ? 'dim' : Math.floor(l.t * 3) % 3 ? 'red' : 'dark';
+}
+const LAMP = { on: ['#7cff9e', '#e6ffee'], off: ['#16301f', '#2a8a50'], red: ['#ff3a20', '#ffd0b0'], dim: ['#8e1c16', '#c8281a'], dark: ['#3a0d09', '#5e1710'] };
+// Drawn with the furniture (under the scribe): sealed sheets and the lamp.
+function furnitureFx(g, a, at, AT) {
+  if (!a.h) {
+    const n = (a.seals ?? 0) - (stamping(a) ? 1 : 0);
+    for (let i = 0; i < n; i++) seal(g, at.x + AT.seals[i][0], at.y + AT.seals[i][1], 1);
+  }
+  if (a.lamp) {
+    const [body, shine] = LAMP[lampColor(a.lamp)], x = at.x + AT.lamp[0], y = at.y + AT.lamp[1];
+    rect(g, x - 0.5, y - 0.5, 3.5, 3.5, '#0e0a08'); // cage outline, bulb, shine, brass collar onto the frame
+    rect(g, x, y, 2.5, 2.5, body); rect(g, x + 0.5, y + 0.5, 0.5, 0.5, shine);
+    rect(g, x - 0.5, y + 2.5, 3.5, 0.5, '#b8742e');
+  }
+}
+// Everything else plays over the scene; lights join the frame's.
+function reactions(a, at, AT, over, lights, now) {
+  const t = now / 1000;
+  if (a.lamp) {
+    const c = lampColor(a.lamp), x = at.x + AT.lamp[0] + 1.25, y = at.y + AT.lamp[1] + 1.25;
+    if (c === 'on') lights.push({ x, y, r: 16, color: 'rgba(124,255,158,.55)' });
+    if (c === 'red') lights.push({ x, y, r: 18, color: 'rgba(255,58,32,.6)' });
+    if (c === 'dim') lights.push({ x, y, r: 6, color: 'rgba(255,58,32,.3)' });
+  }
+  for (const f of a.fx ?? []) {
+    const k = f.t / FX_S[f.kind];
+    if (f.kind === 'commit') {
+      const [sx, sy] = AT.seals[a.h ? 0 : newest(a)], x = at.x + sx, y = at.y + sy;
+      over.push(g => stamp(g, x, y, f.t, a.h));
+      if (f.t > STAMP_HIT && f.t < STAMP_HIT + 0.6) lights.push({ x: x + 1.5, y: y + 1.5, r: 18 * (1 - (f.t - STAMP_HIT) / 0.6), color: 'rgba(255,58,32,.7)' });
+    }
+    if (f.kind === 'push') {
+      const [sx, sy] = AT.seals[a.h ? 0 : f.slot], p = courier(f.t, at.x + sx + 1.5, at.y + sy - 6, t);
+      over.push(g => { blit(g, MAPS.SKULL, half(p.x) - 5, half(p.y) - 5); if (f.t >= PICK_S) seal(g, half(p.x) - 1.5, half(p.y) + 4.5, 1); });
+      lights.push({ x: p.x, y: p.y, r: 10, color: GREEN });
+    }
+    if (f.kind === 'tool-error') {
+      const [sx, sy, sw, sh] = AT.screen, x = at.x + sx, y = at.y + sy;
+      over.push(g => spark(g, x, y, sw, sh, k, AT.scale, t));
+      lights.push({ x: x + sw / 2, y: y + sh / 2, r: 34 * AT.scale * (1 - k), color: 'rgba(255,230,160,.8)' });
+    }
+    if (f.kind === 'task-done') {
+      const x = a.h || a.pose !== 'desk' ? a.x : a.x + 6, y = a.h ? a.y - 17 : a.pose === 'desk' ? a.y - 25 : a.y - 20;
+      over.push(g => glint(g, x, y, k));
+      lights.push({ x, y, r: 16 * Math.sin(Math.PI * k), color: 'rgba(232,180,90,.6)' });
+    }
+  }
+}
+// A purity seal (art px = 0.5): two parchment strips hanging below a red wax disc, (x, y) its top-left; wax 0 = strips only.
+function seal(g, x, y, wax) {
+  rect(g, x, y + 2, 2, 5, '#0e0a08'); rect(g, x + 1.5, y + 2, 2, 4, '#0e0a08');
+  rect(g, x + 0.5, y + 2.5, 1, 4, '#d6c79f'); rect(g, x + 2, y + 2.5, 1, 3, '#cfc3a8');
+  rect(g, x + 0.5, y + 4, 1, 0.5, '#a8946a'); rect(g, x + 0.5, y + 5.5, 0.5, 0.5, '#a8946a'); rect(g, x + 2, y + 4.5, 1, 0.5, '#a8946a');
+  if (!wax) return;
+  rect(g, x - 0.5, y, 4, 3, '#0e0a08'); rect(g, x, y - 0.5, 3, 4, '#0e0a08');
+  rect(g, x, y + 0.5, 3, 2, '#c8281a'); rect(g, x + 0.5, y, 2, 3, '#c8281a');
+  rect(g, x + 1, y + 1, 1, 1, '#8e1c16'); rect(g, x + 0.5, y + 0.5, 0.5, 0.5, '#ff8a6a'); rect(g, x + 2, y + 2, 0.5, 0.5, '#5e1710');
+}
+// The commit: a wax drop falls on a fresh sheet, the stamp comes down (STAMP_HIT), lifts away, the seal glints.
+function stamp(g, x, y, t, small) {
+  if (t < STAMP_HIT) {
+    seal(g, x, y, 0);
+    const d = Math.min(1, t / 0.4); // the wax drop, a blob once it lands
+    if (d < 1) rect(g, x + 1, half(y + 1 - 8 * (1 - d) ** 2), 1, 1.5, '#c8281a');
+    else { rect(g, x, y + 0.5, 3, 2, '#0e0a08'); rect(g, x + 0.5, y + 1, 2, 1, '#c8281a'); }
+  }
+  const down = t < STAMP_HIT ? Math.max(0, (t - 0.35) / (STAMP_HIT - 0.35)) : t < 1.2 ? 1 : Math.max(0, 1 - (t - 1.2) / 0.5);
+  if (down > 0) {
+    const sy = half(y - 12 + 8.5 * down * down) + (t >= STAMP_HIT && t < 1.05 ? 0.5 : 0), sx = x;
+    rect(g, sx - 0.5, sy - 0.5, 4, 6, '#0e0a08'); // knob, brass stem, iron foot
+    rect(g, sx + 0.5, sy, 2, 1.5, '#b8742e'); rect(g, sx + 0.5, sy, 1.5, 0.5, '#e8b45a');
+    rect(g, sx + 1, sy + 1.5, 1, 2, '#6e3f17'); rect(g, sx + 1, sy + 1.5, 0.5, 2, '#b8742e');
+    rect(g, sx, sy + 3.5, 3, 1.5, '#2a2c30'); rect(g, sx, sy + 3.5, 3, 0.5, '#8a9096');
+  }
+  if (!small && t > 1.5) glint(g, x + 1.5, y + 1.5, (t - 1.5) / 1.5);
+}
+// Servo-skull courier: in from beyond the grand gate, a dip at the desk to take the sheet (PICK_S), out by the gate.
+function courier(t, x, y, now) {
+  const G = { x: ENTRY.x, y: 240 }, out = PICK_S + 0.6, e = k => k * k * (3 - 2 * k);
+  let p;
+  if (t < PICK_S) { const k = e(t / PICK_S); p = { x: G.x + (x - G.x) * k, y: G.y + (y - G.y) * k }; }
+  else if (t < out) p = { x, y: y + 2 * Math.sin(Math.PI * (t - PICK_S) / 0.6) };
+  else { const k = e(Math.min(1, (t - out) / (FX_S.push - out))); p = { x: x + (G.x - x) * k, y: y + (G.y - y) * k }; }
+  p.y += Math.round(2 * Math.sin(now * 6)) / 2;
+  return p;
+}
+// Tool error: the screen (x, y, w, h) shorts in white flashes, sparks spray up and fall, then pale smoke rises. k: 0..1.
+function spark(g, x, y, w, h, k, sc, t) {
+  const cx = x + w / 2, cy = y + h / 2;
+  if (k < 0.3 && Math.floor(t * 20) % 2 === 0) rect(g, x, y, w, h, k < 0.12 ? '#ffffff' : '#ffe6a0');
+  if (k < 0.25) for (let i = 0, px = cx - 3 * sc, py = y - 0.5; i < 6; i++) { // an arc crackling over the frame
+    const nx = px + 1.5 * sc, ny = y - 1.5 - 2 * sc * hash(i * 31 + Math.floor(t * 20));
+    rect(g, half(px), half(Math.min(py, ny)), half(nx - px) || 0.5, Math.max(0.5, half(Math.abs(ny - py))), '#e6ffee');
+    px = nx; py = ny;
+  }
+  for (let i = 0; i < 12; i++) {
+    const ang = -Math.PI / 2 + (i - 5.5) * 0.36 + (hash(i * 71) - 0.5) * 0.3, sp = (8 + 10 * hash(i * 13)) * sc;
+    const px = cx + Math.cos(ang) * sp * k, py = cy + Math.sin(ang) * sp * k + 22 * sc * k * k; // flung up, falling back
+    if (k > 0.75 - 0.3 * hash(i * 29)) continue;
+    rect(g, half(px) - 0.25, half(py) - 0.25, 1, 1, k < 0.25 ? '#ffffff' : k < 0.5 ? '#ffe6a0' : '#f0a83c');
+    rect(g, half(px - Math.cos(ang) * 1.2), half(py - Math.sin(ang) * 1.2 + 0.5), 0.5, 0.5, '#f0a83c');
+  }
+  if (k > 0.2) for (let i = 0; i < 7; i++) {
+    const p = (k - 0.2) / 0.8, r = (1 + 2 * p + hash(i * 7)) * sc;
+    g.fillStyle = `rgba(196,188,174,${0.8 * (1 - p) ** 1.5})`;
+    g.fillRect(half(cx + (hash(i * 97) - 0.5) * 8 * sc + Math.sin(p * 6 + i) * p - r), half(y - 1 - 14 * sc * p * (0.5 + 0.5 * hash(i * 3)) - r), 2 * r, 2 * r);
+  }
+}
+// Gold glint: a four-point star that blooms and twinkles out. k: 0..1.
+function glint(g, x, y, k) {
+  const s = Math.sin(Math.PI * Math.min(1, k)), n = half(0.5 + 3 * s * (0.8 + 0.2 * Math.sin(k * 30)));
+  if (s <= 0) return;
+  x = half(x); y = half(y);
+  rect(g, x - n, y - 0.25, 2 * n + 0.5, 0.5, '#e8b45a'); rect(g, x - 0.25, y - n, 0.5, 2 * n + 0.5, '#e8b45a');
+  rect(g, x - 0.75, y - 0.75, 1.5, 1.5, '#ffe6a0'); rect(g, x - 0.25, y - 0.25, 0.5, 0.5, '#ffffff');
 }
 
 const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
