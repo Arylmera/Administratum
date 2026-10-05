@@ -52,7 +52,7 @@ export function initChronicon(T, colorOf = () => null) {
     } catch { /* backend not ready: keep the last value */ }
   }
   refreshPlaque();
-  setInterval(refreshPlaque, 30_000);
+  setInterval(() => document.documentElement.classList.contains('paused') || refreshPlaque(), 30_000); // app.js refreshes on resume
 
   const { isOpen } = panel(root, openers, { onOpen: () => { renderTabs(dayKey()); show(dayKey()); }, onClosed: () => { cur = null; } });
 
@@ -209,4 +209,5 @@ export function initChronicon(T, colorOf = () => null) {
   T.event.listen('chronicle', ({ payload: e }) => {
     if (cur?.live && cur.day === dayKey() && dayKey(new Date(e.ts)) === cur.day) cur.live(e);
   });
+  return refreshPlaque;
 }

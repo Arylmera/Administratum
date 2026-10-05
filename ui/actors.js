@@ -17,7 +17,7 @@ const braziers = entry => [entry.x - 23, entry.x + 23].map(x => ({ x, y: entry.y
 export const FX_S = { commit: 3, push: 4.4, 'tool-error': 1, 'task-done': 1.5 };
 export const PICK_S = 1.6; // the push courier reaches the desk and takes the newest seal
 export const LAMP_S = 20;
-const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
+export const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
 
 export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); this.hall = hallOf(0); } // naps: scribe id -> REFECTORY_SPOTS index

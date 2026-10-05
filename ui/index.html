@@ -168,6 +168,7 @@
   @media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } #modes button { padding: 5px 6px; } } /* room for the gear at 700 px */
   @keyframes alarm { 50% { background: #3a0d09; box-shadow: 0 0 14px 3px rgba(255,58,32,.9); } }
   @keyframes pulse { 50% { opacity: 1; } }
+  html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; } /* hidden or covered: app.js */
   @media (prefers-reduced-motion: reduce) { .count.on::after, .lbl::after, .count.alarm, .edge.alarm { animation: none; } }
   @media (max-width: 760px) { .tier { display: none; } }
 </style>

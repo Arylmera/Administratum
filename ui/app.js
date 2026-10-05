@@ -2,7 +2,7 @@ import { SCENE, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
-import { Cast, isStale, LAMP_S } from './actors.js';
+import { Cast, isStale, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
@@ -168,11 +168,27 @@ function busy(now) {
   return false;
 }
 let last = performance.now(), drawn = last, acc = 0, visible = true;
-function frame(now) {
+// Paused (setting on; minimised, in the tray or covered: WebView2 visibility or the backend's check): no frame is
+// scheduled, CSS animations are frozen (html.paused), the roster is only kept (applied once on resume) and the
+// minute/tithe timers skip. The backend fires the toasts; chimes still play. On resume everyone continues from
+// where they stood and walks to their current seat (no teleport), the hall reflows in one glide.
+const paused = () => perf.pauseHidden && (document.hidden || !visible);
+let running = true, pending = null;
+function wake() {
+  const p = paused();
+  document.documentElement.classList.toggle('paused', p);
+  if (p) return;
+  if (pending) { const r = pending; pending = null; onRoster(r); }
+  if (running) return;
+  running = true;
+  last = drawn = performance.now(); acc = 0;
+  renderModes(); refreshTithe?.();
   requestAnimationFrame(frame);
-  // Paused (setting on; minimised, in the tray or covered: WebView2 visibility or the backend's check): skip
-  // drawing, labels and overlays, keep rAF alive. The roster still updates; the backend fires the toasts.
-  if (perf.pauseHidden && (document.hidden || !visible)) { last = drawn = now; acc = 0; return; }
+}
+addEventListener('visibilitychange', wake);
+function frame(now) {
+  if (paused()) { running = false; document.documentElement.classList.add('paused'); return; } // wake() restarts the loop
+  requestAnimationFrame(frame);
   const ms = Math.min(100, now - last);
   acc += ms / 1000;
   last = now;
@@ -196,7 +212,7 @@ function frame(now) {
 }
 
 renderModes();
-setInterval(renderModes, 60_000);
+setInterval(() => paused() || renderModes(), 60_000);
 fit();
 requestAnimationFrame(frame);
 
@@ -225,6 +241,7 @@ const ago = ms => {
 };
 
 function onRoster(next) {
+  if (paused()) { pending = next; return; } // ponytail: the newest roster wins; wake() applies it
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
   const napping = cast.napping(roster);
@@ -522,14 +539,16 @@ muteBtn.onclick = toggleMute;
 renderMute();
 
 const T = window.__TAURI__;
+let refreshTithe = null;
 initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); } });
 if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());
   T.event.listen('petition-stale', () => chime([990, 660, 990, 660]));
-  T.event.listen('chronicle', e => { if (cast.chronicle(e.payload) && e.payload.kind === 'task-done') chime([1320, 1760]); });
+  // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
+  T.event.listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done') chime([1320, 1760]); });
   T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
-  T.event.listen('visible', e => { visible = e.payload; });
-  initChronicon(T, colorOf);
-  document.getElementById('hide').onclick = () => { visible = false; T.window.getCurrentWindow().hide(); };
+  T.event.listen('visible', e => { visible = e.payload; wake(); });
+  refreshTithe = initChronicon(T, colorOf);
+  document.getElementById('hide').onclick = () => { visible = false; wake(); T.window.getCurrentWindow().hide(); };
 }
