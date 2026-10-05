@@ -74,23 +74,46 @@ fn open_session(target: String) -> Result<(), String> {
     }
 }
 
-/// Answer the Claude Code permission dialog in Orca terminal `handle`: "yes", "always" or "no".
-/// Types exactly one option digit, and only after the rendered screen shows that dialog at its
-/// bottom (see `registry::parse_permission_prompt`); nothing read from the screen is ever sent
-/// or echoed back except that digit. Errors are fixed strings. Runs off the main thread (async).
-#[tauri::command(async)]
-fn answer_petition(handle: String, choice: String) -> Result<(), String> {
-    if !registry::valid_orca_handle(&handle) {
+/// The Claude Code permission dialog on Orca terminal `handle`'s rendered screen (read only).
+fn read_prompt(handle: &str) -> Result<registry::Prompt, String> {
+    if !registry::valid_orca_handle(handle) {
         return Err("invalid orca handle".into());
     }
-    let out = orca(&["terminal", "read", "--terminal", &handle, "--screen", "--json"], |c| c.output())?;
+    let out = orca(&["terminal", "read", "--terminal", handle, "--screen", "--json"], |c| c.output())?;
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).map_err(|_| "unreadable terminal".to_string())?;
     let term = &v["result"]["terminal"];
     if v["ok"] != true || term["source"] != "screen" {
         return Err("terminal screen unavailable".into());
     }
     let screen = term["tail"].as_array().map(|l| l.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join("\n")).unwrap_or_default();
-    let p = registry::parse_permission_prompt(&screen).ok_or("no permission prompt on screen")?;
+    registry::parse_permission_prompt(&screen).ok_or_else(|| "no permission prompt on screen".into())
+}
+
+#[derive(serde::Serialize)]
+struct Peek {
+    question: String,
+    yes: String,
+    always: Option<String>,
+    no: String,
+}
+
+/// What the permission dialog in Orca terminal `handle` offers, for the card's buttons: its
+/// question and the labels of the Yes / Always / No options. Never types anything. The labels
+/// come from the screen (untrusted) and are only ever shown as text.
+#[tauri::command(async)]
+fn peek_petition(handle: String) -> Result<Peek, String> {
+    let p = read_prompt(&handle)?;
+    let label = |n: u8| p.options[n as usize - 1].1.clone(); // options are numbered 1, 2, ... by the parser
+    Ok(Peek { question: p.question.clone(), yes: label(p.yes), always: p.always.map(label), no: label(p.no) })
+}
+
+/// Answer the Claude Code permission dialog in Orca terminal `handle`: "yes", "always" or "no".
+/// Types exactly one option digit, and only after the rendered screen shows that dialog at its
+/// bottom (see `registry::parse_permission_prompt`); nothing read from the screen is ever sent
+/// except that digit. Errors are fixed strings. Runs off the main thread (async).
+#[tauri::command(async)]
+fn answer_petition(handle: String, choice: String) -> Result<(), String> {
+    let p = read_prompt(&handle)?;
     let n = match choice.as_str() {
         "yes" => p.yes,
         "always" => p.always.ok_or("this prompt has no 'always' option")?,
@@ -189,7 +212,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, start_at_login, settings_load, settings_save])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, start_at_login, settings_load, settings_save])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.

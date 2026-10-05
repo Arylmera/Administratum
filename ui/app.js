@@ -361,12 +361,33 @@ function answer(s, choice) {
     sel = s.id; // show the error in this scribe's card
   }).finally(() => { answering.delete(key); renderCard(); }); // success: the scribe leaves the queue on a coming roster tick
 }
+// While the card shows an answerable petition, peek at the dialog (at most every 3 s) so only the options it
+// really offers get a button. Peeked labels are screen text: shown via textContent/title only.
+let peeked = { key: null, at: 0, busy: false, p: undefined }; // p: undefined pending, null not visible, else {question, yes, always, no}
+function peek(s) {
+  const key = episode(s);
+  if (peeked.key !== key) peeked = { key, at: 0, busy: false, p: undefined };
+  const cur = peeked;
+  if (cur.busy || Date.now() - cur.at < 3000) return cur.p;
+  cur.busy = true; cur.at = Date.now();
+  (window.__TAURI__?.core?.invoke('peek_petition', { handle: s.orca }) ?? Promise.reject('no backend'))
+    .then(p => { cur.p = p; }, () => { cur.p = null; })
+    .finally(() => { cur.busy = false; if (sel === s.id) renderCard(); });
+  return cur.p;
+}
 function renderAnswer(card, s) {
-  const row = card.querySelector('.answer'), err = card.querySelector('.err');
-  row.hidden = !canAnswer(s);
+  const row = card.querySelector('.answer'), err = card.querySelector('.err'), q = card.querySelector('.q');
+  row.hidden = q.hidden = !canAnswer(s);
+  const p = row.hidden ? undefined : peek(s);
+  q.textContent = p?.question ?? (p === null ? 'Prompt not visible — buttons will check on click' : '');
+  q.classList.toggle('hint', p === null);
+  q.hidden ||= !q.textContent;
   err.textContent = (s && answerErr.get(episode(s))) ?? '';
   err.hidden = !err.textContent;
   for (const b of row.querySelectorAll('button')) {
+    const label = p?.[b.dataset.choice];
+    b.hidden = p ? !label : b.dataset.choice === 'always'; // unknown dialog: Approve + Deny only
+    b.title = label ?? '';
     b.disabled = !!s && answering.has(episode(s));
     b.onclick = () => answer(s, b.dataset.choice);
   }

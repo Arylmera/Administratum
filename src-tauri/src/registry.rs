@@ -698,18 +698,21 @@ impl Tracker {
 
 pub const STALE_MS: i64 = 5 * 60 * 1000;
 
-/// Option numbers of a Claude Code permission dialog: plain "Yes", the first "Yes, ..." (don't ask
-/// again / allow all edits) if offered, and the "No" option.
+/// A Claude Code permission dialog: its question line, every numbered option with its label, and
+/// the option numbers of plain "Yes", the first "Yes, ..." (don't ask again / allow all edits) if
+/// offered (never "switch to auto mode"), and the "No" option.
 #[derive(Debug, PartialEq)]
 pub struct Prompt {
+    pub question: String,
+    pub options: Vec<(u8, String)>,
     pub yes: u8,
     pub always: Option<u8>,
     pub no: u8,
 }
 
 /// The permission dialog at the bottom of a rendered terminal screen, if that's what it shows.
-/// The screen is untrusted: only option numbers come out of it, and only when the last "Do you
-/// want" line is followed (within 3 lines) by options numbered 1, 2, ... starting with a plain
+/// The screen is untrusted: only the question and option labels/numbers come out of it (labels are
+/// for display only), and only when the last "Do you want" line is followed (within 3 lines) by options numbered 1, 2, ... starting with a plain
 /// "Yes" and including a "No", with nothing but a short footer under them (no input box, no rule):
 /// a dialog that scrolled up under later output doesn't count.
 pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
@@ -729,7 +732,14 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
             Some((n, label)) if n as usize == opts.len() + 1 => opts.push((n, label)),
             Some(_) => return None, // out of sequence
             None if opts.is_empty() => return None,
-            None => {} // a wrapped option label
+            // A footer or box border right under the last option ends the list.
+            None if lines[end].starts_with("Esc to") || !lines[end].chars().any(char::is_alphanumeric) => break,
+            None => {
+                // a wrapped option label
+                let last = &mut opts.last_mut()?.1;
+                last.push(' ');
+                last.push_str(lines[end]);
+            }
         }
         end += 1;
     }
@@ -740,7 +750,8 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
     }
     let find = |pred: &dyn Fn(&str) -> bool| opts.iter().find(|(_, l)| pred(l)).map(|(n, _)| *n);
     let yes = find(&|l| l == "Yes").filter(|&n| n == 1)?;
-    Some(Prompt { yes, always: find(&|l| l.starts_with("Yes,")), no: find(&|l| l.starts_with("No"))? })
+    let (always, no) = (find(&|l| l.starts_with("Yes,") && !l.contains("auto mode")), find(&|l| l.starts_with("No"))?);
+    Some(Prompt { question: lines[q].to_string(), options: opts, yes, always, no })
 }
 
 /// A plain idle session for other modules' tests.
@@ -1294,17 +1305,27 @@ mod tests {
 
     #[test]
     fn prompt_bash_maps_yes_always_no() {
-        assert_eq!(parse_permission_prompt(BASH_PROMPT), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
+        let p = parse_permission_prompt(BASH_PROMPT).expect("prompt");
+        assert_eq!((p.yes, p.always, p.no), (1, Some(2), 3));
+        assert_eq!(p.question, "Do you want to proceed?");
+        assert_eq!(p.options[1], (2, "Yes, and don't ask again for cargo test commands in C:\\Users\\guill\\Documents\\git\\Administratum".into()), "wrapped label joined");
+        assert_eq!(p.options[2], (3, "No, and tell Claude what to do differently (esc)".into()));
     }
 
     #[test]
     fn prompt_edit_inside_box_and_footer() {
-        assert_eq!(parse_permission_prompt(EDIT_PROMPT), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
+        let p = parse_permission_prompt(EDIT_PROMPT).expect("prompt");
+        assert_eq!((p.yes, p.always, p.no), (1, Some(2), 3));
+        assert_eq!(p.question, "Do you want to make this edit to app.js?");
+        assert_eq!(p.options[1].1, "Yes, allow all edits during this session (shift+tab)");
     }
 
     #[test]
     fn prompt_write_without_always_option() {
-        assert_eq!(parse_permission_prompt(WRITE_PROMPT), Some(Prompt { yes: 1, always: None, no: 2 }));
+        let p = parse_permission_prompt(WRITE_PROMPT).expect("prompt");
+        assert_eq!((p.yes, p.always, p.no), (1, None, 2));
+        assert_eq!(p.question, "Do you want to create notes.md?");
+        assert_eq!(p.options, [(1, "Yes".into()), (2, "No, and tell Claude what to do differently (esc)".into())]);
     }
 
     #[test]
@@ -1336,7 +1357,7 @@ mod tests {
         // Untrusted text above (e.g. a printed file) mimicking a dialog does not win over the real one below.
         let fake = " Do you want to proceed?\n ❯ 1. Yes\n   2. No\n";
         let screen = format!("{fake}{EDIT_PROMPT}");
-        assert_eq!(parse_permission_prompt(&screen), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
+        assert_eq!(parse_permission_prompt(&screen), parse_permission_prompt(EDIT_PROMPT));
     }
 
     #[test]
@@ -1425,5 +1446,11 @@ mod tests {
         let screen = "❯ Run this exact Bash command\n  ⎿  $ echo hello > x.txt\n────────────\n Bash command\n Tip: auto mode handles these prompts for you\n   echo hello > x.txt\n Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and always allow access to C:\\x from this project\n   3. Yes, and switch to auto mode · auto mode handles these prompts for you\n   4. No\n Esc to cancel · Tab to amend\n";
         let p = parse_permission_prompt(screen).expect("prompt");
         assert_eq!((p.yes, p.always, p.no), (1, Some(2), 4));
+        assert_eq!(p.question, "Do you want to proceed?");
+        assert_eq!(p.options[1].1, "Yes, and always allow access to C:\\x from this project");
+        assert!(p.options[2].1.starts_with("Yes, and switch to auto mode"));
+        assert_eq!(p.options[3], (4, "No".into()));
+        let auto_only = " Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and switch to auto mode\n   3. No\n";
+        assert_eq!(parse_permission_prompt(auto_only).expect("prompt").always, None, "auto mode is never 'always'");
     }
 }
