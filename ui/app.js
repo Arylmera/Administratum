@@ -56,7 +56,7 @@ function fit() {
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
-addEventListener('resize', () => { fit(); renderPlaques(); });
+addEventListener('resize', fit);
 
 // Riveted iron plates behind the scene instead of plain black (40x40 art px tile).
 {
@@ -79,7 +79,9 @@ function frame(now) {
   cast.update(dt);
   const level = lightLevel(state.mode, new Date().getHours());
   g.drawImage(background(level.beams), 0, 0, SCENE.w, SCENE.h);
-  drawLighting(g, drawScene(g, layout, cast.actors, fillOf, now), level, now / 1000);
+  const view = glide(now);
+  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000);
+  renderPlaques(view.blocks);
   syncLabels();
   syncHover();
 }
@@ -128,8 +130,34 @@ function onRoster(next) {
   count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
   count.classList.toggle('on', n > 0);
   count.classList.toggle('alarm', roster.some(isStale));
-  renderPlaques();
   renderCard();
+}
+
+// Reflows glide: rugs, desks and consoles ease from where they are drawn to their new place over GLIDE_MS;
+// the scribes and adepts walk to their new seats on their own (Cast.sync re-routes them).
+const GLIDE_MS = 800;
+const tweens = new Map(); // key -> { from, to, t0 }, each {x, y, w, h}
+const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+function tween(key, to, now) {
+  let tw = tweens.get(key);
+  const cur = tw && pose(tw, now);
+  if (!tw || ['x', 'y', 'w', 'h'].some(k => tw.to[k] !== to[k])) tweens.set(key, tw = { from: cur ?? to, to, t0: now });
+  tw.seen = now;
+  return { ...to, ...pose(tw, now) };
+}
+function pose({ from, to, t0 }, now) {
+  const k = ease(Math.min(1, (now - t0) / GLIDE_MS)), r = {};
+  for (const p of ['x', 'y', 'w', 'h']) if (to[p] != null) r[p] = from[p] + (to[p] - from[p]) * k;
+  return r;
+}
+function glide(now) {
+  const view = {
+    blocks: layout.blocks.map(b => tween(`b:${b.name}`, b, now)),
+    desks: layout.desks.map(d => tween(`d:${d.key}`, d, now)),
+    consoles: layout.consoles.map(c => tween(`c:${c.id}`, c, now)),
+  };
+  for (const [k, tw] of tweens) if (tw.seen !== now) tweens.delete(k); // gone from the layout
+  return view;
 }
 
 function consolesOf(dept) {
@@ -141,19 +169,20 @@ function consolesOf(dept) {
   return order;
 }
 
-function renderPlaques() {
-  for (const el of overlay.querySelectorAll('.plaque, .empty')) el.remove();
-  const add = (cls, text, x, y, color, maxWidth) => {
-    const el = document.createElement('div');
-    el.className = cls; el.textContent = text;
-    el.style.left = `${x * scale}px`; el.style.top = `${y * scale}px`;
-    if (maxWidth) el.style.maxWidth = `${maxWidth * scale}px`;
-    if (color) { el.style.borderColor = color; el.style.color = color; }
-    overlay.appendChild(el);
-  };
-  for (const b of layout.blocks) add('plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4);
-  if (layout.overflow) add('plaque', `+${layout.overflow} in the stacks`, 120, 186, '#8a7a5c');
-  if (!roster.length) add('empty', 'No scribes on duty', 0, 120);
+// Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
+const plaques = new Map();
+function renderPlaques(blocks) {
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
+  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120, 186, '#8a7a5c']);
+  if (!roster.length) want.set('empty', ['empty', 'No scribes on duty', 0, 120]);
+  for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
+  for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
+    let el = plaques.get(k);
+    if (!el) { el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el); }
+    const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '' };
+    if (el.textContent !== text) el.textContent = text;
+    for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
+  }
 }
 
 function renderCard() {
