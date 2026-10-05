@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
-import { DECOR, CLUTTER } from './scene.js';
+import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf } from './layout.js';
+import { propsOf } from './scene.js';
 import { MAPS, RES } from './sprites.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
@@ -173,7 +173,7 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
   const cuts = (b, p, q) => Math.max(p.x, q.x) > b.x && Math.min(p.x, q.x) < b.x + b.w && Math.max(p.y, q.y) > b.y && Math.min(p.y, q.y) < b.y + b.h;
   const inside = (b, p) => p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h;
   for (const s of seats) for (const e of [H1.entry, ...H1.queue, COG_SPOTS[0], RECAFF_SPOT]) for (const [a, b] of [[s, e], [e, s]]) {
-    const rt = [a].concat(route(a, b, P.blocks, 1));
+    const rt = [a].concat(route(a, b, P.blocks, H1));
     assert.deepEqual(rt.at(-1), { x: b.x, y: b.y });
     rt.slice(1).forEach((q, i) => {
       const p = rt[i];
@@ -182,16 +182,18 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
       for (const blk of P.blocks) if (cuts(blk, p, q)) assert.ok(inside(blk, p) || inside(blk, q), `${JSON.stringify([p, q])} crosses ${blk.name}`);
     });
   }
-  assert.equal(route(H1.entry, seats[0], P.blocks, 1)[0].x, H1.entry.x, 'newcomers walk straight up out of the gate');
+  assert.equal(route(H1.entry, seats[0], P.blocks, H1)[0].x, H1.entry.x, 'newcomers walk straight up out of the gate');
   // the bay goes again once compact without it holds one more department, after SHRINK_MS, one level at a time
-  P = planLayout(P, E(2), 2000, { desk: 0, dept: 0 });
+  // (a newcomer's lectern beside a five-lectern block would stand in the corridor: e-1 keeps four)
+  const E2 = [dept('e-0', 5), dept('e-1', 4)];
+  P = planLayout(P, E2, 2000, { desk: 0, dept: 0 });
   assert.equal(P.bays, 1, 'no shrink right after');
-  P = planLayout(P, E(2), 2000 + SHRINK_MS - 1, { desk: 0, dept: 0 });
+  P = planLayout(P, E2, 2000 + SHRINK_MS - 1, { desk: 0, dept: 0 });
   assert.equal(P.bays, 1);
-  P = planLayout(P, E(2), 2000 + SHRINK_MS, { desk: 0, dept: 0 });
-  assert.ok(P.bays === 0 && P.compact, 'bay gone, still compact (five-desk departments take two rows of full desks)');
+  P = planLayout(P, E2, 2000 + SHRINK_MS, { desk: 0, dept: 0 });
+  assert.ok(P.bays === 0 && P.compact, 'bay gone, still compact (a five-desk department takes two rows of full desks)');
   assert.ok(P.blocks.every(b => b.y + b.h <= HALL.y1));
-  P = planLayout(P, E(2), 2000 + 9 * SHRINK_MS, { desk: 0, dept: 0 });
+  P = planLayout(P, E2, 2000 + 9 * SHRINK_MS, { desk: 0, dept: 0 });
   assert.ok(P.compact);
   // lecterns and their consoles: adepts and scribes reach every seat without crossing furniture
   const K = layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 4), helpers: ids('h', 8) }], { compact: true });
@@ -282,9 +284,90 @@ for (const p of COG_SPOTS) {
 }
 
 // no prop under a queued petitioner (scribe sprite 16x17 above the feet)
-for (const [name, x, y] of DECOR.concat(CLUTTER)) {
+for (const [name, x, y] of propsOf(hallOf(0)).props) {
   const w = MAPS[name][0].length / RES, h = MAPS[name].length / RES;
   for (const q of QUEUE_SLOTS) assert.ok(!hit({ x, y }, w, h, { x: q.x - 8, y: q.y - 17 }, 16, 17), `${name} at ${x},${y} under queue slot ${q.x},${q.y}`);
+}
+
+// The resizable hall: the window sizes the scene. Minimum, 1080p at 2x (uncapped), the capped 1080p and
+// ultra-wide scenes app.js makes, a tall window, a middling one; each also with bays.
+{
+  const SIZES = [SCENE, { w: 960, h: 520 }, { w: MAX_W, h: 297 }, { w: MAX_W, h: SCENE.h }, { w: 346, h: 680 }, { w: 450, h: 400 }];
+  const dept = (name, n, h = 0) => ({ name, color: '#fff', ids: ids(name, n), helpers: ids(`${name}h`, h) });
+  const sprite = q => ({ x: q.x - 8, y: q.y - 17 });
+  const SIX = [dept('A', 3, 5), dept('B', 1), dept('C', 6, 2), dept('D', 2), dept('E', 4, 1), dept('F', 5)];
+  for (const S of SIZES) for (const bays of [0, 2]) {
+    const H = hallOf(bays, S), tag = `${S.w}x${S.h}+${bays}`;
+    assert.equal(H.w, S.w); assert.equal(H.h, S.h + bays * BAY_H);
+    assert.equal(H.rx, S.w - 138, 'the right column keeps its width, anchored east');
+    assert.equal(H.entry.x, H.x0 + Math.floor((H.x1 - H.x0) / 2), 'the gate centred in the scriptorium');
+    // queue: the sanctum's slots in the sanctum, the rest in the hall's bottom aisle clear of the gate; capacity grows
+    const sanct = H.queue.filter(q => roomOf(q, H) === 'sanct');
+    assert.deepEqual(H.queue.slice(0, sanct.length), sanct, `${tag}: the sanctum's slots first`);
+    for (const q of sanct) assert.ok(q.x - 8 >= H.rx + 4 && q.x + 8 <= H.w - 12 && q.y - 17 >= H.split + 40 && q.y <= H.baseH - 30, `${tag}: slot ${q.x},${q.y} in the sanctum`);
+    for (const q of H.queue.slice(sanct.length)) assert.ok(q.y > H.aisleY && q.y < H.h && q.x - 8 > 0 && q.x <= H.corridorX && Math.abs(q.x - H.entry.x) >= 36, `${tag}: hall slot ${q.x},${q.y}`);
+    assert.equal(new Set(H.queue.map(q => `${q.x},${q.y}`)).size, H.queue.length);
+    assert.ok(sanct.length >= 3 && H.queue.length >= QUEUE_SLOTS.length, `${tag}: queue capacity`);
+    if (S.h >= 300) assert.ok(sanct.length > 3, `${tag}: the taller sanctum holds more`);
+    // refectory: spots in the room, more as it grows; the recaff in it
+    for (const p of H.refectory.concat(H.recaff)) assert.ok(roomOf(p, H) === 'ref' && p.x > H.rx + 8 && p.y > 40 && p.y <= H.split - 10, `${tag}: refectory spot ${p.x},${p.y}`);
+    assert.ok(H.refectory.length >= REFECTORY_SPOTS.length && H.refectory.length % 3 === 0);
+    assert.equal(new Set(H.refectory.map(p => `${p.x},${p.y}`)).size, H.refectory.length);
+    if (S.h >= 400) assert.ok(H.refectory.length > REFECTORY_SPOTS.length, `${tag}: the taller refectorium seats more`);
+    assert.equal(roomOf(H.doorIn, H), 'sanct'); assert.equal(roomOf(H.refIn, H), 'ref');
+    for (const p of H.cogSpots) assert.ok(p.y > 51 && p.y < H.y0 && p.x - 8 >= H.x0 && p.x + 8 <= H.x1, `${tag}: cog spot`);
+    // props inside the scene, none under a queued petitioner
+    for (const [name, x, y] of propsOf(H).props) {
+      const w = MAPS[name][0].length / RES, h = MAPS[name].length / RES;
+      assert.ok(x >= 0 && x + w <= H.w && y >= 0 && y + h <= H.h, `${tag}: ${name} at ${x},${y} inside the scene`);
+      for (const q of H.queue) assert.ok(!hit({ x, y }, w, h, sprite(q), 16, 17), `${tag}: ${name} at ${x},${y} under queue slot ${q.x},${q.y}`);
+    }
+    // a busy hall at this size (desks and lecterns): furniture apart, every walk ends where asked, axis-aligned in
+    // the hall, through no desk or console, and into a room by its door
+    for (const compact of [false, true]) {
+      const D = layoutDepartments(SIX, { compact, bays, size: S });
+      const solid = D.consoles.map(c => [c, 14, 10]).concat(D.desks.map(d => [d, compact ? 22 : 32, 21]));
+      for (const [i, [o, w, h]] of solid.entries()) for (const [q, qw, qh] of solid.slice(i + 1)) assert.ok(!hit(o, w, h, q, qw, qh), `${tag}: furniture overlap`);
+      for (const b of D.blocks) assert.ok(b.x >= H.x0 && b.x + b.w <= H.x1 + 1 && b.y + b.h <= H.y1, `${tag}: block inside the hall`);
+      const ends = [H.entry, ...H.cogSpots, ...H.queue, H.recaff, ...H.refectory];
+      for (const seat of [...D.seats.values(), ...D.consoleSeats.values()]) for (const e of ends) for (const [a, b] of [[seat, e], [e, seat]]) {
+        const rt = [a].concat(route(a, b, D.blocks, H));
+        assert.deepEqual(rt.at(-1), { x: b.x, y: b.y });
+        rt.slice(1).forEach((q, i) => {
+          const p = rt[i];
+          if (roomOf(p, H) === 'hall' && roomOf(q, H) === 'hall') assert.ok(p.x === q.x || p.y === q.y, `${tag}: diagonal ${JSON.stringify([p, q])}`);
+          assert.ok(p.y <= H.h && q.y <= H.h && p.x <= H.w && q.x <= H.w);
+          const x0 = Math.min(p.x, q.x), y0 = Math.min(p.y, q.y);
+          for (const [o, w, h] of solid) assert.ok(!(x0 < o.x + w && Math.max(p.x, q.x) > o.x && y0 < o.y + h && Math.max(p.y, q.y) > o.y), `${tag}: leg ${JSON.stringify([p, q])} crosses ${o.id}`);
+        });
+        const has = d => rt.some(p => p.x === d.x && p.y === d.y);
+        if (roomOf(e, H) === 'sanct') assert.ok(has(H.doorOut) && has(H.doorIn), `${tag}: through the sanctum's door`);
+        if (roomOf(e, H) === 'ref') assert.ok(has(H.refOut) && has(H.refIn) && !has(H.doorIn), `${tag}: through the refectorium's door`);
+      }
+    }
+  }
+  // bigger windows hold more before going compact; a wide one, more desks per row
+  const many = k => ids('m', k).map(n => ({ name: n, color: '#fff', ids: [n] }));
+  const fits = S => { let k = 1; while (!planLayout(null, many(k + 1), 0, {}, S).level) k++; return k; };
+  const atBase = fits(SCENE);
+  assert.ok(fits({ w: MAX_W, h: 297 }) > atBase && fits({ w: 346, h: 680 }) > atBase && fits({ w: 960, h: 520 }) > fits({ w: MAX_W, h: 297 }));
+  const rowOf = S => layoutDepartments(many(12), { size: S }).blocks.filter(b => b.y === 58).length;
+  assert.ok(rowOf({ w: MAX_W, h: SCENE.h }) > rowOf(SCENE));
+  // a resize that doesn't force a reflow moves no desk: taller, or wider while every block already fits its row
+  const D = [dept('A', 2), dept('B', 1)];
+  const at = P => P.desks.map(d => `${d.key}:${d.x},${d.y}`).join(' ');
+  let P = planLayout(null, D, 0);
+  const before = at(P);
+  for (const S of [{ w: 346, h: 600 }, { w: MAX_W, h: 300 }, { w: 450, h: 226 }]) assert.equal(at(planLayout(P, D, 1000, {}, S)), before, `stable at ${S.w}x${S.h}`);
+  // ...and one that does reflows: the second block joins the first row once wide enough, its desks keep their keys
+  const R = [dept('A', 4), dept('B', 4), dept('C', 1)];
+  P = planLayout(null, R, 0);
+  const wide = planLayout(P, R, 1000, {}, { w: MAX_W, h: SCENE.h });
+  assert.ok(wide.blocks[1].y === wide.blocks[0].y && P.blocks[1].y > P.blocks[0].y, 'wider: B moves up beside A');
+  assert.deepEqual(wide.desks.map(d => d.key), P.desks.map(d => d.key));
+  // the minimum is the original hall
+  assert.equal(hallOf(0, { w: 100, h: 100 }), hallOf(0));
+  assert.deepEqual(propsOf(hallOf(0)).windows, [78, 292]);
 }
 
 console.log('layout ok');

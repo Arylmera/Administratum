@@ -1,5 +1,5 @@
 import { blit, sprite, MAPS, RES } from './sprites.js';
-import { ENTRY, hallOf } from './layout.js';
+import { SCENE, hallOf } from './layout.js';
 import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 
 const AMBER = 'rgba(240,168,60,.26)';
@@ -55,108 +55,152 @@ function coolant(g, x, y, w, h) {
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
 const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
-// Static props [map, x, y]; none may sit under a queue slot (layout.test.mjs).
-export const DECOR = [
-  ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
-  ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15],
-  ['BANNER', 98, 10], ['COGITATOR', 116, 2], ['CANDLES', 100, 44],
-  ['RECAFF', 214, 22], ['SHELF', 236, 19], ['PAPER_STACK', 240, 8], ['BOOKS', 250, 11], ['PAPER_STACK', 260, 9],
-  ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 322, 44], ['PAPER_STACK', 329, 48],
-  ['SCROLL_PILE', 238, 78], ['LOOSE_B', 236, 64], ['LOOSE_A', 244, 94],
-  ['TABLE', 262, 46], ['BENCH', 262, 58], ['TABLE', 262, 70], ['BENCH', 262, 82], // refectory (REFECTORY_SPOTS sit on the benches)
-  ['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 124],
-  ['CANDLES', 250, 136], ['CANDLES', 292, 136], ['PAPER_STACK', 246, 140], ['PAPER_STACK', 300, 142],
-  ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],
-  ['BOOKS', 316, 164], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
-  ['BRAZIER', 224, 196], ['BRAZIER', 320, 196], ['CENSER', 94, 7], ['CENSER', 196, 60],
-  ['CRATE', 12, 190], ['BRAZIER', ENTRY.x - 28, 211], ['BRAZIER', ENTRY.x + 18, 211],
-];
-export const CLUTTER = [
-  ['SCROLL_PILE', 58, 98], ['PAPER_STACK', 92, 92], ['PAPER_STACK', 99, 95], ['LOOSE_A', 46, 104], ['LOOSE_B', 140, 104],
-  ['SCROLL_PILE', 160, 98], ['LOOSE_A', 190, 92], ['PAPER_STACK', 54, 132], ['PAPER_STACK', 61, 136], ['BOOKS', 76, 140],
-  ['LOOSE_B', 8, 160], ['SCROLL_PILE', 150, 140], ['PAPER_STACK', 176, 128], ['LOOSE_A', 104, 160], ['SCROLL_PILE', 30, 188],
-  ['PAPER_STACK', 19, 204], ['BOOKS', 8, 206], ['LOOSE_A', 120, 190], ['LOOSE_B', 150, 212],
-  ['SCROLL_PILE', 78, 187], ['LOOSE_A', 186, 186], ['LOOSE_B', 196, 172],
-];
+// Static props [map, x, y] on the minimum scene, by what they move with as the scene grows (hallOf):
+// w the scriptorium's west end, c its centre (gate, cogitator bank: + dx), e its east wall (+ sw - 200),
+// *b also its bottom wall (+ h - 226), f the floor between the desks (repeated across and down the hall),
+// r the right column (+ ox), s the sanctum by its top wall (+ ox, + sd), sb by its bottom wall (+ ox, + sb).
+// None may sit under a queue slot (layout.test.mjs, propsOf).
+const PROPS = {
+  w: [['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
+    ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15]],
+  c: [['BANNER', 98, 10], ['COGITATOR', 116, 2], ['CANDLES', 100, 44], ['CENSER', 94, 7]],
+  e: [['CENSER', 196, 60], ['LOOSE_A', 190, 92], ['LOOSE_B', 196, 172]],
+  wb: [['CRATE', 12, 190], ['SCROLL_PILE', 30, 188], ['PAPER_STACK', 19, 204], ['BOOKS', 8, 206]],
+  cb: [['BRAZIER', 72, 211], ['BRAZIER', 118, 211], ['LOOSE_A', 120, 190], ['SCROLL_PILE', 78, 187]], // the gate's braziers (actors.js braziers)
+  eb: [['LOOSE_B', 150, 212], ['LOOSE_A', 186, 186]],
+  f: [['SCROLL_PILE', 58, 98], ['PAPER_STACK', 92, 92], ['PAPER_STACK', 99, 95], ['LOOSE_A', 46, 104], ['LOOSE_B', 140, 104],
+    ['SCROLL_PILE', 160, 98], ['PAPER_STACK', 54, 132], ['PAPER_STACK', 61, 136], ['BOOKS', 76, 140],
+    ['LOOSE_B', 8, 160], ['SCROLL_PILE', 150, 140], ['PAPER_STACK', 176, 128], ['LOOSE_A', 104, 160]],
+  r: [['RECAFF', 214, 22], ['SHELF', 236, 19], ['PAPER_STACK', 240, 8], ['BOOKS', 250, 11], ['PAPER_STACK', 260, 9],
+    ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 322, 44], ['PAPER_STACK', 329, 48],
+    ['SCROLL_PILE', 238, 78], ['LOOSE_B', 236, 64], ['LOOSE_A', 244, 94]],
+  s: [['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 124],
+    ['CANDLES', 250, 136], ['CANDLES', 292, 136], ['PAPER_STACK', 246, 140], ['PAPER_STACK', 300, 142],
+    ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162], ['BOOKS', 316, 164], ['PAPER_STACK', 326, 178]],
+  sb: [['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['BRAZIER', 224, 196], ['BRAZIER', 320, 196]],
+};
+// The scriptorium's back wall west and east of its centre group (window, banner, cogitator: 78..198 + dx) gets
+// alcoves as the hall widens, 40 px each, windows and shelves by turns, centred in each stretch.
+function alcoves(from, to) {
+  const n = Math.floor((to - from) / 40), x0 = from + Math.floor((to - from - 40 * n) / 2);
+  return Array.from({ length: n }, (_, i) => ({ x: x0 + 40 * i, win: i % 2 === 0 }));
+}
+// Everything static that depends on the scene's size, once per size: props (placed), windows (x of each 16 px
+// window, top at y 10, lighting.js casts their beams), vertical coolant channels.
+const furnished = new Map();
+export function propsOf(hall) {
+  const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
+  let F = furnished.get(key);
+  if (F) return F;
+  if (furnished.size > 8) furnished.clear();
+  const { sw, dx, ox, sd, sb, h } = hall, ex = sw - 200, hy = h - SCENE.h;
+  const move = (list, mx, my) => list.map(([name, x, y]) => [name, x + mx, y + my]);
+  const props = [...move(PROPS.w, 0, 0), ...move(PROPS.c, dx, 0), ...move(PROPS.e, ex, 0),
+    ...move(PROPS.wb, 0, hy), ...move(PROPS.cb, dx, hy), ...move(PROPS.eb, ex, hy),
+    ...move(PROPS.r, ox, 0), ...move(PROPS.s, ox, sd), ...move(PROPS.sb, ox, sb)];
+  // Floor clutter: again every 200 px across (clear of the corridor), its second slot row's again on every further row.
+  for (let i = 0; 200 * i < sw - 30; i++) for (let j = 0; j < hall.rows - 1; j++) {
+    for (const [name, x, y] of PROPS.f) if ((j === 0 || y >= 120) && (i === 0 || x + 200 * i < sw - 24)) props.push([name, x + 200 * i, y + 64 * j]);
+  }
+  // Refectory tables, a bench south of each (hallOf().refectory sits on the benches, three a bench).
+  for (let k = 0; k < hall.refectory.length / 3; k++) props.push(['TABLE', 262 + ox, 46 + 24 * k], ['BENCH', 262 + ox, 58 + 24 * k]);
+  const windows = [78 + dx, 292 + ox];
+  for (const a of [...alcoves(76, 76 + dx), ...alcoves(200 + dx, sw - 2)]) {
+    if (a.win) { windows.push(a.x + 6); props.push(['BANNER', a.x + 26, 10]); }
+    else props.push(['SHELF', a.x + 4, 19], ['PAPER_STACK', a.x + 8, 8], ['BOOKS', a.x + 18, 11], ['PAPER_STACK', a.x + 28, 9]);
+  }
+  const channels = [];
+  for (let x = 98 + dx - 200 * Math.floor((88 + dx) / 200); x < sw - 20; x += 200) channels.push(x);
+  F = { props, windows, channels };
+  furnished.set(key, F);
+  return F;
+}
 
-// Hall props south of the last original slot row (y >= 184, x < 200) move down with the bays (layout.js hallOf).
-const sink = dy => ([name, x, y]) => [name, x, x < 200 && y >= 184 ? y + dy : y];
-
+// The scriptorium is 0..sw, its east wall sw..rx, the right column rx..w (refectorium 0..split - 10, a wall, the
+// sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
 export function drawStatic(g, daylight, hall = hallOf(0)) {
-  const dy = hall.dy;
-  plates(g, 0, 0, 200, 40, '#2a2a2c', '#18191b'); rect(g, 0, 36, 200, 4, '#140f0c');
-  grate(g, 0, 40, 200, 186 + dy);
-  plates(g, 208, 0, 138, 40, '#2c2c2e', '#18191b'); rect(g, 208, 36, 138, 4, '#140f0c');
-  grate(g, 208, 40, 138, 60);
-  rect(g, 208, 100, 138, 10, '#100b08');
-  plates(g, 208, 110, 138, 30, '#301612', '#1e0c09'); rect(g, 208, 136, 138, 4, '#100b08');
-  rect(g, 208, 140, 138, 86, '#3a110e');
-  g.strokeStyle = '#6e3f17'; g.lineWidth = 1; g.strokeRect(214.5, 146.5, 125, 73);
-  rect(g, 200, 0, 8, 150, '#100b08'); rect(g, 200, 186, 8, 40 + dy, '#100b08'); rect(g, 200, 150, 8, 36, '#3a110e');
-  if (dy) bayWall(g, dy);
+  const { w, h, sw, rx, ox, dx, sd, sb, split, baseH } = hall, hy = h - SCENE.h, ex = sw - 200;
+  const { props, windows, channels } = propsOf(hall);
+  const d0 = 150 + sd, d1 = 186 + sd; // the sanctum's door in the east wall
+  plates(g, 0, 0, sw, 40, '#2a2a2c', '#18191b'); rect(g, 0, 36, sw, 4, '#140f0c');
+  grate(g, 0, 40, sw, h - 40);
+  plates(g, rx, 0, 138, 40, '#2c2c2e', '#18191b'); rect(g, rx, 36, 138, 4, '#140f0c');
+  grate(g, rx, 40, 138, split - 50);
+  rect(g, rx, split - 10, 138, 10, '#100b08');
+  plates(g, rx, split, 138, 30, '#301612', '#1e0c09'); rect(g, rx, split + 26, 138, 4, '#100b08');
+  rect(g, rx, split + 30, 138, baseH - split - 30, '#3a110e');
+  g.strokeStyle = '#6e3f17'; g.lineWidth = 1; g.strokeRect(rx + 6.5, split + 36.5, 125, baseH - split - 43);
+  rect(g, sw, 0, 8, d0, '#100b08'); rect(g, sw, d1, 8, h - d1, '#100b08'); rect(g, sw, d0, 8, 36, '#3a110e');
+  if (hall.dy) bayWall(g, hall);
 
   g.save(); g.shadowColor = '#3aa864'; g.shadowBlur = 4;
-  coolant(g, 0, 116, 200, 2); coolant(g, 98, 40, 2, 186 + dy);
-  for (let k = 0; k <= hall.bays; k++) coolant(g, 0, 182 + k * 64, 200, 2);
+  for (let j = 0; j < hall.rows; j++) coolant(g, 0, j ? 118 + 64 * j : 116, sw, 2); // under each slot row
+  for (const x of channels) coolant(g, x, 40, 2, h - 40);
   g.restore();
-  for (let k = 1; k <= hall.bays; k++) bayArch(g, 120 + k * 64);
+  for (let k = 1; k <= hall.bays; k++) bayArch(g, 56 + 64 * (hall.rows - hall.bays + k - 1), sw);
 
-  pipeH(g, 0, 4, 200); pipeH(g, 208, 4, 138);
-  [20, 64, 110, 150, 190, 230, 280, 330].forEach(x => flange(g, x, 3, 3, 5));
-  pipeV(g, 203, 0, 150); pipeV(g, 203, 186, 40 + dy);
-  [36, 74, 112].forEach(y => flange(g, 202, y, 5, 3));
-  pipeV(g, 144, 7, 29); pipeV(g, 194, 7, 29);
-  [8, 26, 50, 74, 96, 128, 150, 172, 196, 220].forEach((x, i) => {
-    const h = 10 + (i * 7) % 18;
-    rect(g, x, 7, 0.5, h, '#0e0a08'); rect(g, x + 0.5, 7, 0.5, h, 'rgba(255,240,220,.06)'); rect(g, x, 7 + h - 1, 2, 1, '#0e0a08');
-  });
+  pipeH(g, 0, 4, sw); pipeH(g, rx, 4, 138);
+  [20, 64, 110, 150, 190].forEach(x => flange(g, x, 3, 3, 5));
+  for (let x = 230; x < sw - 6; x += 40) flange(g, x, 3, 3, 5);
+  [230, 280, 330].forEach(x => flange(g, x + ox, 3, 3, 5));
+  pipeV(g, sw + 3, 0, d0); pipeV(g, sw + 3, d1, h - d1);
+  [36, 74, 112].forEach(y => flange(g, sw + 2, y, 5, 3));
+  for (let y = 150; y < d0 - 4; y += 38) flange(g, sw + 2, y, 5, 3);
+  pipeV(g, 144 + dx, 7, 29); pipeV(g, 194 + dx, 7, 29);
+  const scratch = (x, i) => {
+    const sh = 10 + (i * 7) % 18;
+    rect(g, x, 7, 0.5, sh, '#0e0a08'); rect(g, x + 0.5, 7, 0.5, sh, 'rgba(255,240,220,.06)'); rect(g, x, 7 + sh - 1, 2, 1, '#0e0a08');
+  };
+  [8, 26, 50, 74, 96, 128, 150, 172, 196].forEach((x, i) => { for (let k = 0; x + 200 * k < sw - 2; k++) scratch(x + 200 * k, i + k); });
+  scratch(220 + ox, 9);
   // Binary cant: 1-art-px glyphs (ones tall, zeros a dot), one per logical px.
   g.fillStyle = 'rgba(124,255,158,.38)';
-  [[2, 32, 198], [74, 38, 198], [210, 32, 344], [210, 105, 344]].forEach(([x, y, end]) => {
+  [[2, 32, sw - 2], [74, 38, sw - 2], [rx + 2, 32, w - 2], [rx + 2, split - 5, w - 2]].forEach(([x, y, end]) => {
     for (let i = 0; x + i < end; i++) g.fillRect(x + i, y, 0.5, BIN[(i + x) % BIN.length] === '1' ? 1 : 0.5);
   });
-  [[60, 104, 14, 1], [73, 104, 1, 6], [120, 204 + dy, 1, 12]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, '#0e0a08'));
-  [[30, 120, 18, 8], [146, 186 + dy, 8, 6], [270, 196, 14, 6]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, 'rgba(10,6,4,.35)'));
+  [[60, 104, 14, 1], [73, 104, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, '#0e0a08'));
+  [[30, 120, 18, 8], [146 + ex, 186 + hy, 8, 6], [270 + ox, 196 + sb, 14, 6]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, 'rgba(10,6,4,.35)'));
 
   const win = daylight ? WIN_DAY : WIN_NIGHT;
-  [78, 292].forEach(x => blit(g, MAPS.WINDOW, x, 10, win));
-  [210, 334].forEach(x => {
-    rect(g, x, 108, 10, 118, '#1c1d20'); rect(g, x + 9, 108, 1, 118, '#0e0a08');
-    pipeV(g, x + 3, 108, 118);
-    [124, 160, 196].forEach(y => blit(g, MAPS.GAUGE, x + 2, y));
+  windows.forEach(x => blit(g, MAPS.WINDOW, x, 10, win));
+  [210 + ox, 334 + ox].forEach(x => { // the sanctum's pillars
+    rect(g, x, split - 2, 10, baseH - split + 2, '#1c1d20'); rect(g, x + 9, split - 2, 1, baseH - split + 2, '#0e0a08');
+    pipeV(g, x + 3, split - 2, baseH - split + 2);
+    for (let y = split + 14; y < baseH - 24; y += 36) blit(g, MAPS.GAUGE, x + 2, y);
   });
-  rect(g, 210, 150, 10, 36, '#3a110e'); flange(g, 210, 148, 10, 2); flange(g, 210, 186, 10, 2); // pillar opens onto the passage door
-  rect(g, 254, 163, 44, 3, 'rgba(0,0,0,.45)');
-  for (const [name, x, y] of DECOR.concat(CLUTTER).map(sink(dy))) blit(g, MAPS[name], x, y);
-  rect(g, 0, 223 + dy, 200, 3, '#100b08'); rect(g, 0, 223 + dy, 200, 0.5, '#6e3f17'); // scriptorium's bottom wall, the gate sits in it
+  rect(g, 210 + ox, d0, 10, 36, '#3a110e'); flange(g, 210 + ox, d0 - 2, 10, 2); flange(g, 210 + ox, d1, 10, 2); // pillar opens onto the passage door
+  rect(g, 254 + ox, 163 + sd, 44, 3, 'rgba(0,0,0,.45)');
+  for (const [name, x, y] of props) blit(g, MAPS[name], x, y);
+  rect(g, 0, h - 3, sw, 3, '#100b08'); rect(g, 0, h - 3, sw, 0.5, '#6e3f17'); // scriptorium's bottom wall, the gate sits in it
 }
 
 // A bay's seam (y: its first slot row's top, minus 2): a brass-edged iron sill across the floor between two
 // pilasters standing out of the side walls, the arch the new floor opens behind.
-function bayArch(g, y) {
-  rect(g, 0, y, 200, 2, '#1c1d20'); rect(g, 0, y, 200, 0.5, '#b8742e'); rect(g, 0, y + 1.5, 200, 0.5, '#0e0a08');
-  for (let x = 6; x < 200; x += 12) { rect(g, x, y + 0.5, 1, 1, '#6e3f17'); rect(g, x, y + 0.5, 0.5, 0.5, '#e8b45a'); }
-  for (const x of [0, 196]) {
+function bayArch(g, y, sw) {
+  rect(g, 0, y, sw, 2, '#1c1d20'); rect(g, 0, y, sw, 0.5, '#b8742e'); rect(g, 0, y + 1.5, sw, 0.5, '#0e0a08');
+  for (let x = 6; x < sw; x += 12) { rect(g, x, y + 0.5, 1, 1, '#6e3f17'); rect(g, x, y + 0.5, 0.5, 0.5, '#e8b45a'); }
+  for (const x of [0, sw - 4]) {
     rect(g, x, y - 14, 4, 18, '#0e0a08'); rect(g, x + 0.5, y - 13.5, 3, 17, '#2a2c30');
     rect(g, x + 0.5, y - 13.5, 0.5, 17, '#5a5e63'); rect(g, x + 3, y - 13.5, 0.5, 17, '#141516');
     flange(g, x, y - 15, 4, 2); flange(g, x, y + 3, 4, 1.5); // capital and base
   }
 }
 // East of the scriptorium, below the sanctum: plated wall the length of the bays, a pipe run, cant and banners per bay.
-function bayWall(g, dy) {
-  plates(g, 208, 226, 138, dy, '#2a2a2c', '#18191b');
-  rect(g, 208, 226, 138, 3, '#100b08'); rect(g, 208, 228.5, 138, 0.5, '#6e3f17'); // the sanctum's bottom wall
-  for (let y = 226; y < 226 + dy; y += 64) {
-    pipeH(g, 220, y + 10, 114);
-    [232, 272, 312].forEach(x => flange(g, x, y + 9, 3, 5));
+function bayWall(g, { rx, ox, baseH, dy }) {
+  const x = v => v + ox;
+  plates(g, rx, baseH, 138, dy, '#2a2a2c', '#18191b');
+  rect(g, rx, baseH, 138, 3, '#100b08'); rect(g, rx, baseH + 2.5, 138, 0.5, '#6e3f17'); // the sanctum's bottom wall
+  for (let y = baseH; y < baseH + dy; y += 64) {
+    pipeH(g, x(220), y + 10, 114);
+    [232, 272, 312].forEach(fx => flange(g, x(fx), y + 9, 3, 5));
     g.fillStyle = 'rgba(124,255,158,.38)';
-    for (let i = 0; 222 + i < 332; i++) g.fillRect(222 + i, y + 20, 0.5, BIN[(i + y) % BIN.length] === '1' ? 1 : 0.5);
-    blit(g, MAPS.BANNER, 240, y + 30); blit(g, MAPS.BANNER, 294, y + 30); blit(g, MAPS.WINDOW, 263, y + 28, WIN_NIGHT);
+    for (let i = 0; 222 + i < 332; i++) g.fillRect(x(222) + i, y + 20, 0.5, BIN[(i + y) % BIN.length] === '1' ? 1 : 0.5);
+    blit(g, MAPS.BANNER, x(240), y + 30); blit(g, MAPS.BANNER, x(294), y + 30); blit(g, MAPS.WINDOW, x(263), y + 28, WIN_NIGHT);
   }
-  for (const x of [210, 334]) { // the sanctum's pillars carry on down
-    rect(g, x, 229, 10, dy - 3, '#1c1d20'); rect(g, x + 9, 229, 1, dy - 3, '#0e0a08');
-    pipeV(g, x + 3, 229, dy - 3);
-    for (let y = 266; y < 226 + dy; y += 64) blit(g, MAPS.GAUGE, x + 2, y);
+  for (const px of [x(210), x(334)]) { // the sanctum's pillars carry on down
+    rect(g, px, baseH + 3, 10, dy - 3, '#1c1d20'); rect(g, px + 9, baseH + 3, 1, dy - 3, '#0e0a08');
+    pipeV(g, px + 3, baseH + 3, dy - 3);
+    for (let y = baseH + 40; y < baseH + dy; y += 64) blit(g, MAPS.GAUGE, px + 2, y);
   }
 }
 
@@ -574,10 +618,11 @@ function deskLight(desk, busy) {
 }
 
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
+// Drawn in the minimum scene's coordinates, moved with their room.
 function drawDecorFrame(g, t, cog = 0) {
-  blit(g, MAPS.SKULL, 244, 50 + Math.round(2 * Math.sin(t * 4)));
-  drawMagos(g, t);
-  drawCogitator(g, t, cog);
+  blit(g, MAPS.SKULL, 244 + H.ox, 50 + Math.round(2 * Math.sin(t * 4)));
+  g.save(); g.translate(H.ox, H.sd); drawMagos(g, t); g.restore();
+  g.save(); g.translate(H.dx, 0); drawCogitator(g, t, cog); g.restore();
 }
 
 // The cogitator bank (MAPS.COGITATOR at 116,2): everything animated sits above y 40, clear of the scribes in front.
@@ -638,40 +683,43 @@ function drawMagos(g, t) {
   if (Math.sin(t * 2.2) > 0.4) { rect(g, MAG.x + 13, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); rect(g, MAG.x + 14.5, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); }
 }
 
-const STATIC_LIGHTS = [
-  { x: 86, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
-  { x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens
-  { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN }, // recaff, skull
-  { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
-  { x: 274, y: 153, r: 14, color: GREEN }, { x: 278, y: 132, r: 9, color: GREEN }, // lord desk, Magos optics + chest screen
-  { x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true },
-  { x: 276, y: 186, r: 26, color: RED },
-  { x: 106, y: 48, r: 14, color: AMBER, flicker: true },
-  { x: 96, y: 14, r: 10, color: AMBER, flicker: true }, { x: 198, y: 67, r: 10, color: AMBER, flicker: true },
-  { x: 50, y: 117, r: 14 }, { x: 150, y: 117, r: 14 }, { x: 99, y: 150, r: 14 },
-];
-// Plus the ones that follow the bays: coolant crossings on each bay's floor line, the gate's braziers and void.
-const lightsByBays = new Map();
+// The room's own lights, by what they move with (see PROPS), plus the floor's coolant crossings on every slot
+// row, the windows and the gate's braziers and void: once per scene size.
+const STATIC_LIGHTS = {
+  c: [{ x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens
+    { x: 106, y: 48, r: 14, color: AMBER, flicker: true }, { x: 96, y: 14, r: 10, color: AMBER, flicker: true }],
+  e: [{ x: 198, y: 67, r: 10, color: AMBER, flicker: true }],
+  r: [{ x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN }], // recaff, skull
+  s: [{ x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
+    { x: 274, y: 153, r: 14, color: GREEN }, { x: 278, y: 132, r: 9, color: GREEN }, // lord desk, Magos optics + chest screen
+    { x: 276, y: 186, r: 26, color: RED }],
+  sb: [{ x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true }],
+};
+const lightsBySize = new Map();
 function staticLights(hall) {
-  let L = lightsByBays.get(hall.bays);
+  const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
+  let L = lightsBySize.get(key);
   if (!L) {
-    const { x, y } = hall.entry;
-    L = STATIC_LIGHTS.concat(
-      Array.from({ length: hall.bays + 1 }, (_, k) => [{ x: 50, y: 183 + 64 * k, r: 14 }, { x: 150, y: 183 + 64 * k, r: 14 }]).flat(),
-      Array.from({ length: hall.bays }, (_, k) => ({ x: 99, y: 214 + 64 * k, r: 14 })),
+    if (lightsBySize.size > 8) lightsBySize.clear();
+    const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(l => ({ ...l, x: l.x + mx, y: l.y + my }));
+    const S = STATIC_LIGHTS, floor = [];
+    for (let j = 0; j < hall.rows; j++) for (let fx = (50 + hall.dx) % 100; fx < hall.sw - 10; fx += 100) floor.push({ x: fx, y: j ? 119 + 64 * j : 117, r: 14 });
+    for (const cx of channels) for (let j = 0; j < hall.rows - 1; j++) floor.push({ x: cx + 1, y: 150 + 64 * j, r: 14 });
+    L = windows.map(wx => ({ x: wx + 8, y: 22, r: 22 })).concat(
+      at(S.c, hall.dx, 0), at(S.e, hall.sw - 200, 0), at(S.r, hall.ox, 0), at(S.s, hall.ox, hall.sd), at(S.sb, hall.ox, hall.sb), floor,
       { x: x - 23, y: y - 11, r: 26, color: AMBER, flicker: true }, { x: x + 23, y: y - 11, r: 26, color: AMBER, flicker: true }, // gate braziers
       { x, y: y - 12, r: 18, color: RED },
     );
-    lightsByBays.set(hall.bays, L);
+    lightsBySize.set(key, L);
   }
   return L;
 }
 
 // Doors, drawn each frame: open while any actor is within 12 logical px of the doorway.
-// Leaves slide up/down inside the 200..208 wall.
-const DOORS = [
-  { x0: 200, x1: 208, y0: 150, y1: 186 }, // scriptorium <-> sanctum (DOOR_OUT/DOOR_IN)
-  { x0: 200, x1: 208, y0: 78, y1: 98, floor: '#1c1d20' }, // scriptorium <-> refectorium (REF_OUT/REF_IN)
+// Leaves slide up/down inside the scriptorium's east wall (sw..sw + 8).
+const doorsOf = ({ sw, sd }) => [
+  { x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
+  { x0: sw, x1: sw + 8, y0: 78, y1: 98, floor: '#1c1d20' }, // scriptorium <-> refectorium (hall.refOut/refIn)
 ];
 function cog(g, cx, cy) {
   rect(g, cx - 0.5, cy - 3.5, 1, 7, '#b8742e'); rect(g, cx - 3.5, cy - 0.5, 7, 1, '#b8742e');
@@ -688,7 +736,7 @@ function leaf(g, x, y, w, h) {
 // Is anyone within 12 logical px of the rect x0..x1, y0..y1?
 const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);
 function drawDoors(g, actors) {
-  for (const d of DOORS) {
+  for (const d of doorsOf(H)) {
     const open = near(actors, d.x0, d.y0, d.x1, d.y1);
     const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
     if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
@@ -724,9 +772,9 @@ function drawGate(g, actors) {
 
 // Escalation: while a petition has waited over 5 min, the beacon on the Sanctum wall turns (red sweep) and the
 // servo-skull leaves its perch by the Magos to hover by the oldest stale petitioner, eye and searchlight red.
-const BEACON = { x: 226, y: 118 };
-const PERCH = { x: 297, y: 128 };
-const skull = { x: PERCH.x, y: PERCH.y, last: 0 };
+const beaconOf = ({ ox, sd }) => ({ x: 226 + ox, y: 118 + sd });
+const perchOf = ({ ox, sd }) => ({ x: 297 + ox, y: 128 + sd }); // a resize moves it: the skull flies there
+const skull = { ...perchOf(hallOf(0)), last: 0 };
 const SKULL_SPEED = 60; // logical px per second
 const SKULL_RED = { o: '#ff3a20', O: '#ffd0b0' };
 // Something of the scene is mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate.
@@ -734,8 +782,8 @@ export const sceneBusy = () => gateOpen !== gateTo || !!skull.flying;
 function drawAlarm(g, actors, now) {
   const t = now / 1000, lights = [];
   const stale = actors.filter(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s)).sort((p, q) => p.s.sinceMs - q.s.sinceMs);
-  const on = stale.length > 0;
-  drawBeacon(g, t, on);
+  const on = stale.length > 0, BEACON = beaconOf(H), PERCH = perchOf(H);
+  drawBeacon(g, t, on, BEACON);
   if (on) {
     const sweep = Math.sin(t * 5); // the reflector's turn: the glow swings across the wall and the floor below
     lights.push({ x: BEACON.x, y: BEACON.y, r: 14, color: 'rgba(255,58,32,.6)' },
@@ -761,8 +809,7 @@ function drawAlarm(g, actors, now) {
 }
 
 // Alarm beacon on its wall bracket (art px = 0.5): a caged red dome whose reflector strip sweeps round when on.
-function drawBeacon(g, t, on) {
-  const { x, y } = BEACON;
+function drawBeacon(g, t, on, { x, y }) {
   rect(g, x - 0.5, y + 3, 1, 3, '#3a200c'); // stem into the wall
   rect(g, x - 3.5, y + 2.5, 7, 2.5, '#0e0a08'); rect(g, x - 3, y + 3, 6, 1.5, '#6e3f17'); rect(g, x - 3, y + 3, 6, 0.5, '#b8742e');
   rect(g, x - 2.5, y + 3.5, 0.5, 0.5, '#e8b45a'); rect(g, x + 2, y + 3.5, 0.5, 0.5, '#e8b45a'); // bolts

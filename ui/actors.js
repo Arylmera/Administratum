@@ -1,5 +1,5 @@
 import { SCRIBE, ADEPT, MAPS, RANK, rankOf, blit } from './sprites.js';
-import { route, COG_SPOTS, RECAFF_SPOT, REFECTORY_SPOTS, hallOf } from './layout.js';
+import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
 
 const SPEED = 80; // logical px per second
@@ -23,10 +23,11 @@ export const LAMP_S = 20;
 export const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
 
 export class Cast {
-  constructor() { this.actors = new Map(); this.naps = new Map(); this.hall = hallOf(0); } // naps: scribe id -> REFECTORY_SPOTS index
+  constructor() { this.actors = new Map(); this.naps = new Map(); this.hall = hallOf(0); } // naps: scribe id -> hall.refectory index
 
-  // hall: hallOf() of the layout's bays (gate, queue, aisle and lanes follow it).
+  // hall: hallOf() of the scene's size and the layout's bays (rooms, gate, queue, aisle and lanes follow it).
   sync(roster, seats, colorOf, consoleSeats, blocks, hall = hallOf(0)) {
+    if (hall.w !== this.hall.w || hall.baseH !== this.hall.baseH) this.resized(this.hall, hall);
     this.hall = hall;
     const ENTRY = hall.entry;
     const live = new Set(roster.map(s => s.id));
@@ -63,12 +64,14 @@ export class Cast {
 
   // Refectory benches, decided before the layout (a scribe on a bench releases its desk, planLayout): a sleeper keeps
   // its bench until it wakes; more sleepers than benches doze at their desk. Returns the ids on a bench.
-  napping(roster, now = Date.now()) {
+  // spots: the refectory's (hallOf().refectory); a sleeper whose bench went with a smaller room takes another.
+  napping(roster, spots = this.hall.refectory, now = Date.now()) {
+    for (const [id, i] of this.naps) if (i >= spots.length) this.naps.delete(id);
     const sleepy = roster.filter(s => s.status === 'idle' && !s.background && !isQuestion(s) && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
     for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
     for (const s of sleepy) {
       if (this.naps.has(s.id)) continue;
-      const free = REFECTORY_SPOTS.findIndex((_, i) => ![...this.naps.values()].includes(i));
+      const free = spots.findIndex((_, i) => ![...this.naps.values()].includes(i));
       if (free >= 0) this.naps.set(s.id, free);
     }
     return new Set(this.naps.keys());
@@ -78,13 +81,27 @@ export class Cast {
     const key = `${d.x},${d.y},${d.pose}`;
     if (key === a.destKey) return;
     a.destKey = key;
-    a.target = d;
     const from = { x: a.x, y: a.y, via: a.pose === 'console' ? a.target.via : undefined }; // leaving a console the way it came
-    const bays = this.hall.bays;
-    a.path = d.pose === 'nap' ? route(from, RECAFF_SPOT, blocks, bays).concat({ x: d.x, y: d.y }) : route(from, d, blocks, bays);
-    if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
+    a.target = d;
     a.wait = 0;
     a.pose = 'walk';
+    if (a.x === d.x && a.y === d.y) { a.path = []; return; } // already there (a resize re-routing everyone)
+    const H = this.hall;
+    a.path = d.pose === 'nap' ? route(from, H.recaff, blocks, H).concat({ x: d.x, y: d.y }) : route(from, d, blocks, H);
+    if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
+  }
+
+  // The window resized the scene: whoever stands in the refectorium or the sanctum moves with the room (anchored
+  // east, the sanctum by its top wall), a scribe east of the narrower scriptorium's corridor steps onto it, and
+  // everyone re-routes from where they stand (sync: the walks follow the new corridor, doors and lanes).
+  resized(from, to) {
+    for (const a of this.actors.values()) {
+      const room = roomOf(a, from);
+      if (room !== 'hall') { a.x += to.ox - from.ox; if (room === 'sanct') a.y += to.sd - from.sd; }
+      else a.x = Math.min(a.x, to.corridorX); // ponytail: a short hop, only when the window narrows
+      a.destKey = '';
+      if (a.burn) a.burn.fire = braziers(to.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
+    }
   }
 
   // The session compacted its context: a seated scribe carries its old pile to the nearest brazier and burns it;
@@ -109,7 +126,7 @@ export class Cast {
   }
 
   destination(a, seats, waiting, shell) {
-    const { entry: ENTRY, queue: QUEUE_SLOTS, aisleY: AISLE_Y } = this.hall;
+    const { entry: ENTRY, queue: QUEUE_SLOTS, aisleY: AISLE_Y, cogSpots: COG_SPOTS, refectory } = this.hall;
     if (a.leaving) return { ...ENTRY, pose: 'gone' };
     if (isPetitioner(a.s)) {
       const queueIdx = Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1);
@@ -118,7 +135,7 @@ export class Cast {
     }
     if (a.burn) return { x: a.burn.fire.x, y: AISLE_Y, pose: 'burn' };
     if (shell.includes(a.id)) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' };
-    if (this.naps.has(a.id)) return { ...REFECTORY_SPOTS[this.naps.get(a.id)], pose: 'nap' };
+    if (refectory[this.naps.get(a.id)]) return { ...refectory[this.naps.get(a.id)], pose: 'nap' };
     const seat = seats.get(a.id);
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
   }

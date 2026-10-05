@@ -1,4 +1,3 @@
-import { SCENE } from './layout.js';
 import { RES } from './sprites.js';
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
@@ -16,9 +15,9 @@ function stamp(stops) {
 let hole = null;
 const glows = new Map(); // light colour -> its glow stamp (the colours are a fixed set of literals)
 const glowOf = color => glows.get(color) ?? glows.set(color, stamp([[0, color], [0.7, 'rgba(0,0,0,0)']])).get(color);
-const vignettes = new Map(); // `${h}:${beams}` -> full-scene canvas
+const vignettes = new Map(); // `${w}x${h}:${beams}` -> full-scene canvas
 function vignette(w, h, beams) {
-  const k = `${h}:${beams}`;
+  const k = `${w}x${h}:${beams}`;
   let c = vignettes.get(k);
   if (!c) {
     if (vignettes.size > 3) vignettes.clear(); // the hall changed size: drop the old ones
@@ -37,10 +36,9 @@ function vignette(w, h, beams) {
 }
 let layer = null, beam = null;
 
-// Darkness with light holes (destination-out), then additive glows, beams by day, vignette. h: the scene's
-// logical height (it grows with the hall's bays).
-export function drawLighting(g, lights, level, t, h = SCENE.h) {
-  const w = SCENE.w;
+// Darkness with light holes (destination-out), then additive glows, beams by day, vignette. w, h: the scene's
+// logical size (hallOf); windows: the x of each window (scene.js propsOf), a beam falls from each by day.
+export function drawLighting(g, lights, level, t, w, h, windows = []) {
   if (level.beams) {
     if (!beam) {
       beam = g.createLinearGradient(0, 26, 0, 116);
@@ -48,11 +46,11 @@ export function drawLighting(g, lights, level, t, h = SCENE.h) {
       beam.addColorStop(1, 'rgba(235,220,180,0)');
     }
     g.fillStyle = beam;
-    for (const bx of [74, 288]) {
+    for (const bx of windows.map(x => x - 4)) {
       g.beginPath(); g.moveTo(bx + 9, 26); g.lineTo(bx + 21, 26); g.lineTo(bx + 30, 116); g.lineTo(bx, 116); g.closePath(); g.fill();
     }
   }
-  if (!layer || layer.height !== h * RES) {
+  if (!layer || layer.width !== w * RES || layer.height !== h * RES) {
     layer = document.createElement('canvas');
     layer.width = w * RES; layer.height = h * RES;
     layer.getContext('2d').setTransform(RES, 0, 0, RES, 0, 0);
