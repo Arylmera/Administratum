@@ -32,7 +32,19 @@ for (const c of L.consoles) {
   const b = L.blocks[0];
   assert.ok(c.x >= b.x && c.x + 14 <= b.x + b.w && c.y >= b.y && L.consoleSeats.get(c.id).y <= b.y + b.h);
 }
-assert.deepEqual(L.consoleSeats.get('h-0'), { x: L.consoles[0].x + 7, y: L.consoles[0].y + 22 });
+assert.deepEqual({ ...L.consoleSeats.get('h-0'), via: undefined }, { x: L.consoles[0].x + 7, y: L.consoles[0].y + 22, via: undefined });
+// two-row departments: scribes and adepts walk to and from every seat without crossing a console or a desk
+// (upper consoles step into the column gap, first-row seats use the lane between the rows)
+for (const D of [L, layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])]) {
+  const solid = D.consoles.map(c => [c, 14, 10]).concat(D.desks.map(d => [d, 32, 21]));
+  for (const seat of [...D.consoleSeats.values(), ...D.seats.values()]) for (const e of [ENTRY, QUEUE_SLOTS[0], COG_SPOTS[2]]) for (const [a, b] of [[seat, e], [e, seat]]) {
+    const rt = [a].concat(route(a, b, D.blocks));
+    rt.slice(1).forEach((q, i) => {
+      const p = rt[i], x0 = Math.min(p.x, q.x), y0 = Math.min(p.y, q.y);
+      for (const [o, w, h] of solid) assert.ok(!(x0 < o.x + w && Math.max(p.x, q.x) > o.x && y0 < o.y + h && Math.max(p.y, q.y) > o.y), `leg ${JSON.stringify([p, q])} crosses ${o.id}`);
+    });
+  }
+}
 // a freed console (null) keeps the others in place
 const L2 = layoutDepartments([{ name: 'Terra', color: '#d9a84e', ids: ids('t', 3), helpers: [null, 'h-1', 'h-2', 'h-3', 'h-4'] }]);
 assert.equal(L2.consoles.length, 4);

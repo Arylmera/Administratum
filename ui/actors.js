@@ -46,7 +46,8 @@ export class Cast {
       if (key !== a.destKey) {
         a.destKey = key;
         a.target = d;
-        a.path = d.pose === 'nap' ? route({ x: a.x, y: a.y }, RECAFF_SPOT, blocks).concat({ x: d.x, y: d.y }) : route({ x: a.x, y: a.y }, d, blocks);
+        const from = { x: a.x, y: a.y, via: a.pose === 'console' ? a.target.via : undefined }; // leaving a console the way it came
+        a.path = d.pose === 'nap' ? route(from, RECAFF_SPOT, blocks).concat({ x: d.x, y: d.y }) : route(from, d, blocks);
         if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
         a.wait = 0;
         a.pose = 'walk';
@@ -69,7 +70,7 @@ export class Cast {
   // Adepts work at their own console in the owner's department block, whatever the owner is doing.
   atConsole(a, consoleSeats) {
     const seat = consoleSeats.get(a.id);
-    return a.leaving || !seat ? { ...ENTRY, pose: 'gone' } : { x: seat.x, y: seat.y, pose: 'console', dir: 'up' };
+    return a.leaving || !seat ? { ...ENTRY, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
   }
 
   update(dt) {

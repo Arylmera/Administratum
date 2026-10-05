@@ -53,7 +53,10 @@ export function layoutDepartments(depts) {
       const s = slot(n + (k >> 2)), c = k & 3;
       const con = { id, dept: d.name, x: s.x + CONSOLE_CELL.x0 + (c & 1) * CONSOLE_CELL.w, y: s.y + CONSOLE_CELL.y0 + (c >> 1) * CONSOLE_CELL.h };
       consoles.push(con);
-      consoleSeats.set(id, { x: con.x + 7, y: con.y + 22 });
+      const seat = { x: con.x + 7, y: con.y + 22 };
+      // An upper console's adept would walk down through the console below: step into the gap between the columns first.
+      if (c < 2) seat.via = { x: s.x + CONSOLE_CELL.x0 + (CONSOLE_CELL.w + 14) / 2, y: seat.y };
+      consoleSeats.set(id, seat);
     });
     x += w + 4;
     rowH = Math.max(rowH, h);
@@ -70,7 +73,9 @@ const DOORWAY = { sanct: [DOOR_OUT, DOOR_IN], ref: [REF_OUT, REF_IN] };
 // east of every desk, which also holds both doorways' hall side.
 const LANES = [HALL.y0, HALL.y0 + 60, HALL.y0 + 124, AISLE_Y];
 const CORRIDOR_X = REF_OUT.x;
-const crosses = (x, y0, y1, blocks) => blocks.some(b => x > b.x && x < b.x + b.w && y0 < b.y + b.h && y1 > b.y);
+// A block is solid row by row: the 8 px gap under each of its slot rows holds a lane and is open.
+const crosses = (x, y0, y1, blocks) => blocks.some(b => x > b.x && x < b.x + b.w &&
+  Array.from({ length: (b.h + 8) / SLOT_H }, (_, k) => b.y + k * SLOT_H).some(ry => y0 < ry + SLOT_H - 8 && y1 > ry));
 // Lanes a hall point can step onto straight up or down without walking through a department block.
 // Going down, the stretch to the first lane below is always clear (it's the point's own slot gap).
 function lanesOf(p, blocks) {
@@ -81,11 +86,12 @@ function lanesOf(p, blocks) {
 const lengthOf = pts => pts.reduce((s, p, i) => s + (i ? Math.abs(p.x - pts[i - 1].x) + Math.abs(p.y - pts[i - 1].y) : 0), 0);
 
 // Axis-aligned path from a to b (both feet), the shortest over the lane choices. blocks: layoutDepartments().blocks.
+// A point may carry `via`: the step taken between it and the lanes (see console seats).
 export function route(a, b, blocks = []) {
   const ra = roomOf(a), rb = roomOf(b);
   if (ra === rb && ra !== 'hall') return [{ x: b.x, y: b.y }];
-  const head = ra === 'hall' ? [a] : [a, DOORWAY[ra][1], DOORWAY[ra][0]];
-  const tail = rb === 'hall' ? [b] : [DOORWAY[rb][0], DOORWAY[rb][1], b];
+  const head = ra === 'hall' ? [a].concat(a.via ?? []) : [a, DOORWAY[ra][1], DOORWAY[ra][0]];
+  const tail = rb === 'hall' ? [].concat(b.via ?? [], b) : [DOORWAY[rb][0], DOORWAY[rb][1], b];
   const p = head.at(-1), q = tail[0];
   let best = null;
   for (const la of lanesOf(p, blocks)) for (const lb of lanesOf(q, blocks)) {
