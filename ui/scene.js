@@ -246,27 +246,24 @@ export function deskLight(desk, busy) {
 
 export function drawDecorFrame(g, t) {
   blit(g, MAPS.SKULL, 244, 50 + Math.round(2 * Math.sin(t * 4)));
-  drawInquisitor(g, t);
+  drawMagos(g, t);
 }
 
-// The Inquisitor on the throne: upper body settles 1 art px on each slow breath, the rosette glints every 6 s.
-const INQ = { x: 271, y: 128 };
-function drawInquisitor(g, t) {
-  const cv = sprite(MAPS.INQUISITOR), cut = 22; // art row where the breathing upper body meets the hands/lap
-  const w = cv.width / 2, breath = Math.sin(t * 1.4) > 0.2 ? 0.5 : 0;
-  g.drawImage(cv, 0, cut, cv.width, cv.height - cut, INQ.x, INQ.y + cut / 2, w, (cv.height - cut) / 2);
-  g.drawImage(cv, 0, 0, cv.width, cut, INQ.x, INQ.y + breath, w, cut / 2);
-  if (t % 6 < 0.3) {
-    const gx = INQ.x + 6, gy = INQ.y + 8 + breath; // rosette's lit upper-left rim
-    rect(g, gx - 0.5, gy, 1.5, 0.5, '#fff4c8'); rect(g, gx, gy - 0.5, 0.5, 1.5, '#fff4c8');
-  }
+// The Magos on the throne: the hanging drill forearm (art cols 0..9) swings 1 art px, chest screen scans, optics pulse.
+const MAG = { x: 264, y: 120 };
+function drawMagos(g, t) {
+  const cv = sprite(MAPS.MAGOS), A = 10, h = cv.height / 2, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
+  g.drawImage(cv, A, 0, cv.width - A, cv.height, MAG.x + A / 2, MAG.y, (cv.width - A) / 2, h);
+  g.drawImage(cv, 0, 0, A, cv.height, MAG.x + sway, MAG.y, A / 2, h);
+  rect(g, MAG.x + 13, MAG.y + 15 + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < 0.1 ? '#16301f' : '#b8ffc8');
+  if (Math.sin(t * 2.2) > 0.4) { rect(g, MAG.x + 13, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); rect(g, MAG.x + 14.5, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); }
 }
 
 export const STATIC_LIGHTS = [
   { x: 86, y: 22, r: 22 }, { x: 122, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
   { x: 172, y: 30, r: 30, color: GREEN }, { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN },
   { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
-  { x: 274, y: 153, r: 14, color: GREEN },
+  { x: 274, y: 153, r: 14, color: GREEN }, { x: 278, y: 132, r: 9, color: GREEN }, // lord desk, Magos optics + chest screen
   { x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true },
   { x: 10, y: 197, r: 26, color: AMBER, flicker: true }, { x: 276, y: 186, r: 26, color: RED },
   { x: 192, y: 50, r: 14, color: AMBER, flicker: true },
