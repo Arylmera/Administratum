@@ -7,6 +7,11 @@ export const BASE = {
 };
 export const SASH = ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'];
 
+export const RES = 2; // art pixels per logical pixel
+// Nearest-neighbour 2x upscale of a hand-written map: each char doubles horizontally, each row doubles vertically.
+// Phase 1 only (keeps the low-res maps as source); phase 2 can skip `up` for HD-native maps.
+const up = map => map.flatMap(row => { const r = row.split('').map(c => c + c).join(''); return [r, r]; });
+
 const cache = new WeakMap();
 export function sprite(map, over = {}) {
   let byMap = cache.get(map);
@@ -28,6 +33,12 @@ export function sprite(map, over = {}) {
     byMap.set(key, cv);
   }
   return cv;
+}
+
+// Draws sprite(map, over) at logical (x, y); the HD sprite canvas is downscaled back to logical size.
+export function blit(g, map, x, y, over) {
+  const cv = sprite(map, over);
+  g.drawImage(cv, x, y, cv.width / RES, cv.height / RES);
 }
 
 const mirror = map => map.map(row => row.split('').reverse().join(''));
@@ -92,10 +103,10 @@ const SCRIBE_SIDE = [
 ];
 const FEET = ['....kMMk.kMMk...', '...kMMk....kk...', '....kk....kMMk..'];
 const FEET_SIDE = ['....kMMkkMMk....', '...kMMk..kMMk...', '.....kMMMMk.....'];
-const RIGHT = FEET_SIDE.map(f => withFeet(SCRIBE_SIDE, f));
+const RIGHT = FEET_SIDE.map(f => up(withFeet(SCRIBE_SIDE, f)));
 export const SCRIBE = {
-  up: FEET.map(f => withFeet(SCRIBE_BACK, f)),
-  down: FEET.map(f => withFeet(SCRIBE_FRONT, f)),
+  up: FEET.map(f => up(withFeet(SCRIBE_BACK, f))),
+  down: FEET.map(f => up(withFeet(SCRIBE_FRONT, f))),
   right: RIGHT,
   left: RIGHT.map(mirror),
 };
@@ -103,11 +114,11 @@ export const SCRIBE = {
 const ARM = ['k.k.', 'kmk.', '.mk.', '.km.', '..mk', '..Mk', '.kM.', 'kM..'];
 
 export const MAPS = {
-  ARM,
-  ARM_L: mirror(ARM),
-  CHAIN: ['mkmkmkmkmk'],
-  SCROLL: ['kkkkk.', 'kpppPk', 'kpppPk', 'kpxxPk', 'kpxxPk', 'kpppPk', 'kkkkk.'],
-  DESK: [
+  ARM: up(ARM),
+  ARM_L: up(mirror(ARM)),
+  CHAIN: up(['mkmkmkmkmk']),
+  SCROLL: up(['kkkkk.', 'kpppPk', 'kpppPk', 'kpxxPk', 'kpxxPk', 'kpppPk', 'kkkkk.']),
+  DESK: up([
     '......kkkkkkkkkkkk.......f......',
     '......kGggggggggGk......fFf.....',
     '......kgkkkkkkkkgk.......f......',
@@ -129,8 +140,8 @@ export const MAPS = {
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
     'kMk..........................kMk',
     'kkk..........................kkk',
-  ],
-  SHELF: [
+  ]),
+  SHELF: up([
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
     'kWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWk',
     'kWkkkkkkkkkkkkkkkkkkkkkkkkkkkkWk',
@@ -152,9 +163,9 @@ export const MAPS = {
     'kWkxxnvvnpPpPnnuunxxnppppnvvnkWk',
     'kWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWk',
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
-  ],
-  SKULL: ['...kkkk...', '..kbbbbk..', '.kbbbbbbk.', '.kbokbkkbk', '.kbbbBbbbk', '..kbkbkbk.', '...kgggk..', '..kgMMgk..', '...kggk...', '....kk....'],
-  COG_MECH: [
+  ]),
+  SKULL: up(['...kkkk...', '..kbbbbk..', '.kbbbbbbk.', '.kbokbkkbk', '.kbbbBbbbk', '..kbkbkbk.', '...kgggk..', '..kgMMgk..', '...kggk...', '....kk....']),
+  COG_MECH: up([
     '.......kkkkkk.......',
     '....kk.kbbbbk.kk....',
     '...kbbkkbbbbkkbbk...',
@@ -173,10 +184,10 @@ export const MAPS = {
     '...kbbkkbbbbkkbbk...',
     '....kk.kbbbbk.kk....',
     '.......kkkkkk.......',
-  ],
-  SEAL: ['.kkkk.', 'kxxxxk', 'kxggxk', 'kxxxxk', '.kkkk.', '.kppk.', '.kPpk.', '.kppk.', '.kpPk.', '..kk..'],
-  CANDLES: ['..F...F.....', '.fFf.fFf..F.', '..f...f..fFf', '.kpk.kpk..f.', '.kpk.kpk.kpk', '.kPk.kpk.kpk', 'kpPPkkpPkkPk', 'kPPPPPPPPPPk', '.kkkkkkkkkk.'],
-  THRONE: [
+  ]),
+  SEAL: up(['.kkkk.', 'kxxxxk', 'kxggxk', 'kxxxxk', '.kkkk.', '.kppk.', '.kPpk.', '.kppk.', '.kpPk.', '..kk..']),
+  CANDLES: up(['..F...F.....', '.fFf.fFf..F.', '..f...f..fFf', '.kpk.kpk..f.', '.kpk.kpk.kpk', '.kPk.kpk.kpk', 'kpPPkkpPkkPk', 'kPPPPPPPPPPk', '.kkkkkkkkkk.']),
+  THRONE: up([
     '......kkkkkkkk......',
     '.....kmmmmmmmmk.....',
     '....kmMkmmmmkMmk....',
@@ -193,8 +204,8 @@ export const MAPS = {
     '..kgggggggggggggggk.',
     '..kMk...........kMk.',
     '..kkk...........kkk.',
-  ],
-  LORD_DESK: [
+  ]),
+  LORD_DESK: up([
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
     'kggggggggggggggggggggggggggggggggggggggggggk',
     'kwwwwwppppPwwwwkCCCCCkwwwwwwppPwwwwwwkMkwwwk',
@@ -208,15 +219,15 @@ export const MAPS = {
     'kWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWk',
     'kggggggggggggggggggggggggggggggggggggggggggk',
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
-  ],
-  BRAZIER: ['....F.....', '...fFf....', '..ffFff...', '..kfffk...', '.kgggggk..', '..kGGGk...', '...kgk....', '...kmk....', '...kgk....', '...kgk....', '..kgggk...', '.kgGGGgk..', '.kkkkkkk..'],
-  RECAFF: [
+  ]),
+  BRAZIER: up(['....F.....', '...fFf....', '..ffFff...', '..kfffk...', '.kgggggk..', '..kGGGk...', '...kgk....', '...kmk....', '...kgk....', '...kgk....', '..kgggk...', '.kgGGGgk..', '.kkkkkkk..']),
+  RECAFF: up([
     'kkkkkkkkkkkkkkkk', 'kmmmmmmmmmmmmmmk', 'kmGGGGGGGGGGGGmk', 'kmGbbbbbbbbbbGmk', 'kmGGGGGGGGGGGGmk',
     'kmmmmmmmmmmmmmmk', 'kmkkkkkkkkmmmmmk', 'kmkCcCcCCkmammmk', 'kmkcCcCcCkmmmmmk', 'kmkCcCcCCkmommmk',
     'kmkkkkkkkkmmmmmk', 'kmmmmmmmmmmmmmmk', 'kmmmmkkkkkmmmmmk', 'kmmmmkWWWkmmmmmk', 'kmmmmkkkkkmmmmmk',
     'kMMMMMMMMMMMMMMk', 'kMMMMMMMMMMMMMMk', 'kkkkkkkkkkkkkkkk',
-  ],
-  COGITATOR: [
+  ]),
+  COGITATOR: up([
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
     'kGggggggggggggggggggggggggggggggggggggGk',
     'kgkkkkkkkkkgkkkkkkkkkgkkkkkkkkkgkkkkkkgk',
@@ -233,28 +244,28 @@ export const MAPS = {
     'kMMMMMMMMMMMMMMMMMMggggMMMMMMMMMMMMMMMMk',
     'kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMk',
     'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
-  ],
-  WINDOW: [
+  ]),
+  WINDOW: up([
     '......kkkk......', '....kkuuuukk....', '...kuuuxxuuuk...', '..kuuxxggxxuuk..', '..kuxggggggxuk..',
     '.kuuxggggggxuuk.', '.kkkkkkkkkkkkkk.', '.kuuukuuuukuuuk.', '.kuxukuxxukuxuk.', '.kuxukuggukuxuk.',
     '.kuuukuxxukuuuk.', '.kvvvkuuuukvvvk.', '.kvuvkuvvukvuvk.', '.kvvvkuuuukvvvk.', '.kkkkkkkkkkkkkk.',
     '.kMMMMMMMMMMMMk.', '.kkkkkkkkkkkkkk.',
-  ],
-  BANNER: [
+  ]),
+  BANNER: up([
     'kkkkkkkkkkkk', 'kGggggggggGk', '.kxxxxxxxxk.', '.kxbxbbxbxk.', '.kxxbbbbxxk.', '.kxbbkkbbxk.',
     '.kxxbbbbxxk.', '.kxbxbbxbxk.', '.kxxxxxxxxk.', '.kxxxxxxxxk.', '.kxxxkxxxxk.', '.kxxk.kxxxk.',
     '.kxk...kxxk.', '.kk.....kxk.', '.........kk.',
-  ],
-  CRATE: [
+  ]),
+  CRATE: up([
     '.kPk.kpk.kPk..', 'kpPpkpPpkpPpkk', 'kkkkkkkkkkkkkk', 'kwwwwwwwwwwwwk', 'kWWWWWWWWWWWWk', 'kwkwwwwwwwwkwk',
     'kwwkwwwwwwkwwk', 'kwwwkwwwwkwwwk', 'kwwwwkwwkwwwwk', 'kwwwwwkkwwwwwk', 'kWWWWWWWWWWWWk', 'kkkkkkkkkkkkkk',
-  ],
-  PAPER_STACK: ['.kkkkkk.', 'kppppPPk', 'kPPPPPPk', 'kppppPPk', 'kkkkkkkk', '.kpppPPk', '.kPPPPPk', 'kkkkkkkk', 'kppppPPk', 'kPPPPPPk', 'kppppPPk', 'kkkkkkkk'],
-  SCROLL_PILE: ['....kkkk..kkkk....', '...kppPk.kpxPk....', '..kkkkkkkkkkkkkk..', '.kpPppkpPppkpPpk..', '.kkkkkkkkkkkkkkkk.', 'kpPpkpPppkpPppkpPk', 'kkkkkkkkkkkkkkkkkk'],
-  BOOKS: ['.kkkkkkk..', '.kxxxxxk..', 'kkkkkkkkk.', 'kuuuuuuuk.', '.kkkkkkkk.', '.kvvvvvvk.', 'kkkkkkkkkk', 'kWWWWWWWWk', 'kkkkkkkkkk'],
-  LOOSE_A: ['kkkkk', 'kpppk', 'kpPpk', 'kkkkk'],
-  LOOSE_B: ['kkkk', 'kPpk', 'kppk', 'kpPk', 'kkkk'],
-  GAUGE: ['.kkkk.', 'kbbbbk', 'kbkxbk', 'kbbkbk', 'kbbbbk', '.kkkk.'],
-  VENT: ['kkkkkkkk', 'kMMMMMMk', 'kmmmmmmk', 'kMMMMMMk', 'kmmmmmmk', 'kMMMMMMk', 'kkkkkkkk'],
-  CENSER: ['..k..', '..m..', '..m..', '..m..', '.kgk.', 'kgGgk', 'kGfGk', 'kgGgk', '.kgk.', '..k..'],
+  ]),
+  PAPER_STACK: up(['.kkkkkk.', 'kppppPPk', 'kPPPPPPk', 'kppppPPk', 'kkkkkkkk', '.kpppPPk', '.kPPPPPk', 'kkkkkkkk', 'kppppPPk', 'kPPPPPPk', 'kppppPPk', 'kkkkkkkk']),
+  SCROLL_PILE: up(['....kkkk..kkkk....', '...kppPk.kpxPk....', '..kkkkkkkkkkkkkk..', '.kpPppkpPppkpPpk..', '.kkkkkkkkkkkkkkkk.', 'kpPpkpPppkpPppkpPk', 'kkkkkkkkkkkkkkkkkk']),
+  BOOKS: up(['.kkkkkkk..', '.kxxxxxk..', 'kkkkkkkkk.', 'kuuuuuuuk.', '.kkkkkkkk.', '.kvvvvvvk.', 'kkkkkkkkkk', 'kWWWWWWWWk', 'kkkkkkkkkk']),
+  LOOSE_A: up(['kkkkk', 'kpppk', 'kpPpk', 'kkkkk']),
+  LOOSE_B: up(['kkkk', 'kPpk', 'kppk', 'kpPk', 'kkkk']),
+  GAUGE: up(['.kkkk.', 'kbbbbk', 'kbkxbk', 'kbbkbk', 'kbbbbk', '.kkkk.']),
+  VENT: up(['kkkkkkkk', 'kMMMMMMk', 'kmmmmmmk', 'kMMMMMMk', 'kmmmmmmk', 'kMMMMMMk', 'kkkkkkkk']),
+  CENSER: up(['..k..', '..m..', '..m..', '..m..', '.kgk.', 'kgGgk', 'kGfGk', 'kgGgk', '.kgk.', '..k..']),
 };

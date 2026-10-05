@@ -1,4 +1,4 @@
-import { sprite, MAPS } from './sprites.js';
+import { blit, MAPS } from './sprites.js';
 
 export const AMBER = 'rgba(240,168,60,.26)';
 export const GREEN = 'rgba(124,255,158,.16)';
@@ -22,7 +22,7 @@ function plates(g, x, y, w, h, base, line) {
 function pipeH(g, x, y, w) { g.fillStyle = '#c8853a'; g.fillRect(x, y, w, 1); g.fillStyle = '#8a4f22'; g.fillRect(x, y + 1, w, 2); }
 function pipeV(g, x, y, h) { g.fillStyle = '#c8853a'; g.fillRect(x, y, 1, h); g.fillStyle = '#8a4f22'; g.fillRect(x + 1, y, 2, h); }
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
-function put(g, map, x, y, over) { g.drawImage(sprite(map, over), x, y); }
+function put(g, map, x, y, over) { blit(g, map, x, y, over); }
 
 const DECOR = [
   ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
@@ -103,7 +103,7 @@ export function deskDrawable(desk, busy) {
     y: desk.y + 21,
     draw(g) {
       g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(desk.x + 1, desk.y + 21, 30, 2);
-      g.drawImage(sprite(MAPS.DESK, busy ? {} : { f: null, F: null, c: '#2e6b47' }), desk.x, desk.y);
+      blit(g, MAPS.DESK, desk.x, desk.y, busy ? {} : { f: null, F: null, c: '#2e6b47' });
     },
   };
 }
@@ -115,7 +115,7 @@ export function deskLight(desk, busy) {
 }
 
 export function drawDecorFrame(g, t) {
-  g.drawImage(sprite(MAPS.SKULL), 244, 50 + Math.round(2 * Math.sin(t * 4)));
+  blit(g, MAPS.SKULL, 244, 50 + Math.round(2 * Math.sin(t * 4)));
 }
 
 export const STATIC_LIGHTS = [

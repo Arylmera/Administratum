@@ -1,4 +1,4 @@
-import { SCRIBE, MAPS, sprite } from './sprites.js';
+import { SCRIBE, MAPS, blit } from './sprites.js';
 import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY } from './layout.js';
 
 const SPEED = 40; // logical px per second
@@ -61,18 +61,18 @@ export class Cast {
     const over = { y: a.sash };
     const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
     if (a.pose === 'walk') {
-      g.drawImage(sprite(SCRIBE[a.dir][Math.floor(a.t * 8) % 3], over), fx, fy);
-      if (a.target?.pose === 'queue') g.drawImage(sprite(MAPS.SCROLL), fx + 14, fy + 8);
+      blit(g, SCRIBE[a.dir][Math.floor(a.t * 8) % 3], fx, fy, over);
+      if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
       return;
     }
     if (a.pose === 'desk') {
       g.fillStyle = '#14100c'; g.fillRect(fx + 7, 7, 1, fy - 7);
       g.fillStyle = '#1e2124'; g.fillRect(fx + 9, 7, 1, fy - 6);
     }
-    g.drawImage(sprite(SCRIBE.up[0], over), fx, fy);
-    g.drawImage(sprite(MAPS.ARM), fx + 14, fy + 2);
-    g.drawImage(sprite(MAPS.ARM_L), fx - 4, fy + 2);
-    if (a.pose === 'desk' && a.s.status === 'busy') g.drawImage(sprite(MAPS.CHAIN), fx - 6, fy + 15);
-    if (a.pose === 'queue') g.drawImage(sprite(MAPS.SCROLL), fx + 14, fy + 8);
+    blit(g, SCRIBE.up[0], fx, fy, over);
+    blit(g, MAPS.ARM, fx + 14, fy + 2);
+    blit(g, MAPS.ARM_L, fx - 4, fy + 2);
+    if (a.pose === 'desk' && a.s.status === 'busy') blit(g, MAPS.CHAIN, fx - 6, fy + 15);
+    if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
   }
 }

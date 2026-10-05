@@ -3,7 +3,7 @@ import { drawStatic, drawDecorFrame, STATIC_LIGHTS } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { layoutDepartments } from './layout.js';
 import { drawRugs, deskDrawable, deskLight } from './scene.js';
-import { SASH } from './sprites.js';
+import { SASH, RES } from './sprites.js';
 import { Cast } from './actors.js';
 
 const MODES = ['auto', 'full', 'candles'];
@@ -15,8 +15,10 @@ export const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('ad
 
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d');
-canvas.width = SCENE.w;
-canvas.height = SCENE.h;
+canvas.width = SCENE.w * RES;
+canvas.height = SCENE.h * RES;
+g.setTransform(RES, 0, 0, RES, 0, 0);
+g.imageSmoothingEnabled = false;
 const overlay = document.getElementById('overlay');
 export let scale = 2;
 
@@ -25,8 +27,11 @@ function background(day) {
   const k = day ? 'day' : 'night';
   if (!bg[k]) {
     const c = document.createElement('canvas');
-    c.width = SCENE.w; c.height = SCENE.h;
-    drawStatic(c.getContext('2d'), day);
+    c.width = SCENE.w * RES; c.height = SCENE.h * RES;
+    const cg = c.getContext('2d');
+    cg.setTransform(RES, 0, 0, RES, 0, 0);
+    cg.imageSmoothingEnabled = false;
+    drawStatic(cg, day);
     bg[k] = c;
   }
   return bg[k];
@@ -45,7 +50,8 @@ for (const b of document.querySelectorAll('#modes button')) b.onclick = () => se
 
 export function fit() {
   const head = document.querySelector('header').offsetHeight;
-  scale = Math.max(1, Math.floor(Math.min(innerWidth / SCENE.w, (innerHeight - head) / SCENE.h)));
+  const hs = Math.max(1, Math.floor(Math.min(innerWidth / (SCENE.w * RES), (innerHeight - head) / (SCENE.h * RES))));
+  scale = hs * RES; // CSS px per logical px, for overlays
   for (const el of [canvas, overlay]) { el.style.width = `${SCENE.w * scale}px`; el.style.height = `${SCENE.h * scale}px`; }
 }
 addEventListener('resize', fit);
@@ -61,7 +67,7 @@ function frame(now) {
   const dt = acc; acc = 0;
   hooks.update(dt);
   const level = lightLevel(state.mode, new Date().getHours());
-  g.drawImage(background(level.beams), 0, 0);
+  g.drawImage(background(level.beams), 0, 0, SCENE.w, SCENE.h);
   const extra = hooks.beforeLights(g);
   drawDecorFrame(g, now / 1000);
   drawLighting(g, STATIC_LIGHTS.concat(extra), level, now / 1000);

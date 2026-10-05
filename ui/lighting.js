@@ -1,8 +1,11 @@
+import { SCENE } from './layout.js';
+import { RES } from './sprites.js';
+
 let layer = null;
 
 // Darkness with light holes (destination-out), then additive glows, beams by day, vignette.
 export function drawLighting(g, lights, level, t) {
-  const w = g.canvas.width, h = g.canvas.height;
+  const w = SCENE.w, h = SCENE.h;
   if (level.beams) {
     for (const bx of [74, 110, 288]) {
       const grad = g.createLinearGradient(0, 26, 0, 116);
@@ -12,7 +15,11 @@ export function drawLighting(g, lights, level, t) {
       g.beginPath(); g.moveTo(bx + 9, 26); g.lineTo(bx + 21, 26); g.lineTo(bx + 30, 116); g.lineTo(bx, 116); g.closePath(); g.fill();
     }
   }
-  if (!layer) { layer = document.createElement('canvas'); layer.width = w; layer.height = h; }
+  if (!layer) {
+    layer = document.createElement('canvas');
+    layer.width = w * RES; layer.height = h * RES;
+    layer.getContext('2d').setTransform(RES, 0, 0, RES, 0, 0);
+  }
   const d = layer.getContext('2d');
   d.globalCompositeOperation = 'source-over';
   d.clearRect(0, 0, w, h);
@@ -28,7 +35,7 @@ export function drawLighting(g, lights, level, t) {
     d.fillStyle = grad;
     d.fillRect(l.x - r, l.y - r, 2 * r, 2 * r);
   }
-  g.drawImage(layer, 0, 0);
+  g.drawImage(layer, 0, 0, w, h);
 
   g.save();
   g.globalCompositeOperation = 'lighter';
