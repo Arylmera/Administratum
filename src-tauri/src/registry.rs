@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, fs, path::Path, time::SystemTime};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    path::Path,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -132,12 +137,17 @@ struct HelperMeta {
     model: Option<String>,
 }
 
-const HELPER_ACTIVE_SECS: u64 = 45;
+/// Safety cap: a subagent whose own transcript hasn't been written to in this long is inactive
+/// no matter what (e.g. it crashed before a completion notification ever landed).
+const HELPER_SAFETY_CAP_SECS: u64 = 600;
 
-/// Active subagents for one session: every `agent-<id>.jsonl` in `dir` whose transcript was
-/// modified less than `HELPER_ACTIVE_SECS` ago, newest-activity-irrelevant — sorted by id for
-/// stable output. A missing/unparseable sidecar `.meta.json` still yields a helper with defaults.
-pub fn active_helpers(dir: &Path, now: SystemTime) -> Vec<Helper> {
+/// Active subagents for one session: every `agent-<id>.jsonl` in `dir`, sorted by id for stable
+/// output. A helper is active unless either (a) its own transcript hasn't been written to in
+/// `HELPER_SAFETY_CAP_SECS`, or (b) `completed` (agent id -> completion ms, from the parent
+/// transcript's `<task-notification>` lines, see `parse_completions`) has an entry for it whose
+/// timestamp is at or after its transcript's last write — a write after that timestamp (a resume)
+/// makes it active again. A missing/unparseable sidecar `.meta.json` still yields a helper with defaults.
+pub fn active_helpers(dir: &Path, now: SystemTime, completed: &HashMap<String, i64>) -> Vec<Helper> {
     let Ok(entries) = fs::read_dir(dir) else { return vec![] };
     let mut out = vec![];
     for entry in entries.flatten() {
@@ -150,8 +160,14 @@ pub fn active_helpers(dir: &Path, now: SystemTime) -> Vec<Helper> {
         let Ok(meta) = entry.metadata() else { continue };
         let Ok(modified) = meta.modified() else { continue };
         let age = now.duration_since(modified).unwrap_or_default();
-        if age.as_secs() >= HELPER_ACTIVE_SECS {
+        if age.as_secs() >= HELPER_SAFETY_CAP_SECS {
             continue;
+        }
+        if let Some(&completed_at) = completed.get(id) {
+            let modified_ms = modified.duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(i64::MAX);
+            if modified_ms <= completed_at {
+                continue;
+            }
         }
         let meta: HelperMeta = fs::read_to_string(dir.join(format!("agent-{id}.meta.json")))
             .ok()
@@ -168,6 +184,79 @@ pub fn active_helpers(dir: &Path, now: SystemTime) -> Vec<Helper> {
     }
     out.sort_by(|a, b| a.id.cmp(&b.id));
     out
+}
+
+/// `<task-id>...</task-id>` ids with `<status>completed</status>` in Claude Code's
+/// `<task-notification>` lines (parent-transcript `queue-operation` entries written when a
+/// background subagent stops), paired with that line's own timestamp in ms. A later notification
+/// for the same id (a resume, then another stop) simply appears again; the caller keeps the newest.
+pub fn parse_completions(text: &str) -> Vec<(String, i64)> {
+    let tag = |s: &str, name: &str| -> Option<String> {
+        let open = format!("<{name}>");
+        let start = s.find(&open)? + open.len();
+        let end = s[start..].find(&format!("</{name}>"))? + start;
+        Some(s[start..end].to_string())
+    };
+    text.lines()
+        .filter(|l| l.contains("<task-notification>"))
+        .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .filter_map(|v| {
+            let content = v["content"].as_str()?;
+            if !content.contains("<status>completed</status>") {
+                return None;
+            }
+            let id = tag(content, "task-id")?;
+            let ts = v["timestamp"].as_str().and_then(iso_utc_ms).unwrap_or(0);
+            Some((id, ts))
+        })
+        .collect()
+}
+
+/// Whole lines appended to `path` since byte offset `stored`; no stored offset starts at the
+/// current end (skips history — a helper that already completed before this reader first saw its
+/// session will show inactive once its transcript goes stale past the safety cap anyway).
+fn tail_appended(path: &Path, stored: Option<u64>) -> (String, u64) {
+    use std::io::{Read, Seek, SeekFrom};
+    let Ok(meta) = fs::metadata(path) else { return (String::new(), stored.unwrap_or(0)) };
+    let len = meta.len();
+    let start = stored.unwrap_or(len).min(len);
+    if start == len {
+        return (String::new(), len);
+    }
+    let Ok(mut f) = fs::File::open(path) else { return (String::new(), start) };
+    if f.seek(SeekFrom::Start(start)).is_err() {
+        return (String::new(), start);
+    }
+    let mut buf = Vec::new();
+    if f.read_to_end(&mut buf).is_err() {
+        return (String::new(), start);
+    }
+    let cut = buf.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
+    (String::from_utf8_lossy(&buf[..cut]).into_owned(), start + cut as u64)
+}
+
+/// Incrementally tracks, per session, which of its subagents the parent transcript has reported
+/// completed (agent id -> completion ms). Byte offsets keep each parent transcript from being
+/// rescanned; feed the result straight into `active_helpers`.
+#[derive(Default)]
+pub struct Completions {
+    offsets: HashMap<String, u64>,
+    by_session: HashMap<String, HashMap<String, i64>>,
+}
+
+impl Completions {
+    pub fn scan(&mut self, session_id: &str, parent_transcript: &Path) -> &HashMap<String, i64> {
+        let key = parent_transcript.to_string_lossy().into_owned();
+        let (text, offset) = tail_appended(parent_transcript, self.offsets.get(&key).copied());
+        self.offsets.insert(key, offset);
+        if !text.is_empty() {
+            let map = self.by_session.entry(session_id.to_string()).or_default();
+            for (id, ts) in parse_completions(&text) {
+                map.insert(id, ts);
+            }
+        }
+        self.by_session.entry(session_id.to_string()).or_default()
+    }
 }
 
 /// Whether the newest assistant/user/system entry in `tail` shows the turn has concluded.
@@ -269,7 +358,7 @@ pub fn scan(
     dir: &Path,
     alive: impl Fn(u32) -> bool,
     transcript: impl Fn(&str, &str, u64) -> Option<String>,
-    helpers: impl Fn(&str, &str) -> Vec<Helper>,
+    mut helpers: impl FnMut(&str, &str) -> Vec<Helper>,
     mut orca_handle: impl FnMut(u32) -> Option<String>,
 ) -> Scan {
     let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
@@ -586,7 +675,7 @@ mod tests {
         assert_eq!(context_of(tail), Some(Context { tokens: 0, model: "claude-opus-5-5".to_string() }));
     }
 
-    use std::{fs, path::PathBuf, time::Duration};
+    use std::{fs, io::Write, path::PathBuf, time::Duration};
 
     fn temp_dir(name: &str) -> PathBuf {
         let d = std::env::temp_dir().join(format!("adm-test-{}-{name}", std::process::id()));
@@ -705,10 +794,11 @@ mod tests {
         ).unwrap();
         fs::write(d.join("agent-stale1.jsonl"), "{}").unwrap();
         let now = SystemTime::now();
+        // No completion either: a 2 min write gap is well inside a long cargo build, still active.
         fs::OpenOptions::new().write(true).open(d.join("agent-stale1.jsonl")).unwrap().set_modified(now - Duration::from_secs(120)).unwrap();
 
-        let out = active_helpers(&d, now);
-        assert_eq!(out.len(), 1);
+        let out = active_helpers(&d, now, &HashMap::new());
+        assert_eq!(out.len(), 2);
         assert_eq!(out[0].id, "fresh1");
         assert_eq!(out[0].kind, "general-purpose");
         assert_eq!(out[0].task, "HD phase 2a: redraw sprites");
@@ -722,7 +812,7 @@ mod tests {
         fs::write(d.join("agent-broken.jsonl"), "{}").unwrap();
         fs::write(d.join("agent-broken.meta.json"), "not json").unwrap();
 
-        let out = active_helpers(&d, SystemTime::now());
+        let out = active_helpers(&d, SystemTime::now(), &HashMap::new());
         let ids: Vec<_> = out.iter().map(|h| h.id.as_str()).collect();
         assert_eq!(ids, ["bare", "broken"]);
         for h in &out {
@@ -738,14 +828,86 @@ mod tests {
         let d = temp_dir("helpers-context");
         let tail = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3}}}"#;
         fs::write(d.join("agent-c1.jsonl"), tail).unwrap();
-        let out = active_helpers(&d, SystemTime::now());
+        let out = active_helpers(&d, SystemTime::now(), &HashMap::new());
         assert_eq!(out[0].context, Some(Context { tokens: 6, model: "claude-opus-5-5".to_string() }));
     }
 
     #[test]
     fn active_helpers_of_missing_dir_is_empty() {
-        let out = active_helpers(&std::env::temp_dir().join("adm-helpers-does-not-exist"), SystemTime::now());
+        let out = active_helpers(&std::env::temp_dir().join("adm-helpers-does-not-exist"), SystemTime::now(), &HashMap::new());
         assert!(out.is_empty());
+    }
+
+    fn write_with_age(path: &std::path::PathBuf, age_secs: u64, now: SystemTime) {
+        fs::write(path, "{}").unwrap();
+        fs::OpenOptions::new().write(true).open(path).unwrap().set_modified(now - Duration::from_secs(age_secs)).unwrap();
+    }
+
+    fn ms_ago(now: SystemTime, secs: u64) -> i64 {
+        (now - Duration::from_secs(secs)).duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
+    }
+
+    #[test]
+    fn active_helpers_long_running_command_stays_active_with_no_completion() {
+        // A 2-minute cargo build writes nothing meanwhile; under the old 45s rule it would vanish.
+        let d = temp_dir("helpers-long-running");
+        let now = SystemTime::now();
+        write_with_age(&d.join("agent-build.jsonl"), 180, now);
+        let out = active_helpers(&d, now, &HashMap::new());
+        assert_eq!(out.len(), 1, "still active: no completion seen, well under the 10 min cap");
+    }
+
+    #[test]
+    fn active_helpers_inactive_once_its_completion_line_is_seen() {
+        let d = temp_dir("helpers-completed");
+        let now = SystemTime::now();
+        write_with_age(&d.join("agent-done.jsonl"), 60, now);
+        let completed = HashMap::from([("done".to_string(), ms_ago(now, 10))]); // completed after the last write
+        assert!(active_helpers(&d, now, &completed).is_empty());
+    }
+
+    #[test]
+    fn active_helpers_active_again_once_written_after_its_completion() {
+        let d = temp_dir("helpers-resumed");
+        let now = SystemTime::now();
+        write_with_age(&d.join("agent-resumed.jsonl"), 10, now); // last write is AFTER the completion below
+        let completed = HashMap::from([("resumed".to_string(), ms_ago(now, 60))]);
+        assert_eq!(active_helpers(&d, now, &completed).len(), 1, "a later write means it was resumed");
+    }
+
+    #[test]
+    fn active_helpers_inactive_past_the_safety_cap_with_no_completion() {
+        let d = temp_dir("helpers-cap");
+        let now = SystemTime::now();
+        write_with_age(&d.join("agent-orphan.jsonl"), 601, now);
+        assert!(active_helpers(&d, now, &HashMap::new()).is_empty(), "10 minutes of silence and no completion: give up on it");
+    }
+
+    #[test]
+    fn parse_completions_reads_task_notification_lines() {
+        // Shape of a real queue-operation line Claude Code appends to the parent transcript.
+        let line = r#"{"type":"queue-operation","operation":"enqueue","timestamp":"2026-10-05T18:37:26.560Z","sessionId":"s1","content":"<task-notification>\n<task-id>a2b38a7028506bf3e</task-id>\n<tool-use-id>toolu_015q</tool-use-id>\n<status>completed</status>\n<summary>done</summary>\n</task-notification>"}"#;
+        let out = parse_completions(line);
+        assert_eq!(out, [("a2b38a7028506bf3e".to_string(), iso_utc_ms("2026-10-05T18:37:26.560Z").unwrap())]);
+        assert!(parse_completions("not json\n{").is_empty());
+        let in_progress = line.replace("completed", "in_progress");
+        assert!(parse_completions(&in_progress).is_empty(), "only a completed status counts");
+    }
+
+    #[test]
+    fn completions_scan_is_incremental_and_merges_across_polls() {
+        let d = temp_dir("completions-scan");
+        let p = d.join("parent.jsonl");
+        let line = |id: &str, ts: &str| format!(r#"{{"type":"queue-operation","timestamp":"{ts}","content":"<task-notification>\n<task-id>{id}</task-id>\n<status>completed</status>\n</task-notification>"}}"#);
+        fs::write(&p, format!("{}\n", line("old", "2026-10-05T17:00:00.000Z"))).unwrap(); // already there before tracking starts
+        let mut c = Completions::default();
+        assert!(c.scan("s1", &p).is_empty(), "first sight starts at the current end: history isn't replayed");
+        fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(format!("{}\n", line("a1", "2026-10-05T18:00:00.000Z")).as_bytes()).unwrap();
+        assert_eq!(c.scan("s1", &p).len(), 1);
+        fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(format!("{}\n", line("a2", "2026-10-05T18:05:00.000Z")).as_bytes()).unwrap();
+        let after = c.scan("s1", &p);
+        assert_eq!(after.len(), 2, "merged with the earlier poll's result, not replaced");
+        assert!(c.scan("s2", &p).is_empty(), "offset is per path, not per session: s1 already consumed the file, so s2's own map stays empty");
     }
 
     const REAL_SHELL_TAIL: &str = concat!(
