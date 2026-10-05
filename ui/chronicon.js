@@ -1,6 +1,7 @@
 // Chronicon: the day's event log and the Tithe (tokens + working time), unrolled over the scene.
 // Backend contract (docs/superpowers/specs/2026-10-05-chronicon-design.md): chronicle_day, tithe_day,
 // chronicle_days commands and the live `chronicle` event.
+import { panel } from './panel.js';
 
 export const fmtTok = n => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${+(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k` : String(Math.round(n)));
 export const fmtDur = ms => { const m = Math.floor((ms || 0) / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`; };
@@ -32,13 +33,14 @@ const icon = kind => {
   return `<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
 };
 
+const LIVE_CAP = 500; // newest live rows kept in an open day's log
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 export function initChronicon(T, colorOf = () => null) {
   const invoke = (cmd, args) => T.core.invoke(cmd, args);
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
-  let cur = null, seq = 0, closer = null;
+  let cur = null, seq = 0;
 
   // Header plaque: today's tokens · working time, every 30 s.
   const plaque = document.getElementById('tithe');
@@ -52,30 +54,7 @@ export function initChronicon(T, colorOf = () => null) {
   refreshPlaque();
   setInterval(refreshPlaque, 30_000);
 
-  const isOpen = () => !root.hidden;
-  function open() {
-    clearTimeout(closer);
-    root.hidden = false;
-    void root.offsetHeight; // commit the rolled-up state so the unroll transitions
-    root.classList.add('open');
-    root.querySelector('.close').focus({ preventScroll: true });
-    renderTabs(dayKey());
-    show(dayKey());
-  }
-  function close() {
-    if (!isOpen()) return;
-    root.classList.remove('open');
-    closer = setTimeout(() => { root.hidden = true; cur = null; }, 300);
-  }
-  for (const b of openers) b.onclick = () => (root.classList.contains('open') ? close() : open());
-  root.querySelector('.close').onclick = close;
-  addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-  // Click outside closes; a click on the scene only closes (does not also pick a scribe).
-  addEventListener('click', e => {
-    if (!root.classList.contains('open') || e.target.closest('#chron, #chron-open, #tithe')) return;
-    close();
-    if (e.target.closest('#scene, #overlay')) e.stopPropagation();
-  }, true);
+  const { isOpen } = panel(root, openers, { onOpen: () => { renderTabs(dayKey()); show(dayKey()); }, onClosed: () => { cur = null; } });
 
   async function renderTabs(active) {
     const days = [];
@@ -201,6 +180,10 @@ export function initChronicon(T, colorOf = () => null) {
     sec.append(bar, list);
     cur.live = e => {
       cur.events.unshift(e);
+      if (cur.events.length > LIVE_CAP) { // an always-open log stays bounded: the oldest rows go
+        cur.events.length = LIVE_CAP;
+        while (list.children.length > LIVE_CAP) list.lastElementChild.remove();
+      }
       if (![...sel.options].some(o => o.value === e.dept)) fill();
       if (cur.filter && e.dept !== cur.filter) return;
       list.querySelector('li.quiet')?.remove();

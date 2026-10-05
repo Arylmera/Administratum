@@ -3,6 +3,7 @@
 // the WebView), mirrored in memory and in localStorage as a cache; without a backend, localStorage
 // alone. Always-on-top goes through the window API, start-at-login and the stale-petition mark
 // through the backend (start_at_login, set_stale_minutes).
+import { panel } from './panel.js';
 
 const invokeTop = (cmd, args) => window.__TAURI__?.core?.invoke(cmd, args);
 const mem = {};
@@ -55,7 +56,7 @@ export function initSettings(T, hooks) {
   const win = () => T?.window?.getCurrentWindow();
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
-  let closer = null, login = null;
+  let login = null;
 
   const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
   const save = () => store.set('adm.settings', JSON.stringify(settings));
@@ -101,30 +102,5 @@ export function initSettings(T, hooks) {
     sync();
   };
 
-  const isOpen = () => !root.hidden;
-  function open() {
-    clearTimeout(closer);
-    root.hidden = false;
-    void root.offsetHeight; // commit the rolled-up state so the unroll transitions
-    root.classList.add('open');
-    opener.setAttribute('aria-expanded', 'true');
-    root.querySelector('.close').focus({ preventScroll: true });
-    readLogin(); // the tray may have changed it
-    sync();
-  }
-  function close() {
-    if (!isOpen()) return;
-    root.classList.remove('open');
-    opener.setAttribute('aria-expanded', 'false');
-    closer = setTimeout(() => { root.hidden = true; }, 300);
-  }
-  opener.onclick = () => (root.classList.contains('open') ? close() : open());
-  root.querySelector('.close').onclick = close;
-  addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen()) { close(); opener.focus({ preventScroll: true }); } });
-  // Click outside closes; a click on the scene only closes (does not also pick a scribe).
-  addEventListener('click', e => {
-    if (!root.classList.contains('open') || e.target.closest('#prefs, #prefs-open')) return;
-    close();
-    if (e.target.closest('#scene, #overlay')) e.stopPropagation();
-  }, true);
+  panel(root, [opener], { onOpen: () => { readLogin(); sync(); } }); // readLogin: the tray may have changed it
 }
