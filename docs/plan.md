@@ -1750,7 +1750,7 @@ git commit -m "ui: Tier II room, sprites, lighting modes, page shell"
 - Consumes: `layoutDepartments`, `route`, `QUEUE_SLOTS`, `COG_SPOTS`, `ENTRY` (Task 5); `SCRIBE`, `MAPS`, `sprite`, `SASH` (Task 6); `drawRugs`, `deskDrawable`, `deskLight` (Task 6); `hooks`, `state`, `scale`, `cycleMode`, `fit` from `app.js`; Tauri events `roster`, `petition`, `ui-command` (Task 4).
 - Produces: `class Cast { actors: Map<id, Actor>; sync(roster, seats, colorOf); update(dt); drawActor(g, a) }` where `Actor = { id, s: Session, x, y, path, target, destKey, dir, t, pose: 'walk'|'desk'|'cog'|'queue'|'gone', leaving, sash }`.
 
-- [ ] **Step 1: Write `ui/actors.js`**
+- [x] **Step 1: Write `ui/actors.js`**
 
 ```js
 import { SCRIBE, MAPS, sprite } from './sprites.js';
@@ -1830,7 +1830,7 @@ export class Cast {
 }
 ```
 
-- [ ] **Step 2: Append the wiring to `ui/app.js`**
+- [x] **Step 2: Append the wiring to `ui/app.js`**
 
 Add these imports at the top of `app.js` (next to the existing ones):
 
@@ -1989,7 +1989,7 @@ if (T) {
 
 Note: `store` must be visible here — it is declared at the top of `app.js` in Task 6 (same module), so no change is needed.
 
-- [ ] **Step 3: Re-run the geometry self-check (unchanged contract)**
+- [x] **Step 3: Re-run the geometry self-check (unchanged contract)**
 
 Run: `node ui/layout.test.mjs`
 Expected: `layout ok`.
@@ -2023,7 +2023,7 @@ cargo tauri dev
 
 Expected: one scribe per running Claude Code session (compare with `Get-ChildItem $HOME\.claude\sessions\*.json`), departments named after their project folders, task lines matching what each session last did. In another terminal, trigger a permission prompt in any session: that scribe queues and a toast fires once.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add ui/actors.js ui/app.js
