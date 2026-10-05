@@ -129,15 +129,29 @@ export function drawRugs(g, blocks) {
   }
 }
 
-export function deskDrawable(desk, busy, fill = 0) {
+export function deskDrawable(desk, busy, fill = 0, bgShell = false, now = 0) {
   return {
     y: desk.y + 21,
     draw(g) {
       g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(desk.x + 1, desk.y + 21, 30, 2);
       blit(g, MAPS.DESK, desk.x, desk.y, busy ? {} : { f: null, F: null, c: '#2e6b47' });
       paperTop(g, desk.id, 'desk', fill, desk);
+      if (bgShell) spinCog(g, desk.x + 28, desk.y + 7, now / 1000);
     },
   };
+}
+
+// A background shell still runs after the turn: a tiny brass cog turning on the desk corner (art px = 0.5).
+function spinCog(g, cx, cy, t) {
+  const snap = v => Math.round(v * 2) / 2;
+  rect(g, cx - 2, cy - 1, 4, 3, '#0e0a08'); rect(g, cx - 1.5, cy - 1.5, 3, 4, '#0e0a08'); // outline
+  for (let i = 0; i < 8; i++) { // 8 teeth, turning ~1 rev / 3 s
+    const ang = t * 2 + i * Math.PI / 4;
+    rect(g, snap(cx - 0.25 + Math.cos(ang) * 2.25), snap(cy - 0.25 + Math.sin(ang) * 2.25), 1, 1, i ? '#8a4f22' : '#e8b45a');
+  }
+  rect(g, cx - 1.5, cy - 1, 3, 2, '#b8742e'); rect(g, cx - 1, cy - 1.5, 2, 3, '#b8742e');
+  rect(g, cx - 1.5, cy - 1, 0.5, 1, '#e8b45a'); rect(g, cx - 1, cy - 1.5, 1, 0.5, '#e8b45a'); // lit upper-left
+  rect(g, cx - 0.5, cy - 0.5, 1, 1, '#2a2c30'); // axle
 }
 
 export function consoleDrawable(con, lit, fill = 0) {
