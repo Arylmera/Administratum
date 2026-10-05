@@ -81,6 +81,7 @@ function frame(now) {
   g.drawImage(background(level.beams), 0, 0, SCENE.w, SCENE.h);
   drawLighting(g, drawScene(g, layout, cast.actors, fillOf, now), level, now / 1000);
   syncLabels();
+  syncHover();
 }
 
 renderModes();
@@ -192,8 +193,6 @@ function select(id) {
 // Petitioners keep a compact always-visible label (they must not be missed); everyone else is found by
 // clicking/hovering the sprite itself.
 const labels = new Map();
-const tip = document.getElementById('tip');
-let hovered = null;
 function syncLabels() {
   const petition = a => !a.h && !a.leaving && a.pose === 'queue' && a.s.status === 'waiting';
   for (const [id, el] of labels) if (!petition(cast.actors.get(id) ?? {})) { el.remove(); labels.delete(id); }
@@ -223,8 +222,15 @@ function syncLabels() {
     el.style.left = `${a.x * scale}px`;
     el.style.top = `${(a.y - qOff) * scale}px`;
   }
-  const h = cast.actors.get(hovered);
-  tip.hidden = !h || h.leaving || labels.has(hovered);
+}
+
+// Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
+const tip = document.getElementById('tip');
+let mouse = null;
+function syncHover() {
+  const h = mouse && actorAt(mouse);
+  canvas.style.cursor = h ? 'pointer' : '';
+  tip.hidden = !h || labels.has(h.id);
   if (tip.hidden) return;
   tip.textContent = h.h ? h.h.kind : h.s.name;
   tip.style.left = `${h.x * scale}px`;
@@ -255,8 +261,8 @@ const closeCard = () => { if (sel) { sel = null; renderCard(); } };
 canvas.onclick = e => { const a = actorAt(e); if (a) pick(a.id); else closeCard(); };
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
 addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl')) closeCard(); });
-canvas.onmousemove = e => { hovered = actorAt(e)?.id ?? null; canvas.style.cursor = hovered ? 'pointer' : ''; };
-canvas.onmouseleave = () => { hovered = null; canvas.style.cursor = ''; };
+canvas.onmousemove = e => { mouse = e; };
+canvas.onmouseleave = () => { mouse = null; };
 addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 
 let audio = null;
