@@ -2,6 +2,7 @@
 // Backend contract (docs/superpowers/specs/2026-10-05-chronicon-design.md): chronicle_day, tithe_day,
 // chronicle_days commands and the live `chronicle` event.
 import { panel } from './panel.js';
+import { invoke, listen } from './bridge.js';
 
 export const fmtTok = n => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${+(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k` : String(Math.round(n)));
 export const fmtDur = ms => { const m = Math.floor((ms || 0) / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`; };
@@ -36,8 +37,7 @@ const icon = kind => {
 const LIVE_CAP = 500; // newest live rows kept in an open day's log
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-export function initChronicon(T, colorOf = () => null) {
-  const invoke = (cmd, args) => T.core.invoke(cmd, args);
+export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
   let cur = null, seq = 0;
@@ -206,7 +206,7 @@ export function initChronicon(T, colorOf = () => null) {
     return li;
   }
 
-  T.event.listen('chronicle', ({ payload: e }) => {
+  listen('chronicle', ({ payload: e }) => {
     if (cur?.live && cur.day === dayKey() && dayKey(new Date(e.ts)) === cur.day) cur.live(e);
   });
   return refreshPlaque;

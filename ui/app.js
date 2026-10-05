@@ -6,6 +6,7 @@ import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
+import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
 const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
@@ -140,10 +141,14 @@ canvas.addEventListener('pointerdown', e => {
   drag = { x0: e.clientX, y0: e.clientY, px: pan.x, py: pan.y, lx: e.clientX, ly: e.clientY, t: performance.now(), on: false };
   dragged = false; pan.vx = pan.vy = 0; pan.to = null;
 });
+// Touch (tap = click, one-finger drag = pan; #scene has touch-action: none): a wider slop and hit pad, and the
+// tooltip follows the tapped character instead of a hover.
+const coarse = matchMedia('(pointer: coarse)');
 canvas.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') mouse = e;
   if (!drag) return;
   const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
-  if (!drag.on && Math.hypot(dx, dy) > 4 && pannable()) { drag.on = true; try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } canvas.style.cursor = 'grabbing'; }
+  if (!drag.on && Math.hypot(dx, dy) > (coarse.matches ? 10 : 4) && pannable()) { drag.on = true; try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } canvas.style.cursor = 'grabbing'; }
   if (!drag.on) return;
   const t = performance.now(), dt = Math.max(1, t - drag.t);
   pan.vx = (e.clientX - drag.lx) / dt; pan.vy = (e.clientY - drag.ly) / dt;
@@ -277,6 +282,7 @@ function onRoster(next) {
   count.classList.toggle('ask', !n && nq > 0);
   count.classList.toggle('alarm', roster.some(isStale));
   renderCard();
+  if (answerable && roster.some(answerable)) probeActions();
 }
 
 // Reflows glide: rugs, desks and consoles ease from where they are drawn to their new place over GLIDE_MS;
@@ -380,15 +386,23 @@ function renderAsks(card, s) {
 
 // Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
 // really shows the dialog before typing one option key. Free-text petitions only get "Open in Orca".
-const canAnswer = s => s?.status === 'waiting' && !!s.orca && /approve|permission/i.test(s.waitingFor ?? '');
+const answerable = s => s?.status === 'waiting' && !!s.orca && /approve|permission/i.test(s.waitingFor ?? '');
+// Remote view: buttons only while the PC allows remote actions (probed every 10 s at most, and a 403 turns them off).
+let actions = !REMOTE, probed = 0;
+function probeActions() {
+  if (!REMOTE || Date.now() - probed < 10_000) return;
+  probed = Date.now();
+  remoteActions().then(ok => { if (ok !== actions) { actions = ok; renderCard(); } });
+}
+const canAnswer = s => actions && answerable(s);
 const episode = s => `${s.id}:${s.sinceMs}`;
 const answerErr = new Map(), answering = new Set(); // by episode
 function answer(s, choice) {
   const key = episode(s);
   if (answering.has(key)) return;
   answering.add(key); answerErr.delete(key); renderCard();
-  const call = window.__TAURI__?.core?.invoke('answer_petition', { handle: s.orca, choice }) ?? Promise.reject('no backend');
-  call.catch(err => {
+  invoke('answer_petition', { handle: s.orca, choice }).catch(err => {
+    if (err === 'remote actions disabled') { actions = false; return; }
     answerErr.set(key, /no permission prompt|screen unavailable/.test(err) ? 'No permission prompt visible — open the terminal' : String(err));
     sel = s.id; // show the error in this scribe's card
   }).finally(() => { answering.delete(key); renderCard(); }); // success: the scribe leaves the queue on a coming roster tick
@@ -402,7 +416,7 @@ function peek(s) {
   const cur = peeked;
   if (cur.busy || Date.now() - cur.at < 3000) return cur.p;
   cur.busy = true; cur.at = Date.now();
-  (window.__TAURI__?.core?.invoke('peek_petition', { handle: s.orca }) ?? Promise.reject('no backend'))
+  invoke('peek_petition', { handle: s.orca })
     .then(p => { cur.p = p; }, () => { cur.p = null; })
     .finally(() => { cur.busy = false; if (sel === s.id) renderCard(); });
   return cur.p;
@@ -414,6 +428,7 @@ function renderAnswer(card, s) {
   q.textContent = p?.question ?? (p === null ? 'Prompt not visible — buttons will check on click' : '');
   q.classList.toggle('hint', p === null);
   q.hidden ||= !q.textContent;
+  card.querySelector('.noact').hidden = !(REMOTE && !actions && answerable(s));
   err.textContent = (s && answerErr.get(episode(s))) ?? '';
   err.hidden = !err.textContent;
   for (const b of row.querySelectorAll('button')) {
@@ -427,8 +442,9 @@ function renderAnswer(card, s) {
 
 function renderLinks(card, s) {
   const [orca, web] = card.querySelectorAll('.links button');
-  orca.hidden = !s?.orca; web.hidden = !s?.web;
-  card.querySelector('.links').hidden = orca.hidden && web.hidden;
+  orca.hidden = REMOTE || !s?.orca; web.hidden = !s?.web;
+  card.querySelector('.links .note').hidden = !REMOTE || !s?.orca; // the terminal is on the PC's screen
+  card.querySelector('.links').hidden = !s?.orca && web.hidden;
   orca.onclick = () => openTarget(`orca:${s.orca}`);
   web.onclick = () => openTarget(`web:${s.web}`);
 }
@@ -532,7 +548,7 @@ function syncEdges() {
 const tip = document.getElementById('tip');
 let mouse = null;
 function syncHover() {
-  const h = mouse && actorAt(mouse);
+  const h = mouse ? actorAt(mouse) : coarse.matches && sel ? cast.actors.get(sel) : null;
   setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '' });
   const hide = !h || labels.has(h.id);
   if (tip.hidden !== hide) tip.hidden = hide;
@@ -546,14 +562,15 @@ function actorAt(e) {
   const r = canvas.getBoundingClientRect(), px = (e.clientX - r.left) / scale, py = (e.clientY - r.top) / scale;
   let best = null;
   for (const a of cast.actors.values()) {
-    const hw = (a.h ? 6 : 8) + 1, ht = (a.h ? 14 : 17) + 1;
+    const pad = coarse.matches ? 5 : 1, hw = (a.h ? 6 : 8) + pad, ht = (a.h ? 14 : 17) + pad;
     if (!a.leaving && Math.abs(px - a.x) <= hw && py >= a.y - ht && py <= a.y + 1 && (!best || a.y >= best.y)) best = a;
   }
   return best;
 }
 const ownerOf = a => roster.find(r => r.id === (a.h ? a.owner : a.id));
 function openTarget(target) {
-  window.__TAURI__?.core?.invoke('open_session', { target })?.catch(err => console.warn('open_session', err));
+  if (REMOTE) { if (target.startsWith('web:')) window.open(target.slice(4), '_blank', 'noopener'); return; } // on this device
+  invoke('open_session', { target }).catch(err => console.warn('open_session', err));
 }
 // Select a character: its card, plus the scribe's (or the adept owner's) Orca terminal.
 function pick(id) {
@@ -568,8 +585,7 @@ canvas.onclick = e => {
 };
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
 addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl, .edge')) closeCard(); });
-canvas.onmousemove = e => { mouse = e; };
-canvas.onmouseleave = () => { mouse = null; };
+canvas.onpointerleave = () => { mouse = null; };
 addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 
 let audio = null;
@@ -590,26 +606,36 @@ function chime(notes = [660, 990]) {
   } catch { /* no audio device: the toast still fires */ }
 }
 
+// A browser only lets audio start from a gesture: the first tap or click unlocks the chime.
+if (REMOTE) {
+  const unlock = () => {
+    audio ??= new AudioContext();
+    audio.resume().then(() => { if (audio.state === 'running') for (const t of ['touchend', 'click', 'keydown']) removeEventListener(t, unlock, true); }, () => {});
+  };
+  for (const t of ['touchend', 'click', 'keydown']) addEventListener(t, unlock, true);
+}
+
 const muteBtn = document.getElementById('mute');
 function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.setAttribute('aria-label', state.muted ? 'Unmute chime' : 'Mute chime'); renderSettings(); }
 function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state.muted ? '1' : '0'); renderMute(); }
 muteBtn.onclick = toggleMute;
 renderMute();
 
-const T = window.__TAURI__;
 let refreshTithe = null;
-initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit });
+initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit });
 fit();
 requestAnimationFrame(frame);
-if (T) {
-  T.event.listen('roster', e => onRoster(e.payload));
-  T.event.listen('petition', () => chime());
-  T.event.listen('question', () => chime([880, 1175]));
-  T.event.listen('petition-stale', () => chime([990, 660, 990, 660]));
+if (tauri() || REMOTE) {
+  listen('roster', e => onRoster(e.payload));
+  listen('petition', () => chime());
+  listen('question', () => chime([880, 1175]));
+  listen('petition-stale', () => chime([990, 660, 990, 660]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
-  T.event.listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done') chime([1320, 1760]); });
-  T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
-  T.event.listen('visible', e => { visible = e.payload; wake(); });
-  refreshTithe = initChronicon(T, colorOf);
-  document.getElementById('hide').onclick = () => { visible = false; wake(); T.window.getCurrentWindow().hide(); };
+  listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done') chime([1320, 1760]); });
+  listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
+  listen('visible', e => { visible = e.payload; wake(); }); // the app's window only
+  refreshTithe = initChronicon(colorOf);
 }
+const hideBtn = document.getElementById('hide');
+if (tauri()) hideBtn.onclick = () => { visible = false; wake(); tauri().window.getCurrentWindow().hide(); };
+else hideBtn.remove(); // no window to hide in a browser
