@@ -866,4 +866,12 @@ mod tests {
         assert_eq!(t.new_petitions(&[session("a", 1, "busy", 200)]).len(), 0);
         assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 300)]).len(), 1, "new episode");
     }
+
+    #[test]
+    fn permission_prompt_real_bash_screen_2_1_283() {
+        // Captured from a live Claude Code v2.1.283 Bash prompt (4 options, auto-mode upsell).
+        let screen = "❯ Run this exact Bash command\n  ⎿  $ echo hello > x.txt\n────────────\n Bash command\n Tip: auto mode handles these prompts for you\n   echo hello > x.txt\n Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and always allow access to C:\\x from this project\n   3. Yes, and switch to auto mode · auto mode handles these prompts for you\n   4. No\n Esc to cancel · Tab to amend\n";
+        let p = parse_permission_prompt(screen).expect("prompt");
+        assert_eq!((p.yes, p.always, p.no), (1, Some(2), 4));
+    }
 }

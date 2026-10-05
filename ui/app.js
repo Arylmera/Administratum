@@ -182,7 +182,7 @@ function renderCard() {
 
 // Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
 // really shows the dialog before typing one option key. Free-text petitions only get "Open in Orca".
-const canAnswer = s => s?.status === 'waiting' && !!s.orca && /^approve/i.test(s.waitingFor ?? '');
+const canAnswer = s => s?.status === 'waiting' && !!s.orca && /approve|permission/i.test(s.waitingFor ?? '');
 const episode = s => `${s.id}:${s.sinceMs}`;
 const answerErr = new Map(), answering = new Set(); // by episode
 function answer(s, choice) {
