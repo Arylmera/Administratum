@@ -131,7 +131,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 |id, cwd| registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now()),
                 orca_handle,
             );
-            registry::merge(&prev, scanned)
+            let mut roster = registry::merge(&prev, scanned);
+            let now_ms = SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
+            registry::track_compaction(&prev, &mut roster, now_ms);
+            roster
         };
         for s in tracker.new_petitions(&roster) {
             let _ = app
