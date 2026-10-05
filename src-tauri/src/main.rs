@@ -194,6 +194,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let dir = claude_dir();
     let mut sys = System::new();
     let mut tracker = Tracker::default();
+    let mut completions = registry::Completions::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
     let projects = dir.join("projects");
@@ -236,7 +237,11 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 &dir.join("sessions"),
                 alive,
                 |id, cwd, tail| registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail),
-                |id, cwd| registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now()),
+                |id, cwd| {
+                    let parent = dir.join("projects").join(registry::slug(cwd)).join(format!("{id}.jsonl"));
+                    let completed = completions.scan(id, &parent);
+                    registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now(), completed)
+                },
                 orca_handle,
             );
             let mut roster = registry::merge(&prev, scanned);
