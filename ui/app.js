@@ -164,7 +164,7 @@ function syncLabels() {
       el.setAttribute('aria-label', petition ? `${a.s.name}, petition: ${want}` : a.s.name);
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.
-    const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
+    const qOff = a.target?.queueIdx % 2 === 1 ? 33 : 18;
     el.style.left = `${a.x * scale}px`;
     el.style.top = `${(a.y - qOff) * scale}px`;
   }
