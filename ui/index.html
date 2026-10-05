@@ -155,6 +155,9 @@
   #prefs select { width: 8.1em; text-align: left; }
   #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: #4e110c; }
   #prefs input:disabled { opacity: .5; }
+  #prefs input[name="lat"], #prefs input[name="lon"] { width: 6.5em; }
+  #prefs .hint { margin: .3em 0 0; font-size: .85em; color: #5a3c16; }
+  #prefs .clear { margin-top: .4em; padding: .2em .7em; background: none; color: #4e110c; border: 1px solid #8a6a3a; border-radius: 2px; font: inherit; cursor: pointer; }
   #prefs .reset { margin-top: .8em; padding: .3em .8em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; cursor: pointer; }
   #prefs .reset:hover { filter: brightness(1.2); }
   #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid #4e110c; outline-offset: 1px; }
@@ -243,6 +246,12 @@
         <fieldset><legend>Context window</legend>
           <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
           <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
+        </fieldset>
+        <fieldset><legend>Location</legend>
+          <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
+          <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>
+          <p class="hint">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
+          <button type="button" class="clear">Clear</button>
         </fieldset>
         <button type="button" class="reset">Reset to defaults</button>
       </form>

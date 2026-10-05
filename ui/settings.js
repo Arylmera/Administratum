@@ -41,10 +41,15 @@ function load() {
 // Shared, read live by actors.js (thresholds) and app.js (context windows).
 export const settings = load();
 
+// Where Auto lighting takes its sun (adm.lat / adm.lon, degrees, 4 decimals); NaN = unset: fixed hours.
+const RANGE = { lat: 90, lon: 180 };
+const coord = (k, v) => (v === '' || v == null || !Number.isFinite(+v) ? NaN : Math.round(1e4 * Math.min(RANGE[k], Math.max(-RANGE[k], +v))) / 1e4);
+export const place = { lat: coord('lat', store.get('adm.lat', '')), lon: coord('lon', store.get('adm.lon', '')) };
+
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
-// hooks: { mode(), setMode(m), muted(), setMuted(b) } from app.js. T may be absent (plain browser).
+// hooks: { mode(), setMode(m), muted(), setMuted(b), placed() } from app.js. T may be absent (plain browser).
 export function initSettings(T, hooks) {
   const invoke = (cmd, args) => T?.core?.invoke(cmd, args) ?? Promise.reject(new Error('no backend'));
   const win = () => T?.window?.getCurrentWindow();
@@ -63,6 +68,7 @@ export function initSettings(T, hooks) {
     field('mode').value = hooks.mode();
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
+    for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
     field('login').checked = !!login;
     field('login').disabled = login === null;
   };
@@ -70,6 +76,11 @@ export function initSettings(T, hooks) {
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
   T?.event?.listen('autostart', e => { login = e.payload; sync(); });
 
+  const setPlace = (lat, lon) => {
+    Object.assign(place, { lat, lon });
+    for (const k in RANGE) store.set(`adm.${k}`, Number.isNaN(place[k]) ? '' : String(place[k]));
+    hooks.placed();
+  };
   form.onsubmit = e => e.preventDefault();
   form.onchange = e => {
     const el = e.target, k = el.name;
@@ -77,11 +88,14 @@ export function initSettings(T, hooks) {
     else if (k === 'mode') hooks.setMode(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
+    else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
     sync();
   };
+  form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
   form.querySelector('.reset').onclick = () => {
     Object.assign(settings, DEFAULTS);
+    setPlace(NaN, NaN);
     save(); applyTop(); pushStale();
     hooks.setMode('auto'); hooks.setMuted(false);
     sync();

@@ -4,7 +4,8 @@ import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
 import { Cast, isStale } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, initSettings, renderSettings } from './settings.js';
+import { sunTimes, sunPhase } from './sun.js';
 
 const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
@@ -37,11 +38,25 @@ function background(day) {
   return bg[k];
 }
 
+// Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
+let sun = null, sunDay = '';
+function sunToday(now) {
+  if (Number.isNaN(place.lat) || Number.isNaN(place.lon)) return null;
+  if (sunDay !== now.toDateString()) { sunDay = now.toDateString(); sun = sunTimes(now, place.lat, place.lon); }
+  return sun;
+}
+const autoPhase = now => { const s = sunToday(now); return s ? sunPhase(now, s) : undefined; };
+const hhmm = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+const sunLine = s => (s.polar ? `Polar ${s.polar}` : `Sunrise ${hhmm(s.sunrise)} · Sunset ${hhmm(s.sunset)}`);
+
 function renderModes() {
-  const hour = new Date().getHours();
+  const now = new Date(), hour = now.getHours(), s = sunToday(now);
   for (const b of document.querySelectorAll('#modes button')) {
     b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode));
-    if (b.dataset.mode === 'auto') b.textContent = `Auto · ${String(hour).padStart(2, '0')}h ${lightLevel('auto', hour).phase}`;
+    if (b.dataset.mode === 'auto') {
+      b.textContent = `Auto · ${String(hour).padStart(2, '0')}h ${lightLevel('auto', hour, autoPhase(now)).phase}`;
+      b.title = s ? sunLine(s) : '';
+    }
   }
   renderSettings();
 }
@@ -149,7 +164,7 @@ function frame(now) {
   const dt = acc; acc = 0;
   cast.update(dt);
   if (canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went
-  const level = lightLevel(state.mode, new Date().getHours());
+  const nowD = new Date(), level = lightLevel(state.mode, nowD.getHours(), autoPhase(nowD));
   g.drawImage(background(level.beams), 0, 0, SCENE.w, hall.h);
   const view = glide(now);
   view.hall = hall;
@@ -484,7 +499,7 @@ muteBtn.onclick = toggleMute;
 renderMute();
 
 const T = window.__TAURI__;
-initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); } });
+initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); } });
 if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());

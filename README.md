@@ -24,7 +24,7 @@ A scribe that needs you walks to the Sanctum and queues before the Magos; Window
 
 - Run: `cd src-tauri; cargo tauri dev`
 - Demo roster (no real sessions needed): set `ADMINISTRATUM_DEMO=1` before `cargo tauri dev`
-- Tests: `cargo test --manifest-path src-tauri/Cargo.toml`, `node ui/layout.test.mjs`, `node ui/sprites.test.mjs`
+- Tests: `cargo test --manifest-path src-tauri/Cargo.toml`, `node ui/layout.test.mjs`, `node ui/sprites.test.mjs`, `node ui/sun.test.mjs`
 - Install: `cd src-tauri; cargo tauri build`, then run `target/release/bundle/nsis/Administratum_0.1.0_x64-setup.exe`
 
 Reads `~/.claude/sessions/*.json`, transcript tails and subagent metadata, read-only; reads the
