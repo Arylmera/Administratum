@@ -373,6 +373,7 @@ if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());
   T.event.listen('petition-stale', () => chime([990, 660, 990, 660]));
+  T.event.listen('chronicle', e => { if (cast.chronicle(e.payload) && e.payload.kind === 'task-done') chime([1320, 1760]); });
   T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
   T.event.listen('visible', e => { visible = e.payload; });
   document.getElementById('hide').onclick = () => { visible = false; T.window.getCurrentWindow().hide(); };

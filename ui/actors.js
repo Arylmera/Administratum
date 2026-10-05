@@ -11,6 +11,11 @@ export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
 export const BRAZIERS = [ENTRY.x - 23, ENTRY.x + 23].map(x => ({ x, y: 213 }));
+// Chronicle reactions (scene.js draws them): seconds each plays. Test lamps are a.lamp, not an fx.
+export const FX_S = { commit: 3, push: 4.4, 'tool-error': 1, 'task-done': 1.5 };
+export const PICK_S = 1.6; // the push courier reaches the desk and takes the newest seal
+export const LAMP_S = 20;
+const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
 
 export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); } // naps: scribe id -> REFECTORY_SPOTS index
@@ -81,6 +86,19 @@ export class Cast {
     a.burn = { fire, old: a.s.context, left: BURN_S };
   }
 
+  // A live `chronicle` event: the session's scribe (or, from a subagent, its adept of that kind) reacts at its
+  // desk/console. Returns whether anything plays.
+  chronicle(e, now = Date.now()) {
+    if (!(now - e.ts < FRESH_MS)) return false;
+    const a = e.helper ? [...this.actors.values()].find(a => a.owner === e.sessionId && a.h.kind === e.helper) : this.actors.get(e.sessionId);
+    if (!a || a.leaving) return false;
+    if (e.kind === 'tests-pass' || e.kind === 'tests-fail') { a.lamp = { ok: e.kind === 'tests-pass', t: 0 }; return true; }
+    if (!FX_S[e.kind]) return false;
+    if (e.kind === 'commit' && !a.h) a.seals = Math.min(3, (a.seals ?? 0) + 1); // the newest shows once stamped
+    (a.fx ??= []).push({ kind: e.kind, t: 0, slot: Math.max(0, (a.seals ?? 1) - 1) }); // slot: the seal a push takes
+    return true;
+  }
+
   destination(a, seats, waiting, shell) {
     if (a.leaving) return { ...ENTRY, pose: 'gone' };
     if (a.s.status === 'waiting') {
@@ -117,6 +135,11 @@ export class Cast {
         if (a.pose === 'gone') this.actors.delete(a.id);
       }
       if (a.puff > 0) a.puff -= dt;
+      if (a.lamp) a.lamp.t += dt;
+      if (a.fx) a.fx = a.fx.filter(f => {
+        if (f.kind === 'push' && f.t < PICK_S && f.t + dt >= PICK_S && a.seals) a.seals--;
+        return (f.t += dt) < FX_S[f.kind];
+      });
       if (a.burn && a.pose === 'burn' && (a.burn.left -= dt) <= 0) { // burnt: back to the desk (or wherever the roster says now)
         a.burn = null;
         const { seats, waiting, shell, blocks } = this.last;
@@ -143,10 +166,22 @@ export function drawActor(g, a) {
     return;
   }
   blit(g, SCRIBE.up[0], fx, fy, over);
-  blit(g, MAPS.ARM, fx + 14, fy + 2);
-  blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
+  const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
+  const lift = done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0; // eased up, held, back down
+  blit(g, MAPS.ARM, fx + 14, fy + 2 - lift);
+  blit(g, MAPS.ARM_L, fx, fy + 2 - lift); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
+  if (done) heldScroll(g, fx + 2, fy - 3 - lift); // task done: the finished scroll held up in both hands
   if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
-  if (a.pose === 'nap' || (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+  if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+}
+
+// An unrolled scroll, 13x5 logical, rolled ends, writing and a red seal (art px = 0.5).
+function heldScroll(g, x, y) {
+  const r = (dx, dy, w, h, c) => { g.fillStyle = c; g.fillRect(x + dx, y + dy, w, h); };
+  r(-0.5, -0.5, 14, 6, '#0e0a08'); r(0.5, 0, 12, 5, '#d6c79f'); r(0.5, 4, 12, 1, '#a8946a');
+  for (const dx of [0, 11.5]) { r(dx - 0.5, -1, 2, 7, '#0e0a08'); r(dx, -0.5, 1, 6, '#b89a7c'); r(dx, -0.5, 0.5, 6, '#cfc3a8'); }
+  for (const [dy, w] of [[1, 8], [2, 9], [3, 6]]) r(2, dy, w, 0.5, '#5a3c16');
+  r(9, 2.5, 2, 2, '#0e0a08'); r(9.5, 3, 1, 1, '#c8281a'); r(9.5, 4, 0.5, 1.5, '#8e1c16');
 }
 
 // "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.
