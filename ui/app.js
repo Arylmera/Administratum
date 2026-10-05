@@ -1,8 +1,6 @@
-import { SCENE, lightLevel } from './layout.js';
-import { drawStatic, drawDecorFrame, STATIC_LIGHTS } from './scene.js';
+import { SCENE, lightLevel, layoutDepartments } from './layout.js';
+import { drawStatic, drawDecorFrame, STATIC_LIGHTS, drawRugs, drawDoors, drawGate, deskDrawable, deskLight, consoleDrawable, consoleLight, paperFloor } from './scene.js';
 import { drawLighting } from './lighting.js';
-import { layoutDepartments } from './layout.js';
-import { drawRugs, drawDoors, drawGate, deskDrawable, deskLight, consoleDrawable, consoleLight, paperFloor } from './scene.js';
 import { SASH, RES } from './sprites.js';
 import { Cast } from './actors.js';
 
@@ -11,7 +9,7 @@ const store = {
   get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: keep in memory */ } },
 };
-export const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
+const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
 
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d');
@@ -20,7 +18,7 @@ canvas.height = SCENE.h * RES;
 g.setTransform(RES, 0, 0, RES, 0, 0);
 g.imageSmoothingEnabled = false;
 const overlay = document.getElementById('overlay');
-export let scale = 2;
+let scale = 2;
 
 const bg = {};
 function background(day) {
@@ -45,11 +43,11 @@ function renderModes() {
   }
 }
 function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
-export function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]); }
+function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]); }
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.mode);
 
 const FRAME = 12; // CSS px kept around the scene for the brass frame
-export function fit() {
+function fit() {
   const head = document.querySelector('header').offsetHeight;
   // ponytail: fractional "contain" scale; pixelated rendering keeps it crisp enough at any size.
   scale = Math.max(1, Math.min((innerWidth - 2 * FRAME) / SCENE.w, (innerHeight - head - 2 * FRAME) / SCENE.h)); // CSS px per logical px
@@ -58,7 +56,7 @@ export function fit() {
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
-addEventListener('resize', fit);
+addEventListener('resize', () => { fit(); renderPlaques(); });
 
 // Riveted iron plates behind the scene instead of plain black (40x40 art px tile).
 {
@@ -70,7 +68,7 @@ addEventListener('resize', fit);
   document.body.style.backgroundImage = `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65)), url(${c.toDataURL()})`;
 }
 
-export const hooks = { beforeLights: () => [], afterFrame: () => {}, update: () => {} };
+const hooks = { beforeLights: () => [], afterFrame: () => {}, update: () => {} };
 let last = performance.now(), acc = 0, visible = true;
 function frame(now) {
   requestAnimationFrame(frame);
@@ -313,7 +311,6 @@ hooks.beforeLights = gg => {
   return lights;
 };
 hooks.afterFrame = syncLabels;
-addEventListener('resize', renderPlaques);
 
 const T = window.__TAURI__;
 if (T) {

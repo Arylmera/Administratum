@@ -13,7 +13,7 @@ export const SASH = ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6a
 
 export const RES = 2; // art pixels per logical pixel
 // Nearest-neighbour 2x upscale of a hand-written map: each char doubles horizontally, each row doubles vertically.
-// Phase 1 only (keeps the low-res maps as source); phase 2 can skip `up` for HD-native maps.
+// Only the two loose-sheet maps are still written low-res.
 const up = map => map.flatMap(row => { const r = row.split('').map(c => c + c).join(''); return [r, r]; });
 
 const cache = new WeakMap();
@@ -995,22 +995,6 @@ export const MAPS = {
     '.kggbbbbGGk.',
     '..kgGGGGGk..',
     '...kkkkkk...',
-  ],
-  VENT: [
-    'kkkkkkkkkkkkkkkk',
-    'kmllllllllllllmk',
-    'klMMMMMMMMMMMMMk',
-    'klMkkkkkkkkkkMMk',
-    'klMmmmmmmmmmmMMk',
-    'klMMMMMMMMMMMMMk',
-    'klMkkkkkkkkkkMMk',
-    'klMmmmmmmmmmmMMk',
-    'klMMMMMMMMMMMMMk',
-    'klMkkkkkkkkkkMMk',
-    'klMmmmmmmmmmmMMk',
-    'klMMMMMMMMMMMMMk',
-    'kmMMMMMMMMMMMMmk',
-    'kkkkkkkkkkkkkkkk',
   ],
   CENSER: [
     '....kk....',

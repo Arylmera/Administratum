@@ -246,8 +246,9 @@ pub fn scan(
         let mut task = small_tail.as_deref().map(task_line).unwrap_or_else(|| "—".into());
         let mut context = small_tail.as_deref().and_then(context_of);
         let mut tail_for_background = small_tail.clone();
-        if task == "—" || context.is_none() {
-            // The newest line didn't fit in the small tail; retry once with a bigger one.
+        if small_tail.is_some() && (task == "—" || context.is_none()) {
+            // The newest line didn't fit in the small tail; retry once with a bigger one
+            // (no transcript at all: a bigger tail won't find one either, skip the second lookup).
             if let Some(bigger) = transcript(&rec.session_id, &rec.cwd, BIG_TAIL_BYTES) {
                 if task == "—" {
                     task = task_line(&bigger);

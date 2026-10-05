@@ -1,9 +1,9 @@
 import { blit, sprite, MAPS } from './sprites.js';
 import { ENTRY } from './layout.js';
 
-export const AMBER = 'rgba(240,168,60,.26)';
-export const GREEN = 'rgba(124,255,158,.16)';
-export const RED = 'rgba(200,40,28,.22)';
+const AMBER = 'rgba(240,168,60,.26)';
+const GREEN = 'rgba(124,255,158,.16)';
+const RED = 'rgba(200,40,28,.22)';
 
 const WIN_DAY = { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' };
 const WIN_NIGHT = { u: '#3a2236', v: '#36401f', g: '#7a5a28' };
@@ -52,7 +52,6 @@ function coolant(g, x, y, w, h) {
   else { rect(g, x + 0.5, y, w - 1, h, '#3aa864'); rect(g, x + w / 2 - 0.25, y, 0.5, h, '#b4ffc8'); }
 }
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
-function put(g, map, x, y, over) { blit(g, map, x, y, over); }
 
 const DECOR = [
   ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
@@ -110,16 +109,16 @@ export function drawStatic(g, daylight) {
   [[30, 120, 18, 8], [146, 186, 8, 6], [270, 196, 14, 6]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, 'rgba(10,6,4,.35)'));
 
   const win = daylight ? WIN_DAY : WIN_NIGHT;
-  [78, 292].forEach(x => put(g, MAPS.WINDOW, x, 10, win));
+  [78, 292].forEach(x => blit(g, MAPS.WINDOW, x, 10, win));
   [210, 334].forEach(x => {
     rect(g, x, 108, 10, 118, '#1c1d20'); rect(g, x + 9, 108, 1, 118, '#0e0a08');
     pipeV(g, x + 3, 108, 118);
-    [124, 160, 196].forEach(y => put(g, MAPS.GAUGE, x + 2, y));
+    [124, 160, 196].forEach(y => blit(g, MAPS.GAUGE, x + 2, y));
   });
   rect(g, 210, 150, 10, 36, '#3a110e'); flange(g, 210, 148, 10, 2); flange(g, 210, 186, 10, 2); // pillar opens onto the passage door
   rect(g, 254, 163, 44, 3, 'rgba(0,0,0,.45)');
-  for (const [name, x, y] of DECOR) put(g, MAPS[name], x, y);
-  for (const [name, x, y] of CLUTTER) put(g, MAPS[name], x, y);
+  for (const [name, x, y] of DECOR) blit(g, MAPS[name], x, y);
+  for (const [name, x, y] of CLUTTER) blit(g, MAPS[name], x, y);
   rect(g, 0, 223, 200, 3, '#100b08'); rect(g, 0, 223, 200, 0.5, '#6e3f17'); // scriptorium's bottom wall, the gate sits in it
 }
 
@@ -132,7 +131,7 @@ export function drawRugs(g, blocks) {
   }
 }
 
-export function deskDrawable(desk, busy, fill = 0, bgShell = false, now = 0) {
+export function deskDrawable(desk, busy, fill, bgShell, now) {
   return {
     y: desk.y + 21,
     draw(g) {
@@ -157,7 +156,7 @@ function spinCog(g, cx, cy, t) {
   rect(g, cx - 0.5, cy - 0.5, 1, 1, '#2a2c30'); // axle
 }
 
-export function consoleDrawable(con, lit, fill = 0) {
+export function consoleDrawable(con, lit, fill) {
   return {
     y: con.y + 10,
     draw(g) {
@@ -329,7 +328,7 @@ export const STATIC_LIGHTS = [
 // Leaves slide up/down inside the 200..208 wall.
 const DOORS = [
   { x0: 200, x1: 208, y0: 150, y1: 186 }, // scriptorium <-> sanctum (DOOR_OUT/DOOR_IN)
-  { x0: 200, x1: 208, y0: 78, y1: 98, floor: '#1c1d20' }, // scriptorium <-> refectorium, decor only
+  { x0: 200, x1: 208, y0: 78, y1: 98, floor: '#1c1d20' }, // scriptorium <-> refectorium (REF_OUT/REF_IN)
 ];
 function cog(g, cx, cy) {
   rect(g, cx - 0.5, cy - 3.5, 1, 7, '#b8742e'); rect(g, cx - 3.5, cy - 0.5, 7, 1, '#b8742e');

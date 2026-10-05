@@ -16,15 +16,13 @@ use tauri::{
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager,
 };
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
+use tauri_plugin_notification::NotificationExt;
 
-#[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-
-/// Switch Orca's foreground terminal to `handle`, or open `url` in the default browser. `target`
-/// is "orca:<handle>" or "web:<url>"; both branches validate before touching the shell so a
-/// malformed roster entry can never inject arguments.
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 fn spawn_no_window(mut cmd: Command) -> std::io::Result<std::process::Child> {
     #[cfg(windows)]
@@ -32,22 +30,26 @@ fn spawn_no_window(mut cmd: Command) -> std::io::Result<std::process::Child> {
     cmd.spawn()
 }
 
+/// Switch Orca's foreground terminal to `handle`, or open `url` in the default browser. `target`
+/// is "orca:<handle>" or "web:<url>"; both branches validate before touching the shell so a
+/// malformed roster entry can never inject arguments.
 #[tauri::command]
 fn open_session(target: String) -> Result<(), String> {
     if let Some(handle) = target.strip_prefix("orca:") {
         if !registry::valid_orca_handle(handle) {
             return Err("invalid orca handle".into());
         }
-        let mut cmd = Command::new("orca");
-        cmd.args(["terminal", "switch", "--terminal", handle]);
+        let switch = |exe: String| {
+            let mut cmd = Command::new(exe);
+            cmd.args(["terminal", "switch", "--terminal", handle]);
+            spawn_no_window(cmd)
+        };
         // "orca" on PATH first; the known install path if that's not resolvable.
-        if spawn_no_window(cmd).is_err() {
+        if switch("orca".into()).is_err() {
             let fallback = std::env::var("LOCALAPPDATA")
                 .map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe"))
                 .map_err(|_| "orca not found".to_string())?;
-            let mut cmd = Command::new(fallback);
-            cmd.args(["terminal", "switch", "--terminal", handle]);
-            spawn_no_window(cmd).map_err(|e| e.to_string())?;
+            switch(fallback).map_err(|e| e.to_string())?;
         }
         Ok(())
     } else if let Some(url) = target.strip_prefix("web:") {
@@ -62,8 +64,6 @@ fn open_session(target: String) -> Result<(), String> {
         Err("unknown target kind".into())
     }
 }
-use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
-use tauri_plugin_notification::NotificationExt;
 
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
