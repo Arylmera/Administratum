@@ -219,7 +219,10 @@ fn tail_appended(path: &Path, stored: Option<u64>) -> (String, u64) {
     use std::io::{Read, Seek, SeekFrom};
     let Ok(meta) = fs::metadata(path) else { return (String::new(), stored.unwrap_or(0)) };
     let len = meta.len();
-    let start = stored.unwrap_or(len).min(len);
+    // First sight: look back a few MB so subagents that finished just before the widget started
+    // (still inside the 10 min cap) are not shown as active.
+    let first = stored.is_none();
+    let start = stored.map_or(len.saturating_sub(FIRST_SIGHT_BYTES), |s| s.min(len));
     if start == len {
         return (String::new(), len);
     }
@@ -232,8 +235,11 @@ fn tail_appended(path: &Path, stored: Option<u64>) -> (String, u64) {
         return (String::new(), start);
     }
     let cut = buf.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
-    (String::from_utf8_lossy(&buf[..cut]).into_owned(), start + cut as u64)
+    // A look-back that starts mid-file begins mid-line: drop that partial first line.
+    let skip = if first && start > 0 { buf[..cut].iter().position(|&b| b == b'\n').map_or(cut, |i| i + 1) } else { 0 };
+    (String::from_utf8_lossy(&buf[skip..cut]).into_owned(), start + cut as u64)
 }
+const FIRST_SIGHT_BYTES: u64 = 4 << 20;
 
 /// Incrementally tracks, per session, which of its subagents the parent transcript has reported
 /// completed (agent id -> completion ms). Byte offsets keep each parent transcript from being
@@ -901,12 +907,12 @@ mod tests {
         let line = |id: &str, ts: &str| format!(r#"{{"type":"queue-operation","timestamp":"{ts}","content":"<task-notification>\n<task-id>{id}</task-id>\n<status>completed</status>\n</task-notification>"}}"#);
         fs::write(&p, format!("{}\n", line("old", "2026-10-05T17:00:00.000Z"))).unwrap(); // already there before tracking starts
         let mut c = Completions::default();
-        assert!(c.scan("s1", &p).is_empty(), "first sight starts at the current end: history isn't replayed");
+        assert_eq!(c.scan("s1", &p).len(), 1, "first sight looks back: a subagent that finished just before startup counts");
         fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(format!("{}\n", line("a1", "2026-10-05T18:00:00.000Z")).as_bytes()).unwrap();
-        assert_eq!(c.scan("s1", &p).len(), 1);
+        assert_eq!(c.scan("s1", &p).len(), 2);
         fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(format!("{}\n", line("a2", "2026-10-05T18:05:00.000Z")).as_bytes()).unwrap();
         let after = c.scan("s1", &p);
-        assert_eq!(after.len(), 2, "merged with the earlier poll's result, not replaced");
+        assert_eq!(after.len(), 3, "merged with the earlier poll's result, not replaced");
         assert!(c.scan("s2", &p).is_empty(), "offset is per path, not per session: s1 already consumed the file, so s2's own map stays empty");
     }
 
