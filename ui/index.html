@@ -54,6 +54,71 @@
   #card .err { color: #8e1c16; font-weight: 600; }
   #card .links button, #card .answer button { padding: .27em .73em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; font-size: .92em; cursor: pointer; }
   #card .links button:hover, #card .answer button:hover { filter: brightness(1.2); }
+  /* Chronicon: a parchment unrolled over the scene (rows animate 0fr -> 1fr between the two rods). */
+  .tithe { font-variant-numeric: tabular-nums; cursor: pointer; background: transparent; font-family: inherit; }
+  .tithe:hover { color: var(--ink); border-color: var(--copper); }
+  #chron { --pk: #1a120c; --pm: #5a3c16; --c-new: #a8281c; --c-cache: #127a5c; --c-busy: #127a5c;
+    position: absolute; z-index: 5; top: 0; left: 50%; transform: translateX(-50%); width: min(46em, calc(100% - 12px)); height: 100%;
+    display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(11px * var(--k, 1)); color: var(--pk); }
+  #chron.open { grid-template-rows: auto 1fr auto; }
+  #chron[hidden] { display: none; }
+  #chron .rod { height: .9em; margin: 0 -.5em; border-radius: .45em; background: linear-gradient(#d8a050, #8a5320 45%, #4a2a0e); border: 1px solid #2a1606; box-shadow: 0 3px 4px rgba(0,0,0,.6); position: relative; }
+  #chron .rod::before, #chron .rod::after { content: ''; position: absolute; top: -.15em; width: .6em; height: 1.2em; background: linear-gradient(#f0d080, #b8742e 50%, #6e3f17); border: 1px solid #2a1606; border-radius: 2px; }
+  #chron .rod::before { left: -.4em; } #chron .rod::after { right: -.4em; }
+  #chron .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, #d8c79c 30%, #c2ac78 100%); border-left: 2px solid #8a6a3a; border-right: 2px solid #8a6a3a; box-shadow: inset 0 0 1.5em rgba(110,63,23,.45); }
+  #chron .top { flex: none; display: flex; align-items: center; gap: .6em; padding: .5em .9em .2em; }
+  #chron h2 { margin: 0; font: 400 1.7em/1 'Pirata One', serif; color: #4e110c; }
+  #chron .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid #8a6a3a; border-radius: 2px; color: #4e110c; font: inherit; cursor: pointer; }
+  #chron .tabs { flex: none; display: flex; gap: .25em; padding: 0 .9em; border-bottom: 2px solid #8a6a3a; overflow-x: auto; scrollbar-width: none; }
+  #chron .tabs button { flex: none; padding: .25em .6em; background: #bfa877; border: 1px solid #8a6a3a; border-bottom: none; border-radius: 2px 2px 0 0; color: var(--pm); font: inherit; cursor: pointer; }
+  #chron .tabs button.none { opacity: .55; }
+  #chron .tabs button[aria-selected="true"] { background: #4e110c; color: #f3e6c4; border-color: #4e110c; }
+  #chron button:focus-visible, #chron select:focus-visible { outline: 2px solid #4e110c; outline-offset: 1px; }
+  #chron .body { flex: 1; min-height: 0; overflow-y: auto; padding: .6em .9em .9em; scrollbar-width: thin; scrollbar-color: #8a6a3a transparent; font-variant-numeric: tabular-nums; user-select: text; }
+  #chron h3 { margin: 0 0 .3em; font-size: .85em; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
+  #chron .quiet { margin: .3em 0; color: var(--pm); font-style: italic; list-style: none; }
+  #chron .stats { display: flex; flex-wrap: wrap; gap: 0 1.6em; align-items: baseline; }
+  #chron .stat b { font-size: 1.9em; font-weight: 600; color: #4e110c; margin-right: .25em; }
+  #chron .stat span { color: var(--pm); }
+  #chron .split { margin: .4em 0 .8em; }
+  #chron .stack { display: flex; gap: 2px; height: .8em; background: rgba(110,63,23,.15); }
+  #chron .stack i { display: block; }
+  #chron .new { background: var(--c-new); } #chron .cache { background: var(--c-cache); }
+  #chron .legend { display: flex; flex-wrap: wrap; gap: .2em 1.2em; margin-top: .25em; font-size: .9em; }
+  #chron .legend i { display: inline-block; width: .7em; height: .7em; margin-right: .3em; vertical-align: -.05em; }
+  #chron .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr)); gap: .6em 1.4em; margin-bottom: .8em; }
+  #chron .row { display: grid; grid-template-columns: minmax(5em, 9em) 1fr auto; gap: .5em; align-items: center; margin: .15em 0; }
+  #chron .row .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #chron .row .n.sw::before { content: ''; display: inline-block; width: .55em; height: .55em; margin-right: .35em; background: var(--sw, #8a6a3a); outline: 1px solid rgba(26,18,12,.5); }
+  #chron .track { height: .7em; background: rgba(110,63,23,.15); }
+  #chron .track i { display: block; height: 100%; min-width: 1px; background: var(--c-new); }
+  #chron .v { color: var(--pm); font-size: .92em; }
+  #chron .hours { position: relative; }
+  #chron .peak { position: absolute; top: 0; right: 0; font-size: .85em; color: var(--pm); }
+  #chron .plot { display: grid; grid-template-columns: repeat(24, 1fr); gap: 1px; height: 3.6em; align-items: end; border-bottom: 1px solid #8a6a3a; }
+  #chron .plot span { height: 100%; display: flex; align-items: flex-end; }
+  #chron .plot span:hover { background: rgba(110,63,23,.18); }
+  #chron .plot span.now { background: rgba(78,17,12,.12); }
+  #chron .plot i { display: block; width: 100%; background: var(--c-new); }
+  #chron .busy .plot i { background: var(--c-busy); }
+  #chron .axis { display: flex; justify-content: space-between; font-size: .8em; color: var(--pm); }
+  #chron .logbar { display: flex; align-items: center; gap: .8em; border-top: 1px solid #8a6a3a; padding-top: .5em; }
+  #chron .logbar h3 { margin: 0; }
+  #chron select { margin-left: auto; padding: .1em .3em; background: #e3d4ac; color: var(--pk); border: 1px solid #8a6a3a; border-radius: 2px; font: inherit; }
+  #chron .events { margin: .3em 0 0; padding: 0; list-style: none; }
+  #chron .events li { display: grid; grid-template-columns: 3.2em 1.2em minmax(4em, 9em) minmax(3em, 7em) 1fr; gap: .5em; align-items: center; padding: .2em; border-bottom: 1px dotted rgba(110,63,23,.4); }
+  #chron .events li.quiet { display: block; border: none; }
+  #chron .events li.fresh { animation: inked 1.6s ease-out; }
+  #chron .events time { color: var(--pm); }
+  #chron .events .ico { display: block; width: 1.1em; height: 1.1em; }
+  #chron .events .who, #chron .events .dept, #chron .events .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #chron .events .who { font-weight: 600; } #chron .events .who small { font-weight: 400; color: var(--pm); font-size: 1em; }
+  #chron .events .dept { color: var(--pm); }
+  #chron .events li.tests-fail .d, #chron .events li.tool-error .d { color: #8e1c16; }
+  @keyframes inked { from { background: rgba(168,40,28,.25); } }
+  @media (max-width: 600px) { .tithe { display: none; } }
+  @media (max-width: 520px) { #chron .events li { grid-template-columns: 3.2em 1.2em minmax(4em, 8em) 1fr; } #chron .events .dept { display: none; } }
+  @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh { animation: none; } }
   @keyframes alarm { 50% { background: #3a0d09; box-shadow: 0 0 14px 3px rgba(255,58,32,.9); } }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(160,30,22,0); } 50% { box-shadow: 0 0 12px 2px rgba(190,40,28,.8); } }
   @media (max-width: 760px) { .tier { display: none; } }
@@ -77,6 +142,10 @@
     <button data-mode="candles" aria-pressed="false">Candles</button>
   </div>
   <div id="count" class="count">0 petitions</div>
+  <button id="tithe" class="count tithe" type="button" title="Tithe today: tokens and working time">⛁ — · —</button>
+  <button id="chron-open" class="icon" type="button" aria-label="Open the Chronicon">
+    <svg width="18" height="18" viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="9" height="2" fill="currentColor"></rect><rect x="1" y="3" width="7" height="4" fill="#d6c79f"></rect><rect x="2" y="4" width="5" height="1" fill="#6e3f17"></rect><rect x="2" y="6" width="3" height="1" fill="#6e3f17"></rect><rect x="0" y="7" width="9" height="1" fill="currentColor"></rect><rect x="4" y="2" width="1" height="1" fill="#a0221a"></rect></svg>
+  </button>
   <button id="mute" class="icon" aria-label="Mute chime">
     <svg class="on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
     <svg class="off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-9.33-5"></path><path d="M6 6v2c0 7-3 9-3 9h13"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
@@ -97,6 +166,15 @@
     <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
     <div class="err" hidden></div>
     <div class="links" hidden><button type="button">Open in Orca</button><button type="button">Open on claude.ai</button></div>
+  </div>
+  <div id="chron" role="dialog" aria-label="Chronicon" hidden>
+    <div class="rod"></div>
+    <div class="sheet">
+      <div class="top"><h2>Chronicon</h2><button type="button" class="close" aria-label="Close the Chronicon">✕</button></div>
+      <div class="tabs" role="tablist" aria-label="Day"></div>
+      <div class="body"></div>
+    </div>
+    <div class="rod"></div>
   </div>
 </main>
 <script type="module" src="app.js"></script>

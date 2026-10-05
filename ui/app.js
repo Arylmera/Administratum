@@ -3,6 +3,7 @@ import { drawStatic, drawScene } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
 import { Cast, isStale } from './actors.js';
+import { initChronicon } from './chronicon.js';
 
 const MODES = ['auto', 'full', 'candles'];
 const store = {
@@ -375,5 +376,6 @@ if (T) {
   T.event.listen('petition-stale', () => chime([990, 660, 990, 660]));
   T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
   T.event.listen('visible', e => { visible = e.payload; });
+  initChronicon(T, colorOf);
   document.getElementById('hide').onclick = () => { visible = false; T.window.getCurrentWindow().hide(); };
 }
