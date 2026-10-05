@@ -157,6 +157,7 @@ function frame(now) {
   renderPlaques(view.blocks);
   syncLabels();
   syncHover();
+  syncEdges();
 }
 
 renderModes();
@@ -376,6 +377,44 @@ function syncLabels() {
   }
 }
 
+// Off-screen awareness: an arrow on each edge of the view that has characters beyond it, with their count; it
+// blinks red when one of them petitions, and a click glides the view onto that petitioner (else the nearest one).
+const edges = Object.fromEntries(Object.entries({ up: '▲', down: '▼', left: '◀', right: '▶' }).map(([dir, glyph]) => {
+  const b = document.createElement('button'), g = document.createElement('span'), n = document.createElement('span');
+  b.type = 'button'; b.className = `edge ${dir}`; b.hidden = true;
+  g.textContent = glyph; g.setAttribute('aria-hidden', 'true');
+  b.append(g, n);
+  stage.appendChild(b);
+  return [dir, b];
+}));
+const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
+function syncEdges() {
+  const beyond = { up: [], down: [], left: [], right: [] };
+  if (pannable()) for (const a of cast.actors.values()) {
+    if (a.leaving) continue;
+    const x = a.x * scale + pan.x, y = (a.y - 8) * scale + pan.y; // the sprite's middle, in the view
+    const off = { left: -x, right: x - viewW, up: -y, down: y - viewH };
+    const dir = Object.keys(off).reduce((p, q) => (off[q] > off[p] ? q : p));
+    if (off[dir] > 0) beyond[dir].push({ a, x, y, d: off[dir] });
+  }
+  for (const [dir, b] of Object.entries(edges)) {
+    const list = beyond[dir];
+    b.hidden = !list.length;
+    if (b.hidden) continue;
+    const pets = list.filter(o => !o.a.h && o.a.s.status === 'waiting');
+    const t = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p));
+    const flat = dir === 'up' || dir === 'down', inset = 16;
+    const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? t.x : t.y)))}px`;
+    const at = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
+    setStyle(b, flat ? { left: along, top: at } : { left: at, top: along });
+    b.classList.toggle('alarm', pets.length > 0);
+    if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
+    const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${pets.length} petitioning` : ''}`;
+    if (b.title !== label) { b.title = label; b.setAttribute('aria-label', label); }
+    b.onclick = () => centreOn(t.a.x, t.a.y - 8);
+  }
+}
+
 // Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
 const tip = document.getElementById('tip');
 let mouse = null;
@@ -415,7 +454,7 @@ canvas.onclick = e => {
   const a = actorAt(e); if (a) pick(a.id); else closeCard();
 };
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
-addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl')) closeCard(); });
+addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl, .edge')) closeCard(); });
 canvas.onmousemove = e => { mouse = e; };
 canvas.onmouseleave = () => { mouse = null; };
 addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
