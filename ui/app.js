@@ -96,6 +96,8 @@ requestAnimationFrame(frame);
 // Context window by model, in tokens: edit here. Fill = context.tokens / window.
 const windowOf = model => (/haiku/i.test(model ?? '') ? 200_000 : 1_000_000);
 const fillOf = ctx => (ctx ? ctx.tokens / windowOf(ctx.model) : 0);
+const kM = n => (n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
+const contextLine = ctx => `Context · ${ctx ? `${kM(ctx.tokens)} / ${kM(windowOf(ctx.model))} (${Math.round(100 * fillOf(ctx))}%)` : '—'}`;
 
 const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
 const cast = new Cast();
@@ -160,6 +162,7 @@ function renderCard() {
     const owner = roster.find(r => r.id === a.owner);
     card.querySelector('.name').textContent = `${a.h.kind} · adept of ${owner?.name ?? '?'}`;
     card.querySelector('.meta').textContent = `Model: ${a.h.model ?? 'unrecorded'}`;
+    card.querySelector('.ctx').textContent = contextLine(a.h.context);
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
     return;
@@ -168,6 +171,7 @@ function renderCard() {
   if (!s) return;
   card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
   card.querySelector('.meta').textContent = `${STATUS_TEXT[s.status] ?? s.status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
+  card.querySelector('.ctx').textContent = contextLine(s.context);
   card.querySelector('.task').textContent = s.task;
   card.querySelector('.path').textContent = s.cwd;
 }
