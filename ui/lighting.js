@@ -3,9 +3,10 @@ import { RES } from './sprites.js';
 
 let layer = null;
 
-// Darkness with light holes (destination-out), then additive glows, beams by day, vignette.
-export function drawLighting(g, lights, level, t) {
-  const w = SCENE.w, h = SCENE.h;
+// Darkness with light holes (destination-out), then additive glows, beams by day, vignette. h: the scene's
+// logical height (it grows with the hall's bays).
+export function drawLighting(g, lights, level, t, h = SCENE.h) {
+  const w = SCENE.w;
   if (level.beams) {
     for (const bx of [74, 288]) {
       const grad = g.createLinearGradient(0, 26, 0, 116);
@@ -15,7 +16,7 @@ export function drawLighting(g, lights, level, t) {
       g.beginPath(); g.moveTo(bx + 9, 26); g.lineTo(bx + 21, 26); g.lineTo(bx + 30, 116); g.lineTo(bx, 116); g.closePath(); g.fill();
     }
   }
-  if (!layer) {
+  if (!layer || layer.height !== h * RES) {
     layer = document.createElement('canvas');
     layer.width = w * RES; layer.height = h * RES;
     layer.getContext('2d').setTransform(RES, 0, 0, RES, 0, 0);

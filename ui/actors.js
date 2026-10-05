@@ -1,5 +1,5 @@
 import { SCRIBE, ADEPT, MAPS, RANK, rankOf, blit } from './sprites.js';
-import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY, RECAFF_SPOT, REFECTORY_SPOTS, AISLE_Y } from './layout.js';
+import { route, COG_SPOTS, RECAFF_SPOT, REFECTORY_SPOTS, hallOf } from './layout.js';
 import { settings } from './settings.js';
 
 const SPEED = 80; // logical px per second
@@ -12,7 +12,7 @@ export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now(
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
-export const BRAZIERS = [ENTRY.x - 23, ENTRY.x + 23].map(x => ({ x, y: 213 }));
+const braziers = entry => [entry.x - 23, entry.x + 23].map(x => ({ x, y: entry.y - 11 }));
 // Chronicle reactions (scene.js draws them): seconds each plays. Test lamps are a.lamp, not an fx.
 export const FX_S = { commit: 3, push: 4.4, 'tool-error': 1, 'task-done': 1.5 };
 export const PICK_S = 1.6; // the push courier reaches the desk and takes the newest seal
@@ -20,9 +20,12 @@ export const LAMP_S = 20;
 const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
 
 export class Cast {
-  constructor() { this.actors = new Map(); this.naps = new Map(); } // naps: scribe id -> REFECTORY_SPOTS index
+  constructor() { this.actors = new Map(); this.naps = new Map(); this.hall = hallOf(0); } // naps: scribe id -> REFECTORY_SPOTS index
 
-  sync(roster, seats, colorOf, consoleSeats, blocks) {
+  // hall: hallOf() of the layout's bays (gate, queue, aisle and lanes follow it).
+  sync(roster, seats, colorOf, consoleSeats, blocks, hall = hallOf(0)) {
+    this.hall = hall;
+    const ENTRY = hall.entry;
     const live = new Set(roster.map(s => s.id));
     // New actors walk in through the gate; known ones take the fresh data (and stop leaving if they were).
     const upsert = (id, fields) => {
@@ -74,7 +77,8 @@ export class Cast {
     a.destKey = key;
     a.target = d;
     const from = { x: a.x, y: a.y, via: a.pose === 'console' ? a.target.via : undefined }; // leaving a console the way it came
-    a.path = d.pose === 'nap' ? route(from, RECAFF_SPOT, blocks).concat({ x: d.x, y: d.y }) : route(from, d, blocks);
+    const bays = this.hall.bays;
+    a.path = d.pose === 'nap' ? route(from, RECAFF_SPOT, blocks, bays).concat({ x: d.x, y: d.y }) : route(from, d, blocks, bays);
     if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
     a.wait = 0;
     a.pose = 'walk';
@@ -84,7 +88,7 @@ export class Cast {
   // anywhere else (cogitator, queue, refectory, on the way) the desk pile just goes up in a puff.
   compacted(a) {
     if (a.pose !== 'desk') { a.puff = PUFF_S; return; }
-    const fire = BRAZIERS.reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
+    const fire = braziers(this.hall.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
     a.burn = { fire, old: a.s.context, left: BURN_S };
   }
 
@@ -102,6 +106,7 @@ export class Cast {
   }
 
   destination(a, seats, waiting, shell) {
+    const { entry: ENTRY, queue: QUEUE_SLOTS, aisleY: AISLE_Y } = this.hall;
     if (a.leaving) return { ...ENTRY, pose: 'gone' };
     if (a.s.status === 'waiting') {
       const queueIdx = Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1);
@@ -118,7 +123,7 @@ export class Cast {
   // Adepts work at their own console in the owner's department block, whatever the owner is doing.
   atConsole(a, consoleSeats) {
     const seat = consoleSeats.get(a.id);
-    return a.leaving || !seat ? { ...ENTRY, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
+    return a.leaving || !seat ? { ...this.hall.entry, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
   }
 
   update(dt) {

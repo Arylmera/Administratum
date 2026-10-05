@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
+import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
 import { DECOR, CLUTTER } from './scene.js';
 import { MAPS, RES } from './sprites.js';
 
@@ -104,15 +104,107 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
   assert.equal(P.blocks[0].w, 2 * 48 + 2);
   P = planLayout(P, H([]), 1000 + DESK_GRACE_MS);
   assert.equal(P.blocks[0].w, 48 + 2);
-  // capacity: empties waiting their grace are dropped at once rather than overflow a newcomer
+  // capacity: empties waiting their grace are dropped at once rather than overflow a newcomer (in the largest hall)
   const many = k => ids('d', k).map(n => ({ name: n, color: '#fff', ids: [n] }));
-  P = planLayout(null, many(12), 0);
+  P = planLayout(null, many(40), 0);
+  assert.equal(P.bays, MAX_BAYS);
   const fit = P.blocks.length;
   P = planLayout(P, many(fit).slice(1), 1000); // d-0 left: its block waits
   assert.equal(P.blocks.length, fit);
   P = planLayout(P, many(fit).slice(1).concat({ name: 'new', color: '#fff', ids: ['n'] }), 2000);
   assert.equal(P.overflow, 0);
   assert.ok(P.seats.has('n') && !P.blocks.some(b => b.name === 'd-0'));
+}
+
+// space: compact lecterns past capacity, then bays; hysteresis on the way back
+{
+  const dept = (name, n) => ({ name, color: '#fff', ids: ids(name, n) });
+  const D = n => ['A', 'B'].map(name => dept(name, n));
+  let P = planLayout(null, D(2), 0);
+  assert.equal(P.level, 0);
+  assert.ok(!P.compact && P.bays === 0 && !P.desks.some(d => d.compact));
+  P = planLayout(P, D(5), 1000); // two blocks of five overflow the hall in full desks
+  assert.ok(P.compact && P.bays === 0 && P.overflow === 0, 'compact first');
+  assert.ok(P.desks.every(d => d.compact));
+  // six lecterns per row, each 31 wide, seats centred on a 22-wide lectern
+  const C = layoutDepartments([dept('T', 6)], { compact: true });
+  assert.equal(C.blocks[0].w, 6 * 31 + 2);
+  assert.equal(C.blocks[0].h, 64 - 8);
+  assert.deepEqual(C.seats.get('T-0'), { x: C.desks[0].x + 11, y: C.desks[0].y + 30 });
+  // hysteresis: back to 2 x 4 (fits full desks) does not flip back at once, nor while one more desk per department wouldn't fit
+  P = planLayout(P, D(4), 2000);
+  assert.ok(P.compact, 'no flip right after');
+  P = planLayout(P, D(4), 2000 + 10 * SHRINK_MS);
+  assert.ok(P.compact, 'one desk more per department would overflow full desks: stay compact');
+  P = planLayout(P, D(3), 3_000_000);
+  P = planLayout(P, D(3), 3_000_000 + DESK_GRACE_MS); // the freed desks go
+  assert.ok(P.compact);
+  P = planLayout(P, D(3), 3_000_000 + DESK_GRACE_MS + SHRINK_MS - 1);
+  assert.ok(P.compact, 'roomy, but not for SHRINK_MS yet');
+  P = planLayout(P, D(3), 3_000_000 + DESK_GRACE_MS + SHRINK_MS);
+  assert.ok(!P.compact && P.level === 0, 'back to full desks');
+  // a short dip in the middle restarts the wait
+  P = planLayout(null, D(5), 0);
+  P = planLayout(P, D(2), 1, { desk: 0 });
+  P = planLayout(P, D(5), 2, { desk: 0 });
+  P = planLayout(P, D(2), 3, { desk: 0 });
+  P = planLayout(P, D(2), 3 + SHRINK_MS - 1, { desk: 0 });
+  assert.ok(P.compact);
+  P = planLayout(P, D(2), 3 + SHRINK_MS, { desk: 0 });
+  assert.ok(!P.compact);
+
+  // bays: compact still too full grows the hall downward; the aisle, gate and the hall's queue move with it
+  const E = k => ids('e', k).map(name => dept(name, 5)); // a five-desk department fills a compact row with one gap
+  P = planLayout(null, E(2), 0);
+  assert.ok(P.compact && P.bays === 0);
+  P = planLayout(P, E(3), 1000);
+  assert.equal(P.bays, 1);
+  assert.equal(P.overflow, 0);
+  const H1 = hallOf(1);
+  assert.equal(H1.h, 226 + BAY_H);
+  assert.ok(P.blocks.every(b => b.y + b.h <= H1.y1), 'blocks inside the grown hall');
+  assert.ok(P.blocks.some(b => b.y + b.h > HALL.y1), 'the third row stands in the bay');
+  assert.deepEqual(H1.entry, { x: ENTRY.x, y: ENTRY.y + BAY_H });
+  assert.ok(H1.entry.y > H1.aisleY && H1.entry.y <= H1.h, 'the gate in the new bottom wall');
+  assert.deepEqual(H1.queue.slice(0, 3), QUEUE_SLOTS.slice(0, 3), 'the sanctum queue stays');
+  for (const q of H1.queue.slice(3)) assert.ok(q.y > H1.aisleY && q.y < H1.h && Math.abs(q.x - H1.entry.x) >= 36);
+  // routes in the grown hall: axis-aligned, through no block but the seat's own, and ending where asked
+  const seats = [...P.seats.values()];
+  const cuts = (b, p, q) => Math.max(p.x, q.x) > b.x && Math.min(p.x, q.x) < b.x + b.w && Math.max(p.y, q.y) > b.y && Math.min(p.y, q.y) < b.y + b.h;
+  const inside = (b, p) => p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h;
+  for (const s of seats) for (const e of [H1.entry, ...H1.queue, COG_SPOTS[0], RECAFF_SPOT]) for (const [a, b] of [[s, e], [e, s]]) {
+    const rt = [a].concat(route(a, b, P.blocks, 1));
+    assert.deepEqual(rt.at(-1), { x: b.x, y: b.y });
+    rt.slice(1).forEach((q, i) => {
+      const p = rt[i];
+      if (p.x <= REF_IN.x && q.x <= REF_IN.x) assert.ok(p.x === q.x || p.y === q.y, `diagonal ${JSON.stringify([p, q])}`);
+      assert.ok(p.y <= H1.h && q.y <= H1.h);
+      for (const blk of P.blocks) if (cuts(blk, p, q)) assert.ok(inside(blk, p) || inside(blk, q), `${JSON.stringify([p, q])} crosses ${blk.name}`);
+    });
+  }
+  assert.equal(route(H1.entry, seats[0], P.blocks, 1)[0].x, H1.entry.x, 'newcomers walk straight up out of the gate');
+  // the bay goes again once compact without it holds a desk more per department, after SHRINK_MS, one level at a time
+  P = planLayout(P, E(2), 2000, { desk: 0, dept: 0 });
+  assert.equal(P.bays, 1, 'no shrink right after');
+  P = planLayout(P, E(2), 2000 + SHRINK_MS - 1, { desk: 0, dept: 0 });
+  assert.equal(P.bays, 1);
+  P = planLayout(P, E(2), 2000 + SHRINK_MS, { desk: 0, dept: 0 });
+  assert.ok(P.bays === 0 && P.compact, 'bay gone, still compact (two rows of six would not fit full desks)');
+  assert.ok(P.blocks.every(b => b.y + b.h <= HALL.y1));
+  P = planLayout(P, E(2), 2000 + 9 * SHRINK_MS, { desk: 0, dept: 0 });
+  assert.ok(P.compact);
+  // lecterns and their consoles: adepts and scribes reach every seat without crossing furniture
+  const K = layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 4), helpers: ids('h', 8) }], { compact: true });
+  assert.equal(K.consoles.length, 8);
+  const solid = K.consoles.map(c => [c, 14, 10]).concat(K.desks.map(d => [d, 22, 21]));
+  for (const [i, [o, w, h]] of solid.entries()) for (const [p, pw, ph] of solid.slice(i + 1)) assert.ok(!hit(o, w, h, p, pw, ph), 'furniture overlap');
+  for (const seat of [...K.consoleSeats.values(), ...K.seats.values()]) for (const e of [ENTRY, QUEUE_SLOTS[0], COG_SPOTS[2]]) for (const [a, b] of [[seat, e], [e, seat]]) {
+    const rt = [a].concat(route(a, b, K.blocks));
+    rt.slice(1).forEach((q, i) => {
+      const p = rt[i], x0 = Math.min(p.x, q.x), y0 = Math.min(p.y, q.y);
+      for (const [o, w, h] of solid) assert.ok(!(x0 < o.x + w && Math.max(p.x, q.x) > o.x && y0 < o.y + h && Math.max(p.y, q.y) > o.y), `leg ${JSON.stringify([p, q])} crosses ${o.id}`);
+    });
+  }
 }
 
 // desk to queue goes through both door points; queue to queue inside the office goes straight

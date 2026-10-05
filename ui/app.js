@@ -1,4 +1,4 @@
-import { SCENE, lightLevel, planLayout } from './layout.js';
+import { SCENE, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
@@ -11,23 +11,27 @@ const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted
 
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d');
-canvas.width = SCENE.w * RES;
-canvas.height = SCENE.h * RES;
-g.setTransform(RES, 0, 0, RES, 0, 0);
-g.imageSmoothingEnabled = false;
 const overlay = document.getElementById('overlay');
 let scale = 2;
+let hall = hallOf(0); // the scene's logical height grows with the layout's bays
+function sizeCanvas() {
+  canvas.width = SCENE.w * RES;
+  canvas.height = hall.h * RES;
+  g.setTransform(RES, 0, 0, RES, 0, 0);
+  g.imageSmoothingEnabled = false;
+}
+sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const k = day ? 'day' : 'night';
+  const k = `${day ? 'day' : 'night'}:${hall.bays}`;
   if (!bg[k]) {
     const c = document.createElement('canvas');
-    c.width = SCENE.w * RES; c.height = SCENE.h * RES;
+    c.width = SCENE.w * RES; c.height = hall.h * RES;
     const cg = c.getContext('2d');
     cg.setTransform(RES, 0, 0, RES, 0, 0);
     cg.imageSmoothingEnabled = false;
-    drawStatic(cg, day);
+    drawStatic(cg, day, hall);
     bg[k] = c;
   }
   return bg[k];
@@ -49,8 +53,8 @@ const FRAME = 12; // CSS px kept around the scene for the brass frame
 function fit() {
   const head = document.querySelector('header').offsetHeight;
   // ponytail: fractional "contain" scale; pixelated rendering keeps it crisp enough at any size.
-  scale = Math.max(1, Math.min((innerWidth - 2 * FRAME) / SCENE.w, (innerHeight - head - 2 * FRAME) / SCENE.h)); // CSS px per logical px
-  for (const el of [canvas, overlay]) { el.style.width = `${SCENE.w * scale}px`; el.style.height = `${SCENE.h * scale}px`; }
+  scale = Math.max(1, Math.min((innerWidth - 2 * FRAME) / SCENE.w, (innerHeight - head - 2 * FRAME) / hall.h)); // CSS px per logical px
+  for (const el of [canvas, overlay]) { el.style.width = `${SCENE.w * scale}px`; el.style.height = `${hall.h * scale}px`; }
   const root = document.documentElement.style;
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
   root.setProperty('--tile', `${40 * scale / RES}px`);
@@ -76,10 +80,12 @@ function frame(now) {
   if (acc < 1 / 30) return;
   const dt = acc; acc = 0;
   cast.update(dt);
+  if (canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went
   const level = lightLevel(state.mode, new Date().getHours());
-  g.drawImage(background(level.beams), 0, 0, SCENE.w, SCENE.h);
+  g.drawImage(background(level.beams), 0, 0, SCENE.w, hall.h);
   const view = glide(now);
-  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000);
+  view.hall = hall;
+  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.h);
   renderPlaques(view.blocks);
   syncLabels();
   syncHover();
@@ -103,7 +109,7 @@ const cast = new Cast();
 const deptOrder = [];
 let layout = { blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0, plan: [] };
 // Harness only: ?grace=<s> shortens the empty-desk grace (blocks get 5/3 of it). The app's URL has no query.
-const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3 } : {}))(+new URLSearchParams(location.search).get('grace'));
+const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3, shrink: s * 1000 } : {}))(+new URLSearchParams(location.search).get('grace'));
 const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
 let roster = [];
 let sel = null;
@@ -122,8 +128,9 @@ function onRoster(next) {
     .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
   layout = planLayout(layout, depts, Date.now(), GRACE);
-  // ponytail: sessions past the hall's capacity are not drawn; toast + counter still cover their petitions.
-  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks);
+  hall = hallOf(layout.bays);
+  // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
+  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
   const n = roster.filter(s => s.status === 'waiting').length;
   const count = document.getElementById('count');
   count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
@@ -172,7 +179,7 @@ function consolesOf(dept) {
 const plaques = new Map();
 function renderPlaques(blocks) {
   const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
-  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120, 186, '#8a7a5c']);
+  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120, hall.y1 - 10, '#8a7a5c']);
   if (!roster.length) want.set('empty', ['empty', 'No scribes on duty', 0, 120]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
   for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
