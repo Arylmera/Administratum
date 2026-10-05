@@ -114,6 +114,7 @@ export function drawStatic(g, daylight) {
     pipeV(g, x + 3, 108, 118);
     [124, 160, 196].forEach(y => put(g, MAPS.GAUGE, x + 2, y));
   });
+  rect(g, 210, 150, 10, 36, '#3a110e'); flange(g, 210, 148, 10, 2); flange(g, 210, 186, 10, 2); // pillar opens onto the passage door
   rect(g, 254, 163, 44, 3, 'rgba(0,0,0,.45)');
   for (const [name, x, y] of DECOR) put(g, MAPS[name], x, y);
   for (const [name, x, y] of CLUTTER) put(g, MAPS[name], x, y);
@@ -159,3 +160,40 @@ export const STATIC_LIGHTS = [
   { x: 96, y: 14, r: 10, color: AMBER, flicker: true }, { x: 198, y: 67, r: 10, color: AMBER, flicker: true },
   { x: 50, y: 117, r: 14 }, { x: 150, y: 117, r: 14 }, { x: 99, y: 150, r: 14 }, { x: 50, y: 183, r: 14 }, { x: 150, y: 183, r: 14 },
 ];
+
+// Doors, drawn each frame: open while any actor is within 12 logical px of the doorway.
+// v: leaves slide up/down inside the 200..208 wall; h: the exit, leaves slide apart in the bottom wall.
+const DOORS = [
+  { x0: 200, x1: 208, y0: 150, y1: 186, v: true }, // scriptorium <-> sanctum (DOOR_OUT/DOOR_IN)
+  { x0: 200, x1: 208, y0: 78, y1: 98, v: true, floor: '#1c1d20' }, // scriptorium <-> refectorium, decor only
+  { x0: 1, x1: 15, y0: 220, y1: 226, floor: '#060404' }, // exit at ENTRY
+];
+function cog(g, cx, cy) {
+  rect(g, cx - 0.5, cy - 3.5, 1, 7, '#b8742e'); rect(g, cx - 3.5, cy - 0.5, 7, 1, '#b8742e');
+  [[-3, -3], [2, -3], [-3, 2], [2, 2]].forEach(([dx, dy]) => rect(g, cx + dx, cy + dy, 1, 1, '#8a4f22'));
+  rect(g, cx - 2.5, cy - 2.5, 5, 5, '#b8742e'); rect(g, cx - 2.5, cy - 2.5, 5, 0.5, '#e8b45a'); rect(g, cx - 2.5, cy - 2.5, 0.5, 5, '#e8b45a');
+  rect(g, cx - 1, cy - 1, 2, 2, '#2a2c30'); rect(g, cx - 0.5, cy - 0.5, 1, 1, '#8e1c16');
+}
+function leaf(g, x, y, w, h) {
+  rect(g, x, y, w, h, '#2a2c30'); rect(g, x, y, w, 0.5, '#5a5e63'); rect(g, x, y, 0.5, h, '#5a5e63');
+  rect(g, x + w - 0.5, y, 0.5, h, '#141516'); rect(g, x, y + h - 0.5, w, 0.5, '#141516');
+  if (h > 4) for (let j = y + 1.5; j < y + h - 1; j += 3) { rect(g, x + 1, j, 0.5, 0.5, '#8a9096'); rect(g, x + w - 1.5, j, 0.5, 0.5, '#8a9096'); }
+  if (w > 4) for (let i = x + 1.5; i < x + w - 1; i += 3) { rect(g, i, y + 1, 0.5, 0.5, '#8a9096'); rect(g, i, y + h - 1.5, 0.5, 0.5, '#8a9096'); }
+}
+export function drawDoors(g, actors) {
+  for (const d of DOORS) {
+    const open = actors.some(a => Math.hypot(Math.max(d.x0 - a.x, 0, a.x - d.x1), Math.max(d.y0 - a.y, 0, a.y - d.y1)) < 12);
+    const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
+    if (d.v) {
+      if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
+      else { leaf(g, d.x0 + 0.5, d.y0, 7, cy - d.y0); leaf(g, d.x0 + 0.5, cy, 7, d.y1 - cy); rect(g, d.x0 + 0.5, cy - 0.25, 7, 0.5, '#0e0a08'); cog(g, cx, cy); }
+      for (const y of [d.y0 - 2, d.y1]) flange(g, d.x0 - 1, y, 10, 2); // brass lintels
+      rect(g, d.x0, d.y0, 0.5, d.y1 - d.y0, '#b8742e'); rect(g, d.x1 - 0.5, d.y0, 0.5, d.y1 - d.y0, '#6e3f17');
+    } else {
+      rect(g, d.x1, d.y0, 14, d.y1 - d.y0, '#100b08'); rect(g, d.x1, d.y0, 14, 0.5, '#b8742e'); // wall stub
+      if (open) { rect(g, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, d.floor); leaf(g, d.x0, d.y0 + 0.5, 2, 5.5); leaf(g, d.x1 - 2, d.y0 + 0.5, 2, 5.5); }
+      else { leaf(g, d.x0, d.y0 + 0.5, cx - d.x0, 5.5); leaf(g, cx, d.y0 + 0.5, d.x1 - cx, 5.5); cog(g, cx, d.y0 + 3.5); }
+      for (const x of [d.x0 - 1, d.x1]) flange(g, x, d.y0 - 1, 2, d.y1 - d.y0 + 1); // brass posts
+    }
+  }
+}
