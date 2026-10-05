@@ -104,4 +104,10 @@ assert.equal(lightLevel('candles', 12).phase, 'night');
 assert.equal(lightLevel('auto', 12).beams, true);
 assert.ok(lightLevel('full', 12).dark > 0, 'Tier II keeps a darkness floor in full light');
 
+// cogitator stations: on the floor in front of the bank (its desk ends at y 51), above the department blocks, reachable
+for (const p of COG_SPOTS) {
+  assert.ok(p.y > 51 && p.y < HALL.y0 && p.x - 8 >= HALL.x0 && p.x + 8 <= HALL.x1, `cog spot ${p.x}`);
+  assert.deepEqual(route(ENTRY, p).at(-1), p);
+}
+
 console.log('layout ok');
