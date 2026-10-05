@@ -1,12 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod chronicle;
 mod demo;
 mod registry;
 
+use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
 use std::{
     collections::HashMap,
     path::PathBuf,
     process::Command,
+    sync::Mutex,
     thread,
     time::{Duration, Instant, SystemTime},
 };
@@ -14,7 +17,7 @@ use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager,
+    AppHandle, Emitter, Manager, RunEvent, State,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_notification::NotificationExt;
@@ -99,6 +102,37 @@ fn answer_petition(handle: String, choice: String) -> Result<(), String> {
     Ok(())
 }
 
+type Chron = Mutex<Chronicle>;
+
+fn now_ms() -> i64 {
+    SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
+}
+
+/// Chronicon events of one local day ("YYYY-MM-DD"), oldest first.
+#[tauri::command]
+fn chronicle_day(day: String, chron: State<Chron>) -> Result<Vec<Event>, String> {
+    if !chronicle::valid_day(&day) {
+        return Err("invalid day".into());
+    }
+    let dir = chron.lock().map_err(|_| "chronicle unavailable")?.dir().to_path_buf();
+    Ok(chronicle::read_events(&dir, &day))
+}
+
+/// Tithe (tokens + working time) of one local day; today's is live.
+#[tauri::command]
+fn tithe_day(day: String, chron: State<Chron>) -> Result<Tithe, String> {
+    if !chronicle::valid_day(&day) {
+        return Err("invalid day".into());
+    }
+    Ok(chron.lock().map_err(|_| "chronicle unavailable")?.tithe_of(&day))
+}
+
+/// Today and the 6 previous days, newest first.
+#[tauri::command]
+fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
+    Ok(chron.lock().map_err(|_| "chronicle unavailable")?.days(now_ms()))
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -109,15 +143,25 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, answer_petition])
+        .invoke_handler(tauri::generate_handler![open_session, answer_petition, chronicle_day, tithe_day, chronicle_days])
         .setup(move |app| {
             build_tray(app)?;
+            // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
+            let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });
+            app.manage::<Chron>(Mutex::new(Chronicle::open(dir, now_ms(), demo)));
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Administratum");
+        .build(tauri::generate_context!())
+        .expect("error while building Administratum")
+        .run(|app, event| {
+            if let RunEvent::Exit = event {
+                if let Ok(c) = app.state::<Chron>().lock() {
+                    c.flush();
+                }
+            }
+        });
 }
 
 fn poll_loop(app: AppHandle, demo: bool) {
@@ -126,6 +170,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut tracker = Tracker::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
+    let projects = dir.join("projects");
+    let mut first = true;
+    let mut last_tick = Instant::now();
+    let mut last_t = 0;
     // Orca terminal handle per pid, cached: environ() is only ever refreshed for a pid we haven't
     // seen yet (never for the whole process list every tick). Evicted when a pid disappears.
     let mut orca_cache: HashMap<u32, Option<String>> = HashMap::new();
@@ -166,7 +214,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 orca_handle,
             );
             let mut roster = registry::merge(&prev, scanned);
-            let now_ms = SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
+            let now_ms = now_ms();
             registry::track_compaction(&prev, &mut roster, now_ms);
             roster
         };
@@ -179,7 +227,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 .show();
             let _ = app.emit("petition", &s);
         }
-        let now_ms = SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
+        let now_ms = now_ms();
         for s in tracker.stale_petitions(&roster, now_ms) {
             let _ = app
                 .notification()
@@ -188,6 +236,37 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
                 .show();
             let _ = app.emit("petition-stale", &s);
+        }
+        {
+            let now = now_ms;
+            let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
+            last_tick = Instant::now();
+            let chron = app.state::<Chron>();
+            let mut c = chron.lock().unwrap_or_else(|e| e.into_inner());
+            let mut events = if demo {
+                let t = start.elapsed().as_secs();
+                for (dept, u) in demo::usage(&roster, now) {
+                    c.add_usage(&dept, &u);
+                }
+                let ev = demo::chronicle(last_t, t, &roster, now);
+                last_t = t;
+                ev
+            } else {
+                c.read_transcripts(&projects, &roster, now)
+            };
+            if !first {
+                events.extend(chronicle::lifecycle(&prev, &roster, now));
+            }
+            c.add_busy(&roster, elapsed, now);
+            for e in &events {
+                c.record(e);
+                // The first scan backfills today; only fresh events play live in the scene.
+                if now - e.ts < 120_000 {
+                    let _ = app.emit("chronicle", e);
+                }
+            }
+            c.maybe_flush(now);
+            first = false;
         }
         // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
         let _ = app.emit("roster", &roster);

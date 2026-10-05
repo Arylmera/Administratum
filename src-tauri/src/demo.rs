@@ -1,3 +1,4 @@
+use crate::chronicle::{Event, Tokens, Usage};
 use crate::registry::{Context, Helper, Session};
 use std::{sync::OnceLock, time::{SystemTime, UNIX_EPOCH}};
 
@@ -66,6 +67,42 @@ pub fn roster(t: u64) -> Vec<Session> {
     v
 }
 
+/// Chronicon beats over the 60 s cycle: (phase, kind, scribe, helper kind, detail).
+const BEATS: [(u64, &str, &str, Option<&str>, &str); 8] = [
+    (5, "commit", "terra-77", None, "hololith: link NAS services"),
+    (8, "push", "terra-77", None, "origin/main"),
+    (14, "tests-pass", "token-dashboard-af", None, "npm test"),
+    (17, "tool-error", "terra-77", Some("Explore"), "Grep · No matches found"),
+    (22, "tests-fail", "token-dashboard-af", None, "npm test"),
+    (33, "tool-error", "terra-77", None, "Bash · /usr/bin/bash: line 1: hololith: command not found"),
+    (42, "task-done", "terra-77", None, "6m 12s"),
+    (52, "tests-pass", "drop-pod-1", None, "cargo test"),
+];
+
+/// Scripted events for the elapsed seconds `from` (exclusive) ..= `to`, from scribes on `roster`.
+pub fn chronicle(from: u64, to: u64, roster: &[Session], now_ms: i64) -> Vec<Event> {
+    let mut out = vec![];
+    for t in from.max(to.saturating_sub(60)) + 1..=to {
+        for (_, kind, name, helper, detail) in BEATS.iter().filter(|b| b.0 == t % 60) {
+            let Some(s) = roster.iter().find(|s| s.name == *name) else { continue };
+            out.push(Event { ts: now_ms, kind: kind.to_string(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: helper.map(str::to_string), detail: detail.to_string() });
+        }
+    }
+    out
+}
+
+/// One tick of token spend for every working scribe, so the demo Tithe grows.
+pub fn usage(roster: &[Session], now_ms: i64) -> Vec<(String, Usage)> {
+    roster
+        .iter()
+        .filter(|s| s.status == "busy" || s.status == "shell")
+        .map(|s| {
+            let model = s.context.as_ref().map_or(OPUS.to_string(), |c| c.model.clone());
+            (s.dept.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 } })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,5 +148,27 @@ mod tests {
         assert!(at(25, "terra-77").helpers.is_empty());
         assert_eq!(at(35, "token-dashboard-af").helpers.len(), 1);
         assert!(at(10, "token-dashboard-af").helpers.is_empty());
+    }
+
+    #[test]
+    fn demo_chronicle_plays_every_kind_once_per_cycle() {
+        let mut kinds = vec![];
+        for t in 1..=60 {
+            for e in chronicle(t - 1, t, &roster(t), 7) {
+                kinds.push(e.kind);
+            }
+        }
+        kinds.sort();
+        assert_eq!(kinds, ["commit", "push", "task-done", "tests-fail", "tests-pass", "tests-pass", "tool-error", "tool-error"]);
+        assert_eq!(chronicle(16, 17, &roster(17), 7)[0].helper.as_deref(), Some("Explore"));
+        assert_eq!(chronicle(3, 9, &roster(9), 7).len(), 2, "a skipped second still plays its beat");
+        assert!(chronicle(9, 9, &roster(9), 7).is_empty());
+    }
+
+    #[test]
+    fn demo_usage_comes_from_working_scribes() {
+        let u = usage(&roster(5), 7);
+        assert!(u.iter().any(|(dept, _)| dept == "Terra"));
+        assert!(u.iter().all(|(dept, _)| dept != "Geneseed"), "idle/waiting scribes spend nothing");
     }
 }
