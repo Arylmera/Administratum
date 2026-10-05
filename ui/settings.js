@@ -64,10 +64,15 @@ const setQuestions = (on, toast) => {
   store.set('adm.questions', on ? '1' : '0'); store.set('adm.questionToast', toast ? '1' : '0');
 };
 
+// Scale (adm.scale): CSS px per logical px, or 'auto' (app.js); read live by app.js's fit().
+const SCALES = ['auto', '1.5', '2', '2.5', '3'];
+export const view = { scale: SCALES.includes(store.get('adm.scale')) ? store.get('adm.scale') : 'auto' };
+const setScale = v => { view.scale = SCALES.includes(v) ? v : 'auto'; store.set('adm.scale', view.scale); };
+
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
-// hooks: { mode(), setMode(m), muted(), setMuted(b), placed() } from app.js. T may be absent (plain browser).
+// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled() } from app.js. T may be absent (plain browser).
 export function initSettings(T, hooks) {
   const invoke = (cmd, args) => T?.core?.invoke(cmd, args) ?? Promise.reject(new Error('no backend'));
   const win = () => T?.window?.getCurrentWindow();
@@ -84,6 +89,7 @@ export function initSettings(T, hooks) {
 
   sync = () => {
     field('onTop').checked = settings.onTop;
+    field('scale').value = view.scale;
     field('mode').value = hooks.mode();
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
@@ -109,6 +115,7 @@ export function initSettings(T, hooks) {
   form.onchange = e => {
     const el = e.target, k = el.name;
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
+    else if (k === 'scale') { setScale(el.value); hooks.rescaled(); }
     else if (k === 'mode') hooks.setMode(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
@@ -124,6 +131,7 @@ export function initSettings(T, hooks) {
     setPlace(NaN, NaN);
     setPerf(12, true);
     setQuestions(true, true);
+    setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions();
     hooks.setMode('auto'); hooks.setMuted(false);
     sync();

@@ -62,7 +62,7 @@
   .edge.alarm { border-color: #ff3a20; color: #ffe6a0; animation: alarm 1s steps(1) infinite; }
   .plaque { position: absolute; padding: 1px 6px; background: #140d09; border: 2px solid; font-size: calc(10px * var(--k, 1)); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
-  .empty { position: absolute; left: 0; width: 57%; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
+  .empty { position: absolute; left: 0; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
   #card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(12px * var(--k, 1)); width: min(25em, 80%); padding: .67em 1em; background: #cdbb8f; color: #1a120c; border: 2px solid #6e3f17; border-radius: 2px; box-shadow: 0 4px 0 #0e0a08; display: flex; flex-direction: column; gap: .25em; } /* em: scales with --k like the labels */
   #card[hidden], #card .asks[hidden] { display: none; }
   #card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: #4e110c; }
@@ -253,6 +253,8 @@
         <fieldset><legend>Window</legend>
           <label><span>Always on top</span><input type="checkbox" name="onTop"></label>
           <label><span>Start at login</span><input type="checkbox" name="login"></label>
+          <label><span>Scale</span><select name="scale"><option value="auto">Auto</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select></label>
+          <p class="hint">Pixel size; the window decides how big the hall is.</p>
         </fieldset>
         <fieldset><legend>Hall</legend>
           <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full">Full light</option><option value="candles">Candles</option></select></label>

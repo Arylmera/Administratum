@@ -1,10 +1,10 @@
-import { SCENE, lightLevel, planLayout, hallOf } from './layout.js';
-import { drawStatic, drawScene, sceneBusy } from './scene.js';
+import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
+import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, perf, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, perf, view as scaleSetting, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
 
 const MODES = ['auto', 'full', 'candles'];
@@ -14,9 +14,10 @@ const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
 const overlay = document.getElementById('overlay');
 let scale = 2;
-let hall = hallOf(0); // the scene's logical height grows with the layout's bays
+let size = { ...SCENE }; // the scene's logical size, from the window and the Scale setting (fit)
+let hall = hallOf(0); // hallOf(bays, size): the scene's logical height also grows with the layout's bays
 function sizeCanvas() {
-  canvas.width = SCENE.w * RES;
+  canvas.width = hall.w * RES;
   canvas.height = hall.h * RES;
   g.setTransform(RES, 0, 0, RES, 0, 0);
   g.imageSmoothingEnabled = false;
@@ -25,11 +26,11 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const k = `${day ? 'day' : 'night'}:${hall.bays}`;
+  const at = `:${hall.w}x${hall.h}`, k = `${day ? 'day' : 'night'}${at}`;
   if (!bg[k]) {
-    for (const o in bg) if (!o.endsWith(`:${hall.bays}`)) delete bg[o]; // the hall changed size: drop the old sizes
+    for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
     const c = document.createElement('canvas');
-    c.width = SCENE.w * RES; c.height = hall.h * RES;
+    c.width = hall.w * RES; c.height = hall.h * RES;
     const cg = c.getContext('2d');
     cg.setTransform(RES, 0, 0, RES, 0, 0);
     cg.imageSmoothingEnabled = false;
@@ -69,37 +70,55 @@ function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.len
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.mode);
 
 const FRAME = 12; // CSS px kept around the scene for the brass frame
-// Minimum readable scale (CSS px per logical px): below it the scene keeps this scale and overflows the window;
-// the stage then shows a view of it that pans (drag, arrow keys, edge arrows; double-click recentres).
-const MIN_SCALE = 1.75;
+// The window decides the room, the Scale setting the pixel size: the scene is as many logical px as the window
+// holds at that scale (never below the minimum SCENE, never wider than MAX_W: an ultra-wide window gets bigger
+// pixels instead). Auto: the scale of the original look at the default 700x500 window (~1.93), kept while
+// the window resizes. Smaller than the minimum, or with bays below the window, the stage shows a view of the
+// scene that pans (drag, arrow keys, edge arrows; double-click recentres).
+let autoScale = 0;
 const stage = document.getElementById('stage'), world = document.getElementById('world');
 const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
 let viewW = 0, viewH = 0; // the stage, CSS px
-const pannable = () => viewW < SCENE.w * scale - 1 || viewH < hall.h * scale - 1;
-const clampPan = (x, y) => ({ x: Math.min(0, Math.max(viewW - SCENE.w * scale, x)), y: Math.min(0, Math.max(viewH - hall.h * scale, y)) });
+const pannable = () => viewW < hall.w * scale - 1 || viewH < hall.h * scale - 1;
+const clampPan = (x, y) => ({ x: Math.min(0, Math.max(viewW - hall.w * scale, x)), y: Math.min(0, Math.max(viewH - hall.h * scale, y)) });
 function setPan(x, y) {
   Object.assign(pan, clampPan(x, y));
   world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
 }
 const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
 const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
+let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
 function fit() {
   const head = document.querySelector('header').offsetHeight;
   const W = Math.max(1, innerWidth - 2 * FRAME), H = Math.max(1, innerHeight - head - 2 * FRAME);
-  // the logical point at the view's centre stays there (the whole scene's centre the first time)
-  const cx = viewW ? (viewW / 2 - pan.x) / scale : SCENE.w / 2, cy = viewH ? (viewH / 2 - pan.y) / scale : hall.h / 2;
-  // ponytail: fractional "contain" scale; pixelated rendering keeps it crisp enough at any size.
-  scale = Math.max(MIN_SCALE, Math.min(W / SCENE.w, H / hall.h));
-  viewW = Math.floor(Math.min(SCENE.w * scale, W)); viewH = Math.floor(Math.min(hall.h * scale, H));
+  if (viewW) viewCentre = { x: (viewW / 2 - pan.x) / scale, y: (viewH / 2 - pan.y) / scale };
+  // ponytail: fractional scale; pixelated rendering keeps it crisp enough at any size.
+  autoScale ||= Math.min((700 - 2 * FRAME) / SCENE.w, (500 - head - 2 * FRAME) / SCENE.h);
+  scale = scaleSetting.scale === 'auto' ? autoScale : +scaleSetting.scale;
+  if (W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
+  const next = { w: Math.min(MAX_W, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
+  if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
+  applySize(W, H);
+}
+// The stage and the scene's CSS size for the window's W x H (CSS px), the view kept on its logical centre.
+function applySize(W, H) {
+  const cx = viewCentre?.x ?? hall.w / 2, cy = viewCentre?.y ?? hall.h / 2;
+  viewW = Math.floor(Math.min(hall.w * scale, W)); viewH = Math.floor(Math.min(hall.h * scale, H));
   stage.style.width = `${viewW}px`; stage.style.height = `${viewH}px`;
-  for (const el of [canvas, overlay]) { el.style.width = `${SCENE.w * scale}px`; el.style.height = `${hall.h * scale}px`; }
+  for (const el of [canvas, overlay]) { el.style.width = `${hall.w * scale}px`; el.style.height = `${hall.h * scale}px`; }
   pan.to = null;
   setPan(viewW / 2 - cx * scale, viewH / 2 - cy * scale);
   const root = document.documentElement.style;
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
-addEventListener('resize', fit);
+let resizing;
+addEventListener('resize', () => { clearTimeout(resizing); resizing = setTimeout(fit, 150); });
+// A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
+function relayout() {
+  hall = hallOf(layout.bays ?? 0, size);
+  onRoster(pending ?? roster);
+}
 // Each animation frame (ms since the last): glide to a target, else coast on the drag's inertia.
 function stepPan(ms) {
   if (pan.to) {
@@ -137,7 +156,7 @@ const endDrag = () => {
 };
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { endDrag(); dragged = false; });
-canvas.ondblclick = () => { if (pannable()) centreOn(SCENE.w / 2, hall.h / 2); };
+canvas.ondblclick = () => { if (pannable()) centreOn(hall.w / 2, hall.h / 2); };
 addEventListener('keydown', e => {
   const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
   if (!d || !pannable() || e.target.closest?.('input, select, textarea, #chron, #prefs')) return;
@@ -200,11 +219,11 @@ function frame(now) {
   const dt = Math.min(0.25, (now - drawn) / 1000);
   drawn = now;
   cast.update(dt);
-  if (canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went
-  g.drawImage(background(level.beams), 0, 0, SCENE.w, hall.h);
+  if (canvas.width !== hall.w * RES || canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize
+  g.drawImage(background(level.beams), 0, 0, hall.w, hall.h);
   const view = glide(now);
   view.hall = hall;
-  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.h);
+  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
   syncHover();
@@ -213,8 +232,6 @@ function frame(now) {
 
 renderModes();
 setInterval(() => paused() || renderModes(), 60_000);
-fit();
-requestAnimationFrame(frame);
 
 // Context window by model family, in tokens (settings panel). Fill = context.tokens / window.
 const windowOf = model => 1000 * (/haiku/i.test(model ?? '') ? settings.ctxHaiku : settings.ctxOther);
@@ -244,12 +261,12 @@ function onRoster(next) {
   if (paused()) { pending = next; return; } // ponytail: the newest roster wins; wake() applies it
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
-  const napping = cast.napping(roster);
+  const napping = cast.napping(roster, hallOf(0, size).refectory);
   const depts = deptOrder
     .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
-  layout = planLayout(layout, depts, Date.now(), GRACE);
-  hall = hallOf(layout.bays);
+  layout = planLayout(layout, depts, Date.now(), GRACE, size);
+  hall = hallOf(layout.bays, size);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
   const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;
@@ -305,13 +322,14 @@ function consolesOf(dept) {
 const plaques = new Map();
 function renderPlaques(blocks) {
   const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
-  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120, hall.y1 - 10, '#8a7a5c']);
-  if (!roster.length) want.set('empty', ['empty', 'No scribes on duty', 0, 120]);
+  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120 + hall.dx, hall.y1 - 10, '#8a7a5c']);
+  if (!roster.length) want.set('empty', ['empty', 'No scribes on duty', 0, 120 + (hall.h - SCENE.h) / 2]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
   for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
     let el = plaques.get(k);
     if (!el) { el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el); }
-    const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '' };
+    const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
+      width: cls === 'empty' ? `${hall.sw * scale}px` : '' }; // the empty hall's notice, centred on the scriptorium
     if (el.textContent !== text) el.textContent = text;
     for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
   }
@@ -580,7 +598,9 @@ renderMute();
 
 const T = window.__TAURI__;
 let refreshTithe = null;
-initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); } });
+initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit });
+fit();
+requestAnimationFrame(frame);
 if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());
