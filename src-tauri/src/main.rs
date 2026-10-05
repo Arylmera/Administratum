@@ -1,13 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
 mod demo;
+mod poller;
 mod registry;
 mod settings;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
 use std::{
-    collections::HashMap,
     path::PathBuf,
     process::Command,
     sync::{
@@ -17,7 +17,6 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime},
 };
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -207,64 +206,15 @@ fn main() {
 }
 
 fn poll_loop(app: AppHandle, demo: bool) {
-    let dir = claude_dir();
-    let mut sys = System::new();
+    let mut poller = poller::Poller::new(&claude_dir());
     let mut tracker = Tracker::default();
-    let mut completions = registry::Completions::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
-    let projects = dir.join("projects");
     let mut first = true;
     let mut last_tick = Instant::now();
     let mut last_t = 0;
-    // Orca terminal handle per pid, cached: environ() is only ever refreshed for a pid we haven't
-    // seen yet (never for the whole process list every tick). Evicted when a pid disappears.
-    let mut orca_cache: HashMap<u32, Option<String>> = HashMap::new();
     loop {
-        let roster = if demo {
-            demo::roster(start.elapsed().as_secs())
-        } else {
-            // We only need liveness + name, not the CPU/mem/disk/exe sampling `refresh_processes` does by default.
-            sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
-            let alive_pids: std::collections::HashSet<u32> = sys
-                .processes()
-                .iter()
-                .filter(|(_, p)| p.name().to_string_lossy().eq_ignore_ascii_case("claude.exe"))
-                .map(|(pid, _)| pid.as_u32())
-                .collect();
-            let alive = |pid: u32| alive_pids.contains(&pid);
-            orca_cache.retain(|&pid, _| alive(pid));
-            let orca_handle = |pid: u32| -> Option<String> {
-                if let Some(cached) = orca_cache.get(&pid) {
-                    return cached.clone();
-                }
-                sys.refresh_processes_specifics(
-                    ProcessesToUpdate::Some(&[Pid::from_u32(pid)]),
-                    true,
-                    ProcessRefreshKind::nothing().with_environ(UpdateKind::Always),
-                );
-                let handle = sys.process(Pid::from_u32(pid)).and_then(|p| {
-                    p.environ().iter().find_map(|e| e.to_str()?.strip_prefix("ORCA_TERMINAL_HANDLE=").map(str::to_string))
-                });
-                orca_cache.insert(pid, handle.clone());
-                handle
-            };
-            let scanned = registry::scan(
-                &dir.join("sessions"),
-                alive,
-                |id, cwd, tail| registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail),
-                |id, cwd| {
-                    let parent = dir.join("projects").join(registry::slug(cwd)).join(format!("{id}.jsonl"));
-                    let completed = completions.scan(id, &parent);
-                    registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now(), completed)
-                },
-                orca_handle,
-            );
-            let mut roster = registry::merge(&prev, scanned);
-            let now_ms = now_ms();
-            registry::track_compaction(&prev, &mut roster, now_ms);
-            roster
-        };
+        let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
         for s in tracker.new_petitions(&roster) {
             let _ = app
                 .notification()
@@ -302,7 +252,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 last_t = t;
                 ev
             } else {
-                c.read_transcripts(&projects, &roster, now)
+                c.read_transcripts(&roster, &poller.files, now)
             };
             if !first {
                 events.extend(chronicle::lifecycle(&prev, &roster, now));

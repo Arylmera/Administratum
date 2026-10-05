@@ -1,6 +1,6 @@
 //! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code
 //! transcripts. Read-only on `~/.claude`; everything it writes lives in the app data dir.
-use crate::registry::{self, Session};
+use crate::registry::{self, FileStat, Session};
 use chrono::{Local, NaiveDate, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -395,9 +395,8 @@ pub struct Chunk {
 /// Whole lines appended to `path` since `stored` (a partial last line waits for the next poll).
 /// No stored offset, or a file that shrank: read from 0, today only. A file first seen and not
 /// touched since before `today_start` has nothing of today: jump to its end without reading.
-pub fn read_new(path: &Path, stored: Option<u64>, today_start: i64) -> Option<Chunk> {
-    let meta = fs::metadata(path).ok()?;
-    let len = meta.len();
+pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<Chunk> {
+    let len = f.len;
     let (start, today_only) = match stored {
         Some(o) if o <= len => (o, false),
         _ => (0, true),
@@ -405,24 +404,15 @@ pub fn read_new(path: &Path, stored: Option<u64>, today_start: i64) -> Option<Ch
     if start == len {
         return None;
     }
-    let mtime = meta.modified().ok().and_then(|m| m.duration_since(UNIX_EPOCH).ok()).map_or(i64::MAX, |d| d.as_millis() as i64);
-    if stored.is_none() && mtime < today_start {
+    if stored.is_none() && f.mtime_ms < today_start {
         return Some(Chunk { text: String::new(), offset: len, today_only });
     }
-    let mut f = fs::File::open(path).ok()?;
+    let mut f = fs::File::open(&f.path).ok()?;
     f.seek(SeekFrom::Start(start)).ok()?;
     let mut buf = Vec::new();
     f.take(len - start).read_to_end(&mut buf).ok()?;
     let cut = buf.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
     Some(Chunk { text: String::from_utf8_lossy(&buf[..cut]).into_owned(), offset: start + cut as u64, today_only })
-}
-
-fn helper_kind(transcript: &Path) -> String {
-    fs::read_to_string(transcript.with_extension("meta.json"))
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| v["agentType"].as_str().map(str::to_string))
-        .unwrap_or_else(|| "agent".into())
 }
 
 // ---- persistence ------------------------------------------------------------------------------
@@ -489,31 +479,23 @@ impl Chronicle {
         &self.dir
     }
 
-    /// New events from every live session transcript and its subagent transcripts; tokens go to the Tithe.
-    pub fn read_transcripts(&mut self, projects: &Path, roster: &[Session], now_ms: i64) -> Vec<Event> {
+    /// New events from every live session transcript and its subagent transcripts (`files`: per
+    /// session id, the poller's listing, subagents flagged true); tokens go to the Tithe.
+    pub fn read_transcripts(&mut self, roster: &[Session], files: &HashMap<String, Vec<(FileStat, bool)>>, now_ms: i64) -> Vec<Event> {
         let today_start = midnight_ms(now_ms);
         let mut events = vec![];
         let mut seen = HashSet::new();
         for s in roster {
-            // ponytail: direct slug path only (no all-projects scan each second); a cwd changed mid-session is missed.
-            let base = projects.join(registry::slug(&s.cwd));
-            let mut files = vec![(base.join(format!("{}.jsonl", s.id)), false)];
-            for e in fs::read_dir(base.join(&s.id).join("subagents")).into_iter().flatten().flatten() {
-                let p = e.path();
-                let name = e.file_name().to_string_lossy().into_owned();
-                if name.starts_with("agent-") && name.ends_with(".jsonl") {
-                    files.push((p, true));
-                }
-            }
-            for (path, sub) in files {
+            for (f, sub) in files.get(&s.id).into_iter().flatten() {
+                let path = &f.path;
                 seen.insert(path.clone());
                 let key = path.to_string_lossy().into_owned();
-                let Some(chunk) = read_new(&path, self.offsets.get(&key).copied(), today_start) else { continue };
+                let Some(chunk) = read_new(f, self.offsets.get(&key).copied(), today_start) else { continue };
                 self.offsets.insert(key, chunk.offset);
                 if chunk.text.is_empty() {
                     continue;
                 }
-                let cur = self.cursors.entry(path.clone()).or_insert_with(|| Cursor { helper: sub.then(|| helper_kind(&path)), ..Default::default() });
+                let cur = self.cursors.entry(path.clone()).or_insert_with(|| Cursor { helper: sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into())), ..Default::default() });
                 let helper = cur.helper.clone();
                 let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
                 let (ev, usage, turns) = extract(cur, &chunk.text, if chunk.today_only { today_start } else { i64::MIN }, &src, now_ms);
@@ -781,17 +763,17 @@ mod tests {
         let d = temp_dir("read-new");
         let p = d.join("a.jsonl");
         fs::write(&p, "one\ntwo\npart").unwrap();
-        let c = read_new(&p, None, 0).unwrap();
+        let st = || registry::stat(&p).unwrap();
+        let c = read_new(&st(), None, 0).unwrap();
         assert_eq!((c.text.as_str(), c.offset, c.today_only), ("one\ntwo\n", 8, true));
-        assert!(read_new(&p, Some(8), 0).unwrap().text.is_empty(), "partial line waits");
+        assert!(read_new(&st(), Some(8), 0).unwrap().text.is_empty(), "partial line waits");
         fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(b"ial\n").unwrap();
-        let c = read_new(&p, Some(8), 0).unwrap();
+        let c = read_new(&st(), Some(8), 0).unwrap();
         assert_eq!((c.text.as_str(), c.offset, c.today_only), ("partial\n", 16, false));
-        assert!(read_new(&p, Some(16), 0).is_none(), "nothing new");
+        assert!(read_new(&st(), Some(16), 0).is_none(), "nothing new");
         fs::write(&p, "new\n").unwrap();
-        let c = read_new(&p, Some(16), 0).unwrap();
+        let c = read_new(&st(), Some(16), 0).unwrap();
         assert_eq!((c.text.as_str(), c.offset, c.today_only), ("new\n", 4, true), "shrank: from 0, today only");
-        assert!(read_new(&d.join("missing.jsonl"), None, 0).is_none());
     }
 
     #[test]
@@ -800,7 +782,7 @@ mod tests {
         let p = d.join("old.jsonl");
         fs::write(&p, "old\n").unwrap();
         fs::OpenOptions::new().write(true).open(&p).unwrap().set_modified(SystemTime::now() - Duration::from_secs(3 * 86_400)).unwrap();
-        let c = read_new(&p, None, midnight_ms(now())).unwrap();
+        let c = read_new(&registry::stat(&p).unwrap(), None, midnight_ms(now())).unwrap();
         assert_eq!((c.text.as_str(), c.offset), ("", 4));
     }
 
@@ -892,13 +874,18 @@ mod tests {
         fs::write(subs.join("agent-x1.meta.json"), r#"{"agentType":"Explore"}"#).unwrap();
         let mut c = Chronicle::open(root.join("chronicon"), t, true);
         let s = Session { cwd: cwd.into(), dept: "Terra".into(), name: "terra-77".into(), ..crate::registry::tests_session("s1") };
-        let ev = c.read_transcripts(&projects, &[s.clone()], t);
+        let files = |c: &mut Chronicle| {
+            let mut v = vec![(registry::stat(&base.join("s1.jsonl")).unwrap(), false)];
+            v.extend(registry::list_subagents(&subs).into_iter().map(|f| (f, true)));
+            c.read_transcripts(&[s.clone()], &HashMap::from([("s1".to_string(), v)]), t)
+        };
+        let ev = files(&mut c);
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
         let tithe = c.tithe_of(&day_of(t));
         assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
-        assert!(c.read_transcripts(&projects, &[s.clone()], t).is_empty(), "nothing new");
+        assert!(files(&mut c).is_empty(), "nothing new");
         for e in &ev {
             c.record(e);
         }
