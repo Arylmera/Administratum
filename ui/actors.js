@@ -1,6 +1,6 @@
 import { SCRIBE, ADEPT, MAPS, RANK, rankOf, blit } from './sprites.js';
 import { route, COG_SPOTS, RECAFF_SPOT, REFECTORY_SPOTS, hallOf } from './layout.js';
-import { settings } from './settings.js';
+import { settings, questions } from './settings.js';
 
 const SPEED = 80; // logical px per second
 // Thresholds come from the settings panel (settings.js), read live:
@@ -9,6 +9,9 @@ const NAP_MS = () => settings.napMin * 60_000; // idle this long (no background 
 const RECAFF_S = 2; // seconds at the recaff dispenser on the way to a bench
 const STALE_MS = () => settings.staleMin * 60_000; // a petition waiting longer escalates (alarm beacon, servo-skull, header alarm); backend toasts at the same mark (set_stale_minutes)
 export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now() - s.sinceMs > STALE_MS();
+// A turn that ended on a question (backend `question`, idle only) queues like a petition, behind the real ones.
+export const isQuestion = s => questions.on && !!s.question && s.status !== 'waiting';
+export const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
@@ -44,7 +47,7 @@ export class Cast {
       upsert(id, { owner: s.id, h });
     }
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
-    const waiting = roster.filter(s => s.status === 'waiting').sort((p, q) => p.sinceMs - q.sinceMs).map(s => s.id);
+    const waiting = roster.filter(isPetitioner).sort((p, q) => isQuestion(p) - isQuestion(q) || p.sinceMs - q.sinceMs).map(s => s.id);
     // Hysteresis: Bash calls flip a session busy<->shell every few seconds; don't walk back and forth for each one.
     const now = Date.now();
     for (const s of roster) { const a = this.actors.get(s.id); if (s.status === 'shell') a.lastShell = now; }
@@ -61,7 +64,7 @@ export class Cast {
   // Refectory benches, decided before the layout (a scribe on a bench releases its desk, planLayout): a sleeper keeps
   // its bench until it wakes; more sleepers than benches doze at their desk. Returns the ids on a bench.
   napping(roster, now = Date.now()) {
-    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
+    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && !isQuestion(s) && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
     for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
     for (const s of sleepy) {
       if (this.naps.has(s.id)) continue;
@@ -108,7 +111,7 @@ export class Cast {
   destination(a, seats, waiting, shell) {
     const { entry: ENTRY, queue: QUEUE_SLOTS, aisleY: AISLE_Y } = this.hall;
     if (a.leaving) return { ...ENTRY, pose: 'gone' };
-    if (a.s.status === 'waiting') {
+    if (isPetitioner(a.s)) {
       const queueIdx = Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1);
       a.burn = null; // a petition outranks the ritual: the bundle is dropped
       return { ...QUEUE_SLOTS[queueIdx], pose: 'queue', queueIdx };
@@ -176,7 +179,7 @@ export function drawActor(g, a) {
   if (a.pose === 'burn') { blit(g, SCRIBE.down[0], fx, fy, over); return; } // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
     blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
-    if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
+    if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + 14, fy + 8);
     return;
   }
   blit(g, SCRIBE.up[0], fx, fy, over);
@@ -185,7 +188,7 @@ export function drawActor(g, a) {
   blit(g, MAPS.ARM, fx + 14, fy + 2 - lift);
   blit(g, MAPS.ARM_L, fx, fy + 2 - lift); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
   if (done) heldScroll(g, fx + 2, fy - 3 - lift); // task done: the finished scroll held up in both hands
-  if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
+  if (a.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + 14, fy + 8);
   if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
 }
 

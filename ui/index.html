@@ -17,6 +17,7 @@
   header { flex: none; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 12px; background: var(--bar); border-bottom: 2px solid #4e110c; }
   header h1 { margin: 0; font: 400 22px/1 'Pirata One', serif; }
   .tier { display: flex; flex-direction: column; font-size: 10px; color: var(--green); }
+  .tier { min-width: 0; } .tier span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tier .motto { color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
   .grow { flex: 1; align-self: stretch; }
   #modes { display: flex; border: 1px solid #3a2a1e; border-radius: 3px; overflow: hidden; }
@@ -27,6 +28,7 @@
   /* Petition glow: a fixed shadow on ::after whose opacity pulses (compositor-only, no repaint per frame). */
   .count.on::after, .lbl::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 0 12px 2px rgba(190,40,28,.8); opacity: 0; pointer-events: none; animation: pulse 1.8s ease-in-out infinite; }
   .count.alarm::after { display: none; }
+  .count.ask { border-color: #a8946a; color: #f3e6c4; } /* questions only: parchment, no glow */
   .count.alarm { background: #8e1c16; border-color: #ff3a20; color: #ffe6a0; animation: alarm 1s steps(1) infinite; }
   .icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: var(--copper); cursor: pointer; padding: 0; }
   .icon:hover, #modes button:hover { filter: brightness(1.3); }
@@ -40,6 +42,11 @@
   .lbl.stale { border-color: #ff3a20; background: #4e110c; }
   .lbl.sel { border-color: var(--green); background: #3a1410; }
   .lbl .sub { color: var(--pink); }
+  /* A question at the end of a turn: parchment, not the red petition. */
+  .lbl.question { background: #d6c79f; border-color: #6e3f17; color: #1a120c; }
+  .lbl.question::after { display: none; }
+  .lbl.question .sub { color: #5a3c16; }
+  .lbl.question.sel { border-color: #2e6b47; background: #e3d4ac; }
   .lbl .who { display: flex; flex-direction: column; align-items: center; padding: 0; background: none; border: none; color: inherit; font: inherit; line-height: inherit; cursor: pointer; }
   .lbl .ans { display: flex; flex-direction: column; gap: 1px; }
   .lbl .ans button { padding: 0 2px; background: #2a0d0a; border: 1px solid currentColor; border-radius: 2px; color: var(--green); font: inherit; font-size: .9em; line-height: 1; cursor: pointer; }
@@ -57,7 +64,8 @@
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; width: 57%; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
   #card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(12px * var(--k, 1)); width: min(25em, 80%); padding: .67em 1em; background: #cdbb8f; color: #1a120c; border: 2px solid #6e3f17; border-radius: 2px; box-shadow: 0 4px 0 #0e0a08; display: flex; flex-direction: column; gap: .25em; } /* em: scales with --k like the labels */
-  #card[hidden] { display: none; }
+  #card[hidden], #card .asks[hidden] { display: none; }
+  #card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: #4e110c; }
   #card .name { font-size: 1.17em; font-weight: 600; }
   #card .meta, #card .ctx, #card .path { color: #5a3c16; }
   #card .links, #card .answer { display: flex; gap: .5em; margin-top: .25em; }
@@ -216,6 +224,7 @@
     <div class="meta"></div>
     <div class="ctx"></div>
     <div class="task"></div>
+    <div class="asks" hidden></div>
     <div class="path"></div>
     <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
     <div class="err" hidden></div>
@@ -242,6 +251,10 @@
         <fieldset><legend>Hall</legend>
           <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full">Full light</option><option value="candles">Candles</option></select></label>
           <label><span>Petition chime</span><input type="checkbox" name="chime"></label>
+        </fieldset>
+        <fieldset><legend>Petitions</legend>
+          <label><span>A question at the end of a turn counts as a petition</span><input type="checkbox" name="questions"></label>
+          <label><span>Toast for questions</span><input type="checkbox" name="questionToast"></label>
         </fieldset>
         <fieldset><legend>Thresholds</legend>
           <label><span>Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>

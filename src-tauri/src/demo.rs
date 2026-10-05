@@ -30,6 +30,7 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         web: Some(format!("https://claude.ai/code/session_demo_{name}")),
         background: false,
         compacted_at: None,
+        question: None,
     }
 }
 
@@ -52,6 +53,11 @@ pub fn roster(t: u64) -> Vec<Session> {
     ];
     // ...then compacts at each cycle wrap: back to 50k, with a fresh compaction stamp.
     v[0].compacted_at = Some(epoch);
+    // terra-27 ends its turn on a question for the second half of the cycle.
+    if phase >= 30 {
+        v[1].since_ms = epoch + 30_000;
+        v[1].question = Some("Shall I rename the playlists to match the new rooms, or keep the old names as aliases?".into());
+    }
     if phase >= 45 {
         v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000, HAIKU));
     }

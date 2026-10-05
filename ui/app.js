@@ -2,7 +2,7 @@ import { SCENE, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
-import { Cast, isStale, LAMP_S, FRESH_MS } from './actors.js';
+import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
@@ -252,10 +252,12 @@ function onRoster(next) {
   hall = hallOf(layout.bays);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
-  const n = roster.filter(s => s.status === 'waiting').length;
+  const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;
   const count = document.getElementById('count');
-  count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
+  const qs = `${nq} question${nq === 1 ? '' : 's'}`;
+  count.textContent = n || !nq ? `${n} petition${n === 1 ? '' : 's'}${nq ? ` · ${qs}` : ''}` : qs;
   count.classList.toggle('on', n > 0);
+  count.classList.toggle('ask', !n && nq > 0);
   count.classList.toggle('alarm', roster.some(isStale));
   renderCard();
 }
@@ -326,6 +328,7 @@ function renderCard() {
     card.querySelector('.ctx').textContent = contextLine(a.h.context);
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
+    renderAsks(card, null);
     renderAnswer(card, null);
     renderLinks(card, owner);
     return;
@@ -338,8 +341,19 @@ function renderCard() {
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
   card.querySelector('.task').textContent = s.task;
   card.querySelector('.path').textContent = s.cwd;
+  renderAsks(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
+}
+
+// A question petition: what the scribe asks, in full (the label only says "question").
+function renderAsks(card, s) {
+  const el = card.querySelector('.asks'), q = s && isQuestion(s) ? s.question : '';
+  el.hidden = !q;
+  if (el.dataset.q === q) return;
+  el.dataset.q = q;
+  const b = document.createElement('b'); b.textContent = 'Asks: ';
+  el.replaceChildren(b, q);
 }
 
 // Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
@@ -387,7 +401,7 @@ function select(id) {
 // clicking/hovering the sprite itself.
 const labels = new Map();
 function syncLabels() {
-  const petition = a => !a.h && !a.leaving && a.pose === 'queue' && a.s.status === 'waiting';
+  const petition = a => !a.h && !a.leaving && a.pose === 'queue' && (a.s.status === 'waiting' || isQuestion(a.s));
   for (const [id, el] of labels) if (!petition(cast.actors.get(id) ?? {})) { el.remove(); labels.delete(id); }
   for (const a of cast.actors.values()) {
     if (!petition(a)) continue;
@@ -398,10 +412,11 @@ function syncLabels() {
       overlay.appendChild(el);
       labels.set(a.id, el);
     }
-    const want = a.s.waitingFor ?? 'input needed';
+    const asks = isQuestion(a.s), want = asks ? 'question' : a.s.waitingFor ?? 'input needed';
     const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s), isStale(a.s)].join('|');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
+      el.classList.toggle('question', asks);
       el.classList.toggle('sel', sel === a.id);
       el.classList.toggle('stale', isStale(a.s));
       const who = document.createElement('button');
@@ -544,6 +559,7 @@ initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, set
 if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());
+  T.event.listen('question', () => chime([880, 1175]));
   T.event.listen('petition-stale', () => chime([990, 660, 990, 660]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
   T.event.listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done') chime([1320, 1760]); });

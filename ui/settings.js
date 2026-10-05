@@ -56,6 +56,14 @@ const setPerf = (idleFps, pauseHidden) => {
   store.set('adm.idleFps', String(perf.idleFps)); store.set('adm.pauseHidden', pauseHidden ? '1' : '0');
 };
 
+// Question petitions (adm.questions, adm.questionToast): a turn ending on a question queues like a petition;
+// read live by actors.js and app.js, pushed to the backend (set_question_prefs) for its toast and chime.
+export const questions = { on: store.get('adm.questions', '1') !== '0', toast: store.get('adm.questionToast', '1') !== '0' };
+const setQuestions = (on, toast) => {
+  Object.assign(questions, { on, toast });
+  store.set('adm.questions', on ? '1' : '0'); store.set('adm.questionToast', toast ? '1' : '0');
+};
+
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
@@ -70,8 +78,9 @@ export function initSettings(T, hooks) {
   const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
   const save = () => store.set('adm.settings', JSON.stringify(settings));
   const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
+  const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
   applyTop(); // tauri.conf.json starts on top; restore the saved choice
-  pushStale();
+  pushStale(); pushQuestions();
 
   sync = () => {
     field('onTop').checked = settings.onTop;
@@ -81,6 +90,9 @@ export function initSettings(T, hooks) {
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
     field('idleFps').value = String(perf.idleFps);
     field('pauseHidden').checked = perf.pauseHidden;
+    field('questions').checked = questions.on;
+    field('questionToast').checked = questions.toast;
+    field('questionToast').disabled = !questions.on;
     field('login').checked = !!login;
     field('login').disabled = login === null;
   };
@@ -100,6 +112,7 @@ export function initSettings(T, hooks) {
     else if (k === 'mode') hooks.setMode(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
+    else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
@@ -110,7 +123,8 @@ export function initSettings(T, hooks) {
     Object.assign(settings, DEFAULTS);
     setPlace(NaN, NaN);
     setPerf(12, true);
-    save(); applyTop(); pushStale();
+    setQuestions(true, true);
+    save(); applyTop(); pushStale(); pushQuestions();
     hooks.setMode('auto'); hooks.setMuted(false);
     sync();
   };
