@@ -271,6 +271,8 @@ assert.equal(phaseOf(21), 'night');
 assert.equal(lightLevel('full', 23).phase, 'day');
 assert.equal(lightLevel('candles', 12).phase, 'night');
 assert.equal(lightLevel('auto', 12).beams, true);
+assert.equal(lightLevel('auto', 12, 'night').phase, 'night'); // the sun overrides fixed hours
+assert.equal(lightLevel('full', 2, 'night').phase, 'day');
 assert.ok(lightLevel('full', 12).dark > 0, 'Tier II keeps a darkness floor in full light');
 
 // cogitator stations: on the floor in front of the bank (its desk ends at y 51), above the department blocks, reachable

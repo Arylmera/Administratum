@@ -187,8 +187,9 @@ export function phaseOf(hour) {
   return 'night';
 }
 
-export function lightLevel(mode, hour) {
-  const phase = mode === 'full' ? 'day' : mode === 'candles' ? 'night' : phaseOf(hour);
+// auto: the Auto phase when the sun decides it (sun.js sunPhase); fixed hours otherwise.
+export function lightLevel(mode, hour, auto = phaseOf(hour)) {
+  const phase = mode === 'full' ? 'day' : mode === 'candles' ? 'night' : auto;
   return {
     phase,
     dark: { day: 0.18, dusk: 0.5, night: 0.78 }[phase],
