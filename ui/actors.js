@@ -1,7 +1,7 @@
 import { SCRIBE, MAPS, blit } from './sprites.js';
 import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY } from './layout.js';
 
-const SPEED = 40; // logical px per second
+const SPEED = 80; // logical px per second
 
 export class Cast {
   constructor() { this.actors = new Map(); }
@@ -61,7 +61,7 @@ export class Cast {
     const over = { y: a.sash };
     const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
     if (a.pose === 'walk') {
-      blit(g, SCRIBE[a.dir][Math.floor(a.t * 8) % 3], fx, fy, over);
+      blit(g, SCRIBE[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
       if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
       return;
     }
