@@ -131,17 +131,17 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
   assert.equal(C.blocks[0].w, 6 * 31 + 2);
   assert.equal(C.blocks[0].h, 64 - 8);
   assert.deepEqual(C.seats.get('T-0'), { x: C.desks[0].x + 11, y: C.desks[0].y + 30 });
-  // hysteresis: back to 2 x 4 (fits full desks) does not flip back at once, nor while one more desk per department wouldn't fit
+  // hysteresis: back to 2 x 4 (fits full desks) does not flip back at once, nor while one more department wouldn't fit
   P = planLayout(P, D(4), 2000);
   assert.ok(P.compact, 'no flip right after');
   P = planLayout(P, D(4), 2000 + 10 * SHRINK_MS);
-  assert.ok(P.compact, 'one desk more per department would overflow full desks: stay compact');
-  P = planLayout(P, D(3), 3_000_000);
-  P = planLayout(P, D(3), 3_000_000 + DESK_GRACE_MS); // the freed desks go
+  assert.ok(P.compact, 'one more department would overflow full desks: stay compact');
+  P = planLayout(P, D(2), 3_000_000);
+  P = planLayout(P, D(2), 3_000_000 + DESK_GRACE_MS); // the freed desks go
   assert.ok(P.compact);
-  P = planLayout(P, D(3), 3_000_000 + DESK_GRACE_MS + SHRINK_MS - 1);
+  P = planLayout(P, D(2), 3_000_000 + DESK_GRACE_MS + SHRINK_MS - 1);
   assert.ok(P.compact, 'roomy, but not for SHRINK_MS yet');
-  P = planLayout(P, D(3), 3_000_000 + DESK_GRACE_MS + SHRINK_MS);
+  P = planLayout(P, D(2), 3_000_000 + DESK_GRACE_MS + SHRINK_MS);
   assert.ok(!P.compact && P.level === 0, 'back to full desks');
   // a short dip in the middle restarts the wait
   P = planLayout(null, D(5), 0);
@@ -183,13 +183,13 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
     });
   }
   assert.equal(route(H1.entry, seats[0], P.blocks, 1)[0].x, H1.entry.x, 'newcomers walk straight up out of the gate');
-  // the bay goes again once compact without it holds a desk more per department, after SHRINK_MS, one level at a time
+  // the bay goes again once compact without it holds one more department, after SHRINK_MS, one level at a time
   P = planLayout(P, E(2), 2000, { desk: 0, dept: 0 });
   assert.equal(P.bays, 1, 'no shrink right after');
   P = planLayout(P, E(2), 2000 + SHRINK_MS - 1, { desk: 0, dept: 0 });
   assert.equal(P.bays, 1);
   P = planLayout(P, E(2), 2000 + SHRINK_MS, { desk: 0, dept: 0 });
-  assert.ok(P.bays === 0 && P.compact, 'bay gone, still compact (two rows of six would not fit full desks)');
+  assert.ok(P.bays === 0 && P.compact, 'bay gone, still compact (five-desk departments take two rows of full desks)');
   assert.ok(P.blocks.every(b => b.y + b.h <= HALL.y1));
   P = planLayout(P, E(2), 2000 + 9 * SHRINK_MS, { desk: 0, dept: 0 });
   assert.ok(P.compact);

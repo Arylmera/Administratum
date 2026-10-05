@@ -96,7 +96,7 @@ const MAX_LEVEL = 1 + MAX_BAYS;
 // layoutDepartments (ids, helpers, without the scribes dozing in the refectorium: they release their desk) in arrival order; now: ms. Returns layoutDepartments() plus `plan`, the
 // state to pass back next tick. grace: { desk, dept, shrink } ms overrides.
 // Space: past capacity the hall goes compact, then grows bays (result `level`, `compact`, `bays`); it steps back
-// one level at a time once the level below would still fit with a desk more in every department, for SHRINK_MS.
+// one level at a time once the level below would still fit with one more department, for SHRINK_MS.
 // The "+N in the stacks" overflow only remains past MAX_BAYS.
 export function planLayout(prev, depts, now, grace = {}) {
   const deskG = grace.desk ?? DESK_GRACE_MS, deptG = grace.dept ?? DEPT_GRACE_MS, shrinkG = grace.shrink ?? SHRINK_MS;
@@ -132,8 +132,8 @@ export function planLayout(prev, depts, now, grace = {}) {
   }
   if (L.overflow) shrinkSince = null;
   while (L.overflow && level < MAX_LEVEL) L = layoutDepartments(plan, levelOpt(++level)); // still full: compact, then grow
-  if (level > 0 && !L.overflow) { // hysteresis: the level below must hold a desk more per department, for a while
-    const roomy = !layoutDepartments(plan.map(p => ({ ...p, desks: p.desks.concat({ key: '+', id: null }) })), levelOpt(level - 1)).overflow;
+  if (level > 0 && !L.overflow) { // hysteresis: the level below must still hold a newcomer's department, for a while
+    const roomy = !layoutDepartments(plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }), levelOpt(level - 1)).overflow;
     if (!roomy) shrinkSince = null;
     else if (now - (shrinkSince ??= now) >= shrinkG) { L = layoutDepartments(plan, levelOpt(--level)); shrinkSince = null; }
   }
