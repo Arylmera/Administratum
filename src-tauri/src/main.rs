@@ -9,7 +9,10 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     process::Command,
-    sync::Mutex,
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Mutex,
+    },
     thread,
     time::{Duration, Instant, SystemTime},
 };
@@ -133,6 +136,29 @@ fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
     Ok(chron.lock().map_err(|_| "chronicle unavailable")?.days(now_ms()))
 }
 
+/// Stale-petition mark in ms, set from the settings panel (default `registry::STALE_MS`).
+static STALE_MS: AtomicI64 = AtomicI64::new(registry::STALE_MS);
+
+#[tauri::command]
+fn set_stale_minutes(minutes: u32) {
+    STALE_MS.store(i64::from(minutes.clamp(1, 120)) * 60_000, Ordering::Relaxed);
+}
+
+/// "Start at login": `enable` = None reads it. Keeps the tray check item in step.
+#[tauri::command]
+fn start_at_login(enable: Option<bool>, app: AppHandle, login: State<CheckMenuItem<tauri::Wry>>) -> Result<bool, String> {
+    let al = app.autolaunch();
+    match enable {
+        Some(true) => al.enable(),
+        Some(false) => al.disable(),
+        None => Ok(()),
+    }
+    .map_err(|e| e.to_string())?;
+    let on = al.is_enabled().map_err(|e| e.to_string())?;
+    let _ = login.set_checked(on);
+    Ok(on)
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -143,7 +169,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, answer_petition, chronicle_day, tithe_day, chronicle_days])
+        .invoke_handler(tauri::generate_handler![open_session, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, start_at_login])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
@@ -228,7 +254,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let _ = app.emit("petition", &s);
         }
         let now_ms = now_ms();
-        for s in tracker.stale_petitions(&roster, now_ms) {
+        // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
+        let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
+        for s in tracker.stale_petitions(&roster, now_ms + shift) {
             let _ = app
                 .notification()
                 .builder()
@@ -296,6 +324,7 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let login = CheckMenuItem::with_id(app, "login", "Start at login", true, login_on, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &mute, &light, &login, &quit])?;
+    app.manage(login);
     TrayIconBuilder::new()
         .icon(app.default_window_icon().expect("bundle icon").clone())
         .tooltip("Administratum")
@@ -311,6 +340,9 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
             "login" => {
                 let al = app.autolaunch();
                 let _ = if al.is_enabled().unwrap_or(false) { al.disable() } else { al.enable() };
+                let on = al.is_enabled().unwrap_or(false);
+                let _ = app.state::<CheckMenuItem<tauri::Wry>>().set_checked(on);
+                let _ = app.emit("autostart", on);
             }
             "quit" => app.exit(0),
             _ => {}

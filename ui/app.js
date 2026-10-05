@@ -4,12 +4,9 @@ import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
 import { Cast, isStale } from './actors.js';
 import { initChronicon } from './chronicon.js';
+import { settings, store, initSettings, renderSettings } from './settings.js';
 
 const MODES = ['auto', 'full', 'candles'];
-const store = {
-  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: keep in memory */ } },
-};
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
 
 const canvas = document.getElementById('scene');
@@ -42,6 +39,7 @@ function renderModes() {
     b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode));
     if (b.dataset.mode === 'auto') b.textContent = `Auto · ${String(hour).padStart(2, '0')}h ${lightLevel('auto', hour).phase}`;
   }
+  renderSettings();
 }
 function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
 function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]); }
@@ -92,8 +90,8 @@ setInterval(renderModes, 60_000);
 fit();
 requestAnimationFrame(frame);
 
-// Context window by model, in tokens: edit here. Fill = context.tokens / window.
-const windowOf = model => (/haiku/i.test(model ?? '') ? 200_000 : 1_000_000);
+// Context window by model family, in tokens (settings panel). Fill = context.tokens / window.
+const windowOf = model => 1000 * (/haiku/i.test(model ?? '') ? settings.ctxHaiku : settings.ctxOther);
 const fillOf = ctx => (ctx ? ctx.tokens / windowOf(ctx.model) : 0);
 const kM = n => (n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 const contextLine = ctx => `Context · ${ctx ? `${kM(ctx.tokens)} / ${kM(windowOf(ctx.model))} (${Math.round(100 * fillOf(ctx))}%)` : '—'}`;
@@ -363,13 +361,13 @@ function chime(notes = [660, 990]) {
 }
 
 const muteBtn = document.getElementById('mute');
-function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.setAttribute('aria-label', state.muted ? 'Unmute chime' : 'Mute chime'); }
+function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.setAttribute('aria-label', state.muted ? 'Unmute chime' : 'Mute chime'); renderSettings(); }
 function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state.muted ? '1' : '0'); renderMute(); }
 muteBtn.onclick = toggleMute;
 renderMute();
 
-
 const T = window.__TAURI__;
+initSettings(T, { mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); } });
 if (T) {
   T.event.listen('roster', e => onRoster(e.payload));
   T.event.listen('petition', () => chime());

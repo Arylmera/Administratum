@@ -119,6 +119,31 @@
   @media (max-width: 600px) { .tithe { display: none; } }
   @media (max-width: 520px) { #chron .events li { grid-template-columns: 3.2em 1.2em minmax(4em, 8em) 1fr; } #chron .events .dept { display: none; } }
   @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh { animation: none; } }
+  /* Settings: the same parchment scroll as the Chronicon, narrower. */
+  #prefs { position: absolute; z-index: 6; top: 0; left: 50%; transform: translateX(-50%); width: min(28em, calc(100% - 12px)); max-height: 100%;
+    display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(11px * var(--k, 1)); color: #1a120c; }
+  #prefs.open { grid-template-rows: auto 1fr auto; }
+  #prefs[hidden] { display: none; }
+  #prefs .rod { height: .9em; margin: 0 -.5em; border-radius: .45em; background: linear-gradient(#d8a050, #8a5320 45%, #4a2a0e); border: 1px solid #2a1606; box-shadow: 0 3px 4px rgba(0,0,0,.6); }
+  #prefs .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, #d8c79c 30%, #c2ac78 100%); border-left: 2px solid #8a6a3a; border-right: 2px solid #8a6a3a; box-shadow: inset 0 0 1.5em rgba(110,63,23,.45); }
+  #prefs .top { flex: none; display: flex; align-items: center; padding: .5em .9em .3em; border-bottom: 2px solid #8a6a3a; }
+  #prefs h2 { margin: 0; font: 400 1.7em/1 'Pirata One', serif; color: #4e110c; }
+  #prefs .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid #8a6a3a; border-radius: 2px; color: #4e110c; font: inherit; cursor: pointer; }
+  #prefs form { flex: 1; min-height: 0; overflow-y: auto; padding: .3em .9em .8em; scrollbar-width: thin; scrollbar-color: #8a6a3a transparent; }
+  #prefs fieldset { margin: .4em 0 0; padding: 0; border: none; }
+  #prefs legend { padding: 0; margin-bottom: .2em; font-size: .85em; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: #5a3c16; }
+  #prefs label { display: flex; align-items: center; gap: .5em; min-height: 1.9em; border-bottom: 1px dotted rgba(110,63,23,.4); }
+  #prefs label > span:first-child { flex: 1; }
+  #prefs .unit { width: 3.2em; white-space: nowrap; color: #5a3c16; }
+  #prefs input[type="number"], #prefs select { width: 5.5em; box-sizing: border-box; padding: .1em .3em; background: #e3d4ac; color: #1a120c; border: 1px solid #8a6a3a; border-radius: 2px; font: inherit; text-align: right; }
+  #prefs select { width: 8.1em; text-align: left; }
+  #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: #4e110c; }
+  #prefs input:disabled { opacity: .5; }
+  #prefs .reset { margin-top: .8em; padding: .3em .8em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; cursor: pointer; }
+  #prefs .reset:hover { filter: brightness(1.2); }
+  #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid #4e110c; outline-offset: 1px; }
+  @media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
+  @media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } #modes button { padding: 5px 6px; } } /* room for the gear at 700 px */
   @keyframes alarm { 50% { background: #3a0d09; box-shadow: 0 0 14px 3px rgba(255,58,32,.9); } }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(160,30,22,0); } 50% { box-shadow: 0 0 12px 2px rgba(190,40,28,.8); } }
   @media (max-width: 760px) { .tier { display: none; } }
@@ -145,6 +170,9 @@
   <button id="tithe" class="count tithe" type="button" title="Tithe today: tokens and working time">⛁ — · —</button>
   <button id="chron-open" class="icon" type="button" aria-label="Open the Chronicon">
     <svg width="18" height="18" viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="9" height="2" fill="currentColor"></rect><rect x="1" y="3" width="7" height="4" fill="#d6c79f"></rect><rect x="2" y="4" width="5" height="1" fill="#6e3f17"></rect><rect x="2" y="6" width="3" height="1" fill="#6e3f17"></rect><rect x="0" y="7" width="9" height="1" fill="currentColor"></rect><rect x="4" y="2" width="1" height="1" fill="#a0221a"></rect></svg>
+  </button>
+  <button id="prefs-open" class="icon" type="button" aria-label="Settings" aria-expanded="false" aria-controls="prefs">
+    <svg width="18" height="18" viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><path d="M3 0h3v1h-3zM1 1h1v1h-1zM3 1h3v1h-3zM7 1h1v1h-1zM2 2h5v1h-5zM0 3h3v1h-3zM6 3h3v1h-3zM0 4h3v1h-3zM6 4h3v1h-3zM0 5h3v1h-3zM6 5h3v1h-3zM2 6h5v1h-5zM1 7h1v1h-1zM3 7h3v1h-3zM7 7h1v1h-1zM3 8h3v1h-3z" fill="currentColor"></path><rect x="4" y="4" width="1" height="1" fill="#7cff9e"></rect></svg>
   </button>
   <button id="mute" class="icon" aria-label="Mute chime">
     <svg class="on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
@@ -173,6 +201,33 @@
       <div class="top"><h2>Chronicon</h2><button type="button" class="close" aria-label="Close the Chronicon">✕</button></div>
       <div class="tabs" role="tablist" aria-label="Day"></div>
       <div class="body"></div>
+    </div>
+    <div class="rod"></div>
+  </div>
+  <div id="prefs" role="dialog" aria-label="Settings" hidden>
+    <div class="rod"></div>
+    <div class="sheet">
+      <div class="top"><h2>Settings</h2><button type="button" class="close" aria-label="Close settings">✕</button></div>
+      <form>
+        <fieldset><legend>Window</legend>
+          <label><span>Always on top</span><input type="checkbox" name="onTop"></label>
+          <label><span>Start at login</span><input type="checkbox" name="login"></label>
+        </fieldset>
+        <fieldset><legend>Hall</legend>
+          <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full">Full light</option><option value="candles">Candles</option></select></label>
+          <label><span>Petition chime</span><input type="checkbox" name="chime"></label>
+        </fieldset>
+        <fieldset><legend>Thresholds</legend>
+          <label><span>Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>
+          <label><span>Idle to the Refectorium after</span><input type="number" name="napMin" min="1" max="120" step="1"><span class="unit">min</span></label>
+          <label><span>Stay at the cogitator for</span><input type="number" name="cogHoldS" min="0" max="120" step="1"><span class="unit">s</span></label>
+        </fieldset>
+        <fieldset><legend>Context window</legend>
+          <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
+          <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
+        </fieldset>
+        <button type="button" class="reset">Reset to defaults</button>
+      </form>
     </div>
     <div class="rod"></div>
   </div>

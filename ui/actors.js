@@ -1,12 +1,14 @@
 import { SCRIBE, ADEPT, MAPS, RANK, rankOf, blit } from './sprites.js';
 import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY, RECAFF_SPOT, REFECTORY_SPOTS, AISLE_Y } from './layout.js';
+import { settings } from './settings.js';
 
 const SPEED = 80; // logical px per second
-const COG_HOLD_MS = 10000; // a busy scribe stays at the cogitator this long after its last shell command
-const NAP_MS = 120000; // idle this long (no background shell) and a scribe leaves for the refectorium
+// Thresholds come from the settings panel (settings.js), read live:
+const COG_HOLD_MS = () => settings.cogHoldS * 1000; // a busy scribe stays at the cogitator this long after its last shell command
+const NAP_MS = () => settings.napMin * 60_000; // idle this long (no background shell) and a scribe leaves for the refectorium
 const RECAFF_S = 2; // seconds at the recaff dispenser on the way to a bench
-const STALE_MS = 300000; // a petition waiting longer escalates (alarm beacon, servo-skull, header alarm); backend toasts at the same mark
-export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now() - s.sinceMs > STALE_MS;
+const STALE_MS = () => settings.staleMin * 60_000; // a petition waiting longer escalates (alarm beacon, servo-skull, header alarm); backend toasts at the same mark (set_stale_minutes)
+export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now() - s.sinceMs > STALE_MS();
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
@@ -43,7 +45,7 @@ export class Cast {
     // Hysteresis: Bash calls flip a session busy<->shell every few seconds; don't walk back and forth for each one.
     const now = Date.now();
     for (const s of roster) { const a = this.actors.get(s.id); if (s.status === 'shell') a.lastShell = now; }
-    const atCog = s => s.status === 'shell' || (s.status === 'busy' && now - (this.actors.get(s.id).lastShell ?? 0) < COG_HOLD_MS);
+    const atCog = s => s.status === 'shell' || (s.status === 'busy' && now - (this.actors.get(s.id).lastShell ?? 0) < COG_HOLD_MS());
     const shell = roster.filter(atCog).map(s => s.id);
     this.last = { seats, waiting, shell, blocks }; // for a burner heading back between polls
     // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
@@ -56,7 +58,7 @@ export class Cast {
   // Refectory benches, decided before the layout (a scribe on a bench releases its desk, planLayout): a sleeper keeps
   // its bench until it wakes; more sleepers than benches doze at their desk. Returns the ids on a bench.
   napping(roster, now = Date.now()) {
-    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && s.sinceMs && now - s.sinceMs > NAP_MS).sort((p, q) => p.sinceMs - q.sinceMs);
+    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
     for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
     for (const s of sleepy) {
       if (this.naps.has(s.id)) continue;
