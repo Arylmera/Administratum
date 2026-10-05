@@ -147,6 +147,8 @@ const HELPER_SAFETY_CAP_SECS: u64 = 600;
 /// transcript's `<task-notification>` lines, see `parse_completions`) has an entry for it whose
 /// timestamp is at or after its transcript's last write — a write after that timestamp (a resume)
 /// makes it active again. A missing/unparseable sidecar `.meta.json` still yields a helper with defaults.
+const RESUME_GRACE_MS: i64 = 30_000;
+
 pub fn active_helpers(dir: &Path, now: SystemTime, completed: &HashMap<String, i64>) -> Vec<Helper> {
     let Ok(entries) = fs::read_dir(dir) else { return vec![] };
     let mut out = vec![];
@@ -165,7 +167,9 @@ pub fn active_helpers(dir: &Path, now: SystemTime, completed: &HashMap<String, i
         }
         if let Some(&completed_at) = completed.get(id) {
             let modified_ms = modified.duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(i64::MAX);
-            if modified_ms <= completed_at {
+            // The agent's last flush can land a moment after its notification; only a write well
+            // after it means the agent was resumed.
+            if modified_ms <= completed_at + RESUME_GRACE_MS {
                 continue;
             }
         }
@@ -879,6 +883,9 @@ mod tests {
         write_with_age(&d.join("agent-resumed.jsonl"), 10, now); // last write is AFTER the completion below
         let completed = HashMap::from([("resumed".to_string(), ms_ago(now, 60))]);
         assert_eq!(active_helpers(&d, now, &completed).len(), 1, "a later write means it was resumed");
+        // Real case: the final flush lands ~150 ms after the completion notification.
+        let flushed = HashMap::from([("resumed".to_string(), ms_ago(now, 10) - 150)]);
+        assert!(active_helpers(&d, now, &flushed).is_empty(), "a flush right after completion is not a resume");
     }
 
     #[test]
