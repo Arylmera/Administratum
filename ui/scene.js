@@ -57,7 +57,7 @@ function put(g, map, x, y, over) { blit(g, map, x, y, over); }
 const DECOR = [
   ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
   ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15],
-  ['BANNER', 98, 10], ['COGITATOR', 152, 24], ['GAUGE', 132, 26], ['GAUGE', 132, 33], ['VENT', 186, 14],
+  ['BANNER', 98, 10], ['COGITATOR', 116, 2], ['CANDLES', 100, 44],
   ['RECAFF', 214, 22], ['SHELF', 236, 19], ['PAPER_STACK', 240, 8], ['BOOKS', 250, 11], ['PAPER_STACK', 260, 9],
   ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 322, 44], ['PAPER_STACK', 329, 48],
   ['SCROLL_PILE', 238, 78], ['LOOSE_B', 236, 64], ['LOOSE_A', 244, 94],
@@ -67,7 +67,7 @@ const DECOR = [
   ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],
   ['BOOKS', 220, 172], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
   ['BRAZIER', 224, 196], ['BRAZIER', 320, 196], ['CENSER', 94, 7], ['CENSER', 196, 60],
-  ['CRATE', 172, 206], ['CANDLES', 186, 46], ['BRAZIER', ENTRY.x - 28, 211], ['BRAZIER', ENTRY.x + 18, 211],
+  ['CRATE', 172, 206], ['BRAZIER', ENTRY.x - 28, 211], ['BRAZIER', ENTRY.x + 18, 211],
 ];
 const CLUTTER = [
   ['SCROLL_PILE', 58, 98], ['PAPER_STACK', 92, 92], ['PAPER_STACK', 99, 95], ['LOOSE_A', 46, 104], ['LOOSE_B', 140, 104],
@@ -110,7 +110,7 @@ export function drawStatic(g, daylight) {
   [[30, 120, 18, 8], [146, 186, 8, 6], [270, 196, 14, 6]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, 'rgba(10,6,4,.35)'));
 
   const win = daylight ? WIN_DAY : WIN_NIGHT;
-  [78, 114, 292].forEach(x => put(g, MAPS.WINDOW, x, 10, win));
+  [78, 292].forEach(x => put(g, MAPS.WINDOW, x, 10, win));
   [210, 334].forEach(x => {
     rect(g, x, 108, 10, 118, '#1c1d20'); rect(g, x + 9, 108, 1, 118, '#0e0a08');
     pipeV(g, x + 3, 108, 118);
@@ -247,9 +247,59 @@ export function deskLight(desk, busy) {
     : { x: desk.x + 13, y: desk.y + 5, r: 10, color: GREEN };
 }
 
-export function drawDecorFrame(g, t) {
+// cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
+export function drawDecorFrame(g, t, cog = 0) {
   blit(g, MAPS.SKULL, 244, 50 + Math.round(2 * Math.sin(t * 4)));
   drawMagos(g, t);
+  drawCogitator(g, t, cog);
+}
+
+// The cogitator bank (MAPS.COGITATOR at 116,2): everything animated sits above y 40, clear of the scribes in front.
+const hash = n => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
+function drawCogitator(g, t, cog) {
+  const on = cog > 0, speed = on ? 6 + 2 * cog : 1.5;
+  // centre screen (149,15.5 16x16.5): rows of green cant scrolling up, one row per 1.5 logical px
+  const s = t * speed, top = Math.floor(s), off = (s - top) * 1.5;
+  g.save(); g.beginPath(); g.rect(149, 15.5, 16, 16.5); g.clip();
+  for (let i = 0; i < 12; i++) {
+    const row = top + i, y = Math.round((16 + i * 1.5 - off) * 2) / 2;
+    let x = 150, h = hash(row);
+    rect(g, 149, y, 0.5, 0.5, h < 0.2 ? '#e6ffee' : '#2a8a50'); // line marker
+    while (x < 163.5) {
+      const w = Math.min(163.5 - x, 0.5 + Math.floor((h = hash(h * 4294967296 + row)) * 6) / 2);
+      rect(g, x, y, w, 0.5, h < 0.15 ? '#b8ffc8' : h < 0.7 ? '#7cff9e' : '#3aa864');
+      x += w + 0.5 + (h > 0.85 ? 2 : 0);
+    }
+  }
+  if (Math.random() < (on ? 0.06 : 0.02)) rect(g, 149, 15.5, 16, 16.5, 'rgba(22,48,31,.55)'); // flicker
+  g.restore();
+  // side screens (133 / 170, 15.5, 11x8.5): left a waveform, right a bar chart
+  for (let x = 0; x < 11; x += 0.5) {
+    const y = 19.5 + Math.round(Math.sin(x * 0.9 + t * (on ? 9 : 3)) * Math.sin(t * 0.7 + x * 0.2) * 6) / 2;
+    rect(g, 133 + x, y, 0.5, 0.5, '#7cff9e');
+  }
+  for (let i = 0; i < 7; i++) {
+    const h = 1 + Math.floor(hash(i * 977 + Math.floor(t * (on ? 6 : 1.5))) * 14) / 2;
+    rect(g, 170.5 + i * 1.5, 23.5 - h, 1, h, i % 3 ? '#3aa864' : '#7cff9e');
+  }
+  // lamp row: idle a slow chase, busy a random chatter
+  for (let i = 0; i < 7; i++) {
+    const lit = on ? hash(i * 31 + Math.floor(t * 8)) < 0.5 : Math.floor(t * 2) % 7 === i;
+    if (!lit) rect(g, 149 + 2.5 * i, 34.5, 1, 1, '#1c1d20');
+  }
+  // data-drums: a light notch turning on each reel
+  for (const [cx, cy, dir] of [[125, 18, 1], [125, 29, -1], [188, 18, -1], [188, 29, 1]]) {
+    const a = t * dir * (on ? 6 : 1.2);
+    rect(g, Math.round((cx + Math.cos(a) * 2) * 2) / 2 - 0.25, Math.round((cy + Math.sin(a) * 2) * 2) / 2 - 0.25, 0.5, 0.5, '#e8b45a');
+  }
+  // steam from the two vent stacks: a puff every few seconds idle, a steady plume while working
+  for (const vx of [138, 175.5]) for (let i = 0; i < 3; i++) {
+    const c = t * 0.6 + i / 3 + vx, p = c % 1;
+    if (!on && Math.floor(c) % 3) continue;
+    const r = 1 + p * 2.5;
+    g.fillStyle = `rgba(214,206,190,${0.55 * (1 - p)})`;
+    g.fillRect(Math.round((vx - r + Math.sin(c * 5) * p) * 2) / 2, Math.round((5 - p * 9 - r) * 2) / 2, 2 * r, 2 * r);
+  }
 }
 
 // The Magos on the throne: the hanging drill forearm (art cols 0..9) swings 1 art px, chest screen scans, optics pulse.
@@ -263,14 +313,14 @@ function drawMagos(g, t) {
 }
 
 export const STATIC_LIGHTS = [
-  { x: 86, y: 22, r: 22 }, { x: 122, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
-  { x: 172, y: 30, r: 30, color: GREEN }, { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN },
+  { x: 86, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
+  { x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN },
   { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
   { x: 274, y: 153, r: 14, color: GREEN }, { x: 278, y: 132, r: 9, color: GREEN }, // lord desk, Magos optics + chest screen
   { x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true },
   { x: ENTRY.x - 23, y: 213, r: 26, color: AMBER, flicker: true }, { x: ENTRY.x + 23, y: 213, r: 26, color: AMBER, flicker: true }, // gate braziers
   { x: ENTRY.x, y: 212, r: 18, color: RED }, { x: 276, y: 186, r: 26, color: RED },
-  { x: 192, y: 50, r: 14, color: AMBER, flicker: true },
+  { x: 106, y: 48, r: 14, color: AMBER, flicker: true },
   { x: 96, y: 14, r: 10, color: AMBER, flicker: true }, { x: 198, y: 67, r: 10, color: AMBER, flicker: true },
   { x: 50, y: 117, r: 14 }, { x: 150, y: 117, r: 14 }, { x: 99, y: 150, r: 14 }, { x: 50, y: 183, r: 14 }, { x: 150, y: 183, r: 14 },
 ];

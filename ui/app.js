@@ -83,7 +83,7 @@ function frame(now) {
   const level = lightLevel(state.mode, new Date().getHours());
   g.drawImage(background(level.beams), 0, 0, SCENE.w, SCENE.h);
   const extra = hooks.beforeLights(g);
-  drawDecorFrame(g, now / 1000);
+  drawDecorFrame(g, now / 1000, [...cast.actors.values()].filter(a => a.pose === 'cog').length);
   drawLighting(g, STATIC_LIGHTS.concat(extra), level, now / 1000);
   hooks.afterFrame();
 }

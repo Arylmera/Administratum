@@ -7,7 +7,7 @@ let layer = null;
 export function drawLighting(g, lights, level, t) {
   const w = SCENE.w, h = SCENE.h;
   if (level.beams) {
-    for (const bx of [74, 110, 288]) {
+    for (const bx of [74, 288]) {
       const grad = g.createLinearGradient(0, 26, 0, 116);
       grad.addColorStop(0, 'rgba(235,220,180,.16)');
       grad.addColorStop(1, 'rgba(235,220,180,0)');

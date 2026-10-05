@@ -10,7 +10,7 @@ export const REF_OUT = { x: 190, y: 92 };
 export const REF_IN = { x: 216, y: 92 };
 export const RECAFF_SPOT = { x: 222, y: 48 };
 export const REFECTORY_SPOTS = [271, 285, 299].flatMap(x => [{ x, y: 66 }, { x, y: 90 }]); // benches south of the two tables
-export const COG_SPOTS = [{ x: 160, y: 58 }, { x: 172, y: 58 }, { x: 184, y: 58 }];
+export const COG_SPOTS = [127, 142, 157, 172, 187].map(x => ({ x, y: 57 })); // along the cogitator bank's front desk (y 40..51)
 export const QUEUE_SLOTS = [
   { x: 276, y: 187 }, { x: 248, y: 189 }, { x: 220, y: 189 }, { x: 186, y: 213 },
   { x: 162, y: 217 }, { x: 140, y: 217 }, { x: 60, y: 217 }, { x: 38, y: 217 }, // the line steps around the gate (x 72..128)
