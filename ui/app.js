@@ -1,8 +1,8 @@
 import { SCENE, lightLevel, planLayout, hallOf } from './layout.js';
-import { drawStatic, drawScene } from './scene.js';
+import { drawStatic, drawScene, sceneBusy } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
-import { Cast, isStale } from './actors.js';
+import { Cast, isStale, LAMP_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
@@ -11,7 +11,7 @@ const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
 
 const canvas = document.getElementById('scene');
-const g = canvas.getContext('2d');
+const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
 const overlay = document.getElementById('overlay');
 let scale = 2;
 let hall = hallOf(0); // the scene's logical height grows with the layout's bays
@@ -27,6 +27,7 @@ const bg = {};
 function background(day) {
   const k = `${day ? 'day' : 'night'}:${hall.bays}`;
   if (!bg[k]) {
+    for (const o in bg) if (!o.endsWith(`:${hall.bays}`)) delete bg[o]; // the hall changed size: drop the old sizes
     const c = document.createElement('canvas');
     c.width = SCENE.w * RES; c.height = hall.h * RES;
     const cg = c.getContext('2d');
@@ -49,8 +50,11 @@ const autoPhase = now => { const s = sunToday(now); return s ? sunPhase(now, s) 
 const hhmm = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 const sunLine = s => (s.polar ? `Polar ${s.polar}` : `Sunrise ${hhmm(s.sunrise)} · Sunset ${hhmm(s.sunset)}`);
 
+// The light level (phase granularity is a minute at most): recomputed here, every minute and on a mode change, not per frame.
+let level = null;
 function renderModes() {
   const now = new Date(), hour = now.getHours(), s = sunToday(now);
+  level = lightLevel(state.mode, hour, autoPhase(now));
   for (const b of document.querySelectorAll('#modes button')) {
     b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode));
     if (b.dataset.mode === 'auto') {
@@ -152,19 +156,32 @@ addEventListener('keydown', e => {
   document.body.style.backgroundImage = `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65)), url(${c.toDataURL()})`;
 }
 
-let last = performance.now(), acc = 0, visible = true;
+// 30 fps while anything moves; at rest (nobody walking, no effect, glide, gate or pan, no petition) 12 fps:
+// only the slow ambient loops (flicker, cogitator, Zs) run then. Every animation is time-based, so only smoothness changes.
+const FPS = 30, IDLE_FPS = 12;
+function busy(now) {
+  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || gliding(now) || sceneBusy()) return true;
+  for (const a of cast.actors.values()) {
+    if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || (!a.h && a.s.status === 'waiting')) return true;
+  }
+  return false;
+}
+let last = performance.now(), drawn = last, acc = 0, visible = true;
 function frame(now) {
   requestAnimationFrame(frame);
-  if (document.hidden || !visible) { last = now; acc = 0; return; } // paused: skip drawing, keep rAF alive
+  if (document.hidden || !visible) { last = drawn = now; acc = 0; return; } // paused: skip drawing, keep rAF alive
   const ms = Math.min(100, now - last);
   acc += ms / 1000;
   last = now;
   stepPan(ms);
-  if (acc < 1 / 30) return;
-  const dt = acc; acc = 0;
+  const step = 1 / (busy(now) ? FPS : IDLE_FPS);
+  // Keep the remainder (a 60 Hz pair of 16.6 ms vsyncs counts as one 1/30 step, not three), backlog capped at a step.
+  if (acc < step - 0.004) return;
+  acc = Math.min(acc - step, step);
+  const dt = Math.min(0.1, (now - drawn) / 1000);
+  drawn = now;
   cast.update(dt);
   if (canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went
-  const nowD = new Date(), level = lightLevel(state.mode, nowD.getHours(), autoPhase(nowD));
   g.drawImage(background(level.beams), 0, 0, SCENE.w, hall.h);
   const view = glide(now);
   view.hall = hall;
@@ -228,18 +245,21 @@ function onRoster(next) {
 const GLIDE_MS = 800;
 const tweens = new Map(); // key -> { from, to, t0 }, each {x, y, w, h}
 const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+const XYWH = ['x', 'y', 'w', 'h'];
+const same = (p, q) => p.x === q.x && p.y === q.y && p.w === q.w && p.h === q.h;
 function tween(key, to, now) {
   let tw = tweens.get(key);
-  const cur = tw && pose(tw, now);
-  if (!tw || ['x', 'y', 'w', 'h'].some(k => tw.to[k] !== to[k])) tweens.set(key, tw = { from: cur ?? to, to, t0: now });
+  if (!tw || !same(tw.to, to)) tweens.set(key, tw = { from: tw ? pose(tw, now) : to, to, t0: now });
+  tw.to = to; // a fresh layout object with the same place
   tw.seen = now;
-  return { ...to, ...pose(tw, now) };
+  return now - tw.t0 >= GLIDE_MS ? to : { ...to, ...pose(tw, now) }; // settled: no garbage
 }
 function pose({ from, to, t0 }, now) {
   const k = ease(Math.min(1, (now - t0) / GLIDE_MS)), r = {};
-  for (const p of ['x', 'y', 'w', 'h']) if (to[p] != null) r[p] = from[p] + (to[p] - from[p]) * k;
+  for (const p of XYWH) if (to[p] != null) r[p] = from[p] + (to[p] - from[p]) * k;
   return r;
 }
+const gliding = now => { for (const tw of tweens.values()) if (now - tw.t0 < GLIDE_MS) return true; return false; };
 function glide(now) {
   const view = {
     blocks: layout.blocks.map(b => tween(`b:${b.name}`, b, now)),
@@ -387,8 +407,7 @@ function syncLabels() {
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.
     const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
-    el.style.left = `${a.x * scale}px`;
-    el.style.top = `${(a.y - qOff) * scale}px`;
+    setStyle(el, { left: `${a.x * scale}px`, top: `${(a.y - qOff) * scale}px` });
   }
 }
 
@@ -399,6 +418,7 @@ const edges = Object.fromEntries(Object.entries({ up: '▲', down: '▼', left: 
   b.type = 'button'; b.className = `edge ${dir}`; b.hidden = true;
   g.textContent = glyph; g.setAttribute('aria-hidden', 'true');
   b.append(g, n);
+  b.onclick = () => centreOn(b.to.x, b.to.y - 8);
   stage.appendChild(b);
   return [dir, b];
 }));
@@ -414,7 +434,7 @@ function syncEdges() {
   }
   for (const [dir, b] of Object.entries(edges)) {
     const list = beyond[dir];
-    b.hidden = !list.length;
+    if (b.hidden !== !list.length) b.hidden = !list.length; // an unchanged write still dirties the DOM
     if (b.hidden) continue;
     const pets = list.filter(o => !o.a.h && o.a.s.status === 'waiting');
     const t = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p));
@@ -426,7 +446,7 @@ function syncEdges() {
     if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
     const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${pets.length} petitioning` : ''}`;
     if (b.title !== label) { b.title = label; b.setAttribute('aria-label', label); }
-    b.onclick = () => centreOn(t.a.x, t.a.y - 8);
+    b.to = t.a; // read by the click handler set once below
   }
 }
 
@@ -435,12 +455,12 @@ const tip = document.getElementById('tip');
 let mouse = null;
 function syncHover() {
   const h = mouse && actorAt(mouse);
-  canvas.style.cursor = drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '';
-  tip.hidden = !h || labels.has(h.id);
+  setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '' });
+  const hide = !h || labels.has(h.id);
+  if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
   tip.textContent = h.h ? h.h.kind : h.s.name;
-  tip.style.left = `${h.x * scale}px`;
-  tip.style.top = `${(h.y - (h.h ? 15 : 18)) * scale}px`;
+  setStyle(tip, { left: `${h.x * scale}px`, top: `${(h.y - (h.h ? 15 : 18)) * scale}px` });
 }
 
 // Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins.
