@@ -160,6 +160,7 @@ function bayWall(g, dy) {
   }
 }
 
+let H = hallOf(0); // the hall drawn this frame
 const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 
 const PILE_FADE_MS = 4000;
