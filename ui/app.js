@@ -1,6 +1,10 @@
 import { SCENE, lightLevel } from './layout.js';
 import { drawStatic, drawDecorFrame, STATIC_LIGHTS } from './scene.js';
 import { drawLighting } from './lighting.js';
+import { layoutDepartments } from './layout.js';
+import { drawRugs, deskDrawable, deskLight } from './scene.js';
+import { SASH } from './sprites.js';
+import { Cast } from './actors.js';
 
 const MODES = ['auto', 'full', 'candles'];
 const store = {
@@ -67,3 +71,145 @@ renderModes();
 setInterval(renderModes, 60_000);
 fit();
 requestAnimationFrame(frame);
+
+const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
+const cast = new Cast();
+const deptOrder = [];
+let layout = { blocks: [], desks: [], seats: new Map(), overflow: 0 };
+let roster = [];
+let sel = null;
+const colorOf = dept => SASH[deptOrder.indexOf(dept) % SASH.length];
+const ago = ms => {
+  const m = Math.max(0, Math.floor((Date.now() - ms) / 60000));
+  return m < 1 ? '<1m' : m < 60 ? `${m}m` : `${Math.floor(m / 60)}h`;
+};
+
+function onRoster(next) {
+  roster = next;
+  for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
+  const depts = deptOrder
+    .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name).map(s => s.id) }))
+    .filter(d => d.ids.length);
+  layout = layoutDepartments(depts);
+  // ponytail: sessions past the hall's capacity are not drawn; toast + counter still cover their petitions.
+  cast.sync(roster.filter(s => layout.seats.has(s.id)), layout.seats, colorOf);
+  const n = roster.filter(s => s.status === 'waiting').length;
+  const count = document.getElementById('count');
+  count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
+  count.classList.toggle('on', n > 0);
+  renderPlaques();
+  renderCard();
+}
+
+function renderPlaques() {
+  for (const el of overlay.querySelectorAll('.plaque, .empty')) el.remove();
+  const add = (cls, text, x, y, color) => {
+    const el = document.createElement('div');
+    el.className = cls; el.textContent = text;
+    el.style.left = `${x * scale}px`; el.style.top = `${y * scale}px`;
+    if (color) { el.style.borderColor = color; el.style.color = color; }
+    overlay.appendChild(el);
+  };
+  for (const b of layout.blocks) add('plaque', b.name, b.x + 2, b.y + b.h - 7, b.color);
+  if (layout.overflow) add('plaque', `+${layout.overflow} in the stacks`, 120, 186, '#8a7a5c');
+  if (!roster.length) add('empty', 'No scribes on duty', 0, 120);
+}
+
+function renderCard() {
+  const card = document.getElementById('card');
+  const s = roster.find(r => r.id === sel);
+  card.hidden = !s;
+  if (!s) return;
+  card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
+  card.querySelector('.meta').textContent = `${STATUS_TEXT[s.status] ?? s.status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
+  card.querySelector('.task').textContent = s.task;
+  card.querySelector('.path').textContent = s.cwd;
+}
+
+function select(id) {
+  sel = sel === id ? null : id;
+  const s = roster.find(r => r.id === id);
+  if (sel && s?.status === 'waiting') navigator.clipboard?.writeText(`${s.name} ${s.cwd}`).catch(() => {});
+  renderCard();
+}
+
+const labels = new Map();
+function syncLabels() {
+  for (const [id, el] of labels) if (!cast.actors.has(id)) { el.remove(); labels.delete(id); }
+  for (const a of cast.actors.values()) {
+    let el = labels.get(a.id);
+    if (!el) {
+      el = document.createElement('button');
+      el.className = 'lbl';
+      el.onclick = () => select(a.id);
+      overlay.appendChild(el);
+      labels.set(a.id, el);
+    }
+    const petition = a.s.status === 'waiting' && a.pose === 'queue';
+    const dozing = a.pose === 'desk' && a.s.status === 'idle';
+    const want = a.s.waitingFor ?? 'input needed';
+    const key = [a.s.name, petition, dozing, want, sel === a.id, petition ? ago(a.s.sinceMs) : ''].join('|');
+    if (el.dataset.key !== key) {
+      el.dataset.key = key;
+      el.classList.toggle('petition', petition);
+      el.classList.toggle('sel', sel === a.id);
+      el.replaceChildren();
+      const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; el.appendChild(s); };
+      if (dozing) line('zz', 'z z');
+      line('', a.s.name);
+      if (petition) line('sub', `${want} · ${ago(a.s.sinceMs)}`);
+      el.setAttribute('aria-label', petition ? `${a.s.name}, petition: ${want}` : a.s.name);
+    }
+    el.style.left = `${a.x * scale}px`;
+    el.style.top = `${(a.y - 18) * scale}px`;
+  }
+}
+
+let audio = null;
+function chime() {
+  if (state.muted) return;
+  try {
+    audio ??= new AudioContext();
+    const t0 = audio.currentTime;
+    [660, 990].forEach((f, i) => {
+      const o = audio.createOscillator(), v = audio.createGain(), at = t0 + i * 0.18;
+      o.type = 'sine'; o.frequency.value = f;
+      v.gain.setValueAtTime(0, at);
+      v.gain.linearRampToValueAtTime(0.18, at + 0.02);
+      v.gain.exponentialRampToValueAtTime(0.001, at + 0.5);
+      o.connect(v).connect(audio.destination);
+      o.start(at); o.stop(at + 0.55);
+    });
+  } catch { /* no audio device: the toast still fires */ }
+}
+
+const muteBtn = document.getElementById('mute');
+function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.setAttribute('aria-label', state.muted ? 'Unmute chime' : 'Mute chime'); }
+function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state.muted ? '1' : '0'); renderMute(); }
+muteBtn.onclick = toggleMute;
+renderMute();
+
+hooks.update = dt => cast.update(dt);
+hooks.beforeLights = gg => {
+  drawRugs(gg, layout.blocks);
+  const items = [], lights = [];
+  for (const d of layout.desks) {
+    const a = cast.actors.get(d.id);
+    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
+    items.push(deskDrawable(d, busy));
+    lights.push(deskLight(d, busy));
+  }
+  for (const a of cast.actors.values()) items.push({ y: a.y, draw: g2 => cast.drawActor(g2, a) });
+  items.sort((p, q) => p.y - q.y).forEach(it => it.draw(gg));
+  return lights;
+};
+hooks.afterFrame = syncLabels;
+addEventListener('resize', renderPlaques);
+
+const T = window.__TAURI__;
+if (T) {
+  T.event.listen('roster', e => onRoster(e.payload));
+  T.event.listen('petition', () => chime());
+  T.event.listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
+  document.getElementById('hide').onclick = () => T.window.getCurrentWindow().hide();
+}
