@@ -511,7 +511,7 @@ git commit -m "registry: parse session records and derive task line"
   - `pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session>` — sorted by `name`
   - `#[derive(Default)] pub struct Tracker` with `pub fn new_petitions(&mut self, roster: &[Session]) -> Vec<Session>`
 
-- [ ] **Step 1: Write the failing tests** — append inside `mod tests`:
+- [x] **Step 1: Write the failing tests** — append inside `mod tests`:
 
 ```rust
     use std::{fs, path::PathBuf};
@@ -589,12 +589,12 @@ git commit -m "registry: parse session records and derive task line"
     }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml registry`
 Expected: compile errors for `scan`, `Scan`, `read_transcript_tail`, `merge`, `Tracker`.
 
-- [ ] **Step 3: Implement** — change the `use` line at the top of `registry.rs` to:
+- [x] **Step 3: Implement** — change the `use` line at the top of `registry.rs` to:
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -696,12 +696,12 @@ impl Tracker {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml registry`
 Expected: `12 passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src-tauri/src/registry.rs
