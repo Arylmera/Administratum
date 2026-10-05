@@ -9,7 +9,6 @@ use std::{
     fs,
     io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
-    time::UNIX_EPOCH,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -403,16 +402,11 @@ pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
 
 // ---- incremental reading ----------------------------------------------------------------------
 
-pub struct Chunk {
-    pub offset: u64,
-    pub today_only: bool,
-}
-
 /// Streams to `line` each whole line appended to `f` since `stored` (a partial last line waits for
-/// the next poll), one line in memory at a time; returns the new offset. No stored offset, or a
-/// file that shrank: read from 0, today only. A file first seen and not touched since before
+/// the next poll), one line in memory at a time, with whether only today's entries count; returns
+/// the new offset. No stored offset, or a file that shrank: read from 0, today only. A file first seen and not touched since before
 /// `today_start` has nothing of today: jump to its end without reading.
-pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64, mut line: impl FnMut(&str, bool)) -> Option<Chunk> {
+pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64, mut line: impl FnMut(&str, bool)) -> Option<u64> {
     let len = f.len;
     let (start, today_only) = match stored {
         Some(o) if o <= len => (o, false),
@@ -422,7 +416,7 @@ pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64, mut line: i
         return None;
     }
     if stored.is_none() && f.mtime_ms < today_start {
-        return Some(Chunk { offset: len, today_only });
+        return Some(len);
     }
     let mut file = fs::File::open(&f.path).ok()?;
     file.seek(SeekFrom::Start(start)).ok()?;
@@ -438,7 +432,7 @@ pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64, mut line: i
         line(text.strip_suffix('\r').unwrap_or(&text), today_only);
         buf.clear();
     }
-    Some(Chunk { offset, today_only })
+    Some(offset)
 }
 
 // ---- persistence ------------------------------------------------------------------------------
@@ -453,6 +447,13 @@ pub struct Chronicle {
     cursors: HashMap<PathBuf, (Cursor, Option<String>)>,
     tithe: Tithe,
     last_flush_ms: i64,
+    /// Tithe or offsets changed since the last flush.
+    dirty: bool,
+}
+
+/// A file untouched since before today needs no offset: first sight skips it to its end anyway.
+fn prune_offsets(offsets: &mut HashMap<String, u64>, today_start: i64) {
+    offsets.retain(|p, _| registry::stat(Path::new(p)).is_some_and(|f| f.mtime_ms >= today_start));
 }
 
 fn write_atomic(path: &Path, text: &str) {
@@ -493,13 +494,10 @@ impl Chronicle {
         retain_days(&dir, now_ms);
         let today_start = midnight_ms(now_ms);
         let mut offsets: HashMap<String, u64> = fs::read_to_string(dir.join("offsets.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
-        // A file untouched since before today needs no offset: first sight skips it to its end anyway.
-        offsets.retain(|p, _| {
-            fs::metadata(p).and_then(|m| m.modified()).ok().and_then(|m| m.duration_since(UNIX_EPOCH).ok()).is_some_and(|d| d.as_millis() as i64 >= today_start)
-        });
+        prune_offsets(&mut offsets, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
-        Chronicle { dir, offsets, cursors: HashMap::new(), tithe, last_flush_ms: now_ms }
+        Chronicle { dir, offsets, cursors: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false }
     }
 
     pub fn dir(&self) -> &Path {
@@ -530,8 +528,10 @@ impl Chronicle {
                     let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
                     extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
                 });
-                let Some(chunk) = read else { continue };
-                self.offsets.insert(key, chunk.offset);
+                let Some(offset) = read else { continue };
+                if self.offsets.insert(key, offset) != Some(offset) {
+                    self.dirty = true;
+                }
                 let (ev, usage, turns) = found;
                 events.extend(ev);
                 for u in usage {
@@ -540,6 +540,7 @@ impl Chronicle {
                 for t in turns {
                     if let Some(tithe) = self.tithe_at(t.ts) {
                         tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
+                        self.dirty = true;
                     }
                 }
             }
@@ -548,12 +549,14 @@ impl Chronicle {
         events
     }
 
-    /// The Tithe of `ts`'s day, rolling over (flushing the old one) when a new day starts; older days are dropped.
+    /// The Tithe of `ts`'s day, rolling over (flushing the old one, dropping offsets of files
+    /// untouched since) when a new day starts; older days are dropped.
     fn tithe_at(&mut self, ts: i64) -> Option<&mut Tithe> {
         let day = day_of(ts);
         if day > self.tithe.day {
             self.flush();
             self.tithe = load_tithe(&self.dir, &day).unwrap_or_else(|| Tithe::new(&day));
+            prune_offsets(&mut self.offsets, midnight_ms(ts));
         }
         if day == self.tithe.day {
             Some(&mut self.tithe)
@@ -565,6 +568,7 @@ impl Chronicle {
     pub fn add_usage(&mut self, dept: &str, u: &Usage) {
         if let Some(t) = self.tithe_at(u.ts) {
             t.add_tokens(dept, &u.model, &u.tokens, hour_of(u.ts));
+            self.dirty = true;
         }
     }
 
@@ -574,6 +578,7 @@ impl Chronicle {
         for s in roster.iter().filter(|s| s.status == "busy" || s.status == "shell") {
             if let Some(t) = self.tithe_at(now_ms) {
                 t.add_busy(&s.dept, elapsed_ms, hour_of(now_ms));
+                self.dirty = true;
             }
         }
     }
@@ -586,10 +591,12 @@ impl Chronicle {
         }
     }
 
-    // ponytail: offsets persist with the tithe every 30 s; a crash replays at most 30 s of events.
+    // ponytail: offsets persist with the tithe every 30 s, and only if either changed; a crash
+    // replays at most 30 s of events.
     pub fn maybe_flush(&mut self, now_ms: i64) {
-        if now_ms - self.last_flush_ms >= FLUSH_MS {
+        if self.dirty && now_ms - self.last_flush_ms >= FLUSH_MS {
             self.last_flush_ms = now_ms;
+            self.dirty = false;
             self.flush();
         }
     }
@@ -632,7 +639,7 @@ pub fn days(dir: &Path, live: &Tithe, now_ms: i64) -> Vec<DaySummary> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, SystemTime};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     fn iso(ms: i64) -> String {
         chrono::DateTime::from_timestamp_millis(ms).unwrap().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
@@ -799,10 +806,13 @@ mod tests {
     }
 
     /// `read_new` with the streamed lines joined back into one text.
-    fn read_text(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<(String, u64, bool)> {
-        let mut text = String::new();
-        let c = read_new(f, stored, today_start, |l, _| text.push_str(&format!("{l}\n")))?;
-        Some((text, c.offset, c.today_only))
+    fn read_text(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<(String, u64, Option<bool>)> {
+        let (mut text, mut today) = (String::new(), None);
+        let offset = read_new(f, stored, today_start, |l, t| {
+            text.push_str(&format!("{l}\n"));
+            today = Some(t);
+        })?;
+        Some((text, offset, today))
     }
 
     #[test]
@@ -811,13 +821,13 @@ mod tests {
         let p = d.join("a.jsonl");
         fs::write(&p, "one\ntwo\npart").unwrap();
         let st = || registry::stat(&p).unwrap();
-        assert_eq!(read_text(&st(), None, 0).unwrap(), ("one\ntwo\n".into(), 8, true));
-        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("".into(), 8, false), "partial line waits");
+        assert_eq!(read_text(&st(), None, 0).unwrap(), ("one\ntwo\n".into(), 8, Some(true)));
+        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("".into(), 8, None), "partial line waits");
         fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(b"ial\n").unwrap();
-        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("partial\n".into(), 16, false));
+        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("partial\n".into(), 16, Some(false)));
         assert!(read_text(&st(), Some(16), 0).is_none(), "nothing new");
         fs::write(&p, "new\r\n").unwrap();
-        assert_eq!(read_text(&st(), Some(16), 0).unwrap(), ("new\n".into(), 5, true), "shrank: from 0, today only; CRLF like lines()");
+        assert_eq!(read_text(&st(), Some(16), 0).unwrap(), ("new\n".into(), 5, Some(true)), "shrank: from 0, today only; CRLF like lines()");
     }
 
     #[test]
@@ -826,7 +836,7 @@ mod tests {
         let p = d.join("old.jsonl");
         fs::write(&p, "old\n").unwrap();
         fs::OpenOptions::new().write(true).open(&p).unwrap().set_modified(SystemTime::now() - Duration::from_secs(3 * 86_400)).unwrap();
-        assert_eq!(read_text(&registry::stat(&p).unwrap(), None, midnight_ms(now())).unwrap(), ("".into(), 4, true));
+        assert_eq!(read_text(&registry::stat(&p).unwrap(), None, midnight_ms(now())).unwrap(), ("".into(), 4, None));
     }
 
     #[test]
@@ -854,6 +864,22 @@ mod tests {
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
         assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
         assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+    }
+
+    #[test]
+    fn flushes_only_when_something_changed() {
+        let d = temp_dir("dirty");
+        let t = now();
+        let mut c = Chronicle::open(d.clone(), t, true);
+        let saved = d.join("offsets.json");
+        c.maybe_flush(t + FLUSH_MS);
+        assert!(!saved.exists(), "idle: no write");
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.maybe_flush(t + 2 * FLUSH_MS);
+        assert!(saved.exists());
+        fs::remove_file(&saved).unwrap();
+        c.maybe_flush(t + 3 * FLUSH_MS);
+        assert!(!saved.exists(), "clean again after a flush");
     }
 
     #[test]

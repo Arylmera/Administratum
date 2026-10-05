@@ -219,62 +219,70 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut last_tick = Instant::now();
     let mut last_t = 0;
     loop {
-        let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
-        for s in tracker.new_petitions(&roster) {
-            let _ = app
-                .notification()
-                .builder()
-                .title(format!("Petition from {}", s.name))
-                .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
-                .show();
-            let _ = app.emit("petition", &s);
-        }
-        let now_ms = now_ms();
-        // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
-        let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
-        for s in tracker.stale_petitions(&roster, now_ms + shift) {
-            let _ = app
-                .notification()
-                .builder()
-                .title(format!("Petition still waiting: {}", s.name))
-                .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
-                .show();
-            let _ = app.emit("petition-stale", &s);
-        }
-        {
-            let now = now_ms;
-            let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
-            last_tick = Instant::now();
-            let chron = app.state::<Chron>();
-            let mut c = chron.lock().unwrap_or_else(|e| e.into_inner());
-            let mut events = if demo {
-                let t = start.elapsed().as_secs();
-                for (dept, u) in demo::usage(&roster, now) {
-                    c.add_usage(&dept, &u);
-                }
-                c.add_busy(&roster, elapsed, now);
-                let ev = demo::chronicle(last_t, t, &roster, now);
-                last_t = t;
-                ev
-            } else {
-                c.read_transcripts(&roster, &poller.files, now)
-            };
-            if !first {
-                events.extend(chronicle::lifecycle(&prev, &roster, now));
+        // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
+        // tick runs as usual instead of the widget freezing on stale state.
+        let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
+            for s in tracker.new_petitions(&roster) {
+                let _ = app
+                    .notification()
+                    .builder()
+                    .title(format!("Petition from {}", s.name))
+                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                    .show();
+                let _ = app.emit("petition", &s);
             }
-            for e in &events {
-                c.record(e);
-                // The first scan backfills today; only fresh events play live in the scene.
-                if now - e.ts < 120_000 {
-                    let _ = app.emit("chronicle", e);
-                }
+            let now_ms = now_ms();
+            // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
+            let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
+            for s in tracker.stale_petitions(&roster, now_ms + shift) {
+                let _ = app
+                    .notification()
+                    .builder()
+                    .title(format!("Petition still waiting: {}", s.name))
+                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                    .show();
+                let _ = app.emit("petition-stale", &s);
             }
-            c.maybe_flush(now);
-            first = false;
+            {
+                let now = now_ms;
+                let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
+                last_tick = Instant::now();
+                let chron = app.state::<Chron>();
+                let mut c = chron.lock().unwrap_or_else(|e| e.into_inner());
+                let mut events = if demo {
+                    let t = start.elapsed().as_secs();
+                    for (dept, u) in demo::usage(&roster, now) {
+                        c.add_usage(&dept, &u);
+                    }
+                    c.add_busy(&roster, elapsed, now);
+                    let ev = demo::chronicle(last_t, t, &roster, now);
+                    last_t = t;
+                    ev
+                } else {
+                    c.read_transcripts(&roster, &poller.files, now)
+                };
+                if !first {
+                    events.extend(chronicle::lifecycle(&prev, &roster, now));
+                }
+                for e in &events {
+                    c.record(e);
+                    // The first scan backfills today; only fresh events play live in the scene.
+                    if now - e.ts < 120_000 {
+                        let _ = app.emit("chronicle", e);
+                    }
+                }
+                c.maybe_flush(now);
+                first = false;
+            }
+            // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
+            let _ = app.emit("roster", &roster);
+            prev = roster;
+        }));
+        if tick.is_err() {
+            eprintln!("poll tick panicked, skipped");
+            app.state::<Chron>().clear_poison(); // keep the Chronicon commands working
         }
-        // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
-        let _ = app.emit("roster", &roster);
-        prev = roster;
         thread::sleep(Duration::from_secs(1));
     }
 }
