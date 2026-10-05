@@ -50,16 +50,82 @@ function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.len
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.mode);
 
 const FRAME = 12; // CSS px kept around the scene for the brass frame
+// Minimum readable scale (CSS px per logical px): below it the scene keeps this scale and overflows the window;
+// the stage then shows a view of it that pans (drag, arrow keys, edge arrows; double-click recentres).
+const MIN_SCALE = 1.75;
+const stage = document.getElementById('stage'), world = document.getElementById('world');
+const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
+let viewW = 0, viewH = 0; // the stage, CSS px
+const pannable = () => viewW < SCENE.w * scale - 1 || viewH < hall.h * scale - 1;
+const clampPan = (x, y) => ({ x: Math.min(0, Math.max(viewW - SCENE.w * scale, x)), y: Math.min(0, Math.max(viewH - hall.h * scale, y)) });
+function setPan(x, y) {
+  Object.assign(pan, clampPan(x, y));
+  world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
+}
+const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
+const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
 function fit() {
   const head = document.querySelector('header').offsetHeight;
+  const W = Math.max(1, innerWidth - 2 * FRAME), H = Math.max(1, innerHeight - head - 2 * FRAME);
+  // the logical point at the view's centre stays there (the whole scene's centre the first time)
+  const cx = viewW ? (viewW / 2 - pan.x) / scale : SCENE.w / 2, cy = viewH ? (viewH / 2 - pan.y) / scale : hall.h / 2;
   // ponytail: fractional "contain" scale; pixelated rendering keeps it crisp enough at any size.
-  scale = Math.max(1, Math.min((innerWidth - 2 * FRAME) / SCENE.w, (innerHeight - head - 2 * FRAME) / hall.h)); // CSS px per logical px
+  scale = Math.max(MIN_SCALE, Math.min(W / SCENE.w, H / hall.h));
+  viewW = Math.floor(Math.min(SCENE.w * scale, W)); viewH = Math.floor(Math.min(hall.h * scale, H));
+  stage.style.width = `${viewW}px`; stage.style.height = `${viewH}px`;
   for (const el of [canvas, overlay]) { el.style.width = `${SCENE.w * scale}px`; el.style.height = `${hall.h * scale}px`; }
+  pan.to = null;
+  setPan(viewW / 2 - cx * scale, viewH / 2 - cy * scale);
   const root = document.documentElement.style;
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
 addEventListener('resize', fit);
+// Each animation frame (ms since the last): glide to a target, else coast on the drag's inertia.
+function stepPan(ms) {
+  if (pan.to) {
+    const { x, y } = pan.to, k = Math.min(1, ms / 90);
+    setPan(pan.x + (x - pan.x) * k, pan.y + (y - pan.y) * k);
+    if (Math.abs(x - pan.x) < 0.5 && Math.abs(y - pan.y) < 0.5) { setPan(x, y); pan.to = null; }
+  } else if (!drag?.on && Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02) {
+    const { x, y } = pan;
+    setPan(x + pan.vx * ms, y + pan.vy * ms);
+    const f = 0.88 ** (ms / 16);
+    pan.vx = pan.x === x ? 0 : pan.vx * f; pan.vy = pan.y === y ? 0 : pan.vy * f; // stops at the scene's edge
+  }
+}
+
+// Click-and-hold drag pans once the pointer moves more than 4 px; a shorter move stays a click.
+let drag = null, dragged = false;
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  drag = { x0: e.clientX, y0: e.clientY, px: pan.x, py: pan.y, lx: e.clientX, ly: e.clientY, t: performance.now(), on: false };
+  dragged = false; pan.vx = pan.vy = 0; pan.to = null;
+});
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  if (!drag.on && Math.hypot(dx, dy) > 4 && pannable()) { drag.on = true; try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } canvas.style.cursor = 'grabbing'; }
+  if (!drag.on) return;
+  const t = performance.now(), dt = Math.max(1, t - drag.t);
+  pan.vx = (e.clientX - drag.lx) / dt; pan.vy = (e.clientY - drag.ly) / dt;
+  Object.assign(drag, { lx: e.clientX, ly: e.clientY, t });
+  setPan(drag.px + dx, drag.py + dy);
+});
+const endDrag = () => {
+  if (drag?.on) { dragged = true; if (performance.now() - drag.t > 80) pan.vx = pan.vy = 0; } // held still before letting go: no coast
+  drag = null;
+};
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', () => { endDrag(); dragged = false; });
+canvas.ondblclick = () => { if (pannable()) centreOn(SCENE.w / 2, hall.h / 2); };
+addEventListener('keydown', e => {
+  const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (!d || !pannable() || e.target.closest?.('input, select, textarea, #chron, #prefs')) return;
+  e.preventDefault();
+  const from = pan.to ?? pan;
+  panTo(from.x + d[0] * 60, from.y + d[1] * 60);
+});
 
 // Riveted iron plates behind the scene instead of plain black (40x40 art px tile).
 {
@@ -75,8 +141,10 @@ let last = performance.now(), acc = 0, visible = true;
 function frame(now) {
   requestAnimationFrame(frame);
   if (document.hidden || !visible) { last = now; acc = 0; return; } // paused: skip drawing, keep rAF alive
-  acc += Math.min(0.1, (now - last) / 1000);
+  const ms = Math.min(100, now - last);
+  acc += ms / 1000;
   last = now;
+  stepPan(ms);
   if (acc < 1 / 30) return;
   const dt = acc; acc = 0;
   cast.update(dt);
@@ -313,7 +381,7 @@ const tip = document.getElementById('tip');
 let mouse = null;
 function syncHover() {
   const h = mouse && actorAt(mouse);
-  canvas.style.cursor = h ? 'pointer' : '';
+  canvas.style.cursor = drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '';
   tip.hidden = !h || labels.has(h.id);
   if (tip.hidden) return;
   tip.textContent = h.h ? h.h.kind : h.s.name;
@@ -342,7 +410,10 @@ function pick(id) {
   select(id);
 }
 const closeCard = () => { if (sel) { sel = null; renderCard(); } };
-canvas.onclick = e => { const a = actorAt(e); if (a) pick(a.id); else closeCard(); };
+canvas.onclick = e => {
+  if (dragged) { dragged = false; return; } // the end of a pan, not a click
+  const a = actorAt(e); if (a) pick(a.id); else closeCard();
+};
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
 addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl')) closeCard(); });
 canvas.onmousemove = e => { mouse = e; };
