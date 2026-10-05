@@ -2,7 +2,7 @@ import { SCENE, lightLevel } from './layout.js';
 import { drawStatic, drawDecorFrame, STATIC_LIGHTS } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { layoutDepartments } from './layout.js';
-import { drawRugs, drawDoors, deskDrawable, deskLight, consoleDrawable, consoleLight } from './scene.js';
+import { drawRugs, drawDoors, deskDrawable, deskLight, consoleDrawable, consoleLight, paperFloor } from './scene.js';
 import { SASH, RES } from './sprites.js';
 import { Cast } from './actors.js';
 
@@ -92,6 +92,10 @@ renderModes();
 setInterval(renderModes, 60_000);
 fit();
 requestAnimationFrame(frame);
+
+// Context window by model, in tokens: edit here. Fill = context.tokens / window.
+const windowOf = model => (/haiku/i.test(model ?? '') ? 200_000 : 1_000_000);
+const fillOf = ctx => (ctx ? ctx.tokens / windowOf(ctx.model) : 0);
 
 const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
 const cast = new Cast();
@@ -253,17 +257,20 @@ hooks.update = dt => cast.update(dt);
 hooks.beforeLights = gg => {
   drawRugs(gg, layout.blocks);
   drawDoors(gg, [...cast.actors.values()]);
-  const items = [], lights = [];
+  const items = [], lights = [], now = performance.now();
+  const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
-    const a = cast.actors.get(d.id);
+    const a = cast.actors.get(d.id), fill = fillOf(a?.s.context);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
-    items.push(deskDrawable(d, busy));
+    paperFloor(gg, d.id, 'desk', fill, d, blockOf(d.dept), now);
+    items.push(deskDrawable(d, busy, fill));
     lights.push(deskLight(d, busy));
   }
   for (const c of layout.consoles) {
-    const a = cast.actors.get(c.id);
+    const a = cast.actors.get(c.id), fill = fillOf(a?.h?.context);
     const lit = !!a && a.pose === 'console';
-    items.push(consoleDrawable(c, lit));
+    paperFloor(gg, c.id, 'console', fill, c, blockOf(c.dept), now);
+    items.push(consoleDrawable(c, lit, fill));
     lights.push(consoleLight(c, lit));
   }
   for (const a of cast.actors.values()) items.push({ y: a.y, draw: g2 => cast.drawActor(g2, a) });

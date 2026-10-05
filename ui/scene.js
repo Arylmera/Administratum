@@ -129,24 +129,97 @@ export function drawRugs(g, blocks) {
   }
 }
 
-export function deskDrawable(desk, busy) {
+export function deskDrawable(desk, busy, fill = 0) {
   return {
     y: desk.y + 21,
     draw(g) {
       g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(desk.x + 1, desk.y + 21, 30, 2);
       blit(g, MAPS.DESK, desk.x, desk.y, busy ? {} : { f: null, F: null, c: '#2e6b47' });
+      paperTop(g, desk.id, 'desk', fill, desk);
     },
   };
 }
 
-export function consoleDrawable(con, lit) {
+export function consoleDrawable(con, lit, fill = 0) {
   return {
     y: con.y + 10,
     draw(g) {
       g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(con.x + 4, con.y + 10, 6, 1);
       blit(g, MAPS.CONSOLE, con.x, con.y, lit ? {} : { c: '#2e6b47' });
+      paperTop(g, con.id, 'console', fill, con);
     },
   };
+}
+
+// Context paper. fill = context tokens / model window: 0..0.5 covers the desk (or a small pile beside a
+// console), above 0.5 sheets fall and spread over the department floor, dense at 1. Red sheets from 0.9.
+// Every desk/console has one deterministic sheet list (seeded by its id); fill only picks how many show.
+const PAPER = {
+  desk: { cols: 6, rows: 3, x0: 1, dx: 4.8, y0: 10.5, dy: 2.6, layers: 4, floor: 56, cx: 16, cy: 12, r0: 14, reach: 30 },
+  console: { cols: 1, rows: 3, x0: 15, dx: 0, y0: 8, dy: 0.5, layers: 2, floor: 5, cx: 7, cy: 6, r0: 9, reach: 6 },
+};
+const piles = new Map(); // ponytail: one entry per id ever seen (a few hundred bytes each); prune if ids churn a lot
+function pileOf(id, kind) {
+  let p = piles.get(id);
+  if (p) return p;
+  let seed = [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261);
+  const rnd = () => { // mulberry32
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const k = PAPER[kind], half = v => Math.round(v * 2) / 2;
+  const top = [];
+  for (let r = 0; r < k.rows; r++) for (let c = 0; c < k.cols; c++) {
+    top.push({ x: half(k.x0 + c * k.dx + rnd() * 1.5), y: half(k.y0 + r * k.dy + rnd()), w: rnd() < 0.5 ? 4 : 5 });
+  }
+  for (let i = top.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [top[i], top[j]] = [top[j], top[i]]; }
+  top.forEach((t, i) => { t.layers = 1 + Math.floor(rnd() * (1 + k.layers * i / top.length)); t.red = i % 6 === 5; });
+  const floor = Array.from({ length: k.floor }, (_, i) => {
+    const a = rnd() * Math.PI * 2, r = k.r0 + k.reach * ((i + 1) / k.floor) ** 0.8 * (0.5 + 0.5 * rnd());
+    const flat = rnd() < 0.6;
+    return { x: half(k.cx + Math.cos(a) * r * 1.2), y: half(k.cy + Math.sin(a) * r * 0.8), w: flat ? 4 : 3, h: flat ? 3 : 4, red: i % 5 === 2 };
+  });
+  p = { top, floor, shown: -1, born: [], vis: [] };
+  piles.set(id, p);
+  return p;
+}
+const counts = (p, fill) => {
+  const f = Math.max(0, fill);
+  return [Math.round(Math.min(f, 0.5) / 0.5 * p.top.length), Math.round(Math.min(1, Math.max(0, f - 0.5) / 0.5) * p.floor.length)];
+};
+function sheet(g, x, y, w, h, red) {
+  rect(g, x - 0.5, y - 0.5, w + 1, h + 1, '#0e0a08');
+  rect(g, x, y, w, h, red ? '#d8a08a' : '#d6c79f');
+  g.fillStyle = red ? '#8e1c16' : '#a8946a'; g.fillRect(x + 0.5, y + 1, w - 1.5, 0.5);
+  if (h > 3) g.fillRect(x + 0.5, y + 2.5, w - 2, 0.5);
+}
+// On the desk surface (or beside the console), drawn with the furniture.
+function paperTop(g, id, kind, fill, at) {
+  const p = pileOf(id, kind), [n] = counts(p, fill);
+  if (p.vis.length !== n) p.vis = p.top.slice(0, n).sort((a, b) => a.y - b.y); // re-sorted only when the count changes
+  const warn = fill >= 0.9;
+  for (const t of p.vis) for (let l = 0; l < t.layers; l++) sheet(g, at.x + t.x, at.y + t.y - l, t.w, 2.5, warn && t.red && l === t.layers - 1);
+}
+// Fallen sheets on the floor around it, kept inside the department block; new ones flutter down from the desk.
+export function paperFloor(g, id, kind, fill, at, block, now) {
+  const p = pileOf(id, kind), [, m] = counts(p, fill), k = PAPER[kind];
+  if (m > p.shown) for (let i = Math.max(0, p.shown); i < m; i++) p.born[i] = p.shown < 0 ? -1e9 : now;
+  p.shown = m;
+  const warn = fill >= 0.9;
+  const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v < lo ? 2 * lo - v : v > hi ? 2 * hi - v : v));
+  for (let i = 0; i < m; i++) {
+    const s = p.floor[i];
+    let x = fit(at.x + s.x, block.x + 1, block.x + block.w - s.w - 1), y = fit(at.y + s.y, block.y + 1, block.y + block.h - s.h - 1);
+    const t = (now - p.born[i]) / 700;
+    if (t < 1) { // flutter down from the desk edge
+      const sx = at.x + k.cx, sy = at.y + k.cy - 6;
+      x = Math.round((sx + (x - sx) * t + Math.sin(t * 9) * 2 * (1 - t)) * 2) / 2;
+      y = Math.round((sy + (y - sy) * t * t) * 2) / 2;
+    }
+    sheet(g, x, y, s.w, s.h, warn && s.red);
+  }
 }
 
 export const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
