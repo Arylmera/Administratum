@@ -4,7 +4,7 @@ import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
 import { Cast, isStale, LAMP_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, perf, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
 
 const MODES = ['auto', 'full', 'candles'];
@@ -156,9 +156,10 @@ addEventListener('keydown', e => {
   document.body.style.backgroundImage = `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65)), url(${c.toDataURL()})`;
 }
 
-// 30 fps while anything moves; at rest (nobody walking, no effect, glide, gate or pan, no petition) 12 fps:
-// only the slow ambient loops (flicker, cogitator, Zs) run then. Every animation is time-based, so only smoothness changes.
-const FPS = 30, IDLE_FPS = 12;
+// 30 fps while anything moves; at rest (nobody walking, no effect, glide, gate or pan, no petition) the idle
+// rate (settings, 6-30 fps): only the slow ambient loops (flicker, cogitator, Zs) run then. Every animation is
+// time-based (steps capped at 0.25 s, above a 6 fps frame), so only smoothness changes.
+const FPS = 30;
 function busy(now) {
   if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || gliding(now) || sceneBusy()) return true;
   for (const a of cast.actors.values()) {
@@ -169,16 +170,18 @@ function busy(now) {
 let last = performance.now(), drawn = last, acc = 0, visible = true;
 function frame(now) {
   requestAnimationFrame(frame);
-  if (document.hidden || !visible) { last = drawn = now; acc = 0; return; } // paused: skip drawing, keep rAF alive
+  // Paused (setting on; minimised, in the tray or covered: WebView2 visibility or the backend's check): skip
+  // drawing, labels and overlays, keep rAF alive. The roster still updates; the backend fires the toasts.
+  if (perf.pauseHidden && (document.hidden || !visible)) { last = drawn = now; acc = 0; return; }
   const ms = Math.min(100, now - last);
   acc += ms / 1000;
   last = now;
   stepPan(ms);
-  const step = 1 / (busy(now) ? FPS : IDLE_FPS);
+  const step = 1 / (busy(now) ? FPS : perf.idleFps);
   // Keep the remainder (a 60 Hz pair of 16.6 ms vsyncs counts as one 1/30 step, not three), backlog capped at a step.
   if (acc < step - 0.004) return;
   acc = Math.min(acc - step, step);
-  const dt = Math.min(0.1, (now - drawn) / 1000);
+  const dt = Math.min(0.25, (now - drawn) / 1000);
   drawn = now;
   cast.update(dt);
   if (canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went

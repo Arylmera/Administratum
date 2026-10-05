@@ -251,6 +251,12 @@
           <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
           <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
         </fieldset>
+        <fieldset><legend>Performance</legend>
+          <label><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
+          <p class="hint">Lower saves CPU when idle; flicker gets choppier.</p>
+          <label><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
+          <p class="hint">Near-zero CPU when unseen; petitions still alert.</p>
+        </fieldset>
         <fieldset><legend>Location</legend>
           <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
           <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>

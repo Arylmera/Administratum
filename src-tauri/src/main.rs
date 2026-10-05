@@ -197,6 +197,11 @@ fn main() {
             app.manage::<Chron>(Mutex::new(Chronicle::open(dir, now_ms(), demo)));
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
+            #[cfg(windows)]
+            {
+                let handle = app.handle().clone();
+                thread::spawn(move || watch_visibility(handle));
+            }
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -287,6 +292,55 @@ fn poll_loop(app: AppHandle, demo: bool) {
     }
 }
 
+/// 5x5 points spread over a rect (left, top, right, bottom), each at the centre of its cell.
+fn sample_grid(l: i32, t: i32, r: i32, b: i32) -> impl Iterator<Item = (i32, i32)> {
+    (0..25).map(move |i| (l + (r - l) * (2 * (i % 5) + 1) / 10, t + (b - t) * (2 * (i / 5) + 1) / 10))
+}
+
+/// Can the user see any of the main window? False when minimised, hidden (tray) or covered: none
+/// of 25 points over the client area hit-tests to it (WindowFromPoint skips hidden and cloaked
+/// windows, and finds the WebView2 child, whose root is ours).
+// ponytail: sampling, so a sliver showing between grid points counts as covered; walk the Z-order if that matters.
+#[cfg(windows)]
+fn on_screen(hwnd: windows_sys::Win32::Foundation::HWND) -> bool {
+    use windows_sys::Win32::{
+        Foundation::{POINT, RECT},
+        Graphics::Gdi::ClientToScreen,
+        UI::WindowsAndMessaging::{GetAncestor, GetClientRect, IsIconic, IsWindowVisible, WindowFromPoint, GA_ROOT},
+    };
+    // SAFETY: plain Win32 queries on a window handle; a stale handle only makes them fail.
+    unsafe {
+        if IsIconic(hwnd) != 0 || IsWindowVisible(hwnd) == 0 {
+            return false;
+        }
+        let mut rc = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+        let mut o = POINT { x: 0, y: 0 };
+        if GetClientRect(hwnd, &mut rc) == 0 || ClientToScreen(hwnd, &mut o) == 0 {
+            return true; // unknown: keep drawing
+        }
+        sample_grid(o.x, o.y, o.x + rc.right, o.y + rc.bottom).any(|(x, y)| {
+            let at = WindowFromPoint(POINT { x, y });
+            !at.is_null() && GetAncestor(at, GA_ROOT) == hwnd
+        })
+    }
+}
+
+/// Every 2 s, tell the UI (`visible`) when the main window becomes seen or unseen; the UI stops
+/// drawing while unseen if its "Pause when hidden or covered" setting is on.
+#[cfg(windows)]
+fn watch_visibility(app: AppHandle) {
+    let Some(hwnd) = app.get_webview_window("main").and_then(|w| w.hwnd().ok()).map(|h| h.0 as usize) else { return };
+    let mut last = true;
+    loop {
+        thread::sleep(Duration::from_secs(2));
+        let now = on_screen(hwnd as windows_sys::Win32::Foundation::HWND);
+        if now != last {
+            last = now;
+            let _ = app.emit("visible", now);
+        }
+    }
+}
+
 fn toggle_window(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if w.is_visible().unwrap_or(false) {
@@ -333,4 +387,15 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
         })
         .build(app)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn sample_grid_stays_inside_and_spans_the_rect() {
+        let pts: Vec<_> = super::sample_grid(100, 50, 600, 450).collect();
+        assert_eq!(pts.len(), 25);
+        assert!(pts.iter().all(|&(x, y)| (100..600).contains(&x) && (50..450).contains(&y)));
+        assert_eq!((pts[0], pts[24]), ((150, 90), (550, 410)));
+    }
 }

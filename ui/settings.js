@@ -47,6 +47,15 @@ const RANGE = { lat: 90, lon: 180 };
 const coord = (k, v) => (v === '' || v == null || !Number.isFinite(+v) ? NaN : Math.round(1e4 * Math.min(RANGE[k], Math.max(-RANGE[k], +v))) / 1e4);
 export const place = { lat: coord('lat', store.get('adm.lat', '')), lon: coord('lon', store.get('adm.lon', '')) };
 
+// Performance (adm.idleFps, adm.pauseHidden): read live by app.js's frame loop.
+const IDLE_FPS = [6, 8, 12, 30];
+const fpsOf = v => (IDLE_FPS.includes(+v) ? +v : 12);
+export const perf = { idleFps: fpsOf(store.get('adm.idleFps', 12)), pauseHidden: store.get('adm.pauseHidden', '1') !== '0' };
+const setPerf = (idleFps, pauseHidden) => {
+  Object.assign(perf, { idleFps: fpsOf(idleFps), pauseHidden });
+  store.set('adm.idleFps', String(perf.idleFps)); store.set('adm.pauseHidden', pauseHidden ? '1' : '0');
+};
+
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
@@ -70,6 +79,8 @@ export function initSettings(T, hooks) {
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
+    field('idleFps').value = String(perf.idleFps);
+    field('pauseHidden').checked = perf.pauseHidden;
     field('login').checked = !!login;
     field('login').disabled = login === null;
   };
@@ -88,6 +99,7 @@ export function initSettings(T, hooks) {
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
     else if (k === 'mode') hooks.setMode(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
+    else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
@@ -97,6 +109,7 @@ export function initSettings(T, hooks) {
   form.querySelector('.reset').onclick = () => {
     Object.assign(settings, DEFAULTS);
     setPlace(NaN, NaN);
+    setPerf(12, true);
     save(); applyTop(); pushStale();
     hooks.setMode('auto'); hooks.setMuted(false);
     sync();

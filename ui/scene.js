@@ -175,7 +175,7 @@ const lastFill = new Map(); // desk key -> its occupant's last paper fill, for t
 // layout.hall: hallOf() of the current bays.
 export function drawScene(g, layout, actors, fillOf, now) {
   H = layout.hall ?? hallOf(0);
-  frameDt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0;
+  frameDt = lastNow ? Math.min(0.25, (now - lastNow) / 1000) : 0; // 0.25: above a 6 fps idle frame
   lastNow = now;
   prunePiles(now, layout);
   const all = [...actors.values()];
@@ -741,7 +741,7 @@ function drawAlarm(g, actors, now) {
     lights.push({ x: BEACON.x, y: BEACON.y, r: 14, color: 'rgba(255,58,32,.6)' },
       { x: BEACON.x + 20 * sweep, y: BEACON.y + 16, r: 30 + 8 * Math.abs(Math.cos(t * 5)), color: 'rgba(255,40,20,.4)' });
   }
-  const dt = skull.last ? Math.min(0.1, (now - skull.last) / 1000) : 0;
+  const dt = skull.last ? Math.min(0.25, (now - skull.last) / 1000) : 0;
   skull.last = now;
   const who = stale[0], tgt = on ? { x: who.x + 34, y: who.y - 20 } : PERCH; // beside the petition label, clear of the Magos
   const dx = tgt.x - skull.x, dy = tgt.y - skull.y, d = Math.hypot(dx, dy), step = SKULL_SPEED * dt;
