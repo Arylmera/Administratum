@@ -59,8 +59,9 @@ const DECOR = [
   ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15],
   ['BANNER', 98, 10], ['COGITATOR', 152, 24], ['GAUGE', 132, 26], ['GAUGE', 132, 33], ['VENT', 186, 14],
   ['RECAFF', 214, 22], ['SHELF', 236, 19], ['PAPER_STACK', 240, 8], ['BOOKS', 250, 11], ['PAPER_STACK', 260, 9],
-  ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 300, 58], ['PAPER_STACK', 307, 62],
-  ['SCROLL_PILE', 256, 84], ['LOOSE_B', 236, 64], ['LOOSE_A', 280, 74],
+  ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 322, 44], ['PAPER_STACK', 329, 48],
+  ['SCROLL_PILE', 238, 78], ['LOOSE_B', 236, 64], ['LOOSE_A', 244, 94],
+  ['TABLE', 262, 46], ['BENCH', 262, 58], ['TABLE', 262, 70], ['BENCH', 262, 82], // refectory (REFECTORY_SPOTS sit on the benches)
   ['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 124],
   ['CANDLES', 250, 136], ['CANDLES', 292, 136], ['PAPER_STACK', 246, 140], ['PAPER_STACK', 300, 142],
   ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],

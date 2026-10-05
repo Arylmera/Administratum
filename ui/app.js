@@ -171,7 +171,7 @@ function renderCard() {
   card.hidden = !s;
   if (!s) return;
   card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
-  const status = s.background ? 'Idle · background shell running' : STATUS_TEXT[s.status] ?? s.status;
+  const status = s.background ? 'Idle · background shell running' : a?.target?.pose === 'nap' ? 'Idle · dozing in the Refectorium' : STATUS_TEXT[s.status] ?? s.status;
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = contextLine(s.context);
   card.querySelector('.task').textContent = s.task;

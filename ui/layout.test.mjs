@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY } from './layout.js';
+import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS } from './layout.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -53,6 +53,21 @@ const inGate = route(ENTRY, { x: 24, y: 96 });
 assert.deepEqual(inGate[0], { x: ENTRY.x, y: AISLE_Y });
 assert.deepEqual(inGate.at(-1), { x: 24, y: 96 });
 for (const q of QUEUE_SLOTS.slice(3)) assert.ok(Math.abs(q.x - ENTRY.x) >= 36, `queue slot ${q.x} clear of the gate`);
+
+// desk to the refectorium goes through its door; inside the refectorium it walks straight
+const has = (rt, p) => rt.some(q => q.x === p.x && q.y === p.y);
+const toRef = route({ x: 24, y: 96 }, RECAFF_SPOT);
+assert.ok(has(toRef, REF_OUT) && has(toRef, REF_IN) && !has(toRef, DOOR_IN));
+assert.ok(toRef.indexOf(toRef.find(p => p.x === REF_OUT.x && p.y === REF_OUT.y)) < toRef.findIndex(p => p.x === REF_IN.x && p.y === REF_IN.y));
+assert.deepEqual(toRef.at(-1), RECAFF_SPOT);
+assert.equal(route(RECAFF_SPOT, REFECTORY_SPOTS[3]).length, 1);
+const back = route(REFECTORY_SPOTS[0], { x: 24, y: 96 });
+assert.deepEqual(back.slice(0, 2), [REF_IN, REF_OUT]);
+const refToQueue = route(REFECTORY_SPOTS[0], QUEUE_SLOTS[0]);
+assert.ok(has(refToQueue, REF_IN) && has(refToQueue, DOOR_IN));
+assert.equal(REFECTORY_SPOTS.length, 6);
+assert.equal(new Set(REFECTORY_SPOTS.map(p => `${p.x},${p.y}`)).size, 6);
+for (const p of REFECTORY_SPOTS.concat(RECAFF_SPOT)) assert.ok(p.x > 208 && p.y > 40 && p.y < 100, 'refectory spot inside the room');
 
 // lighting phases and modes
 assert.equal(phaseOf(5), 'night');

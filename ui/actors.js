@@ -1,11 +1,13 @@
 import { SCRIBE, ADEPT, MAPS, blit } from './sprites.js';
-import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY } from './layout.js';
+import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY, RECAFF_SPOT, REFECTORY_SPOTS } from './layout.js';
 
 const SPEED = 80; // logical px per second
 const COG_HOLD_MS = 10000; // a busy scribe stays at the cogitator this long after its last shell command
+const NAP_MS = 120000; // idle this long (no background shell) and a scribe leaves for the refectorium
+const RECAFF_S = 2; // seconds at the recaff dispenser on the way to a bench
 
 export class Cast {
-  constructor() { this.actors = new Map(); }
+  constructor() { this.actors = new Map(); this.naps = new Map(); } // naps: scribe id -> REFECTORY_SPOTS index
 
   sync(roster, seats, colorOf, consoleSeats = new Map()) {
     const live = new Set(roster.map(s => s.id));
@@ -28,6 +30,14 @@ export class Cast {
     for (const s of roster) { const a = this.actors.get(s.id); if (s.status === 'shell') a.lastShell = now; }
     const atCog = s => s.status === 'shell' || (s.status === 'busy' && now - (this.actors.get(s.id).lastShell ?? 0) < COG_HOLD_MS);
     const shell = roster.filter(atCog).map(s => s.id);
+    // Refectory benches: a sleeper keeps its bench until it wakes; more sleepers than benches doze at their desk.
+    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && s.sinceMs && now - s.sinceMs > NAP_MS).sort((p, q) => p.sinceMs - q.sinceMs);
+    for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
+    for (const s of sleepy) {
+      if (this.naps.has(s.id)) continue;
+      const free = REFECTORY_SPOTS.findIndex((_, i) => ![...this.naps.values()].includes(i));
+      if (free >= 0) this.naps.set(s.id, free);
+    }
     // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
     const all = [...this.actors.values()];
     for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
@@ -36,7 +46,9 @@ export class Cast {
       if (key !== a.destKey) {
         a.destKey = key;
         a.target = d;
-        a.path = route({ x: a.x, y: a.y }, d);
+        a.path = d.pose === 'nap' ? route({ x: a.x, y: a.y }, RECAFF_SPOT).concat({ x: d.x, y: d.y }) : route({ x: a.x, y: a.y }, d);
+        if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
+        a.wait = 0;
         a.pose = 'walk';
       }
     }
@@ -49,6 +61,7 @@ export class Cast {
       return { ...QUEUE_SLOTS[queueIdx], pose: 'queue', queueIdx };
     }
     if (shell.includes(a.id)) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' };
+    if (this.naps.has(a.id)) return { ...REFECTORY_SPOTS[this.naps.get(a.id)], pose: 'nap' };
     const seat = seats.get(a.id);
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
   }
@@ -63,10 +76,11 @@ export class Cast {
     for (const a of [...this.actors.values()]) {
       a.t += dt;
       let step = SPEED * dt;
+      if (a.wait > 0) { a.wait -= dt; step = 0; } // pausing at a waypoint (the recaff)
       while (step > 0 && a.path.length) {
         const p = a.path[0], dx = p.x - a.x, dy = p.y - a.y, dist = Math.hypot(dx, dy);
         if (dist > 0) a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-        if (dist <= step) { a.x = p.x; a.y = p.y; a.path.shift(); step -= dist; }
+        if (dist <= step) { a.x = p.x; a.y = p.y; a.path.shift(); step -= dist; if (p.wait) { a.wait = p.wait; a.dir = 'up'; break; } }
         else { a.x += (dx / dist) * step; a.y += (dy / dist) * step; step = 0; }
       }
       if (!a.path.length && a.pose === 'walk' && a.target) {
@@ -87,7 +101,7 @@ export class Cast {
     const over = { y: a.sash };
     const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
     if (a.pose === 'walk') {
-      blit(g, SCRIBE[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
+      blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
       if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
       return;
     }
@@ -103,7 +117,7 @@ export class Cast {
     blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
     if (a.pose === 'desk' && a.s.status === 'busy') blit(g, MAPS.CHAIN, fx - 6, fy + 15);
     if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
-    if (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background) dozing(g, fx + 11, fy - 2, a.t);
+    if (a.pose === 'nap' || (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
   }
 }
 

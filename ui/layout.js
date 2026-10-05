@@ -5,6 +5,11 @@ export const AISLE_Y = 206;
 export const ENTRY = { x: (HALL.x0 + HALL.x1) / 2, y: 224 }; // the grand gate, centred in the scriptorium's bottom wall
 export const DOOR_OUT = { x: 190, y: 172 };
 export const DOOR_IN = { x: 214, y: 172 };
+// Refectorium (top-right room) and its door from the scriptorium; idle scribes stop at the recaff, then doze.
+export const REF_OUT = { x: 190, y: 92 };
+export const REF_IN = { x: 216, y: 92 };
+export const RECAFF_SPOT = { x: 222, y: 48 };
+export const REFECTORY_SPOTS = [271, 285, 299].flatMap(x => [{ x, y: 66 }, { x, y: 90 }]); // benches south of the two tables
 export const COG_SPOTS = [{ x: 160, y: 58 }, { x: 172, y: 58 }, { x: 184, y: 58 }];
 export const QUEUE_SLOTS = [
   { x: 276, y: 187 }, { x: 248, y: 189 }, { x: 220, y: 189 }, { x: 186, y: 213 },
@@ -56,14 +61,17 @@ export function layoutDepartments(depts) {
   return { blocks, desks, seats, consoles, consoleSeats, overflow };
 }
 
-const inOffice = p => p.x > 200;
+// Rooms east of the 200..208 wall: the refectorium above y 104, the sanctum below. Each opens onto the scriptorium.
+const roomOf = p => (p.x <= 200 ? 'hall' : p.y < 104 ? 'ref' : 'sanct');
+const DOORWAY = { sanct: [DOOR_OUT, DOOR_IN], ref: [REF_OUT, REF_IN] };
 
 export function route(a, b) {
-  if (inOffice(a) && inOffice(b)) return [{ x: b.x, y: b.y }];
+  const ra = roomOf(a), rb = roomOf(b);
+  if (ra === rb && ra !== 'hall') return [{ x: b.x, y: b.y }];
   const pts = [];
-  if (inOffice(a)) pts.push(DOOR_IN, DOOR_OUT, { x: DOOR_OUT.x, y: AISLE_Y });
+  if (ra !== 'hall') { const [o, i] = DOORWAY[ra]; pts.push(i, o, { x: o.x, y: AISLE_Y }); }
   else pts.push({ x: a.x, y: AISLE_Y });
-  if (inOffice(b)) pts.push({ x: DOOR_OUT.x, y: AISLE_Y }, DOOR_OUT, DOOR_IN, b);
+  if (rb !== 'hall') { const [o, i] = DOORWAY[rb]; pts.push({ x: o.x, y: AISLE_Y }, o, i, b); }
   else pts.push({ x: b.x, y: AISLE_Y }, b);
   return pts.map(p => ({ x: p.x, y: p.y }));
 }
