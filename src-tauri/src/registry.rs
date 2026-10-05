@@ -31,6 +31,8 @@ pub struct Session {
     pub orca: Option<String>,
     pub web: Option<String>,
     pub background: bool,
+    /// Ms timestamp of the newest context compaction seen (see `compacted_at`, `track_compaction`).
+    pub compacted_at: Option<i64>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -72,6 +74,54 @@ pub fn context_of(tail: &str) -> Option<Context> {
         return Some(Context { tokens, model: model.to_string() });
     }
     None
+}
+
+/// Ms timestamp of the newest `{"type":"system","subtype":"compact_boundary","timestamp":"<ISO>"}`
+/// line in `tail` (Claude Code writes one each time it compacts the context).
+pub fn compacted_at(tail: &str) -> Option<i64> {
+    tail.lines().rev().filter(|l| l.contains("compact_boundary")).find_map(|line| {
+        let v = serde_json::from_str::<serde_json::Value>(line).ok()?;
+        if v["type"] != "system" || v["subtype"] != "compact_boundary" {
+            return None;
+        }
+        iso_utc_ms(v["timestamp"].as_str()?)
+    })
+}
+
+/// "2026-04-10T18:08:48.679Z" -> Unix ms. ponytail: only the UTC "Z" form Claude Code writes, no offsets.
+fn iso_utc_ms(s: &str) -> Option<i64> {
+    let s = s.strip_suffix('Z')?;
+    let (date, time) = s.split_once('T')?;
+    let mut d = date.splitn(3, '-').map(|n| n.parse::<i64>().ok());
+    let (y, m, day) = (d.next()??, d.next()??, d.next()??);
+    let (hms, frac) = time.split_once('.').unwrap_or((time, "0"));
+    let mut t = hms.splitn(3, ':').map(|n| n.parse::<i64>().ok());
+    let (hh, mm, ss) = (t.next()??, t.next()??, t.next()??);
+    let ms = format!("{frac:0<3}").get(..3)?.parse::<i64>().ok()?;
+    // days since 1970-01-01 (Howard Hinnant's days_from_civil)
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + day - 1;
+    let days = era * 146097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719468;
+    Some(((days * 24 + hh) * 60 + mm) * 60_000 + ss * 1000 + ms)
+}
+
+/// Keeps each session's newest compaction time across polls (the boundary line soon scrolls out of
+/// the transcript tail), and stamps `now_ms` when the context falls by more than 40% with no
+/// compaction seen in the last minute (fallback when the marker is missed).
+pub fn track_compaction(prev: &[Session], roster: &mut [Session], now_ms: i64) {
+    for s in roster.iter_mut() {
+        let Some(p) = prev.iter().find(|p| p.id == s.id) else { continue };
+        if s.compacted_at > p.compacted_at {
+            continue; // a fresh marker
+        }
+        s.compacted_at = p.compacted_at;
+        let dropped = matches!((&p.context, &s.context), (Some(a), Some(b)) if b.tokens * 10 < a.tokens * 6);
+        if dropped && p.compacted_at.map_or(true, |t| now_ms - t > 60_000) {
+            s.compacted_at = Some(now_ms);
+        }
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -260,6 +310,7 @@ pub fn scan(
             }
         }
         let background = status == "shell" && tail_for_background.as_deref().is_some_and(turn_done);
+        let compacted = tail_for_background.as_deref().and_then(compacted_at);
         if background {
             status = "idle".to_string();
         }
@@ -281,6 +332,7 @@ pub fn scan(
             orca,
             web,
             background,
+            compacted_at: compacted,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -542,7 +594,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None, orca: None, web: None, background: false }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
     }
 
     #[test]
@@ -856,6 +908,65 @@ mod tests {
         assert!(t.stale_petitions(&[session("a", 1, "busy", 2_000)], 2_000_000).is_empty());
         assert_eq!(t.stale_petitions(&w(3_000), 3_000 + 400_000).len(), 1, "new episode");
         assert!(t.stale_petitions(&w(0), 9_999_999).is_empty(), "unknown since never escalates");
+    }
+
+    // Shape of a real Claude Code compaction marker (trimmed), followed by the summary turn.
+    const COMPACT_TAIL: &str = concat!(
+        r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":900000}}}"#, "\n",
+        r#"{"parentUuid":null,"isSidechain":false,"type":"system","subtype":"compact_boundary","content":"Conversation compacted","isMeta":false,"timestamp":"2026-04-10T18:08:48.679Z","level":"info","compactMetadata":{"trigger":"auto","preTokens":178595}}"#, "\n",
+        r#"{"type":"user","message":{"role":"user","content":"This session is being continued from a previous conversation"}}"#,
+    );
+
+    #[test]
+    fn compacted_at_reads_newest_boundary_timestamp_as_ms() {
+        assert_eq!(compacted_at(COMPACT_TAIL), Some(1775844528679));
+        let two = format!("{COMPACT_TAIL}\n{}", COMPACT_TAIL.replace("2026-04-10T18:08:48.679Z", "2026-04-10T19:00:00Z"));
+        assert_eq!(compacted_at(&two), Some(1775847600000), "newest wins, fraction optional");
+        assert_eq!(compacted_at(REAL_SHELL_TAIL), None);
+        assert_eq!(compacted_at(r#"{"type":"user","message":{"content":"compact_boundary"}}"#), None, "only the system marker counts");
+        assert_eq!(compacted_at(r#"{"type":"system","subtype":"compact_boundary","timestamp":"garbage"}"#), None);
+    }
+
+    #[test]
+    fn scan_fills_compacted_at_from_the_tail() {
+        let d = temp_dir("scan-compact");
+        fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
+        let out = scan(&d, |_| true, |_, _, _| Some(COMPACT_TAIL.to_string()), |_, _| vec![], |_| None);
+        assert_eq!(out.sessions[0].compacted_at, Some(1775844528679));
+    }
+
+    fn with_ctx(id: &str, tokens: u64, compacted_at: Option<i64>) -> Session {
+        Session { context: Some(Context { tokens, model: "m".into() }), compacted_at, ..session(id, 1, "busy", 0) }
+    }
+
+    #[test]
+    fn track_compaction_carries_marker_and_falls_back_to_a_token_drop() {
+        // the marker scrolled out of the tail: keep the last one seen
+        let mut r = vec![with_ctx("a", 500_000, None)];
+        track_compaction(&[with_ctx("a", 500_000, Some(7))], &mut r, 1_000_000);
+        assert_eq!(r[0].compacted_at, Some(7));
+        // no marker, context fell by more than 40%: stamp now
+        let mut r = vec![with_ctx("a", 200_000, None)];
+        track_compaction(&[with_ctx("a", 500_000, None)], &mut r, 1_000_000);
+        assert_eq!(r[0].compacted_at, Some(1_000_000));
+        // a 30% drop is just noise
+        let mut r = vec![with_ctx("a", 350_000, None)];
+        track_compaction(&[with_ctx("a", 500_000, None)], &mut r, 1_000_000);
+        assert_eq!(r[0].compacted_at, None);
+        // a fresh marker wins over the drop (no second stamp)
+        let mut r = vec![with_ctx("a", 50_000, Some(990_000))];
+        track_compaction(&[with_ctx("a", 500_000, Some(7))], &mut r, 1_000_000);
+        assert_eq!(r[0].compacted_at, Some(990_000));
+        // marker seen first, the drop lands a few polls later: same compaction, not a new one
+        let mut r = vec![with_ctx("a", 50_000, Some(990_000))];
+        track_compaction(&[with_ctx("a", 500_000, Some(990_000))], &mut r, 1_000_000);
+        assert_eq!(r[0].compacted_at, Some(990_000));
+    }
+
+    #[test]
+    fn session_serializes_compacted_at_as_camel_case() {
+        let json = serde_json::to_value(with_ctx("a", 1, Some(5))).unwrap();
+        assert_eq!(json["compactedAt"], 5);
     }
 
     #[test]

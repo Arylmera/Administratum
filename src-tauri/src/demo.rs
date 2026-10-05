@@ -28,6 +28,7 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         orca: None,
         web: Some(format!("https://claude.ai/code/session_demo_{name}")),
         background: false,
+        compacted_at: None,
     }
 }
 
@@ -48,6 +49,8 @@ pub fn roster(t: u64) -> Vec<Session> {
         scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", 400_000, HAIKU),
         scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", 520_000, SONNET),
     ];
+    // ...then compacts at each cycle wrap: back to 50k, with a fresh compaction stamp.
+    v[0].compacted_at = Some(epoch);
     if phase >= 45 {
         v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000, HAIKU));
     }
@@ -91,6 +94,14 @@ mod tests {
         let late = at(59, "terra-77").context.unwrap().tokens;
         assert!(early < late, "terra-77 context should grow over the cycle");
         assert_eq!(at(0, "terra-77").context.unwrap().model, "claude-opus-5-5");
+    }
+
+    #[test]
+    fn demo_terra_77_compacts_once_per_cycle() {
+        let at = |t, name: &str| roster(t).into_iter().find(|s| s.name == name).unwrap();
+        assert_eq!(at(10, "terra-77").compacted_at, at(59, "terra-77").compacted_at, "steady within a cycle");
+        assert_ne!(at(59, "terra-77").compacted_at, at(60, "terra-77").compacted_at, "new compaction at the wrap");
+        assert!(at(60, "terra-77").context.unwrap().tokens < at(59, "terra-77").context.unwrap().tokens / 2);
     }
 
     #[test]
