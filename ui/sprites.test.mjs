@@ -4,7 +4,7 @@ import { BASE, MAPS, SCRIBE, ADEPT, SASH, RES } from './sprites.js';
 // Low-res [width, height] of every map, recorded from the up()-only file before the HD redraw.
 const LOW = {
   ARM: [4, 8], ARM_L: [4, 8], CHAIN: [10, 1], SCROLL: [6, 7], DESK: [32, 21], SHELF: [32, 21], SKULL: [10, 10],
-  COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], THRONE: [20, 16], LORD_DESK: [44, 13], BRAZIER: [10, 13],
+  COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], THRONE: [20, 20], INQUISITOR: [14, 16], LORD_DESK: [44, 13], BRAZIER: [10, 13],
   RECAFF: [16, 18], COGITATOR: [40, 16], WINDOW: [16, 17], BANNER: [12, 15], CRATE: [14, 12], PAPER_STACK: [8, 12],
   SCROLL_PILE: [18, 7], BOOKS: [10, 9], LOOSE_A: [5, 4], LOOSE_B: [4, 5], GAUGE: [6, 6], VENT: [8, 7], CENSER: [5, 10],
 };
@@ -26,4 +26,7 @@ for (const dir of ['up', 'down', 'left', 'right']) {
 }
 SCRIBE.right.forEach((f, i) => assert.deepEqual(SCRIBE.left[i], f.map(r => [...r].reverse().join(''))));
 for (const dir of ['up', 'down', 'left', 'right']) ADEPT[dir].forEach((f, i) => check(`ADEPT.${dir}[${i}]`, f, [12, 14]));
+const flip = r => [...r].reverse().join('');
+for (const n of ['THRONE', 'LORD_DESK', 'COG_MECH']) MAPS[n].forEach((r, j) => assert.equal(r.replace(/[^.]/g, '#'), flip(r).replace(/[^.]/g, '#'), `${n}: silhouette row ${j}`));
+MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).replace(/[^.k]/g, '#'), `THRONE: outline row ${j}`));
 console.log('sprites ok');

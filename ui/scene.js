@@ -1,4 +1,4 @@
-import { blit, MAPS } from './sprites.js';
+import { blit, sprite, MAPS } from './sprites.js';
 
 export const AMBER = 'rgba(240,168,60,.26)';
 export const GREEN = 'rgba(124,255,158,.16)';
@@ -60,7 +60,7 @@ const DECOR = [
   ['RECAFF', 214, 22], ['SHELF', 236, 19], ['PAPER_STACK', 240, 8], ['BOOKS', 250, 11], ['PAPER_STACK', 260, 9],
   ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 300, 58], ['PAPER_STACK', 307, 62],
   ['SCROLL_PILE', 256, 84], ['LOOSE_B', 236, 64], ['LOOSE_A', 280, 74],
-  ['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 128],
+  ['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 124],
   ['CANDLES', 250, 136], ['CANDLES', 292, 136], ['PAPER_STACK', 246, 140], ['PAPER_STACK', 300, 142],
   ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],
   ['BOOKS', 220, 172], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
@@ -147,6 +147,20 @@ export function deskLight(desk, busy) {
 
 export function drawDecorFrame(g, t) {
   blit(g, MAPS.SKULL, 244, 50 + Math.round(2 * Math.sin(t * 4)));
+  drawInquisitor(g, t);
+}
+
+// The Inquisitor on the throne: upper body settles 1 art px on each slow breath, the rosette glints every 6 s.
+const INQ = { x: 271, y: 128 };
+function drawInquisitor(g, t) {
+  const cv = sprite(MAPS.INQUISITOR), cut = 22; // art row where the breathing upper body meets the hands/lap
+  const w = cv.width / 2, breath = Math.sin(t * 1.4) > 0.2 ? 0.5 : 0;
+  g.drawImage(cv, 0, cut, cv.width, cv.height - cut, INQ.x, INQ.y + cut / 2, w, (cv.height - cut) / 2);
+  g.drawImage(cv, 0, 0, cv.width, cut, INQ.x, INQ.y + breath, w, cut / 2);
+  if (t % 6 < 0.3) {
+    const gx = INQ.x + 6, gy = INQ.y + 8 + breath; // rosette's lit upper-left rim
+    rect(g, gx - 0.5, gy, 1.5, 0.5, '#fff4c8'); rect(g, gx, gy - 0.5, 0.5, 1.5, '#fff4c8');
+  }
 }
 
 export const STATIC_LIGHTS = [
