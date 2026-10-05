@@ -121,7 +121,7 @@ function onRoster(next) {
     .filter(d => d.ids.length);
   layout = layoutDepartments(depts);
   // ponytail: sessions past the hall's capacity are not drawn; toast + counter still cover their petitions.
-  cast.sync(roster.filter(s => layout.seats.has(s.id)), layout.seats, colorOf, layout.consoleSeats);
+  cast.sync(roster.filter(s => layout.seats.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks);
   const n = roster.filter(s => s.status === 'waiting').length;
   const count = document.getElementById('count');
   count.textContent = `${n} petition${n === 1 ? '' : 's'}`;
@@ -256,10 +256,13 @@ function pick(id) {
   if (s?.orca) openTarget(`orca:${s.orca}`);
   select(id);
 }
-canvas.onclick = e => { const a = actorAt(e); if (a) pick(a.id); };
+const closeCard = () => { if (sel) { sel = null; renderCard(); } };
+canvas.onclick = e => { const a = actorAt(e); if (a) pick(a.id); else closeCard(); };
+// Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
+addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl')) closeCard(); });
 canvas.onmousemove = e => { hovered = actorAt(e)?.id ?? null; canvas.style.cursor = hovered ? 'pointer' : ''; };
 canvas.onmouseleave = () => { hovered = null; canvas.style.cursor = ''; };
-addEventListener('keydown', e => { if (e.key === 'Escape' && sel) { sel = null; renderCard(); } });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 
 let audio = null;
 function chime() {
@@ -289,8 +292,7 @@ hooks.update = dt => cast.update(dt);
 hooks.beforeLights = gg => {
   drawRugs(gg, layout.blocks);
   drawDoors(gg, [...cast.actors.values()]);
-  drawGate(gg, [...cast.actors.values()]);
-  const items = [], lights = [], now = performance.now();
+  const items = [drawGate(gg, [...cast.actors.values()])], lights = [], now = performance.now();
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
     const a = cast.actors.get(d.id), fill = fillOf(a?.s.context);

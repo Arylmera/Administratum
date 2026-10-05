@@ -305,6 +305,8 @@ export function drawDoors(g, actors) {
 }
 
 // The grand gate at ENTRY: the iron leaves slide apart into the piers (eased) while anyone is near.
+// The void is floor-level; leaves and frame (piers + arch) are returned as a drawable at the wall's base,
+// so anyone north of the wall walks behind the arch.
 const GATE = { x: ENTRY.x - 16, y: 196 }; // 32x30 frame; opening 16x22 at +8,+5
 let gateOpen = 0;
 export function drawGate(g, actors) {
@@ -314,8 +316,13 @@ export function drawGate(g, actors) {
   rect(g, ox, oy, 16, 22, '#060404');
   rect(g, ox + 2, oy + 16, 12, 6, '#2a0a07'); rect(g, ox + 5, oy + 18, 6, 4, '#4e110c'); // the void beyond, lit by the braziers
   const s = Math.round(gateOpen * 7 * 2) / 2;
-  g.save(); g.beginPath(); g.rect(ox, oy, 16, 22); g.clip();
-  blit(g, MAPS.GATE_L, ox - s, oy); blit(g, MAPS.GATE_R, ox + 8 + s, oy);
-  g.restore();
-  blit(g, MAPS.GATE, GATE.x, GATE.y);
+  return {
+    y: GATE.y + 30,
+    draw(g2) {
+      g2.save(); g2.beginPath(); g2.rect(ox, oy, 16, 22); g2.clip();
+      blit(g2, MAPS.GATE_L, ox - s, oy); blit(g2, MAPS.GATE_R, ox + 8 + s, oy);
+      g2.restore();
+      blit(g2, MAPS.GATE, GATE.x, GATE.y);
+    },
+  };
 }
