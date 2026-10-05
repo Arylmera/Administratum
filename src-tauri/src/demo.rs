@@ -1,4 +1,4 @@
-use crate::registry::{Helper, Session};
+use crate::registry::{Context, Helper, Session};
 use std::{sync::OnceLock, time::{SystemTime, UNIX_EPOCH}};
 
 /// Wall-clock ms at the first demo tick, so `sinceMs` reads as a real timestamp in the UI.
@@ -7,7 +7,9 @@ fn start_ms() -> i64 {
     *START.get_or_init(|| SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64))
 }
 
-fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str) -> Session {
+const DEMO_MODEL: &str = "claude-opus-5-5";
+
+fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str, tokens: u64) -> Session {
     Session {
         id: name.into(),
         pid: 0,
@@ -19,34 +21,37 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         since_ms,
         task: task.into(),
         helpers: vec![],
+        context: Some(Context { tokens, model: DEMO_MODEL.to_string() }),
     }
 }
 
-fn helper(id: &str, kind: &str, task: &str) -> Helper {
-    Helper { id: id.into(), kind: kind.into(), task: task.into(), model: None }
+fn helper(id: &str, kind: &str, task: &str, tokens: u64) -> Helper {
+    Helper { id: id.into(), kind: kind.into(), task: task.into(), model: None, context: Some(Context { tokens, model: DEMO_MODEL.to_string() }) }
 }
 
 /// A 60 s scripted day in the office: work, shell, two petitions, an arrival.
 pub fn roster(t: u64) -> Vec<Session> {
     let phase = t % 60;
     let epoch = start_ms() + ((t / 60) * 60 * 1000) as i64;
+    // terra-77's context climbs the whole cycle so the UI shows every stage, light to blown-out.
+    let terra_77_tokens = 50_000 + phase * ((950_000 - 50_000) / 60);
     let mut v = vec![
-        scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md"),
-        scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”"),
-        scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test"),
-        scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js"),
+        scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md", terra_77_tokens),
+        scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”", 120_000),
+        scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", 400_000),
+        scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", 520_000),
     ];
     if phase >= 45 {
-        v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md"));
+        v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000));
     }
     if (0..20).contains(&phase) {
         v[0].helpers = vec![
-            helper("a1", "general-purpose", "Implement Task 3"),
-            helper("a2", "Explore", "find callers"),
+            helper("a1", "general-purpose", "Implement Task 3", 30_000),
+            helper("a2", "Explore", "find callers", 80_000),
         ];
     }
     if (30..50).contains(&phase) {
-        v[3].helpers = vec![helper("b1", "general-purpose", "")];
+        v[3].helpers = vec![helper("b1", "general-purpose", "", 55_000)];
     }
     v
 }
@@ -67,6 +72,18 @@ mod tests {
         let first = at(15, "geneseed-51").unwrap().since_ms;
         let next = at(75, "geneseed-51").unwrap().since_ms;
         assert_ne!(first, next, "each cycle is a new petition episode");
+    }
+
+    #[test]
+    fn demo_contexts_are_present_and_terra_77_grows_over_the_cycle() {
+        let at = |t, name: &str| roster(t).into_iter().find(|s| s.name == name).unwrap();
+        for s in roster(10) {
+            assert!(s.context.is_some(), "{} missing context", s.name);
+        }
+        let early = at(0, "terra-77").context.unwrap().tokens;
+        let late = at(59, "terra-77").context.unwrap().tokens;
+        assert!(early < late, "terra-77 context should grow over the cycle");
+        assert_eq!(at(0, "terra-77").context.unwrap().model, "claude-opus-5-5");
     }
 
     #[test]

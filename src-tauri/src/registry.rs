@@ -26,6 +26,7 @@ pub struct Session {
     pub since_ms: i64,
     pub task: String,
     pub helpers: Vec<Helper>,
+    pub context: Option<Context>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -35,6 +36,38 @@ pub struct Helper {
     pub kind: String,
     pub task: String,
     pub model: Option<String>,
+    pub context: Option<Context>,
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Context {
+    pub tokens: u64,
+    pub model: String,
+}
+
+/// Current context size of the newest assistant transcript line that has a usage object:
+/// input + cache_creation_input + cache_read_input tokens, paired with its model. Scans
+/// newest-first like `task_line`; skips lines with no usage or a synthetic model.
+pub fn context_of(tail: &str) -> Option<Context> {
+    for line in tail.lines().rev() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        if v["type"] != "assistant" {
+            continue;
+        }
+        let model = v["message"]["model"].as_str().unwrap_or("");
+        if model.is_empty() || model == "<synthetic>" {
+            continue;
+        }
+        let usage = &v["message"]["usage"];
+        if usage.is_null() {
+            continue;
+        }
+        let field = |k: &str| usage[k].as_u64().unwrap_or(0);
+        let tokens = field("input_tokens") + field("cache_creation_input_tokens") + field("cache_read_input_tokens");
+        return Some(Context { tokens, model: model.to_string() });
+    }
+    None
 }
 
 #[derive(Deserialize, Default)]
@@ -70,11 +103,13 @@ pub fn active_helpers(dir: &Path, now: SystemTime) -> Vec<Helper> {
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok())
             .unwrap_or_default();
+        let context = file_tail(&path, TAIL_BYTES).and_then(|t| context_of(&t));
         out.push(Helper {
             id: id.to_string(),
             kind: meta.agent_type.unwrap_or_else(|| "agent".to_string()),
             task: meta.description.map(|d| clip(&d)).unwrap_or_default(),
             model: meta.model,
+            context,
         });
     }
     out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -182,11 +217,18 @@ pub fn scan(
             continue;
         }
         let status = normalize_status(rec.status.as_deref()).to_string();
-        let mut task = transcript(&rec.session_id, &rec.cwd, TAIL_BYTES).map(|t| task_line(&t)).unwrap_or_else(|| "—".into());
-        if task == "—" {
+        let small_tail = transcript(&rec.session_id, &rec.cwd, TAIL_BYTES);
+        let mut task = small_tail.as_deref().map(task_line).unwrap_or_else(|| "—".into());
+        let mut context = small_tail.as_deref().and_then(context_of);
+        if task == "—" || context.is_none() {
             // The newest line didn't fit in the small tail; retry once with a bigger one.
             if let Some(bigger) = transcript(&rec.session_id, &rec.cwd, BIG_TAIL_BYTES) {
-                task = task_line(&bigger);
+                if task == "—" {
+                    task = task_line(&bigger);
+                }
+                if context.is_none() {
+                    context = context_of(&bigger);
+                }
             }
         }
         let helper_list = helpers(&rec.session_id, &rec.cwd);
@@ -201,6 +243,7 @@ pub fn scan(
             since_ms: rec.status_updated_at.unwrap_or(0),
             status,
             helpers: helper_list,
+            context,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -220,7 +263,6 @@ pub(crate) fn slug(cwd: &str) -> String {
 /// the direct slug path first (one stat, no directory scan); falls back to scanning every
 /// project folder only if that misses (e.g. cwd changed since the session started).
 pub fn read_transcript_tail(projects: &Path, session_id: &str, cwd: &str, tail_bytes: u64) -> Option<String> {
-    use std::io::{Read, Seek, SeekFrom};
     let file = format!("{session_id}.jsonl");
     let direct = projects.join(slug(cwd)).join(&file);
     let path = if direct.is_file() {
@@ -228,6 +270,12 @@ pub fn read_transcript_tail(projects: &Path, session_id: &str, cwd: &str, tail_b
     } else {
         fs::read_dir(projects).ok()?.flatten().map(|e| e.path().join(&file)).find(|p| p.is_file())?
     };
+    file_tail(&path, tail_bytes)
+}
+
+/// Last `tail_bytes` of `path`, cut to whole lines (the first partial line is dropped).
+fn file_tail(path: &Path, tail_bytes: u64) -> Option<String> {
+    use std::io::{Read, Seek, SeekFrom};
     let mut f = fs::File::open(path).ok()?;
     let len = f.metadata().ok()?.len();
     f.seek(SeekFrom::Start(len.saturating_sub(tail_bytes))).ok()?;
@@ -337,6 +385,35 @@ mod tests {
         assert_eq!(task_line("not json\n{"), "—");
     }
 
+    #[test]
+    fn context_of_picks_newest_usage_and_sums_fields() {
+        let tail = [
+            r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":100,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":5}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":2,"cache_creation_input_tokens":350,"cache_read_input_tokens":306393,"output_tokens":365}}}"#,
+        ].join("\n");
+        let c = context_of(&tail).expect("has usage");
+        assert_eq!(c.tokens, 2 + 350 + 306393);
+        assert_eq!(c.model, "claude-opus-5-5");
+    }
+
+    #[test]
+    fn context_of_skips_synthetic_and_usageless_lines() {
+        let tail = [
+            r#"{"type":"user","message":{"content":"hi"}}"#,
+            r#"{"type":"assistant","message":{"model":"<synthetic>","usage":{"input_tokens":9}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":5,"output_tokens":1}}}"#,
+        ].join("\n");
+        assert_eq!(context_of(&tail), Some(Context { tokens: 5, model: "claude-opus-5-5".to_string() }));
+    }
+
+    #[test]
+    fn context_of_missing_fields_treated_as_zero_none_on_empty_or_garbage() {
+        assert_eq!(context_of(""), None);
+        assert_eq!(context_of("not json\n{"), None);
+        let tail = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"output_tokens":1}}}"#;
+        assert_eq!(context_of(tail), Some(Context { tokens: 0, model: "claude-opus-5-5".to_string() }));
+    }
+
     use std::{fs, path::PathBuf, time::Duration};
 
     fn temp_dir(name: &str) -> PathBuf {
@@ -352,7 +429,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![] }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None }
     }
 
     #[test]
@@ -422,6 +499,23 @@ mod tests {
     }
 
     #[test]
+    fn scan_fills_session_context_from_the_same_tail() {
+        let d = temp_dir("scan-context");
+        fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
+        let tail = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}"#;
+        let out = scan(&d, |_| true, |_, _, _| Some(tail.to_string()), |_, _| vec![]);
+        assert_eq!(out.sessions[0].context, Some(Context { tokens: 5, model: "claude-opus-5-5".to_string() }));
+    }
+
+    #[test]
+    fn session_serializes_context_as_camel_case() {
+        let s = Session { context: Some(Context { tokens: 42, model: "claude-opus-5-5".into() }), ..session("a", 1, "idle", 0) };
+        let json = serde_json::to_value(&s).unwrap();
+        assert_eq!(json["context"]["tokens"], 42);
+        assert_eq!(json["context"]["model"], "claude-opus-5-5");
+    }
+
+    #[test]
     fn merge_keeps_previous_state_for_unreadable_file() {
         let prev = vec![session("x", 13, "busy", 1)];
         let merged = merge(&prev, Scan { sessions: vec![session("y", 10, "idle", 2)], unreadable_pids: vec![13, 99] });
@@ -463,7 +557,17 @@ mod tests {
             assert_eq!(h.kind, "agent");
             assert_eq!(h.task, "");
             assert_eq!(h.model, None);
+            assert_eq!(h.context, None, "empty transcript has no usage line");
         }
+    }
+
+    #[test]
+    fn active_helpers_reads_context_from_its_own_transcript_tail() {
+        let d = temp_dir("helpers-context");
+        let tail = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3}}}"#;
+        fs::write(d.join("agent-c1.jsonl"), tail).unwrap();
+        let out = active_helpers(&d, SystemTime::now());
+        assert_eq!(out[0].context, Some(Context { tokens: 6, model: "claude-opus-5-5".to_string() }));
     }
 
     #[test]
