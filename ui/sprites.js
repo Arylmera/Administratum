@@ -320,7 +320,6 @@ const ARM = [
 export const MAPS = {
   ARM,
   ARM_L: mirror(ARM),
-  CHAIN: ['lmmk'.repeat(5), 'mMMk'.repeat(5)],
   SCROLL: [
     '.kkkkkkkkk..',
     'kbppppppPPk.',

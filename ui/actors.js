@@ -140,7 +140,6 @@ export function drawActor(g, a) {
   blit(g, SCRIBE.up[0], fx, fy, over);
   blit(g, MAPS.ARM, fx + 14, fy + 2);
   blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
-  if (a.pose === 'desk' && a.s.status === 'busy') blit(g, MAPS.CHAIN, fx - 6, fy + 15);
   if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
   if (a.pose === 'nap' || (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
 }
