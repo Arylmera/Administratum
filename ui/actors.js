@@ -91,13 +91,6 @@ export class Cast {
       if (a.target?.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
       return;
     }
-    if (a.pose === 'desk' && a.s.status === 'busy') { // ceiling cable into the hood socket, only while working
-      const top = 7, end = fy + 4;
-      g.fillStyle = '#0e0a08'; g.fillRect(fx + 8, top, 1.5, end - top);
-      g.fillStyle = '#2a2c30'; g.fillRect(fx + 8.5, top, 0.5, end - top);
-      for (let y = top + 4; y < end - 3; y += 6) { g.fillStyle = '#6e3f17'; g.fillRect(fx + 7.5, y, 2.5, 1); g.fillStyle = '#b8742e'; g.fillRect(fx + 7.5, y, 2.5, 0.5); }
-      g.fillStyle = '#6e3f17'; g.fillRect(fx + 7.5, end - 2, 2.5, 2); g.fillStyle = '#d9a84e'; g.fillRect(fx + 7.5, end - 2, 2.5, 0.5);
-    }
     blit(g, SCRIBE.up[0], fx, fy, over);
     blit(g, MAPS.ARM, fx + 14, fy + 2);
     blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
