@@ -48,13 +48,27 @@ function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
 export function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]); }
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.mode);
 
+const FRAME = 12; // CSS px kept around the scene for the brass frame
 export function fit() {
   const head = document.querySelector('header').offsetHeight;
-  const hs = Math.max(1, Math.floor(Math.min(innerWidth / (SCENE.w * RES), (innerHeight - head) / (SCENE.h * RES))));
-  scale = hs * RES; // CSS px per logical px, for overlays
+  // ponytail: fractional "contain" scale; pixelated rendering keeps it crisp enough at any size.
+  scale = Math.max(1, Math.min((innerWidth - 2 * FRAME) / SCENE.w, (innerHeight - head - 2 * FRAME) / SCENE.h)); // CSS px per logical px
   for (const el of [canvas, overlay]) { el.style.width = `${SCENE.w * scale}px`; el.style.height = `${SCENE.h * scale}px`; }
+  const root = document.documentElement.style;
+  root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
+  root.setProperty('--tile', `${40 * scale / RES}px`);
 }
 addEventListener('resize', fit);
+
+// Riveted iron plates behind the scene instead of plain black (40x40 art px tile).
+{
+  const c = document.createElement('canvas'); c.width = c.height = 40;
+  const t = c.getContext('2d'), r = (x, y, w, h, col) => { t.fillStyle = col; t.fillRect(x, y, w, h); };
+  r(0, 0, 40, 40, '#17181b'); r(0, 0, 40, 1, '#24262a'); r(0, 0, 1, 40, '#202226');
+  r(0, 39, 40, 1, '#0b0b0c'); r(39, 0, 1, 40, '#0b0b0c'); r(1, 19, 38, 1, '#101113'); r(1, 20, 38, 1, '#1f2124');
+  for (const [x, y] of [[3, 3], [35, 3], [3, 35], [35, 35], [3, 16], [35, 16], [3, 23], [35, 23]]) { r(x, y, 2, 2, '#3a3d42'); r(x, y, 1, 1, '#5a5e63'); }
+  document.body.style.backgroundImage = `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65)), url(${c.toDataURL()})`;
+}
 
 export const hooks = { beforeLights: () => [], afterFrame: () => {}, update: () => {} };
 let last = performance.now(), acc = 0, visible = true;
