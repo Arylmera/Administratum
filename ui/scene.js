@@ -1,6 +1,6 @@
 import { blit, sprite, MAPS } from './sprites.js';
 import { ENTRY } from './layout.js';
-import { drawActor } from './actors.js';
+import { drawActor, BURN_S, PUFF_S } from './actors.js';
 
 const AMBER = 'rgba(240,168,60,.26)';
 const GREEN = 'rgba(124,255,158,.16)';
@@ -136,11 +136,16 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const items = [drawGate(g, all)], lights = [];
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
-    const a = actors.get(d.id), fill = fillOf(a?.s.context);
+    const a = actors.get(d.id), fill = a?.burn ? 0 : fillOf(a?.s.context); // a burner carries its pile away
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     paperFloor(g, d.id, 'desk', fill, d, blockOf(d.dept), now);
     items.push(deskDrawable(d, busy, fill, !!a?.s.background, now));
     lights.push(deskLight(d, busy));
+    if (a?.puff > 0) {
+      const k = 1 - a.puff / PUFF_S;
+      items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + 16, d.y + 11, k) });
+      lights.push({ x: d.x + 16, y: d.y + 10, r: 18 * (1 - k), color: AMBER });
+    }
   }
   for (const c of layout.consoles) {
     const a = actors.get(c.id), fill = fillOf(a?.h?.context);
@@ -149,8 +154,13 @@ export function drawScene(g, layout, actors, fillOf, now) {
     items.push(consoleDrawable(c, lit, fill));
     lights.push(consoleLight(c, lit));
   }
-  for (const a of all) items.push({ y: a.y, draw: g2 => drawActor(g2, a) });
+  for (const a of all) items.push({ y: a.y, draw: g2 => { drawActor(g2, a); if (a.burn) bundle(g2, a, fillOf(a.burn.old)); } });
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
+  for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier sits south of the burner: its fire draws over the robe hem
+    const k = 1 - a.burn.left / BURN_S, f = a.burn.fire, heat = k < 0.25 ? k / 0.25 : (1 - k) / 0.75;
+    flare(g, f, k, heat, now / 1000);
+    lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: 'rgba(255,196,96,.5)', flicker: true });
+  }
   drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
   return STATIC_LIGHTS.concat(lights);
 }
@@ -265,6 +275,48 @@ function paperFloor(g, id, kind, fill, at, block, now) {
       y = half(sy + (y - sy) * t * t);
     }
     sheet(g, x, y, s.w, s.h, warn && s.red);
+  }
+}
+
+// Compaction ritual (actors.js Cast.compacted). The carried pile: old context sheets tied with a red cord, held at
+// the waist; at the brazier it drops into the fire over the first 0.35 s.
+function bundle(g, a, fill) {
+  const n = 2 + Math.round(6 * Math.min(1, fill)); // sheet layers, 0.5 each
+  let x = a.x - 3.5, y = a.y - 6, w = 7;
+  if (a.pose === 'burn') {
+    const k = (BURN_S - a.burn.left) / 0.35;
+    if (k >= 1) return;
+    y += (a.burn.fire.y - y) * k * k; w *= 1 - 0.5 * k; x = a.x - w / 2;
+  }
+  x = half(x); y = half(y); w = half(w);
+  const top = y - n * 0.5;
+  rect(g, x - 0.5, top - 0.5, w + 1, n * 0.5 + 1.5, '#0e0a08');
+  for (let i = 0; i < n; i++) rect(g, x + (i % 3 === 1 ? 0.5 : 0), top + i * 0.5, w - 0.5, 0.5, i % 2 ? '#a8946a' : '#d6c79f');
+  rect(g, x, y, w, 0.5, '#d6c79f'); // the bottom sheet's lit edge
+  rect(g, half(x + w / 2 - 0.5), top - 0.5, 1, n * 0.5 + 1.5, '#8e1c16'); // cord
+}
+// The pile burning in the brazier: tall flame tongues, rising sparks and charred flakes. k: 0..1 of the burn, heat: 0..1..0.
+function flare(g, f, k, heat, t) {
+  for (let dx = -3; dx <= 3; dx += 0.5) {
+    const h = heat * Math.max(0, 9 - Math.abs(dx) * 2.2) * (0.7 + 0.3 * Math.sin(t * 23 + dx * 3.1));
+    if (h < 0.5) continue;
+    rect(g, f.x + dx - 0.25, half(f.y - h), 0.5, half(h), '#f0a83c');
+    if (Math.abs(dx) < 2) rect(g, f.x + dx - 0.25, half(f.y - h * 0.6), 0.5, half(h * 0.6), '#ffe6a0');
+  }
+  for (let i = 0; i < 18; i++) {
+    const p = (k * 1.8 + hash(i * 7919)) % 1, life = 1 - p;
+    if (k > 0.85 && p > 0.5) continue; // the last sparks die out
+    const x = f.x + (hash(i * 131) - 0.5) * 10 * p + Math.sin(t * 6 + i) * p, y = f.y - 3 - p * (14 + 10 * hash(i * 37));
+    rect(g, half(x), half(y), 0.5, 0.5, i % 5 === 0 ? '#3a3430' : life > 0.6 ? '#ffe6a0' : life > 0.3 ? '#f0a83c' : '#ff3a20');
+  }
+}
+// Papers vanishing off an unattended desk: a grey puff spreading and fading, a few embers at first. k: 0..1.
+function puff(g, x, y, k) {
+  for (let i = 0; i < 8; i++) {
+    const ang = i * 0.785 + hash(i * 53) * 0.6, d = 2 + 9 * k * (0.6 + 0.4 * hash(i * 17)), r = 1 + 2.5 * k;
+    g.fillStyle = `rgba(190,180,164,${0.75 * (1 - k)})`;
+    g.fillRect(half(x + Math.cos(ang) * d - r), half(y + Math.sin(ang) * d * 0.6 - r - 4 * k), 2 * r, 2 * r);
+    if (k < 0.4) rect(g, half(x + Math.cos(ang) * d * 1.3), half(y + Math.sin(ang) * d - 2 * k), 0.5, 0.5, i % 2 ? '#ffe6a0' : '#f0a83c');
   }
 }
 
