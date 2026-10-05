@@ -1,15 +1,14 @@
 //! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code
 //! transcripts. Read-only on `~/.claude`; everything it writes lives in the app data dir.
-use crate::registry::{self, Session};
+use crate::registry::{self, FileStat, Session};
 use chrono::{Local, NaiveDate, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fs,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
-    time::UNIX_EPOCH,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -148,7 +147,6 @@ struct Pending {
 pub struct Cursor {
     pending: HashMap<String, Pending>,
     msgs: HashMap<String, Tokens>,
-    helper: Option<String>,
 }
 
 // ponytail: both maps are cleared when full; only orphaned tool_uses (interrupted turns) pile up.
@@ -171,16 +169,35 @@ pub struct Turn {
     pub ms: u64,
 }
 
-/// Events, token deltas and turn durations in `text` (whole transcript lines). Entries stamped
-/// before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing spans
-/// calls via `cur`.
-pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64) -> (Vec<Event>, Vec<Usage>, Vec<Turn>) {
-    let (mut events, mut usage, mut turns) = (vec![], vec![], vec![]);
-    for line in text.lines() {
-        let Ok(v) = serde_json::from_str::<Value>(line) else { continue };
+/// Events, token deltas and turn durations found in transcript lines.
+pub type Found = (Vec<Event>, Vec<Usage>, Vec<Turn>);
+
+/// `extract_line` over every line of `text`.
+#[cfg(test)]
+pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64) -> Found {
+    let mut out = Found::default();
+    for line in text.lines().filter(|l| wanted(l)) {
+        extract_line(cur, line, min_ts, src, now_ms, &mut out);
+    }
+    out
+}
+
+/// Whether `extract_line` can find anything in `line`: it must hold one of the keys it acts on.
+/// A cheap substring check that spares parsing most lines.
+pub fn wanted(line: &str) -> bool {
+    ["tool_use", "tool_result", "\"usage\"", "turn_duration"].iter().any(|k| line.contains(k))
+}
+
+/// Events, token deltas and turn durations of one whole transcript line, into `out`. Entries
+/// stamped before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing
+/// spans calls via `cur`.
+pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms: i64, out: &mut Found) {
+    let (events, usage, turns) = out;
+    let Ok(v) = serde_json::from_str::<Value>(line) else { return };
+    {
         let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
         if min_ts > i64::MIN && ts.map_or(true, |t| t < min_ts) {
-            continue;
+            return;
         }
         let ts = ts.unwrap_or(now_ms);
         let mut emit = |kind: &str, detail: String| {
@@ -199,7 +216,7 @@ pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64
                 let model = msg["model"].as_str().unwrap_or("");
                 let u = &msg["usage"];
                 if u.is_null() || model.is_empty() || model == "<synthetic>" {
-                    continue;
+                    return;
                 }
                 let f = |k: &str| u[k].as_u64().unwrap_or(0);
                 let t = Tokens { input: f("input_tokens"), output: f("output_tokens"), cache_read: f("cache_read_input_tokens"), cache_write: f("cache_creation_input_tokens") };
@@ -239,7 +256,6 @@ pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64
             _ => {}
         }
     }
-    (events, usage, turns)
 }
 
 fn classify(p: Option<&Pending>, b: &Value) -> Vec<(&'static str, String)> {
@@ -386,18 +402,12 @@ pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
 
 // ---- incremental reading ----------------------------------------------------------------------
 
-pub struct Chunk {
-    pub text: String,
-    pub offset: u64,
-    pub today_only: bool,
-}
-
-/// Whole lines appended to `path` since `stored` (a partial last line waits for the next poll).
-/// No stored offset, or a file that shrank: read from 0, today only. A file first seen and not
-/// touched since before `today_start` has nothing of today: jump to its end without reading.
-pub fn read_new(path: &Path, stored: Option<u64>, today_start: i64) -> Option<Chunk> {
-    let meta = fs::metadata(path).ok()?;
-    let len = meta.len();
+/// Streams to `line` each whole line appended to `f` since `stored` (a partial last line waits for
+/// the next poll), one line in memory at a time, with whether only today's entries count; returns
+/// the new offset. No stored offset, or a file that shrank: read from 0, today only. A file first seen and not touched since before
+/// `today_start` has nothing of today: jump to its end without reading.
+pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64, mut line: impl FnMut(&str, bool)) -> Option<u64> {
+    let len = f.len;
     let (start, today_only) = match stored {
         Some(o) if o <= len => (o, false),
         _ => (0, true),
@@ -405,24 +415,24 @@ pub fn read_new(path: &Path, stored: Option<u64>, today_start: i64) -> Option<Ch
     if start == len {
         return None;
     }
-    let mtime = meta.modified().ok().and_then(|m| m.duration_since(UNIX_EPOCH).ok()).map_or(i64::MAX, |d| d.as_millis() as i64);
-    if stored.is_none() && mtime < today_start {
-        return Some(Chunk { text: String::new(), offset: len, today_only });
+    if stored.is_none() && f.mtime_ms < today_start {
+        return Some(len);
     }
-    let mut f = fs::File::open(path).ok()?;
-    f.seek(SeekFrom::Start(start)).ok()?;
-    let mut buf = Vec::new();
-    f.take(len - start).read_to_end(&mut buf).ok()?;
-    let cut = buf.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
-    Some(Chunk { text: String::from_utf8_lossy(&buf[..cut]).into_owned(), offset: start + cut as u64, today_only })
-}
-
-fn helper_kind(transcript: &Path) -> String {
-    fs::read_to_string(transcript.with_extension("meta.json"))
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| v["agentType"].as_str().map(str::to_string))
-        .unwrap_or_else(|| "agent".into())
+    let mut file = fs::File::open(&f.path).ok()?;
+    file.seek(SeekFrom::Start(start)).ok()?;
+    let mut r = BufReader::with_capacity(64 * 1024, file.take(len - start));
+    let (mut buf, mut offset) = (Vec::new(), start);
+    // A read error ends the chunk at the last whole line handed out; the rest comes next poll.
+    while let Ok(n) = r.read_until(b'\n', &mut buf) {
+        if n == 0 || buf.last() != Some(&b'\n') {
+            break;
+        }
+        offset += n as u64;
+        let text = String::from_utf8_lossy(&buf[..n - 1]);
+        line(text.strip_suffix('\r').unwrap_or(&text), today_only);
+        buf.clear();
+    }
+    Some(offset)
 }
 
 // ---- persistence ------------------------------------------------------------------------------
@@ -433,9 +443,17 @@ const KEEP_DAYS: u64 = 7;
 pub struct Chronicle {
     dir: PathBuf,
     offsets: HashMap<String, u64>,
-    cursors: HashMap<PathBuf, Cursor>,
+    /// Per transcript: pairing state and, for a subagent's, its kind.
+    cursors: HashMap<PathBuf, (Cursor, Option<String>)>,
     tithe: Tithe,
     last_flush_ms: i64,
+    /// Tithe or offsets changed since the last flush.
+    dirty: bool,
+}
+
+/// A file untouched since before today needs no offset: first sight skips it to its end anyway.
+fn prune_offsets(offsets: &mut HashMap<String, u64>, today_start: i64) {
+    offsets.retain(|p, _| registry::stat(Path::new(p)).is_some_and(|f| f.mtime_ms >= today_start));
 }
 
 fn write_atomic(path: &Path, text: &str) {
@@ -476,47 +494,45 @@ impl Chronicle {
         retain_days(&dir, now_ms);
         let today_start = midnight_ms(now_ms);
         let mut offsets: HashMap<String, u64> = fs::read_to_string(dir.join("offsets.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
-        // A file untouched since before today needs no offset: first sight skips it to its end anyway.
-        offsets.retain(|p, _| {
-            fs::metadata(p).and_then(|m| m.modified()).ok().and_then(|m| m.duration_since(UNIX_EPOCH).ok()).is_some_and(|d| d.as_millis() as i64 >= today_start)
-        });
+        prune_offsets(&mut offsets, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
-        Chronicle { dir, offsets, cursors: HashMap::new(), tithe, last_flush_ms: now_ms }
+        Chronicle { dir, offsets, cursors: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false }
     }
 
     pub fn dir(&self) -> &Path {
         &self.dir
     }
 
-    /// New events from every live session transcript and its subagent transcripts; tokens go to the Tithe.
-    pub fn read_transcripts(&mut self, projects: &Path, roster: &[Session], now_ms: i64) -> Vec<Event> {
+    /// New events from every live session transcript and its subagent transcripts (`files`: per
+    /// session id, the poller's listing, subagents flagged true); tokens go to the Tithe.
+    pub fn read_transcripts(&mut self, roster: &[Session], files: &HashMap<String, Vec<(FileStat, bool)>>, now_ms: i64) -> Vec<Event> {
         let today_start = midnight_ms(now_ms);
         let mut events = vec![];
         let mut seen = HashSet::new();
         for s in roster {
-            // ponytail: direct slug path only (no all-projects scan each second); a cwd changed mid-session is missed.
-            let base = projects.join(registry::slug(&s.cwd));
-            let mut files = vec![(base.join(format!("{}.jsonl", s.id)), false)];
-            for e in fs::read_dir(base.join(&s.id).join("subagents")).into_iter().flatten().flatten() {
-                let p = e.path();
-                let name = e.file_name().to_string_lossy().into_owned();
-                if name.starts_with("agent-") && name.ends_with(".jsonl") {
-                    files.push((p, true));
-                }
-            }
-            for (path, sub) in files {
+            for (f, sub) in files.get(&s.id).into_iter().flatten() {
+                let path = &f.path;
                 seen.insert(path.clone());
                 let key = path.to_string_lossy().into_owned();
-                let Some(chunk) = read_new(&path, self.offsets.get(&key).copied(), today_start) else { continue };
-                self.offsets.insert(key, chunk.offset);
-                if chunk.text.is_empty() {
-                    continue;
+                let cursors = &mut self.cursors;
+                let mut found = Found::default();
+                let read = read_new(f, self.offsets.get(&key).copied(), today_start, |line, today_only| {
+                    if !wanted(line) {
+                        return;
+                    }
+                    if !cursors.contains_key(path) {
+                        cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into()))));
+                    }
+                    let Some((cur, helper)) = cursors.get_mut(path) else { return };
+                    let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
+                    extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
+                });
+                let Some(offset) = read else { continue };
+                if self.offsets.insert(key, offset) != Some(offset) {
+                    self.dirty = true;
                 }
-                let cur = self.cursors.entry(path.clone()).or_insert_with(|| Cursor { helper: sub.then(|| helper_kind(&path)), ..Default::default() });
-                let helper = cur.helper.clone();
-                let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
-                let (ev, usage, turns) = extract(cur, &chunk.text, if chunk.today_only { today_start } else { i64::MIN }, &src, now_ms);
+                let (ev, usage, turns) = found;
                 events.extend(ev);
                 for u in usage {
                     self.add_usage(&s.dept, &u); // subagent tokens count toward the parent's project
@@ -524,6 +540,7 @@ impl Chronicle {
                 for t in turns {
                     if let Some(tithe) = self.tithe_at(t.ts) {
                         tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
+                        self.dirty = true;
                     }
                 }
             }
@@ -532,12 +549,14 @@ impl Chronicle {
         events
     }
 
-    /// The Tithe of `ts`'s day, rolling over (flushing the old one) when a new day starts; older days are dropped.
+    /// The Tithe of `ts`'s day, rolling over (flushing the old one, dropping offsets of files
+    /// untouched since) when a new day starts; older days are dropped.
     fn tithe_at(&mut self, ts: i64) -> Option<&mut Tithe> {
         let day = day_of(ts);
         if day > self.tithe.day {
             self.flush();
             self.tithe = load_tithe(&self.dir, &day).unwrap_or_else(|| Tithe::new(&day));
+            prune_offsets(&mut self.offsets, midnight_ms(ts));
         }
         if day == self.tithe.day {
             Some(&mut self.tithe)
@@ -549,6 +568,7 @@ impl Chronicle {
     pub fn add_usage(&mut self, dept: &str, u: &Usage) {
         if let Some(t) = self.tithe_at(u.ts) {
             t.add_tokens(dept, &u.model, &u.tokens, hour_of(u.ts));
+            self.dirty = true;
         }
     }
 
@@ -558,6 +578,7 @@ impl Chronicle {
         for s in roster.iter().filter(|s| s.status == "busy" || s.status == "shell") {
             if let Some(t) = self.tithe_at(now_ms) {
                 t.add_busy(&s.dept, elapsed_ms, hour_of(now_ms));
+                self.dirty = true;
             }
         }
     }
@@ -570,10 +591,12 @@ impl Chronicle {
         }
     }
 
-    // ponytail: offsets persist with the tithe every 30 s; a crash replays at most 30 s of events.
+    // ponytail: offsets persist with the tithe every 30 s, and only if either changed; a crash
+    // replays at most 30 s of events.
     pub fn maybe_flush(&mut self, now_ms: i64) {
-        if now_ms - self.last_flush_ms >= FLUSH_MS {
+        if self.dirty && now_ms - self.last_flush_ms >= FLUSH_MS {
             self.last_flush_ms = now_ms;
+            self.dirty = false;
             self.flush();
         }
     }
@@ -587,30 +610,36 @@ impl Chronicle {
         }
     }
 
-    pub fn tithe_of(&self, day: &str) -> Tithe {
-        if day == self.tithe.day {
-            return self.tithe.clone();
-        }
-        load_tithe(&self.dir, day).unwrap_or_else(|| Tithe::new(day))
+    /// The dir and the live Tithe, so day files are read after the lock is released.
+    pub fn snapshot(&self) -> (PathBuf, Tithe) {
+        (self.dir.clone(), self.tithe.clone())
     }
+}
 
-    /// Today and the 6 previous days, newest first.
-    pub fn days(&self, now_ms: i64) -> Vec<DaySummary> {
-        last_days(now_ms, KEEP_DAYS)
-            .into_iter()
-            .map(|day| {
-                let t = self.tithe_of(&day);
-                let events = fs::read_to_string(self.dir.join(format!("{day}.jsonl"))).map_or(0, |s| s.lines().count() as u32);
-                DaySummary { events, tokens: t.tokens.total(), busy_ms: t.busy_ms, day }
-            })
-            .collect()
+/// Tithe of `day`: the live one (`live`, from `snapshot`) or the one saved in `dir`.
+pub fn tithe_of(dir: &Path, live: &Tithe, day: &str) -> Tithe {
+    if day == live.day {
+        return live.clone();
     }
+    load_tithe(dir, day).unwrap_or_else(|| Tithe::new(day))
+}
+
+/// Today and the 6 previous days, newest first.
+pub fn days(dir: &Path, live: &Tithe, now_ms: i64) -> Vec<DaySummary> {
+    last_days(now_ms, KEEP_DAYS)
+        .into_iter()
+        .map(|day| {
+            let t = tithe_of(dir, live, &day);
+            let events = fs::read(dir.join(format!("{day}.jsonl"))).map_or(0, |b| b.iter().filter(|&&c| c == b'\n').count() as u32);
+            DaySummary { events, tokens: t.tokens.total(), busy_ms: t.busy_ms, day }
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, SystemTime};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     fn iso(ms: i64) -> String {
         chrono::DateTime::from_timestamp_millis(ms).unwrap().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
@@ -776,22 +805,29 @@ mod tests {
         d
     }
 
+    /// `read_new` with the streamed lines joined back into one text.
+    fn read_text(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<(String, u64, Option<bool>)> {
+        let (mut text, mut today) = (String::new(), None);
+        let offset = read_new(f, stored, today_start, |l, t| {
+            text.push_str(&format!("{l}\n"));
+            today = Some(t);
+        })?;
+        Some((text, offset, today))
+    }
+
     #[test]
     fn read_new_whole_lines_only_and_restarts_when_the_file_shrinks() {
         let d = temp_dir("read-new");
         let p = d.join("a.jsonl");
         fs::write(&p, "one\ntwo\npart").unwrap();
-        let c = read_new(&p, None, 0).unwrap();
-        assert_eq!((c.text.as_str(), c.offset, c.today_only), ("one\ntwo\n", 8, true));
-        assert!(read_new(&p, Some(8), 0).unwrap().text.is_empty(), "partial line waits");
+        let st = || registry::stat(&p).unwrap();
+        assert_eq!(read_text(&st(), None, 0).unwrap(), ("one\ntwo\n".into(), 8, Some(true)));
+        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("".into(), 8, None), "partial line waits");
         fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(b"ial\n").unwrap();
-        let c = read_new(&p, Some(8), 0).unwrap();
-        assert_eq!((c.text.as_str(), c.offset, c.today_only), ("partial\n", 16, false));
-        assert!(read_new(&p, Some(16), 0).is_none(), "nothing new");
-        fs::write(&p, "new\n").unwrap();
-        let c = read_new(&p, Some(16), 0).unwrap();
-        assert_eq!((c.text.as_str(), c.offset, c.today_only), ("new\n", 4, true), "shrank: from 0, today only");
-        assert!(read_new(&d.join("missing.jsonl"), None, 0).is_none());
+        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("partial\n".into(), 16, Some(false)));
+        assert!(read_text(&st(), Some(16), 0).is_none(), "nothing new");
+        fs::write(&p, "new\r\n").unwrap();
+        assert_eq!(read_text(&st(), Some(16), 0).unwrap(), ("new\n".into(), 5, Some(true)), "shrank: from 0, today only; CRLF like lines()");
     }
 
     #[test]
@@ -800,8 +836,7 @@ mod tests {
         let p = d.join("old.jsonl");
         fs::write(&p, "old\n").unwrap();
         fs::OpenOptions::new().write(true).open(&p).unwrap().set_modified(SystemTime::now() - Duration::from_secs(3 * 86_400)).unwrap();
-        let c = read_new(&p, None, midnight_ms(now())).unwrap();
-        assert_eq!((c.text.as_str(), c.offset), ("", 4));
+        assert_eq!(read_text(&registry::stat(&p).unwrap(), None, midnight_ms(now())).unwrap(), ("".into(), 4, None));
     }
 
     #[test]
@@ -813,7 +848,7 @@ mod tests {
         c.add_usage("Geneseed", &u(6));
         let s = |id: &str, dept: &str, status: &str| Session { dept: dept.into(), status: status.into(), ..crate::registry::tests_session(id) };
         c.add_busy(&[s("a", "Terra", "busy"), s("b", "Terra", "shell"), s("c", "Geneseed", "waiting"), s("d", "Geneseed", "idle")], 1000, ts);
-        let t = c.tithe_of(&day_of(ts));
+        let t = tithe_of(&c.dir, &c.tithe, &day_of(ts));
         assert_eq!(t.tokens, Tokens { input: 2, output: 11, cache_read: 20, cache_write: 200 });
         assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000 });
         assert_eq!(t.by_project["Geneseed"], Share { tokens: 117, busy_ms: 0 });
@@ -827,8 +862,24 @@ mod tests {
         // Persisted and resumed by the next open of the same day.
         c.flush();
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
-        assert_eq!(again.tithe_of(&day_of(ts)), t);
-        assert_eq!(again.days(ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+        assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
+        assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+    }
+
+    #[test]
+    fn flushes_only_when_something_changed() {
+        let d = temp_dir("dirty");
+        let t = now();
+        let mut c = Chronicle::open(d.clone(), t, true);
+        let saved = d.join("offsets.json");
+        c.maybe_flush(t + FLUSH_MS);
+        assert!(!saved.exists(), "idle: no write");
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.maybe_flush(t + 2 * FLUSH_MS);
+        assert!(saved.exists());
+        fs::remove_file(&saved).unwrap();
+        c.maybe_flush(t + 3 * FLUSH_MS);
+        assert!(!saved.exists(), "clean again after a flush");
     }
 
     #[test]
@@ -892,13 +943,18 @@ mod tests {
         fs::write(subs.join("agent-x1.meta.json"), r#"{"agentType":"Explore"}"#).unwrap();
         let mut c = Chronicle::open(root.join("chronicon"), t, true);
         let s = Session { cwd: cwd.into(), dept: "Terra".into(), name: "terra-77".into(), ..crate::registry::tests_session("s1") };
-        let ev = c.read_transcripts(&projects, &[s.clone()], t);
+        let files = |c: &mut Chronicle| {
+            let mut v = vec![(registry::stat(&base.join("s1.jsonl")).unwrap(), false)];
+            v.extend(registry::list_subagents(&subs).into_iter().map(|f| (f, true)));
+            c.read_transcripts(&[s.clone()], &HashMap::from([("s1".to_string(), v)]), t)
+        };
+        let ev = files(&mut c);
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
-        let tithe = c.tithe_of(&day_of(t));
+        let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
         assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
-        assert!(c.read_transcripts(&projects, &[s.clone()], t).is_empty(), "nothing new");
+        assert!(files(&mut c).is_empty(), "nothing new");
         for e in &ev {
             c.record(e);
         }

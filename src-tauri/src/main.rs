@@ -1,13 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
 mod demo;
+mod poller;
 mod registry;
 mod settings;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
 use std::{
-    collections::HashMap,
     path::PathBuf,
     process::Command,
     sync::{
@@ -17,7 +17,6 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime},
 };
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -112,8 +111,11 @@ fn now_ms() -> i64 {
     SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
 }
 
+// Commands below that touch the disk run off the main thread (async) and read files only after
+// releasing the chronicle lock, so neither the UI nor the poll loop waits on them.
+
 /// Chronicon events of one local day ("YYYY-MM-DD"), oldest first.
-#[tauri::command]
+#[tauri::command(async)]
 fn chronicle_day(day: String, chron: State<Chron>) -> Result<Vec<Event>, String> {
     if !chronicle::valid_day(&day) {
         return Err("invalid day".into());
@@ -123,18 +125,20 @@ fn chronicle_day(day: String, chron: State<Chron>) -> Result<Vec<Event>, String>
 }
 
 /// Tithe (tokens + working time) of one local day; today's is live.
-#[tauri::command]
+#[tauri::command(async)]
 fn tithe_day(day: String, chron: State<Chron>) -> Result<Tithe, String> {
     if !chronicle::valid_day(&day) {
         return Err("invalid day".into());
     }
-    Ok(chron.lock().map_err(|_| "chronicle unavailable")?.tithe_of(&day))
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    Ok(chronicle::tithe_of(&dir, &live, &day))
 }
 
 /// Today and the 6 previous days, newest first.
-#[tauri::command]
+#[tauri::command(async)]
 fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
-    Ok(chron.lock().map_err(|_| "chronicle unavailable")?.days(now_ms()))
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    Ok(chronicle::days(&dir, &live, now_ms()))
 }
 
 /// Stale-petition mark in ms, set from the settings panel (default `registry::STALE_MS`).
@@ -165,12 +169,12 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
-#[tauri::command]
+#[tauri::command(async)]
 fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
     Ok(settings::load(&settings_path(&app)?))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
     settings::save(&settings_path(&app)?, &values)
 }
@@ -207,119 +211,78 @@ fn main() {
 }
 
 fn poll_loop(app: AppHandle, demo: bool) {
-    let dir = claude_dir();
-    let mut sys = System::new();
+    let mut poller = poller::Poller::new(&claude_dir());
     let mut tracker = Tracker::default();
-    let mut completions = registry::Completions::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
-    let projects = dir.join("projects");
     let mut first = true;
     let mut last_tick = Instant::now();
     let mut last_t = 0;
-    // Orca terminal handle per pid, cached: environ() is only ever refreshed for a pid we haven't
-    // seen yet (never for the whole process list every tick). Evicted when a pid disappears.
-    let mut orca_cache: HashMap<u32, Option<String>> = HashMap::new();
     loop {
-        let roster = if demo {
-            demo::roster(start.elapsed().as_secs())
-        } else {
-            // We only need liveness + name, not the CPU/mem/disk/exe sampling `refresh_processes` does by default.
-            sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
-            let alive_pids: std::collections::HashSet<u32> = sys
-                .processes()
-                .iter()
-                .filter(|(_, p)| p.name().to_string_lossy().eq_ignore_ascii_case("claude.exe"))
-                .map(|(pid, _)| pid.as_u32())
-                .collect();
-            let alive = |pid: u32| alive_pids.contains(&pid);
-            orca_cache.retain(|&pid, _| alive(pid));
-            let orca_handle = |pid: u32| -> Option<String> {
-                if let Some(cached) = orca_cache.get(&pid) {
-                    return cached.clone();
-                }
-                sys.refresh_processes_specifics(
-                    ProcessesToUpdate::Some(&[Pid::from_u32(pid)]),
-                    true,
-                    ProcessRefreshKind::nothing().with_environ(UpdateKind::Always),
-                );
-                let handle = sys.process(Pid::from_u32(pid)).and_then(|p| {
-                    p.environ().iter().find_map(|e| e.to_str()?.strip_prefix("ORCA_TERMINAL_HANDLE=").map(str::to_string))
-                });
-                orca_cache.insert(pid, handle.clone());
-                handle
-            };
-            let scanned = registry::scan(
-                &dir.join("sessions"),
-                alive,
-                |id, cwd, tail| registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail),
-                |id, cwd| {
-                    let parent = dir.join("projects").join(registry::slug(cwd)).join(format!("{id}.jsonl"));
-                    let completed = completions.scan(id, &parent);
-                    registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now(), completed)
-                },
-                orca_handle,
-            );
-            let mut roster = registry::merge(&prev, scanned);
+        // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
+        // tick runs as usual instead of the widget freezing on stale state.
+        let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
+            for s in tracker.new_petitions(&roster) {
+                let _ = app
+                    .notification()
+                    .builder()
+                    .title(format!("Petition from {}", s.name))
+                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                    .show();
+                let _ = app.emit("petition", &s);
+            }
             let now_ms = now_ms();
-            registry::track_compaction(&prev, &mut roster, now_ms);
-            roster
-        };
-        for s in tracker.new_petitions(&roster) {
-            let _ = app
-                .notification()
-                .builder()
-                .title(format!("Petition from {}", s.name))
-                .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
-                .show();
-            let _ = app.emit("petition", &s);
-        }
-        let now_ms = now_ms();
-        // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
-        let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
-        for s in tracker.stale_petitions(&roster, now_ms + shift) {
-            let _ = app
-                .notification()
-                .builder()
-                .title(format!("Petition still waiting: {}", s.name))
-                .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
-                .show();
-            let _ = app.emit("petition-stale", &s);
-        }
-        {
-            let now = now_ms;
-            let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
-            last_tick = Instant::now();
-            let chron = app.state::<Chron>();
-            let mut c = chron.lock().unwrap_or_else(|e| e.into_inner());
-            let mut events = if demo {
-                let t = start.elapsed().as_secs();
-                for (dept, u) in demo::usage(&roster, now) {
-                    c.add_usage(&dept, &u);
-                }
-                c.add_busy(&roster, elapsed, now);
-                let ev = demo::chronicle(last_t, t, &roster, now);
-                last_t = t;
-                ev
-            } else {
-                c.read_transcripts(&projects, &roster, now)
-            };
-            if !first {
-                events.extend(chronicle::lifecycle(&prev, &roster, now));
+            // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
+            let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
+            for s in tracker.stale_petitions(&roster, now_ms + shift) {
+                let _ = app
+                    .notification()
+                    .builder()
+                    .title(format!("Petition still waiting: {}", s.name))
+                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                    .show();
+                let _ = app.emit("petition-stale", &s);
             }
-            for e in &events {
-                c.record(e);
-                // The first scan backfills today; only fresh events play live in the scene.
-                if now - e.ts < 120_000 {
-                    let _ = app.emit("chronicle", e);
+            {
+                let now = now_ms;
+                let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
+                last_tick = Instant::now();
+                let chron = app.state::<Chron>();
+                let mut c = chron.lock().unwrap_or_else(|e| e.into_inner());
+                let mut events = if demo {
+                    let t = start.elapsed().as_secs();
+                    for (dept, u) in demo::usage(&roster, now) {
+                        c.add_usage(&dept, &u);
+                    }
+                    c.add_busy(&roster, elapsed, now);
+                    let ev = demo::chronicle(last_t, t, &roster, now);
+                    last_t = t;
+                    ev
+                } else {
+                    c.read_transcripts(&roster, &poller.files, now)
+                };
+                if !first {
+                    events.extend(chronicle::lifecycle(&prev, &roster, now));
                 }
+                for e in &events {
+                    c.record(e);
+                    // The first scan backfills today; only fresh events play live in the scene.
+                    if now - e.ts < 120_000 {
+                        let _ = app.emit("chronicle", e);
+                    }
+                }
+                c.maybe_flush(now);
+                first = false;
             }
-            c.maybe_flush(now);
-            first = false;
+            // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
+            let _ = app.emit("roster", &roster);
+            prev = roster;
+        }));
+        if tick.is_err() {
+            eprintln!("poll tick panicked, skipped");
+            app.state::<Chron>().clear_poison(); // keep the Chronicon commands working
         }
-        // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
-        let _ = app.emit("roster", &roster);
-        prev = roster;
         thread::sleep(Duration::from_secs(1));
     }
 }
