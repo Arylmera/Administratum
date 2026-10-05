@@ -1,10 +1,37 @@
 //! UI settings file (`settings.json` in the app config dir): survives a reinstall that wipes the
-//! WebView's localStorage. The UI owns the keys; this side only checks shape and size.
+//! WebView's localStorage. The UI owns the keys; this side only checks shape and size. Keys under
+//! `remote.` (remote view: enabled, port, actions, token) belong to the backend: the UI never sees
+//! them (`public`) and never overwrites them (`merge_ui`).
 
 use serde_json::{Map, Value};
-use std::{fs, path::Path};
+use std::{fs, path::Path, sync::Mutex};
 
 pub const MAX_BYTES: usize = 16 * 1024;
+const BACKEND: &str = "remote.";
+
+/// The settings as the UI (local or remote) may see them: without the backend's keys.
+pub fn public(mut v: Value) -> Value {
+    if let Some(o) = v.as_object_mut() {
+        o.retain(|k, _| !k.starts_with(BACKEND));
+    }
+    v
+}
+
+/// What the UI saves (`new`, its backend keys ignored) plus the backend keys already in `old`.
+pub fn merge_ui(old: &Value, new: &Value) -> Value {
+    let mut out = public(new.clone());
+    if let (Some(o), Some(old)) = (out.as_object_mut(), old.as_object()) {
+        o.extend(old.iter().filter(|(k, _)| k.starts_with(BACKEND)).map(|(k, v)| (k.clone(), v.clone())));
+    }
+    out
+}
+
+/// Read-modify-write of the file, serialised so the UI's saves and the backend's never lose each other's keys.
+pub fn update(path: &Path, f: impl FnOnce(Value) -> Value) -> Result<(), String> {
+    static LOCK: Mutex<()> = Mutex::new(());
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    save(path, &f(load(path)))
+}
 
 /// An object of primitive values (string, number, bool, null), at most `MAX_BYTES` serialized.
 pub fn validate(v: &Value) -> Result<String, String> {
@@ -67,6 +94,25 @@ mod tests {
         assert_eq!(load(&path), v, "a rejected save leaves the file alone");
         fs::write(&path, "{oops").unwrap();
         assert_eq!(load(&path), json!({}));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn backend_keys_hidden_and_kept() {
+        let file = json!({"adm.muted": "1", "remote.token": "secret", "remote.port": 7770});
+        assert_eq!(public(file.clone()), json!({"adm.muted": "1"}));
+        // The UI cannot drop or forge backend keys.
+        let ui = json!({"adm.muted": "0", "remote.token": "forged"});
+        assert_eq!(merge_ui(&file, &ui), json!({"adm.muted": "0", "remote.token": "secret", "remote.port": 7770}));
+        let dir = std::env::temp_dir().join(format!("adm-settings-upd-{}", std::process::id()));
+        let path = dir.join("settings.json");
+        update(&path, |v| merge_ui(&v, &json!({"a": 1}))).unwrap();
+        update(&path, |mut v| {
+            v["remote.port"] = json!(8000);
+            v
+        })
+        .unwrap();
+        assert_eq!(load(&path), json!({"a": 1, "remote.port": 8000}));
         let _ = fs::remove_dir_all(&dir);
     }
 }
