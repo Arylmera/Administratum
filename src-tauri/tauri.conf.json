@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Administratum",
+  "version": "0.1.0",
+  "identifier": "com.arylmera.administratum",
+  "build": { "frontendDist": "../ui" },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Administratum",
+        "width": 700,
+        "height": 500,
+        "minWidth": 360,
+        "minHeight": 280,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "skipTaskbar": true
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
+  }
+}
