@@ -3,6 +3,7 @@ mod chronicle;
 mod demo;
 mod poller;
 mod registry;
+mod remote;
 mod settings;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
@@ -202,14 +203,117 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
+/// Never includes the backend's `remote.*` keys (the remote view's token among them).
 #[tauri::command(async)]
 fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
-    Ok(settings::load(&settings_path(&app)?))
+    Ok(settings::public(settings::load(&settings_path(&app)?)))
 }
 
 #[tauri::command(async)]
 fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
-    settings::save(&settings_path(&app)?, &values)
+    settings::update(&settings_path(&app)?, |old| settings::merge_ui(&old, &values))
+}
+
+/// Emit to the webview, and mirror to the remote view's `/events` clients.
+fn emit<S: serde::Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
+    remote::publish(event, &payload);
+    let _ = app.emit(event, payload);
+}
+
+/// Remote view settings, from `remote.*` in settings.json; creates and saves the token on first use.
+fn remote_conf(path: &std::path::Path) -> Result<(bool, u16, bool, String), String> {
+    let mut out = (false, remote::DEFAULT_PORT, false, String::new());
+    settings::update(path, |mut v| {
+        if !v["remote.token"].as_str().is_some_and(remote::valid_token) {
+            v["remote.token"] = remote::new_token().into();
+        }
+        out = (
+            v["remote.enabled"].as_bool().unwrap_or(false),
+            v["remote.port"].as_u64().and_then(|p| u16::try_from(p).ok()).filter(|&p| p >= 1024).unwrap_or(remote::DEFAULT_PORT),
+            v["remote.actions"].as_bool().unwrap_or(false),
+            v["remote.token"].as_str().unwrap_or_default().to_string(),
+        );
+        v
+    })?;
+    Ok(out)
+}
+
+/// The app as the remote view reaches it: the read commands, answer_petition (gated by the
+/// server), and the embedded UI files. open_session and every settings write stay local.
+fn remote_backend(app: &AppHandle) -> remote::Backend {
+    fn json<T: serde::Serialize>(r: Result<T, String>) -> Result<serde_json::Value, String> {
+        r.and_then(|v| serde_json::to_value(v).map_err(|e| e.to_string()))
+    }
+    let (a, b) = (app.clone(), app.clone());
+    remote::Backend {
+        call: Box::new(move |c| match c {
+            remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
+            remote::Call::TitheDay(day) => json(tithe_day(day, a.state())),
+            remote::Call::ChronicleDays => json(chronicle_days(a.state())),
+            remote::Call::SettingsLoad => settings_load(a.clone()),
+            remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
+            remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
+        }),
+        asset: Box::new(move |p| b.asset_resolver().get(p.to_string()).map(|x| (x.bytes, x.mime_type))),
+    }
+}
+
+#[derive(serde::Serialize)]
+struct RemoteStatus {
+    enabled: bool,
+    port: u16,
+    urls: Vec<String>,
+    token_url: String,
+    qr_svg: String,
+    actions_allowed: bool,
+}
+
+/// The settings panel's view of the remote view: whether it is serving, where, and the pairing QR.
+#[tauri::command(async)]
+fn remote_status(app: AppHandle) -> Result<RemoteStatus, String> {
+    let (_, port, actions_allowed, token) = remote_conf(&settings_path(&app)?)?;
+    let urls: Vec<String> = remote::lan_ipv4().iter().map(|ip| format!("http://{ip}:{port}/")).collect();
+    let token_url = urls.first().map(|u| format!("{u}?t={token}")).unwrap_or_default();
+    let qr_svg = if token_url.is_empty() { String::new() } else { remote::qr_svg(&token_url) };
+    Ok(RemoteStatus { enabled: remote::running_port().is_some(), port, urls, token_url, qr_svg, actions_allowed })
+}
+
+/// Serve (or stop serving) on `port`, and allow remote actions or not. Applies at once; a port
+/// that cannot be bound leaves the remote view off and returns the error.
+#[tauri::command(async)]
+fn remote_set(enabled: bool, port: u16, actions_allowed: bool, app: AppHandle) -> Result<RemoteStatus, String> {
+    if port < 1024 {
+        return Err("port must be between 1024 and 65535".into());
+    }
+    let path = settings_path(&app)?;
+    remote_conf(&path)?; // the token exists before anything can pair
+    remote::set_actions(actions_allowed);
+    let run = match (enabled, remote::running_port()) {
+        (false, _) => Ok(remote::stop()),
+        (true, Some(p)) if p == port => Ok(()),
+        (true, _) => remote::start(std::net::SocketAddr::from(([0, 0, 0, 0], port)), remote_backend(&app)).map(|_| ()),
+    };
+    let on = enabled && run.is_ok();
+    settings::update(&path, |mut v| {
+        v["remote.enabled"] = on.into();
+        v["remote.port"] = port.into();
+        v["remote.actions"] = actions_allowed.into();
+        v
+    })?;
+    run?;
+    remote_status(app)
+}
+
+/// A new token: every paired device must scan the new QR code; open streams end now.
+#[tauri::command(async)]
+fn remote_regenerate_token(app: AppHandle) -> Result<RemoteStatus, String> {
+    let token = remote::new_token();
+    settings::update(&settings_path(&app)?, |mut v| {
+        v["remote.token"] = token.clone().into();
+        v
+    })?;
+    remote::set_token(&token);
+    remote_status(app)
 }
 
 fn claude_dir() -> PathBuf {
@@ -222,7 +326,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, start_at_login, settings_load, settings_save])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, start_at_login, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
@@ -230,6 +334,15 @@ fn main() {
             app.manage::<Chron>(Mutex::new(Chronicle::open(dir, now_ms(), demo)));
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
+            if let Ok((enabled, port, actions, token)) = settings_path(app.handle()).and_then(|p| remote_conf(&p)) {
+                remote::set_token(&token);
+                remote::set_actions(actions);
+                if enabled {
+                    if let Err(e) = remote::start(std::net::SocketAddr::from(([0, 0, 0, 0], port)), remote_backend(app.handle())) {
+                        eprintln!("remote view: {e}");
+                    }
+                }
+            }
             #[cfg(windows)]
             {
                 let handle = app.handle().clone();
@@ -268,7 +381,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     .title(format!("Petition from {}", s.name))
                     .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
                     .show();
-                let _ = app.emit("petition", &s);
+                emit(&app, "petition", &s);
             }
             // Questions never go stale: one toast (if wanted) and one chime per episode.
             for s in tracker.new_questions(&roster) {
@@ -280,7 +393,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
                     let _ = app.notification().builder().title(format!("Question from {}", s.name)).body(format!("{} · {q}", s.dept)).show();
                 }
-                let _ = app.emit("question", &s);
+                emit(&app, "question", &s);
             }
             let now_ms = now_ms();
             // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
@@ -292,7 +405,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     .title(format!("Petition still waiting: {}", s.name))
                     .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
                     .show();
-                let _ = app.emit("petition-stale", &s);
+                emit(&app, "petition-stale", &s);
             }
             {
                 let now = now_ms;
@@ -319,14 +432,14 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     c.record(e);
                     // The first scan backfills today; only fresh events play live in the scene.
                     if now - e.ts < 120_000 {
-                        let _ = app.emit("chronicle", e);
+                        emit(&app, "chronicle", e);
                     }
                 }
                 c.maybe_flush(now);
                 first = false;
             }
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
-            let _ = app.emit("roster", &roster);
+            emit(&app, "roster", &roster);
             prev = roster;
         }));
         if tick.is_err() {
@@ -415,10 +528,10 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => toggle_window(app),
             "mute" => {
-                let _ = app.emit("ui-command", "mute");
+                emit(app, "ui-command", "mute");
             }
             "light" => {
-                let _ = app.emit("ui-command", "light");
+                emit(app, "ui-command", "light");
             }
             "login" => {
                 let al = app.autolaunch();
