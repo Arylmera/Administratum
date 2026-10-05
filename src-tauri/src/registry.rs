@@ -300,7 +300,9 @@ pub fn valid_orca_handle(handle: &str) -> bool {
 
 /// Only a claude.ai code-session URL may be opened via the shell.
 pub fn valid_claude_web_url(url: &str) -> bool {
-    url.starts_with("https://claude.ai/code/") && url.len() > "https://claude.ai/code/".len()
+    // The id is passed through `cmd /c start`, so only allow characters cmd can't interpret (& | ^ < > etc.).
+    url.strip_prefix("https://claude.ai/code/")
+        .is_some_and(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
 }
 
 pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
@@ -620,6 +622,8 @@ mod tests {
         assert!(!valid_claude_web_url("https://claude.ai/code/"));
         assert!(!valid_claude_web_url("https://evil.example.com/code/x"));
         assert!(!valid_claude_web_url("javascript:alert(1)"));
+        assert!(!valid_claude_web_url("https://claude.ai/code/x&calc"));
+        assert!(!valid_claude_web_url("https://claude.ai/code/x|whoami"));
     }
 
     #[test]
