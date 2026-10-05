@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, fs, path::Path};
+use std::{collections::HashSet, fs, path::Path, time::SystemTime};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +25,60 @@ pub struct Session {
     pub waiting_for: Option<String>,
     pub since_ms: i64,
     pub task: String,
+    pub helpers: Vec<Helper>,
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Helper {
+    pub id: String,
+    pub kind: String,
+    pub task: String,
+    pub model: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct HelperMeta {
+    agent_type: Option<String>,
+    description: Option<String>,
+    model: Option<String>,
+}
+
+const HELPER_ACTIVE_SECS: u64 = 45;
+
+/// Active subagents for one session: every `agent-<id>.jsonl` in `dir` whose transcript was
+/// modified less than `HELPER_ACTIVE_SECS` ago, newest-activity-irrelevant — sorted by id for
+/// stable output. A missing/unparseable sidecar `.meta.json` still yields a helper with defaults.
+pub fn active_helpers(dir: &Path, now: SystemTime) -> Vec<Helper> {
+    let Ok(entries) = fs::read_dir(dir) else { return vec![] };
+    let mut out = vec![];
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else { continue };
+        if path.extension().and_then(|x| x.to_str()) != Some("jsonl") {
+            continue;
+        }
+        let Some(id) = stem.strip_prefix("agent-") else { continue };
+        let Ok(meta) = entry.metadata() else { continue };
+        let Ok(modified) = meta.modified() else { continue };
+        let age = now.duration_since(modified).unwrap_or_default();
+        if age.as_secs() >= HELPER_ACTIVE_SECS {
+            continue;
+        }
+        let meta: HelperMeta = fs::read_to_string(dir.join(format!("agent-{id}.meta.json")))
+            .ok()
+            .and_then(|t| serde_json::from_str(&t).ok())
+            .unwrap_or_default();
+        out.push(Helper {
+            id: id.to_string(),
+            kind: meta.agent_type.unwrap_or_else(|| "agent".to_string()),
+            task: meta.description.map(|d| clip(&d)).unwrap_or_default(),
+            model: meta.model,
+        });
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    out
 }
 
 pub fn parse_record(text: &str) -> Option<RawRecord> {
@@ -106,6 +160,7 @@ pub fn scan(
     dir: &Path,
     alive: impl Fn(u32) -> bool,
     transcript: impl Fn(&str, &str, u64) -> Option<String>,
+    helpers: impl Fn(&str, &str) -> Vec<Helper>,
 ) -> Scan {
     let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
     let Ok(entries) = fs::read_dir(dir) else { return out };
@@ -134,6 +189,7 @@ pub fn scan(
                 task = task_line(&bigger);
             }
         }
+        let helper_list = helpers(&rec.session_id, &rec.cwd);
         out.sessions.push(Session {
             task,
             dept: dept_of(&rec.cwd),
@@ -144,6 +200,7 @@ pub fn scan(
             waiting_for: if status == "waiting" { rec.waiting_for } else { None },
             since_ms: rec.status_updated_at.unwrap_or(0),
             status,
+            helpers: helper_list,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -155,7 +212,7 @@ const BIG_TAIL_BYTES: u64 = 512 * 1024;
 
 /// `cwd` turned into the project-folder slug Claude Code uses under `~/.claude/projects`:
 /// every non-alphanumeric-ASCII char becomes `-` (e.g. `C:\Users\x\git\Foo` -> `C--Users-x-git-Foo`).
-fn slug(cwd: &str) -> String {
+pub(crate) fn slug(cwd: &str) -> String {
     cwd.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect()
 }
 
@@ -280,7 +337,7 @@ mod tests {
         assert_eq!(task_line("not json\n{"), "—");
     }
 
-    use std::{fs, path::PathBuf};
+    use std::{fs, path::PathBuf, time::Duration};
 
     fn temp_dir(name: &str) -> PathBuf {
         let d = std::env::temp_dir().join(format!("adm-test-{}-{name}", std::process::id()));
@@ -295,7 +352,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into() }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![] }
     }
 
     #[test]
@@ -306,7 +363,7 @@ mod tests {
         fs::write(d.join("12.json"), record(12, "c", "dead", "idle")).unwrap();
         fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
         fs::write(d.join("10.key"), "not a record").unwrap();
-        let out = scan(&d, |pid| pid != 12, |id, _cwd, _tail| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()));
+        let out = scan(&d, |pid| pid != 12, |id, _cwd, _tail| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()), |_, _| vec![]);
         let names: Vec<_> = out.sessions.iter().map(|s| s.name.as_str()).collect();
         assert_eq!(names, ["terra-a", "terra-b"]);
         assert_eq!(out.unreadable_pids, [13]);
@@ -320,7 +377,7 @@ mod tests {
 
     #[test]
     fn scan_of_missing_dir_is_empty() {
-        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_, _, _| None);
+        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_, _, _| None, |_, _| vec![]);
         assert!(out.sessions.is_empty() && out.unreadable_pids.is_empty());
     }
 
@@ -328,7 +385,7 @@ mod tests {
     fn scan_skips_unreadable_pid_if_dead() {
         let d = temp_dir("scan-dead-unreadable");
         fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
-        let out = scan(&d, |pid| pid != 13, |_, _, _| None);
+        let out = scan(&d, |pid| pid != 13, |_, _, _| None, |_, _| vec![]);
         assert!(out.unreadable_pids.is_empty(), "dead pid's malformed file is not carried forward");
     }
 
@@ -360,7 +417,7 @@ mod tests {
         let d = temp_dir("scan-retry-tail");
         fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
         // The 64 KB tail holds no whole line (task_line -> "—"); a bigger tail would.
-        let out = scan(&d, |_| true, |_, _, tail| if tail == TAIL_BYTES { Some("x".repeat(70_000)) } else { Some(r#"{"type":"user","message":{"content":"hi"}}"#.to_string()) });
+        let out = scan(&d, |_| true, |_, _, tail| if tail == TAIL_BYTES { Some("x".repeat(70_000)) } else { Some(r#"{"type":"user","message":{"content":"hi"}}"#.to_string()) }, |_, _| vec![]);
         assert_eq!(out.sessions[0].task, "“hi”");
     }
 
@@ -370,6 +427,49 @@ mod tests {
         let merged = merge(&prev, Scan { sessions: vec![session("y", 10, "idle", 2)], unreadable_pids: vec![13, 99] });
         let ids: Vec<_> = merged.iter().map(|s| s.id.as_str()).collect();
         assert_eq!(ids, ["x", "y"]);
+    }
+
+    #[test]
+    fn active_helpers_keeps_fresh_skips_stale_reads_meta() {
+        let d = temp_dir("helpers-fresh-stale");
+        fs::write(d.join("agent-fresh1.jsonl"), "{}").unwrap();
+        fs::write(
+            d.join("agent-fresh1.meta.json"),
+            r#"{"agentType":"general-purpose","description":"HD phase 2a: redraw sprites","toolUseId":"toolu_x","spawnDepth":1,"requestShape":"background","requestNonInteractive":true,"model":"opus"}"#,
+        ).unwrap();
+        fs::write(d.join("agent-stale1.jsonl"), "{}").unwrap();
+        let now = SystemTime::now();
+        fs::OpenOptions::new().write(true).open(d.join("agent-stale1.jsonl")).unwrap().set_modified(now - Duration::from_secs(120)).unwrap();
+
+        let out = active_helpers(&d, now);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].id, "fresh1");
+        assert_eq!(out[0].kind, "general-purpose");
+        assert_eq!(out[0].task, "HD phase 2a: redraw sprites");
+        assert_eq!(out[0].model.as_deref(), Some("opus"));
+    }
+
+    #[test]
+    fn active_helpers_missing_or_invalid_meta_yields_defaults() {
+        let d = temp_dir("helpers-no-meta");
+        fs::write(d.join("agent-bare.jsonl"), "{}").unwrap();
+        fs::write(d.join("agent-broken.jsonl"), "{}").unwrap();
+        fs::write(d.join("agent-broken.meta.json"), "not json").unwrap();
+
+        let out = active_helpers(&d, SystemTime::now());
+        let ids: Vec<_> = out.iter().map(|h| h.id.as_str()).collect();
+        assert_eq!(ids, ["bare", "broken"]);
+        for h in &out {
+            assert_eq!(h.kind, "agent");
+            assert_eq!(h.task, "");
+            assert_eq!(h.model, None);
+        }
+    }
+
+    #[test]
+    fn active_helpers_of_missing_dir_is_empty() {
+        let out = active_helpers(&std::env::temp_dir().join("adm-helpers-does-not-exist"), SystemTime::now());
+        assert!(out.is_empty());
     }
 
     #[test]

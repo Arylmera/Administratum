@@ -3,7 +3,7 @@ mod demo;
 mod registry;
 
 use registry::{Session, Tracker};
-use std::{path::PathBuf, thread, time::{Duration, Instant}};
+use std::{path::PathBuf, thread, time::{Duration, Instant, SystemTime}};
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
@@ -50,9 +50,12 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     .map(|p| p.name().to_string_lossy().eq_ignore_ascii_case("claude.exe"))
                     .unwrap_or(false)
             };
-            let scanned = registry::scan(&dir.join("sessions"), alive, |id, cwd, tail| {
-                registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail)
-            });
+            let scanned = registry::scan(
+                &dir.join("sessions"),
+                alive,
+                |id, cwd, tail| registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail),
+                |id, cwd| registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now()),
+            );
             registry::merge(&prev, scanned)
         };
         for s in tracker.new_petitions(&roster) {

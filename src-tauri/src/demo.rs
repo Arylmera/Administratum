@@ -1,4 +1,4 @@
-use crate::registry::Session;
+use crate::registry::{Helper, Session};
 use std::{sync::OnceLock, time::{SystemTime, UNIX_EPOCH}};
 
 /// Wall-clock ms at the first demo tick, so `sinceMs` reads as a real timestamp in the UI.
@@ -18,7 +18,12 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         waiting_for: if status == "waiting" { waiting_for.map(str::to_string) } else { None },
         since_ms,
         task: task.into(),
+        helpers: vec![],
     }
+}
+
+fn helper(id: &str, kind: &str, task: &str) -> Helper {
+    Helper { id: id.into(), kind: kind.into(), task: task.into(), model: None }
 }
 
 /// A 60 s scripted day in the office: work, shell, two petitions, an arrival.
@@ -33,6 +38,15 @@ pub fn roster(t: u64) -> Vec<Session> {
     ];
     if phase >= 45 {
         v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md"));
+    }
+    if (0..20).contains(&phase) {
+        v[0].helpers = vec![
+            helper("a1", "general-purpose", "Implement Task 3"),
+            helper("a2", "Explore", "find callers"),
+        ];
+    }
+    if (30..50).contains(&phase) {
+        v[3].helpers = vec![helper("b1", "general-purpose", "")];
     }
     v
 }
@@ -53,5 +67,14 @@ mod tests {
         let first = at(15, "geneseed-51").unwrap().since_ms;
         let next = at(75, "geneseed-51").unwrap().since_ms;
         assert_ne!(first, next, "each cycle is a new petition episode");
+    }
+
+    #[test]
+    fn demo_gives_helpers_to_scribes_during_their_phase() {
+        let at = |t, name: &str| roster(t).into_iter().find(|s| s.name == name).unwrap();
+        assert_eq!(at(10, "terra-77").helpers.len(), 2);
+        assert!(at(25, "terra-77").helpers.is_empty());
+        assert_eq!(at(35, "token-dashboard-af").helpers.len(), 1);
+        assert!(at(10, "token-dashboard-af").helpers.is_empty());
     }
 }
