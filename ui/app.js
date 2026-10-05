@@ -1,4 +1,4 @@
-import { SCENE, lightLevel, layoutDepartments } from './layout.js';
+import { SCENE, lightLevel, planLayout } from './layout.js';
 import { drawStatic, drawScene } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { SASH, RES, RANK, rankOf } from './sprites.js';
@@ -100,7 +100,9 @@ const rankLine = model => `${modelName(model)} · ${RANK[rankOf(model)].name}`;
 const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
 const cast = new Cast();
 const deptOrder = [];
-let layout = { blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0 };
+let layout = { blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0, plan: [] };
+// Harness only: ?grace=<s> shortens the empty-desk grace (blocks get 5/3 of it). The app's URL has no query.
+const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3 } : {}))(+new URLSearchParams(location.search).get('grace'));
 const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
 let roster = [];
 let sel = null;
@@ -114,12 +116,13 @@ const ago = ms => {
 function onRoster(next) {
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
+  const napping = cast.napping(roster);
   const depts = deptOrder
-    .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name).map(s => s.id), helpers: consolesOf(name) }))
-    .filter(d => d.ids.length);
-  layout = layoutDepartments(depts);
+    .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
+    .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
+  layout = planLayout(layout, depts, Date.now(), GRACE);
   // ponytail: sessions past the hall's capacity are not drawn; toast + counter still cover their petitions.
-  cast.sync(roster.filter(s => layout.seats.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks);
+  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks);
   const n = roster.filter(s => s.status === 'waiting').length;
   const count = document.getElementById('count');
   count.textContent = `${n} petition${n === 1 ? '' : 's'}`;

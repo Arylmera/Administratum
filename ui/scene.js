@@ -127,6 +127,9 @@ export function drawStatic(g, daylight) {
 
 const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 
+const PILE_FADE_MS = 4000;
+const lastFill = new Map(); // desk key -> its occupant's last paper fill, for the fade once it leaves
+
 // One frame of everything that moves or depends on the roster, over the static background.
 // actors: Cast.actors; fillOf: context -> paper fill. Returns every light of the frame for drawLighting.
 export function drawScene(g, layout, actors, fillOf, now) {
@@ -136,11 +139,15 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const items = [drawGate(g, all)], lights = [];
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
-    const a = actors.get(d.id), fill = a?.burn ? 0 : fillOf(a?.s.context); // a burner carries its pile away
+    const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key;
+    // An empty desk (its scribe gone, see planLayout) is unlit and its pile fades away over PILE_FADE_MS.
+    const fill = !d.id ? (lastFill.get(d.key) ?? 0) * Math.max(0, 1 - (Date.now() - d.freeSince) / PILE_FADE_MS)
+      : a?.burn ? 0 : fillOf(a?.s.context); // a burner carries its pile away
+    if (d.id) lastFill.set(d.key, fill);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
-    paperFloor(g, d.id, 'desk', fill, d, blockOf(d.dept), now);
-    items.push(deskDrawable(d, busy, fill, !!a?.s.background, now));
-    lights.push(deskLight(d, busy));
+    paperFloor(g, pile, 'desk', fill, d, blockOf(d.dept), now);
+    items.push(deskDrawable({ ...d, id: pile }, busy, fill, !!a?.s.background, now));
+    if (d.id) lights.push(deskLight(d, busy));
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S;
       items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + 16, d.y + 11, k) });

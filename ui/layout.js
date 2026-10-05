@@ -25,6 +25,8 @@ const CONSOLE_CELL = { w: 22, h: 22, x0: 6, y0: 3 };
 
 // ponytail: departments that no longer fit are counted in `overflow` (shown as a plaque), not shrunk.
 // d.helpers (optional): helper actor ids, null for a freed console so the others keep their place.
+// d.desks (optional, from planLayout): desk slots { key, id, was, freeSince }, id null for an empty desk; else d.ids.
+// d.cons (optional): console slots to reserve, at least what the helpers need.
 export function layoutDepartments(depts) {
   const blocks = [];
   const desks = [];
@@ -33,20 +35,21 @@ export function layoutDepartments(depts) {
   const consoleSeats = new Map();
   let x = HALL.x0, y = HALL.y0, rowH = 0, overflow = 0, full = false;
   for (const d of depts) {
-    const n = d.ids.length, helpers = d.helpers ?? [];
-    const slots = n + Math.ceil(helpers.length / 4);
+    const helpers = d.helpers ?? [], slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id }));
+    const n = slotsOf.length, live = slotsOf.filter(k => k.id).length;
+    const slots = n + Math.max(d.cons ?? 0, Math.ceil(helpers.length / 4));
     const cols = Math.min(COLS, slots);
     const rows = Math.ceil(slots / COLS);
     const w = cols * SLOT_W + 2;
     const h = rows * SLOT_H - 8;
     if (!full && x + w > HALL.x1 + 1) { x = HALL.x0; y += rowH + 8; rowH = 0; }
-    if (full || y + h > HALL.y1) { full = true; overflow += n; continue; }
+    if (full || y + h > HALL.y1) { full = true; overflow += live; continue; }
     blocks.push({ name: d.name, color: d.color, x, y, w, h });
     const slot = i => ({ x: x + (i % COLS) * SLOT_W, y: y + Math.floor(i / COLS) * SLOT_H });
-    d.ids.forEach((id, i) => {
-      const s = slot(i), desk = { id, dept: d.name, x: s.x + 5, y: s.y + 8 };
+    slotsOf.forEach((k, i) => {
+      const s = slot(i), desk = { ...k, dept: d.name, x: s.x + 5, y: s.y + 8 };
       desks.push(desk);
-      seats.set(id, { x: desk.x + 16, y: desk.y + 30 });
+      if (k.id) seats.set(k.id, { x: desk.x + 16, y: desk.y + 30 });
     });
     helpers.forEach((id, k) => {
       if (id == null) return;
@@ -62,6 +65,49 @@ export function layoutDepartments(depts) {
     rowH = Math.max(rowH, h);
   }
   return { blocks, desks, seats, consoles, consoleSeats, overflow };
+}
+
+export const DESK_GRACE_MS = 180_000; // an empty desk waits this long for a newcomer of its department
+export const DEPT_GRACE_MS = 300_000; // a department block with no session left stays this long
+
+// Stable seating across roster ticks: a scribe keeps its desk while it lives, a departed scribe's desk stays
+// empty (reused first by its department) until DESK_GRACE_MS, an empty block until DEPT_GRACE_MS; new
+// departments append. Spare console slots also wait DESK_GRACE_MS. When the hall would overflow, every
+// waiting empty is dropped at once. prev: last result (or null); depts: live departments as for
+// layoutDepartments (ids, helpers, without the scribes dozing in the refectorium: they release their desk) in arrival order; now: ms. Returns layoutDepartments() plus `plan`, the
+// state to pass back next tick. grace: { desk, dept } ms overrides.
+export function planLayout(prev, depts, now, grace = {}) {
+  const deskG = grace.desk ?? DESK_GRACE_MS, deptG = grace.dept ?? DEPT_GRACE_MS;
+  const live = new Map(depts.map(d => [d.name, d]));
+  let seq = prev?.seq ?? 0;
+  let plan = (prev?.plan ?? []).map(p => ({ ...p, desks: p.desks.map(k => ({ ...k })) }));
+  for (const d of depts) if (!plan.some(p => p.name === d.name)) plan.push({ name: d.name, desks: [], cons: 0, emptySince: null });
+  for (const p of plan) {
+    const d = live.get(p.name), ids = d?.ids ?? [];
+    p.color = d?.color ?? p.color;
+    p.helpers = d?.helpers ?? [];
+    for (const k of p.desks) if (k.id && !ids.includes(k.id)) Object.assign(k, { id: null, was: k.id, freeSince: now });
+    for (const id of ids) {
+      if (p.desks.some(k => k.id === id)) continue;
+      const free = p.desks.find(k => !k.id && k.was === id) ?? p.desks.find(k => !k.id); // a waking napper's own desk first
+      if (free) Object.assign(free, { id, was: null, freeSince: null });
+      else p.desks.push({ key: `${p.name}#${seq++}`, id, was: null, freeSince: null });
+    }
+    // An empty block keeps its desks until the whole block goes.
+    if (ids.length) p.desks = p.desks.filter(k => k.id || now - k.freeSince < deskG);
+    const need = Math.ceil(p.helpers.length / 4);
+    if (need >= p.cons) Object.assign(p, { cons: need, consFreeSince: null });
+    else if (now - (p.consFreeSince ??= now) >= deskG) Object.assign(p, { cons: need, consFreeSince: null });
+    p.emptySince = ids.length || p.helpers.some(id => id != null) ? null : p.emptySince ?? now;
+  }
+  plan = plan.filter(p => p.emptySince == null || now - p.emptySince < deptG);
+  let L = layoutDepartments(plan);
+  if (L.overflow) { // capacity forces it: compact everything now
+    plan = plan.filter(p => p.emptySince == null);
+    for (const p of plan) { p.desks = p.desks.filter(k => k.id); p.cons = Math.ceil(p.helpers.length / 4); p.consFreeSince = null; }
+    L = layoutDepartments(plan);
+  }
+  return { ...L, plan, seq };
 }
 
 // Rooms east of the 200..208 wall: the refectorium above y 104, the sanctum below. Each opens onto the scriptorium.

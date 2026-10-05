@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
+import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
 import { DECOR, CLUTTER } from './scene.js';
 import { MAPS, RES } from './sprites.js';
 
@@ -51,6 +51,69 @@ assert.equal(L2.consoles.length, 4);
 assert.deepEqual(L2.consoleSeats.get('h-4'), L.consoleSeats.get('h-4'));
 // departments without helpers are unchanged
 assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }]).consoles.length, 0);
+
+// stable seating (planLayout): departures leave empty desks, arrivals reuse them, the grace period compacts
+{
+  const at = P => new Map(P.desks.map(d => [d.key, `${d.x},${d.y}`]));
+  const D = (a, b, c) => [{ name: 'A', color: '#fff', ids: a }, { name: 'B', color: '#fff', ids: b }, ...(c ? [{ name: 'C', color: '#fff', ids: c }] : [])];
+  let P = planLayout(null, D(['a0', 'a1', 'a2'], ['b0', 'b1']), 0);
+  const before = at(P), keyA1 = P.desks.find(d => d.id === 'a1').key;
+  P = planLayout(P, D(['a0', 'a2'], ['b0', 'b1']), 1000);
+  assert.deepEqual(at(P), before, 'a departure moves no desk');
+  assert.equal(P.desks.find(d => d.key === keyA1).id, null);
+  assert.equal(P.desks.find(d => d.key === keyA1).was, 'a1');
+  assert.ok(!P.seats.has('a1'));
+  P = planLayout(P, D(['a0', 'a2', 'a9'], ['b0', 'b1']), 2000);
+  assert.deepEqual(at(P), before, 'an arrival reuses the empty desk');
+  assert.equal(P.desks.find(d => d.key === keyA1).id, 'a9');
+  // a new department appends without moving the existing blocks when it fits
+  const blocks = P.blocks.map(b => `${b.name}:${b.x},${b.y},${b.w},${b.h}`);
+  P = planLayout(P, D(['a0', 'a2', 'a9'], ['b0', 'b1'], ['c0']), 3000);
+  assert.deepEqual(P.blocks.slice(0, 2).map(b => `${b.name}:${b.x},${b.y},${b.w},${b.h}`), blocks);
+  assert.equal(P.blocks[2].name, 'C');
+  assert.deepEqual(new Map([...at(P)].filter(([k]) => before.has(k))), before);
+  // b0 leaves; after DESK_GRACE_MS its desk goes and b1 compacts into the first slot
+  P = planLayout(P, D(['a0', 'a2', 'a9'], ['b1'], ['c0']), 4000);
+  const b0x = P.desks.find(d => d.was === 'b0').x;
+  P = planLayout(P, D(['a0', 'a2', 'a9'], ['b1'], ['c0']), 4000 + DESK_GRACE_MS - 1);
+  assert.equal(P.desks.filter(d => d.dept === 'B').length, 2);
+  P = planLayout(P, D(['a0', 'a2', 'a9'], ['b1'], ['c0']), 4000 + DESK_GRACE_MS);
+  assert.deepEqual(P.desks.filter(d => d.dept === 'B').map(d => [d.id, d.x]), [['b1', b0x]]);
+  // a department with nobody left keeps its block until DEPT_GRACE_MS
+  P = planLayout(P, D(['a0', 'a2', 'a9'], [], ['c0']), 10_000_000);
+  assert.ok(P.blocks.some(b => b.name === 'B'));
+  P = planLayout(P, D(['a0', 'a2', 'a9'], [], ['c0']), 10_000_000 + DEPT_GRACE_MS);
+  assert.deepEqual(P.blocks.map(b => b.name), ['A', 'C']);
+  // dozing in the refectorium releases the desk; a waking scribe takes its own desk back if still free, else any free one
+  const N = a => [{ name: 'A', color: '#fff', ids: a }];
+  P = planLayout(null, N(['a0', 'a1', 'a2']), 0);
+  const deskOf = (P, id) => P.desks.find(d => d.id === id)?.key, k0 = deskOf(P, 'a0'), k1 = deskOf(P, 'a1');
+  P = planLayout(P, N(['a2']), 1000); // a0 and a1 doze
+  assert.ok(!P.seats.has('a0') && P.desks.length === 3);
+  P = planLayout(P, N(['a2', 'a9']), 2000); // a newcomer takes the first free desk
+  assert.equal(deskOf(P, 'a9'), k0);
+  P = planLayout(P, N(['a2', 'a9', 'a1']), 3000); // a1 wakes: its own desk
+  assert.equal(deskOf(P, 'a1'), k1);
+  P = planLayout(P, N(['a2', 'a9', 'a1', 'a0']), 4000); // a0 wakes, nothing free: a new desk
+  assert.equal(P.desks.length, 4);
+  assert.ok(P.seats.has('a0'));
+  // spare console slots wait too: an adept finishing doesn't shrink the block
+  const H = h => [{ name: 'A', color: '#fff', ids: ['a0'], helpers: h }];
+  P = planLayout(null, H(['h0']), 0);
+  P = planLayout(P, H([]), 1000);
+  assert.equal(P.blocks[0].w, 2 * 48 + 2);
+  P = planLayout(P, H([]), 1000 + DESK_GRACE_MS);
+  assert.equal(P.blocks[0].w, 48 + 2);
+  // capacity: empties waiting their grace are dropped at once rather than overflow a newcomer
+  const many = k => ids('d', k).map(n => ({ name: n, color: '#fff', ids: [n] }));
+  P = planLayout(null, many(12), 0);
+  const fit = P.blocks.length;
+  P = planLayout(P, many(fit).slice(1), 1000); // d-0 left: its block waits
+  assert.equal(P.blocks.length, fit);
+  P = planLayout(P, many(fit).slice(1).concat({ name: 'new', color: '#fff', ids: ['n'] }), 2000);
+  assert.equal(P.overflow, 0);
+  assert.ok(P.seats.has('n') && !P.blocks.some(b => b.name === 'd-0'));
+}
 
 // desk to queue goes through both door points; queue to queue inside the office goes straight
 const r = route({ x: 24, y: 96 }, QUEUE_SLOTS[0]);

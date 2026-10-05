@@ -40,7 +40,17 @@ export class Cast {
     for (const s of roster) { const a = this.actors.get(s.id); if (s.status === 'shell') a.lastShell = now; }
     const atCog = s => s.status === 'shell' || (s.status === 'busy' && now - (this.actors.get(s.id).lastShell ?? 0) < COG_HOLD_MS);
     const shell = roster.filter(atCog).map(s => s.id);
-    // Refectory benches: a sleeper keeps its bench until it wakes; more sleepers than benches doze at their desk.
+    this.last = { seats, waiting, shell, blocks }; // for a burner heading back between polls
+    // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
+    const all = [...this.actors.values()];
+    for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
+      this.go(a, a.h ? this.atConsole(a, consoleSeats) : this.destination(a, seats, waiting, shell), blocks);
+    }
+  }
+
+  // Refectory benches, decided before the layout (a scribe on a bench releases its desk, planLayout): a sleeper keeps
+  // its bench until it wakes; more sleepers than benches doze at their desk. Returns the ids on a bench.
+  napping(roster, now = Date.now()) {
     const sleepy = roster.filter(s => s.status === 'idle' && !s.background && s.sinceMs && now - s.sinceMs > NAP_MS).sort((p, q) => p.sinceMs - q.sinceMs);
     for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
     for (const s of sleepy) {
@@ -48,12 +58,7 @@ export class Cast {
       const free = REFECTORY_SPOTS.findIndex((_, i) => ![...this.naps.values()].includes(i));
       if (free >= 0) this.naps.set(s.id, free);
     }
-    this.last = { seats, waiting, shell, blocks }; // for a burner heading back between polls
-    // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
-    const all = [...this.actors.values()];
-    for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
-      this.go(a, a.h ? this.atConsole(a, consoleSeats) : this.destination(a, seats, waiting, shell), blocks);
-    }
+    return new Set(this.naps.keys());
   }
 
   go(a, d, blocks) {
