@@ -6,6 +6,8 @@ export const BASE = {
   a: '#ff3a20', o: '#7cff9e', y: '#d9a84e', s: '#b89a7c', e: '#120c0a',
   // HD mid-tones/highlights: robe lit, brass lit, iron lit, optic glint, wood lit
   R: '#8c2c1c', h: '#e8b45a', l: '#8a9096', O: '#e6ffee', L: '#6a4630',
+  // adept robe: bone mid, bone shadow
+  q: '#a89a78', Q: '#6a5e48',
 };
 export const SASH = ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'];
 
@@ -171,6 +173,115 @@ export const SCRIBE = {
   down: FEET.map(f => withFeet(SCRIBE_FRONT, f)),
   right: RIGHT,
   left: RIGHT.map(mirror),
+};
+
+// Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate.
+const ADEPT_FRONT = [
+  '........kkkkkkkk........',
+  '......kkbbqqqqqqkk......',
+  '.....kbbqqqqqqqqqQk.....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqkkkkkkqqqQk....',
+  '....kbqqkeeeeeekqqQk....',
+  '....kbqkeeeeeeeekqQk....',
+  '....kbqkeeeeOceekqQk....',
+  '....kbqkeeeecCeekqQk....',
+  '....kbqkeemMmeeekqQk....',
+  '....kQbqkkkkkkkkqQQk....',
+  '...kkbqqqqqqqqqqqqQkk...',
+  '...kbqQqqqqxqqqqqQqQk...',
+  '...kbQqqqqqxqqqqqqQQk...',
+  '...kbqkkkkkkkkkkqqqQk...',
+  '...kblkmcCccCcmklqQQk...',
+  '...kbmkmccCcccmkmqQQk...',
+  '...kbqkkkkkkkkkkqqQQk...',
+  '...kbqqqqqqxqqqqqqQQk...',
+  '...kbqqqqqqxqqqqqqQQk...',
+  '...kQbqqqqqxqqqqqqQQk...',
+  '...kQQqqqqqxqqqqqQQQk...',
+  '...kQQqqqqqxqqqqqQQQk...',
+  '...kxxxxxxxxxxxxxxxxk...',
+  '...kkkkkkkkkkkkkkkkkk...',
+  '.......kmmMk..kmmMk.....',
+  '........kkk....kkk......',
+];
+const ADEPT_BACK = [
+  '........kkkkkkkk........',
+  '......kkbbqqqqqqkk......',
+  '.....kbbqqqqqqqqqQk.....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqQqqqqqQk....',
+  '....kbqqqqqqQqqqqqQk....',
+  '....kbqqqqqqQqqqqQQk....',
+  '....kbqqqqqqQqqqqQQk....',
+  '....kQbqqqqqqqqqqQQk....',
+  '...kkbqqqqqqqqqqqqQkk...',
+  '...kbqqqqqqqqqqqqqqQk...',
+  '...kbqqqqxqxxqxqqqqQk...',
+  '...kbqqqqqxxxxqqqqqQk...',
+  '...kbqqqqxxkkxxqqqqQk...',
+  '...kbqqqqqxxxxqqqqQQk...',
+  '...kbqqqqxqxxqxqqqQQk...',
+  '...kbqqqqqqqqqqqqqQQk...',
+  '...kbqqqqqqqqqqqqqQQk...',
+  '...kQbqqqqqqqqqqqqQQk...',
+  '...kQQqqqqqqqqqqqQQQk...',
+  '...kQQqqqqqqqqqqqQQQk...',
+  '...kxxxxxxxxxxxxxxxxk...',
+  '...kkkkkkkkkkkkkkkkkk...',
+  '.......kmmMk..kmmMk.....',
+  '........kkk....kkk......',
+];
+const ADEPT_SIDE = [
+  '.......kkkkkkk..........',
+  '.....kkbbqqqqqkk........',
+  '....kbbqqqqqqqqqk.......',
+  '....kbqqqqqqqqqqqk......',
+  '....kbqqqqqqqqqqqqk.....',
+  '....kbqqqqqqqqqkkkk.....',
+  '....kbqqqqqqqqkeeek.....',
+  '....kbqqqqqqqqkeeeek....',
+  '....kbqqqqqqqqkeeOck....',
+  '....kbqqqqqqqqkeecCk....',
+  '....kbqqqqqqqqkemMek....',
+  '....kQbqqqqqqqqkkkk.....',
+  '....kkbqqqqqqqqqqQkk....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqqqqqqqQk....',
+  '....kbqqqqqqqqqqlkkkkk..',
+  '....kbqqqqqqqqqqlkcCck..',
+  '....kbqqqqqqqqqqQkkkkk..',
+  '....kbqqqqqqqqqqqQQk....',
+  '....kbqqqqqqqqqqqQQk....',
+  '....kbqqqqqqqqqqqQQk....',
+  '....kQbqqqqqqqqqqQQk....',
+  '....kQQqqqqqqqqqQQQk....',
+  '....kQQqqqqqqqqqQQQk....',
+  '....kxxxxxxxxxxxxxxk....',
+  '.....kkkkkkkkkkkkkk.....',
+  '.......kmmMkkmmMk.......',
+  '........kkk..kkk........',
+];
+const ADEPT_FEET = [
+  ['.......kmmMk..kmmMk.....', '........kkk....kkk......'],
+  ['.....kmmMk.....kkk......', '......kkk...............'],
+  ['........kkk....kmmMk....', '................kkk.....'],
+];
+const ADEPT_FEET_SIDE = [
+  ['.......kmmMkkmmMk.......', '........kkk..kkk........'],
+  ['.....kmmMk....kmmMk.....', '......kkk......kkk......'],
+  ['.........kmmmmMk........', '..........kkkkk.........'],
+];
+const ADEPT_RIGHT = ADEPT_FEET_SIDE.map(f => withFeet(ADEPT_SIDE, f));
+export const ADEPT = {
+  up: ADEPT_FEET.map(f => withFeet(ADEPT_BACK, f)),
+  down: ADEPT_FEET.map(f => withFeet(ADEPT_FRONT, f)),
+  right: ADEPT_RIGHT,
+  left: ADEPT_RIGHT.map(mirror),
 };
 
 const ARM = [

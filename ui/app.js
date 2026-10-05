@@ -126,7 +126,16 @@ function renderPlaques() {
 
 function renderCard() {
   const card = document.getElementById('card');
-  const s = roster.find(r => r.id === sel);
+  const s = roster.find(r => r.id === sel), a = cast.actors.get(sel);
+  if (a?.h && !a.leaving) {
+    card.hidden = false;
+    const owner = roster.find(r => r.id === a.owner);
+    card.querySelector('.name').textContent = `${a.h.kind} · adept of ${owner?.name ?? '?'}`;
+    card.querySelector('.meta').textContent = `Model: ${a.h.model ?? 'unrecorded'}`;
+    card.querySelector('.task').textContent = a.h.task || 'No task given';
+    card.querySelector('.path').textContent = '';
+    return;
+  }
   card.hidden = !s;
   if (!s) return;
   card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
@@ -149,15 +158,29 @@ function syncLabels() {
     let el = labels.get(a.id);
     if (!el) {
       el = document.createElement('button');
-      el.className = 'lbl';
+      el.className = a.h ? 'lbl adept' : 'lbl';
       el.onclick = () => select(a.id);
       overlay.appendChild(el);
       labels.set(a.id, el);
     }
+    if (a.h) { // quiet kind label under the feet; hidden in a crowd (owner's label counts them instead)
+      el.hidden = (cast.actors.get(a.owner)?.s.helpers?.length ?? 0) > 2;
+      const key = [a.h.kind, sel === a.id].join('|');
+      if (el.dataset.key !== key) {
+        el.dataset.key = key;
+        el.classList.toggle('sel', sel === a.id);
+        el.textContent = a.h.kind;
+        el.setAttribute('aria-label', `${a.h.kind} adept`);
+      }
+      el.style.left = `${a.x * scale}px`;
+      el.style.top = `${(a.y + 0.5) * scale}px`;
+      continue;
+    }
+    const adepts = a.s.helpers?.length ?? 0;
     const petition = a.s.status === 'waiting' && a.pose === 'queue';
     const dozing = a.pose === 'desk' && a.s.status === 'idle';
     const want = a.s.waitingFor ?? 'input needed';
-    const key = [a.s.name, petition, dozing, want, sel === a.id, petition ? ago(a.s.sinceMs) : ''].join('|');
+    const key = [a.s.name, petition, dozing, want, sel === a.id, petition ? ago(a.s.sinceMs) : '', adepts].join('|');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
       el.classList.toggle('petition', petition);
@@ -167,6 +190,7 @@ function syncLabels() {
       if (dozing) line('zz', 'z z');
       line('', a.s.name);
       if (petition) line('sub', `${want} · ${ago(a.s.sinceMs)}`);
+      if (adepts > 2) line('zz', `+${adepts} adepts`);
       el.setAttribute('aria-label', petition ? `${a.s.name}, petition: ${want}` : a.s.name);
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.

@@ -1,4 +1,4 @@
-import { SCRIBE, MAPS, blit } from './sprites.js';
+import { SCRIBE, ADEPT, MAPS, blit } from './sprites.js';
 import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY } from './layout.js';
 
 const SPEED = 80; // logical px per second
@@ -13,11 +13,20 @@ export class Cast {
       if (a) { a.s = s; a.leaving = false; a.sash = colorOf(s.dept); }
       else this.actors.set(s.id, { id: s.id, s, x: ENTRY.x, y: ENTRY.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false, sash: colorOf(s.dept) });
     }
+    for (const s of roster) for (const h of s.helpers ?? []) {
+      const id = `${s.id}|${h.id}`;
+      live.add(id);
+      const a = this.actors.get(id);
+      if (a) { a.h = h; a.leaving = false; }
+      else this.actors.set(id, { id, owner: s.id, h, x: ENTRY.x, y: ENTRY.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false });
+    }
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
     const waiting = roster.filter(s => s.status === 'waiting').sort((p, q) => p.sinceMs - q.sinceMs).map(s => s.id);
     const shell = roster.filter(s => s.status === 'shell').map(s => s.id);
-    for (const a of this.actors.values()) {
-      const d = this.destination(a, seats, waiting, shell);
+    // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
+    const all = [...this.actors.values()];
+    for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
+      const d = a.h ? this.beside(a) : this.destination(a, seats, waiting, shell);
       const key = `${d.x},${d.y},${d.pose}`;
       if (key !== a.destKey) {
         a.destKey = key;
@@ -39,6 +48,22 @@ export class Cast {
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
   }
 
+  // Adept spot from its owner's destination: beside the desk (right, left, then a second rank), else just behind.
+  beside(a) {
+    const o = this.actors.get(a.owner), d = o?.target;
+    if (a.leaving || !d || d.pose === 'gone') return { ...ENTRY, pose: 'gone' };
+    const mates = [...this.actors.values()].filter(b => b.owner === a.owner && !b.leaving);
+    const i = mates.indexOf(a), n = mates.length;
+    if (d.pose === 'desk') {
+      const spots = [0, 1, 2, 3].map(k => {
+        const side = k % 2 ? -1 : 1, rank = k >> 1;
+        return { x: d.x + side * 22, y: d.y - 12 + rank * 20, pose: 'adept', dir: side > 0 ? 'left' : 'right' };
+      }).filter(p => p.x > 8 && p.x < 192); // keep off the hall's edges
+      return spots[i % spots.length];
+    }
+    return { x: d.x + (i - (n - 1) / 2) * 12, y: Math.min(d.y + 8, 219), pose: 'adept', dir: 'up' };
+  }
+
   update(dt) {
     for (const a of [...this.actors.values()]) {
       a.t += dt;
@@ -58,6 +83,12 @@ export class Cast {
 
   // Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
   drawActor(g, a) {
+    if (a.h) { // adept: 12x14, feet at (x, y)
+      const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14;
+      if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy);
+      else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 3) > 0.6 ? 0.5 : 0)); // idle bob, 1 art px
+      return;
+    }
     const over = { y: a.sash };
     const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
     if (a.pose === 'walk') {

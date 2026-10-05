@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { BASE, MAPS, SCRIBE, SASH, RES } from './sprites.js';
+import { BASE, MAPS, SCRIBE, ADEPT, SASH, RES } from './sprites.js';
 
 // Low-res [width, height] of every map, recorded from the up()-only file before the HD redraw.
 const LOW = {
@@ -25,4 +25,5 @@ for (const dir of ['up', 'down', 'left', 'right']) {
   SCRIBE[dir].forEach((f, i) => check(`SCRIBE.${dir}[${i}]`, f, [16, 17]));
 }
 SCRIBE.right.forEach((f, i) => assert.deepEqual(SCRIBE.left[i], f.map(r => [...r].reverse().join(''))));
+for (const dir of ['up', 'down', 'left', 'right']) ADEPT[dir].forEach((f, i) => check(`ADEPT.${dir}[${i}]`, f, [12, 14]));
 console.log('sprites ok');
