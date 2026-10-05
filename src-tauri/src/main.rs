@@ -24,10 +24,26 @@ use std::os::windows::process::CommandExt;
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-fn spawn_no_window(mut cmd: Command) -> std::io::Result<std::process::Child> {
+fn no_window(mut cmd: Command) -> Command {
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
-    cmd.spawn()
+    cmd
+}
+
+/// Run `orca <args>` through `run` (spawn or output): "orca" on PATH first, the known install
+/// path if that's not resolvable. Args go straight to the process, never through a shell.
+fn orca<T>(args: &[&str], run: impl Fn(&mut Command) -> std::io::Result<T>) -> Result<T, String> {
+    let with = |exe: String| {
+        let mut cmd = no_window(Command::new(exe));
+        cmd.args(args);
+        run(&mut cmd)
+    };
+    with("orca".into()).or_else(|_| {
+        let fallback = std::env::var("LOCALAPPDATA")
+            .map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe"))
+            .map_err(|_| "orca not found".to_string())?;
+        with(fallback).map_err(|e| e.to_string())
+    })
 }
 
 /// Switch Orca's foreground terminal to `handle`, or open `url` in the default browser. `target`
@@ -39,30 +55,48 @@ fn open_session(target: String) -> Result<(), String> {
         if !registry::valid_orca_handle(handle) {
             return Err("invalid orca handle".into());
         }
-        let switch = |exe: String| {
-            let mut cmd = Command::new(exe);
-            cmd.args(["terminal", "switch", "--terminal", handle]);
-            spawn_no_window(cmd)
-        };
-        // "orca" on PATH first; the known install path if that's not resolvable.
-        if switch("orca".into()).is_err() {
-            let fallback = std::env::var("LOCALAPPDATA")
-                .map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe"))
-                .map_err(|_| "orca not found".to_string())?;
-            switch(fallback).map_err(|e| e.to_string())?;
-        }
+        orca(&["terminal", "switch", "--terminal", handle], |c| c.spawn())?;
         Ok(())
     } else if let Some(url) = target.strip_prefix("web:") {
         if !registry::valid_claude_web_url(url) {
             return Err("invalid claude.ai url".into());
         }
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/c", "start", "", url]);
-        spawn_no_window(cmd).map_err(|e| e.to_string())?;
+        no_window(Command::new("cmd")).args(["/c", "start", "", url]).spawn().map_err(|e| e.to_string())?;
         Ok(())
     } else {
         Err("unknown target kind".into())
     }
+}
+
+/// Answer the Claude Code permission dialog in Orca terminal `handle`: "yes", "always" or "no".
+/// Types exactly one option digit, and only after the rendered screen shows that dialog at its
+/// bottom (see `registry::parse_permission_prompt`); nothing read from the screen is ever sent
+/// or echoed back except that digit. Errors are fixed strings. Runs off the main thread (async).
+#[tauri::command(async)]
+fn answer_petition(handle: String, choice: String) -> Result<(), String> {
+    if !registry::valid_orca_handle(&handle) {
+        return Err("invalid orca handle".into());
+    }
+    let out = orca(&["terminal", "read", "--terminal", &handle, "--screen", "--json"], |c| c.output())?;
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).map_err(|_| "unreadable terminal".to_string())?;
+    let term = &v["result"]["terminal"];
+    if v["ok"] != true || term["source"] != "screen" {
+        return Err("terminal screen unavailable".into());
+    }
+    let screen = term["tail"].as_array().map(|l| l.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join("\n")).unwrap_or_default();
+    let p = registry::parse_permission_prompt(&screen).ok_or("no permission prompt on screen")?;
+    let n = match choice.as_str() {
+        "yes" => p.yes,
+        "always" => p.always.ok_or("this prompt has no 'always' option")?,
+        "no" => p.no,
+        _ => return Err("unknown choice".into()),
+    };
+    let key = char::from(b'0' + n).to_string(); // 1..=9, guaranteed by the parser
+    let sent = orca(&["terminal", "send", "--terminal", &handle, "--text", &key, "--json"], |c| c.output())?;
+    if !sent.status.success() {
+        return Err("orca could not type into the terminal".into());
+    }
+    Ok(())
 }
 
 fn claude_dir() -> PathBuf {
@@ -75,7 +109,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session])
+        .invoke_handler(tauri::generate_handler![open_session, answer_petition])
         .setup(move |app| {
             build_tray(app)?;
             let handle = app.handle().clone();

@@ -27,9 +27,14 @@
   #stage { position: relative; margin: auto; width: fit-content; box-shadow: 0 0 0 2px #0e0a08, 0 0 0 4px #b8742e, 0 0 0 5px #6e3f17, 0 0 0 7px #0e0a08, 0 10px 30px 6px rgba(0,0,0,.8); }
   #scene { display: block; image-rendering: pixelated; }
   #overlay { position: absolute; inset: 0; pointer-events: none; }
-  .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; padding: 0 4px; background: #1e0a08; border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; animation: pulse 1.8s ease-in-out infinite; }
+  .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: #1e0a08; border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; animation: pulse 1.8s ease-in-out infinite; }
   .lbl.sel { border-color: var(--green); background: #3a1410; }
   .lbl .sub { color: var(--pink); }
+  .lbl .who { display: flex; flex-direction: column; align-items: center; padding: 0; background: none; border: none; color: inherit; font: inherit; line-height: inherit; cursor: pointer; }
+  .lbl .ans { display: flex; flex-direction: column; gap: 1px; }
+  .lbl .ans button { padding: 0 2px; background: #2a0d0a; border: 1px solid currentColor; border-radius: 2px; color: var(--green); font: inherit; font-size: .9em; line-height: 1; cursor: pointer; }
+  .lbl .ans button + button { color: var(--pink); }
+  .lbl .ans button:hover { background: #4e110c; }
   .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: rgba(14,10,8,.85); border: 1px solid #3a2a1e; border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
   .tip[hidden] { display: none; }
   .plaque { position: absolute; padding: 1px 6px; background: #140d09; border: 2px solid; font-size: calc(10px * var(--k, 1)); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
@@ -39,10 +44,14 @@
   #card[hidden] { display: none; }
   #card .name { font-size: 1.17em; font-weight: 600; }
   #card .meta, #card .ctx, #card .path { color: #5a3c16; }
-  #card .links { display: flex; gap: .5em; margin-top: .25em; }
-  #card .links[hidden], #card .links button[hidden] { display: none; }
-  #card .links button { padding: .27em .73em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; font-size: .92em; cursor: pointer; }
-  #card .links button:hover { filter: brightness(1.2); }
+  #card .links, #card .answer { display: flex; gap: .5em; margin-top: .25em; }
+  #card .links[hidden], #card .links button[hidden], #card .answer[hidden], #card .err[hidden] { display: none; }
+  #card .answer button[data-choice="yes"] { background: #2e6b47; border-color: #16301f; }
+  #card .answer button[data-choice="no"] { background: #8e1c16; border-color: #3a0d09; }
+  #card button:disabled { opacity: .5; cursor: progress; }
+  #card .err { color: #8e1c16; font-weight: 600; }
+  #card .links button, #card .answer button { padding: .27em .73em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; font-size: .92em; cursor: pointer; }
+  #card .links button:hover, #card .answer button:hover { filter: brightness(1.2); }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(160,30,22,0); } 50% { box-shadow: 0 0 12px 2px rgba(190,40,28,.8); } }
   @media (max-width: 760px) { .tier { display: none; } }
 </style>
@@ -82,6 +91,8 @@
     <div class="ctx"></div>
     <div class="task"></div>
     <div class="path"></div>
+    <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
+    <div class="err" hidden></div>
     <div class="links" hidden><button type="button">Open in Orca</button><button type="button">Open on claude.ai</button></div>
   </div>
 </main>

@@ -161,6 +161,7 @@ function renderCard() {
     card.querySelector('.ctx').textContent = contextLine(a.h.context);
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
+    renderAnswer(card, null);
     renderLinks(card, owner);
     return;
   }
@@ -172,7 +173,34 @@ function renderCard() {
   card.querySelector('.ctx').textContent = contextLine(s.context);
   card.querySelector('.task').textContent = s.task;
   card.querySelector('.path').textContent = s.cwd;
+  renderAnswer(card, s);
   renderLinks(card, s);
+}
+
+// Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
+// really shows the dialog before typing one option key. Free-text petitions only get "Open in Orca".
+const canAnswer = s => s?.status === 'waiting' && !!s.orca && /^approve/i.test(s.waitingFor ?? '');
+const episode = s => `${s.id}:${s.sinceMs}`;
+const answerErr = new Map(), answering = new Set(); // by episode
+function answer(s, choice) {
+  const key = episode(s);
+  if (answering.has(key)) return;
+  answering.add(key); answerErr.delete(key); renderCard();
+  const call = window.__TAURI__?.core?.invoke('answer_petition', { handle: s.orca, choice }) ?? Promise.reject('no backend');
+  call.catch(err => {
+    answerErr.set(key, /no permission prompt|screen unavailable/.test(err) ? 'No permission prompt visible — open the terminal' : String(err));
+    sel = s.id; // show the error in this scribe's card
+  }).finally(() => { answering.delete(key); renderCard(); }); // success: the scribe leaves the queue on a coming roster tick
+}
+function renderAnswer(card, s) {
+  const row = card.querySelector('.answer'), err = card.querySelector('.err');
+  row.hidden = !canAnswer(s);
+  err.textContent = (s && answerErr.get(episode(s))) ?? '';
+  err.hidden = !err.textContent;
+  for (const b of row.querySelectorAll('button')) {
+    b.disabled = !!s && answering.has(episode(s));
+    b.onclick = () => answer(s, b.dataset.choice);
+  }
 }
 
 function renderLinks(card, s) {
@@ -200,22 +228,36 @@ function syncLabels() {
     if (!petition(a)) continue;
     let el = labels.get(a.id);
     if (!el) {
-      el = document.createElement('button');
+      el = document.createElement('div');
       el.className = 'lbl petition';
-      el.onclick = () => pick(a.id);
       overlay.appendChild(el);
       labels.set(a.id, el);
     }
     const want = a.s.waitingFor ?? 'input needed';
-    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs)].join('|');
+    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s)].join('|');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
       el.classList.toggle('sel', sel === a.id);
-      el.replaceChildren();
-      const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; el.appendChild(s); };
+      const who = document.createElement('button');
+      who.className = 'who';
+      who.onclick = () => pick(a.id);
+      who.setAttribute('aria-label', `${a.s.name}, petition: ${want}`);
+      const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; who.appendChild(s); };
       line('', a.s.name);
       line('sub', `${want} · ${ago(a.s.sinceMs)}`);
-      el.setAttribute('aria-label', `${a.s.name}, petition: ${want}`);
+      el.replaceChildren(who);
+      if (canAnswer(a.s)) {
+        const ans = document.createElement('div');
+        ans.className = 'ans';
+        for (const [text, choice, verb] of [['✓', 'yes', 'Approve'], ['✗', 'no', 'Deny']]) {
+          const b = document.createElement('button');
+          b.textContent = text; b.title = verb;
+          b.setAttribute('aria-label', `${verb} ${a.s.name}`);
+          b.onclick = () => answer(a.s, choice);
+          ans.appendChild(b);
+        }
+        el.appendChild(ans);
+      }
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.
     const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;

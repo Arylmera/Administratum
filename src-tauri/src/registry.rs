@@ -367,6 +367,51 @@ impl Tracker {
     }
 }
 
+/// Option numbers of a Claude Code permission dialog: plain "Yes", the first "Yes, ..." (don't ask
+/// again / allow all edits) if offered, and the "No" option.
+#[derive(Debug, PartialEq)]
+pub struct Prompt {
+    pub yes: u8,
+    pub always: Option<u8>,
+    pub no: u8,
+}
+
+/// The permission dialog at the bottom of a rendered terminal screen, if that's what it shows.
+/// The screen is untrusted: only option numbers come out of it, and only when the last "Do you
+/// want" line is followed (within 3 lines) by options numbered 1, 2, ... starting with a plain
+/// "Yes" and including a "No", with nothing but a short footer under them (no input box, no rule):
+/// a dialog that scrolled up under later output doesn't count.
+pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
+    // Box borders and the selection cursor are decoration.
+    let lines: Vec<&str> = screen.lines().map(|l| l.trim().trim_matches('│').trim()).collect();
+    let q = lines.iter().rposition(|l| l.starts_with("Do you want"))?;
+    let option = |l: &str| -> Option<(u8, String)> {
+        let (n, label) = l.trim_start_matches('❯').trim_start().split_once(". ")?;
+        let n: u8 = n.parse().ok().filter(|n| (1..=9).contains(n))?;
+        Some((n, label.trim().to_string()))
+    };
+    let first = (q + 1..lines.len().min(q + 4)).find(|&i| option(lines[i]).is_some())?;
+    let mut opts: Vec<(u8, String)> = vec![];
+    let mut end = first;
+    while end < lines.len() && !lines[end].is_empty() {
+        match option(lines[end]) {
+            Some((n, label)) if n as usize == opts.len() + 1 => opts.push((n, label)),
+            Some(_) => return None, // out of sequence
+            None if opts.is_empty() => return None,
+            None => {} // a wrapped option label
+        }
+        end += 1;
+    }
+    let footer: Vec<&str> = lines[end..].iter().copied().filter(|l| !l.is_empty()).collect();
+    // The input box (a "─" rule, a "❯" line) under the options means the dialog is gone.
+    if footer.len() > 3 || footer.iter().any(|l| l.starts_with('❯') || l.chars().all(|c| c == '─')) {
+        return None;
+    }
+    let find = |pred: &dyn Fn(&str) -> bool| opts.iter().find(|(_, l)| pred(l)).map(|(n, _)| *n);
+    let yes = find(&|l| l == "Yes").filter(|&n| n == 1)?;
+    Some(Prompt { yes, always: find(&|l| l.starts_with("Yes,")), no: find(&|l| l.starts_with("No"))? })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -688,6 +733,98 @@ mod tests {
         assert!(!valid_claude_web_url("javascript:alert(1)"));
         assert!(!valid_claude_web_url("https://claude.ai/code/x&calc"));
         assert!(!valid_claude_web_url("https://claude.ai/code/x|whoami"));
+    }
+
+    // Claude Code permission dialogs as `orca terminal read --screen` renders them (trailing spaces trimmed).
+    const BASH_PROMPT: &str = "● Bash(cargo test)\n\
+  ⎿  Running…\n\
+\n\
+────────────────────────────────────────────────────────────────────\n\
+ Bash command\n\
+\n\
+   cargo test --manifest-path src-tauri/Cargo.toml\n\
+   Run the Rust tests\n\
+\n\
+ Do you want to proceed?\n\
+ ❯ 1. Yes\n\
+   2. Yes, and don't ask again for cargo test commands in\n\
+   C:\\Users\\guill\\Documents\\git\\Administratum\n\
+   3. No, and tell Claude what to do differently (esc)\n\
+\n";
+
+    const EDIT_PROMPT: &str = "────────────────────────────────────────────────\n\
+ Edit file\n\
+╭──────────────────────────────────────────────╮\n\
+│ ui/app.js                                    │\n\
+│  12 - const a = 1;                           │\n\
+│  12 + const a = 2;                           │\n\
+╰──────────────────────────────────────────────╯\n\
+ Do you want to make this edit to app.js?\n\
+ ❯ 1. Yes\n\
+   2. Yes, allow all edits during this session (shift+tab)\n\
+   3. No, and tell Claude what to do differently (esc)\n\
+\n\
+ Esc to cancel";
+
+    const WRITE_PROMPT: &str = "│ Create file                              │\n\
+│ notes.md                                 │\n\
+│ Do you want to create notes.md?          │\n\
+│ ❯ 1. Yes                                 │\n\
+│   2. No, and tell Claude what to do differently (esc) │\n\
+╰──────────────────────────────────────────╯";
+
+    const NO_PROMPT: &str = "● Done.\n\
+✻ Churned for 23s\n\
+────────────────────────────────────────\n\
+❯\n\
+────────────────────────────────────────\n\
+  ⏵⏵ auto mode on (shift+tab to cycle)";
+
+    #[test]
+    fn prompt_bash_maps_yes_always_no() {
+        assert_eq!(parse_permission_prompt(BASH_PROMPT), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
+    }
+
+    #[test]
+    fn prompt_edit_inside_box_and_footer() {
+        assert_eq!(parse_permission_prompt(EDIT_PROMPT), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
+    }
+
+    #[test]
+    fn prompt_write_without_always_option() {
+        assert_eq!(parse_permission_prompt(WRITE_PROMPT), Some(Prompt { yes: 1, always: None, no: 2 }));
+    }
+
+    #[test]
+    fn prompt_absent_is_none() {
+        assert_eq!(parse_permission_prompt(NO_PROMPT), None);
+        assert_eq!(parse_permission_prompt(""), None);
+    }
+
+    #[test]
+    fn prompt_in_scrollback_is_none() {
+        let screen = format!("{BASH_PROMPT}● Bash(cargo test)\n  ⎿  ok\n{NO_PROMPT}");
+        assert_eq!(parse_permission_prompt(&screen), None);
+        // A few lines of output under it and the input box frame: still scrollback.
+        let screen = format!("{BASH_PROMPT}● ok\n────────");
+        assert_eq!(parse_permission_prompt(&screen), None);
+    }
+
+    #[test]
+    fn prompt_rejects_odd_option_lists() {
+        // Must start at 1 with plain "Yes", count up, and offer a "No".
+        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and don't ask again\n"), None, "no No option");
+        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n ❯ 1. Sure\n   2. No\n"), None, "no plain Yes");
+        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n ❯ 1. Yes\n   3. No\n"), None, "gap in numbering");
+        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n\n\n\n\n ❯ 1. Yes\n   2. No\n"), None, "options too far from question");
+    }
+
+    #[test]
+    fn prompt_uses_the_last_question_on_screen() {
+        // Untrusted text above (e.g. a printed file) mimicking a dialog does not win over the real one below.
+        let fake = " Do you want to proceed?\n ❯ 1. Yes\n   2. No\n";
+        let screen = format!("{fake}{EDIT_PROMPT}");
+        assert_eq!(parse_permission_prompt(&screen), Some(Prompt { yes: 1, always: Some(2), no: 3 }));
     }
 
     #[test]
