@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fs,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
@@ -148,7 +148,6 @@ struct Pending {
 pub struct Cursor {
     pending: HashMap<String, Pending>,
     msgs: HashMap<String, Tokens>,
-    helper: Option<String>,
 }
 
 // ponytail: both maps are cleared when full; only orphaned tool_uses (interrupted turns) pile up.
@@ -171,16 +170,35 @@ pub struct Turn {
     pub ms: u64,
 }
 
-/// Events, token deltas and turn durations in `text` (whole transcript lines). Entries stamped
-/// before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing spans
-/// calls via `cur`.
-pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64) -> (Vec<Event>, Vec<Usage>, Vec<Turn>) {
-    let (mut events, mut usage, mut turns) = (vec![], vec![], vec![]);
-    for line in text.lines() {
-        let Ok(v) = serde_json::from_str::<Value>(line) else { continue };
+/// Events, token deltas and turn durations found in transcript lines.
+pub type Found = (Vec<Event>, Vec<Usage>, Vec<Turn>);
+
+/// `extract_line` over every line of `text`.
+#[cfg(test)]
+pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64) -> Found {
+    let mut out = Found::default();
+    for line in text.lines().filter(|l| wanted(l)) {
+        extract_line(cur, line, min_ts, src, now_ms, &mut out);
+    }
+    out
+}
+
+/// Whether `extract_line` can find anything in `line`: it must hold one of the keys it acts on.
+/// A cheap substring check that spares parsing most lines.
+pub fn wanted(line: &str) -> bool {
+    ["tool_use", "tool_result", "\"usage\"", "turn_duration"].iter().any(|k| line.contains(k))
+}
+
+/// Events, token deltas and turn durations of one whole transcript line, into `out`. Entries
+/// stamped before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing
+/// spans calls via `cur`.
+pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms: i64, out: &mut Found) {
+    let (events, usage, turns) = out;
+    let Ok(v) = serde_json::from_str::<Value>(line) else { return };
+    {
         let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
         if min_ts > i64::MIN && ts.map_or(true, |t| t < min_ts) {
-            continue;
+            return;
         }
         let ts = ts.unwrap_or(now_ms);
         let mut emit = |kind: &str, detail: String| {
@@ -199,7 +217,7 @@ pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64
                 let model = msg["model"].as_str().unwrap_or("");
                 let u = &msg["usage"];
                 if u.is_null() || model.is_empty() || model == "<synthetic>" {
-                    continue;
+                    return;
                 }
                 let f = |k: &str| u[k].as_u64().unwrap_or(0);
                 let t = Tokens { input: f("input_tokens"), output: f("output_tokens"), cache_read: f("cache_read_input_tokens"), cache_write: f("cache_creation_input_tokens") };
@@ -239,7 +257,6 @@ pub fn extract(cur: &mut Cursor, text: &str, min_ts: i64, src: &Src, now_ms: i64
             _ => {}
         }
     }
-    (events, usage, turns)
 }
 
 fn classify(p: Option<&Pending>, b: &Value) -> Vec<(&'static str, String)> {
@@ -387,15 +404,15 @@ pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
 // ---- incremental reading ----------------------------------------------------------------------
 
 pub struct Chunk {
-    pub text: String,
     pub offset: u64,
     pub today_only: bool,
 }
 
-/// Whole lines appended to `path` since `stored` (a partial last line waits for the next poll).
-/// No stored offset, or a file that shrank: read from 0, today only. A file first seen and not
-/// touched since before `today_start` has nothing of today: jump to its end without reading.
-pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<Chunk> {
+/// Streams to `line` each whole line appended to `f` since `stored` (a partial last line waits for
+/// the next poll), one line in memory at a time; returns the new offset. No stored offset, or a
+/// file that shrank: read from 0, today only. A file first seen and not touched since before
+/// `today_start` has nothing of today: jump to its end without reading.
+pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64, mut line: impl FnMut(&str, bool)) -> Option<Chunk> {
     let len = f.len;
     let (start, today_only) = match stored {
         Some(o) if o <= len => (o, false),
@@ -405,14 +422,23 @@ pub fn read_new(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<C
         return None;
     }
     if stored.is_none() && f.mtime_ms < today_start {
-        return Some(Chunk { text: String::new(), offset: len, today_only });
+        return Some(Chunk { offset: len, today_only });
     }
-    let mut f = fs::File::open(&f.path).ok()?;
-    f.seek(SeekFrom::Start(start)).ok()?;
-    let mut buf = Vec::new();
-    f.take(len - start).read_to_end(&mut buf).ok()?;
-    let cut = buf.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
-    Some(Chunk { text: String::from_utf8_lossy(&buf[..cut]).into_owned(), offset: start + cut as u64, today_only })
+    let mut file = fs::File::open(&f.path).ok()?;
+    file.seek(SeekFrom::Start(start)).ok()?;
+    let mut r = BufReader::with_capacity(64 * 1024, file.take(len - start));
+    let (mut buf, mut offset) = (Vec::new(), start);
+    // A read error ends the chunk at the last whole line handed out; the rest comes next poll.
+    while let Ok(n) = r.read_until(b'\n', &mut buf) {
+        if n == 0 || buf.last() != Some(&b'\n') {
+            break;
+        }
+        offset += n as u64;
+        let text = String::from_utf8_lossy(&buf[..n - 1]);
+        line(text.strip_suffix('\r').unwrap_or(&text), today_only);
+        buf.clear();
+    }
+    Some(Chunk { offset, today_only })
 }
 
 // ---- persistence ------------------------------------------------------------------------------
@@ -423,7 +449,8 @@ const KEEP_DAYS: u64 = 7;
 pub struct Chronicle {
     dir: PathBuf,
     offsets: HashMap<String, u64>,
-    cursors: HashMap<PathBuf, Cursor>,
+    /// Per transcript: pairing state and, for a subagent's, its kind.
+    cursors: HashMap<PathBuf, (Cursor, Option<String>)>,
     tithe: Tithe,
     last_flush_ms: i64,
 }
@@ -490,15 +517,22 @@ impl Chronicle {
                 let path = &f.path;
                 seen.insert(path.clone());
                 let key = path.to_string_lossy().into_owned();
-                let Some(chunk) = read_new(f, self.offsets.get(&key).copied(), today_start) else { continue };
+                let cursors = &mut self.cursors;
+                let mut found = Found::default();
+                let read = read_new(f, self.offsets.get(&key).copied(), today_start, |line, today_only| {
+                    if !wanted(line) {
+                        return;
+                    }
+                    if !cursors.contains_key(path) {
+                        cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into()))));
+                    }
+                    let Some((cur, helper)) = cursors.get_mut(path) else { return };
+                    let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
+                    extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
+                });
+                let Some(chunk) = read else { continue };
                 self.offsets.insert(key, chunk.offset);
-                if chunk.text.is_empty() {
-                    continue;
-                }
-                let cur = self.cursors.entry(path.clone()).or_insert_with(|| Cursor { helper: sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into())), ..Default::default() });
-                let helper = cur.helper.clone();
-                let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
-                let (ev, usage, turns) = extract(cur, &chunk.text, if chunk.today_only { today_start } else { i64::MIN }, &src, now_ms);
+                let (ev, usage, turns) = found;
                 events.extend(ev);
                 for u in usage {
                     self.add_usage(&s.dept, &u); // subagent tokens count toward the parent's project
@@ -758,22 +792,26 @@ mod tests {
         d
     }
 
+    /// `read_new` with the streamed lines joined back into one text.
+    fn read_text(f: &FileStat, stored: Option<u64>, today_start: i64) -> Option<(String, u64, bool)> {
+        let mut text = String::new();
+        let c = read_new(f, stored, today_start, |l, _| text.push_str(&format!("{l}\n")))?;
+        Some((text, c.offset, c.today_only))
+    }
+
     #[test]
     fn read_new_whole_lines_only_and_restarts_when_the_file_shrinks() {
         let d = temp_dir("read-new");
         let p = d.join("a.jsonl");
         fs::write(&p, "one\ntwo\npart").unwrap();
         let st = || registry::stat(&p).unwrap();
-        let c = read_new(&st(), None, 0).unwrap();
-        assert_eq!((c.text.as_str(), c.offset, c.today_only), ("one\ntwo\n", 8, true));
-        assert!(read_new(&st(), Some(8), 0).unwrap().text.is_empty(), "partial line waits");
+        assert_eq!(read_text(&st(), None, 0).unwrap(), ("one\ntwo\n".into(), 8, true));
+        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("".into(), 8, false), "partial line waits");
         fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(b"ial\n").unwrap();
-        let c = read_new(&st(), Some(8), 0).unwrap();
-        assert_eq!((c.text.as_str(), c.offset, c.today_only), ("partial\n", 16, false));
-        assert!(read_new(&st(), Some(16), 0).is_none(), "nothing new");
-        fs::write(&p, "new\n").unwrap();
-        let c = read_new(&st(), Some(16), 0).unwrap();
-        assert_eq!((c.text.as_str(), c.offset, c.today_only), ("new\n", 4, true), "shrank: from 0, today only");
+        assert_eq!(read_text(&st(), Some(8), 0).unwrap(), ("partial\n".into(), 16, false));
+        assert!(read_text(&st(), Some(16), 0).is_none(), "nothing new");
+        fs::write(&p, "new\r\n").unwrap();
+        assert_eq!(read_text(&st(), Some(16), 0).unwrap(), ("new\n".into(), 5, true), "shrank: from 0, today only; CRLF like lines()");
     }
 
     #[test]
@@ -782,8 +820,7 @@ mod tests {
         let p = d.join("old.jsonl");
         fs::write(&p, "old\n").unwrap();
         fs::OpenOptions::new().write(true).open(&p).unwrap().set_modified(SystemTime::now() - Duration::from_secs(3 * 86_400)).unwrap();
-        let c = read_new(&registry::stat(&p).unwrap(), None, midnight_ms(now())).unwrap();
-        assert_eq!((c.text.as_str(), c.offset), ("", 4));
+        assert_eq!(read_text(&registry::stat(&p).unwrap(), None, midnight_ms(now())).unwrap(), ("".into(), 4, true));
     }
 
     #[test]
