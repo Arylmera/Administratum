@@ -1,4 +1,4 @@
-import { SCRIBE, ADEPT, MAPS, blit } from './sprites.js';
+import { SCRIBE, ADEPT, MAPS, RANK, rankOf, blit } from './sprites.js';
 import { route, QUEUE_SLOTS, COG_SPOTS, ENTRY, RECAFF_SPOT, REFECTORY_SPOTS } from './layout.js';
 
 const SPEED = 80; // logical px per second
@@ -97,12 +97,12 @@ export class Cast {
 // Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
 export function drawActor(g, a) {
   if (a.h) { // adept: 12x14, feet at (x, y)
-    const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14;
-    if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy);
-    else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0)); // typing bob, 1 art px
+    const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14, over = RANK[rankOf(a.h.model ?? a.h.context?.model)].adept;
+    if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
+    else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), over); // typing bob, 1 art px
     return;
   }
-  const over = { y: a.sash };
+  const over = { ...RANK[rankOf(a.s.context?.model)].robe, y: a.sash };
   const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
   if (a.pose === 'walk') {
     blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);

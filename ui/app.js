@@ -1,7 +1,7 @@
 import { SCENE, lightLevel, layoutDepartments } from './layout.js';
 import { drawStatic, drawScene } from './scene.js';
 import { drawLighting } from './lighting.js';
-import { SASH, RES } from './sprites.js';
+import { SASH, RES, RANK, rankOf } from './sprites.js';
 import { Cast, isStale } from './actors.js';
 
 const MODES = ['auto', 'full', 'candles'];
@@ -94,6 +94,8 @@ const windowOf = model => (/haiku/i.test(model ?? '') ? 200_000 : 1_000_000);
 const fillOf = ctx => (ctx ? ctx.tokens / windowOf(ctx.model) : 0);
 const kM = n => (n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 const contextLine = ctx => `Context · ${ctx ? `${kM(ctx.tokens)} / ${kM(windowOf(ctx.model))} (${Math.round(100 * fillOf(ctx))}%)` : '—'}`;
+const modelName = model => { const m = /opus|sonnet|haiku|fable/i.exec(model ?? '')?.[0].toLowerCase(); return m ? m[0].toUpperCase() + m.slice(1) : model ?? 'unrecorded'; };
+const rankLine = model => `${modelName(model)} · ${RANK[rankOf(model)].name}`;
 
 const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
 const cast = new Cast();
@@ -158,7 +160,7 @@ function renderCard() {
     card.hidden = false;
     const owner = roster.find(r => r.id === a.owner);
     card.querySelector('.name').textContent = `${a.h.kind} · adept of ${owner?.name ?? '?'}`;
-    card.querySelector('.meta').textContent = `Model: ${a.h.model ?? 'unrecorded'}`;
+    card.querySelector('.meta').textContent = `Model: ${rankLine(a.h.model ?? a.h.context?.model)}`;
     card.querySelector('.ctx').textContent = contextLine(a.h.context);
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
@@ -171,7 +173,7 @@ function renderCard() {
   card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
   const status = s.background ? 'Idle · background shell running' : a?.target?.pose === 'nap' ? 'Idle · dozing in the Refectorium' : STATUS_TEXT[s.status] ?? s.status;
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
-  card.querySelector('.ctx').textContent = contextLine(s.context);
+  card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
   card.querySelector('.task').textContent = s.task;
   card.querySelector('.path').textContent = s.cwd;
   renderAnswer(card, s);
