@@ -70,11 +70,13 @@ function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.len
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.mode);
 
 const FRAME = 12; // CSS px kept around the scene for the brass frame
+const FREE_W = 1920; // ponytail: an explicit Scale's widest scene (canvas cost); past it the stage is centred, scale kept
 // The window decides the room, the Scale setting the pixel size: the scene is as many logical px as the window
-// holds at that scale (never below the minimum SCENE, never wider than MAX_W: an ultra-wide window gets bigger
-// pixels instead). Auto: the scale of the original look at the default 700x500 window (~1.93), kept while
-// the window resizes. Smaller than the minimum, or with bays below the window, the stage shows a view of the
-// scene that pans (drag, arrow keys, edge arrows; double-click recentres).
+// holds at that scale (never below the minimum SCENE). Auto: the scale of the original look at the default
+// 700x500 window (~1.93), kept while the window resizes, and never wider than MAX_W: an ultra-wide window gets
+// bigger pixels instead. An explicit Scale is honoured exactly (up to FREE_W wide). Smaller than the minimum, or
+// with bays below the window, the stage shows a view of the scene that pans (drag, arrow keys, edge arrows;
+// double-click recentres).
 let autoScale = 0;
 const stage = document.getElementById('stage'), world = document.getElementById('world');
 const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
@@ -89,14 +91,17 @@ const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
 const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
 let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
 function fit() {
-  const head = document.querySelector('header').offsetHeight;
-  const W = Math.max(1, innerWidth - 2 * FRAME), H = Math.max(1, innerHeight - head - 2 * FRAME);
+  // The laid-out viewport, floored: on a fractional display (125 %) innerWidth/innerHeight are rounded and can
+  // be half a px larger than the page, enough to overflow it.
+  const vp = document.documentElement.getBoundingClientRect(), head = document.querySelector('header').getBoundingClientRect().bottom;
+  const W = Math.max(1, Math.floor(vp.width) - 2 * FRAME), H = Math.max(1, Math.floor(vp.height - head) - 2 * FRAME);
   if (viewW) viewCentre = { x: (viewW / 2 - pan.x) / scale, y: (viewH / 2 - pan.y) / scale };
   // ponytail: fractional scale; pixelated rendering keeps it crisp enough at any size.
   autoScale ||= Math.min((700 - 2 * FRAME) / SCENE.w, (500 - head - 2 * FRAME) / SCENE.h);
-  scale = scaleSetting.scale === 'auto' ? autoScale : +scaleSetting.scale;
-  if (W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
-  const next = { w: Math.min(MAX_W, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
+  const auto = scaleSetting.scale === 'auto', maxW = auto ? MAX_W : FREE_W;
+  scale = auto ? autoScale : +scaleSetting.scale;
+  if (auto && W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
+  const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
   if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
   applySize(W, H);
 }
@@ -114,6 +119,7 @@ function applySize(W, H) {
 }
 let resizing;
 addEventListener('resize', () => { clearTimeout(resizing); resizing = setTimeout(fit, 150); });
+addEventListener('scroll', () => scrollTo(0, 0)); // the page never scrolls, only the stage's pan (index.html: overflow clip)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {
   hall = hallOf(layout.bays ?? 0, size);

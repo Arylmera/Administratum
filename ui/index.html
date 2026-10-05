@@ -13,6 +13,7 @@
   @font-face { font-family: 'Pirata One'; font-weight: 400; font-display: swap; src: url(fonts/pirata-one-latin.woff2) format('woff2'); }
   :root { --ink: #d6c79f; --dim: #8a7a5c; --bg: #060404; --bar: #120d0a; --red: #a0221a; --pink: #ff7a66; --green: #7cff9e; --copper: #b8742e; }
   html, body { margin: 0; height: 100%; background-color: var(--bg); color: var(--ink); font-family: 'VT323', monospace; font-synthesis: none; overflow: hidden; user-select: none; }
+  body { overflow: clip; } /* not a scroll container: focus() or scrollIntoView() cannot shift the header and the stage */
   body { display: flex; flex-direction: column; background-size: 100% 100%, var(--tile, 40px) var(--tile, 40px); image-rendering: pixelated; }
   header { flex: none; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 12px; background: var(--bar); border-bottom: 2px solid #4e110c; }
   header h1 { margin: 0; font: 400 22px/1 'Pirata One', serif; }
@@ -34,7 +35,8 @@
   .icon:hover, #modes button:hover { filter: brightness(1.3); }
   #mute .off { display: none; } #mute.muted .on { display: none; } #mute.muted .off { display: block; }
   button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-  #stage { position: relative; margin: auto; overflow: hidden; box-shadow: 0 0 0 2px #0e0a08, 0 0 0 4px #b8742e, 0 0 0 5px #6e3f17, 0 0 0 7px #0e0a08, 0 10px 30px 6px rgba(0,0,0,.8); }
+  /* clip: the world moves by its pan transform only; max-*: never past the window, even before app.js's debounced fit (42 px: the header) */
+  #stage { position: relative; margin: auto; overflow: clip; min-width: 0; min-height: 0; max-width: calc(100% - 24px); max-height: calc(100% - 66px); box-shadow: 0 0 0 2px #0e0a08, 0 0 0 4px #b8742e, 0 0 0 5px #6e3f17, 0 0 0 7px #0e0a08, 0 10px 30px 6px rgba(0,0,0,.8); }
   #world { position: absolute; left: 0; top: 0; }
   #scene { display: block; image-rendering: pixelated; touch-action: none; }
   #overlay { position: absolute; inset: 0; pointer-events: none; }
@@ -253,7 +255,7 @@
         <fieldset><legend>Window</legend>
           <label><span>Always on top</span><input type="checkbox" name="onTop"></label>
           <label><span>Start at login</span><input type="checkbox" name="login"></label>
-          <label><span>Scale</span><select name="scale"><option value="auto">Auto</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select></label>
+          <label><span>Scale</span><select name="scale"><option value="auto">Auto</option><option value="1">1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select></label>
           <p class="hint">Pixel size; the window decides how big the hall is.</p>
         </fieldset>
         <fieldset><legend>Hall</legend>

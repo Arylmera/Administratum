@@ -65,7 +65,7 @@ const setQuestions = (on, toast) => {
 };
 
 // Scale (adm.scale): CSS px per logical px, or 'auto' (app.js); read live by app.js's fit().
-const SCALES = ['auto', '1.5', '2', '2.5', '3'];
+const SCALES = ['auto', '1', '1.5', '2', '2.5', '3'];
 export const view = { scale: SCALES.includes(store.get('adm.scale')) ? store.get('adm.scale') : 'auto' };
 const setScale = v => { view.scale = SCALES.includes(v) ? v : 'auto'; store.set('adm.scale', view.scale); };
 
