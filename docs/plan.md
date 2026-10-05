@@ -2014,7 +2014,7 @@ Expected, against the 60 s demo cycle:
 
 Then `Remove-Item Env:ADMINISTRATUM_DEMO`.
 
-- [ ] **Step 5: Run against the real sessions**
+- [x] **Step 5: Run against the real sessions**
 
 ```powershell
 Set-Location src-tauri
@@ -2047,7 +2047,7 @@ cargo tauri build
 
 Expected: `src-tauri/target/release/bundle/nsis/Administratum_0.1.0_x64-setup.exe`.
 
-- [ ] **Step 2: Install and smoke-test the release build**
+- [x] **Step 2: Install and smoke-test the release build**
 
 Run the installer, start Administratum from the Start menu. Expected: no console window, tray icon present, toasts show "Administratum" as the app name, tray "Start at login" toggles and survives a re-login.
 
