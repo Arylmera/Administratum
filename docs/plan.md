@@ -1103,7 +1103,7 @@ git commit -m "ui: scene geometry, routes and lighting levels with self-check"
   - `lighting.js`: `drawLighting(g, lights, level, t)`
   - `app.js` (this task): draws background + lighting in a loop with the header mode switch working.
 
-- [ ] **Step 1: Write `ui/sprites.js`**
+- [x] **Step 1: Write `ui/sprites.js`**
 
 ```js
 // Tier II palette and pixel maps (ported from the Claude Design board "Tier II — Data-Shrine").
@@ -1368,7 +1368,7 @@ export const MAPS = {
 };
 ```
 
-- [ ] **Step 2: Write `ui/scene.js`**
+- [x] **Step 2: Write `ui/scene.js`**
 
 ```js
 import { sprite, MAPS } from './sprites.js';
@@ -1504,7 +1504,7 @@ export const STATIC_LIGHTS = [
 ];
 ```
 
-- [ ] **Step 3: Write `ui/lighting.js`**
+- [x] **Step 3: Write `ui/lighting.js`**
 
 ```js
 let layer = null;
@@ -1561,7 +1561,7 @@ export function drawLighting(g, lights, level, t) {
 }
 ```
 
-- [ ] **Step 4: Rewrite `ui/index.html`**
+- [x] **Step 4: Rewrite `ui/index.html`**
 
 ```html
 <!doctype html>
@@ -1648,7 +1648,7 @@ export function drawLighting(g, lights, level, t) {
 </html>
 ```
 
-- [ ] **Step 5: Write the first `ui/app.js` (room + lighting + header modes)**
+- [x] **Step 5: Write the first `ui/app.js` (room + lighting + header modes)**
 
 ```js
 import { SCENE, lightLevel } from './layout.js';
@@ -1731,7 +1731,7 @@ cargo tauri dev
 
 Expected: the Tier II room fills the window at integer scale: grate floor with green coolant lines, shelves with paper towers, windows, cogitator bank, refectorium, Sanctum with Cog Mechanicus/throne/lord desk/braziers, servo-skull bobbing. Mode switch: **Full light** = bright windows + light shafts; **Candles** = dark with light pools; **Auto** label shows the hour and phase. Switch survives a restart (localStorage). Compare against the Claude Design board "Tier II".
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add ui
