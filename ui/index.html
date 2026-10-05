@@ -317,6 +317,23 @@
     <div class="rod"></div>
   </div>
 </main>
+<script>
+// Startup watchdog (classic script, runs even if the modules fail): show errors on the page itself,
+// since a remote browser (e.g. iPad Safari) has no visible console.
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown && !msg) return; shown = true;
+    var d = document.getElementById('bootfail') || document.body.appendChild(Object.assign(document.createElement('pre'), { id: 'bootfail' }));
+    d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99;margin:0;padding:8px;background:#1e0a08;color:#ff7a66;border:1px solid #a0221a;font:12px monospace;white-space:pre-wrap';
+    d.textContent += (msg || 'Administratum did not start.') + '
+';
+  }
+  addEventListener('error', function (e) { show('Error: ' + e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')'); });
+  addEventListener('unhandledrejection', function (e) { show('Rejected: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); });
+  setTimeout(function () { if (!window.ADM_BOOTED) show('Administratum did not start within 5 s. ' + navigator.userAgent); }, 5000);
+})();
+</script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

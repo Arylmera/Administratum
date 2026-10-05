@@ -631,6 +631,7 @@ let refreshTithe = null;
 initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit });
 fit();
 requestAnimationFrame(frame);
+window.ADM_BOOTED = true;
 if (tauri() || REMOTE) {
   listen('roster', e => onRoster(e.payload));
   listen('petition', () => chime());
