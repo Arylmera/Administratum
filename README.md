@@ -154,6 +154,8 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Context window: Haiku | 200 k tokens | 8–10 000 | Window used for the context fill of Haiku sessions |
 | Context window: Other models | 1000 k tokens | 8–10 000 | Window for every other model |
 | Latitude / Longitude | empty | ±90 / ±180 | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
+| Idle frame rate | 12 fps | 6 / 8 / 12 / 30 | Redraw rate while nothing moves (anything walking or animating always runs at 30 fps). Lower = less CPU/GPU |
+| Pause when hidden or covered | on | — | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
 
 **Reset to defaults** restores every value above except *Start at login*.
 
