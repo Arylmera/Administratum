@@ -305,7 +305,7 @@ git push
   - `pub fn normalize_status(s: Option<&str>) -> &'static str` → `busy|shell|waiting|idle`
   - `pub fn task_line(tail: &str) -> String`
 
-- [ ] **Step 1: Write the failing tests** — create `src-tauri/src/registry.rs` with only the test module:
+- [x] **Step 1: Write the failing tests** — create `src-tauri/src/registry.rs` with only the test module:
 
 ```rust
 #[cfg(test)]
@@ -379,12 +379,12 @@ mod tests {
 
 And add `mod registry;` as the first line after the `#![cfg_attr...]` line of `src-tauri/src/main.rs`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml registry`
 Expected: compile errors `cannot find function parse_record` (and the others).
 
-- [ ] **Step 3: Implement** — insert above the test module in `registry.rs`:
+- [x] **Step 3: Implement** — insert above the test module in `registry.rs`:
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -483,12 +483,12 @@ pub fn task_line(tail: &str) -> String {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml registry`
 Expected: `7 passed` (dead-code warnings are fine at this stage).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src-tauri/src/registry.rs src-tauri/src/main.rs
