@@ -342,7 +342,8 @@ function drawMagos(g, t) {
 
 const STATIC_LIGHTS = [
   { x: 86, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
-  { x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN },
+  { x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens
+  { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN }, // recaff, skull
   { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
   { x: 274, y: 153, r: 14, color: GREEN }, { x: 278, y: 132, r: 9, color: GREEN }, // lord desk, Magos optics + chest screen
   { x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true },
