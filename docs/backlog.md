@@ -1,13 +1,8 @@
 # Backlog
 
-Done recently: answer petitions, stale escalation, model ranks, compaction ritual, stable desks, Chronicon + Tithe + scene reactions (spec: docs/superpowers/specs/2026-10-05-chronicon-design.md).
+Done recently: answer petitions, stale escalation, model ranks, compaction ritual, stable desks, Chronicon + Tithe + scene reactions, space for many agents (compact lecterns, growing hall, pan, edge arrows) (spec: docs/superpowers/specs/2026-10-05-chronicon-design.md).
 
 ## Next
-- Space for many agents, step B: compact desks (narrow lecterns, 6 per row) past a threshold; the hall
-  grows (extra scriptorium bay) instead of shrinking everything; minimum readable scale; click-and-hold
-  drag to pan when the scene exceeds the window (pointer threshold so clicks still select), light
-  inertia, double-click recentres, edge arrows / mini-map for off-screen characters (red blink for an
-  off-screen petition)
 - Subagent liveness: active until the parent transcript holds its completion notification (10 min cap), instead of "transcript touched < 45 s"
 - Settings page (gear in the header, parchment panel):
   - Always on top (toggle, applied live via the window API, persisted)
