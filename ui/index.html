@@ -27,13 +27,11 @@
   #stage { position: relative; margin: auto; width: fit-content; box-shadow: 0 0 0 2px #0e0a08, 0 0 0 4px #b8742e, 0 0 0 5px #6e3f17, 0 0 0 7px #0e0a08, 0 10px 30px 6px rgba(0,0,0,.8); }
   #scene { display: block; image-rendering: pixelated; }
   #overlay { position: absolute; inset: 0; pointer-events: none; }
-  .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; padding: 1px 5px; background: rgba(14,10,8,.9); border: 1px solid #3a2a1e; border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(11px * var(--k, 1)); line-height: 1.15; white-space: nowrap; cursor: pointer; }
+  .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; padding: 0 4px; background: #1e0a08; border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; animation: pulse 1.8s ease-in-out infinite; }
   .lbl.sel { border-color: var(--green); background: #3a1410; }
-  .lbl.petition { background: #1e0a08; border-color: var(--red); animation: pulse 1.8s ease-in-out infinite; }
   .lbl .sub { color: var(--pink); }
-  .lbl.adept { transform: translate(-50%, 0); padding: 0 3px; background: rgba(14,10,8,.7); border-color: #241a12; color: var(--dim); font-size: calc(9px * var(--k, 1)); display: block; overflow: hidden; text-overflow: ellipsis; }
-  .lbl[hidden] { display: none; }
-  .lbl .zz { color: #a89a7c; }
+  .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: rgba(14,10,8,.85); border: 1px solid #3a2a1e; border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
+  .tip[hidden] { display: none; }
   .plaque { position: absolute; padding: 1px 6px; background: #140d09; border: 2px solid; font-size: calc(10px * var(--k, 1)); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; width: 57%; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
@@ -41,6 +39,10 @@
   #card[hidden] { display: none; }
   #card .name { font-size: 14px; font-weight: 600; }
   #card .meta, #card .ctx, #card .path { color: #5a3c16; }
+  #card .links { display: flex; gap: 6px; margin-top: 3px; }
+  #card .links[hidden], #card .links button[hidden] { display: none; }
+  #card .links button { padding: 3px 8px; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; font-size: 11px; cursor: pointer; }
+  #card .links button:hover { filter: brightness(1.2); }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(160,30,22,0); } 50% { box-shadow: 0 0 12px 2px rgba(190,40,28,.8); } }
   @media (max-width: 760px) { .tier { display: none; } }
 </style>
@@ -73,13 +75,14 @@
 </header>
 <main id="stage">
   <canvas id="scene"></canvas>
-  <div id="overlay"></div>
+  <div id="overlay"><div id="tip" class="tip" hidden></div></div>
   <div id="card" hidden>
     <div class="name"></div>
     <div class="meta"></div>
     <div class="ctx"></div>
     <div class="task"></div>
     <div class="path"></div>
+    <div class="links" hidden><button type="button">Open in Orca</button><button type="button">Open on claude.ai</button></div>
   </div>
 </main>
 <script type="module" src="app.js"></script>

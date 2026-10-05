@@ -165,15 +165,26 @@ function renderCard() {
     card.querySelector('.ctx').textContent = contextLine(a.h.context);
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
+    renderLinks(card, owner);
     return;
   }
   card.hidden = !s;
   if (!s) return;
   card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
-  card.querySelector('.meta').textContent = `${STATUS_TEXT[s.status] ?? s.status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
+  const status = s.background ? 'Idle · background shell running' : STATUS_TEXT[s.status] ?? s.status;
+  card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = contextLine(s.context);
   card.querySelector('.task').textContent = s.task;
   card.querySelector('.path').textContent = s.cwd;
+  renderLinks(card, s);
+}
+
+function renderLinks(card, s) {
+  const [orca, web] = card.querySelectorAll('.links button');
+  orca.hidden = !s?.orca; web.hidden = !s?.web;
+  card.querySelector('.links').hidden = orca.hidden && web.hidden;
+  orca.onclick = () => openTarget(`orca:${s.orca}`);
+  web.onclick = () => openTarget(`web:${s.web}`);
 }
 
 function select(id) {
@@ -183,55 +194,72 @@ function select(id) {
   renderCard();
 }
 
+// Petitioners keep a compact always-visible label (they must not be missed); everyone else is found by
+// clicking/hovering the sprite itself.
 const labels = new Map();
+const tip = document.getElementById('tip');
+let hovered = null;
 function syncLabels() {
-  for (const [id, el] of labels) if (!cast.actors.has(id)) { el.remove(); labels.delete(id); }
+  const petition = a => !a.h && !a.leaving && a.pose === 'queue' && a.s.status === 'waiting';
+  for (const [id, el] of labels) if (!petition(cast.actors.get(id) ?? {})) { el.remove(); labels.delete(id); }
   for (const a of cast.actors.values()) {
+    if (!petition(a)) continue;
     let el = labels.get(a.id);
     if (!el) {
       el = document.createElement('button');
-      el.className = a.h ? 'lbl adept' : 'lbl';
-      el.onclick = () => select(a.id);
+      el.className = 'lbl petition';
+      el.onclick = () => pick(a.id);
       overlay.appendChild(el);
       labels.set(a.id, el);
     }
-    if (a.h) { // quiet kind label under the feet; hidden in a crowd (owner's label counts them instead)
-      el.hidden = (cast.actors.get(a.owner)?.s.helpers?.length ?? 0) > 2;
-      const key = [a.h.kind, sel === a.id].join('|');
-      if (el.dataset.key !== key) {
-        el.dataset.key = key;
-        el.classList.toggle('sel', sel === a.id);
-        el.textContent = a.h.kind;
-        el.setAttribute('aria-label', `${a.h.kind} adept`);
-      }
-      el.style.left = `${a.x * scale}px`;
-      el.style.top = `${(a.y + 0.5) * scale}px`;
-      el.style.maxWidth = `${21 * scale}px`; // one console cell: neighbours' labels never touch
-      continue;
-    }
-    const adepts = a.s.helpers?.length ?? 0;
-    const petition = a.s.status === 'waiting' && a.pose === 'queue';
-    const dozing = a.pose === 'desk' && a.s.status === 'idle';
     const want = a.s.waitingFor ?? 'input needed';
-    const key = [a.s.name, petition, dozing, want, sel === a.id, petition ? ago(a.s.sinceMs) : '', adepts].join('|');
+    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs)].join('|');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
-      el.classList.toggle('petition', petition);
       el.classList.toggle('sel', sel === a.id);
       el.replaceChildren();
       const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; el.appendChild(s); };
-      if (dozing) line('zz', 'z z');
       line('', a.s.name);
-      if (petition) line('sub', `${want} · ${ago(a.s.sinceMs)}`);
-      if (adepts > 2) line('zz', `+${adepts} adepts`);
-      el.setAttribute('aria-label', petition ? `${a.s.name}, petition: ${want}` : a.s.name);
+      line('sub', `${want} · ${ago(a.s.sinceMs)}`);
+      el.setAttribute('aria-label', `${a.s.name}, petition: ${want}`);
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.
-    const qOff = a.target?.queueIdx % 2 === 1 ? 33 : 18;
+    const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
     el.style.left = `${a.x * scale}px`;
     el.style.top = `${(a.y - qOff) * scale}px`;
   }
+  const h = cast.actors.get(hovered);
+  tip.hidden = !h || h.leaving || labels.has(hovered);
+  if (tip.hidden) return;
+  tip.textContent = h.h ? h.h.kind : h.s.name;
+  tip.style.left = `${h.x * scale}px`;
+  tip.style.top = `${(h.y - (h.h ? 15 : 18)) * scale}px`;
 }
+
+// Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins.
+function actorAt(e) {
+  const r = canvas.getBoundingClientRect(), px = (e.clientX - r.left) / scale, py = (e.clientY - r.top) / scale;
+  let best = null;
+  for (const a of cast.actors.values()) {
+    const hw = (a.h ? 6 : 8) + 1, ht = (a.h ? 14 : 17) + 1;
+    if (!a.leaving && Math.abs(px - a.x) <= hw && py >= a.y - ht && py <= a.y + 1 && (!best || a.y >= best.y)) best = a;
+  }
+  return best;
+}
+const ownerOf = a => roster.find(r => r.id === (a.h ? a.owner : a.id));
+function openTarget(target) {
+  window.__TAURI__?.core?.invoke('open_session', { target })?.catch(err => console.warn('open_session', err));
+}
+// Select a character: its card, plus the scribe's (or the adept owner's) Orca terminal.
+function pick(id) {
+  const a = cast.actors.get(id), s = a && ownerOf(a);
+  if (s?.orca) openTarget(`orca:${s.orca}`);
+  select(id);
+}
+canvas.onclick = e => { const a = actorAt(e); if (a) pick(a.id); };
+canvas.onmousemove = e => { hovered = actorAt(e)?.id ?? null; canvas.style.cursor = hovered ? 'pointer' : ''; };
+canvas.onmouseleave = () => { hovered = null; canvas.style.cursor = ''; };
+addEventListener('keydown', e => { if (e.key === 'Escape' && sel) { sel = null; renderCard(); } });
 
 let audio = null;
 function chime() {
@@ -265,9 +293,9 @@ hooks.beforeLights = gg => {
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
     const a = cast.actors.get(d.id), fill = fillOf(a?.s.context);
-    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
+    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy', bgShell = !!a?.s.background;
     paperFloor(gg, d.id, 'desk', fill, d, blockOf(d.dept), now);
-    items.push(deskDrawable(d, busy, fill));
+    items.push(deskDrawable(d, busy, fill, bgShell, now));
     lights.push(deskLight(d, busy));
   }
   for (const c of layout.consoles) {

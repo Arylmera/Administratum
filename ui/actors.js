@@ -103,5 +103,21 @@ export class Cast {
     blit(g, MAPS.ARM_L, fx, fy + 2); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
     if (a.pose === 'desk' && a.s.status === 'busy') blit(g, MAPS.CHAIN, fx - 6, fy + 15);
     if (a.pose === 'queue') blit(g, MAPS.SCROLL, fx + 14, fy + 8);
+    if (a.pose === 'desk' && a.s.status === 'idle' && !a.s.background) dozing(g, fx + 11, fy - 2, a.t);
   }
+}
+
+// "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.
+const Z = ['11111', '00010', '00100', '01000', '11111'];
+function dozing(g, x, y, t) {
+  g.save();
+  for (const k of [0, 0.5]) {
+    const p = (t / 2.4 + k) % 1, zx = x + Math.round(p * 4) / 2, zy = y - Math.round(p * 12) / 2;
+    g.globalAlpha = Math.min(1, 3 * (1 - p));
+    for (const [col, o, w] of [['#0e0a08', -0.5, 1.5], ['#e6ffee', 0, 0.5]]) { // dark outline so it reads over paper
+      g.fillStyle = col;
+      Z.forEach((row, j) => { for (let i = 0; i < 5; i++) if (row[i] === '1') g.fillRect(zx + i / 2 + o, zy + j / 2 + o, w, w); });
+    }
+  }
+  g.restore();
 }
