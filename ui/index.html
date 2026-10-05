@@ -39,6 +39,9 @@
   #stage { position: relative; margin: auto; overflow: clip; min-width: 0; min-height: 0; max-width: calc(100% - 24px); max-height: calc(100% - 66px); box-shadow: 0 0 0 2px #0e0a08, 0 0 0 4px #b8742e, 0 0 0 5px #6e3f17, 0 0 0 7px #0e0a08, 0 10px 30px 6px rgba(0,0,0,.8); }
   #world { position: absolute; left: 0; top: 0; }
   #scene { display: block; image-rendering: pixelated; touch-action: none; }
+  #world { touch-action: none; -webkit-touch-callout: none; }
+  .count.link { color: #ffe6a0; border-color: var(--copper); }
+  #card .note { color: #5a3c16; font-style: italic; }
   #overlay { position: absolute; inset: 0; pointer-events: none; }
   .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: #1e0a08; border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
   .lbl.stale { border-color: #ff3a20; background: #4e110c; }
@@ -176,6 +179,12 @@
   #prefs .hint { margin: .3em 0 0; font-size: .85em; color: #5a3c16; }
   #prefs .clear { margin-top: .4em; padding: .2em .7em; background: none; color: #4e110c; border: 1px solid #8a6a3a; border-radius: 2px; font: inherit; cursor: pointer; }
   #prefs .reset { margin-top: .8em; padding: .3em .8em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; cursor: pointer; }
+  #prefs [hidden] { display: none; }
+  #prefs fieldset:disabled label { opacity: .75; }
+  #prefs .rv-urls { margin: .3em 0 0; padding: 0; list-style: none; user-select: text; overflow-wrap: anywhere; }
+  #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: .5em auto 0; padding: 6px; background: #fff; image-rendering: pixelated; }
+  #prefs .rv-qr[hidden] { display: none; }
+  #prefs .rv-err { color: #8e1c16; font-weight: 600; }
   #prefs .reset:hover { filter: brightness(1.2); }
   #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid #4e110c; outline-offset: 1px; }
   @media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
@@ -235,8 +244,9 @@
     <div class="path"></div>
     <div class="q" hidden></div>
     <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
+    <div class="note noact" hidden>Remote actions are disabled on the PC</div>
     <div class="err" hidden></div>
-    <div class="links" hidden><button type="button">Open in Orca</button><button type="button">Open on claude.ai</button></div>
+    <div class="links" hidden><button type="button">Open in Orca</button><button type="button">Open on claude.ai</button><span class="note" hidden>Open on the PC</span></div>
   </div>
   <div id="chron" role="dialog" aria-label="Chronicon" hidden>
     <div class="rod"></div>
@@ -252,9 +262,10 @@
     <div class="sheet">
       <div class="top"><h2>Settings</h2><button type="button" class="close" aria-label="Close settings">✕</button></div>
       <form>
+        <p class="hint remote-only" hidden>The PC's settings, read only. Scale, lighting and chime apply to this device.</p>
         <fieldset><legend>Window</legend>
-          <label><span>Always on top</span><input type="checkbox" name="onTop"></label>
-          <label><span>Start at login</span><input type="checkbox" name="login"></label>
+          <label class="host-only"><span>Always on top</span><input type="checkbox" name="onTop"></label>
+          <label class="host-only"><span>Start at login</span><input type="checkbox" name="login"></label>
           <label><span>Scale</span><select name="scale"><option value="auto">Auto</option><option value="1">1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select></label>
           <p class="hint">Pixel size; the window decides how big the hall is.</p>
         </fieldset>
@@ -262,32 +273,45 @@
           <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full">Full light</option><option value="candles">Candles</option></select></label>
           <label><span>Petition chime</span><input type="checkbox" name="chime"></label>
         </fieldset>
-        <fieldset><legend>Petitions</legend>
+        <fieldset data-host><legend>Petitions</legend>
           <label><span>A question at the end of a turn counts as a petition</span><input type="checkbox" name="questions"></label>
           <label><span>Toast for questions</span><input type="checkbox" name="questionToast"></label>
         </fieldset>
-        <fieldset><legend>Thresholds</legend>
+        <fieldset data-host><legend>Thresholds</legend>
           <label><span>Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>
           <label><span>Idle to the Refectorium after</span><input type="number" name="napMin" min="1" max="120" step="1"><span class="unit">min</span></label>
           <label><span>Stay at the cogitator for</span><input type="number" name="cogHoldS" min="0" max="120" step="1"><span class="unit">s</span></label>
         </fieldset>
-        <fieldset><legend>Context window</legend>
+        <fieldset data-host><legend>Context window</legend>
           <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
           <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
         </fieldset>
-        <fieldset><legend>Performance</legend>
+        <fieldset data-host><legend>Performance</legend>
           <label><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
           <p class="hint">Lower saves CPU when idle; flicker gets choppier.</p>
           <label><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
           <p class="hint">Near-zero CPU when unseen; petitions still alert.</p>
         </fieldset>
-        <fieldset><legend>Location</legend>
+        <fieldset data-host><legend>Location</legend>
           <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
           <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>
           <p class="hint">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
           <button type="button" class="clear">Clear</button>
         </fieldset>
-        <button type="button" class="reset">Reset to defaults</button>
+        <fieldset id="remote" class="host-only"><legend>Remote view</legend>
+          <label><span>Serve on the local network</span><input type="checkbox" name="remoteOn"></label>
+          <label><span>Allow remote actions</span><input type="checkbox" name="remoteActions"></label>
+          <p class="hint">Anyone with the link on your network can approve or deny Claude Code permission prompts on this PC.</p>
+          <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
+          <p class="hint rv-err" role="alert" hidden></p>
+          <div class="rv-on" hidden>
+            <ul class="rv-urls"></ul>
+            <img class="rv-qr" alt="Pairing QR code" hidden>
+            <p class="hint">Scan with the tablet's camera to pair it. A new token unpairs every device.</p>
+            <button type="button" class="clear rv-regen">Regenerate token</button>
+          </div>
+        </fieldset>
+        <button type="button" class="reset host-only">Reset to defaults</button>
       </form>
     </div>
     <div class="rod"></div>

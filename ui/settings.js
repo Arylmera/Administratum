@@ -2,16 +2,21 @@
 // UI values (every adm.* key) live in the backend's settings.json (survives a reinstall that wipes
 // the WebView), mirrored in memory and in localStorage as a cache; without a backend, localStorage
 // alone. Always-on-top goes through the window API, start-at-login and the stale-petition mark
-// through the backend (start_at_login, set_stale_minutes).
+// through the backend (start_at_login, set_stale_minutes). In the remote view (bridge.js) the PC's settings
+// are read once and never written back: the view's own scale, lighting and chime stay in this browser.
 import { panel } from './panel.js';
+import { invoke, listen, tauri, REMOTE } from './bridge.js';
 
-const invokeTop = (cmd, args) => window.__TAURI__?.core?.invoke(cmd, args);
 const mem = {};
 let saved = null;
-try { saved = await invokeTop('settings_load', {}); } catch { /* no backend or failed: the cache */ }
+try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
-const persist = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { invokeTop('settings_save', { values: { ...mem } })?.catch(err => console.warn('settings_save', err)); } catch { /* no backend */ } }, 300); };
-if (saved && typeof saved === 'object' && Object.keys(saved).length) Object.assign(mem, saved);
+const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err)), 300); };
+const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale']; // the remote view's own choices
+if (REMOTE) {
+  if (saved && typeof saved === 'object') Object.assign(mem, saved);
+  try { for (const k of LOCAL) { const v = localStorage.getItem(k); if (v != null) mem[k] = v; } } catch { /* storage blocked */ }
+} else if (saved && typeof saved === 'object' && Object.keys(saved).length) Object.assign(mem, saved);
 else {
   // First run with the file (or no backend): take the cached adm.* keys, and write them to the file.
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('adm.')) mem[k] = localStorage.getItem(k); } } catch { /* storage blocked */ }
@@ -72,10 +77,9 @@ const setScale = v => { view.scale = SCALES.includes(v) ? v : 'auto'; store.set(
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
-// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled() } from app.js. T may be absent (plain browser).
-export function initSettings(T, hooks) {
-  const invoke = (cmd, args) => T?.core?.invoke(cmd, args) ?? Promise.reject(new Error('no backend'));
-  const win = () => T?.window?.getCurrentWindow();
+// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled() } from app.js.
+export function initSettings(hooks) {
+  const win = () => tauri()?.window?.getCurrentWindow();
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
   let login = null;
@@ -84,8 +88,15 @@ export function initSettings(T, hooks) {
   const save = () => store.set('adm.settings', JSON.stringify(settings));
   const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
   const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
-  applyTop(); // tauri.conf.json starts on top; restore the saved choice
-  pushStale(); pushQuestions();
+  if (REMOTE) {
+    // The PC's settings, read only; window, login, remote view and reset belong to the PC.
+    for (const f of form.querySelectorAll('[data-host]')) f.disabled = true;
+    for (const e of form.querySelectorAll('.host-only')) e.hidden = true;
+    form.querySelector('.remote-only').hidden = false;
+  } else {
+    applyTop(); // tauri.conf.json starts on top; restore the saved choice
+    pushStale(); pushQuestions();
+  }
 
   sync = () => {
     field('onTop').checked = settings.onTop;
@@ -104,7 +115,39 @@ export function initSettings(T, hooks) {
   };
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
-  T?.event?.listen('autostart', e => { login = e.payload; sync(); });
+  listen('autostart', e => { login = e.payload; sync(); });
+
+  // Remote view (host only): serve on the LAN, allow actions, port, pairing QR (remote_status / remote_set).
+  const rv = form.querySelector('#remote'), rvErr = rv.querySelector('.rv-err'), regen = rv.querySelector('.rv-regen');
+  const showRemote = st => {
+    rvErr.hidden = true;
+    field('remoteOn').checked = st.enabled;
+    field('remoteActions').checked = st.actions_allowed;
+    if (document.activeElement !== field('remotePort')) field('remotePort').value = st.port;
+    rv.querySelector('.rv-on').hidden = !st.enabled;
+    const urls = rv.querySelector('.rv-urls');
+    urls.replaceChildren(...(st.urls.length ? st.urls : ['No private network address found on this PC.']).map(u => { const li = document.createElement('li'); li.textContent = u; return li; }));
+    const qr = rv.querySelector('.rv-qr');
+    qr.hidden = !st.qr_svg;
+    if (st.qr_svg) qr.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(st.qr_svg)}`;
+  };
+  const rvCall = (cmd, args) => {
+    for (const el of rv.querySelectorAll('input, button')) el.disabled = true;
+    return invoke(cmd, args).then(showRemote, err => { rvErr.textContent = String(err); readRemote(true); })
+      .finally(() => { for (const el of rv.querySelectorAll('input, button')) el.disabled = false; });
+  };
+  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; });
+  const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
+  let armed;
+  regen.onclick = () => {
+    if (!armed) { // confirm first: a second click within 4 s
+      regen.textContent = 'Click again: unpair every device';
+      armed = setTimeout(() => { armed = null; regen.textContent = 'Regenerate token'; }, 4000);
+      return;
+    }
+    clearTimeout(armed); armed = null; regen.textContent = 'Regenerate token';
+    rvCall('remote_regenerate_token');
+  };
 
   const setPlace = (lat, lon) => {
     Object.assign(place, { lat, lon });
@@ -114,6 +157,7 @@ export function initSettings(T, hooks) {
   form.onsubmit = e => e.preventDefault();
   form.onchange = e => {
     const el = e.target, k = el.name;
+    if (k.startsWith('remote')) { applyRemote(); return; }
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
     else if (k === 'scale') { setScale(el.value); hooks.rescaled(); }
     else if (k === 'mode') hooks.setMode(el.value);
@@ -137,5 +181,5 @@ export function initSettings(T, hooks) {
     sync();
   };
 
-  panel(root, [opener], { onOpen: () => { readLogin(); sync(); } }); // readLogin: the tray may have changed it
+  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote(); } sync(); } }); // readLogin: the tray may have changed it
 }
