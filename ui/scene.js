@@ -1,0 +1,131 @@
+import { sprite, MAPS } from './sprites.js';
+
+export const AMBER = 'rgba(240,168,60,.26)';
+export const GREEN = 'rgba(124,255,158,.16)';
+export const RED = 'rgba(200,40,28,.22)';
+
+const WIN_DAY = { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' };
+const WIN_NIGHT = { u: '#3a2236', v: '#36401f', g: '#7a5a28' };
+const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
+
+function grate(g, x, y, w, h) {
+  g.fillStyle = '#2b2d30'; g.fillRect(x, y, w, h);
+  g.fillStyle = '#141516';
+  for (let i = x; i < x + w; i += 4) g.fillRect(i, y, 1, h);
+  for (let j = y; j < y + h; j += 4) g.fillRect(x, j, w, 1);
+}
+function plates(g, x, y, w, h, base, line) {
+  g.fillStyle = base; g.fillRect(x, y, w, h);
+  g.fillStyle = line;
+  for (let j = y + 9; j < y + h; j += 10) g.fillRect(x, j, w, 1);
+}
+function pipeH(g, x, y, w) { g.fillStyle = '#c8853a'; g.fillRect(x, y, w, 1); g.fillStyle = '#8a4f22'; g.fillRect(x, y + 1, w, 2); }
+function pipeV(g, x, y, h) { g.fillStyle = '#c8853a'; g.fillRect(x, y, 1, h); g.fillStyle = '#8a4f22'; g.fillRect(x + 1, y, 2, h); }
+function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
+function put(g, map, x, y, over) { g.drawImage(sprite(map, over), x, y); }
+
+const DECOR = [
+  ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
+  ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15],
+  ['BANNER', 98, 10], ['COGITATOR', 152, 24], ['GAUGE', 132, 26], ['GAUGE', 132, 33], ['VENT', 186, 14],
+  ['RECAFF', 214, 22], ['SHELF', 236, 19], ['PAPER_STACK', 240, 8], ['BOOKS', 250, 11], ['PAPER_STACK', 260, 9],
+  ['BANNER', 274, 10], ['CRATE', 318, 28], ['CRATE', 320, 80], ['PAPER_STACK', 300, 58], ['PAPER_STACK', 307, 62],
+  ['SCROLL_PILE', 256, 84], ['LOOSE_B', 236, 64], ['LOOSE_A', 280, 74],
+  ['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 128],
+  ['CANDLES', 250, 136], ['CANDLES', 292, 136], ['PAPER_STACK', 246, 140], ['PAPER_STACK', 300, 142],
+  ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],
+  ['BOOKS', 220, 172], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
+  ['BRAZIER', 224, 196], ['BRAZIER', 320, 196], ['CENSER', 94, 7], ['CENSER', 196, 60],
+  ['CRATE', 172, 206], ['BRAZIER', 6, 196], ['CANDLES', 186, 46],
+];
+const CLUTTER = [
+  ['SCROLL_PILE', 58, 98], ['PAPER_STACK', 92, 92], ['PAPER_STACK', 99, 95], ['LOOSE_A', 46, 104], ['LOOSE_B', 140, 104],
+  ['SCROLL_PILE', 160, 98], ['LOOSE_A', 190, 92], ['PAPER_STACK', 54, 132], ['PAPER_STACK', 61, 136], ['BOOKS', 76, 140],
+  ['LOOSE_B', 8, 160], ['SCROLL_PILE', 150, 140], ['PAPER_STACK', 176, 128], ['LOOSE_A', 104, 160], ['SCROLL_PILE', 30, 188],
+  ['PAPER_STACK', 64, 196], ['PAPER_STACK', 71, 200], ['BOOKS', 96, 206], ['LOOSE_A', 120, 190], ['LOOSE_B', 134, 212],
+  ['SCROLL_PILE', 140, 196], ['LOOSE_A', 186, 186], ['LOOSE_B', 196, 172],
+];
+
+export function drawStatic(g, daylight) {
+  plates(g, 0, 0, 200, 40, '#2a2a2c', '#18191b'); rect(g, 0, 36, 200, 4, '#140f0c');
+  grate(g, 0, 40, 200, 186);
+  plates(g, 208, 0, 138, 40, '#2c2c2e', '#18191b'); rect(g, 208, 36, 138, 4, '#140f0c');
+  grate(g, 208, 40, 138, 60);
+  rect(g, 208, 100, 138, 10, '#100b08');
+  plates(g, 208, 110, 138, 30, '#301612', '#1e0c09'); rect(g, 208, 136, 138, 4, '#100b08');
+  rect(g, 208, 140, 138, 86, '#3a110e');
+  g.strokeStyle = '#6e3f17'; g.lineWidth = 1; g.strokeRect(214.5, 146.5, 125, 73);
+  rect(g, 200, 0, 8, 150, '#100b08'); rect(g, 200, 186, 8, 40, '#100b08'); rect(g, 200, 150, 8, 36, '#3a110e');
+
+  g.save(); g.shadowColor = '#3aa864'; g.shadowBlur = 4;
+  rect(g, 0, 116, 200, 2, '#3aa864'); rect(g, 0, 182, 200, 2, '#3aa864'); rect(g, 98, 40, 2, 186, '#3aa864');
+  g.restore();
+
+  pipeH(g, 0, 4, 200); pipeH(g, 208, 4, 138);
+  [20, 64, 110, 150, 190, 230, 280, 330].forEach(x => rect(g, x, 3, 3, 5, '#6e3f17'));
+  pipeV(g, 203, 0, 150); pipeV(g, 203, 186, 40);
+  [36, 74, 112].forEach(y => rect(g, 202, y, 5, 3, '#6e3f17'));
+  pipeV(g, 144, 7, 29); pipeV(g, 194, 7, 29);
+  [8, 26, 50, 74, 96, 128, 150, 172, 196, 220].forEach((x, i) => {
+    const h = 10 + (i * 7) % 18;
+    rect(g, x, 7, 1, h, '#0e0a08'); rect(g, x + 1, 7 + h - 1, 2, 1, '#0e0a08');
+  });
+  g.fillStyle = 'rgba(124,255,158,.32)';
+  [[2, 32, 198], [74, 38, 198], [210, 32, 344], [210, 105, 344]].forEach(([x, y, end]) => {
+    for (let i = 0; i < BIN.length && x + i * 2 < end; i++) if (BIN[i] === '1') g.fillRect(x + i * 2, y, 1, 1);
+  });
+  [[60, 104, 14, 1], [73, 104, 1, 6], [120, 204, 1, 12]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, '#0e0a08'));
+  [[30, 120, 18, 8], [146, 186, 8, 6], [270, 196, 14, 6]].forEach(([x, y, w, h]) => rect(g, x, y, w, h, 'rgba(10,6,4,.35)'));
+
+  const win = daylight ? WIN_DAY : WIN_NIGHT;
+  [78, 114, 292].forEach(x => put(g, MAPS.WINDOW, x, 10, win));
+  [210, 334].forEach(x => {
+    rect(g, x, 108, 10, 118, '#1c1d20'); rect(g, x + 9, 108, 1, 118, '#0e0a08');
+    pipeV(g, x + 3, 108, 118);
+    [124, 160, 196].forEach(y => put(g, MAPS.GAUGE, x + 2, y));
+  });
+  rect(g, 254, 163, 44, 3, 'rgba(0,0,0,.45)');
+  for (const [name, x, y] of DECOR) put(g, MAPS[name], x, y);
+  for (const [name, x, y] of CLUTTER) put(g, MAPS[name], x, y);
+}
+
+const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+
+export function drawRugs(g, blocks) {
+  for (const b of blocks) {
+    g.fillStyle = hexA(b.color, 0.07); g.fillRect(b.x, b.y, b.w, b.h);
+    g.strokeStyle = hexA(b.color, 0.3); g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+  }
+}
+
+export function deskDrawable(desk, busy) {
+  return {
+    y: desk.y + 21,
+    draw(g) {
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(desk.x + 1, desk.y + 21, 30, 2);
+      g.drawImage(sprite(MAPS.DESK, busy ? {} : { f: null, F: null, c: '#2e6b47' }), desk.x, desk.y);
+    },
+  };
+}
+
+export function deskLight(desk, busy) {
+  return busy
+    ? { x: desk.x + 25, y: desk.y + 1, r: 22, color: AMBER, flicker: true }
+    : { x: desk.x + 13, y: desk.y + 5, r: 10, color: GREEN };
+}
+
+export function drawDecorFrame(g, t) {
+  g.drawImage(sprite(MAPS.SKULL), 244, 50 + Math.round(2 * Math.sin(t * 4)));
+}
+
+export const STATIC_LIGHTS = [
+  { x: 86, y: 22, r: 22 }, { x: 122, y: 22, r: 22 }, { x: 300, y: 22, r: 22 },
+  { x: 172, y: 30, r: 30, color: GREEN }, { x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN },
+  { x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
+  { x: 274, y: 153, r: 14, color: GREEN },
+  { x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true },
+  { x: 10, y: 197, r: 26, color: AMBER, flicker: true }, { x: 276, y: 186, r: 26, color: RED },
+  { x: 192, y: 50, r: 14, color: AMBER, flicker: true },
+  { x: 96, y: 14, r: 10, color: AMBER, flicker: true }, { x: 198, y: 67, r: 10, color: AMBER, flicker: true },
+  { x: 50, y: 117, r: 14 }, { x: 150, y: 117, r: 14 }, { x: 99, y: 150, r: 14 }, { x: 50, y: 183, r: 14 }, { x: 150, y: 183, r: 14 },
+];
