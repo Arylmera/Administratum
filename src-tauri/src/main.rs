@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
 mod demo;
+mod firewall;
 mod poller;
 mod registry;
 mod remote;
@@ -316,6 +317,26 @@ fn remote_regenerate_token(app: AppHandle) -> Result<RemoteStatus, String> {
     remote_status(app)
 }
 
+/// Whether the Windows Firewall lets other devices reach `port` (read-only, unelevated).
+#[tauri::command(async)]
+fn firewall_status(port: u16) -> Result<firewall::Status, String> {
+    firewall::status(port)
+}
+
+/// Replace the remote view's firewall rule with one for this exe on `port` (UAC prompt), then re-read.
+#[tauri::command(async)]
+fn firewall_allow(port: u16) -> Result<firewall::Status, String> {
+    firewall::allow(port)?;
+    firewall::status(port)
+}
+
+/// Remove the remote view's firewall rule (UAC prompt); `port` only for the status re-read.
+#[tauri::command(async)]
+fn firewall_remove(port: u16) -> Result<firewall::Status, String> {
+    firewall::remove()?;
+    firewall::status(port)
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -326,7 +347,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, start_at_login, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, start_at_login, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.

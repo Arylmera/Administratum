@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Administratum</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Administratum">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#120d0a">
 <style>
   /* Bundled fonts (SIL OFL, see fonts/OFL-*.txt); VT323 is a single 400 weight; size-adjust lifts it to the old body size. */
   @font-face { font-family: 'VT323'; font-weight: 400; font-display: swap; size-adjust: 125%; src: url(fonts/vt323-latin.woff2) format('woff2');
@@ -185,6 +192,7 @@
   #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: .5em auto 0; padding: 6px; background: #fff; image-rendering: pixelated; }
   #prefs .rv-qr[hidden] { display: none; }
   #prefs .rv-err { color: #8e1c16; font-weight: 600; }
+  #prefs .rv-fw:not([data-rule="allowed"]) { color: #8e1c16; }
   #prefs .reset:hover { filter: brightness(1.2); }
   #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid #4e110c; outline-offset: 1px; }
   @media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
@@ -303,6 +311,11 @@
           <label><span>Allow remote actions</span><input type="checkbox" name="remoteActions"></label>
           <p class="hint">Anyone with the link on your network can approve or deny Claude Code permission prompts on this PC.</p>
           <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
+          <p class="hint rv-fw" aria-live="polite"></p>
+          <p class="hint rv-public" hidden>Windows treats this network as Public, so the rule does not apply. On a home network, mark it Private: Windows Settings → Network &amp; internet → your connection → Private network (or, in an admin PowerShell: Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private).</p>
+          <button type="button" class="clear rv-fw-btn" data-cmd="firewall_allow">Allow this port</button>
+          <button type="button" class="clear rv-fw-btn" data-cmd="firewall_remove">Remove rule</button>
+          <p class="hint">Windows will ask for administrator permission.</p>
           <p class="hint rv-err" role="alert" hidden></p>
           <div class="rv-on" hidden>
             <ul class="rv-urls"></ul>

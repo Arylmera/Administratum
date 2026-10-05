@@ -595,6 +595,7 @@ mod tests {
         assert_eq!(asset_path("/"), Some("index.html".into()));
         assert_eq!(asset_path("/app.js"), Some("app.js".into()));
         assert_eq!(asset_path("/fonts/a-b_c.woff2"), Some("fonts/a-b_c.woff2".into()));
+        assert_eq!(asset_path("/icons/apple-touch-icon.png"), Some("icons/apple-touch-icon.png".into()));
         for bad in ["/../secret", "/fonts/../../x", "/..", "/.env", "/fonts/.x", "//etc/passwd", "/a//b", "/a/", "/%2e%2e/x", "/a\\b", "/C:/x", "/a b", "app.js", ""] {
             assert_eq!(asset_path(bad), None, "{bad}");
         }

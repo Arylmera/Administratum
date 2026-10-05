@@ -132,12 +132,36 @@ export function initSettings(hooks) {
     if (st.qr_svg) qr.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(st.qr_svg)}`;
   };
   const rvCall = (cmd, args) => {
-    for (const el of rv.querySelectorAll('input, button')) el.disabled = true;
+    const els = rv.querySelectorAll('input, button:not(.rv-fw-btn)');
+    for (const el of els) el.disabled = true;
     return invoke(cmd, args).then(showRemote, err => { rvErr.textContent = String(err); readRemote(true); })
-      .finally(() => { for (const el of rv.querySelectorAll('input, button')) el.disabled = false; });
+      .finally(() => { for (const el of els) el.disabled = false; });
   };
   const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; });
   const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
+  // Firewall rule for the port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
+  const fwLine = rv.querySelector('.rv-fw'), fwPublic = rv.querySelector('.rv-public'), fwBtns = rv.querySelectorAll('.rv-fw-btn');
+  const fwPort = () => { const p = +field('remotePort').value; return Number.isInteger(p) && p >= 1024 && p <= 65535 ? p : null; };
+  const showFw = st => { fwLine.textContent = st.detail; fwLine.dataset.rule = st.rule; fwPublic.hidden = st.network !== 'public'; };
+  const fwErr = err => { fwLine.textContent = String(err); delete fwLine.dataset.rule; };
+  let fwBusy = false, fwTimer;
+  const readFw = () => {
+    const port = fwPort();
+    if (fwBusy) return;
+    if (port === null) { fwErr('Port must be between 1024 and 65535.'); return; }
+    invoke('firewall_status', { port }).then(st => { if (!fwBusy && port === fwPort()) showFw(st); }, fwErr);
+  };
+  for (const b of fwBtns) b.onclick = () => {
+    const port = fwPort();
+    if (port === null) { readFw(); return; }
+    fwBusy = true;
+    for (const x of fwBtns) x.disabled = true;
+    fwLine.textContent = 'Waiting for Windows…'; delete fwLine.dataset.rule;
+    invoke(b.dataset.cmd, { port }).then(showFw, fwErr)
+      .finally(() => { fwBusy = false; for (const x of fwBtns) x.disabled = false; });
+  };
+  field('remotePort').addEventListener('input', () => { clearTimeout(fwTimer); fwTimer = setTimeout(readFw, 600); });
+
   let armed;
   regen.onclick = () => {
     if (!armed) { // confirm first: a second click within 4 s
@@ -181,5 +205,5 @@ export function initSettings(hooks) {
     sync();
   };
 
-  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote(); } sync(); } }); // readLogin: the tray may have changed it
+  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); } sync(); } }); // readLogin: the tray may have changed it
 }
