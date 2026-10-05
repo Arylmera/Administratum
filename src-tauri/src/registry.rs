@@ -79,6 +79,8 @@ pub struct Session {
     pub background: bool,
     /// Ms timestamp of the newest context compaction seen (see `compacted_at`, `track_compaction`).
     pub compacted_at: Option<i64>,
+    /// The closing question of a finished turn (`ends_with_question`), only while idle in the foreground.
+    pub question: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -330,6 +332,53 @@ pub fn turn_done(tail: &str) -> bool {
     false
 }
 
+/// The question a finished turn ends on: the newest assistant entry with text (tool_use-only
+/// entries skipped, stopping at the turn's prompt), its fenced code, inline code and URLs removed,
+/// last non-empty paragraph, if it holds a '?' (or '？'). Clipped to 200 chars.
+// ponytail: a heuristic; a closing statement that merely quotes a '?' still counts.
+pub fn ends_with_question(tail: &str) -> Option<String> {
+    if !turn_done(tail) {
+        return None;
+    }
+    let mut text = None;
+    for line in tail.lines().rev() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        let content = &v["message"]["content"];
+        match v["type"].as_str() {
+            Some("assistant") => {
+                let parts: Vec<&str> = content.as_array().into_iter().flatten().filter(|b| b["type"] == "text").filter_map(|b| b["text"].as_str()).collect();
+                if !parts.is_empty() {
+                    text = Some(parts.join("\n\n"));
+                    break;
+                }
+            }
+            // A real prompt (not a tool result) opens the turn: no assistant text in it.
+            Some("user") if !content.as_array().is_some_and(|a| a.iter().any(|b| b["type"] == "tool_result")) => return None,
+            _ => {}
+        }
+    }
+    let mut fenced = false;
+    let mut kept = String::new();
+    for line in text?.lines() {
+        let t = line.trim_start();
+        if t.starts_with("```") || t.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        if !fenced {
+            // Odd segments between backticks are inline code.
+            let prose: String = line.split('`').step_by(2).collect::<Vec<_>>().join("");
+            kept.push_str(&prose.split(' ').filter(|w| !w.contains("://")).collect::<Vec<_>>().join(" "));
+        }
+        kept.push('\n');
+    }
+    let last = kept.split("\n\n").map(str::trim).filter(|p| !p.is_empty()).last()?;
+    if !last.contains(['?', '？']) {
+        return None;
+    }
+    Some(if last.chars().count() <= 200 { last.to_string() } else { format!("{}…", last.chars().take(199).collect::<String>()) })
+}
+
 pub fn parse_record(text: &str) -> Option<RawRecord> {
     serde_json::from_str(text).ok()
 }
@@ -515,6 +564,7 @@ pub struct Tail {
     pub compacted_at: Option<i64>,
     pub title: Option<String>,
     pub asks: Option<String>,
+    pub question: Option<String>,
 }
 
 /// The `Tail` of a transcript, `read(n)` giving its last `n` bytes (None: no transcript). When
@@ -535,7 +585,7 @@ pub fn read_tail(read: impl Fn(u64) -> Option<String>) -> Option<Tail> {
             tail = bigger;
         }
     }
-    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail), title: title_of(&tail), asks: pending_ask(&tail) })
+    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail), title: title_of(&tail), asks: pending_ask(&tail), question: ends_with_question(&tail) })
 }
 
 /// One pass over `~/.claude/sessions`. A file that fails to parse is reported by the pid in its
@@ -574,6 +624,7 @@ pub fn scan(
         if background {
             status = "idle".to_string();
         }
+        let question = tail.as_ref().and_then(|t| t.question.clone()).filter(|_| status == "idle" && !background);
         let (task, context, title, asks) = tail.map_or_else(|| ("—".to_string(), None, None, None), |t| (t.task, t.context, t.title, t.asks));
         let orca = orca_handle(rec.pid);
         let web = rec.bridge_session_id.map(|id| format!("https://claude.ai/code/{id}"));
@@ -595,6 +646,7 @@ pub fn scan(
             web,
             background,
             compacted_at: compacted,
+            question,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -663,6 +715,7 @@ pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
 pub struct Tracker {
     open: HashSet<String>,
     stale: HashSet<String>,
+    asked: HashSet<String>,
 }
 
 impl Tracker {
@@ -677,6 +730,21 @@ impl Tracker {
             now.insert(key);
         }
         self.open = now;
+        fresh
+    }
+
+    /// Question episodes (`id:since` of a session with a `question`) seen for the first time.
+    pub fn new_questions(&mut self, roster: &[Session]) -> Vec<Session> {
+        let mut now = HashSet::new();
+        let mut fresh = vec![];
+        for s in roster.iter().filter(|s| s.question.is_some()) {
+            let key = format!("{}:{}", s.id, s.since_ms);
+            if !self.asked.contains(&key) {
+                fresh.push(s.clone());
+            }
+            now.insert(key);
+        }
+        self.asked = now;
         fresh
     }
 
@@ -758,7 +826,7 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
 #[cfg(test)]
 pub fn tests_session(id: &str) -> Session {
     Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), waiting_for: None,
-              since_ms: 0, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
+              since_ms: 0, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None, question: None }
 }
 
 #[cfg(test)]
@@ -974,7 +1042,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None, question: None }
     }
 
     #[test]
@@ -1217,6 +1285,87 @@ mod tests {
         let tail = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#;
         assert!(!turn_done(tail));
         assert!(!turn_done(""), "unknown -> false");
+    }
+
+    /// A finished turn whose closing assistant entries say `texts` (one text block each, as Claude Code writes them).
+    fn turn_ending(texts: &[&str]) -> String {
+        let mut lines = vec![
+            r#"{"type":"user","message":{"role":"user","content":"rename the playlists"}}"#.to_string(),
+            r#"{"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"tool_use","id":"toolu_1","name":"Read","input":{"file_path":"rooms.md"}}]}}"#.to_string(),
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"..."}]}}"#.to_string(),
+        ];
+        for t in texts {
+            lines.push(serde_json::json!({"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"text","text":t}]}}).to_string());
+        }
+        lines.push(r#"{"type":"system","subtype":"stop_hook_summary","hookCount":1}"#.into());
+        lines.push(r#"{"type":"system","subtype":"turn_duration","durationMs":8123}"#.into());
+        lines.push(r#"{"type":"last-prompt","lastPrompt":"rename the playlists"}"#.into());
+        lines.join("\n")
+    }
+
+    #[test]
+    fn question_at_the_end_of_a_turn() {
+        let tail = turn_ending(&["I read rooms.md: 6 rooms, 4 playlists.\n\nShould I rename the playlists to match the rooms, or keep the old names?"]);
+        assert_eq!(ends_with_question(&tail).as_deref(), Some("Should I rename the playlists to match the rooms, or keep the old names?"));
+        let fw = turn_ending(&["プレイリストの名前を変えますか？"]);
+        assert_eq!(ends_with_question(&fw).as_deref(), Some("プレイリストの名前を変えますか？"), "full-width mark");
+    }
+
+    #[test]
+    fn question_only_inside_code_is_none() {
+        let tail = turn_ending(&["Done. The regex is now:\n\n```\n^a?b$\n```\n\nIt matches `ab?` too and see https://x.io/a?b=1 for details."]);
+        assert_eq!(ends_with_question(&tail), None);
+        let fenced_last = turn_ending(&["Added the check:\n\n```rust\nlet x = y?;\n```"]);
+        assert_eq!(ends_with_question(&fenced_last), None, "the last paragraph is code");
+    }
+
+    #[test]
+    fn question_earlier_but_closing_statement_is_none() {
+        let tail = turn_ending(&["Why did it fail? The path was wrong.\n\nFixed and committed."]);
+        assert_eq!(ends_with_question(&tail), None);
+    }
+
+    #[test]
+    fn question_uses_newest_text_entry_and_skips_tool_use_only_entries() {
+        let mut tail = turn_ending(&["Earlier: want me to push?", "Pushed. All green."]);
+        assert_eq!(ends_with_question(&tail), None, "newest text entry wins");
+        tail = turn_ending(&["Want me to open the PR too?"]);
+        let tool_only = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t","name":"TodoWrite","input":{}}]}}"#;
+        let tail = tail.replacen(r#"{"type":"system","subtype":"stop_hook_summary""#, &format!("{tool_only}\n{{\"type\":\"system\",\"subtype\":\"stop_hook_summary\""), 1);
+        assert_eq!(ends_with_question(&tail).as_deref(), Some("Want me to open the PR too?"));
+    }
+
+    #[test]
+    fn question_none_while_the_turn_runs_or_without_text() {
+        let running = turn_ending(&["Shall I go on?"]).lines().take(4).collect::<Vec<_>>().join("\n");
+        assert_eq!(ends_with_question(&running), None, "no turn_duration yet");
+        assert_eq!(ends_with_question(""), None);
+        let long = format!("{}?", "x".repeat(300));
+        assert_eq!(ends_with_question(&turn_ending(&[&long])).map(|q| q.chars().count()), Some(200), "clipped");
+    }
+
+    #[test]
+    fn scan_sets_question_only_for_a_foreground_idle_session() {
+        let d = temp_dir("scan-question");
+        fs::write(d.join("10.json"), record(10, "a", "idle-one", "idle")).unwrap();
+        fs::write(d.join("11.json"), record(11, "b", "shell-one", "shell")).unwrap();
+        fs::write(d.join("12.json"), record(12, "c", "busy-one", "busy")).unwrap();
+        let tail = turn_ending(&["Keep the old names?"]);
+        let out = scan(&d, |_, _| true, |_, _| (tail_of(&tail), vec![]), |_| None);
+        let q: Vec<_> = out.sessions.iter().map(|s| (s.name.as_str(), s.question.is_some())).collect();
+        assert_eq!(q, [("busy-one", false), ("idle-one", true), ("shell-one", false)]);
+        assert_eq!(serde_json::to_value(&out.sessions[1]).unwrap()["question"], "Keep the old names?");
+    }
+
+    #[test]
+    fn tracker_asks_once_per_question_episode() {
+        let mut t = Tracker::default();
+        let q = |since| Session { question: Some("ok?".into()), ..session("a", 1, "idle", since) };
+        assert_eq!(t.new_questions(&[q(100)]).len(), 1);
+        assert_eq!(t.new_questions(&[q(100)]).len(), 0, "same episode");
+        assert_eq!(t.new_questions(&[session("a", 1, "busy", 200)]).len(), 0);
+        assert_eq!(t.new_questions(&[q(300)]).len(), 1, "new episode");
+        assert!(t.new_petitions(&[q(300)]).is_empty(), "a question is not a petition");
     }
 
     #[test]

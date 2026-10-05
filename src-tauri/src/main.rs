@@ -11,7 +11,7 @@ use std::{
     path::PathBuf,
     process::Command,
     sync::{
-        atomic::{AtomicI64, Ordering},
+        atomic::{AtomicBool, AtomicI64, Ordering},
         Mutex,
     },
     thread,
@@ -172,6 +172,16 @@ fn set_stale_minutes(minutes: u32) {
     STALE_MS.store(i64::from(minutes.clamp(1, 120)) * 60_000, Ordering::Relaxed);
 }
 
+/// Question petitions (a turn ending on a question) from the settings panel: shown at all, and toasted.
+static QUESTIONS: AtomicBool = AtomicBool::new(true);
+static QUESTION_TOAST: AtomicBool = AtomicBool::new(true);
+
+#[tauri::command]
+fn set_question_prefs(enabled: bool, toast: bool) {
+    QUESTIONS.store(enabled, Ordering::Relaxed);
+    QUESTION_TOAST.store(toast, Ordering::Relaxed);
+}
+
 /// "Start at login": `enable` = None reads it. Keeps the tray check item in step.
 #[tauri::command]
 fn start_at_login(enable: Option<bool>, app: AppHandle, login: State<CheckMenuItem<tauri::Wry>>) -> Result<bool, String> {
@@ -212,7 +222,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, start_at_login, settings_load, settings_save])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, start_at_login, settings_load, settings_save])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
@@ -259,6 +269,18 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
                     .show();
                 let _ = app.emit("petition", &s);
+            }
+            // Questions never go stale: one toast (if wanted) and one chime per episode.
+            for s in tracker.new_questions(&roster) {
+                if !QUESTIONS.load(Ordering::Relaxed) {
+                    continue;
+                }
+                if QUESTION_TOAST.load(Ordering::Relaxed) {
+                    let q = s.question.clone().unwrap_or_default();
+                    let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
+                    let _ = app.notification().builder().title(format!("Question from {}", s.name)).body(format!("{} · {q}", s.dept)).show();
+                }
+                let _ = app.emit("question", &s);
             }
             let now_ms = now_ms();
             // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.

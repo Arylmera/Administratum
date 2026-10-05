@@ -341,6 +341,23 @@ export const MAPS = {
     'kbppppppPPk.',
     '.kkkkkkkkk..',
   ],
+  // The petition scroll sealed in brass with a question mark: a turn that ended on a question.
+  QSCROLL: [
+    '.kkkkkkkkk..',
+    'kbppppppPPk.',
+    'kkkkkkkkkkk.',
+    '.kppppGGGGG.',
+    '.kpPPGhhhhgG',
+    '.kpppGhkkkgG',
+    '.kpPPGhhhkgG',
+    '.kpppGhhkhgG',
+    '.kpPPGhhhhgG',
+    '.kpppGhhkhgG',
+    '.kpPPpGGGGG.',
+    'kkkkkkkkkkk.',
+    'kbppppppPPk.',
+    '.kkkkkkkkk..',
+  ],
   DESK: [
     '............kkkkkkkkkkkkkkkkkkkkkkkk..............F.............',
     '............khhhhhhhhhhhhhhhhhhhhhGk..............Ff............',
