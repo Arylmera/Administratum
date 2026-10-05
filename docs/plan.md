@@ -724,7 +724,7 @@ git commit -m "registry: scan sessions dir, merge unreadable files, petition tra
   - `ui-command` — `"mute"` or `"light"` from the tray
 - `pub fn demo::roster(t_secs: u64) -> Vec<Session>`
 
-- [ ] **Step 1: Write the failing test** — create `src-tauri/src/demo.rs`:
+- [x] **Step 1: Write the failing test** — create `src-tauri/src/demo.rs`:
 
 ```rust
 #[cfg(test)]
@@ -749,12 +749,12 @@ mod tests {
 
 and add `mod demo;` next to `mod registry;` in `main.rs`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml demo`
 Expected: compile error `cannot find function roster`.
 
-- [ ] **Step 3: Implement `demo.rs`** — insert above the test module:
+- [x] **Step 3: Implement `demo.rs`** — insert above the test module:
 
 ```rust
 use crate::registry::Session;
@@ -790,12 +790,12 @@ pub fn roster(t: u64) -> Vec<Session> {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml demo`
 Expected: `1 passed`.
 
-- [ ] **Step 5: Rewrite `src-tauri/src/main.rs`**
+- [x] **Step 5: Rewrite `src-tauri/src/main.rs`**
 
 ```rust
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -913,12 +913,12 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
 }
 ```
 
-- [ ] **Step 6: Build and run all Rust tests**
+- [x] **Step 6: Build and run all Rust tests**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml`
 Expected: `13 passed`, no errors. If `sysinfo`'s API differs from `refresh_processes(ProcessesToUpdate::All, true)` / `process(Pid::from_u32(..))` / `name() -> &OsStr`, pin `sysinfo = "0.37"` exactly or adapt to the installed version's docs.
 
-- [ ] **Step 7: Smoke-test toast and tray in demo mode**
+- [x] **Step 7: Smoke-test toast and tray in demo mode**
 
 ```powershell
 Set-Location src-tauri
@@ -928,7 +928,7 @@ cargo tauri dev
 
 Expected: within ~10 s a Windows toast "Petition from geneseed-51 — Geneseed · approve Bash", ~25 s a second for token-dashboard-af; no repeat toasts for the same petition during the minute. Tray icon menu: Show/hide hides and restores the window; Quit exits. Then `Remove-Item Env:ADMINISTRATUM_DEMO`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add src-tauri/src/demo.rs src-tauri/src/main.rs
