@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS } from './sprites.js';
+import { blit, sprite, MAPS, RES } from './sprites.js';
 import { ENTRY, hallOf } from './layout.js';
 import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 
@@ -161,7 +161,11 @@ function bayWall(g, dy) {
 }
 
 let H = hallOf(0); // the hall drawn this frame
+let lastNow = 0, frameDt = 0; // s since the previous drawScene: frame-rate independent easing and random flicker
+const perFrame = p => Math.min(1, p * frameDt * 30); // a per-frame chance tuned at 30 fps, at any frame rate
 const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+const rugInk = new Map(); // block colour -> [fill, outline]
+const rugOf = c => rugInk.get(c) ?? rugInk.set(c, [hexA(c, 0.07), hexA(c, 0.3)]).get(c);
 
 const PILE_FADE_MS = 4000;
 const lastFill = new Map(); // desk key -> its occupant's last paper fill, for the fade once it leaves
@@ -171,6 +175,9 @@ const lastFill = new Map(); // desk key -> its occupant's last paper fill, for t
 // layout.hall: hallOf() of the current bays.
 export function drawScene(g, layout, actors, fillOf, now) {
   H = layout.hall ?? hallOf(0);
+  frameDt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0;
+  lastNow = now;
+  prunePiles(now, layout);
   const all = [...actors.values()];
   drawRugs(g, layout.blocks);
   drawDoors(g, all);
@@ -184,7 +191,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     if (d.id) lastFill.set(d.key, fill);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     paperFloor(g, pile, kindOf(d), fill, d, blockOf(d.dept), now);
-    items.push(deskDrawable({ ...d, id: pile }, busy, fill, !!a?.s.background, now, d.id && a));
+    items.push(furniture(kindOf(d), d, pile, busy, fill, d.id && a, !!a?.s.background, now));
     if (d.id) lights.push(deskLight(d, busy));
     if (d.id && a) reactions(a, d, KIND[kindOf(d)].at, over, lights, now);
     if (a?.puff > 0) {
@@ -197,7 +204,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     const a = actors.get(c.id), fill = fillOf(a?.h?.context);
     const lit = !!a && a.pose === 'console';
     paperFloor(g, c.id, 'console', fill, c, blockOf(c.dept), now);
-    items.push(consoleDrawable(c, lit, fill, a));
+    items.push(furniture('console', c, c.id, lit, fill, a, false, now));
     lights.push(consoleLight(c, lit));
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now);
   }
@@ -215,24 +222,26 @@ export function drawScene(g, layout, actors, fillOf, now) {
 
 function drawRugs(g, blocks) {
   for (const b of blocks) {
-    g.fillStyle = hexA(b.color, 0.07); g.fillRect(b.x, b.y, b.w, b.h);
-    g.strokeStyle = hexA(b.color, 0.3); g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    const [fill, line] = rugOf(b.color);
+    g.fillStyle = fill; g.fillRect(b.x, b.y, b.w, b.h);
+    g.strokeStyle = line; g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
   }
 }
 
 // A full desk or, in a crowded hall, a compact lectern (layout.js GRID.compact): sprite, width, and where its
 // centre, slate and candle are, from its top-left.
+// Desks, lecterns and the adepts' consoles. lit: candle/screen on (else the dimmed palette); pile: its paper's id.
 const kindOf = d => (d.compact ? 'lectern' : 'desk');
-function deskDrawable(desk, busy, fill, bgShell, now, a) {
-  const kind = kindOf(desk), K = KIND[kind];
+function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
+  const K = KIND[kind], [sx, sy, sw, sh] = K.shadow;
   return {
-    y: desk.y + 21,
+    y: at.y + sy,
     draw(g) {
-      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(desk.x + 1, desk.y + 21, K.w - 2, 2);
-      blit(g, MAPS[K.map], desk.x, desk.y, busy ? {} : { f: null, F: null, c: '#2e6b47' });
-      paperTop(g, desk.id, kind, fill, desk);
-      if (bgShell) spinCog(g, desk.x + K.w - 4, desk.y + 7, now / 1000);
-      if (a) furnitureFx(g, a, desk, K.at);
+      rect(g, at.x + sx, at.y + sy, sw, sh, 'rgba(0,0,0,.4)');
+      blit(g, MAPS[K.map], at.x, at.y, lit ? undefined : K.dim);
+      paperTop(g, pile, kind, fill, at);
+      if (bgShell) spinCog(g, at.x + K.w - 4, at.y + 7, now / 1000);
+      if (a) furnitureFx(g, a, at, K.at);
     },
   };
 }
@@ -249,17 +258,6 @@ function spinCog(g, cx, cy, t) {
   rect(g, cx - 0.5, cy - 0.5, 1, 1, '#2a2c30'); // axle
 }
 
-function consoleDrawable(con, lit, fill, a) {
-  return {
-    y: con.y + 10,
-    draw(g) {
-      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(con.x + 4, con.y + 10, 6, 1);
-      blit(g, MAPS.CONSOLE, con.x, con.y, lit ? {} : { c: '#2e6b47' });
-      paperTop(g, con.id, 'console', fill, con);
-      if (a) furnitureFx(g, a, con, CONSOLE_AT);
-    },
-  };
-}
 
 // Context paper. fill = context tokens / model window: 0..0.5 covers the desk (or a small pile beside a
 // console), above 0.5 sheets fall and spread over the department floor, dense at 1. Red sheets from 0.9.
@@ -269,10 +267,20 @@ const PAPER = {
   lectern: { cols: 4, rows: 3, x0: 1, dx: 4.4, y0: 10.5, dy: 2.6, layers: 4, floor: 40, cx: 11, cy: 12, r0: 11, reach: 22 },
   console: { cols: 1, rows: 3, x0: 15, dx: 0, y0: 8, dy: 0.5, layers: 2, floor: 5, cx: 7, cy: 6, r0: 9, reach: 6 },
 };
-const piles = new Map(); // ponytail: one entry per id ever seen (a few hundred bytes each); prune if ids churn a lot
-function pileOf(id, kind) {
+// Paper is cached: each pile's desk-top sheets, and its settled floor sheets, are rasterised once into a small canvas
+// (redrawn only when the sheet count, the red warning or the place changes) and blitted; fluttering sheets draw live.
+const piles = new Map(); // `${kind}:${id}` -> sheet lists and caches; dropped a minute after the pile was last drawn
+let pruned = 0;
+function prunePiles(now, layout) {
+  if (Math.abs(now - pruned) < 5000) return;
+  pruned = now;
+  for (const [k, p] of piles) if (now - p.seen > 60_000) piles.delete(k);
+  const keys = new Set(layout.desks.map(d => d.key));
+  for (const k of lastFill.keys()) if (!keys.has(k)) lastFill.delete(k);
+}
+function pileOf(id, kind, now) {
   let p = piles.get(`${kind}:${id}`);
-  if (p) return p;
+  if (p) { if (now) p.seen = now; return p; }
   let seed = [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261);
   const rnd = () => { // mulberry32
     seed = (seed + 0x6d2b79f5) | 0;
@@ -292,14 +300,23 @@ function pileOf(id, kind) {
     const flat = rnd() < 0.6;
     return { x: half(k.cx + Math.cos(a) * r * 1.2), y: half(k.cy + Math.sin(a) * r * 0.8), w: flat ? 4 : 3, h: flat ? 3 : 4, red: i % 5 === 2 };
   });
-  p = { top, floor, shown: -1, born: [], vis: [] };
+  // the top pile's bounds (sheet outlines included), pile-local: every sheet edge sits on the art-px grid
+  const tb = { x0: Math.min(...top.map(t => t.x)) - 0.5, y0: Math.min(...top.map(t => t.y - t.layers + 1)) - 0.5 };
+  tb.w = Math.max(...top.map(t => t.x + t.w)) + 0.5 - tb.x0; tb.h = Math.max(...top.map(t => t.y)) + 3 - tb.y0;
+  p = { top, floor, tb, shown: -1, born: [], seen: now ?? 0, topKey: -1, topCv: null, fKey: [], fCv: null, fAt: null,
+    fx: new Float64Array(floor.length), fy: new Float64Array(floor.length) };
   piles.set(`${kind}:${id}`, p);
   return p;
 }
-const counts = (p, fill) => {
-  const f = Math.max(0, fill);
-  return [Math.round(Math.min(f, 0.5) / 0.5 * p.top.length), Math.round(Math.min(1, Math.max(0, f - 0.5) / 0.5) * p.floor.length)];
-};
+const topCount = (p, fill) => Math.round(Math.min(Math.max(0, fill), 0.5) / 0.5 * p.top.length);
+const floorCount = (p, fill) => Math.round(Math.min(1, Math.max(0, fill - 0.5) / 0.5) * p.floor.length);
+// (Re)sizes a canvas at RES over the logical rect (x0, y0, w, h) and maps its context so logical coords draw in place.
+function rasterIn(cv, x0, y0, w, h) {
+  cv ??= document.createElement('canvas');
+  cv.width = Math.ceil(w * RES); cv.height = Math.ceil(h * RES); // also clears it
+  cv.getContext('2d').setTransform(RES, 0, 0, RES, -x0 * RES, -y0 * RES);
+  return cv;
+}
 function sheet(g, x, y, w, h, red) {
   rect(g, x - 0.5, y - 0.5, w + 1, h + 1, '#0e0a08');
   rect(g, x, y, w, h, red ? '#d8a08a' : '#d6c79f');
@@ -308,21 +325,56 @@ function sheet(g, x, y, w, h, red) {
 }
 // On the desk surface (or beside the console), drawn with the furniture.
 function paperTop(g, id, kind, fill, at) {
-  const p = pileOf(id, kind), [n] = counts(p, fill);
-  if (p.vis.length !== n) p.vis = p.top.slice(0, n).sort((a, b) => a.y - b.y); // re-sorted only when the count changes
-  const warn = fill >= 0.9;
-  for (const t of p.vis) for (let l = 0; l < t.layers; l++) sheet(g, at.x + t.x, at.y + t.y - l, t.w, 2.5, warn && t.red && l === t.layers - 1);
+  const p = pileOf(id, kind), n = topCount(p, fill), key = 2 * n + (fill >= 0.9 ? 1 : 0), { tb } = p;
+  if (!n) return;
+  if (p.topKey !== key) { // the count or the warning changed: redraw the pile (back to front) into its canvas
+    p.topKey = key;
+    p.topCv = rasterIn(p.topCv, tb.x0, tb.y0, tb.w, tb.h);
+    const c = p.topCv.getContext('2d');
+    for (const t of p.top.slice(0, n).sort((a, b) => a.y - b.y)) {
+      for (let l = 0; l < t.layers; l++) sheet(c, t.x, t.y - l, t.w, 2.5, key % 2 && t.red && l === t.layers - 1);
+    }
+  }
+  g.drawImage(p.topCv, at.x + tb.x0, at.y + tb.y0, p.topCv.width / RES, p.topCv.height / RES);
 }
 // Fallen sheets on the floor around it, kept inside the department block; new ones flutter down from the desk.
+const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v < lo ? 2 * lo - v : v > hi ? 2 * hi - v : v));
+const fKeySame = (key, settled, warn, at, b) => key[0] === settled && key[1] === warn && key[2] === at.x && key[3] === at.y
+  && key[4] === b.x && key[5] === b.y && key[6] === b.w && key[7] === b.h;
 function paperFloor(g, id, kind, fill, at, block, now) {
-  const p = pileOf(id, kind), [, m] = counts(p, fill), k = PAPER[kind];
+  const p = pileOf(id, kind, now), m = floorCount(p, fill), k = PAPER[kind];
   if (m > p.shown) for (let i = Math.max(0, p.shown); i < m; i++) p.born[i] = p.shown < 0 ? -1e9 : now;
   p.shown = m;
+  if (!m) return;
   const warn = fill >= 0.9;
-  const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v < lo ? 2 * lo - v : v > hi ? 2 * hi - v : v));
-  for (let i = 0; i < m; i++) {
+  let settled = 0; // born[] never decreases along the list, so the settled sheets are a prefix
+  while (settled < m && now - p.born[settled] >= 700) settled++;
+  for (let i = 0; i < m; i++) { // resting place, kept inside the department block
     const s = p.floor[i];
-    let x = fit(at.x + s.x, block.x + 1, block.x + block.w - s.w - 1), y = fit(at.y + s.y, block.y + 1, block.y + block.h - s.h - 1);
+    p.fx[i] = fit(at.x + s.x, block.x + 1, block.x + block.w - s.w - 1);
+    p.fy[i] = fit(at.y + s.y, block.y + 1, block.y + block.h - s.h - 1);
+  }
+  // The settled prefix is cached once its key holds two frames running (a gliding desk or block draws live).
+  let from = 0;
+  if (!fKeySame(p.fKey, settled, warn, at, block)) { p.fKey = [settled, warn, at.x, at.y, block.x, block.y, block.w, block.h]; p.fAt = null; }
+  else if (settled) {
+    if (!p.fAt) { // rasterise sheets 0..settled-1 into a canvas over their bounds
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < settled; i++) {
+        x0 = Math.min(x0, p.fx[i] - 0.5); y0 = Math.min(y0, p.fy[i] - 0.5);
+        x1 = Math.max(x1, p.fx[i] + p.floor[i].w + 0.5); y1 = Math.max(y1, p.fy[i] + p.floor[i].h + 0.5);
+      }
+      p.fCv = rasterIn(p.fCv, x0, y0, x1 - x0, y1 - y0);
+      const c = p.fCv.getContext('2d');
+      for (let i = 0; i < settled; i++) sheet(c, p.fx[i], p.fy[i], p.floor[i].w, p.floor[i].h, warn && p.floor[i].red);
+      p.fAt = { x: x0, y: y0 };
+    }
+    g.drawImage(p.fCv, p.fAt.x, p.fAt.y, p.fCv.width / RES, p.fCv.height / RES);
+    from = settled;
+  }
+  for (let i = from; i < m; i++) {
+    const s = p.floor[i];
+    let x = p.fx[i], y = p.fy[i];
     const t = (now - p.born[i]) / 700;
     if (t < 1) { // flutter down from the desk edge
       const sx = at.x + k.cx, sy = at.y + k.cy - 6;
@@ -505,9 +557,12 @@ function glint(g, x, y, k) {
   rect(g, x - 0.75, y - 0.75, 1.5, 1.5, '#ffe6a0'); rect(g, x - 0.25, y - 0.25, 0.5, 0.5, '#ffffff');
 }
 
+// shadow: [dx, dy, w, h] under the furniture, dy also its depth-sort line; dim: its palette while unlit.
+const DIM_DESK = { f: null, F: null, c: '#2e6b47' };
 const KIND = {
-  desk: { map: 'DESK', w: 32, mid: 16, at: DESK_AT, candle: 25, slate: 13 },
-  lectern: { map: 'LECTERN', w: 22, mid: 11, at: LECTERN_AT, candle: 17.5, slate: 7 },
+  desk: { map: 'DESK', w: 32, mid: 16, at: DESK_AT, candle: 25, slate: 13, shadow: [1, 21, 30, 2], dim: DIM_DESK },
+  lectern: { map: 'LECTERN', w: 22, mid: 11, at: LECTERN_AT, candle: 17.5, slate: 7, shadow: [1, 21, 20, 2], dim: DIM_DESK },
+  console: { map: 'CONSOLE', at: CONSOLE_AT, shadow: [4, 10, 6, 1], dim: { c: '#2e6b47' } },
 };
 const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
 
@@ -542,7 +597,7 @@ function drawCogitator(g, t, cog) {
       x += w + 0.5 + (h > 0.85 ? 2 : 0);
     }
   }
-  if (Math.random() < (on ? 0.06 : 0.02)) rect(g, 149, 15.5, 16, 16.5, 'rgba(22,48,31,.55)'); // flicker
+  if (Math.random() < perFrame(on ? 0.06 : 0.02)) rect(g, 149, 15.5, 16, 16.5, 'rgba(22,48,31,.55)'); // flicker
   g.restore();
   // side screens (133 / 170, 15.5, 11x8.5): left a waveform, right a bar chart
   for (let x = 0; x < 11; x += 0.5) {
@@ -579,7 +634,7 @@ function drawMagos(g, t) {
   const cv = sprite(MAPS.MAGOS), A = 10, h = cv.height / 2, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
   g.drawImage(cv, A, 0, cv.width - A, cv.height, MAG.x + A / 2, MAG.y, (cv.width - A) / 2, h);
   g.drawImage(cv, 0, 0, A, cv.height, MAG.x + sway, MAG.y, A / 2, h);
-  rect(g, MAG.x + 13, MAG.y + 15 + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < 0.1 ? '#16301f' : '#b8ffc8');
+  rect(g, MAG.x + 13, MAG.y + 15 + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? '#16301f' : '#b8ffc8');
   if (Math.sin(t * 2.2) > 0.4) { rect(g, MAG.x + 13, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); rect(g, MAG.x + 14.5, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); }
 }
 
@@ -630,9 +685,11 @@ function leaf(g, x, y, w, h) {
   if (h > 4) for (let j = y + 1.5; j < y + h - 1; j += 3) { rect(g, x + 1, j, 0.5, 0.5, '#8a9096'); rect(g, x + w - 1.5, j, 0.5, 0.5, '#8a9096'); }
   if (w > 4) for (let i = x + 1.5; i < x + w - 1; i += 3) { rect(g, i, y + 1, 0.5, 0.5, '#8a9096'); rect(g, i, y + h - 1.5, 0.5, 0.5, '#8a9096'); }
 }
+// Is anyone within 12 logical px of the rect x0..x1, y0..y1?
+const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);
 function drawDoors(g, actors) {
   for (const d of DOORS) {
-    const open = actors.some(a => Math.hypot(Math.max(d.x0 - a.x, 0, a.x - d.x1), Math.max(d.y0 - a.y, 0, a.y - d.y1)) < 12);
+    const open = near(actors, d.x0, d.y0, d.x1, d.y1);
     const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
     if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
     else { leaf(g, d.x0 + 0.5, d.y0, 7, cy - d.y0); leaf(g, d.x0 + 0.5, cy, 7, d.y1 - cy); rect(g, d.x0 + 0.5, cy - 0.25, 7, 0.5, '#0e0a08'); cog(g, cx, cy); }
@@ -645,11 +702,12 @@ function drawDoors(g, actors) {
 // The void is floor-level; leaves and frame (piers + arch) are returned as a drawable at the wall's base,
 // so anyone north of the wall walks behind the arch.
 // 32x30 frame at (entry.x - 16, entry.y - 28); opening 16x22 at +8,+5.
-let gateOpen = 0;
+let gateOpen = 0, gateTo = 0;
 function drawGate(g, actors) {
   const GATE = { x: H.entry.x - 16, y: H.entry.y - 28 }, ox = GATE.x + 8, oy = GATE.y + 5;
-  const near = actors.some(a => Math.hypot(Math.max(ox - a.x, 0, a.x - ox - 16), Math.max(oy - a.y, 0, a.y - oy - 22)) < 12);
-  gateOpen += ((near ? 1 : 0) - gateOpen) * 0.18;
+  gateTo = near(actors, ox, oy, ox + 16, oy + 22) ? 1 : 0;
+  gateOpen += (gateTo - gateOpen) * (1 - 0.82 ** (frameDt * 30)); // 0.18 per frame at 30 fps
+  if (Math.abs(gateTo - gateOpen) < 0.01) gateOpen = gateTo; // at rest (half(0.01 * 7) is 0)
   rect(g, ox, oy, 16, 22, '#060404');
   rect(g, ox + 2, oy + 16, 12, 6, '#2a0a07'); rect(g, ox + 5, oy + 18, 6, 4, '#4e110c'); // the void beyond, lit by the braziers
   const s = half(gateOpen * 7);
@@ -670,6 +728,9 @@ const BEACON = { x: 226, y: 118 };
 const PERCH = { x: 297, y: 128 };
 const skull = { x: PERCH.x, y: PERCH.y, last: 0 };
 const SKULL_SPEED = 60; // logical px per second
+const SKULL_RED = { o: '#ff3a20', O: '#ffd0b0' };
+// Something of the scene is mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate.
+export const sceneBusy = () => gateOpen !== gateTo || !!skull.flying;
 function drawAlarm(g, actors, now) {
   const t = now / 1000, lights = [];
   const stale = actors.filter(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s)).sort((p, q) => p.s.sinceMs - q.s.sinceMs);
@@ -684,6 +745,7 @@ function drawAlarm(g, actors, now) {
   skull.last = now;
   const who = stale[0], tgt = on ? { x: who.x + 34, y: who.y - 20 } : PERCH; // beside the petition label, clear of the Magos
   const dx = tgt.x - skull.x, dy = tgt.y - skull.y, d = Math.hypot(dx, dy), step = SKULL_SPEED * dt;
+  skull.flying = d > step;
   if (d <= step) { skull.x = tgt.x; skull.y = tgt.y; } else { skull.x += (dx / d) * step; skull.y += (dy / d) * step; }
   const y = skull.y + Math.round(2 * Math.sin(t * 4)) / 2;
   if (on && d <= step) { // hovering: a red searchlight down onto the petitioner
@@ -693,7 +755,7 @@ function drawAlarm(g, actors, now) {
     g.beginPath(); g.moveTo(skull.x - 1.5, y + 4); g.lineTo(skull.x + 1.5, y + 4); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
     g.restore();
   }
-  blit(g, MAPS.SKULL, half(skull.x) - 5, half(y) - 5, on ? { o: '#ff3a20', O: '#ffd0b0' } : undefined);
+  blit(g, MAPS.SKULL, half(skull.x) - 5, half(y) - 5, on ? SKULL_RED : undefined);
   lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? 'rgba(255,58,32,.45)' : GREEN });
   return lights;
 }

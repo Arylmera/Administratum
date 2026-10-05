@@ -143,7 +143,7 @@ export class Cast {
       }
       if (a.puff > 0) a.puff -= dt;
       if (a.lamp) a.lamp.t += dt;
-      if (a.fx) a.fx = a.fx.filter(f => {
+      if (a.fx?.length) a.fx = a.fx.filter(f => {
         if (f.kind === 'push' && f.t < PICK_S && f.t + dt >= PICK_S && a.seals) a.seals--;
         return (f.t += dt) < FX_S[f.kind];
       });
@@ -156,6 +156,13 @@ export class Cast {
   }
 }
 
+// Scribe palette per (rank, department sash), kept so the sprite cache finds it by identity.
+const robes = new Map(); // rank -> sash -> palette
+const robeOf = (rank, sash) => {
+  const by = robes.get(rank) ?? robes.set(rank, new Map()).get(rank);
+  return by.get(sash) ?? by.set(sash, { ...RANK[rank].robe, y: sash }).get(sash);
+};
+
 // Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
 export function drawActor(g, a) {
   if (a.h) { // adept: 12x14, feet at (x, y)
@@ -164,7 +171,7 @@ export function drawActor(g, a) {
     else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), over); // typing bob, 1 art px
     return;
   }
-  const over = { ...RANK[rankOf(a.s.context?.model)].robe, y: a.sash };
+  const over = robeOf(rankOf(a.s.context?.model), a.sash);
   const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
   if (a.pose === 'burn') { blit(g, SCRIBE.down[0], fx, fy, over); return; } // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
@@ -192,16 +199,26 @@ function heldScroll(g, x, y) {
 }
 
 // "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.
+// One 7x7 art-px sprite (a dark outline so it reads over paper, a pale core), drawn twice with fading alpha.
 const Z = ['11111', '00010', '00100', '01000', '11111'];
+let zCv = null;
+function zSprite() {
+  if (zCv) return zCv;
+  zCv = document.createElement('canvas');
+  zCv.width = zCv.height = 7;
+  const c = zCv.getContext('2d');
+  for (const [col, o, w] of [['#0e0a08', 0, 3], ['#e6ffee', 1, 1]]) {
+    c.fillStyle = col;
+    Z.forEach((row, j) => { for (let i = 0; i < 5; i++) if (row[i] === '1') c.fillRect(i + o, j + o, w, w); });
+  }
+  return zCv;
+}
 function dozing(g, x, y, t) {
-  g.save();
+  const z = zSprite(), a0 = g.globalAlpha;
   for (const k of [0, 0.5]) {
     const p = (t / 2.4 + k) % 1, zx = x + Math.round(p * 4) / 2, zy = y - Math.round(p * 12) / 2;
     g.globalAlpha = Math.min(1, 3 * (1 - p));
-    for (const [col, o, w] of [['#0e0a08', -0.5, 1.5], ['#e6ffee', 0, 0.5]]) { // dark outline so it reads over paper
-      g.fillStyle = col;
-      Z.forEach((row, j) => { for (let i = 0; i < 5; i++) if (row[i] === '1') g.fillRect(zx + i / 2 + o, zy + j / 2 + o, w, w); });
-    }
+    g.drawImage(z, zx - 0.5, zy - 0.5, 3.5, 3.5);
   }
-  g.restore();
+  g.globalAlpha = a0;
 }

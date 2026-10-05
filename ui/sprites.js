@@ -30,12 +30,16 @@ export const RES = 2; // art pixels per logical pixel
 // Only the two loose-sheet maps are still written low-res.
 const up = map => map.flatMap(row => { const r = row.split('').map(c => c + c).join(''); return [r, r]; });
 
-const cache = new WeakMap();
-export function sprite(map, over = {}) {
+// Cached per map, then by the override object's identity (callers keep their overrides as constants), so a blit
+// costs no JSON; a new object with the same overrides still finds the canvas by its JSON key.
+const cache = new WeakMap(), NONE = {};
+export function sprite(map, over = NONE) {
   let byMap = cache.get(map);
-  if (!byMap) { byMap = new Map(); cache.set(map, byMap); }
+  if (!byMap) { byMap = { obj: new WeakMap(), json: new Map() }; cache.set(map, byMap); }
+  let cv = byMap.obj.get(over);
+  if (cv) return cv;
   const key = JSON.stringify(over);
-  let cv = byMap.get(key);
+  cv = byMap.json.get(key);
   if (!cv) {
     const pal = { ...BASE, ...over };
     cv = document.createElement('canvas');
@@ -48,8 +52,9 @@ export function sprite(map, over = {}) {
         if (col) { g.fillStyle = col; g.fillRect(i, j, 1, 1); }
       }
     });
-    byMap.set(key, cv);
+    byMap.json.set(key, cv);
   }
+  byMap.obj.set(over, cv);
   return cv;
 }
 
