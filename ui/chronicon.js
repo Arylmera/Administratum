@@ -107,7 +107,7 @@ export function initChronicon(T, colorOf = () => null) {
   }
 
   function summary(t, today) {
-    const sec = h('section', 'tithe');
+    const sec = h('section', 'summary'); // not 'tithe': that is the header plaque's class (light ink on hover, hidden < 600px)
     const tk = t?.tokens ?? {}, fresh = (tk.input || 0) + (tk.output || 0) + (tk.cacheWrite || 0), cache = tk.cacheRead || 0, all = fresh + cache;
     const head = h('div', 'stats');
     const stat = (v, l) => { const d = h('div', 'stat'); d.append(h('b', null, v), h('span', null, l)); return d; };

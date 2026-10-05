@@ -57,7 +57,7 @@
   /* Chronicon: a parchment unrolled over the scene (rows animate 0fr -> 1fr between the two rods). */
   .tithe { font-variant-numeric: tabular-nums; cursor: pointer; background: transparent; font-family: inherit; }
   .tithe:hover { color: var(--ink); border-color: var(--copper); }
-  #chron { --pk: #1a120c; --pm: #5a3c16; --c-new: #a8281c; --c-cache: #127a5c; --c-busy: #127a5c;
+  #chron { --pk: #1a120c; --pm: #3a2810; --c-new: #a8281c; --c-cache: #127a5c; --c-busy: #127a5c;
     position: absolute; z-index: 5; top: 0; left: 50%; transform: translateX(-50%); width: min(46em, calc(100% - 12px)); height: 100%;
     display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(11px * var(--k, 1)); color: var(--pk); }
   #chron.open { grid-template-rows: auto 1fr auto; }
@@ -69,9 +69,14 @@
   #chron .top { flex: none; display: flex; align-items: center; gap: .6em; padding: .5em .9em .2em; }
   #chron h2 { margin: 0; font: 400 1.7em/1 'Pirata One', serif; color: #4e110c; }
   #chron .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid #8a6a3a; border-radius: 2px; color: #4e110c; font: inherit; cursor: pointer; }
+  /* Parchment ink is explicit everywhere: nothing on the sheet inherits the page's light --ink. */
+  #chron .sheet, #chron .legend, #chron .row, #chron .row .n, #chron .stat, #chron .events li, #chron .events .who, #chron .events .d { color: var(--pk); }
+  #chron .close:hover { background: #4e110c; color: #f3e6c4; }
+  #chron .events li:hover, #chron .row:hover { background: rgba(110,63,23,.12); }
   #chron .tabs { flex: none; display: flex; gap: .25em; padding: 0 .9em; border-bottom: 2px solid #8a6a3a; overflow-x: auto; scrollbar-width: none; }
   #chron .tabs button { flex: none; padding: .25em .6em; background: #bfa877; border: 1px solid #8a6a3a; border-bottom: none; border-radius: 2px 2px 0 0; color: var(--pm); font: inherit; cursor: pointer; }
-  #chron .tabs button.none { opacity: .55; }
+  #chron .tabs button.none { background: transparent; border-style: dashed; color: var(--pm); }
+  #chron .tabs button:hover { background: #e3d4ac; color: var(--pk); }
   #chron .tabs button[aria-selected="true"] { background: #4e110c; color: #f3e6c4; border-color: #4e110c; }
   #chron button:focus-visible, #chron select:focus-visible { outline: 2px solid #4e110c; outline-offset: 1px; }
   #chron .body { flex: 1; min-height: 0; overflow-y: auto; padding: .6em .9em .9em; scrollbar-width: thin; scrollbar-color: #8a6a3a transparent; font-variant-numeric: tabular-nums; user-select: text; }
@@ -114,7 +119,7 @@
   #chron .events .who, #chron .events .dept, #chron .events .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #chron .events .who { font-weight: 600; } #chron .events .who small { font-weight: 400; color: var(--pm); font-size: 1em; }
   #chron .events .dept { color: var(--pm); }
-  #chron .events li.tests-fail .d, #chron .events li.tool-error .d { color: #8e1c16; }
+  #chron .events li.tests-fail .d, #chron .events li.tool-error .d { color: #621009; }
   @keyframes inked { from { background: rgba(168,40,28,.25); } }
   @media (max-width: 600px) { .tithe { display: none; } }
   @media (max-width: 520px) { #chron .events li { grid-template-columns: 3.2em 1.2em minmax(4em, 8em) 1fr; } #chron .events .dept { display: none; } }
