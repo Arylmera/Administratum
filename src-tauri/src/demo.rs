@@ -1,4 +1,11 @@
 use crate::registry::Session;
+use std::{sync::OnceLock, time::{SystemTime, UNIX_EPOCH}};
+
+/// Wall-clock ms at the first demo tick, so `sinceMs` reads as a real timestamp in the UI.
+fn start_ms() -> i64 {
+    static START: OnceLock<i64> = OnceLock::new();
+    *START.get_or_init(|| SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64))
+}
 
 fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str) -> Session {
     Session {
@@ -17,7 +24,7 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
 /// A 60 s scripted day in the office: work, shell, two petitions, an arrival.
 pub fn roster(t: u64) -> Vec<Session> {
     let phase = t % 60;
-    let epoch = ((t / 60) * 60 * 1000) as i64;
+    let epoch = start_ms() + ((t / 60) * 60 * 1000) as i64;
     let mut v = vec![
         scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md"),
         scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”"),
