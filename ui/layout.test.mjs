@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { layoutDepartments, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS } from './layout.js';
+import { DECOR, CLUTTER } from './scene.js';
+import { MAPS, RES } from './sprites.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -108,6 +110,12 @@ assert.ok(lightLevel('full', 12).dark > 0, 'Tier II keeps a darkness floor in fu
 for (const p of COG_SPOTS) {
   assert.ok(p.y > 51 && p.y < HALL.y0 && p.x - 8 >= HALL.x0 && p.x + 8 <= HALL.x1, `cog spot ${p.x}`);
   assert.deepEqual(route(ENTRY, p).at(-1), p);
+}
+
+// no prop under a queued petitioner (scribe sprite 16x17 above the feet)
+for (const [name, x, y] of DECOR.concat(CLUTTER)) {
+  const w = MAPS[name][0].length / RES, h = MAPS[name].length / RES;
+  for (const q of QUEUE_SLOTS) assert.ok(!hit({ x, y }, w, h, { x: q.x - 8, y: q.y - 17 }, 16, 17), `${name} at ${x},${y} under queue slot ${q.x},${q.y}`);
 }
 
 console.log('layout ok');

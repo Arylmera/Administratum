@@ -55,7 +55,8 @@ function coolant(g, x, y, w, h) {
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
 const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
-const DECOR = [
+// Static props [map, x, y]; none may sit under a queue slot (layout.test.mjs).
+export const DECOR = [
   ['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
   ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15],
   ['BANNER', 98, 10], ['COGITATOR', 116, 2], ['CANDLES', 100, 44],
@@ -66,16 +67,16 @@ const DECOR = [
   ['COG_MECH', 267, 110], ['BANNER', 236, 112], ['BANNER', 306, 112], ['THRONE', 268, 124],
   ['CANDLES', 250, 136], ['CANDLES', 292, 136], ['PAPER_STACK', 246, 140], ['PAPER_STACK', 300, 142],
   ['LORD_DESK', 254, 150], ['SEAL', 260, 162], ['SEAL', 286, 162],
-  ['BOOKS', 220, 172], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
+  ['BOOKS', 316, 164], ['SCROLL_PILE', 306, 200], ['LOOSE_A', 244, 206], ['LOOSE_B', 300, 214], ['PAPER_STACK', 326, 178],
   ['BRAZIER', 224, 196], ['BRAZIER', 320, 196], ['CENSER', 94, 7], ['CENSER', 196, 60],
-  ['CRATE', 172, 206], ['BRAZIER', ENTRY.x - 28, 211], ['BRAZIER', ENTRY.x + 18, 211],
+  ['CRATE', 12, 190], ['BRAZIER', ENTRY.x - 28, 211], ['BRAZIER', ENTRY.x + 18, 211],
 ];
-const CLUTTER = [
+export const CLUTTER = [
   ['SCROLL_PILE', 58, 98], ['PAPER_STACK', 92, 92], ['PAPER_STACK', 99, 95], ['LOOSE_A', 46, 104], ['LOOSE_B', 140, 104],
   ['SCROLL_PILE', 160, 98], ['LOOSE_A', 190, 92], ['PAPER_STACK', 54, 132], ['PAPER_STACK', 61, 136], ['BOOKS', 76, 140],
   ['LOOSE_B', 8, 160], ['SCROLL_PILE', 150, 140], ['PAPER_STACK', 176, 128], ['LOOSE_A', 104, 160], ['SCROLL_PILE', 30, 188],
-  ['PAPER_STACK', 50, 196], ['PAPER_STACK', 57, 200], ['BOOKS', 8, 206], ['LOOSE_A', 120, 190], ['LOOSE_B', 146, 212],
-  ['SCROLL_PILE', 140, 196], ['LOOSE_A', 186, 186], ['LOOSE_B', 196, 172],
+  ['PAPER_STACK', 19, 204], ['BOOKS', 8, 206], ['LOOSE_A', 120, 190], ['LOOSE_B', 150, 212],
+  ['SCROLL_PILE', 78, 187], ['LOOSE_A', 186, 186], ['LOOSE_B', 196, 172],
 ];
 
 export function drawStatic(g, daylight) {
