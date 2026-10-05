@@ -35,13 +35,13 @@
   .plaque { position: absolute; padding: 1px 6px; background: #140d09; border: 2px solid; font-size: calc(10px * var(--k, 1)); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; width: 57%; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
-  #card { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(300px, 80%); padding: 8px 12px; background: #cdbb8f; color: #1a120c; border: 2px solid #6e3f17; border-radius: 2px; box-shadow: 0 4px 0 #0e0a08; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+  #card { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(12px * var(--k, 1)); width: min(25em, 80%); padding: .67em 1em; background: #cdbb8f; color: #1a120c; border: 2px solid #6e3f17; border-radius: 2px; box-shadow: 0 4px 0 #0e0a08; display: flex; flex-direction: column; gap: .25em; } /* em: scales with --k like the labels */
   #card[hidden] { display: none; }
-  #card .name { font-size: 14px; font-weight: 600; }
+  #card .name { font-size: 1.17em; font-weight: 600; }
   #card .meta, #card .ctx, #card .path { color: #5a3c16; }
-  #card .links { display: flex; gap: 6px; margin-top: 3px; }
+  #card .links { display: flex; gap: .5em; margin-top: .25em; }
   #card .links[hidden], #card .links button[hidden] { display: none; }
-  #card .links button { padding: 3px 8px; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; font-size: 11px; cursor: pointer; }
+  #card .links button { padding: .27em .73em; background: #6e3f17; color: #f3e6c4; border: 1px solid #3a200c; border-radius: 2px; font: inherit; font-size: .92em; cursor: pointer; }
   #card .links button:hover { filter: brightness(1.2); }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(160,30,22,0); } 50% { box-shadow: 0 0 12px 2px rgba(190,40,28,.8); } }
   @media (max-width: 760px) { .tier { display: none; } }
