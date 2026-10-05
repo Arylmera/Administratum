@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import { BASE, MAPS, SCRIBE, SASH, RES } from './sprites.js';
+
+// Low-res [width, height] of every map, recorded from the up()-only file before the HD redraw.
+const LOW = {
+  ARM: [4, 8], ARM_L: [4, 8], CHAIN: [10, 1], SCROLL: [6, 7], DESK: [32, 21], SHELF: [32, 21], SKULL: [10, 10],
+  COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], THRONE: [20, 16], LORD_DESK: [44, 13], BRAZIER: [10, 13],
+  RECAFF: [16, 18], COGITATOR: [40, 16], WINDOW: [16, 17], BANNER: [12, 15], CRATE: [14, 12], PAPER_STACK: [8, 12],
+  SCROLL_PILE: [18, 7], BOOKS: [10, 9], LOOSE_A: [5, 4], LOOSE_B: [4, 5], GAUGE: [6, 6], VENT: [8, 7], CENSER: [5, 10],
+};
+
+assert.equal(RES, 2);
+assert.equal(SASH.length, 8);
+const check = (name, map, [w, h]) => {
+  assert.equal(map.length, 2 * h, `${name}: height`);
+  map.forEach((row, j) => {
+    assert.equal(row.length, 2 * w, `${name}: row ${j} length`);
+    for (const c of row) assert.ok(c === '.' || c in BASE, `${name}: bad char '${c}' row ${j}`);
+  });
+};
+assert.deepEqual(Object.keys(MAPS).sort(), Object.keys(LOW).sort());
+for (const [name, map] of Object.entries(MAPS)) check(name, map, LOW[name]);
+for (const dir of ['up', 'down', 'left', 'right']) {
+  assert.equal(SCRIBE[dir].length, 3, `${dir}: frames`);
+  SCRIBE[dir].forEach((f, i) => check(`SCRIBE.${dir}[${i}]`, f, [16, 17]));
+}
+SCRIBE.right.forEach((f, i) => assert.deepEqual(SCRIBE.left[i], f.map(r => [...r].reverse().join(''))));
+console.log('sprites ok');
