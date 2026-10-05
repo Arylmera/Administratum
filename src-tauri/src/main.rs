@@ -111,8 +111,11 @@ fn now_ms() -> i64 {
     SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
 }
 
+// Commands below that touch the disk run off the main thread (async) and read files only after
+// releasing the chronicle lock, so neither the UI nor the poll loop waits on them.
+
 /// Chronicon events of one local day ("YYYY-MM-DD"), oldest first.
-#[tauri::command]
+#[tauri::command(async)]
 fn chronicle_day(day: String, chron: State<Chron>) -> Result<Vec<Event>, String> {
     if !chronicle::valid_day(&day) {
         return Err("invalid day".into());
@@ -122,18 +125,20 @@ fn chronicle_day(day: String, chron: State<Chron>) -> Result<Vec<Event>, String>
 }
 
 /// Tithe (tokens + working time) of one local day; today's is live.
-#[tauri::command]
+#[tauri::command(async)]
 fn tithe_day(day: String, chron: State<Chron>) -> Result<Tithe, String> {
     if !chronicle::valid_day(&day) {
         return Err("invalid day".into());
     }
-    Ok(chron.lock().map_err(|_| "chronicle unavailable")?.tithe_of(&day))
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    Ok(chronicle::tithe_of(&dir, &live, &day))
 }
 
 /// Today and the 6 previous days, newest first.
-#[tauri::command]
+#[tauri::command(async)]
 fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
-    Ok(chron.lock().map_err(|_| "chronicle unavailable")?.days(now_ms()))
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    Ok(chronicle::days(&dir, &live, now_ms()))
 }
 
 /// Stale-petition mark in ms, set from the settings panel (default `registry::STALE_MS`).
@@ -164,12 +169,12 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
-#[tauri::command]
+#[tauri::command(async)]
 fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
     Ok(settings::load(&settings_path(&app)?))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
     settings::save(&settings_path(&app)?, &values)
 }

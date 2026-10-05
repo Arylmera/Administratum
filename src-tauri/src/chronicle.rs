@@ -603,24 +603,30 @@ impl Chronicle {
         }
     }
 
-    pub fn tithe_of(&self, day: &str) -> Tithe {
-        if day == self.tithe.day {
-            return self.tithe.clone();
-        }
-        load_tithe(&self.dir, day).unwrap_or_else(|| Tithe::new(day))
+    /// The dir and the live Tithe, so day files are read after the lock is released.
+    pub fn snapshot(&self) -> (PathBuf, Tithe) {
+        (self.dir.clone(), self.tithe.clone())
     }
+}
 
-    /// Today and the 6 previous days, newest first.
-    pub fn days(&self, now_ms: i64) -> Vec<DaySummary> {
-        last_days(now_ms, KEEP_DAYS)
-            .into_iter()
-            .map(|day| {
-                let t = self.tithe_of(&day);
-                let events = fs::read_to_string(self.dir.join(format!("{day}.jsonl"))).map_or(0, |s| s.lines().count() as u32);
-                DaySummary { events, tokens: t.tokens.total(), busy_ms: t.busy_ms, day }
-            })
-            .collect()
+/// Tithe of `day`: the live one (`live`, from `snapshot`) or the one saved in `dir`.
+pub fn tithe_of(dir: &Path, live: &Tithe, day: &str) -> Tithe {
+    if day == live.day {
+        return live.clone();
     }
+    load_tithe(dir, day).unwrap_or_else(|| Tithe::new(day))
+}
+
+/// Today and the 6 previous days, newest first.
+pub fn days(dir: &Path, live: &Tithe, now_ms: i64) -> Vec<DaySummary> {
+    last_days(now_ms, KEEP_DAYS)
+        .into_iter()
+        .map(|day| {
+            let t = tithe_of(dir, live, &day);
+            let events = fs::read(dir.join(format!("{day}.jsonl"))).map_or(0, |b| b.iter().filter(|&&c| c == b'\n').count() as u32);
+            DaySummary { events, tokens: t.tokens.total(), busy_ms: t.busy_ms, day }
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -832,7 +838,7 @@ mod tests {
         c.add_usage("Geneseed", &u(6));
         let s = |id: &str, dept: &str, status: &str| Session { dept: dept.into(), status: status.into(), ..crate::registry::tests_session(id) };
         c.add_busy(&[s("a", "Terra", "busy"), s("b", "Terra", "shell"), s("c", "Geneseed", "waiting"), s("d", "Geneseed", "idle")], 1000, ts);
-        let t = c.tithe_of(&day_of(ts));
+        let t = tithe_of(&c.dir, &c.tithe, &day_of(ts));
         assert_eq!(t.tokens, Tokens { input: 2, output: 11, cache_read: 20, cache_write: 200 });
         assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000 });
         assert_eq!(t.by_project["Geneseed"], Share { tokens: 117, busy_ms: 0 });
@@ -846,8 +852,8 @@ mod tests {
         // Persisted and resumed by the next open of the same day.
         c.flush();
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
-        assert_eq!(again.tithe_of(&day_of(ts)), t);
-        assert_eq!(again.days(ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+        assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
+        assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
     }
 
     #[test]
@@ -919,7 +925,7 @@ mod tests {
         let ev = files(&mut c);
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
-        let tithe = c.tithe_of(&day_of(t));
+        let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
         assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
         assert!(files(&mut c).is_empty(), "nothing new");
