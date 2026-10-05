@@ -1,0 +1,97 @@
+// Settings: a parchment panel behind the header gear (opens and closes like the Chronicon).
+// UI values live in localStorage; always-on-top goes through the window API, start-at-login and
+// the stale-petition mark through the backend (start_at_login, set_stale_minutes).
+
+export const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: keep in memory */ } },
+};
+
+// Numbers: [default, min, max]. Context windows are in k tokens.
+const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
+const DEFAULTS = { onTop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+function load() {
+  let saved = {};
+  try { saved = JSON.parse(store.get('adm.settings', '{}')) ?? {}; } catch { /* corrupt: defaults */ }
+  const s = { ...DEFAULTS };
+  if (typeof saved.onTop === 'boolean') s.onTop = saved.onTop;
+  for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
+  return s;
+}
+// Shared, read live by actors.js (thresholds) and app.js (context windows).
+export const settings = load();
+
+let sync = () => {};
+export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
+
+// hooks: { mode(), setMode(m), muted(), setMuted(b) } from app.js. T may be absent (plain browser).
+export function initSettings(T, hooks) {
+  const invoke = (cmd, args) => T?.core?.invoke(cmd, args) ?? Promise.reject(new Error('no backend'));
+  const win = () => T?.window?.getCurrentWindow();
+  const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
+  const field = name => form.elements[name];
+  let closer = null, login = null;
+
+  const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
+  const save = () => store.set('adm.settings', JSON.stringify(settings));
+  const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
+  applyTop(); // tauri.conf.json starts on top; restore the saved choice
+  pushStale();
+
+  sync = () => {
+    field('onTop').checked = settings.onTop;
+    field('mode').value = hooks.mode();
+    field('chime').checked = !hooks.muted();
+    for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
+    field('login').checked = !!login;
+    field('login').disabled = login === null;
+  };
+  const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
+    .then(on => { login = on; }, () => { login = null; }).finally(sync);
+  T?.event?.listen('autostart', e => { login = e.payload; sync(); });
+
+  form.onsubmit = e => e.preventDefault();
+  form.onchange = e => {
+    const el = e.target, k = el.name;
+    if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
+    else if (k === 'mode') hooks.setMode(el.value);
+    else if (k === 'chime') hooks.setMuted(!el.checked);
+    else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
+    else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
+    sync();
+  };
+  form.querySelector('.reset').onclick = () => {
+    Object.assign(settings, DEFAULTS);
+    save(); applyTop(); pushStale();
+    hooks.setMode('auto'); hooks.setMuted(false);
+    sync();
+  };
+
+  const isOpen = () => !root.hidden;
+  function open() {
+    clearTimeout(closer);
+    root.hidden = false;
+    void root.offsetHeight; // commit the rolled-up state so the unroll transitions
+    root.classList.add('open');
+    opener.setAttribute('aria-expanded', 'true');
+    root.querySelector('.close').focus({ preventScroll: true });
+    readLogin(); // the tray may have changed it
+    sync();
+  }
+  function close() {
+    if (!isOpen()) return;
+    root.classList.remove('open');
+    opener.setAttribute('aria-expanded', 'false');
+    closer = setTimeout(() => { root.hidden = true; }, 300);
+  }
+  opener.onclick = () => (root.classList.contains('open') ? close() : open());
+  root.querySelector('.close').onclick = close;
+  addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen()) { close(); opener.focus({ preventScroll: true }); } });
+  // Click outside closes; a click on the scene only closes (does not also pick a scribe).
+  addEventListener('click', e => {
+    if (!root.classList.contains('open') || e.target.closest('#prefs, #prefs-open')) return;
+    close();
+    if (e.target.closest('#scene, #overlay')) e.stopPropagation();
+  }, true);
+}
