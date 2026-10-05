@@ -344,7 +344,7 @@ tools/make_icon.py  generates the app icon
 
 ## Licenses
 
-**Administratum**: no licence file is included. All rights reserved.
+**Administratum**: [MIT](LICENSE), © 2026 Guillaume Lemer (Arylmera). The licence covers this project's code and art only.
 
 **Fonts** (bundled in `ui/fonts/`, under the SIL Open Font License 1.1):
 
