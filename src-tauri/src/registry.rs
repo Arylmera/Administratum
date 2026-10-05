@@ -11,6 +11,7 @@ pub struct RawRecord {
     pub status: Option<String>,
     pub waiting_for: Option<String>,
     pub status_updated_at: Option<i64>,
+    pub bridge_session_id: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -27,6 +28,8 @@ pub struct Session {
     pub task: String,
     pub helpers: Vec<Helper>,
     pub context: Option<Context>,
+    pub orca: Option<String>,
+    pub web: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -196,6 +199,7 @@ pub fn scan(
     alive: impl Fn(u32) -> bool,
     transcript: impl Fn(&str, &str, u64) -> Option<String>,
     helpers: impl Fn(&str, &str) -> Vec<Helper>,
+    mut orca_handle: impl FnMut(u32) -> Option<String>,
 ) -> Scan {
     let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
     let Ok(entries) = fs::read_dir(dir) else { return out };
@@ -232,6 +236,8 @@ pub fn scan(
             }
         }
         let helper_list = helpers(&rec.session_id, &rec.cwd);
+        let orca = orca_handle(rec.pid);
+        let web = rec.bridge_session_id.map(|id| format!("https://claude.ai/code/{id}"));
         out.sessions.push(Session {
             task,
             dept: dept_of(&rec.cwd),
@@ -244,6 +250,8 @@ pub fn scan(
             status,
             helpers: helper_list,
             context,
+            orca,
+            web,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -283,6 +291,16 @@ fn file_tail(path: &Path, tail_bytes: u64) -> Option<String> {
     f.read_to_end(&mut buf).ok()?;
     let text = String::from_utf8_lossy(&buf).into_owned();
     Some(if len > tail_bytes { text.split_once('\n').map(|(_, rest)| rest.to_string()).unwrap_or_default() } else { text })
+}
+
+/// Only a well-formed Orca terminal handle may be passed to `orca terminal switch`.
+pub fn valid_orca_handle(handle: &str) -> bool {
+    handle.strip_prefix("term_").is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '-'))
+}
+
+/// Only a claude.ai code-session URL may be opened via the shell.
+pub fn valid_claude_web_url(url: &str) -> bool {
+    url.starts_with("https://claude.ai/code/") && url.len() > "https://claude.ai/code/".len()
 }
 
 pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
@@ -429,7 +447,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None, orca: None, web: None }
     }
 
     #[test]
@@ -440,7 +458,7 @@ mod tests {
         fs::write(d.join("12.json"), record(12, "c", "dead", "idle")).unwrap();
         fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
         fs::write(d.join("10.key"), "not a record").unwrap();
-        let out = scan(&d, |pid| pid != 12, |id, _cwd, _tail| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()), |_, _| vec![]);
+        let out = scan(&d, |pid| pid != 12, |id, _cwd, _tail| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()), |_, _| vec![], |_| None);
         let names: Vec<_> = out.sessions.iter().map(|s| s.name.as_str()).collect();
         assert_eq!(names, ["terra-a", "terra-b"]);
         assert_eq!(out.unreadable_pids, [13]);
@@ -454,7 +472,7 @@ mod tests {
 
     #[test]
     fn scan_of_missing_dir_is_empty() {
-        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_, _, _| None, |_, _| vec![]);
+        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_, _, _| None, |_, _| vec![], |_| None);
         assert!(out.sessions.is_empty() && out.unreadable_pids.is_empty());
     }
 
@@ -462,7 +480,7 @@ mod tests {
     fn scan_skips_unreadable_pid_if_dead() {
         let d = temp_dir("scan-dead-unreadable");
         fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
-        let out = scan(&d, |pid| pid != 13, |_, _, _| None, |_, _| vec![]);
+        let out = scan(&d, |pid| pid != 13, |_, _, _| None, |_, _| vec![], |_| None);
         assert!(out.unreadable_pids.is_empty(), "dead pid's malformed file is not carried forward");
     }
 
@@ -494,7 +512,7 @@ mod tests {
         let d = temp_dir("scan-retry-tail");
         fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
         // The 64 KB tail holds no whole line (task_line -> "—"); a bigger tail would.
-        let out = scan(&d, |_| true, |_, _, tail| if tail == TAIL_BYTES { Some("x".repeat(70_000)) } else { Some(r#"{"type":"user","message":{"content":"hi"}}"#.to_string()) }, |_, _| vec![]);
+        let out = scan(&d, |_| true, |_, _, tail| if tail == TAIL_BYTES { Some("x".repeat(70_000)) } else { Some(r#"{"type":"user","message":{"content":"hi"}}"#.to_string()) }, |_, _| vec![], |_| None);
         assert_eq!(out.sessions[0].task, "“hi”");
     }
 
@@ -503,7 +521,7 @@ mod tests {
         let d = temp_dir("scan-context");
         fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
         let tail = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}"#;
-        let out = scan(&d, |_| true, |_, _, _| Some(tail.to_string()), |_, _| vec![]);
+        let out = scan(&d, |_| true, |_, _, _| Some(tail.to_string()), |_, _| vec![], |_| None);
         assert_eq!(out.sessions[0].context, Some(Context { tokens: 5, model: "claude-opus-5-5".to_string() }));
     }
 
@@ -574,6 +592,34 @@ mod tests {
     fn active_helpers_of_missing_dir_is_empty() {
         let out = active_helpers(&std::env::temp_dir().join("adm-helpers-does-not-exist"), SystemTime::now());
         assert!(out.is_empty());
+    }
+
+    #[test]
+    fn scan_fills_orca_handle_and_web_url() {
+        let d = temp_dir("scan-orca-web");
+        fs::write(
+            d.join("10.json"),
+            r#"{"pid":10,"sessionId":"a","cwd":"C:\\git\\Terra","status":"idle","bridgeSessionId":"session_01abc"}"#,
+        ).unwrap();
+        let out = scan(&d, |_| true, |_, _, _| None, |_, _| vec![], |pid| (pid == 10).then(|| "term_abc-123".to_string()));
+        assert_eq!(out.sessions[0].orca.as_deref(), Some("term_abc-123"));
+        assert_eq!(out.sessions[0].web.as_deref(), Some("https://claude.ai/code/session_01abc"));
+    }
+
+    #[test]
+    fn orca_handle_validator() {
+        assert!(valid_orca_handle("term_52bf64c5-bacc-4925-bec7-04935a104ae1"));
+        assert!(!valid_orca_handle("term_"));
+        assert!(!valid_orca_handle("not_a_handle"));
+        assert!(!valid_orca_handle("term_abc; rm -rf /"));
+    }
+
+    #[test]
+    fn claude_web_url_validator() {
+        assert!(valid_claude_web_url("https://claude.ai/code/session_01abc"));
+        assert!(!valid_claude_web_url("https://claude.ai/code/"));
+        assert!(!valid_claude_web_url("https://evil.example.com/code/x"));
+        assert!(!valid_claude_web_url("javascript:alert(1)"));
     }
 
     #[test]

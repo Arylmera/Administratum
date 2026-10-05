@@ -3,13 +3,65 @@ mod demo;
 mod registry;
 
 use registry::{Session, Tracker};
-use std::{path::PathBuf, thread, time::{Duration, Instant, SystemTime}};
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    process::Command,
+    thread,
+    time::{Duration, Instant, SystemTime},
+};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager,
 };
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+/// Switch Orca's foreground terminal to `handle`, or open `url` in the default browser. `target`
+/// is "orca:<handle>" or "web:<url>"; both branches validate before touching the shell so a
+/// malformed roster entry can never inject arguments.
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+fn spawn_no_window(mut cmd: Command) -> std::io::Result<std::process::Child> {
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd.spawn()
+}
+
+#[tauri::command]
+fn open_session(target: String) -> Result<(), String> {
+    if let Some(handle) = target.strip_prefix("orca:") {
+        if !registry::valid_orca_handle(handle) {
+            return Err("invalid orca handle".into());
+        }
+        let mut cmd = Command::new("orca");
+        cmd.args(["terminal", "switch", "--terminal", handle]);
+        // "orca" on PATH first; the known install path if that's not resolvable.
+        if spawn_no_window(cmd).is_err() {
+            let fallback = std::env::var("LOCALAPPDATA")
+                .map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe"))
+                .map_err(|_| "orca not found".to_string())?;
+            let mut cmd = Command::new(fallback);
+            cmd.args(["terminal", "switch", "--terminal", handle]);
+            spawn_no_window(cmd).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    } else if let Some(url) = target.strip_prefix("web:") {
+        if !registry::valid_claude_web_url(url) {
+            return Err("invalid claude.ai url".into());
+        }
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/c", "start", "", url]);
+        spawn_no_window(cmd).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("unknown target kind".into())
+    }
+}
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_notification::NotificationExt;
 
@@ -23,6 +75,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .invoke_handler(tauri::generate_handler![open_session])
         .setup(move |app| {
             build_tray(app)?;
             let handle = app.handle().clone();
@@ -39,22 +92,44 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut tracker = Tracker::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
+    // Orca terminal handle per pid, cached: environ() is only ever refreshed for a pid we haven't
+    // seen yet (never for the whole process list every tick). Evicted when a pid disappears.
+    let mut orca_cache: HashMap<u32, Option<String>> = HashMap::new();
     loop {
         let roster = if demo {
             demo::roster(start.elapsed().as_secs())
         } else {
             // We only need liveness + name, not the CPU/mem/disk/exe sampling `refresh_processes` does by default.
             sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
-            let alive = |pid: u32| {
-                sys.process(Pid::from_u32(pid))
-                    .map(|p| p.name().to_string_lossy().eq_ignore_ascii_case("claude.exe"))
-                    .unwrap_or(false)
+            let alive_pids: std::collections::HashSet<u32> = sys
+                .processes()
+                .iter()
+                .filter(|(_, p)| p.name().to_string_lossy().eq_ignore_ascii_case("claude.exe"))
+                .map(|(pid, _)| pid.as_u32())
+                .collect();
+            let alive = |pid: u32| alive_pids.contains(&pid);
+            orca_cache.retain(|&pid, _| alive(pid));
+            let orca_handle = |pid: u32| -> Option<String> {
+                if let Some(cached) = orca_cache.get(&pid) {
+                    return cached.clone();
+                }
+                sys.refresh_processes_specifics(
+                    ProcessesToUpdate::Some(&[Pid::from_u32(pid)]),
+                    true,
+                    ProcessRefreshKind::nothing().with_environ(UpdateKind::Always),
+                );
+                let handle = sys.process(Pid::from_u32(pid)).and_then(|p| {
+                    p.environ().iter().find_map(|e| e.to_str()?.strip_prefix("ORCA_TERMINAL_HANDLE=").map(str::to_string))
+                });
+                orca_cache.insert(pid, handle.clone());
+                handle
             };
             let scanned = registry::scan(
                 &dir.join("sessions"),
                 alive,
                 |id, cwd, tail| registry::read_transcript_tail(&dir.join("projects"), id, cwd, tail),
                 |id, cwd| registry::active_helpers(&dir.join("projects").join(registry::slug(cwd)).join(id).join("subagents"), SystemTime::now()),
+                orca_handle,
             );
             registry::merge(&prev, scanned)
         };

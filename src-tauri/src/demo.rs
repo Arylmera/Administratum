@@ -22,6 +22,8 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         task: task.into(),
         helpers: vec![],
         context: Some(Context { tokens, model: DEMO_MODEL.to_string() }),
+        orca: None,
+        web: Some(format!("https://claude.ai/code/session_demo_{name}")),
     }
 }
 
