@@ -58,7 +58,7 @@ spec: docs/spec.md
 **Interfaces:**
 - Produces: a Tauri app with window label `main`, `withGlobalTauri: true`, frontend in `ui/`.
 
-- [ ] **Step 1: Work in the existing clone**
+- [x] **Step 1: Work in the existing clone**
 
 The private repo `Arylmera/Administratum` already exists and is cloned; it holds this plan (`docs/plan.md`) and the spec (`docs/spec.md`).
 
@@ -68,7 +68,7 @@ git switch main
 git pull
 ```
 
-- [ ] **Step 2: Write `.gitignore`**
+- [x] **Step 2: Write `.gitignore`**
 
 ```gitignore
 src-tauri/target/
@@ -76,7 +76,7 @@ src-tauri/gen/
 icon-src.png
 ```
 
-- [ ] **Step 3: Write `src-tauri/Cargo.toml`**
+- [x] **Step 3: Write `src-tauri/Cargo.toml`**
 
 ```toml
 [package]
@@ -97,7 +97,7 @@ serde_json = "1"
 sysinfo = "0.37"
 ```
 
-- [ ] **Step 4: Write `src-tauri/build.rs`**
+- [x] **Step 4: Write `src-tauri/build.rs`**
 
 ```rust
 fn main() {
@@ -105,7 +105,7 @@ fn main() {
 }
 ```
 
-- [ ] **Step 5: Write `src-tauri/tauri.conf.json`**
+- [x] **Step 5: Write `src-tauri/tauri.conf.json`**
 
 ```json
 {
@@ -140,7 +140,7 @@ fn main() {
 }
 ```
 
-- [ ] **Step 6: Write `src-tauri/capabilities/default.json`**
+- [x] **Step 6: Write `src-tauri/capabilities/default.json`**
 
 ```json
 {
@@ -156,7 +156,7 @@ fn main() {
 }
 ```
 
-- [ ] **Step 7: Write a minimal `src-tauri/src/main.rs`**
+- [x] **Step 7: Write a minimal `src-tauri/src/main.rs`**
 
 ```rust
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -168,7 +168,7 @@ fn main() {
 }
 ```
 
-- [ ] **Step 8: Write a placeholder `ui/index.html` and `ui/package.json`**
+- [x] **Step 8: Write a placeholder `ui/index.html` and `ui/package.json`**
 
 `ui/index.html`:
 
@@ -186,7 +186,7 @@ fn main() {
 { "type": "module" }
 ```
 
-- [ ] **Step 9: Write `tools/make_icon.py` (Cog Mechanicus, stdlib only)**
+- [x] **Step 9: Write `tools/make_icon.py` (Cog Mechanicus, stdlib only)**
 
 ```python
 """Write the 1024 px source PNG for `cargo tauri icon` (Cog Mechanicus pixel art)."""
@@ -243,7 +243,7 @@ with open(sys.argv[1] if len(sys.argv) > 1 else 'icon-src.png', 'wb') as f:
     f.write(png)
 ```
 
-- [ ] **Step 10: Generate icons**
+- [x] **Step 10: Generate icons**
 
 ```powershell
 python tools/make_icon.py icon-src.png
@@ -254,7 +254,7 @@ Set-Location ..
 
 Expected: `src-tauri/icons/` holds `32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.ico` (plus others).
 
-- [ ] **Step 11: Run it**
+- [x] **Step 11: Run it**
 
 ```powershell
 Set-Location src-tauri
@@ -263,7 +263,7 @@ cargo tauri dev
 
 Expected: first build takes a few minutes, then a frameless always-on-top 700×500 window shows "Administratum". Close it with Alt+F4.
 
-- [ ] **Step 12: Write `README.md`**
+- [x] **Step 12: Write `README.md`**
 
 ```markdown
 # Administratum
@@ -280,7 +280,7 @@ Reads `~/.claude/sessions/*.json` and transcript tails, read-only.
 Spec: `docs/spec.md` · Plan: `docs/plan.md` (master copies in the Terra vault, `Anamnesis/Specs/`).
 ```
 
-- [ ] **Step 13: Commit and push**
+- [x] **Step 13: Commit and push**
 
 ```powershell
 git add .gitignore README.md tools src-tauri ui
