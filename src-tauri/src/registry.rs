@@ -68,6 +68,10 @@ pub struct Session {
     pub waiting_for: Option<String>,
     pub since_ms: i64,
     pub task: String,
+    /// Claude Code's generated session title (newest `ai-title` in the tail).
+    pub title: Option<String>,
+    /// While waiting: the pending tool call the petition is about (see `pending_ask`).
+    pub asks: Option<String>,
     pub helpers: Vec<Helper>,
     pub context: Option<Context>,
     pub orca: Option<String>,
@@ -345,11 +349,76 @@ pub fn normalize_status(s: Option<&str>) -> &'static str {
 }
 
 pub(crate) fn clip(s: &str) -> String {
-    if s.chars().count() <= 60 {
+    clip_to(s, 60)
+}
+
+fn clip_to(s: &str, n: usize) -> String {
+    if s.chars().count() <= n {
         s.to_string()
     } else {
-        format!("{}…", s.chars().take(59).collect::<String>())
+        format!("{}…", s.chars().take(n - 1).collect::<String>())
     }
+}
+
+/// First non-empty line of the string field `k`, trimmed.
+fn field<'a>(input: &'a serde_json::Value, k: &str) -> Option<&'a str> {
+    input[k].as_str().and_then(|t| t.trim().lines().next()).map(str::trim).filter(|t| !t.is_empty())
+}
+
+/// First non-empty string input of a tool (serde_json keeps keys sorted, so this is stable).
+fn first_string(input: &serde_json::Value) -> Option<&str> {
+    input.as_object()?.keys().find_map(|k| field(input, k))
+}
+
+fn basename(p: &str) -> &str {
+    let t = p.trim_end_matches(['/', '\\']);
+    t.rsplit(['/', '\\']).next().unwrap_or(t)
+}
+
+fn host(url: &str) -> &str {
+    let rest = url.split_once("://").map_or(url, |(_, r)| r);
+    rest.split(['/', '?', '#']).next().unwrap_or(rest)
+}
+
+/// Short human detail for the task line: the call's own description where it has one, a file's
+/// name rather than its path, a fetch's host.
+fn tool_detail<'a>(name: &str, input: &'a serde_json::Value) -> Option<&'a str> {
+    match name {
+        "Bash" | "PowerShell" | "Agent" | "Task" => field(input, "description").or_else(|| field(input, "command")).or_else(|| field(input, "prompt")),
+        "Edit" | "MultiEdit" | "Write" | "Read" | "NotebookEdit" => field(input, "file_path").or_else(|| field(input, "notebook_path")).map(basename),
+        "Grep" | "Glob" => field(input, "pattern"),
+        "WebFetch" => field(input, "url").map(host),
+        "WebSearch" => field(input, "query"),
+        "Skill" => field(input, "skill"),
+        _ => None,
+    }
+    .or_else(|| first_string(input))
+}
+
+/// What a pending tool call asks permission for: "<Tool>: <command or file> — <description>".
+fn ask_line(name: &str, input: &serde_json::Value) -> String {
+    let target = ["command", "file_path", "notebook_path", "pattern", "url", "query", "skill", "prompt"]
+        .iter()
+        .find_map(|k| field(input, k))
+        .or_else(|| first_string(input));
+    let mut out = match target {
+        Some(t) => format!("{name}: {t}"),
+        None => name.to_string(),
+    };
+    if let Some(d) = field(input, "description").filter(|d| Some(*d) != target) {
+        out = format!("{out} — {d}");
+    }
+    clip_to(&out, 140)
+}
+
+/// User lines that are not the operator's own prompt: harness notices, other sessions' messages,
+/// command echoes (`<command-…>`, `<local-command-…>`, `<task-notification>`, `<system-reminder>`).
+fn injected(t: &str) -> bool {
+    t.starts_with('<')
+        || ["Another Claude session", "[SYSTEM", "Caveat:", "This session is being continued from a previous conversation", "[Request interrupted"]
+            .iter()
+            .any(|p| t.starts_with(p))
+        || (t.starts_with("You have ") && t.contains("orchestration message"))
 }
 
 /// Last thing the session did, newest first: a tool call with its target, else the last prompt.
@@ -363,16 +432,14 @@ pub fn task_line(tail: &str) -> String {
                     .as_array()
                     .and_then(|a| a.iter().rev().find(|b| b["type"] == "tool_use"));
                 if let Some(tool) = tool {
-                    let input = &tool["input"];
-                    let detail = ["file_path", "command", "pattern", "url", "query", "description"]
-                        .iter()
-                        .find_map(|k| input[*k].as_str())
-                        .unwrap_or("");
                     let name = tool["name"].as_str().unwrap_or("tool");
-                    return clip(&if detail.is_empty() { name.to_string() } else { format!("{name} · {detail}") });
+                    return clip(&match tool_detail(name, &tool["input"]) {
+                        Some(d) => format!("{name} · {d}"),
+                        None => name.to_string(),
+                    });
                 }
             }
-            Some("user") => {
+            Some("user") if v["isMeta"] != true && v["isCompactSummary"] != true => {
                 let text = content.as_str().map(str::to_string).or_else(|| {
                     content
                         .as_array()
@@ -382,7 +449,7 @@ pub fn task_line(tail: &str) -> String {
                 });
                 if let Some(t) = text {
                     let t = t.trim();
-                    if !t.is_empty() && !t.starts_with('<') {
+                    if !t.is_empty() && !injected(t) {
                         return clip(&format!("“{}”", t.lines().next().unwrap_or(t)));
                     }
                 }
@@ -391,6 +458,46 @@ pub fn task_line(tail: &str) -> String {
         }
     }
     "—".to_string()
+}
+
+/// Newest `{"type":"ai-title","aiTitle":...}` in the tail (Claude Code's generated session title).
+pub fn title_of(tail: &str) -> Option<String> {
+    tail.lines().rev().filter(|l| l.contains("\"ai-title\"")).find_map(|line| {
+        let v = serde_json::from_str::<serde_json::Value>(line).ok()?;
+        if v["type"] != "ai-title" {
+            return None;
+        }
+        field(&v, "aiTitle").map(str::to_string)
+    })
+}
+
+/// The newest tool call of the current turn still without a tool_result (by id): what a waiting
+/// session asks permission for. Scans newest-first back to the last real prompt.
+pub fn pending_ask(tail: &str) -> Option<String> {
+    let mut answered: HashSet<String> = HashSet::new();
+    for line in tail.lines().rev() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        let blocks = v["message"]["content"].as_array();
+        match v["type"].as_str() {
+            Some("user") => {
+                let results: Vec<_> = blocks.into_iter().flatten().filter(|b| b["type"] == "tool_result").collect();
+                if results.is_empty() && v["isMeta"] != true {
+                    return None; // a prompt: the turn began here
+                }
+                answered.extend(results.iter().filter_map(|b| b["tool_use_id"].as_str().map(str::to_string)));
+            }
+            Some("assistant") => {
+                let pending = blocks.into_iter().flatten().rev().find(|b| {
+                    b["type"] == "tool_use" && !b["id"].as_str().is_some_and(|id| answered.contains(id))
+                });
+                if let Some(b) = pending {
+                    return Some(ask_line(b["name"].as_str().unwrap_or("tool"), &b["input"]));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 pub struct Scan {
@@ -406,6 +513,8 @@ pub struct Tail {
     pub context: Option<Context>,
     pub turn_done: bool,
     pub compacted_at: Option<i64>,
+    pub title: Option<String>,
+    pub asks: Option<String>,
 }
 
 /// The `Tail` of a transcript, `read(n)` giving its last `n` bytes (None: no transcript). When
@@ -426,7 +535,7 @@ pub fn read_tail(read: impl Fn(u64) -> Option<String>) -> Option<Tail> {
             tail = bigger;
         }
     }
-    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail) })
+    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail), title: title_of(&tail), asks: pending_ask(&tail) })
 }
 
 /// One pass over `~/.claude/sessions`. A file that fails to parse is reported by the pid in its
@@ -465,11 +574,13 @@ pub fn scan(
         if background {
             status = "idle".to_string();
         }
-        let (task, context) = tail.map_or_else(|| ("—".to_string(), None), |t| (t.task, t.context));
+        let (task, context, title, asks) = tail.map_or_else(|| ("—".to_string(), None, None, None), |t| (t.task, t.context, t.title, t.asks));
         let orca = orca_handle(rec.pid);
         let web = rec.bridge_session_id.map(|id| format!("https://claude.ai/code/{id}"));
         out.sessions.push(Session {
             task,
+            title,
+            asks: if status == "waiting" { asks } else { None },
             dept: dept_of(&rec.cwd),
             name: rec.name.clone().unwrap_or_else(|| dept_of(&rec.cwd)),
             id: rec.session_id,
@@ -636,7 +747,7 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
 #[cfg(test)]
 pub fn tests_session(id: &str) -> Session {
     Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), waiting_for: None,
-              since_ms: 0, task: "—".into(), helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
+              since_ms: 0, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
 }
 
 #[cfg(test)]
@@ -682,7 +793,7 @@ mod tests {
             r#"{"type":"user","message":{"content":"fix the hololith page"}}"#,
             r#"{"type":"assistant","message":{"content":[{"type":"text","text":"ok"},{"type":"tool_use","name":"Edit","input":{"file_path":"ui/hololith.html"}}]}}"#,
         ].join("\n");
-        assert_eq!(task_line(&tail), "Edit · ui/hololith.html");
+        assert_eq!(task_line(&tail), "Edit · hololith.html");
     }
 
     #[test]
@@ -704,6 +815,100 @@ mod tests {
         assert!(line.ends_with('…'));
         assert_eq!(task_line(""), "—");
         assert_eq!(task_line("not json\n{"), "—");
+    }
+
+    fn tool(name: &str, id: &str, input: &str) -> String {
+        format!(r#"{{"type":"assistant","message":{{"model":"claude-opus-5-5","content":[{{"type":"tool_use","id":"{id}","name":"{name}","input":{input}}}]}}}}"#)
+    }
+
+    #[test]
+    fn task_line_prefers_description_then_first_command_line() {
+        let described = tool("Bash", "t1", r#"{"command":"PYTHONUTF8=1 python - <<'EOF'\np='README.md'\nEOF","description":"Rewrite the README intro"}"#);
+        assert_eq!(task_line(&described), "Bash · Rewrite the README intro");
+        let bare = tool("PowerShell", "t1", r#"{"command":"\n  Get-ChildItem ui\n  Get-Date"}"#);
+        assert_eq!(task_line(&bare), "PowerShell · Get-ChildItem ui");
+        let agent = tool("Agent", "t1", r#"{"description":"Find card code","prompt":"Search the ui folder...","subagent_type":"Explore"}"#);
+        assert_eq!(task_line(&agent), "Agent · Find card code");
+    }
+
+    #[test]
+    fn task_line_names_file_pattern_host_query_skill() {
+        assert_eq!(task_line(&tool("Edit", "t", r#"{"file_path":"C:\\Users\\guill\\Documents\\git\\Administratum\\ui\\app.js","old_string":"a","new_string":"b"}"#)), "Edit · app.js");
+        assert_eq!(task_line(&tool("Read", "t", r#"{"file_path":"/home/x/src/main.rs"}"#)), "Read · main.rs");
+        assert_eq!(task_line(&tool("NotebookEdit", "t", r#"{"notebook_path":"C:\\n\\eda.ipynb","new_source":"x"}"#)), "NotebookEdit · eda.ipynb");
+        assert_eq!(task_line(&tool("Grep", "t", r#"{"pattern":"fn task_line","path":"src-tauri"}"#)), "Grep · fn task_line");
+        assert_eq!(task_line(&tool("WebFetch", "t", r#"{"url":"https://docs.rs/serde_json/latest/serde_json/","prompt":"read"}"#)), "WebFetch · docs.rs");
+        assert_eq!(task_line(&tool("WebSearch", "t", r#"{"query":"tauri 2 tray icon"}"#)), "WebSearch · tauri 2 tray icon");
+        assert_eq!(task_line(&tool("Skill", "t", r#"{"skill":"commit","args":"-m x"}"#)), "Skill · commit");
+        assert_eq!(task_line(&tool("mcp__notion__search", "t", r#"{"limit":5,"query":"  \n roadmap"}"#)), "mcp__notion__search · roadmap");
+        assert_eq!(task_line(&tool("TodoWrite", "t", r#"{"todos":[]}"#)), "TodoWrite");
+    }
+
+    #[test]
+    fn task_line_skips_injected_user_lines() {
+        let tail = [
+            r#"{"type":"user","message":{"role":"user","content":"tidy the card text"},"uuid":"u1"}"#,
+            r#"{"type":"user","isMeta":true,"message":{"role":"user","content":[{"type":"text","text":"Another Claude session sent a message:\n\nhello"}]}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"Another Claude session sent a message: hi"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<task-notification>\n<task-id>a1</task-id>\n<status>completed</status>"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"text","text":"<system-reminder>\nnote\n</system-reminder>"}]}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"[SYSTEM NOTICE] context low"}}"#,
+            r#"{"type":"user","isMeta":true,"message":{"role":"user","content":"<local-command-caveat>Caveat: The messages below were generated by the user while running local commands.</local-command-caveat>"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"Caveat: The messages below were generated locally."}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<command-name>/model</command-name>"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<local-command-stdout>Set model to opus</local-command-stdout>"}}"#,
+            r#"{"type":"user","isCompactSummary":true,"message":{"role":"user","content":"This session is being continued from a previous conversation that ran out of context."}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"This session is being continued from a previous conversation that ran out of context."}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"You have 1 orchestration message waiting."}}"#,
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]}}"#,
+            r#"{"type":"user","message":{"role":"user","content":[{"tool_use_id":"t1","type":"tool_result","content":"ok"}]}}"#,
+        ].join("\n");
+        assert_eq!(task_line(&tail), "“tidy the card text”");
+    }
+
+    #[test]
+    fn title_is_newest_ai_title() {
+        let tail = [
+            r#"{"type":"ai-title","aiTitle":"Revue du projet","sessionId":"s"}"#,
+            r#"{"type":"user","message":{"content":"go"}}"#,
+            r#"{"type":"ai-title","aiTitle":"Card text from the Magos","sessionId":"s"}"#,
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"ok"}]}}"#,
+        ].join("\n");
+        assert_eq!(title_of(&tail).as_deref(), Some("Card text from the Magos"));
+        assert_eq!(title_of(r#"{"type":"user","message":{"content":"ai-title"}}"#), None);
+    }
+
+    #[test]
+    fn pending_ask_is_unanswered_tool_use() {
+        let bash = tool("Bash", "toolu_2", r#"{"command":"echo hello > .superpowers/sdd/permtest.txt","description":"Writing hello to a test file"}"#);
+        let tail = [
+            r#"{"type":"user","message":{"content":"write the test file"}}"#.to_string(),
+            tool("Read", "toolu_1", r#"{"file_path":"C:\\x\\README.md"}"#),
+            r#"{"type":"user","message":{"content":[{"tool_use_id":"toolu_1","type":"tool_result","content":"..."}]}}"#.to_string(),
+            bash.clone(),
+        ].join("\n");
+        assert_eq!(pending_ask(&tail).as_deref(), Some("Bash: echo hello > .superpowers/sdd/permtest.txt — Writing hello to a test file"));
+        let answered = format!("{tail}\n{}", r#"{"type":"user","message":{"content":[{"tool_use_id":"toolu_2","type":"tool_result","content":""}]}}"#);
+        assert_eq!(pending_ask(&answered), None, "every call answered");
+        let stale = format!("{bash}\n{}", r#"{"type":"user","message":{"content":"next question"}}"#);
+        assert_eq!(pending_ask(&stale), None, "a call before the latest prompt is not this petition");
+        let edit = tool("Edit", "toolu_3", r#"{"file_path":"C:\\git\\ui\\app.js","old_string":"a","new_string":"b"}"#);
+        assert_eq!(pending_ask(&edit).as_deref(), Some(r"Edit: C:\git\ui\app.js"));
+        let long = tool("Bash", "toolu_4", &format!(r#"{{"command":"{}"}}"#, "y".repeat(300)));
+        assert_eq!(pending_ask(&long).unwrap().chars().count(), 140);
+    }
+
+    #[test]
+    fn scan_sets_title_always_and_asks_only_while_waiting() {
+        let d = temp_dir("scan-asks");
+        fs::write(d.join("10.json"), record(10, "a", "terra-a", "waiting")).unwrap();
+        fs::write(d.join("11.json"), record(11, "b", "terra-b", "busy")).unwrap();
+        let t = [r#"{"type":"ai-title","aiTitle":"Fix the card"}"#.to_string(), tool("Bash", "x", r#"{"command":"ls","description":"List files"}"#)].join("\n");
+        let out = scan(&d, |_, _| true, |_, _| (tail_of(&t), vec![]), |_| None);
+        assert_eq!(out.sessions[0].asks.as_deref(), Some("Bash: ls — List files"));
+        assert_eq!(out.sessions[0].title.as_deref(), Some("Fix the card"));
+        assert_eq!(out.sessions[1].asks, None);
+        assert_eq!(out.sessions[1].title.as_deref(), Some("Fix the card"));
     }
 
     #[test]
@@ -758,7 +963,7 @@ mod tests {
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
         Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None }
     }
 
     #[test]

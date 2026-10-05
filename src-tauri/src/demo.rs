@@ -24,6 +24,8 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         waiting_for: if status == "waiting" { waiting_for.map(str::to_string) } else { None },
         since_ms,
         task: task.into(),
+        title: None,
+        asks: None,
         helpers: vec![],
         context: Some(Context { tokens, model: model.to_string() }),
         orca: None,
@@ -50,6 +52,11 @@ pub fn roster(t: u64) -> Vec<Session> {
         scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", 400_000, HAIKU),
         scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", 520_000, SONNET),
     ];
+    v[0].title = Some("Hololith: link the NAS services".into());
+    v[2].title = Some("Permission test for the SDD loop".into());
+    if v[2].status == "waiting" {
+        v[2].asks = Some("Bash: echo hello > .superpowers/sdd/permtest.txt — Writing hello to a test file".into());
+    }
     // ...then compacts at each cycle wrap: back to 50k, with a fresh compaction stamp.
     v[0].compacted_at = Some(epoch);
     if phase >= 45 {

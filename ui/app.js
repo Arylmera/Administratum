@@ -322,6 +322,7 @@ function renderCard() {
     card.hidden = false;
     const owner = roster.find(r => r.id === a.owner);
     card.querySelector('.name').textContent = `${a.h.kind} · adept of ${owner?.name ?? '?'}`;
+    card.querySelector('.title').hidden = true;
     card.querySelector('.meta').textContent = `Model: ${rankLine(a.h.model ?? a.h.context?.model)}`;
     card.querySelector('.ctx').textContent = contextLine(a.h.context);
     card.querySelector('.task').textContent = a.h.task || 'No task given';
@@ -333,10 +334,13 @@ function renderCard() {
   card.hidden = !s;
   if (!s) return;
   card.querySelector('.name').textContent = `${s.name} · ${s.dept}`;
+  const title = card.querySelector('.title');
+  title.textContent = s.title ?? '';
+  title.hidden = !s.title;
   const status = s.background ? 'Idle · background shell running' : a?.target?.pose === 'nap' ? 'Idle · dozing in the Refectorium' : STATUS_TEXT[s.status] ?? s.status;
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
-  card.querySelector('.task').textContent = s.task;
+  card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.task;
   card.querySelector('.path').textContent = s.cwd;
   renderAnswer(card, s);
   renderLinks(card, s);
