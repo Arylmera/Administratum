@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::{collections::HashSet, fs, path::Path};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,6 +94,97 @@ pub fn task_line(tail: &str) -> String {
     "—".to_string()
 }
 
+pub struct Scan {
+    pub sessions: Vec<Session>,
+    pub unreadable_pids: Vec<u32>,
+}
+
+/// One pass over `~/.claude/sessions`. A file that fails to parse is reported by the pid in its
+/// name so the caller can keep that session's last known state (Claude Code may be mid-write).
+pub fn scan(dir: &Path, alive: impl Fn(u32) -> bool, transcript: impl Fn(&str) -> Option<String>) -> Scan {
+    let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
+    let Ok(entries) = fs::read_dir(dir) else { return out };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|x| x.to_str()) != Some("json") {
+            continue;
+        }
+        let stem_pid = path.file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<u32>().ok());
+        let Some(rec) = fs::read_to_string(&path).ok().and_then(|t| parse_record(&t)) else {
+            if let Some(pid) = stem_pid {
+                out.unreadable_pids.push(pid);
+            }
+            continue;
+        };
+        if !alive(rec.pid) {
+            continue;
+        }
+        let status = normalize_status(rec.status.as_deref()).to_string();
+        out.sessions.push(Session {
+            task: transcript(&rec.session_id).map(|t| task_line(&t)).unwrap_or_else(|| "—".into()),
+            dept: dept_of(&rec.cwd),
+            name: rec.name.clone().unwrap_or_else(|| dept_of(&rec.cwd)),
+            id: rec.session_id,
+            pid: rec.pid,
+            cwd: rec.cwd,
+            waiting_for: if status == "waiting" { rec.waiting_for } else { None },
+            since_ms: rec.status_updated_at.unwrap_or(0),
+            status,
+        });
+    }
+    out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
+    out
+}
+
+const TAIL_BYTES: u64 = 65536;
+
+/// Last 64 KB of `<projects>/<any>/<session_id>.jsonl`, cut to whole lines.
+pub fn read_transcript_tail(projects: &Path, session_id: &str) -> Option<String> {
+    use std::io::{Read, Seek, SeekFrom};
+    let file = format!("{session_id}.jsonl");
+    let path = fs::read_dir(projects).ok()?.flatten().map(|e| e.path().join(&file)).find(|p| p.is_file())?;
+    let mut f = fs::File::open(path).ok()?;
+    let len = f.metadata().ok()?.len();
+    f.seek(SeekFrom::Start(len.saturating_sub(TAIL_BYTES))).ok()?;
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf).ok()?;
+    let text = String::from_utf8_lossy(&buf).into_owned();
+    Some(if len > TAIL_BYTES { text.split_once('\n').map(|(_, rest)| rest.to_string()).unwrap_or_default() } else { text })
+}
+
+pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
+    let mut out = scan.sessions;
+    for pid in scan.unreadable_pids {
+        if let Some(p) = prev.iter().find(|s| s.pid == pid) {
+            out.push(p.clone());
+        }
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out
+}
+
+/// Remembers open petition episodes (`id:since`) so each one notifies exactly once.
+#[derive(Default)]
+pub struct Tracker {
+    open: HashSet<String>,
+}
+
+impl Tracker {
+    pub fn new_petitions(&mut self, roster: &[Session]) -> Vec<Session> {
+        let mut now = HashSet::new();
+        let mut fresh = vec![];
+        for s in roster.iter().filter(|s| s.status == "waiting") {
+            let key = format!("{}:{}", s.id, s.since_ms);
+            if !self.open.contains(&key) {
+                fresh.push(s.clone());
+            }
+            now.insert(key);
+        }
+        self.open = now;
+        fresh
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -158,5 +250,79 @@ mod tests {
         assert!(line.ends_with('…'));
         assert_eq!(task_line(""), "—");
         assert_eq!(task_line("not json\n{"), "—");
+    }
+
+    use std::{fs, path::PathBuf};
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("adm-test-{}-{name}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    fn record(pid: u32, id: &str, name: &str, status: &str) -> String {
+        format!(r#"{{"pid":{pid},"sessionId":"{id}","cwd":"C:\\git\\Terra","name":"{name}","status":"{status}","waitingFor":"input needed","statusUpdatedAt":{pid}000}}"#)
+    }
+
+    fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
+        Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
+                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into() }
+    }
+
+    #[test]
+    fn scan_keeps_live_skips_dead_and_reports_unreadable() {
+        let d = temp_dir("scan");
+        fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
+        fs::write(d.join("11.json"), record(11, "b", "terra-a", "waiting")).unwrap();
+        fs::write(d.join("12.json"), record(12, "c", "dead", "idle")).unwrap();
+        fs::write(d.join("13.json"), r#"{"pid":13,"sess"#).unwrap();
+        fs::write(d.join("10.key"), "not a record").unwrap();
+        let out = scan(&d, |pid| pid != 12, |id| (id == "a").then(|| r#"{"type":"user","message":{"content":"hello"}}"#.to_string()));
+        let names: Vec<_> = out.sessions.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, ["terra-a", "terra-b"]);
+        assert_eq!(out.unreadable_pids, [13]);
+        let a = &out.sessions[0];
+        assert_eq!(a.dept, "Terra");
+        assert_eq!(a.waiting_for.as_deref(), Some("input needed"));
+        assert_eq!(a.since_ms, 11000);
+        assert_eq!(out.sessions[1].task, "“hello”");
+        assert_eq!(out.sessions[1].waiting_for, None, "waitingFor only kept while waiting");
+    }
+
+    #[test]
+    fn scan_of_missing_dir_is_empty() {
+        let out = scan(&std::env::temp_dir().join("adm-does-not-exist"), |_| true, |_| None);
+        assert!(out.sessions.is_empty() && out.unreadable_pids.is_empty());
+    }
+
+    #[test]
+    fn transcript_tail_found_in_any_project_and_cut_to_whole_lines() {
+        let d = temp_dir("projects");
+        fs::create_dir_all(d.join("C--git-Terra")).unwrap();
+        let line = r#"{"type":"user","message":{"content":"x"}}"#;
+        let big = std::iter::repeat(line).take(3000).collect::<Vec<_>>().join("\n");
+        fs::write(d.join("C--git-Terra").join("abc.jsonl"), &big).unwrap();
+        let tail = read_transcript_tail(&d, "abc").expect("found");
+        assert!(tail.len() <= 65536);
+        assert!(tail.lines().all(|l| l == line), "first partial line dropped");
+        assert!(read_transcript_tail(&d, "nope").is_none());
+    }
+
+    #[test]
+    fn merge_keeps_previous_state_for_unreadable_file() {
+        let prev = vec![session("x", 13, "busy", 1)];
+        let merged = merge(&prev, Scan { sessions: vec![session("y", 10, "idle", 2)], unreadable_pids: vec![13, 99] });
+        let ids: Vec<_> = merged.iter().map(|s| s.id.as_str()).collect();
+        assert_eq!(ids, ["x", "y"]);
+    }
+
+    #[test]
+    fn tracker_fires_once_per_episode_and_again_on_a_new_one() {
+        let mut t = Tracker::default();
+        assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 100)]).len(), 1);
+        assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 100)]).len(), 0, "same episode");
+        assert_eq!(t.new_petitions(&[session("a", 1, "busy", 200)]).len(), 0);
+        assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 300)]).len(), 1, "new episode");
     }
 }
