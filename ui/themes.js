@@ -264,3 +264,10 @@ accent(NEON, {
   bands: { pink: [128, 1, 0], violet: [150, 0.8, -0.06], night: [140, 0.5, -0.02], cyan: [105, 0.9, 0.04] },
   text: { subtitle: 'Mainframe · Green-code terminal', motto: 'Follow the white rabbit' },
 });
+
+// Sunset Drive: synthwave. A purple dusk, magenta neon, the chrome and screens a sunset orange.
+accent(NEON, {
+  id: 'synth', name: 'Sunset Drive',
+  bands: { pink: [318, 1, 0.02], violet: [285, 1, 0.02], night: [272, 1.4, 0.01], cyan: [28, 1, 0.02] },
+  text: { subtitle: 'Outrun Strip · Midnight arcade', motto: 'Drive into the sunset' },
+});

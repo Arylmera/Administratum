@@ -68,9 +68,9 @@ assert.deepEqual(seen, ['test-blue', 'tier2']);
 off();
 delete THEMES['test-blue'];
 // The shipped themes are there (and so checked by the completeness loop above).
-assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'corpo', 'cyber', 'forge', 'matrix', 'night', 'orbital', 'rain', 'tier2', 'xenos']);
+assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'corpo', 'cyber', 'forge', 'matrix', 'night', 'orbital', 'rain', 'synth', 'tier2', 'xenos']);
 // Neon Grid's accents: its art, its colours rehued, but skin, the alarm and the sashes kept.
-for (const id of ['corpo', 'rain', 'matrix']) {
+for (const id of ['corpo', 'rain', 'matrix', 'synth']) {
   const a = resolve(THEMES[id]), n = resolve(THEMES.cyber);
   assert.equal(THEMES[id].artOf, 'cyber');
   assert.notEqual(a.px.t, n.px.t, `${id}: neon rehued`);
