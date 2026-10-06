@@ -278,7 +278,7 @@ accent(NEON, {
 // parchment. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
   id: 'tower', world: 'arcane', name: 'Arcane Tower',
-  art: [],
+  art: ['scribe', 'adept'], // ui/art/tower/: apprentices in pointed hats, wisp-owl familiars
   px: {
     k: '#0a0a12', e: '#12141f', n: '#0a0a12',
     r: '#3a2a6a', R: '#5a46a0', d: '#1e1438', t: '#c0c4d0', T: '#5a5e68', z: '#c0c4d0', j: '#8a8e98', // apprentice robe, silver stars

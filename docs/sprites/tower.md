@@ -11,36 +11,36 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="scribe-high-down"></a>`SCRIBE.high.down` | 16×17 | Archmage (opus), walking down, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.high.down.png" height="136"> |
-| <a id="scribe-high-up"></a>`SCRIBE.high.up` | 16×17 | Archmage (opus), walking up, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.high.up.png" height="136"> |
-| <a id="scribe-high-right"></a>`SCRIBE.high.right` | 16×17 | Archmage (opus), walking right, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.high.right.png" height="136"> |
-| <a id="scribe-high-left"></a>`SCRIBE.high.left` | 16×17 | Archmage (opus), walking left, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.high.left.png" height="136"> |
-| <a id="scribe-standard-down"></a>`SCRIBE.standard.down` | 16×17 | Wizard (sonnet), walking down, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.standard.down.png" height="136"> |
-| <a id="scribe-standard-up"></a>`SCRIBE.standard.up` | 16×17 | Wizard (sonnet), walking up, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.standard.up.png" height="136"> |
-| <a id="scribe-standard-right"></a>`SCRIBE.standard.right` | 16×17 | Wizard (sonnet), walking right, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.standard.right.png" height="136"> |
-| <a id="scribe-standard-left"></a>`SCRIBE.standard.left` | 16×17 | Wizard (sonnet), walking left, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.standard.left.png" height="136"> |
-| <a id="scribe-novice-down"></a>`SCRIBE.novice.down` | 16×17 | Apprentice (haiku), walking down, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.novice.down.png" height="136"> |
-| <a id="scribe-novice-up"></a>`SCRIBE.novice.up` | 16×17 | Apprentice (haiku), walking up, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.novice.up.png" height="136"> |
-| <a id="scribe-novice-right"></a>`SCRIBE.novice.right` | 16×17 | Apprentice (haiku), walking right, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.novice.right.png" height="136"> |
-| <a id="scribe-novice-left"></a>`SCRIBE.novice.left` | 16×17 | Apprentice (haiku), walking left, 3 frames. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.novice.left.png" height="136"> |
-| <a id="scribe-sashes"></a>`SCRIBE.sashes` | 16×17 | Department colours (theme sash), one per project. Source: `ui/art/scribe.png` | <img src="tower/SCRIBE.sashes.png" height="136"> |
+| <a id="scribe-high-down"></a>`SCRIBE.high.down` | 16×17 | Archmage (opus), walking down, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.high.down.png" height="136"> |
+| <a id="scribe-high-up"></a>`SCRIBE.high.up` | 16×17 | Archmage (opus), walking up, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.high.up.png" height="136"> |
+| <a id="scribe-high-right"></a>`SCRIBE.high.right` | 16×17 | Archmage (opus), walking right, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.high.right.png" height="136"> |
+| <a id="scribe-high-left"></a>`SCRIBE.high.left` | 16×17 | Archmage (opus), walking left, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.high.left.png" height="136"> |
+| <a id="scribe-standard-down"></a>`SCRIBE.standard.down` | 16×17 | Wizard (sonnet), walking down, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.standard.down.png" height="136"> |
+| <a id="scribe-standard-up"></a>`SCRIBE.standard.up` | 16×17 | Wizard (sonnet), walking up, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.standard.up.png" height="136"> |
+| <a id="scribe-standard-right"></a>`SCRIBE.standard.right` | 16×17 | Wizard (sonnet), walking right, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.standard.right.png" height="136"> |
+| <a id="scribe-standard-left"></a>`SCRIBE.standard.left` | 16×17 | Wizard (sonnet), walking left, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.standard.left.png" height="136"> |
+| <a id="scribe-novice-down"></a>`SCRIBE.novice.down` | 16×17 | Apprentice (haiku), walking down, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.novice.down.png" height="136"> |
+| <a id="scribe-novice-up"></a>`SCRIBE.novice.up` | 16×17 | Apprentice (haiku), walking up, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.novice.up.png" height="136"> |
+| <a id="scribe-novice-right"></a>`SCRIBE.novice.right` | 16×17 | Apprentice (haiku), walking right, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.novice.right.png" height="136"> |
+| <a id="scribe-novice-left"></a>`SCRIBE.novice.left` | 16×17 | Apprentice (haiku), walking left, 3 frames. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.novice.left.png" height="136"> |
+| <a id="scribe-sashes"></a>`SCRIBE.sashes` | 16×17 | Department colours (theme sash), one per project. Source: `ui/art/tower/scribe.png` | <img src="tower/SCRIBE.sashes.png" height="136"> |
 
 ## Adept (one per subagent)
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="adept-high-down"></a>`ADEPT.high.down` | 12×14 | Archmage adept, walking down, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.high.down.png" height="112"> |
-| <a id="adept-high-up"></a>`ADEPT.high.up` | 12×14 | Archmage adept, walking up, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.high.up.png" height="112"> |
-| <a id="adept-high-right"></a>`ADEPT.high.right` | 12×14 | Archmage adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.high.right.png" height="112"> |
-| <a id="adept-high-left"></a>`ADEPT.high.left` | 12×14 | Archmage adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.high.left.png" height="112"> |
-| <a id="adept-standard-down"></a>`ADEPT.standard.down` | 12×14 | Wizard adept, walking down, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.standard.down.png" height="112"> |
-| <a id="adept-standard-up"></a>`ADEPT.standard.up` | 12×14 | Wizard adept, walking up, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.standard.up.png" height="112"> |
-| <a id="adept-standard-right"></a>`ADEPT.standard.right` | 12×14 | Wizard adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.standard.right.png" height="112"> |
-| <a id="adept-standard-left"></a>`ADEPT.standard.left` | 12×14 | Wizard adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.standard.left.png" height="112"> |
-| <a id="adept-novice-down"></a>`ADEPT.novice.down` | 12×14 | Apprentice adept, walking down, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.novice.down.png" height="112"> |
-| <a id="adept-novice-up"></a>`ADEPT.novice.up` | 12×14 | Apprentice adept, walking up, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.novice.up.png" height="112"> |
-| <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Apprentice adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.novice.right.png" height="112"> |
-| <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Apprentice adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="tower/ADEPT.novice.left.png" height="112"> |
+| <a id="adept-high-down"></a>`ADEPT.high.down` | 12×14 | Archmage adept, walking down, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.high.down.png" height="112"> |
+| <a id="adept-high-up"></a>`ADEPT.high.up` | 12×14 | Archmage adept, walking up, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.high.up.png" height="112"> |
+| <a id="adept-high-right"></a>`ADEPT.high.right` | 12×14 | Archmage adept, walking right, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.high.right.png" height="112"> |
+| <a id="adept-high-left"></a>`ADEPT.high.left` | 12×14 | Archmage adept, walking left, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.high.left.png" height="112"> |
+| <a id="adept-standard-down"></a>`ADEPT.standard.down` | 12×14 | Wizard adept, walking down, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.standard.down.png" height="112"> |
+| <a id="adept-standard-up"></a>`ADEPT.standard.up` | 12×14 | Wizard adept, walking up, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.standard.up.png" height="112"> |
+| <a id="adept-standard-right"></a>`ADEPT.standard.right` | 12×14 | Wizard adept, walking right, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.standard.right.png" height="112"> |
+| <a id="adept-standard-left"></a>`ADEPT.standard.left` | 12×14 | Wizard adept, walking left, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.standard.left.png" height="112"> |
+| <a id="adept-novice-down"></a>`ADEPT.novice.down` | 12×14 | Apprentice adept, walking down, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.down.png" height="112"> |
+| <a id="adept-novice-up"></a>`ADEPT.novice.up` | 12×14 | Apprentice adept, walking up, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.up.png" height="112"> |
+| <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Apprentice adept, walking right, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.right.png" height="112"> |
+| <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Apprentice adept, walking left, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.left.png" height="112"> |
 
 ## Magos (on the throne)
 
@@ -53,8 +53,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="tower/ARM.png" height="64"> |
-| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="tower/ARM_L.png" height="64"> |
+| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/tower/scribe.png`, drawn by actors.js | <img src="tower/ARM.png" height="64"> |
+| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/tower/scribe.png`, drawn by actors.js | <img src="tower/ARM_L.png" height="64"> |
 | <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tower/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/workstations.png` | <img src="tower/DESK.unlit.png" height="160"> |
 | <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tower/LECTERN.png" height="160"> |
