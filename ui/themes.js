@@ -278,7 +278,7 @@ accent(NEON, {
 // parchment. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
   id: 'tower', world: 'arcane', name: 'Arcane Tower',
-  art: ['scribe', 'adept', 'magos', 'sanctum'], // ui/art/tower/: apprentices in pointed hats, wisp-owl familiars, the Archmage on his carved high seat, spellbook lectern, sigil circle, rune seals
+  art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator'], // ui/art/tower/: apprentices in pointed hats, wisp-owl familiars, the Archmage on his carved high seat, spellbook lectern, sigil circle, rune seals, alchemist tables and slant-top desks with glowing grimoires, scrying crystals, the orrery wall
   px: {
     k: '#0a0a12', e: '#12141f', n: '#0a0a12',
     r: '#3a2a6a', R: '#5a46a0', d: '#1e1438', t: '#c0c4d0', T: '#5a5e68', z: '#c0c4d0', j: '#8a8e98', // apprentice robe, silver stars

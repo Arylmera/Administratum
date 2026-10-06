@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "COGITATOR": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 164,
+        "h": 100
+      }
+    }
+  },
+  "meta": {
+    "app": "tower theme art",
+    "image": "cogitator.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 164,
+      "h": 100
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

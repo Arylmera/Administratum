@@ -55,13 +55,13 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 |---|---|---|---|
 | <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/tower/scribe.png`, drawn by actors.js | <img src="tower/ARM.png" height="64"> |
 | <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/tower/scribe.png`, drawn by actors.js | <img src="tower/ARM_L.png" height="64"> |
-| <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tower/DESK.png" height="160"> |
-| <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/workstations.png` | <img src="tower/DESK.unlit.png" height="160"> |
-| <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tower/LECTERN.png" height="160"> |
-| <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/workstations.png` | <img src="tower/LECTERN.unlit.png" height="160"> |
-| <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tower/CONSOLE.png" height="80"> |
-| <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/workstations.png` | <img src="tower/CONSOLE.unlit.png" height="80"> |
-| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cogitator.png`, drawn by scene.js | <img src="tower/COGITATOR.png" height="160"> |
+| <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/tower/workstations.png`, drawn by scene.js | <img src="tower/DESK.png" height="160"> |
+| <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/tower/workstations.png` | <img src="tower/DESK.unlit.png" height="160"> |
+| <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/tower/workstations.png`, drawn by scene.js | <img src="tower/LECTERN.png" height="160"> |
+| <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/tower/workstations.png` | <img src="tower/LECTERN.unlit.png" height="160"> |
+| <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/tower/workstations.png`, drawn by scene.js | <img src="tower/CONSOLE.png" height="80"> |
+| <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/tower/workstations.png` | <img src="tower/CONSOLE.unlit.png" height="80"> |
+| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/tower/cogitator.png`, drawn by scene.js | <img src="tower/COGITATOR.png" height="160"> |
 | <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/THRONE.png" height="160"> |
 | <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/LORD_DESK.png" height="104"> |
 | <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/COG_MECH.png" height="144"> |
