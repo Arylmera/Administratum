@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { BASE, MAPS, SCRIBE, ADEPT, RES } from './sprites.js';
 import { TIER_II } from './theme.js';
 
-// Low-res [width, height] of every map, recorded from the up()-only file before the HD redraw.
+// [width, height] in logical px of every sprite (the art is RES times that). The drawing code places them by these
+// sizes, so a redraw in ui/art/ keeps them unless the code moves too (design note: depth C).
 const LOW = {
   ARM: [4, 8], ARM_L: [4, 8], SCROLL: [6, 7], QSCROLL: [6, 7], DESK: [32, 21], LECTERN: [22, 21], SHELF: [32, 21], SKULL: [10, 10],
   COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], THRONE: [20, 20], MAGOS: [24, 24], LORD_DESK: [44, 13], BRAZIER: [10, 13],

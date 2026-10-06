@@ -1,4 +1,4 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, MAPS, rankOf, blit } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, MAPS, rankOf, blit } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -188,7 +188,7 @@ const robeOf = (rank, sash) => {
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
   if (a.h) { // adept: 12x14, feet at (x, y)
-    const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
+    const fx = Math.round(a.x) - ADEPT_AT.feet.x, fy = Math.round(a.y) - ADEPT_AT.feet.y, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
     if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
     else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), over); // typing bob, 1 art px
     return;

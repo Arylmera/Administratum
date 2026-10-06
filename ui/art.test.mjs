@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, MAPS } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAPS, SHEET_OF } from './sprites.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -61,9 +61,18 @@ for (const { c, rgb } of key) {
   assert.ok(rgb.every((v, i) => Math.abs(v - base[i]) <= 4), `key '${c}' strays from Tier II`);
 }
 
-// The scribe sheet: the frames sprites.js expects, anchors inside sensible bounds.
-const scribe = await loadSheet('scribe');
-for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.deepEqual(scribe.frames[`${dir} ${i}`], SCRIBE[dir][i]);
-assert.deepEqual(scribe.frames.arm, MAPS.ARM);
+// The sheets: every family loads, no frame name is defined twice, characters have their walk frames and feet.
+const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./art/', import.meta.url)).filter(f => f.endsWith('.json'))
+  .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
+const owner = {};
+for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {
+  if (fam === 'scribe' || fam === 'adept') continue; // their frames are named per family
+  assert.ok(!owner[n], `frame ${n} in both ${owner[n]} and ${fam}`); owner[n] = fam;
+}
+for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);
+assert.deepEqual(Object.keys(owner).sort(), Object.keys(MAPS).filter(n => SHEET_OF[n] !== 'scribe').sort(), 'every prop frame is a MAPS sprite');
+for (const fam of ['scribe', 'adept']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
 assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 2 }, armL: { x: 0, y: 2 }, scroll: { x: 14, y: 8 } });
+assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 } });
+assert.deepEqual(SCRIBE.left[0], SCRIBE.right[0].map(r => [...r].reverse().join('')));
 console.log('art ok');

@@ -1,0 +1,31 @@
+{
+  "frames": {
+    "SCROLL": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 14
+      }
+    },
+    "QSCROLL": {
+      "frame": {
+        "x": 13,
+        "y": 0,
+        "w": 12,
+        "h": 14
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/map_to_art.mjs",
+    "image": "petitions.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 25,
+      "h": 14
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

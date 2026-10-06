@@ -1,7 +1,8 @@
-// Moves a sprite family from text maps (ui/sprites.js) to an art file: ui/art/<family>.png + .json, drawn in the
-// key palette ui/art/key.gpl. One-off per family; afterwards the PNG is the source (edit it in Aseprite, Piskel...).
-//   node tools/map_to_art.mjs scribe
-// Also writes key.gpl the first time. The key never changes after that: art files depend on its exact colours.
+// Lays out sprite families as art files: ui/art/<family>.png + .json, drawn in the key palette ui/art/key.gpl.
+// It converted the text maps once (2026-10-06); it now reads the sprites back from the art files, so re-running it
+// only repacks the sheets (to regroup families, or add one: list its frames below, then load it in sprites.js).
+//   node tools/map_to_art.mjs <family|all>
+// Writes key.gpl if missing. The key never changes after that: art files depend on its exact colours.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,22 +43,50 @@ for (const line of fs.readFileSync(keyFile, 'utf8').split('\n')) {
   if (m) key[m[4]] = [+m[1], +m[2], +m[3]];
 }
 
-// Families: frames to lay out (name -> text map) and anchor points (art px, from a body frame's top-left).
+// Families: frames to lay out (name -> text map), in rows, and anchor points (art px, from a frame's top-left).
+// Characters carry their anchors here; props keep theirs in scene.js for now (same-size redraws need none).
+const walkFrames = (set, frames) => { for (const dir of ['down', 'up', 'right']) set[dir].forEach((f, i) => { frames[`${dir} ${i}`] = f; }); };
+const WALK = [['down 0', 'down 1', 'down 2', 'up 0', 'up 1', 'up 2', 'right 0', 'right 1', 'right 2']];
+// Prop families, one sheet each, as the sprite discussion issues group them (docs/superpowers/specs/...-design.md).
+export const PROPS = {
+  workstations: ['DESK', 'LECTERN', 'CONSOLE'], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'MAGOS', 'LORD_DESK', 'COG_MECH', 'SEAL'],
+  gate: ['GATE', 'GATE_L', 'GATE_R'], refectorium: ['RECAFF', 'TABLE', 'BENCH'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER'],
+  clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL'],
+  fire: ['BRAZIER', 'CANDLES'],
+};
 const FAMILIES = {
   async scribe() {
     const { SCRIBE, MAPS } = await import('../ui/sprites.js');
-    const frames = {};
-    for (const dir of ['down', 'up', 'right']) SCRIBE[dir].forEach((f, i) => { frames[`${dir} ${i}`] = f; });
-    frames.arm = MAPS.ARM;
+    const frames = { arm: MAPS.ARM };
+    walkFrames(SCRIBE, frames);
     // feet: where the actor's position sits; arm / armL: the arms over the desk; scroll: the petition scroll in hand.
-    return { frames, rows: [['down 0', 'down 1', 'down 2', 'up 0', 'up 1', 'up 2', 'right 0', 'right 1', 'right 2'], ['arm']],
-      anchors: { feet: [16, 34], arm: [28, 4], armL: [0, 4], scroll: [28, 16] } };
+    return { frames, rows: [...WALK, ['arm']], anchors: { feet: [16, 34], arm: [28, 4], armL: [0, 4], scroll: [28, 16] } };
   },
+  async adept() {
+    const { ADEPT } = await import('../ui/sprites.js');
+    const frames = {};
+    walkFrames(ADEPT, frames);
+    return { frames, rows: WALK, anchors: { feet: [12, 28] } };
+  },
+  ...Object.fromEntries(Object.entries(PROPS).map(([fam, names]) => [fam, async () => {
+    const { MAPS } = await import('../ui/sprites.js');
+    return { frames: Object.fromEntries(names.map(n => [n, MAPS[n]])), rows: [names], anchors: {} };
+  }])),
 };
 
-const family = process.argv[2];
-if (!FAMILIES[family]) throw new Error(`usage: map_to_art.mjs <${Object.keys(FAMILIES).join('|')}>`);
-const { frames, rows, anchors } = await FAMILIES[family]();
+async function convert(family) {
+const { frames, rows: given, anchors } = await FAMILIES[family]();
+// wrap a row past 512 art px, so wide families stay workable in an editor
+const rows = given.flatMap(row => {
+  const out = [[]];
+  let w = 0;
+  for (const n of row) {
+    const fw = Math.max(...frames[n].map(r => r.length));
+    if (w && w + fw > 512) { out.push([]); w = 0; }
+    out.at(-1).push(n); w += fw + 1;
+  }
+  return out;
+});
 
 // Pack: one row of frames per rows[] entry, left to right, 1 px apart (keeps frames apart in an editor).
 const rect = {};
@@ -85,3 +114,8 @@ const json = { frames: Object.fromEntries(Object.entries(rect).map(([n, r]) => [
   meta: { app: 'tools/map_to_art.mjs', image: `${family}.png`, format: 'RGBA8888', size: { w: W, h: H }, palette: 'key.gpl', anchors } };
 fs.writeFileSync(path.join(artDir, `${family}.json`), JSON.stringify(json, null, 2) + '\n');
 console.log(`wrote ui/art/${family}.png (${W}x${H}) and ${family}.json: ${Object.keys(rect).length} frames`);
+}
+
+const arg = process.argv[2];
+if (arg !== 'all' && !FAMILIES[arg]) throw new Error(`usage: map_to_art.mjs <all|${Object.keys(FAMILIES).join('|')}>`);
+for (const f of arg === 'all' ? Object.keys(FAMILIES) : [arg]) await convert(f);
