@@ -178,7 +178,7 @@
   @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh { animation: none; } }
   /* Settings: the same scroll as the Chronicon; categories down the side, each one's settings grouped by type.
      Every colour and the title font come from the theme (T.ui), so the panel follows it. */
-  #prefs { position: absolute; z-index: 6; top: 0; left: 50%; transform: translateX(-50%); width: min(44em, calc(100% - 12px)); max-height: 100%;
+  #prefs { position: absolute; z-index: 6; top: 1em; left: 50%; transform: translateX(-50%); width: min(44em, calc(100% - 12px)); max-height: calc(100% - 2em);
     display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; font-size: calc(11px * var(--k, 1)); color: var(--paper-ink); }
   #prefs.open { grid-template-rows: auto 1fr auto; }
   #prefs[hidden] { display: none; }
@@ -187,7 +187,7 @@
   #prefs .top { flex: none; display: flex; align-items: center; padding: .5em .9em .3em; border-bottom: 2px solid var(--paper-line); }
   #prefs h2 { margin: 0; font: 400 1.7em/1 var(--display); color: var(--paper-accent); }
   #prefs .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: 2px; color: var(--paper-accent); font: inherit; cursor: pointer; }
-  #prefs form { flex: 1 1 auto; height: 26em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every category: no jump between them */
+  #prefs form { flex: 1 1 auto; height: 34em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every category: no jump between them */
   #prefs .cats { display: flex; flex-direction: column; padding: .4em 0; background: var(--paper-tab); border-right: 1px solid var(--paper-line); overflow-y: auto; scrollbar-width: thin; }
   #prefs .cats [data-cat] { display: flex; align-items: center; gap: .5em; min-height: 2.6em; padding: 0 .7em; background: none; border: none; border-left: 3px solid transparent; color: var(--paper-ink-3); font: inherit; font-size: 1.1em; text-align: left; cursor: pointer; }
   #prefs .cats [data-cat][aria-current="page"] { background: var(--paper); border-left-color: var(--paper-accent); color: var(--paper-accent); }
