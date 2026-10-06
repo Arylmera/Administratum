@@ -61,7 +61,7 @@ defineTheme({
 // replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).
 defineTheme({
   id: 'cyber', name: 'Neon Grid',
-  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the gate's neon box, the cogitator's faceplate
+  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the blast door, the terminal bank, the hacker crew and the netrunner boss, neon desk lamps, oil drums, datapads, holo-stickers
   px: {
     k: '#05040a', e: '#08060e', n: '#0a0812',
     r: '#1c1a2a', R: '#2e2c44', d: '#0e0c18', t: '#ff2e88', T: '#0e0c18', z: '#ff2e88', j: '#ffd0ea', // hoodie, neon trim
@@ -74,6 +74,7 @@ defineTheme({
     D: '#1e0e2a', E: '#10061a', N: '#160a24', S: '#121224',
     X: '#ff2e88', Y: '#ffa0d0', Z: '#a01858', i: '#5a0c32', '!': '#4a1a7a', '+': '#d88aff',
     '@': '#020206', $: '#1a0a2a', '%': '#3a1a5a', '*': '#3a0a1a', '-': '#1a040c', '=': '#5a1a2a',
+    '(': '#ff2e88', ')': '#ffa0d0', '[': '#7a0a3a', ']': '#2a2a44',
   },
   sash: ['#ff2e88', '#3af0ff', '#b4ff3a', '#ffd23a', '#b04aff', '#ff7a2e', '#2effc0', '#ff5aff'],
   rank: {
@@ -85,7 +86,7 @@ defineTheme({
   ink: {
     coolant: '#b04aff', screenHot: '#c8faff', screenDim: '#1aa0c0', screenMark: '#106078', screenFlicker: 'rgba(6,34,44,.55)', screenOff: '#0e4050',
     cant: 'rgba(255,46,136,.34)', grime: 'rgba(20,10,40,.4)', scratchSheen: 'rgba(150,200,255,.06)',
-    parchmentWarn: '#ffa0c8', scrollRod: '#4a4a66', scrollInk: '#2a2a44', wax: '#ff2e88', waxLit: '#ffa0d0', waxDark: '#7a0a3a',
+    parchmentWarn: '#ffa0c8',
     smoke: '#8a8aa8', sparkSmoke: '#9a9ab8', steam: '#a8a0d0', alarmGlow: '#ffc0d0', beaconSweep: '#ff7090', searchlight: '#ff2e88',
     windowDay: { u: '#2a4a8a', v: '#5a2a7a', g: '#ff2e88', x: '#3af0ff' }, windowNight: { u: '#0e0820', v: '#2a0a3a', g: '#ff2e88' },
     backdrop: '#0b0a16', backdropLit: '#16142a', backdropEdge: '#121022', backdropDark: '#050409', backdropSeam: '#08070f', backdropSeamLit: '#141228',

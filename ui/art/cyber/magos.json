@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "body": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "magos.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 48,
+      "h": 48
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

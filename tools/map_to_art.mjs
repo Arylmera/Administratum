@@ -52,8 +52,8 @@ const WALK = [['down 0', 'down 1', 'down 2', 'up 0', 'up 1', 'up 2', 'right 0', 
 export const PROPS = {
   workstations: ['DESK', 'LECTERN', 'CONSOLE'], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'LORD_DESK', 'COG_MECH', 'SEAL'],
   gate: ['GATE', 'GATE_L', 'GATE_R', 'GATE_VOID'], refectorium: ['RECAFF', 'TABLE', 'BENCH'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER'],
-  clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL'],
-  fire: ['BRAZIER', 'CANDLES'],
+  clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL', 'SCROLL_HELD'],
+  fire: ['BRAZIER', 'CANDLES'], commits: ['COMMIT_SEAL', 'COMMIT_TAG', 'COMMIT_STAMP'],
 };
 // Prop anchors, art px from the frame's top-left (rects [x, y, w, h], points [x, y]); first values, moved out of scene.js.
 // Once a sheet exists its JSON is the source: a repack keeps the anchors it finds there.

@@ -75,3 +75,8 @@ Columns: 8
  94  23  19	* beacon dark
  58  13  11	- beacon rim dark
 140  44  30	= beacon glint
+# seals and scrolls (added 2026-10-06)
+200  40  27	( commit seal wax
+255 138 106	) commit seal wax lit
+ 94  23  20	[ commit seal wax dark
+ 90  60  22	] scroll writing

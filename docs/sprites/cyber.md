@@ -54,20 +54,20 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 |---|---|---|---|
 | <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="cyber/ARM.png" height="64"> |
 | <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="cyber/ARM_L.png" height="64"> |
-| <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="cyber/DESK.png" height="160"> |
+| <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="cyber/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit | <img src="cyber/DESK.unlit.png" height="160"> |
-| <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/workstations.png`, drawn by scene.js | <img src="cyber/LECTERN.png" height="160"> |
+| <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="cyber/LECTERN.png" height="160"> |
 | <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit | <img src="cyber/LECTERN.unlit.png" height="160"> |
 | <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="cyber/CONSOLE.png" height="80"> |
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit | <img src="cyber/CONSOLE.unlit.png" height="80"> |
 | <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cyber/cogitator.png`, drawn by scene.js | <img src="cyber/COGITATOR.png" height="160"> |
-| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="cyber/THRONE.png" height="160"> |
+| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/THRONE.png" height="160"> |
 | <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="cyber/LORD_DESK.png" height="104"> |
 | <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/COG_MECH.png" height="144"> |
-| <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="cyber/SEAL.png" height="80"> |
+| <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/SEAL.png" height="80"> |
 | <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js | <img src="cyber/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js | <img src="cyber/GATE_R.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_R.png" height="160"> |
 | <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/gate.png`, drawn by scene.js | <img src="cyber/GATE_VOID.png" height="160"> |
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="cyber/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="cyber/TABLE.png" height="64"> |
@@ -87,10 +87,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/clutter.png`, drawn by scene.js | <img src="cyber/CRATE.png" height="96"> |
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/cyber/skull.png`, drawn by scene.js | <img src="cyber/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm | <img src="cyber/SKULL.alarm.png" height="80"> |
-| <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="cyber/QSCROLL.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/fire.png`, drawn by scene.js | <img src="cyber/BRAZIER.png" height="104"> |
-| <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/fire.png`, drawn by scene.js | <img src="cyber/CANDLES.png" height="72"> |
+| <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL_HELD.png" height="56"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/BRAZIER.png" height="104"> |
+| <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/CANDLES.png" height="72"> |
+| <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_SEAL.png" height="60"> |
+| <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_TAG.png" height="60"> |
+| <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_STAMP.png" height="48"> |
 
 ## Room tiles
 

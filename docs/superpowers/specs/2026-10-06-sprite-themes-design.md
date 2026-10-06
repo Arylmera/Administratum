@@ -216,14 +216,24 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
     - dark glass panels instead of parchment
   - Wording: Netrunner / Hacker / Script kiddie, requests, the server rack, the lounge, the Netlog, Bandwidth, and
     "Request from …" toasts.
-  - Its art (`ui/art/cyber/`) replaces only what was unmistakably 40k:
+  - Its art (`ui/art/cyber/`) replaces everything that read as 40k:
     - the skull banners → neon signs
     - the censers → neon lanterns
     - the gothic windows → a skyline window
     - the Cog Mechanicus → a hex-chip emblem
     - the servo-skull → a drone
-    - the gate's skull → a neon box
+    - the grand gate and its spires → a blast door with a neon sign and hazard shutters
     - the cogitator's skull → a faceplate
+    - the throne's skull → a headrest; the lord desk's purity seals → a holo-chip
+    - the desk and lectern candles → neon desk lamps; the candle clusters → neon tubes; the braziers → oil drums
+    - the petition scrolls → datapads, the raised scroll → a tablet
+    - the commit purity seals → holo-stickers, the wax stamp → a scanner
+  - The characters are redrawn too:
+    - scribes → hackers: visor, headphones, zipped jacket, crew logo on the back
+    - adepts → LED-studded drones with a visor
+    - the Magos → a netrunner boss with a visor and a cyan belt lantern
+  - The commit seals, the stamp and the raised scroll were code-drawn; they are now art (`ui/art/commits.png`,
+    `SCROLL_HELD` in `petitions.png`) so a theme can redraw them, at the same pixels for Tier II.
 - **Tests**:
   - a theme's art is only families it declares, at the default's sizes, with known anchors
   - switching swaps the art in and back
