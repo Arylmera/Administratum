@@ -1,0 +1,55 @@
+{
+  "frames": {
+    "wall top": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall": {
+      "frame": {
+        "x": 25,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall east top": {
+      "frame": {
+        "x": 50,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall east": {
+      "frame": {
+        "x": 75,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall sanctum top": {
+      "frame": {
+        "x": 100,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "room-walls.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 124,
+      "h": 20
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "floor": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "room-floor.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 8,
+      "h": 8
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

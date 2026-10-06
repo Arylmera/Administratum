@@ -101,17 +101,17 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.floor.png" height="96"> |
+| <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.floor.png" height="96"> |
 | <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.channel_h.png" height="16"> |
 | <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.channel_v.png" height="160"> |
 | <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.sanctum_passage.png" height="48"> |
 | <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.sill.png" height="16"> |
 | <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.sanctum_floor.png" height="160"> |
-| <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_top.png" height="80"> |
-| <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall.png" height="160"> |
-| <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_east_top.png" height="80"> |
-| <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_east.png" height="160"> |
-| <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_sanctum_top.png" height="80"> |
+| <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_top.png" height="80"> |
+| <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall.png" height="160"> |
+| <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_east_top.png" height="80"> |
+| <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_east.png" height="160"> |
+| <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_sanctum_top.png" height="80"> |
 | <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_sanctum.png" height="160"> |
 | <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_foot.png" height="48"> |
 | <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_dark.png" height="48"> |
