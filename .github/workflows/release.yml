@@ -1,0 +1,113 @@
+name: release
+
+# A release is a version bump in src-tauri/Cargo.toml pushed to main. The tag job creates v<version> when it is
+# new; tags pushed with GITHUB_TOKEN trigger no workflow, so build and release chain on its output.
+# workflow_dispatch re-runs a release against an existing tag.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build and attach to, e.g. v0.2.0"
+        required: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tag:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.t.outputs.tag }}
+      tagged: ${{ steps.t.outputs.tagged }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: t
+        run: |
+          ver=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          [ -n "$ver" ] || { echo "could not parse version" >&2; exit 1; }
+          tag="v$ver"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "tag $tag exists, nothing to release"
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Release $tag"
+          git push origin "$tag"
+          echo "tagged=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [tag]
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.tag.outputs.tagged == 'true')
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.tag || inputs.tag }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: tauri-cli
+      - name: Tauri build
+        working-directory: src-tauri
+        shell: bash
+        # createUpdaterArtifacts makes the bundler fail without the key: no unsigned release can ship.
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: cargo tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/release/bundle/nsis/*-setup.exe.sig
+          if-no-files-found: error
+
+  release:
+    needs: [tag, build]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.tag.outputs.tag || inputs.tag }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: latest.json (updater manifest)
+        # Fails if the installer or its signature is missing rather than publish a manifest that breaks updates.
+        run: |
+          set -euo pipefail
+          exe=$(find dist -name '*-setup.exe' | head -1)
+          [ -n "$exe" ] && [ -f "$exe.sig" ] || { echo "missing installer or .sig" >&2; find dist -type f >&2; exit 1; }
+          jq -n \
+            --arg version "${TAG#v}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg url "https://github.com/${{ github.repository }}/releases/download/$TAG/$(basename "$exe")" \
+            --arg sig "$(cat "$exe.sig")" \
+            '{version: $version, pub_date: $pub_date, platforms: {"windows-x86_64": {url: $url, signature: $sig}}}' \
+            > dist/latest.json
+          cat dist/latest.json
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          # A tag with "-" (v0.2.0-rc1) is a pre-release: releases/latest, hence the updater, skips it.
+          prerelease: ${{ contains(env.TAG, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/**/*-setup.exe
+            dist/**/*-setup.exe.sig
+            dist/latest.json

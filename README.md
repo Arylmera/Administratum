@@ -69,8 +69,7 @@ today), Chronicon, Settings, mute chime, hide to tray. To move the window, drag 
 
 ### Installer
 
-If a release has been published, download `Administratum_<version>_x64-setup.exe` from it. Otherwise build the
-installer yourself (see [Build the installer](#build-the-installer)). It is about 1.9 MB.
+Download Administratum_<version>_x64-setup.exe from the [latest release](https://github.com/Arylmera/Administratum/releases/latest). Windows SmartScreen may say "unknown publisher" (the installer is not code-signed): More info > Run anyway. Later versions install from Settings > System > Updates.
 
 Run the setup. On first launch the widget opens as a frameless, always-on-top 700 × 500 window with no taskbar
 button. It lives in the system tray. Its position and size are remembered between runs.
@@ -353,13 +352,25 @@ Each family links to its discussion issue, each sprite to a prefilled new Sprite
 
 ### Build the installer
 
-```sh
+```powershell
 cd src-tauri
-cargo tauri build
+$env:TAURI_SIGNING_PRIVATE_KEY = "$HOME\.tauri\administratum.key"; $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""; cargo tauri build
 ```
 
-The output is `src-tauri/target/release/bundle/nsis/Administratum_0.1.0_x64-setup.exe`. The release profile
+Bundles are signed for the updater: the key file must exist (see Releasing). The output is
+src-tauri/target/release/bundle/nsis/Administratum_<version>_x64-setup.exe and its .sig. The release profile
 uses LTO, `opt-level = "s"` and stripped symbols.
+
+### Releasing
+
+Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>`, builds the
+signed installer on Windows, and publishes a GitHub Release with `latest.json`, which installed copies read to
+offer the update. A version with a `-` (`0.3.0-rc1`) becomes a pre-release that the updater never offers. To
+rebuild an existing tag: Actions > release > Run workflow, with the tag.
+
+The updater key: private key in `~/.tauri/administratum.key` (back it up; losing it means installed copies can no
+longer update), its contents in the repository secret `TAURI_SIGNING_PRIVATE_KEY`, its public key in
+`tauri.conf.json`.
 
 ### Repository layout
 
