@@ -6,7 +6,7 @@
 // are read once and never written back: the view's own scale, lighting and chime stay in this browser.
 import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
-import { T, THEMES, setTheme } from './theme.js';
+import { T, THEMES, WORLDS, setTheme } from './theme.js';
 
 const mem = {};
 let saved = null;
@@ -83,7 +83,9 @@ export function initSettings(hooks) {
   const win = () => tauri()?.window?.getCurrentWindow();
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
-  field('theme').replaceChildren(...Object.values(THEMES).map(th => new Option(th.name, th.id))); // theme.js + themes.js
+  field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
+  const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
+  const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
   let login = null;
 
   const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
@@ -104,6 +106,9 @@ export function initSettings(hooks) {
     field('onTop').checked = settings.onTop;
     field('scale').value = view.scale;
     field('mode').value = hooks.mode();
+    const world = THEMES[T.id]?.world ?? 'w40k';
+    field('world').value = world;
+    field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
     field('theme').value = T.id;
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
@@ -188,7 +193,8 @@ export function initSettings(hooks) {
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
     else if (k === 'scale') { setScale(el.value); hooks.rescaled(); }
     else if (k === 'mode') hooks.setMode(el.value);
-    else if (k === 'theme') { store.set('adm.theme', el.value); setTheme(el.value); }
+    else if (k === 'world') pickTheme(styles(el.value)[0].id);
+    else if (k === 'theme') pickTheme(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
@@ -206,7 +212,7 @@ export function initSettings(hooks) {
     setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions();
     hooks.setMode('auto'); hooks.setMuted(false);
-    store.set('adm.theme', 'tier2'); setTheme('tier2');
+    pickTheme('tier2');
     sync();
   };
 

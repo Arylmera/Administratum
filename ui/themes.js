@@ -4,7 +4,7 @@ import { defineTheme } from './theme.js';
 
 // Molten industry: rust-dark plates, orange plasma in the floor channels, amber screens and cant.
 defineTheme({
-  id: 'forge', name: 'Forge World',
+  id: 'forge', world: 'w40k', name: 'Forge World',
   px: { 4: '#2e2622', 5: '#302824', 6: '#1a1410', 1: '#2c2622', 2: '#15110e', 3: '#4e3422', D: '#3a1a10', E: '#22100a', N: '#2a0e08',
     '!': '#8a3a12', '+': '#ffb05a', c: '#ffb347', C: '#3a2008', o: '#ffb347', O: '#fff2d8', X: '#d0702a', Y: '#ffa860', Z: '#8a3e14', i: '#5a240a' },
   ink: { coolant: '#ff8a2a', screenHot: '#ffe0a8', screenDim: '#c87a2a', screenMark: '#8a4a18', screenFlicker: 'rgba(58,32,8,.55)', screenOff: '#7a4a20',
@@ -16,7 +16,7 @@ defineTheme({
 
 // Cold and clinical: black-green robes, silver instead of brass, teal screens and coolant, cold candlelight.
 defineTheme({
-  id: 'xenos', name: 'Ordo Xenos',
+  id: 'xenos', world: 'w40k', name: 'Ordo Xenos',
   px: { r: '#1c2a24', R: '#2e4438', d: '#0e1612', t: '#2e4438', T: '#0e1612', z: '#1c2a24', j: '#1c2a24',
     g: '#9aa6a8', G: '#5a6466', h: '#d6e2e2', U: '#2a3233', w: '#2a2e30', W: '#181b1c', L: '#3c4244',
     4: '#1e2426', 5: '#202628', 6: '#101416', 1: '#1f2527', 2: '#0d1112', 3: '#2f3a3c', D: '#13261f', E: '#0a1612', N: '#0f2019', S: '#151a1c',
@@ -35,7 +35,7 @@ defineTheme({
 
 // The same hall, easy on the eyes: muted parchment and screens, softer glows.
 defineTheme({
-  id: 'night', name: 'Night Shift',
+  id: 'night', world: 'w40k', name: 'Night Shift',
   px: { p: '#a89c80', P: '#857652', b: '#a49a86', c: '#4fbf74', o: '#4fbf74', O: '#b8d8c0', f: '#c8883a', F: '#e0c890', '+': '#4f9a6a', h: '#c0944a' },
   ink: { coolant: '#2a7a4a', screenHot: '#8fcfa0', cant: 'rgba(124,255,158,.18)' },
   light: { amber: 'rgba(240,168,60,.16)', green: 'rgba(124,255,158,.09)', red: 'rgba(200,40,28,.14)', lampOn: 'rgba(124,255,158,.3)' },
@@ -46,7 +46,7 @@ defineTheme({
 // Accessibility: pure black outlines, a lighter floor, brighter robes, colour-blind-safe departments (Okabe-Ito), no
 // wall weathering, stronger glows, and a high-contrast frame.
 defineTheme({
-  id: 'contrast', name: 'High Contrast',
+  id: 'contrast', world: 'w40k', name: 'High Contrast',
   px: { k: '#000000', 1: '#3a3d42', 2: '#0a0b0c', 3: '#5a5e64', 4: '#34343a', 5: '#36363c', r: '#8a1c12', R: '#c23a24', d: '#4a0c08',
     p: '#f0e6c8', P: '#b8a878', c: '#9affb8', o: '#9affb8' },
   sash: ['#e69f00', '#56b4e9', '#009e73', '#f0e442', '#0072b2', '#d55e00', '#cc79a7', '#ffffff'],
@@ -60,7 +60,7 @@ defineTheme({
 // cyan, copper pipes to magenta neon tubes, coolant to violet floor light, parchment panels to dark glass. Its own art
 // replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).
 defineTheme({
-  id: 'cyber', name: 'Neon Grid',
+  id: 'cyber', world: 'cyber', name: 'Neon Grid',
   art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the blast door, the terminal bank, the hacker crew and the netrunner boss, neon desk lamps, oil drums, datapads, holo-stickers
   px: {
     k: '#05040a', e: '#08060e', n: '#0a0812',

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { BASE, TIER_II, THEMES, T, TEXT, resolve, defineTheme, setTheme, onTheme, themed, hexA, t } from './theme.js';
+import { BASE, TIER_II, THEMES, WORLDS, T, TEXT, resolve, defineTheme, setTheme, onTheme, themed, hexA, t } from './theme.js';
 import './themes.js';
 import { MAPS, SCRIBE, ADEPT } from './sprites.js';
 
@@ -69,6 +69,7 @@ off();
 delete THEMES['test-blue'];
 // The shipped themes are there (and so checked by the completeness loop above).
 assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'cyber', 'forge', 'night', 'tier2', 'xenos']);
+for (const th of Object.values(THEMES)) assert.ok(th.world in WORLDS, `${th.id}: world ${th.world} is not in WORLDS`);
 
 // Chrome colours: a theme's ui keys are CSS variables index.html declares.
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
