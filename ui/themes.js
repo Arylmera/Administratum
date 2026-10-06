@@ -219,6 +219,78 @@ defineTheme({
   },
 });
 
+// A wizards' tower, not 40k: night-blue stone, warm wood, gold trim, violet and teal arcane glow, candles,
+// parchment. Its own art (later tasks) replaces what only fits 40k.
+defineTheme({
+  id: 'tower', world: 'arcane', name: 'Arcane Tower',
+  art: [],
+  px: {
+    k: '#0a0a12', e: '#12141f', n: '#0a0a12',
+    r: '#3a2a6a', R: '#5a46a0', d: '#1e1438', t: '#c0c4d0', T: '#5a5e68', z: '#c0c4d0', j: '#8a8e98', // apprentice robe, silver stars
+    g: '#d8a83a', G: '#8a6418', h: '#ffd870', U: '#5a3a10', // gold trim
+    m: '#2a3048', M: '#1a1e30', l: '#3e4664', V: '#10121f',
+    p: '#e0d0a0', P: '#a89868', b: '#d8c8a0', B: '#8a7850', s: '#c8b888', ':': '#e8b890', ';': '#a06a50', q: '#c8b888', Q: '#6a5840', J: '#3ad8c8', I: '#eafcf8', // familiar's glow
+    w: '#6a4428', W: '#3e2614', L: '#8a5e38', u: '#2a3a6a', v: '#2a5a4a',
+    c: '#3ad8c8', C: '#0f3a34', o: '#3ad8c8', O: '#eafffa', f: '#ffb050', F: '#fff0b0', x: '#9a5aff', a: '#ff4a30',
+    1: '#3a3e58', 2: '#14151f', 3: '#565c7a', 4: '#30344a', 5: '#363a52', 6: '#181a28', 0: '#14151f', A: '#0e0f16',
+    D: '#2a1e4a', E: '#160f28', N: '#241536', S: '#2a2e44',
+    X: '#6a4428', Y: '#8a5e38', Z: '#4a2e18', i: '#2e1a0c', '!': '#5a3aa0', '+': '#9a5aff',
+    '@': '#0a0515', $: '#2a1050', '%': '#5a2a9a', '*': '#4a2a6a', '-': '#2a1a40', '=': '#c89aff', '&': '#9a5aff',
+    '(': '#9a5aff', ')': '#c8a0ff', '[': '#4a2a6a', ']': '#4a3018',
+  },
+  sash: ['#9a5aff', '#3ad8c8', '#d8a83a', '#ffb050', '#e0d0a0', '#ff5a5a', '#8ab8ff', '#7adca0'],
+  rank: {
+    high: { robe: { r: '#241848', R: '#3e2e78', d: '#120a28', z: '#ffd870', j: '#8a6418', t: '#ffd870', T: '#8a6418', g: '#ffd870', G: '#8a6418' },
+      adept: { x: '#ffd870', b: '#fff4d0', J: '#ffd870', I: '#fff4d0' } },
+    novice: { robe: { r: '#4a3424', R: '#6a4e38', d: '#2a1c12', z: '#4a3424', j: '#4a3424', t: '#6a4e38', T: '#2a1c12', g: '#2a1c12', G: '#2a1c12' },
+      adept: { x: '#6a5840', q: '#8a7858', Q: '#4a3828', b: '#9a8868', J: '#8a7858', I: '#8a7858' } },
+  },
+  ink: {
+    coolant: '#3ad8c8', screenHot: '#eafffa', screenDim: '#1a8a7a', screenMark: '#14645a', screenFlicker: 'rgba(10,40,36,.55)', screenOff: '#1a4a44',
+    cant: 'rgba(0,0,0,0)', grime: 'rgba(10,8,16,.3)', scratchSheen: 'rgba(255,240,220,.08)',
+    parchmentWarn: '#c89060',
+    smoke: '#c8c0b0', sparkSmoke: '#d0c8c0', steam: '#dcd4c8', alarmGlow: '#c89aff', beaconSweep: '#9a5aff', searchlight: '#3ad8c8',
+    // the arched window's glass: a sky and a gold sun by day; by night the indigo dark and a pale moon
+    windowDay: { u: '#4a7ab0', v: '#3a5a40', g: '#f0c86a', x: '#8a5e38' },
+    windowNight: { u: '#1a1a38', v: '#141428', g: '#d8d0e0' },
+    backdrop: '#141024', backdropLit: '#201a38', backdropEdge: '#1a1630', backdropDark: '#0a0814', backdropSeam: '#0e0a1c', backdropSeamLit: '#1e1836',
+    backdropRivet: '#3a2a6a', overflowPlaque: '#8a7aa0',
+  },
+  light: { amber: 'rgba(255,176,80,.24)', green: 'rgba(58,216,200,.18)', red: 'rgba(255,74,48,.22)', lampOn: 'rgba(58,216,200,.5)',
+    glint: 'rgba(154,90,255,.6)', spark: 'rgba(255,240,176,.8)', night: '6,4,12', beam: '200,170,255' },
+  ui: {
+    '--bg': '#0e0c1a', '--bar': '#181430', '--ink': '#e4d8b8', '--dim': '#8a7fa0', '--light': '#f0e8d0', '--edge': '#2e2650', '--btn': '#201a3a',
+    '--copper': '#d8a83a', '--outline': '#0a0a12', '--bone': '#e0d0a0', '--iron': '#3e4664', '--green': '#3ad8c8',
+    '--red': '#ff4a30', '--pink': '#ff9a80', '--blood': '#6a1c10', '--glow': '#9a5aff', '--wax': '#9a5aff', '--wax-deep': '#2a1a40',
+    '--alarm': '#ff3a20', '--flame': '#fff0b0', '--label': '#120f22', '--label-sel': '#241c40', '--label-btn': '#1c1632', '--plaque': '#141024',
+    '--yes': '#3ad8c8', '--yes-deep': '#0f3a34',
+    // warm parchment cards instead of white panels or dark glass
+    '--card': '#e0d0a0', '--paper': '#e8dcb0', '--paper-edge': '#b8a878', '--paper-hi': '#f4ecc8', '--paper-tab': '#d8c89c', '--paper-q': '#e4d6ac',
+    '--paper-shade': '#a89868', '--paper-line': '#8a7850', '--paper-ink': '#2a1e14', '--paper-ink-2': '#4a3828', '--paper-ink-3': '#6a5840',
+    '--paper-err': '#a03010', '--leather': '#3e2614', '--leather-deep': '#201206', '--chart-new': '#9a5aff', '--chart-cache': '#3ad8c8',
+    '--rod-hi': '#ffd870', '--rod': '#d8a83a', '--rod-lo': '#8a6418', '--rod-edge': '#4a3a10', '--rod-cap': '#fff4d0',
+    // blackletter type for titles, dark violet accent over the parchment
+    '--display': "'Pirata One', serif", '--paper-accent': '#5a3a9a',
+  },
+  text: {
+    subtitle: 'The Tower · Hall of Apprentices', motto: 'Knowledge is power',
+    rank: { high: 'Archmage', standard: 'Wizard', novice: 'Apprentice' },
+    status: { busy: 'Scribing spells', shell: 'At the scrying orb', idle: 'Turn done, awaiting input', waiting: 'Pleading to the Archmage',
+      background: 'Idle · familiar at work', napping: 'Idle · dozing by the fire' },
+    petitions: ['{n} plea', '{n} pleas'], petitioning: '{n} pleading', petitionLabel: '{name}, plea: {want}',
+    adeptOf: '{kind} · familiar of {owner}', overflow: '+{n} in the library', empty: 'No apprentices at work',
+    modes: { full: 'Daylight', candles: 'Candlelight' },
+    log: { title: 'Grimoire', open: 'Open the Grimoire', close: 'Close the Grimoire', silent: 'The Grimoire is blank: no record could be read for this day.' },
+    tithe: { hint: 'Mana spent today: tokens and time', day: 'Mana spent today: {tokens} tokens, {time} of study' },
+    event: { commit: 'Spell sealed', petition: 'Plea', 'petition-answered': 'Plea answered', compaction: 'Memory distilled' },
+    prefs: { chime: 'Plea chime', petitions: 'Pleas', questions: 'A question at the end of a turn counts as a plea',
+      stale: 'Plea goes stale after', nap: 'Idle to the fireside after', cog: 'Stay at the scrying orb for',
+      pauseHint: 'Near-zero CPU when unseen; pleas still alert.',
+      cat: { hall: 'Hall', petitions: 'Pleas', scribes: 'Apprentices', system: 'System', remote: 'Remote access' } },
+    toast: { petition: 'Plea from {name}', stale: 'Plea still waiting: {name}' },
+  },
+});
+
 // Accents of Neon Grid, as the Ordos are of Tier II: the same den, art and wording, its colours moved hue band by hue
 // band (bands: the pink neon, the violet coolant, the night blue of its walls, the cyan chrome and screens), each to
 // [hue, saturation x, lightness +]. The alarm red, skin, gold rank trim and the department sashes keep their colours.
