@@ -1,0 +1,63 @@
+{
+  "frames": {
+    "PAPER_STACK": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 24
+      }
+    },
+    "SCROLL_PILE": {
+      "frame": {
+        "x": 17,
+        "y": 0,
+        "w": 36,
+        "h": 14
+      }
+    },
+    "BOOKS": {
+      "frame": {
+        "x": 54,
+        "y": 0,
+        "w": 20,
+        "h": 18
+      }
+    },
+    "LOOSE_A": {
+      "frame": {
+        "x": 75,
+        "y": 0,
+        "w": 10,
+        "h": 8
+      }
+    },
+    "LOOSE_B": {
+      "frame": {
+        "x": 86,
+        "y": 0,
+        "w": 8,
+        "h": 10
+      }
+    },
+    "CRATE": {
+      "frame": {
+        "x": 95,
+        "y": 0,
+        "w": 28,
+        "h": 24
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital theme art",
+    "image": "clutter.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 123,
+      "h": 24
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

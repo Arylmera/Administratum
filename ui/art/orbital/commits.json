@@ -1,0 +1,39 @@
+{
+  "frames": {
+    "COMMIT_SEAL": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 15
+      }
+    },
+    "COMMIT_TAG": {
+      "frame": {
+        "x": 9,
+        "y": 0,
+        "w": 8,
+        "h": 15
+      }
+    },
+    "COMMIT_STAMP": {
+      "frame": {
+        "x": 18,
+        "y": 0,
+        "w": 8,
+        "h": 12
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital theme art",
+    "image": "commits.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 26,
+      "h": 15
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

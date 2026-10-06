@@ -1,0 +1,39 @@
+{
+  "frames": {
+    "RECAFF": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 36
+      }
+    },
+    "TABLE": {
+      "frame": {
+        "x": 33,
+        "y": 0,
+        "w": 92,
+        "h": 16
+      }
+    },
+    "BENCH": {
+      "frame": {
+        "x": 126,
+        "y": 0,
+        "w": 92,
+        "h": 8
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital theme art",
+    "image": "refectorium.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 218,
+      "h": 36
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
