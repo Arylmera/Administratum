@@ -213,11 +213,7 @@ export function drawActor(g, a) {
 
 // An unrolled scroll, 13x5 logical, rolled ends, writing and a red seal (art px = 0.5).
 function heldScroll(g, x, y) {
-  const r = (dx, dy, w, h, c) => { g.fillStyle = c; g.fillRect(x + dx, y + dy, w, h); }, I = T.ink;
-  r(-0.5, -0.5, 14, 6, I.outline); r(0.5, 0, 12, 5, I.parchment); r(0.5, 4, 12, 1, I.parchmentShade);
-  for (const dx of [0, 11.5]) { r(dx - 0.5, -1, 2, 7, I.outline); r(dx, -0.5, 1, 6, I.scrollRod); r(dx, -0.5, 0.5, 6, I.bone); }
-  for (const [dy, w] of [[1, 8], [2, 9], [3, 6]]) r(2, dy, w, 0.5, I.scrollInk);
-  r(9, 2.5, 2, 2, I.outline); r(9.5, 3, 1, 1, I.wax); r(9.5, 4, 0.5, 1.5, I.crimson);
+  blit(g, MAPS.SCROLL_HELD, x - 0.5, y - 1); // the rolled ends reach half a px left and a px above (x, y)
 }
 
 // "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.

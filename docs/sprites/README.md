@@ -89,8 +89,12 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm | <img src="tier2/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="tier2/SCROLL.png" height="56"> |
 | <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="tier2/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="tier2/SCROLL_HELD.png" height="56"> |
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/fire.png`, drawn by scene.js | <img src="tier2/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/fire.png`, drawn by scene.js | <img src="tier2/CANDLES.png" height="72"> |
+| <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/commits.png`, drawn by scene.js | <img src="tier2/COMMIT_SEAL.png" height="60"> |
+| <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/commits.png`, drawn by scene.js | <img src="tier2/COMMIT_TAG.png" height="60"> |
+| <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/commits.png`, drawn by scene.js | <img src="tier2/COMMIT_STAMP.png" height="48"> |
 
 ## Room tiles
 

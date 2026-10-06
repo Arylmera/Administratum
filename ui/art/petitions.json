@@ -15,6 +15,14 @@
         "w": 12,
         "h": 14
       }
+    },
+    "SCROLL_HELD": {
+      "frame": {
+        "x": 26,
+        "y": 0,
+        "w": 28,
+        "h": 14
+      }
     }
   },
   "meta": {
@@ -22,7 +30,7 @@
     "image": "petitions.png",
     "format": "RGBA8888",
     "size": {
-      "w": 25,
+      "w": 54,
       "h": 14
     },
     "palette": "key.gpl",

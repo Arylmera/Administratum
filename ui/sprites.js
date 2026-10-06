@@ -53,7 +53,7 @@ export function blit(g, map, x, y, over) {
 const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
-const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire'];
+const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits'];
 // The room's structure: tiles with fill rules (room.js).
 const ROOM_SHEETS = ['room-floor', 'room-walls', 'room-pipes', 'room-doors'];
 const FAMILIES = ['scribe', 'adept', 'magos', ...PROP_SHEETS, ...ROOM_SHEETS];

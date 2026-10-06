@@ -59,7 +59,8 @@ for (const r of ranks) for (const dir of ['down', 'up', 'right', 'left']) emit(`
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
   ARM: 'Scribe\'s right arm at the desk (raised with the scroll when a long turn finishes)', ARM_L: 'Scribe\'s left arm at the desk',
-  SCROLL: 'Sealed petition scroll, held while queued in the Sanctum', QSCROLL: 'Question scroll: the turn ended with a question',
+  SCROLL: 'Sealed petition scroll, held while queued in the Sanctum', SCROLL_HELD: 'The finished scroll a scribe raises when a long turn is done',
+  COMMIT_SEAL: 'Purity seal hung on the desk for each commit (up to 3)', COMMIT_TAG: 'The seal\'s strips before the wax lands', COMMIT_STAMP: 'The stamp that seals a commit', QSCROLL: 'Question scroll: the turn ended with a question',
   DESK: 'Scribe\'s desk: screen and candle lit while busy', LECTERN: 'Compact desk once the hall is full (6 a row)',
   SHELF: 'Bookshelf on the back wall', SKULL: 'Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition',
   COG_MECH: 'Cog Mechanicus above the throne', SEAL: 'Purity seals on the lord desk', CANDLES: 'Candle cluster',

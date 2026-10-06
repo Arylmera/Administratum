@@ -484,13 +484,7 @@ function reactions(a, at, AT, over, lights, now) {
 }
 // A purity seal (art px = 0.5): two parchment strips hanging below a red wax disc, (x, y) its top-left; wax 0 = strips only.
 function seal(g, x, y, wax) {
-  rect(g, x, y + 2, 2, 5, I.outline); rect(g, x + 1.5, y + 2, 2, 4, I.outline);
-  rect(g, x + 0.5, y + 2.5, 1, 4, I.parchment); rect(g, x + 2, y + 2.5, 1, 3, I.bone);
-  rect(g, x + 0.5, y + 4, 1, 0.5, I.parchmentShade); rect(g, x + 0.5, y + 5.5, 0.5, 0.5, I.parchmentShade); rect(g, x + 2, y + 4.5, 1, 0.5, I.parchmentShade);
-  if (!wax) return;
-  rect(g, x - 0.5, y, 4, 3, I.outline); rect(g, x, y - 0.5, 3, 4, I.outline);
-  rect(g, x, y + 0.5, 3, 2, I.wax); rect(g, x + 0.5, y, 2, 3, I.wax);
-  rect(g, x + 1, y + 1, 1, 1, I.crimson); rect(g, x + 0.5, y + 0.5, 0.5, 0.5, I.waxLit); rect(g, x + 2, y + 2, 0.5, 0.5, I.waxDark);
+  blit(g, wax ? MAPS.COMMIT_SEAL : MAPS.COMMIT_TAG, x - 0.5, y - 0.5); // the frames start half a px up-left of (x, y)
 }
 // The commit: a wax drop falls on a fresh sheet, the stamp comes down (STAMP_HIT), lifts away, the seal glints.
 function stamp(g, x, y, t, small) {
@@ -503,10 +497,7 @@ function stamp(g, x, y, t, small) {
   const down = t < STAMP_HIT ? Math.max(0, (t - 0.35) / (STAMP_HIT - 0.35)) : t < 1.2 ? 1 : Math.max(0, 1 - (t - 1.2) / 0.5);
   if (down > 0) {
     const sy = half(y - 12 + 8.5 * down * down) + (t >= STAMP_HIT && t < 1.05 ? 0.5 : 0), sx = x;
-    rect(g, sx - 0.5, sy - 0.5, 4, 6, I.outline); // knob, brass stem, iron foot
-    rect(g, sx + 0.5, sy, 2, 1.5, I.brass); rect(g, sx + 0.5, sy, 1.5, 0.5, I.brassLit);
-    rect(g, sx + 1, sy + 1.5, 1, 2, I.brassDark); rect(g, sx + 1, sy + 1.5, 0.5, 2, I.brass);
-    rect(g, sx, sy + 3.5, 3, 1.5, I.ironDark); rect(g, sx, sy + 3.5, 3, 0.5, I.ironLit);
+    blit(g, MAPS.COMMIT_STAMP, sx - 0.5, sy - 0.5); // knob, brass stem, iron foot
   }
   if (!small && t > 1.5) glint(g, x + 1.5, y + 1.5, (t - 1.5) / 1.5);
 }

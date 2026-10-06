@@ -34,6 +34,8 @@ export const BASE = {
   '!': '#2a8a50', '+': '#77d496', // coolant channel: edge, glowing core
   '@': '#060404', $: '#2a0a07', '%': '#4e110c', // the void beyond the gate: dark, ember, glow
   '&': '#c8281a', '*': '#5e1710', '-': '#3a0d09', '=': '#8c2c1c', // alarm beacon: lit dome, dark dome, dark rim, dull glint
+  // the commit seals' wax (and the stamp's wax drop), the held scroll's writing
+  '(': '#c8281a', ')': '#ff8a6a', '[': '#5e1710', ']': '#5a3c16',
 };
 // Slots blended from another (a plate's sheen, a seam's lit rivet): [base slot, [r, g, b, alpha] laid over it]. A theme
 // that changes the base and not the blend gets it recomputed.
@@ -59,10 +61,10 @@ const inkOf = px => ({
   lampDead: '#1c1d20',
   // shadows under props and furniture
   shadow: 'rgba(0,0,0,.4)', shadowDeep: 'rgba(0,0,0,.45)',
-  // paper, the red warning sheet, scrolls
-  parchmentWarn: '#d8a08a', scrollRod: '#b89a7c', scrollInk: '#5a3c16',
-  // wax seals, the compaction fire, smoke (rgb; alpha set where drawn)
-  wax: '#c8281a', waxLit: '#ff8a6a', waxDark: '#5e1710', ash: '#3a3430', flash: '#ffffff',
+  // paper, the red warning sheet
+  parchmentWarn: '#d8a08a',
+  // the stamp's wax drop, the compaction fire, smoke (rgb; alpha set where drawn)
+  wax: px['('], ash: '#3a3430', flash: '#ffffff',
   smoke: '#beb4a4', sparkSmoke: '#c4bcae', steam: '#d6cebe',
   // test lamp: [bulb, shine] per state (scene.js lampColor)
   lamp: { on: [px.c, px.O], off: [px.C, '#2a8a50'], red: [px.a, '#ffd0b0'], dim: [px.x, '#c8281a'], dark: ['#3a0d09', '#5e1710'] },

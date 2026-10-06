@@ -1,0 +1,31 @@
+{
+  "frames": {
+    "DESK": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 42
+      }
+    },
+    "LECTERN": {
+      "frame": {
+        "x": 65,
+        "y": 0,
+        "w": 44,
+        "h": 42
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "workstations.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 109,
+      "h": 42
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
