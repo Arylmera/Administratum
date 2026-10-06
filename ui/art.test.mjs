@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAPS, SHEET_OF } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, MAPS, SHEET_OF } from './sprites.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -66,7 +66,7 @@ const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./ar
   .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
 const owner = {};
 for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {
-  if (fam === 'scribe' || fam === 'adept') continue; // their frames are named per family
+  if (['scribe', 'adept', 'magos'].includes(fam)) continue; // characters: frames named per family
   assert.ok(!owner[n], `frame ${n} in both ${owner[n]} and ${fam}`); owner[n] = fam;
 }
 for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);
@@ -74,5 +74,7 @@ assert.deepEqual(Object.keys(owner).sort(), Object.keys(MAPS).filter(n => SHEET_
 for (const fam of ['scribe', 'adept']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
 assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 2 }, armL: { x: 0, y: 2 }, scroll: { x: 14, y: 8 } });
 assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 } });
+assert.deepEqual(MAGOS_AT, { arm: { x: 0, y: 0 }, chest: { x: 13, y: 15 }, eyeL: { x: 13, y: 9.5 }, eyeR: { x: 14.5, y: 9.5 } });
+assert.ok(sheets.magos.frames.body.every(r => r.startsWith('.'.repeat(10))), 'the Magos body leaves the arm columns to the arm frame');
 assert.deepEqual(SCRIBE.left[0], SCRIBE.right[0].map(r => [...r].reverse().join('')));
 console.log('art ok');

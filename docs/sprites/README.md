@@ -41,6 +41,13 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Novice adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.right.png" height="112"> |
 | <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Novice adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.left.png" height="112"> |
 
+## Magos (on the throne)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse. Source: `ui/art/magos.png` (body and arm frames) | <img src="tier2/MAGOS.png" height="160"> |
+| <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png` | <img src="tier2/MAGOS.arm.png" height="160"> |
+
 ## Props and furniture
 
 | Sprite | Logical size | Notes | Image |
@@ -55,7 +62,6 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit | <img src="tier2/CONSOLE.unlit.png" height="80"> |
 | <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cogitator.png`, drawn by scene.js | <img src="tier2/COGITATOR.png" height="160"> |
 | <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="tier2/THRONE.png" height="160"> |
-| <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: drill arm swings, chest screen scans. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="tier2/MAGOS.png" height="160"> |
 | <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="tier2/LORD_DESK.png" height="104"> |
 | <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="tier2/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="tier2/SEAL.png" height="80"> |

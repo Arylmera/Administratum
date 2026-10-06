@@ -49,7 +49,7 @@ const walkFrames = (set, frames) => { for (const dir of ['down', 'up', 'right'])
 const WALK = [['down 0', 'down 1', 'down 2', 'up 0', 'up 1', 'up 2', 'right 0', 'right 1', 'right 2']];
 // Prop families, one sheet each, as the sprite discussion issues group them (docs/superpowers/specs/...-design.md).
 export const PROPS = {
-  workstations: ['DESK', 'LECTERN', 'CONSOLE'], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'MAGOS', 'LORD_DESK', 'COG_MECH', 'SEAL'],
+  workstations: ['DESK', 'LECTERN', 'CONSOLE'], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'LORD_DESK', 'COG_MECH', 'SEAL'],
   gate: ['GATE', 'GATE_L', 'GATE_R'], refectorium: ['RECAFF', 'TABLE', 'BENCH'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER'],
   clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL'],
   fire: ['BRAZIER', 'CANDLES'],
@@ -61,6 +61,14 @@ const FAMILIES = {
     walkFrames(SCRIBE, frames);
     // feet: where the actor's position sits; arm / armL: the arms over the desk; scroll: the petition scroll in hand.
     return { frames, rows: [...WALK, ['arm']], anchors: { feet: [16, 34], arm: [28, 4], armL: [0, 4], scroll: [28, 16] } };
+  },
+  // The seated Magos: the body, and the drill forearm (art cols 0..9 of the old map) as its own frame so it can swing.
+  // arm: where the arm frame's top-left sits on the body frame; chest: the scanning screen line; eyeL / eyeR: optics.
+  async magos() {
+    const { MAPS, MAGOS } = await import('../ui/sprites.js');
+    const full = MAPS.MAGOS; // only while the old map still exists (the conversion)
+    const body = full ? full.map(r => '.'.repeat(10) + r.slice(10)) : MAGOS.body, arm = full ? full.map(r => r.slice(0, 10)) : MAGOS.arm;
+    return { frames: { body, arm }, rows: [['body', 'arm']], anchors: { arm: [0, 0], chest: [26, 30], eyeL: [26, 19], eyeR: [29, 19] } };
   },
   async adept() {
     const { ADEPT } = await import('../ui/sprites.js');

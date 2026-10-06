@@ -53,7 +53,7 @@ const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
 const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire'];
-const [scribe, adept, ...props] = await Promise.all(['scribe', 'adept', ...PROP_SHEETS].map(loadSheet));
+const [scribe, adept, magos, ...props] = await Promise.all(['scribe', 'adept', 'magos', ...PROP_SHEETS].map(loadSheet));
 const anchorsOf = sheet => Object.fromEntries(Object.entries(sheet.anchors).map(([k, [x, y]]) => [k, { x: x / RES, y: y / RES }]));
 const walk = (sheet, dir) => [0, 1, 2].map(i => sheet.frames[`${dir} ${i}`]);
 const walker = sheet => ({ up: walk(sheet, 'up'), down: walk(sheet, 'down'), right: walk(sheet, 'right'), left: walk(sheet, 'right').map(mirror) });
@@ -65,8 +65,12 @@ export const SCRIBE_AT = anchorsOf(scribe);
 // Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate.
 export const ADEPT = walker(adept);
 export const ADEPT_AT = anchorsOf(adept);
+// The Magos on the throne: body, and the drill forearm that swings (scene.js drawMagos). MAGOS_AT: where the arm,
+// the chest screen's scan line and the two optics sit on the body, logical px.
+export const MAGOS = { body: magos.frames.body, arm: magos.frames.arm };
+export const MAGOS_AT = anchorsOf(magos);
 
-// Every other sprite by name. The seated Magos: scene.js swings its art cols 0..9 (the drill forearm).
+// Every other sprite by name.
 export const MAPS = Object.assign({ ARM: scribe.frames.arm, ARM_L: mirror(scribe.frames.arm) }, ...props.map(p => p.frames));
 // Which art file each MAPS sprite comes from (the gallery, the tests).
 export const SHEET_OF = { ARM: 'scribe', ARM_L: 'scribe', ...Object.fromEntries(PROP_SHEETS.flatMap((f, i) => Object.keys(props[i].frames).map(n => [n, f]))) };

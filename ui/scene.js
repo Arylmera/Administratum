@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS, RES } from './sprites.js';
+import { blit, MAPS, MAGOS, MAGOS_AT, RES } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
@@ -669,14 +669,14 @@ function drawCogitator(g, t, cog) {
   }
 }
 
-// The Magos on the throne: the hanging drill forearm (art cols 0..9) swings 1 art px, chest screen scans, optics pulse.
+// The Magos on the throne: the hanging drill forearm swings 1 art px, chest screen scans, optics pulse (anchors: MAGOS_AT).
 const MAG = { x: 264, y: 120 };
 function drawMagos(g, t) {
-  const cv = sprite(MAPS.MAGOS), A = 10, h = cv.height / 2, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
-  g.drawImage(cv, A, 0, cv.width - A, cv.height, MAG.x + A / 2, MAG.y, (cv.width - A) / 2, h);
-  g.drawImage(cv, 0, 0, A, cv.height, MAG.x + sway, MAG.y, A / 2, h);
-  rect(g, MAG.x + 13, MAG.y + 15 + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
-  if (Math.sin(t * 2.2) > 0.4) { rect(g, MAG.x + 13, MAG.y + 9.5, 0.5, 0.5, I.glint); rect(g, MAG.x + 14.5, MAG.y + 9.5, 0.5, 0.5, I.glint); }
+  const A = MAGOS_AT, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
+  blit(g, MAGOS.body, MAG.x, MAG.y);
+  blit(g, MAGOS.arm, MAG.x + A.arm.x + sway, MAG.y + A.arm.y);
+  rect(g, MAG.x + A.chest.x, MAG.y + A.chest.y + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
+  if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, MAG.x + e.x, MAG.y + e.y, 0.5, 0.5, I.glint);
 }
 
 // The room's own lights, by what they move with (see PROPS), plus the floor's coolant crossings on every slot

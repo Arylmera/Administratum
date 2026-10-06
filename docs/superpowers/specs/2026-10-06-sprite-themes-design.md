@@ -56,14 +56,14 @@ Date: 2026-10-06. Status: phase 1 done, every sprite moved to art files, phases 
     screens, bobbing skulls), which covers about 92 % of each frame.
   - The harness also switched to an inverted-colour theme and back. Everything on the canvas recoloured, and the
     return trip matched the baseline.
-- `tools/sprite_sheet.mjs` renders every sprite and variant (64 images) to `docs/sprites/` with a gallery page.
+- `tools/sprite_sheet.mjs` renders every sprite and variant (65 images) to `docs/sprites/` with a gallery page.
 
 ## Art files (common practice)
 
 Text maps in code are typical of tiny projects and game jams. Most 2D pixel-art games keep sprites as image files
 drawn in an editor (Aseprite, Piskel), exported as a sprite sheet plus JSON (frame rects, anchors). Palette swaps are
 done by remapping an indexed palette at load time, and effects (sparks, smoke, flicker) stay in code. This project
-now follows that: `ui/sprites.js` went from 1,286 lines of text maps to 70 lines that load 12 sheets.
+now follows that: `ui/sprites.js` went from 1,286 lines of text maps to about 80 lines that load 13 sheets.
 
 - **Source**: `ui/art/<family>.png`, a sprite sheet, and `ui/art/<family>.json`, Aseprite-style json-hash with frame
   rects and `meta.anchors` (art px from a frame's top-left).
@@ -76,12 +76,16 @@ now follows that: `ui/sprites.js` went from 1,286 lines of text maps to 70 lines
   so the sprite cache and themes are unchanged. A pixel outside the key palette, or half transparent, fails loudly
   with the file and pixel.
 - **Anchors**: the characters' anchors moved from `actors.js` into their JSON: the scribe's feet, arms and
-  scroll (`SCRIBE_AT`), and the adept's feet (`ADEPT_AT`). Effects drawn in code (the held scroll, the Zs) keep their
+  scroll (`SCRIBE_AT`), the adept's feet (`ADEPT_AT`), and the Magos's drill-arm pivot, chest screen and optics
+  (`MAGOS_AT`). Effects drawn in code (the held scroll, the Zs) keep their
   offsets in code, and so do the props' anchors in `scene.js` (desk screen, lamp and seals, cogitator screens, gate
   opening...). Moving those is depth C, needed only for props redrawn at a new size.
 - **Sheets**, one per discussion family:
   - characters: `scribe` (12 walk frames and the arm), `adept` (walk frames); left frames and the left arm are
     mirrored at load
+  - `magos`: the Magos on the throne as two frames, the body and the drill forearm that swings. The code used to cut
+    the arm out of a single sprite at "art columns 0..9", so a redraw could not move it; now the arm is its own frame
+    with its own anchor
   - props: `workstations`, `cogitator`, `sanctum`, `gate`, `refectorium`, `walls`, `clutter`, `skull`, `petitions`,
     `fire`
 
@@ -160,7 +164,7 @@ Recommended: **one GitHub issue per sprite or sprite family, backed by the gener
   - *A shared web page with comments*: nice on a phone, but it lives outside the repo and isn't tied to commits.
   - *One big thread*: you can't follow a single sprite in it.
 
-Suggested starting set: 13 issues by family, not 64.
+Suggested starting set: 14 issues by family, not 65.
 
 | Issue | Sprites |
 |---|---|
@@ -168,7 +172,8 @@ Suggested starting set: 13 issues by family, not 64.
 | Adept | `ADEPT.*` |
 | Workstations | `DESK`, `LECTERN`, `CONSOLE` (lit/unlit) |
 | Cogitator bank | `COGITATOR` + its animated screens (procedural) |
-| Sanctum | `THRONE`, `MAGOS`, `LORD_DESK`, `COG_MECH`, `SEAL` |
+| Magos | `MAGOS` (body + drill arm) |
+| Sanctum | `THRONE`, `LORD_DESK`, `COG_MECH`, `SEAL` |
 | Grand gate | `GATE`, `GATE_L`, `GATE_R` + the void (procedural) |
 | Refectorium | `RECAFF`, `TABLE`, `BENCH` |
 | Walls | `WINDOW` (day/night), `BANNER`, `SHELF`, `GAUGE`, `CENSER` |

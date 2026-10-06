@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MAPS, SCRIBE, ADEPT, RES, RANK, rankOf, SHEET_OF } from '../ui/sprites.js';
+import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANK, rankOf, SHEET_OF } from '../ui/sprites.js';
 import { THEMES, resolve } from '../ui/theme.js';
 import { png, rgba } from './png_write.mjs';
 
@@ -61,7 +61,7 @@ const ABOUT = {
   DESK: 'Scribe\'s desk: screen and candle lit while busy', LECTERN: 'Compact desk once the hall is full (6 a row)',
   SHELF: 'Bookshelf on the back wall', SKULL: 'Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition',
   COG_MECH: 'Cog Mechanicus above the throne', SEAL: 'Purity seals on the lord desk', CANDLES: 'Candle cluster',
-  THRONE: 'The Magos\'s throne (Sanctum)', MAGOS: 'Seated Magos: drill arm swings, chest screen scans',
+  THRONE: 'The Magos\'s throne (Sanctum)',
   LORD_DESK: 'The Magos\'s desk, petitions queue before it', BRAZIER: 'Brazier at the gate and in the Sanctum; compaction burns here',
   RECAFF: 'Recaff dispenser (Refectorium), first stop of an idle scribe', CONSOLE: 'Adept console, one per subagent',
   COGITATOR: 'Cogitator bank on the back wall: where shell commands run', WINDOW: 'Window: day or night glass, casts a beam by day',
@@ -70,6 +70,13 @@ const ABOUT = {
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',
   GATE_R: 'Grand gate, right leaf (slides open)', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
 };
+// The Magos as seen (the arm over the body at its anchor), and the arm alone.
+{
+  const ax = MAGOS_AT.arm.x * RES, ay = MAGOS_AT.arm.y * RES;
+  const seated = MAGOS.body.map((row, j) => [...row].map((c, i) => { const a = MAGOS.arm[j - ay]?.[i - ax]; return a && a !== '.' ? a : c; }).join(''));
+  emit('MAGOS', 'Magos (on the throne)', [seated], {}, 'Seated Magos: the drill arm swings, the chest screen scans, the optics pulse. Source: `ui/art/magos.png` (body and arm frames)');
+  emit('MAGOS.arm', 'Magos (on the throne)', [MAGOS.arm], {}, 'The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png`');
+}
 const VARIANTS = { // extra renders of maps that are drawn with overrides
   WINDOW: [['day', theme.ink.windowDay], ['night', theme.ink.windowNight]],
   DESK: [['unlit', { f: null, F: null, c: theme.ink.screenOff }]],
