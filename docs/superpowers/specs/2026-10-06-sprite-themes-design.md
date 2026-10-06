@@ -232,10 +232,10 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
     - the petition scrolls → datapads, the raised scroll → a tablet
     - the commit purity seals → holo-stickers, the wax stamp → a scanner
   - The characters are drawn from scratch (not recoloured 40k shapes):
-    - scribes → hackers: spiky hair in the department colour (`y`), a visor in the rank colour (`t`: cyan
-      netrunner, magenta hacker, grey shades for the script kiddie), open jacket with neon piping, jeans and
-      sneakers; cyberware: a chrome arm, a chrome cheek plate, a glowing circuit tattoo and suit traces, spine
-      implants and a neural cable from the nape jack; at the desk, chrome forearms with glowing joints
+    - scribes → hooded runners (techwear): hood up with an LED trim and an LED zip in the rank colour (`t`: cyan
+      netrunner, magenta hacker, unlit grey for the script kiddie), the face in shadow with glowing eyes, a mask
+      and a harness strap in the department colour (`y`), a department badge on the back, cargo pants and boots;
+      at the desk, sleeves with neon cuffs and dark gloves (chosen over a street cyborg and a netrunner suit)
     - adepts → AI daemons: a cyan hologram over a projector puck, the rank in its ring light and chest core
       (gold, magenta, grey)
     - the Magos → the fixer: silver hair, chrome jaw, magenta optics, a trench coat with neon lining, a chest
