@@ -106,6 +106,10 @@ When a petition is a **permission prompt** (`approve ...`) in an **Orca** termin
 Use **✓ / ✗** on the queue label, or **Approve / Always / Deny** on the card. *Always* picks the prompt's first
 "Yes, ..." option (don't ask again / allow all edits). If the prompt has no such option, it returns an error.
 
+The petition toast itself carries **Approve** and **Deny** for the same prompts (permission, in Orca). A click runs
+the same check below. If the petition was already answered in the terminal, nothing is typed. *Always* stays on the
+card: on a toast it could be clicked without reading the prompt.
+
 What happens when you click:
 
 1. The backend runs `orca terminal read --terminal <handle> --screen --json` to read the terminal as currently

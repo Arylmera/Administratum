@@ -137,6 +137,45 @@ type Chron = Mutex<Chronicle>;
 /// The newest roster, for commands that act on a live session (open_folder, toast buttons).
 type Live = Mutex<Vec<Session>>;
 
+/// The app id toasts show under: the installed app's identifier; PowerShell's in a dev build (the identifier is only
+/// registered by the installer), as tauri-plugin-notification does.
+#[cfg(windows)]
+fn toast_app_id(app: &AppHandle) -> String {
+    let dev = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.ends_with(std::path::Path::new("target").join("debug")) || d.ends_with(std::path::Path::new("target").join("release")))).unwrap_or(false);
+    if dev { tauri_winrt_notification::Toast::POWERSHELL_APP_ID.to_string() } else { app.config().identifier.clone() }
+}
+
+/// A petition toast. A permission prompt in an Orca terminal gets Approve / Deny: a click answers through
+/// `answer_petition` (the same screen check as the card), only while that petition is still open (toast::still_open);
+/// a failure shows a plain "open the terminal" toast. Anything else, or a WinRT error: the plugin's plain toast.
+fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String) {
+    #[cfg(windows)]
+    if toast::has_buttons(s) {
+        // (a cfg on an `if` statement; if the compiler objects, wrap this `if` in a block: `#[cfg(windows)] { if ... }`)
+        let (handle, name) = (app.clone(), s.name.clone());
+        let shown = tauri_winrt_notification::Toast::new(&toast_app_id(app))
+            .title(&title)
+            .text1(&body)
+            .add_button("Approve", &toast::action_arg("yes", s.since_ms, &s.id))
+            .add_button("Deny", &toast::action_arg("no", s.since_ms, &s.id))
+            .on_activated(move |arg| {
+                let Some((choice, since, id)) = arg.as_deref().and_then(toast::parse_action) else { return Ok(()) };
+                let open = handle.state::<Live>().lock().ok().and_then(|r| toast::still_open(&r, id, since).map(str::to_string));
+                if let Some(orca) = open {
+                    if answer_petition(orca, choice.to_string()).is_err() {
+                        let _ = handle.notification().builder().title(toast::fill(&toast::get().failed, &name)).show();
+                    }
+                }
+                Ok(())
+            })
+            .show();
+        if shown.is_ok() {
+            return;
+        }
+    }
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
 fn now_ms() -> i64 {
     SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
 }
@@ -516,12 +555,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let quiet = quiet::active();
             for s in tracker.new_petitions(&roster) {
                 if !quiet {
-                    let _ = app
-                        .notification()
-                        .builder()
-                        .title(toast::fill(&words.petition, &s.name))
-                        .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
-                        .show();
+                    let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+                    petition_toast(&app, &s, toast::fill(&words.petition, &s.name), body);
                 }
                 emit(&app, "petition", &s);
             }
@@ -541,12 +576,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
             // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
             let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
             for s in tracker.stale_petitions(&roster, now_ms + shift) {
-                let _ = app
-                    .notification()
-                    .builder()
-                    .title(toast::fill(&words.stale, &s.name))
-                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
-                    .show();
+                let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+                petition_toast(&app, &s, toast::fill(&words.stale, &s.name), body);
                 emit(&app, "petition-stale", &s);
             }
             let mut limit_events = vec![];
