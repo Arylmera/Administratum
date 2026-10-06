@@ -63,7 +63,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/cyber/workstations.png` | <img src="cyber/CONSOLE.unlit.png" height="80"> |
 | <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cyber/cogitator.png`, drawn by scene.js | <img src="cyber/COGITATOR.png" height="160"> |
 | <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/THRONE.png" height="160"> |
-| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="cyber/LORD_DESK.png" height="104"> |
+| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/LORD_DESK.png" height="104"> |
 | <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/SEAL.png" height="80"> |
 | <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE.png" height="160"> |

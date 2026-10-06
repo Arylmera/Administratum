@@ -23,6 +23,14 @@
         "w": 12,
         "h": 20
       }
+    },
+    "LORD_DESK": {
+      "frame": {
+        "x": 0,
+        "y": 41,
+        "w": 88,
+        "h": 26
+      }
     }
   },
   "meta": {
@@ -31,7 +39,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 94,
-      "h": 40
+      "h": 67
     },
     "palette": "key.gpl",
     "anchors": {}

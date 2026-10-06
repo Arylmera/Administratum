@@ -233,12 +233,16 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
     - the commit purity seals → holo-stickers, the wax stamp → a scanner
   - The characters are drawn from scratch (not recoloured 40k shapes):
     - scribes → hackers: spiky hair in the department colour (`y`), a visor in the rank colour (`t`: cyan
-      netrunner, magenta hacker, grey shades for the script kiddie), open jacket with neon piping, a bolt on the
-      back, jeans and sneakers; the desk arms are sleeves with fingerless gloves
+      netrunner, magenta hacker, grey shades for the script kiddie), open jacket with neon piping, jeans and
+      sneakers; cyberware: a chrome arm, a chrome cheek plate, a glowing circuit tattoo and suit traces, spine
+      implants and a neural cable from the nape jack; at the desk, chrome forearms with glowing joints
     - adepts → AI daemons: a cyan hologram over a projector puck, the rank in its ring light and chest core
       (gold, magenta, grey)
     - the Magos → the fixer: silver hair, chrome jaw, magenta optics, a trench coat with neon lining, a chest
       implant screen; the swinging limb is a cyber-arm with a folded mantis blade
+    - the Magos's desk → a black slab with a holo-projector, credsticks and a drink, a neon corp eye in front (no skull)
+    - the cogitator → a mainframe wall: server racks with fans (the drums), exhaust stacks (the vents), cyan-framed
+      scopes and centre screen, patch cables, a status LED row and a jack-in deck
     - faces and hands use two palette slots added for them, skin `:` and skin shadow `;`
   - The commit seals, the stamp and the raised scroll were code-drawn; they are now art (`ui/art/commits.png`,
     `SCROLL_HELD` in `petitions.png`) so a theme can redraw them, at the same pixels for Tier II.
