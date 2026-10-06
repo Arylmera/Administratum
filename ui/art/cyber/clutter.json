@@ -1,0 +1,39 @@
+{
+  "frames": {
+    "PAPER_STACK": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 24
+      }
+    },
+    "SCROLL_PILE": {
+      "frame": {
+        "x": 17,
+        "y": 0,
+        "w": 36,
+        "h": 14
+      }
+    },
+    "BOOKS": {
+      "frame": {
+        "x": 54,
+        "y": 0,
+        "w": 20,
+        "h": 18
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "clutter.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 74,
+      "h": 24
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
