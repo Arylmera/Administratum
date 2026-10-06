@@ -55,3 +55,70 @@ defineTheme({
   ui: { '--bg': '#000000', '--bar': '#000000', '--ink': '#f0e6c8', '--dim': '#c0b090', '--edge': '#8a7a5c', '--red': '#ff3a20', '--pink': '#ffb0a0',
     '--green': '#9affb8', '--label': '#000000', '--paper-ink': '#000000', '--paper-ink-2': '#2a1a08', '--paper-ink-3': '#1a1006' },
 });
+
+// Not the 40k scriptorium: a neon netrunner den. Hooded robes read as hoodies, optics as visors; brass turns to chrome
+// cyan, copper pipes to magenta neon tubes, coolant to violet floor light, parchment panels to dark glass. Its own art
+// replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).
+defineTheme({
+  id: 'cyber', name: 'Neon Grid',
+  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the gate's neon box, the cogitator's faceplate
+  px: {
+    k: '#05040a', e: '#08060e', n: '#0a0812',
+    r: '#1c1a2a', R: '#2e2c44', d: '#0e0c18', t: '#ff2e88', T: '#0e0c18', z: '#ff2e88', j: '#ffd0ea', // hoodie, neon trim
+    g: '#2fb8d8', G: '#155a78', h: '#9af0ff', U: '#0a2a3a', // chrome cyan for brass
+    m: '#4a4a66', M: '#22223a', l: '#7a7aa0', V: '#0e0e1c',
+    p: '#d8dcec', P: '#9aa0bc', b: '#c8ccdc', B: '#8a8ea4', s: '#a0a4bc', q: '#b0b4c8', Q: '#6a6e88', J: '#3af0ff', I: '#3af0ff',
+    w: '#2a2440', W: '#16121f', L: '#3e3658', u: '#1a2a5a', v: '#1a3a3a',
+    c: '#3af0ff', C: '#06222c', o: '#ff2e88', O: '#ffd0ea', x: '#ff2e88', a: '#ff2040',
+    1: '#14141f', 2: '#07070c', 3: '#2a2a3e', 4: '#16142a', 5: '#181630', 6: '#0b0a18', 0: '#0a0814', A: '#08060f',
+    D: '#1e0e2a', E: '#10061a', N: '#160a24', S: '#121224',
+    X: '#ff2e88', Y: '#ffa0d0', Z: '#a01858', i: '#5a0c32', '!': '#4a1a7a', '+': '#d88aff',
+    '@': '#020206', $: '#1a0a2a', '%': '#3a1a5a', '*': '#3a0a1a', '-': '#1a040c', '=': '#5a1a2a',
+  },
+  sash: ['#ff2e88', '#3af0ff', '#b4ff3a', '#ffd23a', '#b04aff', '#ff7a2e', '#2effc0', '#ff5aff'],
+  rank: {
+    high: { robe: { r: '#1a1030', R: '#30205a', d: '#0c0618', z: '#3af0ff', j: '#e0fcff', t: '#3af0ff', T: '#155a78', g: '#3af0ff', G: '#155a78' },
+      adept: { x: '#3af0ff', b: '#e8ecff', J: '#3af0ff', I: '#155a78' } },
+    novice: { robe: { r: '#2a2a32', R: '#3e3e4a', d: '#16161c', z: '#6a6a7a', j: '#6a6a7a', t: '#3e3e4a', T: '#16161c', g: '#16161c', G: '#16161c' },
+      adept: { x: '#6a6a7a', q: '#8a8a98', Q: '#4a4a56', b: '#a0a0ac', J: '#8a8a98', I: '#8a8a98' } },
+  },
+  ink: {
+    coolant: '#b04aff', screenHot: '#c8faff', screenDim: '#1aa0c0', screenMark: '#106078', screenFlicker: 'rgba(6,34,44,.55)', screenOff: '#0e4050',
+    cant: 'rgba(255,46,136,.34)', grime: 'rgba(20,10,40,.4)', scratchSheen: 'rgba(150,200,255,.06)',
+    parchmentWarn: '#ffa0c8', scrollRod: '#4a4a66', scrollInk: '#2a2a44', wax: '#ff2e88', waxLit: '#ffa0d0', waxDark: '#7a0a3a',
+    smoke: '#8a8aa8', sparkSmoke: '#9a9ab8', steam: '#a8a0d0', alarmGlow: '#ffc0d0', beaconSweep: '#ff7090', searchlight: '#ff2e88',
+    windowDay: { u: '#2a4a8a', v: '#5a2a7a', g: '#ff2e88', x: '#3af0ff' }, windowNight: { u: '#0e0820', v: '#2a0a3a', g: '#ff2e88' },
+    backdrop: '#0b0a16', backdropLit: '#16142a', backdropEdge: '#121022', backdropDark: '#050409', backdropSeam: '#08070f', backdropSeamLit: '#141228',
+    backdropRivet: '#2a2848', overflowPlaque: '#7a7aa8',
+  },
+  light: { amber: 'rgba(255,46,136,.24)', green: 'rgba(58,240,255,.18)', red: 'rgba(255,32,64,.22)', lampOn: 'rgba(58,240,255,.5)',
+    glint: 'rgba(58,240,255,.6)', spark: 'rgba(200,250,255,.8)', night: '4,3,12', beam: '120,150,255' },
+  ui: {
+    '--bg': '#04030a', '--bar': '#0b0918', '--ink': '#c8d0ff', '--dim': '#6a70a0', '--light': '#e8ecff', '--edge': '#2a2448', '--btn': '#120f24',
+    '--copper': '#3af0ff', '--outline': '#05040a', '--bone': '#c8ccdc', '--iron': '#5a5a7a', '--green': '#3af0ff',
+    '--red': '#ff2e88', '--pink': '#ff8ac0', '--blood': '#3a0a2a', '--glow': '#ff2e88', '--wax': '#a0105a', '--wax-deep': '#2a0418',
+    '--alarm': '#ff2040', '--flame': '#ffe0f0', '--label': '#0e0818', '--label-sel': '#24103a', '--label-btn': '#160a24', '--plaque': '#0a0814',
+    '--yes': '#1a6a7a', '--yes-deep': '#06222c',
+    // dark glass instead of parchment
+    '--card': '#151330', '--paper': '#1a1840', '--paper-edge': '#100e28', '--paper-hi': '#24205a', '--paper-tab': '#1c1940', '--paper-q': '#2a2450',
+    '--paper-shade': '#5a5a8a', '--paper-line': '#3a3a7a', '--paper-ink': '#e0e4ff', '--paper-ink-2': '#9aa0d8', '--paper-ink-3': '#7a80c0',
+    '--paper-err': '#ff5a8a', '--leather': '#2a2458', '--leather-deep': '#120f2a', '--chart-new': '#ff2e88', '--chart-cache': '#3af0ff',
+    '--rod-hi': '#ff8ac0', '--rod': '#ff2e88', '--rod-lo': '#7a0a4a', '--rod-edge': '#1a0410', '--rod-cap': '#ffd0ea',
+  },
+  text: {
+    subtitle: 'Sector 7 · Netrunner Den', motto: 'Jack in, stay frosty',
+    rank: { high: 'Netrunner', standard: 'Hacker', novice: 'Script kiddie' },
+    status: { busy: 'Coding', shell: 'At the server rack', idle: 'Turn done, awaiting input', waiting: 'Request pinged',
+      background: 'Idle · daemon running', napping: 'Idle · crashed in the lounge' },
+    petitions: ['{n} request', '{n} requests'], petitioning: '{n} pinging', petitionLabel: '{name}, request: {want}',
+    adeptOf: '{kind} · daemon of {owner}', overflow: '+{n} in cold storage', empty: 'No runners jacked in',
+    modes: { full: 'Daylight', candles: 'Neon only' },
+    log: { title: 'Netlog', open: 'Open the Netlog', close: 'Close the Netlog', silent: 'The Netlog is empty: no record could be read for this day.' },
+    tithe: { hint: 'Bandwidth today: tokens and uptime', day: 'Bandwidth today: {tokens} tokens, {time} of uptime' },
+    event: { commit: 'Commit signed', petition: 'Request', 'petition-answered': 'Request answered', compaction: 'Cache flushed' },
+    prefs: { chime: 'Request ping', petitions: 'Requests', questions: 'A question at the end of a turn counts as a request',
+      stale: 'Request goes stale after', nap: 'Idle to the lounge after', cog: 'Stay at the server rack for',
+      pauseHint: 'Near-zero CPU when unseen; requests still alert.' },
+    toast: { petition: 'Request from {name}', stale: 'Request still waiting: {name}' },
+  },
+});

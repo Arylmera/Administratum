@@ -4,7 +4,8 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART } from './sprites.js';
+import { THEMES, setTheme } from './theme.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -62,7 +63,7 @@ for (const { c, rgb } of key) {
 }
 
 // The sheets: every family loads, no frame name is defined twice, characters have their walk frames and feet.
-const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./art/', import.meta.url)).filter(f => f.endsWith('.json'))
+const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./art/', import.meta.url)).filter(f => f.endsWith('.json')) // the default art (themes' art: below)
   .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
 const owner = {};
 for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {
@@ -102,4 +103,26 @@ for (const [n, t] of Object.entries(ROOM.tiles)) {
   if (t.top) assert.deepEqual([ROOM.frames[t.top].length, ROOM.frames[t.top][0].length], [f.length, f[0].length], `${n}: top tile size`);
 }
 for (const n of ['door sanctum open', 'door sanctum closed', 'door refectory open', 'door refectory closed']) assert.ok(ROOM.anchors[n]?.door, `${n}: door anchor`);
+// Themes' own art: only families a theme declares, each frame redrawn at the default's size, anchors known by name.
+const dirs = fs.readdirSync(new URL('./art/', import.meta.url), { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
+for (const id of dirs) assert.ok(THEMES[id]?.art?.length, `ui/art/${id}/ is no theme's art (theme.art)`);
+for (const [id, fams] of Object.entries(ART.themed)) for (const [fam, sh] of Object.entries(fams)) {
+  assert.ok(fs.existsSync(new URL(`./art/${id}/${fam}.png`, import.meta.url)), `${id}/${fam}.png`);
+  for (const [n, f] of Object.entries(sh.frames)) {
+    const d = ART.base[fam].frames[n];
+    assert.ok(d, `${id}/${fam}: '${n}' is not a frame of ${fam}`);
+    assert.deepEqual([f.length, f[0].length], [d.length, d[0].length], `${id}/${fam}: '${n}' must keep the default's size`);
+  }
+  for (const [n, a] of Object.entries(sh.anchors)) for (const k of Object.keys(a)) assert.ok(ART.base[fam].anchors[n]?.[k] !== undefined, `${id}/${fam}: anchor ${n}.${k} unknown`);
+}
+// Switching: a theme's frames come in, everything else stays the default, and back again.
+const plain = { banner: MAPS.BANNER, desk: MAPS.DESK };
+setTheme('cyber');
+assert.notDeepEqual(MAPS.BANNER, plain.banner, 'cyber brings its banner');
+assert.equal(MAPS.DESK, plain.desk, 'frames a theme does not redraw stay the default');
+assert.equal(SHEET_OF.BANNER, 'cyber/walls');
+assert.equal(SHEET_OF.DESK, 'workstations');
+setTheme('tier2');
+assert.equal(MAPS.BANNER, plain.banner);
+assert.equal(SHEET_OF.BANNER, 'walls');
 console.log('art ok');

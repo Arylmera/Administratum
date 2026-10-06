@@ -7,7 +7,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BASE } from '../ui/theme.js';
-import { png, rgba } from './png_write.mjs';
+import { rgba } from './png_write.mjs';
+import { writeSheet } from './sheet_writer.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const artDir = path.join(root, 'ui', 'art');
@@ -116,44 +117,8 @@ const FAMILIES = {
 
 async function convert(family) {
 const { frames, rows: given, anchors: first } = await FAMILIES[family](), anchors = existing(family) ?? first;
-// wrap a row past 512 art px, so wide families stay workable in an editor
-const rows = given.flatMap(row => {
-  const out = [[]];
-  let w = 0;
-  for (const n of row) {
-    const fw = Math.max(...frames[n].map(r => r.length));
-    if (w && w + fw > 512) { out.push([]); w = 0; }
-    out.at(-1).push(n); w += fw + 1;
-  }
-  return out;
-});
-
-// Pack: one row of frames per rows[] entry, left to right, 1 px apart (keeps frames apart in an editor).
-const rect = {};
-let y = 0, W = 0;
-for (const row of rows) {
-  let x = 0, h = 0;
-  for (const name of row) {
-    const f = frames[name], w = Math.max(...f.map(r => r.length));
-    rect[name] = { x, y, w, h: f.length };
-    x += w + 1; h = Math.max(h, f.length);
-  }
-  W = Math.max(W, x - 1); y += h + 1;
-}
-const H = y - 1, cells = new Array(W * H).fill(null);
-for (const [name, r] of Object.entries(rect)) frames[name].forEach((row, j) => {
-  for (let i = 0; i < row.length; i++) if (row[i] !== '.') {
-    if (!key[row[i]]) throw new Error(`${name}: char '${row[i]}' has no key colour`);
-    cells[(r.y + j) * W + r.x + i] = row[i];
-  }
-});
-const img = png(W, H, (x, yy) => { const c = cells[yy * W + x]; return c ? [...key[c], 255] : [0, 0, 0, 0]; });
-fs.writeFileSync(path.join(artDir, `${family}.png`), img);
-// Aseprite-style "json-hash" sheet data, plus meta.anchors (art px) for the drawing code.
-const json = { frames: Object.fromEntries(Object.entries(rect).map(([n, r]) => [n, { frame: r }])),
-  meta: { app: 'tools/map_to_art.mjs', image: `${family}.png`, format: 'RGBA8888', size: { w: W, h: H }, palette: 'key.gpl', anchors, ...(metaOf(family)?.tiles && { tiles: metaOf(family).tiles }) } };
-fs.writeFileSync(path.join(artDir, `${family}.json`), JSON.stringify(json, null, 2) + '\n');
-console.log(`wrote ui/art/${family}.png (${W}x${H}) and ${family}.json: ${Object.keys(rect).length} frames`);
+const { W, H } = writeSheet(family, frames, given, { app: 'tools/map_to_art.mjs', anchors, tiles: metaOf(family)?.tiles });
+console.log(`wrote ui/art/${family}.png (${W}x${H}) and ${family}.json: ${Object.keys(frames).length} frames`);
 }
 
 const arg = process.argv[2];

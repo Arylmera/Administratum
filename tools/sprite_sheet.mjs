@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF } from '../ui/sprites.js';
-import { THEMES, resolve } from '../ui/theme.js';
+import { THEMES, resolve, setTheme } from '../ui/theme.js';
 import '../ui/themes.js';
 import { png, rgba } from './png_write.mjs';
 
@@ -15,6 +15,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const themeId = arg('theme', 'tier2'), scale = Number(arg('scale', 4)), outRoot = path.resolve(root, arg('out', 'docs/sprites'));
 if (!THEMES[themeId]) throw new Error(`unknown theme ${themeId}: ${Object.keys(THEMES).join(', ')}`);
 const theme = resolve(THEMES[themeId]);
+setTheme(themeId); // the theme's own art (sprites.js), where it has some
 
 // Frames side by side, 2 art px apart, each scaled; a map char resolves through the theme's px and the overrides.
 function strip(frames, over = {}) {

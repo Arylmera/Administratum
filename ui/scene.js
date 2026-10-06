@@ -3,6 +3,8 @@ import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
+// Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
+let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { SCENE, hallOf } from './layout.js';
 import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 
@@ -258,15 +260,14 @@ function spinCog(g, cx, cy, t) {
 // Every desk/console has one deterministic sheet list (seeded by its id); fill only picks how many show.
 // x0, y0: the pile's origin on the surface; cx, cy: where fallen sheets spread from (the sprite's paper / pile anchors).
 const paperAt = (name, k) => ({ ...k, x0: PROP_AT[name].paper[0], y0: PROP_AT[name].paper[1], cx: PROP_AT[name].pile[0], cy: PROP_AT[name].pile[1] });
-const PAPER = {
+const papers = () => ({
   desk: paperAt('DESK', { cols: 6, rows: 3, dx: 4.8, dy: 2.6, layers: 4, floor: 56, r0: 14, reach: 30 }),
   lectern: paperAt('LECTERN', { cols: 4, rows: 3, dx: 4.4, dy: 2.6, layers: 4, floor: 40, r0: 11, reach: 22 }),
   console: paperAt('CONSOLE', { cols: 1, rows: 3, dx: 0, dy: 0.5, layers: 2, floor: 5, r0: 9, reach: 6 }),
-};
+});
 // Paper is cached: each pile's desk-top sheets, and its settled floor sheets, are rasterised once into a small canvas
 // (redrawn only when the sheet count, the red warning or the place changes) and blitted; fluttering sheets draw live.
 const piles = new Map(); // `${kind}:${id}` -> sheet lists and caches; dropped a minute after the pile was last drawn
-onTheme(() => { for (const p of piles.values()) { p.topKey = -1; p.fKey = []; } }); // redraw the cached sheets in the new colours
 let pruned = 0;
 function prunePiles(now, layout) {
   if (Math.abs(now - pruned) < 5000) return;
@@ -427,7 +428,6 @@ function puff(g, x, y, k) {
 // Chronicle reactions (actors.js Cast.chronicle). Offsets from the desk/console's top-left: the screen that sparks, the
 // test lamp on its frame, where the commit's purity seal goes (on a desk they stay: a.seals, max 3, hung on the front edge
 // clear of the seated scribe).
-const DESK_AT = { ...PROP_AT.DESK, scale: 1 }, LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }, CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 };
 const STAMP_HIT = 0.9; // s into a commit: the stamp comes down and the seal is set
 const newest = a => Math.max(0, (a.seals ?? 1) - 1);
 const stamping = a => a.fx?.some(f => f.kind === 'commit' && f.t < STAMP_HIT);
@@ -554,9 +554,9 @@ function glint(g, x, y, k) {
 // shadow: [dx, dy, w, h] under the furniture, dy also its depth-sort line; dim: its palette while unlit.
 const dimDesk = themed(t => ({ f: null, F: null, c: t.ink.screenOff })), dimConsole = themed(t => ({ c: t.ink.screenOff }));
 const KIND = {
-  desk: { map: 'DESK', at: DESK_AT, dim: dimDesk },
-  lectern: { map: 'LECTERN', at: LECTERN_AT, dim: dimDesk },
-  console: { map: 'CONSOLE', at: CONSOLE_AT, dim: dimConsole },
+  desk: { map: 'DESK', at: null, dim: dimDesk }, // at: the sprite's anchors (fromArt)
+  lectern: { map: 'LECTERN', at: null, dim: dimDesk },
+  console: { map: 'CONSOLE', at: null, dim: dimConsole },
 };
 const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 
@@ -718,7 +718,6 @@ const beaconOf = ({ ox, sd }) => ({ x: 226 + ox, y: 118 + sd });
 const perchOf = ({ ox, sd }) => ({ x: 297 + ox, y: 128 + sd }); // a resize moves it: the skull flies there
 const skull = { ...perchOf(hallOf(0)), last: 0 };
 const SKULL_SPEED = 60; // logical px per second
-const SK = PROP_AT.SKULL; // centre (its position), carry (a pushed sheet), beam (the searchlight)
 const skullRed = themed(t => ({ o: t.ink.alarm, O: t.ink.alarmGlow }));
 // Something of the scene is mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate.
 export const sceneBusy = () => gateOpen !== gateTo || !!skull.flying;
@@ -764,3 +763,14 @@ function drawBeacon(g, t, on, { x, y }) {
   }
   tile(g, 'beacon cage', fx, fy);
 }
+
+// The anchors above from the active art (a theme may redraw desks, the skull... with its own anchors). A change drops
+// the paper piles: their sheets were laid out on the old surfaces.
+function fromArt() {
+  DESK_AT = { ...PROP_AT.DESK, scale: 1 }; LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }; CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 };
+  KIND.desk.at = DESK_AT; KIND.lectern.at = LECTERN_AT; KIND.console.at = CONSOLE_AT;
+  SK = PROP_AT.SKULL; // centre (its position), carry (a pushed sheet), beam (the searchlight)
+  PAPER = papers();
+}
+fromArt();
+onTheme(() => { fromArt(); piles.clear(); });

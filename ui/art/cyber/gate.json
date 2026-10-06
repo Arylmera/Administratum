@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "GATE": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 60
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "gate.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 64,
+      "h": 60
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
