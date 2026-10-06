@@ -36,7 +36,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Green lamp on the desk (20 s) / blinking red lamp | Test run passed / failed (`cargo test`, `npm test`, `npm run test`, `pnpm test`, `yarn test`, `pytest`, `vitest`, `jest`, `go test`) |
 | Spark and smoke puff on the desk | A tool call returned an error |
 | Scribe raises its scroll, gold glint, soft chime | A turn that took 5 min or more finished |
-| Scribe stays at its desk under a `sealed · resets 14:00` tag | The session hit a subscription usage limit. One toast per wave: sessions sealed until the same hour share it. The tag goes at the reset hour or at the next prompt |
+| Scribe stays at its desk under a `sealed · resets 14:00` tag | The session hit a subscription usage limit. One toast per wave: sessions sealed until the same hour share it. The tag goes at the reset hour or at the next prompt. The wording follows the theme (*throttled* in the cyberpunk den, *grounded* on the orbital station) |
 | `✎5` by a working scribe's desk | Files the current turn has changed (Edit, Write, MultiEdit, NotebookEdit). The card lists them |
 
 Adepts play a smaller version of these reactions at their console.
@@ -54,7 +54,7 @@ low sun count as dusk. The *Auto* button's tooltip then shows today's sunrise an
 braziers, screens and coolant channels.
 
 **Header.** From left to right: lighting switch, petition counter, Tithe plaque (`⛁ tokens · working time`
-today), Chronicon, Settings, mute chime, hide to tray. To move the window, drag the header.
+today), Chronicon, Settings, a moon while quiet hours are on, mute chime, hide to tray. To move the window, drag the header.
 
 ---
 
@@ -206,6 +206,7 @@ configuration, and installs no hooks. It reads:
 | `.../<sessionId>/subagents/agent-*.jsonl` and `agent-*.meta.json` | Active subagents: type, task, model, context |
 | `ORCA_TERMINAL_HANDLE` in the environment of running `claude.exe` processes | Which Orca terminal a session lives in. Read once per process |
 | Process name and start time of each session's pid | Whether the session is still alive (guards against pid reuse) |
+| `.git/HEAD` in or above each session's working directory (following a worktree's `.git` file) | The branch shown under the department plaque. Read directly, git is never run |
 
 **What it writes, and where.** Everything goes under `%APPDATA%\com.arylmera.administratum\`:
 
@@ -219,18 +220,25 @@ configuration, and installs no hooks. It reads:
 Chronicon files older than 7 days are deleted at startup. Demo mode uses a separate `chronicon-demo\` folder,
 which is wiped at each start.
 
-**Nothing leaves the machine.** There is no telemetry, no update check and no network call. The only outbound
-action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That
-URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
+**Nothing about your sessions leaves the machine.** There is no telemetry. The only network call is the update
+check: it fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
+turned off) and when you click *Check now*. The only other outbound action is opening a `https://claude.ai/code/<id>`
+link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an
-Orca terminal after you click. The safeguards:
+Orca terminal after you click, in the widget or on a toast. The safeguards:
 
 - The terminal handle is validated (`term_` followed by hex digits and dashes).
 - Arguments go straight to the `orca` process, never through a shell.
 - The digit is typed only after the rendered screen has been checked as described [above](#answering-petitions).
 - Screen contents are never echoed, logged or sent.
 - Errors are fixed strings.
+- A toast's button only acts while the petition it was raised for is still open (same session, same episode).
+  Answered in the terminal already, or gone: nothing is typed.
+
+**Opening a department's folder.** A plaque click starts Explorer, VS Code or your custom command, and only for the
+working directory of a session currently in the hall. The folder is passed as one argument, never through a shell.
+The remote view cannot do it, and never receives the custom command.
 
 ---
 
