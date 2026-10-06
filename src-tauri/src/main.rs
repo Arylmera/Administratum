@@ -236,6 +236,31 @@ fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String
     settings::update(&settings_path(&app)?, |old| settings::merge_ui(&old, &values))
 }
 
+/// Settings > System > Updates: the installed version and the newer one on GitHub Releases, if any.
+#[derive(serde::Serialize)]
+struct UpdateInfo {
+    current: String,
+    available: Option<String>,
+}
+
+#[tauri::command]
+async fn check_update(app: AppHandle) -> Result<UpdateInfo, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
+    Ok(UpdateInfo { current: app.package_info().version.to_string(), available: update.map(|u| u.version) })
+}
+
+/// Download, verify (the plugin checks the signature against tauri.conf.json's pubkey), install, restart.
+/// On Windows the NSIS installer (passive) closes the app itself before the restart line.
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
+    let update = update.ok_or("already up to date")?;
+    update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
+    app.restart();
+}
+
 /// Emit to the webview, and mirror to the remote view's `/events` clients.
 fn emit<S: serde::Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
     remote::publish(event, &payload);
@@ -368,7 +393,8 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.

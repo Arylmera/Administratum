@@ -53,6 +53,8 @@
   .count.ask { border-color: var(--paper-shade); color: var(--light); } /* questions only: parchment, no glow */
   .count.alarm { background: var(--wax); border-color: var(--alarm); color: var(--flame); animation: alarm 1s steps(1) infinite; }
   .icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: var(--copper); cursor: pointer; padding: 0; }
+  #prefs-open.update { position: relative; }
+  #prefs-open.update::after { content: ''; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--paper-accent); }
   .icon:hover, #modes button:hover { filter: brightness(1.3); }
   #mute .off { display: none; } #mute.muted .on { display: none; } #mute.muted .off { display: block; }
   button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
@@ -373,6 +375,12 @@
           <fieldset data-host><legend>Choices</legend>
             <label class="wide"><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
             <p class="hint">Lower saves CPU when idle; flicker gets choppier.</p>
+          </fieldset>
+          <fieldset class="host-only" id="updates"><legend>Updates</legend>
+            <p class="up-line">Version …</p>
+            <label class="wide"><span>Check for updates at startup</span><input type="checkbox" name="updateCheck"></label>
+            <button type="button" class="clear up-check">Check now</button>
+            <button type="button" class="clear up-install" hidden>Install and restart</button>
           </fieldset>
         </section>
         <section data-cat="remote" hidden>

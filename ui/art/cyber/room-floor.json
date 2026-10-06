@@ -7,6 +7,46 @@
         "w": 8,
         "h": 8
       }
+    },
+    "channel h": {
+      "frame": {
+        "x": 9,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "channel v": {
+      "frame": {
+        "x": 18,
+        "y": 0,
+        "w": 4,
+        "h": 8
+      }
+    },
+    "sanctum passage": {
+      "frame": {
+        "x": 23,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "sill": {
+      "frame": {
+        "x": 28,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      }
+    },
+    "sanctum floor": {
+      "frame": {
+        "x": 53,
+        "y": 0,
+        "w": 40,
+        "h": 40
+      }
     }
   },
   "meta": {
@@ -14,8 +54,8 @@
     "image": "room-floor.png",
     "format": "RGBA8888",
     "size": {
-      "w": 8,
-      "h": 8
+      "w": 93,
+      "h": 40
     },
     "palette": "key.gpl",
     "anchors": {}

@@ -55,6 +55,70 @@
         "w": 20,
         "h": 8
       }
+    },
+    "wall foot": {
+      "frame": {
+        "x": 171,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "wall dark": {
+      "frame": {
+        "x": 176,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "wall base": {
+      "frame": {
+        "x": 181,
+        "y": 0,
+        "w": 4,
+        "h": 6
+      }
+    },
+    "sanctum base": {
+      "frame": {
+        "x": 186,
+        "y": 0,
+        "w": 4,
+        "h": 6
+      }
+    },
+    "pilaster": {
+      "frame": {
+        "x": 191,
+        "y": 0,
+        "w": 8,
+        "h": 39
+      }
+    },
+    "beacon off": {
+      "frame": {
+        "x": 200,
+        "y": 0,
+        "w": 14,
+        "h": 20
+      }
+    },
+    "beacon on": {
+      "frame": {
+        "x": 215,
+        "y": 0,
+        "w": 14,
+        "h": 20
+      }
+    },
+    "beacon cage": {
+      "frame": {
+        "x": 230,
+        "y": 0,
+        "w": 14,
+        "h": 20
+      }
     }
   },
   "meta": {
@@ -62,8 +126,8 @@
     "image": "room-walls.png",
     "format": "RGBA8888",
     "size": {
-      "w": 170,
-      "h": 20
+      "w": 244,
+      "h": 39
     },
     "palette": "key.gpl",
     "anchors": {}

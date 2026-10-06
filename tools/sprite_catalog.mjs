@@ -27,7 +27,7 @@ const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repe
 
 export function catalog() {
   const out = [], theme = T;
-  const srcOf = f => (ART.themed[theme.id]?.[f] ? `${theme.id}/${f}` : f);
+  const dir = ART.dirOf(theme.id), srcOf = f => (ART.themed[dir]?.[f] ? `${dir}/${f}` : f);
   const add = (id, group, src, cells, anim, note) => {
     const r0 = cells[0].rows;
     out.push({ id, group, family: src.split('/').pop(), src, cells, anim, note, size: `${Math.max(...r0.map(r => r.length)) / RES}×${r0.length / RES}` });

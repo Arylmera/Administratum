@@ -123,6 +123,7 @@ export function initSettings(hooks) {
     field('questionToast').disabled = !questions.on;
     field('login').checked = !!login;
     field('login').disabled = login === null;
+    field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
   };
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
@@ -184,6 +185,30 @@ export function initSettings(hooks) {
     rvCall('remote_regenerate_token');
   };
 
+  // Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
+  const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
+  const upCheck = up.querySelector('.up-check'), upInstall = up.querySelector('.up-install');
+  const showUpdate = st => {
+    upLine.textContent = st.available ? `Version ${st.current}. Version ${st.available} is available.` : `Version ${st.current}, up to date.`;
+    upInstall.hidden = !st.available;
+    opener.classList.toggle('update', !!st.available);
+  };
+  const checkUpdate = () => {
+    upCheck.disabled = true;
+    return invoke('check_update').then(showUpdate, err => { upLine.textContent = `Update check failed: ${err}`; })
+      .finally(() => { upCheck.disabled = false; });
+  };
+  upCheck.onclick = checkUpdate;
+  upInstall.onclick = () => {
+    upInstall.disabled = upCheck.disabled = true;
+    upLine.textContent = 'Downloading the update…';
+    invoke('install_update').catch(err => { upLine.textContent = `Update failed: ${err}`; upInstall.disabled = upCheck.disabled = false; });
+  };
+  if (!REMOTE) {
+    tauri()?.app?.getVersion().then(v => { upLine.textContent = `Version ${v}`; }).catch(() => {});
+    if (store.get('adm.updateCheck', '1') !== '0') checkUpdate();
+  }
+
   const setPlace = (lat, lon) => {
     Object.assign(place, { lat, lon });
     for (const k in RANGE) store.set(`adm.${k}`, Number.isNaN(place[k]) ? '' : String(place[k]));
@@ -204,6 +229,7 @@ export function initSettings(hooks) {
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
+    else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
     sync();
@@ -222,6 +248,7 @@ export function initSettings(hooks) {
     setPlace(NaN, NaN);
     setPerf(12, true);
     setQuestions(true, true);
+    store.set('adm.updateCheck', '1');
     setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions();
     hooks.setMode('auto'); hooks.setMuted(false);

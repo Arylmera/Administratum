@@ -69,8 +69,7 @@ today), Chronicon, Settings, mute chime, hide to tray. To move the window, drag 
 
 ### Installer
 
-If a release has been published, download `Administratum_<version>_x64-setup.exe` from it. Otherwise build the
-installer yourself (see [Build the installer](#build-the-installer)). It is about 1.9 MB.
+Download Administratum_<version>_x64-setup.exe from the [latest release](https://github.com/Arylmera/Administratum/releases/latest). Windows SmartScreen may say "unknown publisher" (the installer is not code-signed): More info > Run anyway. Later versions install from Settings > System > Updates.
 
 Run the setup. On first launch the widget opens as a frameless, always-on-top 700 × 500 window with no taskbar
 button. It lives in the system tray. Its position and size are remembered between runs.
@@ -147,7 +146,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Always on top | on | — | Keeps the window above others |
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
-| Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Orbital Station | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den and Orbital Station a space station, not 40k; the remote view keeps its own) |
+| Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den and Orbital Station a space station, not 40k; the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
 | Idle to the Refectorium after | 2 min | 1–120 | How long a scribe stays idle at its desk before it goes to nap |
@@ -333,7 +332,7 @@ Sprites and the room's tiles (floor, walls, pipes, doors) are art files in `ui/a
 drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus JSON frames, anchors and the tiles'
 fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
 active theme: `ui/theme.js` (Ordo Administratum) and `ui/themes.js` (Ordo Machinum, Ordo Xenos, Ordo Malleus, Ordo Hereticus,
-Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/`, and Orbital Station, a space station with its own art in
+Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/` and three accents of it (Corpo Tower, Rain City, Green Code, Sunset Drive: same art, recoloured), and Orbital Station, a space station with its own art in
 `ui/art/orbital/`), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
 the gallery used to discuss them one by one (a **Sprite** issue each).
 
@@ -346,20 +345,32 @@ python -m http.server 8123        # from the repo root
 ```
 
 Cells are named like a spreadsheet so a sprite in a theme is one short reference: the column is the theme
-(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station), the row is the sprite's number,
+(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code, K Sunset Drive), the row is the sprite's number,
 so `F52` is the Neon Grid shelf. `#F52` in the URL jumps to it; `node tools/sprite_sheet.mjs --list` prints the key.
 Each family links to its discussion issue, each sprite to a prefilled new Sprite issue. Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
 
 ### Build the installer
 
-```sh
+```powershell
 cd src-tauri
-cargo tauri build
+$env:TAURI_SIGNING_PRIVATE_KEY = "$HOME\.tauri\administratum.key"; $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""; cargo tauri build
 ```
 
-The output is `src-tauri/target/release/bundle/nsis/Administratum_0.1.0_x64-setup.exe`. The release profile
+Bundles are signed for the updater: the key file must exist (see Releasing). The output is
+src-tauri/target/release/bundle/nsis/Administratum_<version>_x64-setup.exe and its .sig. The release profile
 uses LTO, `opt-level = "s"` and stripped symbols.
+
+### Releasing
+
+Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>`, builds the
+signed installer on Windows, and publishes a GitHub Release with `latest.json`, which installed copies read to
+offer the update. A version with a `-` (`0.3.0-rc1`) becomes a pre-release that the updater never offers. To
+rebuild an existing tag: Actions > release > Run workflow, with the tag.
+
+The updater key: private key in `~/.tauri/administratum.key` (back it up; losing it means installed copies can no
+longer update), its contents in the repository secret `TAURI_SIGNING_PRIVATE_KEY`, its public key in
+`tauri.conf.json`.
 
 ### Repository layout
 
