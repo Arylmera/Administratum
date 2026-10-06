@@ -1,0 +1,39 @@
+{
+  "frames": {
+    "RECAFF": {
+      "frame": {
+        "x": 2,
+        "y": 0,
+        "w": 32,
+        "h": 36
+      }
+    },
+    "TABLE": {
+      "frame": {
+        "x": 35,
+        "y": 0,
+        "w": 92,
+        "h": 16
+      }
+    },
+    "BENCH": {
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "w": 92,
+        "h": 8
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "refectorium.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 220,
+      "h": 36
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

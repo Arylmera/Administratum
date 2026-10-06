@@ -81,7 +81,7 @@ defineTheme({
 // replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).
 defineTheme({
   id: 'cyber', world: 'cyber', name: 'Neon Grid',
-  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits', 'room-doors', 'clutter', 'room-floor', 'room-walls', 'room-pipes'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the shutter gate, the terminal bank, the hacker crew, the hologram daemons and the fixer, battlestations and a cyberdeck, oil drums, datapads, holo-stickers, sliding doors, a server rack and data-rod clutter, a neon-grid floor and panelled walls under neon tubes, neon tube runs on dark clips
+  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits', 'room-doors', 'clutter', 'room-floor', 'room-walls', 'room-pipes', 'refectorium'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the shutter gate, the terminal bank, the hacker crew, the hologram daemons and the fixer, battlestations and a cyberdeck, oil drums, datapads, holo-stickers, sliding doors, a server rack and data-rod clutter, a neon-grid floor and panelled walls under neon tubes, neon tube runs on dark clips
   px: {
     k: '#05040a', e: '#08060e', n: '#0a0812',
     r: '#1c1a2a', R: '#2e2c44', d: '#0e0c18', t: '#ff2e88', T: '#0e0c18', z: '#ff2e88', j: '#ffd0ea', // hoodie, neon trim

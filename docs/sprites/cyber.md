@@ -69,10 +69,10 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE.png" height="160"> |
 | <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_L.png" height="160"> |
 | <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/gate.png`, drawn by scene.js | <img src="cyber/GATE_VOID.png" height="160"> |
-| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="cyber/RECAFF.png" height="144"> |
-| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="cyber/TABLE.png" height="64"> |
-| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="cyber/BENCH.png" height="32"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_VOID.png" height="160"> |
+| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="cyber/RECAFF.png" height="144"> |
+| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="cyber/TABLE.png" height="64"> |
+| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="cyber/BENCH.png" height="32"> |
 | <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/cyber/walls.png`, drawn by scene.js, theme.js | <img src="cyber/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.night.png" height="136"> |
@@ -102,26 +102,26 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
 | <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.floor.png" height="96"> |
-| <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.channel_h.png" height="16"> |
-| <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.channel_v.png" height="160"> |
-| <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.sanctum_passage.png" height="48"> |
-| <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.sill.png" height="16"> |
-| <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/room-floor.png` | <img src="cyber/ROOM.sanctum_floor.png" height="160"> |
+| <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.channel_h.png" height="16"> |
+| <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.channel_v.png" height="160"> |
+| <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.sanctum_passage.png" height="48"> |
+| <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.sill.png" height="16"> |
+| <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/cyber/room-floor.png` | <img src="cyber/ROOM.sanctum_floor.png" height="160"> |
 | <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_top.png" height="80"> |
 | <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall.png" height="160"> |
 | <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_east_top.png" height="80"> |
 | <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_east.png" height="160"> |
 | <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_sanctum_top.png" height="80"> |
 | <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_sanctum.png" height="160"> |
-| <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_foot.png" height="48"> |
-| <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_dark.png" height="48"> |
-| <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_base.png" height="24"> |
-| <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.sanctum_base.png" height="24"> |
+| <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_foot.png" height="48"> |
+| <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_dark.png" height="48"> |
+| <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_base.png" height="24"> |
+| <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.sanctum_base.png" height="24"> |
 | <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.pillar.png" height="160"> |
-| <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.pilaster.png" height="156"> |
-| <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_off.png" height="80"> |
-| <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_on.png" height="80"> |
-| <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_cage.png" height="80"> |
+| <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.pilaster.png" height="156"> |
+| <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.beacon_off.png" height="80"> |
+| <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.beacon_on.png" height="80"> |
+| <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.beacon_cage.png" height="80"> |
 | <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.pipe_h.png" height="24"> |
 | <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.pipe_v.png" height="160"> |
 | <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.fitting_h.png" height="40"> |
