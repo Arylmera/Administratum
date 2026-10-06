@@ -273,6 +273,7 @@ function frame(now) {
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
+  syncTags(sheetTags, 'sheets', sheetText, 10, -2);
   syncHover();
   syncEdges();
 }
@@ -416,6 +417,7 @@ function renderCard() {
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
     renderAsks(card, null);
+    renderTurn(card, null);
     renderAnswer(card, null);
     renderLinks(card, owner);
     return;
@@ -432,6 +434,7 @@ function renderCard() {
   card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.limit ? s.limit.text : s.task;
   card.querySelector('.path').textContent = s.cwd;
   renderAsks(card, s);
+  renderTurn(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
 }
@@ -444,6 +447,37 @@ function renderAsks(card, s) {
   el.dataset.q = q;
   const b = document.createElement('b'); b.textContent = 'Asks: ';
   el.replaceChildren(b, q);
+}
+
+// The turn in progress (or the last one, frozen at its newest answer): length, tool calls, files changed (backend `turn`).
+const expanded = new Set(); // session ids whose file list is shown in full
+const span = ms => { const m = Math.floor(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}`; };
+const filesOf = tr => (tr ? tr.files.length + tr.moreFiles : 0);
+function renderTurn(card, s) {
+  const line = card.querySelector('.turn'), list = card.querySelector('.files'), tr = s?.turn;
+  line.hidden = !tr;
+  list.hidden = !filesOf(tr);
+  if (!tr) return;
+  const working = ['busy', 'shell', 'waiting'].includes(s.status), n = filesOf(tr);
+  const took = tr.startedMs ? `${span((working ? Date.now() : tr.lastMs ?? Date.now()) - tr.startedMs)} · ` : '';
+  line.textContent = `Turn · ${took}${tr.tools} tool${tr.tools === 1 ? '' : 's'} · ${n} file${n === 1 ? '' : 's'}`;
+  const all = expanded.has(s.id), shown = all ? tr.files : tr.files.slice(0, 8);
+  const key = `${s.id}|${all}|${tr.files.join('|')}|${tr.moreFiles}`;
+  if (list.dataset.key === key) return;
+  list.dataset.key = key;
+  list.replaceChildren(...shown.map(f => { const li = document.createElement('li'); li.textContent = f; return li; }));
+  const rest = n - shown.length;
+  if (rest > 0) {
+    const li = document.createElement('li');
+    if (all) li.textContent = `+${rest} more`;
+    else {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'more'; b.textContent = `+${rest} more`;
+      b.onclick = () => { expanded.add(s.id); renderCard(); };
+      li.appendChild(b);
+    }
+    list.appendChild(li);
+  }
 }
 
 // Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
@@ -623,6 +657,10 @@ function syncTags(tags, cls, textOf, dx, dy) {
 const sealTags = new Map();
 const sealText = a => (!a.h && !a.leaving && a.s.limit && !labels.has(a.id)
   ? (a.s.limit.resetMs ? t('limitLabel', { time: hhmm(new Date(a.s.limit.resetMs)) }) : t('limitSealed')) : '');
+
+// A working scribe's files changed this turn, by its desk.
+const sheetTags = new Map();
+const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.status === 'busy' || a.s.status === 'shell') && filesOf(a.s.turn) ? `✎${filesOf(a.s.turn)}` : '');
 
 // Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
 const tip = document.getElementById('tip');

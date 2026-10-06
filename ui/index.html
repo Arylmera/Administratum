@@ -83,6 +83,7 @@
   .lbl .ans button:hover { background: var(--blood); }
   .lbl.tag { pointer-events: none; cursor: default; }
   .lbl.sealed { border-width: 3px; border-style: double; }
+  .lbl.sheets { font-size: calc(8px * var(--k, 1)); border-color: var(--green); }
   .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: color-mix(in srgb, var(--outline) 85%, transparent); border: 1px solid var(--edge); border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
   .tip[hidden] { display: none; }
   /* Edge arrows: characters beyond the panned view (app.js syncEdges). */
@@ -101,6 +102,10 @@
   #card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(12px * var(--k, 1)); width: min(25em, 80%); padding: .67em 1em; background: var(--card); color: var(--paper-ink); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 4px 0 var(--outline); display: flex; flex-direction: column; gap: .25em; } /* em: scales with --k like the labels */
   #card[hidden], #card .asks[hidden] { display: none; }
   #card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: var(--blood); }
+  #card .turn { color: var(--paper-ink-2); }
+  #card .turn[hidden], #card .files[hidden] { display: none; }
+  #card .files { margin: 0; padding: 0 0 0 1em; font-family: ui-monospace, Consolas, monospace; font-size: .85em; max-height: 9em; overflow-y: auto; overflow-wrap: anywhere; }
+  #card .files .more { padding: 0; background: none; border: none; color: var(--paper-accent); font: inherit; cursor: pointer; text-decoration: underline; }
   #card .name { font-size: 1.17em; font-weight: 600; }
   #card .title { font-style: italic; margin-top: -.2em; }
   #card .title[hidden] { display: none; }
@@ -298,6 +303,8 @@
     <div class="meta"></div>
     <div class="ctx"></div>
     <div class="task"></div>
+    <div class="turn" hidden></div>
+    <ul class="files" hidden></ul>
     <div class="asks" hidden></div>
     <div class="path"></div>
     <div class="q" hidden></div>

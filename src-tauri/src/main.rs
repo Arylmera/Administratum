@@ -151,7 +151,6 @@ fn toast_app_id(app: &AppHandle) -> String {
 fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String) {
     #[cfg(windows)]
     if toast::has_buttons(s) {
-        // (a cfg on an `if` statement; if the compiler objects, wrap this `if` in a block: `#[cfg(windows)] { if ... }`)
         let (handle, name) = (app.clone(), s.name.clone());
         let shown = tauri_winrt_notification::Toast::new(&toast_app_id(app))
             .title(&title)
@@ -550,7 +549,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
         let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
+            let mut roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
             let words = toast::get();
             let quiet = quiet::active();
             for s in tracker.new_petitions(&roster) {
@@ -594,6 +593,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
                 }
             }
+            let mut turns = std::collections::HashMap::new();
             {
                 let now = now_ms;
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
@@ -610,7 +610,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     last_t = t;
                     ev
                 } else {
-                    c.read_transcripts(&roster, &poller.files, now)
+                    let ev = c.read_transcripts(&roster, &poller.files, now);
+                    turns = c.turns(&poller.files);
+                    ev
                 };
                 if !first {
                     events.extend(chronicle::lifecycle(&prev, &roster, now));
@@ -625,6 +627,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 }
                 c.maybe_flush(now);
                 first = false;
+            }
+            for s in roster.iter_mut() {
+                s.turn = turns.remove(&s.id);
             }
             *app.state::<Live>().lock().unwrap_or_else(|e| e.into_inner()) = roster.clone();
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.

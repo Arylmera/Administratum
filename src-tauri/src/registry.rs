@@ -86,6 +86,8 @@ pub struct Session {
     pub branch: Option<String>,
     /// Stopped on a subscription usage limit (newest assistant line `"error":"rate_limit"`, no prompt since).
     pub limit: Option<Limit>,
+    /// The current or last turn (chronicle.rs), filled by the poll loop.
+    pub turn: Option<TurnSummary>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -111,6 +113,19 @@ pub struct Context {
 pub struct Limit {
     pub reset_ms: Option<i64>,
     pub text: String,
+}
+
+/// A session's current (or last) turn, folded from its main transcript by the chronicle (`track_turn`): when its
+/// prompt came, the newest assistant line, how many tool calls, the files Edit / Write / MultiEdit / NotebookEdit
+/// changed (relative to the cwd when inside it; at most MAX_TURN_FILES, the rest counted in `more_files`).
+#[derive(Serialize, Clone, Debug, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TurnSummary {
+    pub started_ms: Option<i64>,
+    pub last_ms: Option<i64>,
+    pub tools: u32,
+    pub files: Vec<String>,
+    pub more_files: u32,
 }
 
 /// Current context size of the newest assistant transcript line that has a usage object:
@@ -709,6 +724,7 @@ pub fn scan(
             question,
             branch: None,
             limit,
+            turn: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));

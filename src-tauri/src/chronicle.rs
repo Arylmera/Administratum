@@ -1,6 +1,6 @@
 //! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code
 //! transcripts. Read-only on `~/.claude`; everything it writes lives in the app data dir.
-use crate::registry::{self, FileStat, Session};
+use crate::registry::{self, FileStat, Session, TurnSummary};
 use chrono::{Local, NaiveDate, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -147,6 +147,7 @@ struct Pending {
 pub struct Cursor {
     pending: HashMap<String, Pending>,
     msgs: HashMap<String, Tokens>,
+    turn: TurnSummary,
 }
 
 // ponytail: both maps are cleared when full; only orphaned tool_uses (interrupted turns) pile up.
@@ -255,6 +256,67 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
             }
             _ => {}
         }
+    }
+}
+
+pub const MAX_TURN_FILES: usize = 50;
+const EDIT_TOOLS: [&str; 4] = ["Edit", "Write", "MultiEdit", "NotebookEdit"];
+
+/// Whether `track_turn` can use `line`: a user line (a prompt starts a turn) or one with a tool call.
+pub fn turn_wanted(line: &str) -> bool {
+    line.contains("\"type\":\"user\"") || line.contains("tool_use")
+}
+
+/// Folds one main-transcript line into the session's turn: a real prompt (not tool results, not a meta or
+/// local-command line such as `/clear`) starts a new turn; each tool_use counts; an edit adds its file once.
+// ponytail: a line with tool calls is parsed again here (extract_line parsed it too); cheap next to the disk read.
+pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
+    let Ok(v) = serde_json::from_str::<Value>(line) else { return };
+    let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
+    let content = &v["message"]["content"];
+    match v["type"].as_str() {
+        Some("user") => {
+            let prompt = match content {
+                Value::String(t) => !t.contains("<command-name>") && !t.contains("<local-command"),
+                Value::Array(a) => !a.iter().any(|b| b["type"] == "tool_result"),
+                _ => false,
+            };
+            if prompt && v["isMeta"] != true {
+                *turn = TurnSummary { started_ms: ts, last_ms: ts, ..Default::default() };
+            }
+        }
+        Some("assistant") => {
+            turn.last_ms = ts.or(turn.last_ms);
+            for b in content.as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
+                turn.tools += 1;
+                if !b["name"].as_str().is_some_and(|n| EDIT_TOOLS.contains(&n)) {
+                    continue;
+                }
+                let Some(p) = b["input"]["file_path"].as_str().or(b["input"]["notebook_path"].as_str()) else { continue };
+                let p = relative(p, cwd);
+                // ponytail: past the cap a file edited twice counts twice in more_files; the card only says "+N more".
+                if turn.files.contains(&p) {
+                    continue;
+                }
+                if turn.files.len() < MAX_TURN_FILES {
+                    turn.files.push(p);
+                } else {
+                    turn.more_files += 1;
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// `p` relative to `cwd` with forward slashes when inside it (ASCII case and either slash ignored), else `p` as is.
+fn relative(p: &str, cwd: &str) -> String {
+    let norm = |s: &str| s.replace('/', "\\").to_ascii_lowercase();
+    let (np, nc) = (norm(p), norm(cwd.trim_end_matches(['\\', '/'])));
+    if np.len() > nc.len() + 1 && np.starts_with(&nc) && np.as_bytes()[nc.len()] == b'\\' {
+        p[nc.len() + 1..].replace('\\', "/")
+    } else {
+        p.to_string()
     }
 }
 
@@ -518,15 +580,22 @@ impl Chronicle {
                 let cursors = &mut self.cursors;
                 let mut found = Found::default();
                 let read = read_new(f, self.offsets.get(&key).copied(), today_start, |line, today_only| {
-                    if !wanted(line) {
+                    let events = wanted(line);
+                    let turn = !*sub && turn_wanted(line);
+                    if !events && !turn {
                         return;
                     }
                     if !cursors.contains_key(path) {
                         cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into()))));
                     }
                     let Some((cur, helper)) = cursors.get_mut(path) else { return };
-                    let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
-                    extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
+                    if turn {
+                        track_turn(&mut cur.turn, line, &s.cwd);
+                    }
+                    if events {
+                        let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
+                        extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
+                    }
                 });
                 let Some(offset) = read else { continue };
                 if self.offsets.insert(key, offset) != Some(offset) {
@@ -547,6 +616,19 @@ impl Chronicle {
         }
         self.cursors.retain(|p, _| seen.contains(p));
         events
+    }
+
+    /// Each live session's current turn (from its main transcript's cursor), by session id; none before a first prompt
+    /// or tool call has been read.
+    pub fn turns(&self, files: &HashMap<String, Vec<(FileStat, bool)>>) -> HashMap<String, TurnSummary> {
+        files
+            .iter()
+            .filter_map(|(id, fs)| {
+                let (f, _) = fs.iter().find(|(_, sub)| !sub)?;
+                let (cur, _) = self.cursors.get(&f.path)?;
+                (cur.turn.started_ms.is_some() || cur.turn.tools > 0).then(|| (id.clone(), cur.turn.clone()))
+            })
+            .collect()
     }
 
     /// The Tithe of `ts`'s day, rolling over (flushing the old one, dropping offsets of files
@@ -925,6 +1007,40 @@ mod tests {
         let j = serde_json::to_value(&e).unwrap();
         assert_eq!(j["sessionId"], "s");
         assert_eq!(j["helper"], "Explore");
+    }
+
+    #[test]
+    fn turn_summary() {
+        use crate::registry::TurnSummary;
+        let cwd = r"C:\git\Terra";
+        let lines = [
+            r#"{"type":"user","timestamp":"2026-10-06T10:00:00.000Z","message":{"content":"fix the plaque"}}"#,
+            r#"{"type":"assistant","timestamp":"2026-10-06T10:00:05.000Z","message":{"content":[{"type":"tool_use","id":"1","name":"Read","input":{"file_path":"C:\\git\\Terra\\ui\\app.js"}},{"type":"tool_use","id":"2","name":"Edit","input":{"file_path":"C:\\git\\Terra\\ui\\app.js"}}]}}"#,
+            r#"{"type":"user","timestamp":"2026-10-06T10:00:06.000Z","message":{"content":[{"type":"tool_result","tool_use_id":"2","content":"ok"}]}}"#,
+            r#"{"type":"assistant","timestamp":"2026-10-06T10:01:00.000Z","message":{"content":[{"type":"tool_use","id":"3","name":"Edit","input":{"file_path":"c:/git/terra/ui/app.js"}},{"type":"tool_use","id":"4","name":"Write","input":{"file_path":"D:\\other\\notes.md"}},{"type":"tool_use","id":"5","name":"NotebookEdit","input":{"notebook_path":"C:\\git\\Terra\\nb.ipynb"}}]}}"#,
+            r#"{"type":"user","timestamp":"2026-10-06T10:02:00.000Z","message":{"content":"<command-name>/clear</command-name>"}}"#,
+            r#"{"type":"user","timestamp":"2026-10-06T10:02:01.000Z","isMeta":true,"message":{"content":"caveat"}}"#,
+        ];
+        let mut t = TurnSummary::default();
+        for l in lines {
+            track_turn(&mut t, l, cwd);
+        }
+        assert_eq!(t.started_ms, registry::iso_utc_ms("2026-10-06T10:00:00.000Z"));
+        assert_eq!(t.last_ms, registry::iso_utc_ms("2026-10-06T10:01:00.000Z"));
+        assert_eq!(t.tools, 5);
+        assert_eq!(t.files, ["ui/app.js", r"D:\other\notes.md", "nb.ipynb"], "relative inside the cwd, once each, any slash or case");
+        assert_eq!(t.more_files, 0);
+
+        track_turn(&mut t, r#"{"type":"user","timestamp":"2026-10-06T11:00:00.000Z","message":{"content":[{"type":"text","text":"next"}]}}"#, cwd);
+        assert_eq!((t.tools, t.files.len(), t.started_ms), (0, 0, registry::iso_utc_ms("2026-10-06T11:00:00.000Z")), "a real prompt starts a new turn");
+
+        for i in 0..(MAX_TURN_FILES + 3) {
+            track_turn(&mut t, &format!(r#"{{"type":"assistant","message":{{"content":[{{"type":"tool_use","id":"w{i}","name":"Write","input":{{"file_path":"C:\\git\\Terra\\f{i}.txt"}}}}]}}}}"#), cwd);
+        }
+        assert_eq!((t.files.len(), t.more_files), (MAX_TURN_FILES, 3));
+
+        assert!(turn_wanted(lines[0]) && turn_wanted(lines[1]));
+        assert!(!turn_wanted(r#"{"type":"ai-title","aiTitle":"x"}"#));
     }
 
     #[test]

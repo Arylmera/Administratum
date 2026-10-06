@@ -37,6 +37,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Spark and smoke puff on the desk | A tool call returned an error |
 | Scribe raises its scroll, gold glint, soft chime | A turn that took 5 min or more finished |
 | Scribe stays at its desk under a `sealed · resets 14:00` tag | The session hit a subscription usage limit. One toast per wave: sessions sealed until the same hour share it. The tag goes at the reset hour or at the next prompt |
+| `✎5` by a working scribe's desk | Files the current turn has changed (Edit, Write, MultiEdit, NotebookEdit). The card lists them |
 
 Adepts play a smaller version of these reactions at their console.
 
@@ -87,7 +88,8 @@ To launch it at sign-in, turn on **Start at login** from the tray menu or from S
 - **Click** a scribe or adept to open its card. If the session runs in an Orca terminal, that terminal is also
   brought to the front. Click again, press **Escape**, or click elsewhere to close the card.
 - The card shows the scribe's name and department, state and time in state, context (`184k / 200k (92%)`),
-  model and rank, the last task line, and the project path. An adept's card shows its subagent type, its owner,
+  model and rank, the last task line, the turn (`Turn · 4 min · 23 tools · 5 files`, then the files it changed),
+  and the project path. An adept's card shows its subagent type, its owner,
   model, context and task.
 - **Open in Orca** switches Orca to the session's terminal. It is shown only for sessions started inside Orca,
   which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process.
