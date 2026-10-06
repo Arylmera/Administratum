@@ -133,20 +133,20 @@ defineTheme({
 // seen through the windows. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
   id: 'orbital', world: 'space', name: 'Orbital Station',
-  art: [], // ui/art/orbital/:
+  art: ['scribe', 'adept'], // ui/art/orbital/: the astronaut crew, floating helper bots
   px: {
     k: '#0c0e14', e: '#141822', n: '#0a0c12',
     r: '#2a4a8a', R: '#3a62b0', d: '#16284e', t: '#ff7a1a', T: '#16284e', z: '#ff7a1a', j: '#ffe0c0', // flight suit, orange trim
     g: '#2a5ab8', G: '#1a3a78', h: '#6a9ae0', U: '#102050', // blue accent for brass
     m: '#5a5e68', M: '#2e3038', l: '#a0a4ac', V: '#1a1c22',
-    p: '#d8dce2', P: '#a8aeb8', b: '#c8ccd4', B: '#9aa0aa', s: '#a8aeb8', ':': '#e0a888', ';': '#9a6450', q: '#c8ccd4', Q: '#8a8ea0', J: '#c8ccd4', I: '#c8ccd4',
+    p: '#d8dce2', P: '#a8aeb8', b: '#c8ccd4', B: '#9aa0aa', s: '#a8aeb8', ':': '#e0a888', ';': '#9a6450', q: '#c8ccd4', Q: '#8a8ea0', J: '#5ad8ff', I: '#eaffff', // the bot's eye light
     w: '#242836', W: '#121420', L: '#5a5e68', u: '#2a6ad8', v: '#3a8a4a',
     c: '#5ad8ff', C: '#08202c', o: '#5ad8ff', O: '#eaffff', f: '#fff0d0', F: '#ffffff', x: '#ff7a1a', a: '#ff3a20',
     1: '#a8aeb8', 2: '#3a3e46', 3: '#d8dce2', 4: '#d8dce2', 5: '#a8aeb8', 6: '#3a3e46', 0: '#141822', A: '#0c0e14',
     D: '#16284e', E: '#0c1830', N: '#0c1830', S: '#5a5e68',
     X: '#ff7a1a', Y: '#ffb380', Z: '#b85a10', i: '#6a3208', '!': '#1a6a8a', '+': '#5ad8ff',
     '@': '#050814', $: '#0a1428', '%': '#142850', '*': '#8a3a10', '-': '#4a1e08', '=': '#ffa860', '&': '#ff7a1a',
-    '(': '#ff7a1a', ')': '#ffb380', '[': '#8a3a10',
+    '(': '#ff7a1a', ')': '#ffb380', '[': '#8a3a10', ']': '#2e3a50',
   },
   sash: ['#ff7a1a', '#5ad8ff', '#2a5ab8', '#ffc83a', '#3a8a4a', '#ff5a5a', '#9ab8ff', '#d8dce2'],
   rank: {
