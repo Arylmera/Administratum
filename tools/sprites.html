@@ -1,0 +1,174 @@
+<!--
+  Sprite viewer: every sprite, every theme side by side, live from ui/art/ (no generation step), walk cycles animated.
+  Serve the repo root and open this page:
+    python -m http.server 8123      then   http://localhost:8123/tools/sprites.html
+  Edit an art file, press R (or Reload) to see it. Each family links to its GitHub discussion issue; each sprite
+  can open a new prefilled Sprite issue. The static gallery for issues is still tools/sprite_sheet.mjs.
+-->
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administratum — Sprites</title>
+<style>
+  :root { --bg: #121315; --panel: #1b1c1f; --edge: #2c2e33; --ink: #d8d4cc; --dim: #8a8780; --accent: #e0a64a; --z: 4px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--edge); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { border: 1px solid var(--edge); border-radius: 12px; padding: 2px 10px; cursor: pointer; color: var(--dim); background: none; font: inherit; }
+  .chip[aria-pressed="true"] { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+  input[type=search] { background: var(--bg); color: var(--ink); border: 1px solid var(--edge); border-radius: 4px; padding: 4px 8px; width: 14em; }
+  main { padding: 8px 16px 64px; }
+  section > h2 { font-size: 14px; margin: 28px 0 8px; display: flex; gap: 12px; align-items: baseline; }
+  section > h2 a, .row a { color: var(--accent); font-weight: normal; font-size: 12px; text-decoration: none; }
+  .row { display: grid; grid-template-columns: 15em 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--edge); }
+  .meta code { font-size: 13px; color: var(--ink); }
+  .meta p { margin: 4px 0; color: var(--dim); font-size: 12px; }
+  .themes { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  figcaption { color: var(--dim); font-size: 11px; }
+  .stage { position: relative; display: inline-block; padding: var(--z); border-radius: 3px; overflow-x: auto; max-width: 100%; }
+  .stage canvas { display: block; image-rendering: pixelated; }
+  .bg-dark .stage { background: #0a0a0b; }
+  .bg-light .stage { background: #e9e4da; }
+  .bg-check .stage { background: repeating-conic-gradient(#3a3a3e 0 25%, #26262a 0 50%) 0 0 / 16px 16px; }
+  .grid .stage canvas + i { position: absolute; inset: var(--z); pointer-events: none;
+    background: linear-gradient(to right, #fff2 1px, transparent 1px) 0 0 / var(--z) var(--z),
+                linear-gradient(to bottom, #fff2 1px, transparent 1px) 0 0 / var(--z) var(--z); }
+  .same { opacity: .45; }
+  .err { color: #ff7a6a; white-space: pre-wrap; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+</style>
+
+<header>
+  <h1>Sprites</h1>
+  <div class="chips" id="themes"></div>
+  <label>Zoom <input type="range" id="zoom" min="1" max="10" value="4"><span id="zv"></span></label>
+  <label>Background <select id="bg"><option value="dark">dark</option><option value="check">checker</option><option value="light">light</option></select></label>
+  <label><input type="checkbox" id="grid"> pixel grid</label>
+  <label><input type="checkbox" id="diff"> dim same-as-default art</label>
+  <input type="search" id="q" placeholder="Filter: id, family, note">
+  <button class="chip" id="reload" title="Reload the art (R)">Reload</button>
+</header>
+<main id="out">Loading art…</main>
+
+<script type="module">
+import { THEMES, T, setTheme } from '../ui/theme.js';
+import '../ui/themes.js';
+import { catalog } from './sprite_catalog.mjs';
+
+const REPO = 'https://github.com/Arylmera/Administratum';
+// Art family -> its discussion issue (the "Sprite board", #3). A family without one opens a new Sprite issue.
+const ISSUE = { scribe: 4, adept: 5, magos: 6, workstations: 7, cogitator: 8, sanctum: 9, gate: 10, refectorium: 11, walls: 12,
+  clutter: 13, skull: 14, petitions: 15, fire: 16, 'room-floor': 17, 'room-walls': 18, 'room-pipes': 19, 'room-doors': 20 };
+const newIssue = id => `${REPO}/issues/new?template=sprite.yml&title=${encodeURIComponent(`[sprite] ${id}`)}&sprite=${encodeURIComponent(id)}`;
+
+const $ = id => document.getElementById(id);
+const pref = (k, d) => { try { return localStorage.getItem(`sprites.${k}`) ?? d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(`sprites.${k}`, v); } catch {} };
+
+// Every theme's catalogue, each cell resolved to colours now (T.px is refilled on the next setTheme).
+const ids = Object.keys(THEMES), names = Object.fromEntries(ids.map(id => [id, THEMES[id].name]));
+const byTheme = {};
+for (const id of ids) {
+  setTheme(id);
+  byTheme[id] = new Map(catalog().map(e => [e.id, { ...e, cells: e.cells.map(({ rows, over }) => {
+    const pal = { ...T.px, ...over };
+    return rows.map(r => [...r].map(c => (c === '.' ? null : pal[c] ?? null)));
+  }) }]));
+}
+const order = [...byTheme[ids[0]].values()];
+
+// Colour grid -> ImageData; cells laid side by side 2 px apart (as the PNG gallery), or one per frame when animated.
+function image(cells) {
+  const fw = cells.map(c => Math.max(...c.map(r => r.length))), h = Math.max(...cells.map(c => c.length));
+  const w = fw.reduce((a, b) => a + b, 0) + 2 * (cells.length - 1), img = new ImageData(w, h);
+  let x0 = 0;
+  cells.forEach((c, i) => {
+    c.forEach((row, y) => row.forEach((col, x) => {
+      if (!col) return;
+      const o = (y * w + x0 + x) * 4;
+      img.data.set([parseInt(col.slice(1, 3), 16), parseInt(col.slice(3, 5), 16), parseInt(col.slice(5, 7), 16), 255], o);
+    }));
+    x0 += fw[i] + 2;
+  });
+  return img;
+}
+const same = (a, b) => JSON.stringify(a.cells) === JSON.stringify(b.cells);
+
+const animated = []; // [canvas, frames]
+let shown = new Set(pref('themes', ids.join(',')).split(',').filter(id => THEMES[id]));
+if (!shown.size) shown = new Set(ids);
+
+function render() {
+  const q = $('q').value.trim().toLowerCase(), z = +$('zoom').value;
+  document.documentElement.style.setProperty('--z', `${z}px`);
+  $('zv').textContent = `${z}×`;
+  animated.length = 0;
+  const out = document.createDocumentFragment(), sections = new Map();
+  for (const base of order) {
+    if (q && !`${base.id} ${base.family} ${base.note}`.toLowerCase().includes(q)) continue;
+    let sec = sections.get(base.family);
+    if (!sec) {
+      sec = document.createElement('section');
+      const n = ISSUE[base.family];
+      sec.innerHTML = `<h2>${base.family}<a href="${n ? `${REPO}/issues/${n}` : `${REPO}/issues?q=label%3Asprite`}" target="_blank">${n ? `discuss #${n} ↗` : 'sprite issues ↗'}</a></h2>`;
+      sections.set(base.family, sec); out.append(sec);
+    }
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div class="meta"><code>${base.id}</code><p>${base.size} logical px · ${base.note.replace(/`([^`]+)`/g, '<code>$1</code>')}</p>
+      <a href="${newIssue(base.id)}" target="_blank">new issue ↗</a></div><div class="themes"></div>`;
+    const strip = row.querySelector('.themes');
+    for (const id of ids) {
+      if (!shown.has(id)) continue;
+      const e = byTheme[id].get(base.id);
+      if (!e) continue;
+      const frames = e.anim ? e.cells.map(c => image([c])) : [image(e.cells)];
+      const fig = document.createElement('figure'), cv = document.createElement('canvas');
+      cv.width = frames[0].width; cv.height = frames[0].height;
+      cv.style.width = `${cv.width * z}px`;
+      cv.getContext('2d').putImageData(frames[0], 0, 0);
+      if (frames.length > 1) animated.push([cv, frames]);
+      const theirs = e.src.includes('/');
+      fig.innerHTML = `<div class="stage"></div><figcaption>${names[id]}${theirs ? ' · own art' : ''}</figcaption>`;
+      fig.firstChild.append(cv, document.createElement('i'));
+      if ($('diff').checked && id !== ids[0] && !theirs && same(e, base)) fig.classList.add('same');
+      strip.append(fig);
+    }
+    sec.append(row);
+  }
+  $('out').replaceChildren(out);
+  if (!sections.size) $('out').textContent = 'No sprite matches.';
+}
+
+// Walk cycles at the hall's pace.
+let tick = 0;
+setInterval(() => { tick++; for (const [cv, f] of animated) cv.getContext('2d').putImageData(f[tick % f.length], 0, 0); }, 180);
+
+// Controls, remembered per browser.
+for (const id of ids) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.textContent = names[id]; b.setAttribute('aria-pressed', shown.has(id));
+  b.onclick = () => { shown.has(id) ? shown.delete(id) : shown.add(id); b.setAttribute('aria-pressed', shown.has(id)); save('themes', [...shown].join(',')); render(); };
+  $('themes').append(b);
+}
+const setBg = () => { document.body.className = `bg-${$('bg').value}${$('grid').checked ? ' grid' : ''}`; };
+for (const [k, d] of [['zoom', '4'], ['bg', 'dark']]) $(k).value = pref(k, d);
+for (const k of ['grid', 'diff']) $(k).checked = pref(k, '') === '1';
+$('zoom').oninput = () => { save('zoom', $('zoom').value); render(); };
+$('bg').onchange = () => { save('bg', $('bg').value); setBg(); };
+$('grid').onchange = () => { save('grid', $('grid').checked ? '1' : ''); setBg(); };
+$('diff').onchange = () => { save('diff', $('diff').checked ? '1' : ''); render(); };
+$('q').oninput = render;
+$('reload').onclick = () => location.reload();
+addEventListener('keydown', ev => { if (ev.key === 'r' && ev.target === document.body) location.reload(); });
+setBg(); render();
+</script>
+<script>
+  // A failed import (page opened as a file, server not at the repo root) would otherwise leave "Loading art…" forever.
+  addEventListener('error', e => { document.getElementById('out').innerHTML = `<p class="err">${e.message ?? `Could not load ${e.target.src}`}\n\nServe the repo root: python -m http.server 8123, then open http://localhost:8123/tools/sprites.html</p>`; }, true);
+</script>

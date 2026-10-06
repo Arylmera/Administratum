@@ -251,6 +251,12 @@ Recommended: **one GitHub issue per sprite or sprite family, backed by the gener
 - `docs/sprites/README.md` is the visual reference. Every sprite has an id (`COGITATOR`, `SCRIBE.high.left`,
   `WINDOW.night`...) and an anchor, so a comment can link straight to it. Regenerate it with
   `node tools/sprite_sheet.mjs` after any art or palette change.
+- `tools/sprites.html` is the live viewer for working sessions: every sprite in every theme side by side, read
+  straight from `ui/art/` (no generation step), walk cycles animated, zoom, pixel grid, backgrounds, a filter, and
+  "dim same-as-default art" to spot what a theme really changes. Each family links to its issue, each sprite to a
+  prefilled new Sprite issue. Serve the repo root (`python -m http.server 8123`) and open
+  `http://localhost:8123/tools/sprites.html`; edit an art file, press R. It and the gallery list the same sprites
+  (`tools/sprite_catalog.mjs`).
 - `.github/ISSUE_TEMPLATE/sprite.yml` ("Sprite" in *New issue*) asks for the sprite id, the theme, the kind of
   change (recolour / same-size redraw / new geometry / new sprite / glitch), the rationale and references. Images
   can be pasted. It applies the `sprite` label, which you need to create once in the repo settings.
