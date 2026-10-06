@@ -34,6 +34,31 @@
       "h": 60
     },
     "palette": "key.gpl",
-    "anchors": {}
+    "anchors": {
+      "GATE": {
+        "entry": [
+          32,
+          56
+        ],
+        "opening": [
+          16,
+          10,
+          32,
+          44
+        ],
+        "leafL": [
+          16,
+          10
+        ],
+        "leafR": [
+          32,
+          10
+        ],
+        "slide": [
+          14,
+          0
+        ]
+      }
+    }
   }
 }

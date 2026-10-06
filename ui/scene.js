@@ -1,4 +1,4 @@
-import { blit, MAPS, MAGOS, MAGOS_AT, RES } from './sprites.js';
+import { blit, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
@@ -235,9 +235,9 @@ export function drawScene(g, layout, actors, fillOf, now) {
     if (d.id) lights.push(deskLight(d, busy));
     if (d.id && a) reactions(a, d, KIND[kindOf(d)].at, over, lights, now);
     if (a?.puff > 0) {
-      const k = 1 - a.puff / PUFF_S, mid = KIND[kindOf(d)].mid;
-      items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + mid, d.y + 11, k) });
-      lights.push({ x: d.x + mid, y: d.y + 10, r: 18 * (1 - k), color: T.light.amber });
+      const k = 1 - a.puff / PUFF_S, [px, py] = KIND[kindOf(d)].at.puff;
+      items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + px, d.y + py, k) });
+      lights.push({ x: d.x + px, y: d.y + py - 1, r: 18 * (1 - k), color: T.light.amber });
     }
   }
   for (const c of layout.consoles) {
@@ -273,14 +273,14 @@ function drawRugs(g, blocks) {
 // Desks, lecterns and the adepts' consoles. lit: candle/screen on (else the dimmed palette); pile: its paper's id.
 const kindOf = d => (d.compact ? 'lectern' : 'desk');
 function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
-  const K = KIND[kind], [sx, sy, sw, sh] = K.shadow;
+  const K = KIND[kind], [sx, sy, sw, sh] = K.at.shadow;
   return {
     y: at.y + sy,
     draw(g) {
       rect(g, at.x + sx, at.y + sy, sw, sh, I.shadow);
       blit(g, MAPS[K.map], at.x, at.y, lit ? undefined : K.dim());
       paperTop(g, pile, kind, fill, at);
-      if (bgShell) spinCog(g, at.x + K.w - 4, at.y + 7, now / 1000);
+      if (bgShell) spinCog(g, at.x + K.at.cog[0], at.y + K.at.cog[1], now / 1000);
       if (a) furnitureFx(g, a, at, K.at);
     },
   };
@@ -302,10 +302,12 @@ function spinCog(g, cx, cy, t) {
 // Context paper. fill = context tokens / model window: 0..0.5 covers the desk (or a small pile beside a
 // console), above 0.5 sheets fall and spread over the department floor, dense at 1. Red sheets from 0.9.
 // Every desk/console has one deterministic sheet list (seeded by its id); fill only picks how many show.
+// x0, y0: the pile's origin on the surface; cx, cy: where fallen sheets spread from (the sprite's paper / pile anchors).
+const paperAt = (name, k) => ({ ...k, x0: PROP_AT[name].paper[0], y0: PROP_AT[name].paper[1], cx: PROP_AT[name].pile[0], cy: PROP_AT[name].pile[1] });
 const PAPER = {
-  desk: { cols: 6, rows: 3, x0: 1, dx: 4.8, y0: 10.5, dy: 2.6, layers: 4, floor: 56, cx: 16, cy: 12, r0: 14, reach: 30 },
-  lectern: { cols: 4, rows: 3, x0: 1, dx: 4.4, y0: 10.5, dy: 2.6, layers: 4, floor: 40, cx: 11, cy: 12, r0: 11, reach: 22 },
-  console: { cols: 1, rows: 3, x0: 15, dx: 0, y0: 8, dy: 0.5, layers: 2, floor: 5, cx: 7, cy: 6, r0: 9, reach: 6 },
+  desk: paperAt('DESK', { cols: 6, rows: 3, dx: 4.8, dy: 2.6, layers: 4, floor: 56, r0: 14, reach: 30 }),
+  lectern: paperAt('LECTERN', { cols: 4, rows: 3, dx: 4.4, dy: 2.6, layers: 4, floor: 40, r0: 11, reach: 22 }),
+  console: paperAt('CONSOLE', { cols: 1, rows: 3, dx: 0, dy: 0.5, layers: 2, floor: 5, r0: 9, reach: 6 }),
 };
 // Paper is cached: each pile's desk-top sheets, and its settled floor sheets, are rasterised once into a small canvas
 // (redrawn only when the sheet count, the red warning or the place changes) and blitted; fluttering sheets draw live.
@@ -471,9 +473,7 @@ function puff(g, x, y, k) {
 // Chronicle reactions (actors.js Cast.chronicle). Offsets from the desk/console's top-left: the screen that sparks, the
 // test lamp on its frame, where the commit's purity seal goes (on a desk they stay: a.seals, max 3, hung on the front edge
 // clear of the seated scribe).
-const DESK_AT = { screen: [8.5, 2.5, 7, 4.5], lamp: [8, -3], seals: [[1.5, 8], [5.5, 8.5], [26.5, 8]], scale: 1 };
-const LECTERN_AT = { screen: [2.5, 2.5, 7, 4.5], lamp: [2, -3], seals: [[0.5, 8], [19, 8], [19, 12.5]], scale: 1 };
-const CONSOLE_AT = { screen: [3, 1.5, 7.5, 3.5], lamp: [10, -2.5], seals: [[15, 3.5]], scale: 0.6 };
+const DESK_AT = { ...PROP_AT.DESK, scale: 1 }, LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }, CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 };
 const STAMP_HIT = 0.9; // s into a commit: the stamp comes down and the seal is set
 const newest = a => Math.max(0, (a.seals ?? 1) - 1);
 const stamping = a => a.fx?.some(f => f.kind === 'commit' && f.t < STAMP_HIT);
@@ -513,7 +513,7 @@ function reactions(a, at, AT, over, lights, now) {
     }
     if (f.kind === 'push') {
       const [sx, sy] = AT.seals[a.h ? 0 : f.slot], p = courier(f.t, at.x + sx + 1.5, at.y + sy - 6, t);
-      over.push(g => { blit(g, MAPS.SKULL, half(p.x) - 5, half(p.y) - 5); if (f.t >= PICK_S) seal(g, half(p.x) - 1.5, half(p.y) + 4.5, 1); });
+      over.push(g => { const [cx, cy] = SK.centre, [kx, ky] = SK.carry; blit(g, MAPS.SKULL, half(p.x) - cx, half(p.y) - cy); if (f.t >= PICK_S) seal(g, half(p.x) - cx + kx, half(p.y) - cy + ky, 1); });
       lights.push({ x: p.x, y: p.y, r: 10, color: T.light.green });
     }
     if (f.kind === 'tool-error') {
@@ -600,17 +600,17 @@ function glint(g, x, y, k) {
 // shadow: [dx, dy, w, h] under the furniture, dy also its depth-sort line; dim: its palette while unlit.
 const dimDesk = themed(t => ({ f: null, F: null, c: t.ink.screenOff })), dimConsole = themed(t => ({ c: t.ink.screenOff }));
 const KIND = {
-  desk: { map: 'DESK', w: 32, mid: 16, at: DESK_AT, candle: 25, slate: 13, shadow: [1, 21, 30, 2], dim: dimDesk },
-  lectern: { map: 'LECTERN', w: 22, mid: 11, at: LECTERN_AT, candle: 17.5, slate: 7, shadow: [1, 21, 20, 2], dim: dimDesk },
-  console: { map: 'CONSOLE', at: CONSOLE_AT, shadow: [4, 10, 6, 1], dim: dimConsole },
+  desk: { map: 'DESK', at: DESK_AT, dim: dimDesk },
+  lectern: { map: 'LECTERN', at: LECTERN_AT, dim: dimDesk },
+  console: { map: 'CONSOLE', at: CONSOLE_AT, dim: dimConsole },
 };
-const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: T.light.green });
+const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 
 function deskLight(desk, busy) {
   const K = KIND[kindOf(desk)];
   return busy
-    ? { x: desk.x + K.candle, y: desk.y + 1, r: 22, color: T.light.amber, flicker: true }
-    : { x: desk.x + K.slate, y: desk.y + 5, r: 10, color: T.light.green };
+    ? { x: desk.x + K.at.candle[0], y: desk.y + K.at.candle[1], r: 22, color: T.light.amber, flicker: true }
+    : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green };
 }
 
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
@@ -621,51 +621,58 @@ function drawDecorFrame(g, t, cog = 0) {
   g.save(); g.translate(H.dx, 0); drawCogitator(g, t, cog); g.restore();
 }
 
-// The cogitator bank (MAPS.COGITATOR at 116,2): everything animated sits above y 40, clear of the scribes in front.
+// The cogitator bank (MAPS.COGITATOR, placed by PROPS.c): its screens, lamps, reels and vents are its anchors
+// (PROP_AT.COGITATOR); everything animated sits above y 40, clear of the scribes in front.
 const hash = n => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
+const [, COG_X, COG_Y] = PROPS.c.find(([name]) => name === 'COGITATOR');
+const DRUM_SPIN = [1, -1, -1, 1]; // each reel's turning direction
 function drawCogitator(g, t, cog) {
-  const on = cog > 0, speed = on ? 6 + 2 * cog : 1.5;
-  // centre screen (149,15.5 16x16.5): rows of green cant scrolling up, one row per 1.5 logical px
+  const on = cog > 0, speed = on ? 6 + 2 * cog : 1.5, C = PROP_AT.COGITATOR, at = ([x, y]) => [COG_X + x, COG_Y + y];
+  // centre screen: rows of green cant scrolling up, one row per 1.5 logical px, a marker then words to 1.5 px short of the edge
+  const [sx, sy] = at(C.screen), [, , sw, sh] = C.screen, end = sx + sw - 1.5;
   const s = t * speed, top = Math.floor(s), off = (s - top) * 1.5;
-  g.save(); g.beginPath(); g.rect(149, 15.5, 16, 16.5); g.clip();
+  g.save(); g.beginPath(); g.rect(sx, sy, sw, sh); g.clip();
   for (let i = 0; i < 12; i++) {
-    const row = top + i, y = half(16 + i * 1.5 - off);
-    let x = 150, h = hash(row);
-    rect(g, 149, y, 0.5, 0.5, h < 0.2 ? I.glint : I.screenMark); // line marker
-    while (x < 163.5) {
-      const w = Math.min(163.5 - x, 0.5 + Math.floor((h = hash(h * 4294967296 + row)) * 6) / 2);
+    const row = top + i, y = half(sy + 0.5 + i * 1.5 - off);
+    let x = sx + 1, h = hash(row);
+    rect(g, sx, y, 0.5, 0.5, h < 0.2 ? I.glint : I.screenMark); // line marker
+    while (x < end) {
+      const w = Math.min(end - x, 0.5 + Math.floor((h = hash(h * 4294967296 + row)) * 6) / 2);
       rect(g, x, y, w, 0.5, h < 0.15 ? I.screenHot : h < 0.7 ? I.phosphor : I.screenDim);
       x += w + 0.5 + (h > 0.85 ? 2 : 0);
     }
   }
-  if (Math.random() < perFrame(on ? 0.06 : 0.02)) rect(g, 149, 15.5, 16, 16.5, I.screenFlicker); // flicker
+  if (Math.random() < perFrame(on ? 0.06 : 0.02)) rect(g, sx, sy, sw, sh, I.screenFlicker); // flicker
   g.restore();
-  // side screens (133 / 170, 15.5, 11x8.5): left a waveform, right a bar chart
-  for (let x = 0; x < 11; x += 0.5) {
-    const y = 19.5 + Math.round(Math.sin(x * 0.9 + t * (on ? 9 : 3)) * Math.sin(t * 0.7 + x * 0.2) * 6) / 2;
-    rect(g, 133 + x, y, 0.5, 0.5, I.phosphor);
+  // side screens: left a waveform, right a bar chart
+  const [wx, wy] = at(C.wave), [, , ww] = C.wave;
+  for (let x = 0; x < ww; x += 0.5) {
+    const y = wy + 4 + Math.round(Math.sin(x * 0.9 + t * (on ? 9 : 3)) * Math.sin(t * 0.7 + x * 0.2) * 6) / 2;
+    rect(g, wx + x, y, 0.5, 0.5, I.phosphor);
   }
+  const [bx, by] = at(C.bars);
   for (let i = 0; i < 7; i++) {
     const h = 1 + Math.floor(hash(i * 977 + Math.floor(t * (on ? 6 : 1.5))) * 14) / 2;
-    rect(g, 170.5 + i * 1.5, 23.5 - h, 1, h, i % 3 ? I.screenDim : I.phosphor);
+    rect(g, bx + 0.5 + i * 1.5, by + 8 - h, 1, h, i % 3 ? I.screenDim : I.phosphor);
   }
   // lamp row: idle a slow chase, busy a random chatter
+  const [lx, ly] = at(C.lamps);
   for (let i = 0; i < 7; i++) {
     const lit = on ? hash(i * 31 + Math.floor(t * 8)) < 0.5 : Math.floor(t * 2) % 7 === i;
-    if (!lit) rect(g, 149 + 2.5 * i, 34.5, 1, 1, I.lampDead);
+    if (!lit) rect(g, lx + 2.5 * i, ly, 1, 1, I.lampDead);
   }
   // data-drums: a light notch turning on each reel
-  for (const [cx, cy, dir] of [[125, 18, 1], [125, 29, -1], [188, 18, -1], [188, 29, 1]]) {
-    const a = t * dir * (on ? 6 : 1.2);
+  C.drums.forEach((d, i) => {
+    const [cx, cy] = at(d), a = t * DRUM_SPIN[i] * (on ? 6 : 1.2);
     rect(g, half(cx + Math.cos(a) * 2) - 0.25, half(cy + Math.sin(a) * 2) - 0.25, 0.5, 0.5, I.brassLit);
-  }
-  // steam from the two vent stacks: a puff every few seconds idle, a steady plume while working
-  for (const vx of [138, 175.5]) for (let i = 0; i < 3; i++) {
-    const c = t * 0.6 + i / 3 + vx, p = c % 1;
+  });
+  // steam from the vent stacks: a puff every few seconds idle, a steady plume while working
+  for (const v of C.vents) for (let i = 0; i < 3; i++) {
+    const [vx, vy] = at(v), c = t * 0.6 + i / 3 + vx, p = c % 1;
     if (!on && Math.floor(c) % 3) continue;
     const r = 1 + p * 2.5;
     g.fillStyle = hexA(I.steam, 0.55 * (1 - p));
-    g.fillRect(half(vx - r + Math.sin(c * 5) * p), half(5 - p * 9 - r), 2 * r, 2 * r);
+    g.fillRect(half(vx - r + Math.sin(c * 5) * p), half(vy - p * 9 - r), 2 * r, 2 * r);
   }
 }
 
@@ -746,21 +753,22 @@ function drawDoors(g, actors) {
 // The grand gate at ENTRY: the iron leaves slide apart into the piers (eased) while anyone is near.
 // The void is floor-level; leaves and frame (piers + arch) are returned as a drawable at the wall's base,
 // so anyone north of the wall walks behind the arch.
-// 32x30 frame at (entry.x - 16, entry.y - 28); opening 16x22 at +8,+5.
+// The frame's entry anchor sits on hall.entry; the leaves slide in its opening (PROP_AT.GATE).
 let gateOpen = 0, gateTo = 0;
 function drawGate(g, actors) {
-  const GATE = { x: H.entry.x - 16, y: H.entry.y - 28 }, ox = GATE.x + 8, oy = GATE.y + 5;
-  gateTo = near(actors, ox, oy, ox + 16, oy + 22) ? 1 : 0;
+  const A = PROP_AT.GATE, GATE = { x: H.entry.x - A.entry[0], y: H.entry.y - A.entry[1] };
+  const [ow, oh] = A.opening.slice(2), ox = GATE.x + A.opening[0], oy = GATE.y + A.opening[1];
+  gateTo = near(actors, ox, oy, ox + ow, oy + oh) ? 1 : 0;
   gateOpen += (gateTo - gateOpen) * (1 - 0.82 ** (frameDt * 30)); // 0.18 per frame at 30 fps
   if (Math.abs(gateTo - gateOpen) < 0.01) gateOpen = gateTo; // at rest (half(0.01 * 7) is 0)
-  rect(g, ox, oy, 16, 22, I.void);
+  rect(g, ox, oy, ow, oh, I.void);
   rect(g, ox + 2, oy + 16, 12, 6, I.voidEmber); rect(g, ox + 5, oy + 18, 6, 4, I.voidGlow); // the void beyond, lit by the braziers
-  const s = half(gateOpen * 7);
+  const s = half(gateOpen * A.slide[0]);
   return {
-    y: GATE.y + 30,
+    y: GATE.y + MAPS.GATE.length / RES,
     draw(g2) {
-      g2.save(); g2.beginPath(); g2.rect(ox, oy, 16, 22); g2.clip();
-      blit(g2, MAPS.GATE_L, ox - s, oy); blit(g2, MAPS.GATE_R, ox + 8 + s, oy);
+      g2.save(); g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
+      blit(g2, MAPS.GATE_L, GATE.x + A.leafL[0] - s, GATE.y + A.leafL[1]); blit(g2, MAPS.GATE_R, GATE.x + A.leafR[0] + s, GATE.y + A.leafR[1]);
       g2.restore();
       blit(g2, MAPS.GATE, GATE.x, GATE.y);
     },
@@ -773,6 +781,7 @@ const beaconOf = ({ ox, sd }) => ({ x: 226 + ox, y: 118 + sd });
 const perchOf = ({ ox, sd }) => ({ x: 297 + ox, y: 128 + sd }); // a resize moves it: the skull flies there
 const skull = { ...perchOf(hallOf(0)), last: 0 };
 const SKULL_SPEED = 60; // logical px per second
+const SK = PROP_AT.SKULL; // centre (its position), carry (a pushed sheet), beam (the searchlight)
 const skullRed = themed(t => ({ o: t.ink.alarm, O: t.ink.alarmGlow }));
 // Something of the scene is mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate.
 export const sceneBusy = () => gateOpen !== gateTo || !!skull.flying;
@@ -797,10 +806,11 @@ function drawAlarm(g, actors, now) {
     g.save();
     g.globalCompositeOperation = 'lighter';
     g.fillStyle = hexA(I.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
-    g.beginPath(); g.moveTo(skull.x - 1.5, y + 4); g.lineTo(skull.x + 1.5, y + 4); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
+    const by = y - SK.centre[1] + SK.beam[1], bx = skull.x - SK.centre[0] + SK.beam[0];
+    g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
     g.restore();
   }
-  blit(g, MAPS.SKULL, half(skull.x) - 5, half(y) - 5, on ? skullRed() : undefined);
+  blit(g, MAPS.SKULL, half(skull.x) - SK.centre[0], half(y) - SK.centre[1], on ? skullRed() : undefined);
   lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
   return lights;
 }

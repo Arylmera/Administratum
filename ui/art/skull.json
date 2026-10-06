@@ -18,6 +18,21 @@
       "h": 20
     },
     "palette": "key.gpl",
-    "anchors": {}
+    "anchors": {
+      "SKULL": {
+        "centre": [
+          10,
+          10
+        ],
+        "carry": [
+          7,
+          19
+        ],
+        "beam": [
+          10,
+          18
+        ]
+      }
+    }
   }
 }

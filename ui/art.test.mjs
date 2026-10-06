@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, MAPS, SHEET_OF } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, RES } from './sprites.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -77,4 +77,15 @@ assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 } });
 assert.deepEqual(MAGOS_AT, { arm: { x: 0, y: 0 }, chest: { x: 13, y: 15 }, eyeL: { x: 13, y: 9.5 }, eyeR: { x: 14.5, y: 9.5 } });
 assert.ok(sheets.magos.frames.body.every(r => r.startsWith('.'.repeat(10))), 'the Magos body leaves the arm columns to the arm frame');
 assert.deepEqual(SCRIBE.left[0], SCRIBE.right[0].map(r => [...r].reverse().join('')));
+// Prop anchors: the ones the drawing code reads exist, and every point / rect lies on the art-pixel grid.
+const need = { DESK: ['screen', 'lamp', 'seals', 'candle', 'slate', 'shadow', 'paper', 'pile', 'cog', 'puff'],
+  LECTERN: ['screen', 'lamp', 'seals', 'candle', 'slate', 'shadow', 'paper', 'pile', 'cog', 'puff'],
+  CONSOLE: ['screen', 'lamp', 'seals', 'shadow', 'paper', 'pile', 'light'], COGITATOR: ['screen', 'wave', 'bars', 'lamps', 'drums', 'vents'],
+  GATE: ['entry', 'opening', 'leafL', 'leafR', 'slide'], SKULL: ['centre', 'carry', 'beam'] };
+for (const [name, keys] of Object.entries(need)) for (const k of keys) {
+  assert.ok(PROP_AT[name]?.[k], `PROP_AT.${name}.${k}`);
+  for (const v of [PROP_AT[name][k]].flat(2)) assert.ok(Number.isInteger(v * RES), `PROP_AT.${name}.${k} off the art grid`);
+}
+assert.equal(PROP_AT.DESK.seals.length, 3, 'a desk keeps up to 3 commit seals');
+assert.deepEqual(PROP_AT.GATE.opening, [8, 5, 16, 22]);
 console.log('art ok');

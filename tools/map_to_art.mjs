@@ -54,6 +54,30 @@ export const PROPS = {
   clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL'],
   fire: ['BRAZIER', 'CANDLES'],
 };
+// Prop anchors, art px from the frame's top-left (rects [x, y, w, h], points [x, y]); first values, moved out of scene.js.
+// Once a sheet exists its JSON is the source: a repack keeps the anchors it finds there.
+const PROP_ANCHORS = {
+  workstations: {
+    // screen: sparks on a tool error; lamp: the test lamp; seals: commit seal slots; candle / slate: the desk's light
+    // when busy / idle; shadow: under it (its top is the depth-sort line); paper: the pile's origin on the surface;
+    // pile: where fallen sheets spread from; cog: the background-shell cog; puff: where an unattended pile vanishes.
+    DESK: { screen: [17, 5, 14, 9], lamp: [16, -6], seals: [[3, 16], [11, 17], [53, 16]], candle: [50, 2], slate: [26, 10],
+      shadow: [2, 42, 60, 4], paper: [2, 21], pile: [32, 24], cog: [56, 14], puff: [32, 22] },
+    LECTERN: { screen: [5, 5, 14, 9], lamp: [4, -6], seals: [[1, 16], [38, 16], [38, 25]], candle: [35, 2], slate: [14, 10],
+      shadow: [2, 42, 40, 4], paper: [2, 21], pile: [22, 24], cog: [36, 14], puff: [22, 22] },
+    CONSOLE: { screen: [6, 3, 15, 7], lamp: [20, -5], seals: [[30, 7]], shadow: [8, 20, 12, 2], paper: [30, 16], pile: [14, 12], light: [14, 6] },
+  },
+  // screen: the scrolling centre screen; wave / bars: the side screens; lamps: the first of the lamp row; drums: the data
+  // reels' centres; vents: where the steam rises.
+  cogitator: { COGITATOR: { screen: [66, 27, 32, 33], wave: [34, 27, 22, 17], bars: [108, 27, 22, 17], lamps: [66, 65],
+    drums: [[18, 32], [18, 54], [144, 32], [144, 54]], vents: [[44, 6], [119, 6]] } },
+  // entry: the doorstep (the hall's entry point); opening: the doorway the leaves slide in; leafL / leafR: the leaves
+  // closed; slide: how far each leaf travels.
+  gate: { GATE: { entry: [32, 56], opening: [16, 10, 32, 44], leafL: [16, 10], leafR: [32, 10], slide: [14, 0] } },
+  // centre: the skull's position; carry: the sheet it carries on a push; beam: the searchlight's source.
+  skull: { SKULL: { centre: [10, 10], carry: [7, 19], beam: [10, 18] } },
+};
+const existing = family => { try { return JSON.parse(fs.readFileSync(path.join(artDir, `${family}.json`), 'utf8')).meta.anchors; } catch { return undefined; } };
 const FAMILIES = {
   async scribe() {
     const { SCRIBE, MAPS } = await import('../ui/sprites.js');
@@ -78,12 +102,12 @@ const FAMILIES = {
   },
   ...Object.fromEntries(Object.entries(PROPS).map(([fam, names]) => [fam, async () => {
     const { MAPS } = await import('../ui/sprites.js');
-    return { frames: Object.fromEntries(names.map(n => [n, MAPS[n]])), rows: [names], anchors: {} };
+    return { frames: Object.fromEntries(names.map(n => [n, MAPS[n]])), rows: [names], anchors: PROP_ANCHORS[fam] ?? {} };
   }])),
 };
 
 async function convert(family) {
-const { frames, rows: given, anchors } = await FAMILIES[family]();
+const { frames, rows: given, anchors: first } = await FAMILIES[family](), anchors = existing(family) ?? first;
 // wrap a row past 512 art px, so wide families stay workable in an editor
 const rows = given.flatMap(row => {
   const out = [[]];

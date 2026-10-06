@@ -55,6 +55,7 @@ const mirror = map => map.map(row => row.split('').reverse().join(''));
 const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire'];
 const [scribe, adept, magos, ...props] = await Promise.all(['scribe', 'adept', 'magos', ...PROP_SHEETS].map(loadSheet));
 const anchorsOf = sheet => Object.fromEntries(Object.entries(sheet.anchors).map(([k, [x, y]]) => [k, { x: x / RES, y: y / RES }]));
+const logical = v => (Array.isArray(v) ? v.map(logical) : typeof v === 'number' ? v / RES : Object.fromEntries(Object.entries(v).map(([k, w]) => [k, logical(w)])));
 const walk = (sheet, dir) => [0, 1, 2].map(i => sheet.frames[`${dir} ${i}`]);
 const walker = sheet => ({ up: walk(sheet, 'up'), down: walk(sheet, 'down'), right: walk(sheet, 'right'), left: walk(sheet, 'right').map(mirror) });
 
@@ -72,5 +73,8 @@ export const MAGOS_AT = anchorsOf(magos);
 
 // Every other sprite by name.
 export const MAPS = Object.assign({ ARM: scribe.frames.arm, ARM_L: mirror(scribe.frames.arm) }, ...props.map(p => p.frames));
+// Prop anchors by sprite name, logical px from its top-left: points [x, y], rects [x, y, w, h] (what each one is: the
+// sheet's JSON, tools/map_to_art.mjs PROP_ANCHORS). Desks, lecterns, consoles, the cogitator, the gate, the skull.
+export const PROP_AT = Object.assign({}, ...props.map(p => logical(p.anchors ?? {})));
 // Which art file each MAPS sprite comes from (the gallery, the tests).
 export const SHEET_OF = { ARM: 'scribe', ARM_L: 'scribe', ...Object.fromEntries(PROP_SHEETS.flatMap((f, i) => Object.keys(props[i].frames).map(n => [n, f]))) };
