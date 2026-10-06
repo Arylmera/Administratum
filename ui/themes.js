@@ -347,3 +347,75 @@ defineTheme({
     toast: { petition: 'Plea from {name}', stale: 'Plea still waiting: {name}' },
   },
 });
+
+// Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green
+// phosphor, Nuka-Cola red, warm incandescent light. Its own art (later tasks) replaces what only fits 40k.
+defineTheme({
+  id: 'vault', world: 'vault', name: 'Vault 111', art: [],
+  px: {
+    k: '#0c0c0c', e: '#141822', n: '#0a0c10',
+    r: '#1e4a8a', R: '#2e66b8', d: '#12305e', t: '#f2c23a', T: '#a07a14', z: '#f2c23a', j: '#a07a14', // jumpsuit, yellow stripe
+    g: '#f2c23a', G: '#a07a14', h: '#ffe07a', U: '#5a4010', // Vault-Tec yellow
+    m: '#6a7078', M: '#3a3e44', l: '#9aa0a8', V: '#202428', // riveted steel
+    p: '#d9cf9a', P: '#a89a68', b: '#c8ccd0', B: '#9aa0a8', s: '#b8b8a8', ':': '#e0a888', ';': '#9a6450',
+    q: '#8a909a', Q: '#5a6068', J: '#5aff7a', I: '#c8ffd8', // Mr. Handy eye glow, Pip-Boy green
+    w: '#5a5a54', W: '#3a3a36', L: '#7a7a70', u: '#12305e', v: '#3a3e34', // concrete
+    c: '#5aff7a', C: '#0a2a12', o: '#5aff7a', O: '#c8ffd8', f: '#ffd890', F: '#fff4d0', x: '#d8202a', a: '#d8202a', // Pip-Boy green, incandescent, Nuka-Cola red
+    1: '#8a9098', 2: '#2a2e32', 3: '#a8aeb4', 4: '#4a4e54', 5: '#52565c', 6: '#2a2e32', 0: '#16181a', A: '#0e0f10',
+    D: '#12305e', E: '#0a1c38', N: '#1a3660', S: '#6a7078',
+    X: '#7a8088', Y: '#9aa0a8', Z: '#4a4e54', i: '#2a2e32', '!': '#1a8a4a', '+': '#7affa0',
+    '@': '#05060a', $: '#3a2a10', '%': '#5a4018', '*': '#4a0a0e', '-': '#2a0608', '=': '#8a3a3e', '&': '#d8202a',
+    '(': '#d8202a', ')': '#ff6a6a', '[': '#4a0a0e', ']': '#2a2e32',
+  },
+  sash: ['#f2c23a', '#5aff7a', '#2e66b8', '#d8202a', '#9aa0a8', '#ffd890', '#8a4a24', '#d9cf9a'],
+  rank: {
+    high: { robe: { z: '#9aa0a8', j: '#6a7078', t: '#9aa0a8', T: '#3a3e44', g: '#9aa0a8', G: '#3a3e44' },
+      adept: { x: '#9aa0a8', b: '#d8dce0', J: '#9aa0a8', I: '#eef0f2' } },
+    novice: { robe: { r: '#3a4a68', R: '#5a6a88', d: '#242e40', z: '#6a6a5a', j: '#6a6a5a', t: '#8a8a78', T: '#4a4a3e', g: '#4a4a3e', G: '#4a4a3e' },
+      adept: { x: '#5a5a4e', q: '#8a8e98', Q: '#5a6068', b: '#9a9a90', J: '#5a7a5e', I: '#7a9a7e' } },
+  },
+  ink: {
+    coolant: '#5aff7a', screenHot: '#eafff0', screenDim: '#1a8a4a', screenMark: '#136a3a', screenFlicker: 'rgba(10,42,18,.55)', screenOff: '#1a5a30',
+    cant: 'rgba(0,0,0,0)', grime: 'rgba(10,10,10,.25)', scratchSheen: 'rgba(255,240,220,.08)',
+    parchmentWarn: '#e0a080',
+    smoke: '#c8c8c0', sparkSmoke: '#d0d0c8', steam: '#dcdcd0', alarmGlow: '#ffd890', beaconSweep: '#d8202a', searchlight: '#5aff7a',
+    // the wasteland viewport: dusty sky and hazy sun by day; dark and starless by night
+    windowDay: { u: '#a89868', v: '#8a9a6a', g: '#d8c080', x: '#b8604a' },
+    windowNight: { u: '#1a1a20', v: '#141418', g: '#4a4038' },
+    backdrop: '#141822', backdropLit: '#202838', backdropEdge: '#1a2230', backdropDark: '#0a0c12', backdropSeam: '#0e1218', backdropSeamLit: '#1e2838',
+    backdropRivet: '#3a4048', overflowPlaque: '#8a8e98',
+  },
+  light: { amber: 'rgba(255,216,144,.24)', green: 'rgba(90,255,122,.18)', red: 'rgba(216,32,42,.22)', lampOn: 'rgba(90,255,122,.5)',
+    glint: 'rgba(242,194,58,.6)', spark: 'rgba(255,224,122,.8)', night: '6,10,8', beam: '180,220,255' },
+  ui: {
+    '--bg': '#0a0e16', '--bar': '#101a2a', '--ink': '#d9cf9a', '--dim': '#7a8290', '--light': '#f0e8c8', '--edge': '#2a3240', '--btn': '#141e30',
+    '--copper': '#f2c23a', '--outline': '#0c0c0c', '--bone': '#d9cf9a', '--iron': '#6a7078', '--green': '#5aff7a',
+    '--red': '#d8202a', '--pink': '#ff8a7a', '--blood': '#6a1016', '--glow': '#5aff7a', '--wax': '#d8202a', '--wax-deep': '#3a0a0e',
+    '--alarm': '#d8202a', '--flame': '#ffd890', '--label': '#101a2a', '--label-sel': '#1a2a40', '--label-btn': '#141e30', '--plaque': '#0e1420',
+    '--yes': '#5aff7a', '--yes-deep': '#0a2a12',
+    // cream requisition cards over the dark blue bar
+    '--card': '#d9cf9a', '--paper': '#e4dcb0', '--paper-edge': '#a89a68', '--paper-hi': '#f0e8c8', '--paper-tab': '#d0c89c', '--paper-q': '#ddd4a8',
+    '--paper-shade': '#a89a68', '--paper-line': '#8a7c50', '--paper-ink': '#2a2414', '--paper-ink-2': '#4a4028', '--paper-ink-3': '#6a5e40',
+    '--paper-err': '#a01818', '--leather': '#3a3e44', '--leather-deep': '#1c1e22', '--chart-new': '#f2c23a', '--chart-cache': '#5aff7a',
+    '--rod-hi': '#ffe07a', '--rod': '#f2c23a', '--rod-lo': '#a07a14', '--rod-edge': '#5a4010', '--rod-cap': '#fff4d0',
+    // terminal type for titles, Vault-Tec blue accent over the cream card
+    '--display': "'VT323', monospace", '--paper-accent': '#1e4a8a',
+  },
+  text: {
+    subtitle: "Vault 111 · Overseer's Office", motto: 'Prepare for the future',
+    rank: { high: 'Overseer', standard: 'Dweller', novice: 'Newcomer' },
+    status: { busy: 'On shift', shell: 'At the mainframe', idle: 'Turn done, awaiting input', waiting: 'Requisition filed',
+      background: 'Idle · robot on duty', napping: 'Idle · in the bunk' },
+    petitions: ['{n} requisition', '{n} requisitions'], petitioning: '{n} requisitioning', petitionLabel: '{name}, requisition: {want}',
+    adeptOf: '{kind} · robot of {owner}', overflow: '+{n} in cryo', empty: 'No dwellers on shift',
+    modes: { full: 'Day shift', candles: 'Lights out' },
+    log: { title: "Overseer's log", open: "Open the Overseer's log", close: "Close the Overseer's log", silent: "The Overseer's log is empty: no record could be read for this day." },
+    tithe: { hint: 'Rations today: tokens and shift time', day: 'Rations today: {tokens} tokens, {time} on shift' },
+    event: { commit: 'Commit approved', petition: 'Requisition', 'petition-answered': 'Requisition approved', compaction: 'Records archived' },
+    prefs: { chime: 'Requisition chime', petitions: 'Requisitions', questions: 'A question at the end of a turn counts as a requisition',
+      stale: 'Requisition goes stale after', nap: 'Idle to the bunk after', cog: 'Stay at the mainframe for',
+      pauseHint: 'Near-zero CPU when unseen; requisitions still alert.',
+      cat: { hall: 'Vault', petitions: 'Requisitions', scribes: 'Dwellers', system: 'System', remote: 'Remote access' } },
+    toast: { petition: 'Requisition from {name}', stale: 'Requisition still waiting: {name}' },
+  },
+});

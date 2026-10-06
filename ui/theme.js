@@ -137,7 +137,7 @@ export const TIER_II = {
 };
 
 // The settings a theme belongs to: Settings picks a world, then one of its themes as the style.
-export const WORLDS = { w40k: 'Warhammer 40k', cyber: 'Cyberpunk', space: 'Space', arcane: 'Fantasy' };
+export const WORLDS = { w40k: 'Warhammer 40k', cyber: 'Cyberpunk', space: 'Space', arcane: 'Fantasy', vault: 'Fallout' };
 // Registered themes by id. A theme: { id, world, name, px?, sash?, rank?, ink?, light? }, each part only what changes.
 export const THEMES = { [TIER_II.id]: TIER_II };
 export function defineTheme(t) { THEMES[t.id] = t; return t; }

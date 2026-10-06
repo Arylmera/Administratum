@@ -156,7 +156,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Always on top | on | — | Keeps the window above others |
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
-| Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station and Arcane Tower a wizards' tower, not 40k; the remote view keeps its own) |
+| Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower / Vault 111 | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station, Arcane Tower a wizards' tower and Vault 111 a Fallout vault, not 40k; the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
 | Quiet hours | off, 22:00–08:00 | any times | Inside the window no toast and no chime for a new petition, question, long task or usage limit. A petition turning stale still toasts and chimes. A moon in the header shows while it is quiet |
@@ -353,7 +353,7 @@ drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus 
 fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
 active theme: `ui/theme.js` (Ordo Administratum) and `ui/themes.js` (Ordo Machinum, Ordo Xenos, Ordo Malleus, Ordo Hereticus,
 Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/` and three accents of it (Corpo Tower, Rain City, Green Code, Sunset Drive: same art, recoloured), Orbital Station, a space station with its own art in
-`ui/art/orbital/`, and Arcane Tower, a wizards' tower), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
+`ui/art/orbital/`, Arcane Tower, a wizards' tower, and Vault 111, a Fallout vault), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
 the gallery used to discuss them one by one (a **Sprite** issue each).
 
 To work on the art, use the live viewer: every sprite in every theme side by side, read straight from `ui/art/`,
@@ -365,7 +365,7 @@ python -m http.server 8123        # from the repo root
 ```
 
 Cells are named like a spreadsheet so a sprite in a theme is one short reference: the column is the theme
-(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code, K Sunset Drive, L Arcane Tower), the row is the sprite's number,
+(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code, K Sunset Drive, L Arcane Tower, M Vault 111), the row is the sprite's number,
 so `F52` is the Neon Grid shelf. `#F52` in the URL jumps to it; `node tools/sprite_sheet.mjs --list` prints the key.
 Each family links to its discussion issue, each sprite to a prefilled new Sprite issue. Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).

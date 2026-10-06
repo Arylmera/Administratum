@@ -12,7 +12,7 @@ open the live sprite viewer first and keep it open, so the discussion is about w
 References the user may give:
 - **Cell refs** like `C12`: column = theme in `THEMES` order (A Ordo Administratum, B Ordo Machinum, C Ordo Xenos,
   D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower,
-  I Rain City, J Green Code, K Sunset Drive, L Arcane Tower), row = sprite number. `node tools/sprite_sheet.mjs --list` prints the key;
+  I Rain City, J Green Code, K Sunset Drive, L Arcane Tower, M Vault 111), row = sprite number. `node tools/sprite_sheet.mjs --list` prints the key;
   `sprites.html#C12` jumps to and outlines the cell.
 - **Sprite ids** like `SCRIBE.high.left`, `WINDOW.night`, `ROOM.floor` (the viewer and `docs/sprites/` galleries).
 
