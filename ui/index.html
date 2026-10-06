@@ -176,7 +176,7 @@
   @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh { animation: none; } }
   /* Settings: the same parchment scroll as the Chronicon, narrower. */
   #prefs { position: absolute; z-index: 6; top: 0; left: 50%; transform: translateX(-50%); width: min(28em, calc(100% - 12px)); max-height: 100%;
-    display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(11px * var(--k, 1)); color: var(--paper-ink); }
+    display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; font-size: calc(11px * var(--k, 1)); color: var(--paper-ink); }
   #prefs.open { grid-template-rows: auto 1fr auto; }
   #prefs[hidden] { display: none; }
   #prefs .rod { height: .9em; margin: 0 -.5em; border-radius: .45em; background: linear-gradient(var(--rod-hi), var(--rod) 45%, var(--rod-lo)); border: 1px solid var(--rod-edge); box-shadow: 0 3px 4px rgba(0,0,0,.6); }
@@ -194,6 +194,9 @@
   #prefs select { width: 8.1em; text-align: left; }
   #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--blood); }
   #prefs input:disabled { opacity: .5; }
+  #prefs input[type="range"] { width: 7em; margin: 0; accent-color: var(--blood); }
+  #prefs output[name="scaleOut"] { width: 2.6em; text-align: right; }
+  #prefs:has(input[name="scale"]:active) { opacity: .3; } /* see the hall through the panel while dragging the scale */
   #prefs input[name="lat"], #prefs input[name="lon"] { width: 6.5em; }
   #prefs .hint { margin: .3em 0 0; font-size: .85em; color: var(--paper-ink-2); }
   #prefs .clear { margin-top: .4em; padding: .2em .7em; background: none; color: var(--blood); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; cursor: pointer; }
@@ -286,7 +289,8 @@
         <fieldset><legend>Window</legend>
           <label class="host-only"><span>Always on top</span><input type="checkbox" name="onTop"></label>
           <label class="host-only"><span>Start at login</span><input type="checkbox" name="login"></label>
-          <label><span>Scale</span><select name="scale"><option value="auto">Auto</option><option value="1">1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select></label>
+          <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
+          <label><span>Scale</span><input type="range" name="scale" min="1" max="3" step="0.25" value="2"><output name="scaleOut"></output></label>
           <p class="hint">Pixel size; the window decides how big the hall is.</p>
         </fieldset>
         <fieldset><legend>Hall</legend>

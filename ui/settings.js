@@ -70,10 +70,10 @@ const setQuestions = (on, toast) => {
   store.set('adm.questions', on ? '1' : '0'); store.set('adm.questionToast', toast ? '1' : '0');
 };
 
-// Scale (adm.scale): CSS px per logical px, or 'auto' (app.js); read live by app.js's fit().
-const SCALES = ['auto', '1', '1.5', '2', '2.5', '3'];
-export const view = { scale: SCALES.includes(store.get('adm.scale')) ? store.get('adm.scale') : 'auto' };
-const setScale = v => { view.scale = SCALES.includes(v) ? v : 'auto'; store.set('adm.scale', view.scale); };
+// Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by app.js's fit().
+const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
+export const view = { scale: okScale(store.get('adm.scale')) };
+const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', view.scale); };
 
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
@@ -104,7 +104,10 @@ export function initSettings(hooks) {
 
   sync = () => {
     field('onTop').checked = settings.onTop;
-    field('scale').value = view.scale;
+    const auto = view.scale === 'auto';
+    field('scaleAuto').checked = auto; field('scale').disabled = auto;
+    if (!auto) field('scale').value = view.scale;
+    field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
     field('mode').value = hooks.mode();
     const world = THEMES[T.id]?.world ?? 'w40k';
     field('world').value = world;
@@ -187,11 +190,13 @@ export function initSettings(hooks) {
     hooks.placed();
   };
   form.onsubmit = e => e.preventDefault();
+  // The slider rescales while it is dragged, not only on release (9 steps: at most 9 relayouts per drag).
+  form.oninput = e => { if (e.target.name === 'scale') { setScale(e.target.value); hooks.rescaled(); sync(); } };
   form.onchange = e => {
     const el = e.target, k = el.name;
     if (k.startsWith('remote')) { applyRemote(); return; }
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
-    else if (k === 'scale') { setScale(el.value); hooks.rescaled(); }
+    else if (k === 'scaleAuto') { setScale(el.checked ? 'auto' : field('scale').value); hooks.rescaled(); }
     else if (k === 'mode') hooks.setMode(el.value);
     else if (k === 'world') pickTheme(styles(el.value)[0].id);
     else if (k === 'theme') pickTheme(el.value);
