@@ -147,7 +147,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Always on top | on | — | Keeps the window above others |
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
-| Theme | Tier II | Tier II / Forge World / Ordo Xenos / Night Shift / High Contrast | Colours of the hall and the window, and the wording (the remote view keeps its own) |
+| Theme | Tier II | Tier II / Forge World / Ordo Xenos / Night Shift / High Contrast / Neon Grid | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, not 40k; the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
 | Idle to the Refectorium after | 2 min | 1–120 | How long a scribe stays idle at its desk before it goes to nap |
@@ -332,8 +332,8 @@ The node self-checks are plain `assert` scripts with no test framework.
 Sprites and the room's tiles (floor, walls, pipes, doors) are art files in `ui/art/`: one PNG sheet per family,
 drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus JSON frames, anchors and the tiles'
 fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
-active theme: `ui/theme.js` (Tier II) and `ui/themes.js` (Forge World, Ordo Xenos, Night Shift, High Contrast),
-picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
+active theme: `ui/theme.js` (Tier II) and `ui/themes.js` (Forge World, Ordo Xenos, Night Shift, High Contrast, and
+Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/`), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
 the gallery used to discuss them one by one (a **Sprite** issue each). Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
 

@@ -68,7 +68,7 @@ assert.deepEqual(seen, ['test-blue', 'tier2']);
 off();
 delete THEMES['test-blue'];
 // The shipped themes are there (and so checked by the completeness loop above).
-assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'forge', 'night', 'tier2', 'xenos']);
+assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'cyber', 'forge', 'night', 'tier2', 'xenos']);
 
 // Chrome colours: a theme's ui keys are CSS variables index.html declares.
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');

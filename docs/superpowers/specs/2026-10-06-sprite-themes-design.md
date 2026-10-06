@@ -1,6 +1,6 @@
 # Sprites and themes: review, cost, plan
 
-Date: 2026-10-06. Status: phases 1 and 2 done (themes, picker, chrome, wording); every sprite and the room's structure are art files with their anchors; phases 3 and 4 proposed.
+Date: 2026-10-06. Status: phases 1 to 3 done (themes, picker, chrome, wording, per-theme art, a cyberpunk theme); every sprite and the room's structure are art files with their anchors.
 
 ## How sprites work today
 
@@ -198,17 +198,41 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
   - plurals, placeholders and the fallback
   - Rust: the toast templates and their fallbacks
 
-## Phase 3: per-theme sprite art (proposed)
+## Phase 3: per-theme art (done) and a first non-40k theme
 
-1. A theme can ship its own sheets: `ui/art/<theme>/<family>.png` + `.json`, falling back to the default sheet.
-   `MAPS` / `SCRIBE` / `ADEPT` become stable objects refilled on a theme change, like `T.ink`; the drawing code already
-   reads them at draw time. Tests require a theme's frames to match the default sizes unless its JSON declares
-   its own anchors (depth C).
-2. Per sprite, the work is:
-   1. Discuss it in its issue.
-   2. Draw it in Aseprite.
-   3. Export it, run the tests and regenerate the gallery.
-   4. Open a PR. Because the PNG is the committed source, the PR shows the before/after as a GitHub image diff.
+- **Theme art**:
+  - A theme lists the art families it redraws (`art: ['walls', …]`). Its sheets live in
+    `ui/art/<theme>/<family>.png` + `.json` and hold only the frames it changes, at the default's size. Anchors and
+    tile fill rules it lists replace the default's; everything else falls back to the default art.
+  - `sprites.js` loads every theme's art at start and refills `MAPS`, `ROOM`, `SCRIBE`, `ADEPT`, `MAGOS` and the
+    anchors in place on a theme change. `scene.js` rebuilds the anchors it keeps (desks, paper, skull), and the paper
+    piles are laid out again.
+  - The gallery renders any theme with its art (`node tools/sprite_sheet.mjs --theme cyber` → `docs/sprites/cyber/`).
+  - `tools/sheet_writer.mjs` writes a sheet (shared with `tools/map_to_art.mjs`).
+- **Neon Grid** (`cyber`), the first setting that is not the 40k scriptorium:
+  - Palette: neon magenta, cyan and violet on blue-black.
+    - hooded robes read as black hoodies with neon trim, optics as visors
+    - chrome cyan instead of brass, magenta neon tubes for the copper pipes, violet light in the floor channels
+    - dark glass panels instead of parchment
+  - Wording: Netrunner / Hacker / Script kiddie, requests, the server rack, the lounge, the Netlog, Bandwidth, and
+    "Request from …" toasts.
+  - Its art (`ui/art/cyber/`) replaces only what was unmistakably 40k:
+    - the skull banners → neon signs
+    - the censers → neon lanterns
+    - the gothic windows → a skyline window
+    - the Cog Mechanicus → a hex-chip emblem
+    - the servo-skull → a drone
+    - the gate's skull → a neon box
+    - the cogitator's skull → a faceplate
+- **Tests**:
+  - a theme's art is only families it declares, at the default's sizes, with known anchors
+  - switching swaps the art in and back
+  - live, Tier II → Neon Grid → Tier II returns to the same pixels as a fresh Tier II
+- **Next art for any setting**:
+  1. Discuss it in its issue.
+  2. Draw it in Aseprite with `key.gpl`.
+  3. Save it under `ui/art/<theme>/`, run the tests and regenerate that theme's gallery.
+  4. Open a PR: the PNG diff is the review.
 
 ## Discussing sprites
 

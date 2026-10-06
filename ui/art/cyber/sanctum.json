@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "COG_MECH": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 36
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "sanctum.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 40,
+      "h": 36
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
