@@ -26,7 +26,8 @@ function applyChrome() {
   for (const el of document.querySelectorAll('[data-t-title]')) el.title = t(el.dataset.tTitle);
   for (const el of document.querySelectorAll('[data-t-aria]')) el.setAttribute('aria-label', t(el.dataset.tAria));
   document.title = t('title');
-  if (!REMOTE) invoke('set_toast_text', { petition: t('toast.petition'), question: t('toast.question'), stale: t('toast.stale'), needed: t('toast.needed') }).catch(() => {});
+  if (!REMOTE) invoke('set_toast_text', { petition: t('toast.petition'), question: t('toast.question'), stale: t('toast.stale'), needed: t('toast.needed'),
+    limit: t('toast.limit'), limitMany: t('toast.limitMany'), failed: t('toast.failed') }).catch(() => {});
 }
 applyChrome();
 onTheme(applyChrome);
@@ -271,6 +272,7 @@ function frame(now) {
   drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
+  syncTags(sealTags, 'sealed', sealText, 0, -18);
   syncHover();
   syncEdges();
 }
@@ -427,7 +429,7 @@ function renderCard() {
   const status = s.background ? t('status.background') : a?.target?.pose === 'nap' ? t('status.napping') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status;
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
-  card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.task;
+  card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.limit ? s.limit.text : s.task;
   card.querySelector('.path').textContent = s.cwd;
   renderAsks(card, s);
   renderAnswer(card, s);
@@ -604,6 +606,24 @@ function syncEdges() {
   }
 }
 
+// Small read-only tags over characters (a sealed scribe; Task 5's sheet count): one element per actor id, kept while
+// textOf(actor) is non-empty, placed at the actor's feet + (dx, dy) logical px.
+function syncTags(tags, cls, textOf, dx, dy) {
+  for (const [id, el] of tags) { const a = cast.actors.get(id); if (!a || !textOf(a)) { el.remove(); tags.delete(id); } }
+  for (const a of cast.actors.values()) {
+    const text = textOf(a);
+    if (!text) continue;
+    let el = tags.get(a.id);
+    if (!el) { el = document.createElement('div'); el.className = `lbl tag ${cls}`; overlay.appendChild(el); tags.set(a.id, el); }
+    if (el.textContent !== text) el.textContent = text;
+    setStyle(el, { left: `${(a.x + dx) * scale}px`, top: `${(a.y + dy) * scale}px` });
+  }
+}
+// A scribe stopped on a usage limit (backend `limit`): sealed until the reset hour.
+const sealTags = new Map();
+const sealText = a => (!a.h && !a.leaving && a.s.limit && !labels.has(a.id)
+  ? (a.s.limit.resetMs ? t('limitLabel', { time: hhmm(new Date(a.s.limit.resetMs)) }) : t('limitSealed')) : '');
+
 // Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
 const tip = document.getElementById('tip');
 let mouse = null;
@@ -691,6 +711,7 @@ if (tauri() || REMOTE) {
   listen('petition', () => quietNow() || chime());
   listen('question', () => quietNow() || chime([880, 1175]));
   listen('petition-stale', () => chime([990, 660, 990, 660]));
+  listen('limit', () => quietNow() || chime([520, 390]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
   listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done' && !quietNow()) chime([1320, 1760]); });
   listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));

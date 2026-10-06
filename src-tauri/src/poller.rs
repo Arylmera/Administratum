@@ -74,6 +74,9 @@ impl Poller {
         let mut roster = registry::merge(prev, scanned);
         registry::track_compaction(prev, &mut roster, now_ms);
         for s in roster.iter_mut() {
+            if s.limit.as_ref().and_then(|l| l.reset_ms).is_some_and(|r| r <= now_ms) {
+                s.limit = None; // the reset hour has passed: the next prompt will go through
+            }
             if !branches.get(&s.cwd).is_some_and(|(at, _)| at.elapsed() < BRANCH_EVERY) {
                 branches.insert(s.cwd.clone(), (Instant::now(), git::branch_of(Path::new(&s.cwd))));
             }

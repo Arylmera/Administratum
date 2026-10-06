@@ -197,8 +197,9 @@ fn set_quiet(enabled: bool, from_min: u16, to_min: u16) {
 
 /// The toasts' wording from the active theme (toast.rs; app.js pushes it on start and on a theme change).
 #[tauri::command]
-fn set_toast_text(petition: String, question: String, stale: String, needed: String) {
-    toast::set(toast::Text { petition, question, stale, needed });
+#[allow(clippy::too_many_arguments)]
+fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String) {
+    toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed });
 }
 
 /// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh).
@@ -548,6 +549,20 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     .show();
                 emit(&app, "petition-stale", &s);
             }
+            let mut limit_events = vec![];
+            for wave in tracker.new_limits(&roster) {
+                let reset = wave[0].limit.as_ref().and_then(|l| l.reset_ms);
+                let time = reset.map_or_else(|| "later".to_string(), toast::hhmm);
+                if !quiet {
+                    let names: Vec<&str> = wave.iter().map(|s| s.name.as_str()).collect();
+                    let body = if wave.len() == 1 { format!("{} · {}", wave[0].dept, wave[0].limit.as_ref().map_or("", |l| l.text.as_str())) } else { names.join(", ") };
+                    let _ = app.notification().builder().title(toast::limit_title(&words, &names, &time)).body(body).show();
+                }
+                emit(&app, "limit", wave.len());
+                for s in &wave {
+                    limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
+                }
+            }
             {
                 let now = now_ms;
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
@@ -569,6 +584,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 if !first {
                     events.extend(chronicle::lifecycle(&prev, &roster, now));
                 }
+                events.extend(limit_events);
                 for e in &events {
                     c.record(e);
                     // The first scan backfills today; only fresh events play live in the scene.

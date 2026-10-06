@@ -36,6 +36,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Green lamp on the desk (20 s) / blinking red lamp | Test run passed / failed (`cargo test`, `npm test`, `npm run test`, `pnpm test`, `yarn test`, `pytest`, `vitest`, `jest`, `go test`) |
 | Spark and smoke puff on the desk | A tool call returned an error |
 | Scribe raises its scroll, gold glint, soft chime | A turn that took 5 min or more finished |
+| Scribe stays at its desk under a `sealed · resets 14:00` tag | The session hit a subscription usage limit. One toast per wave: sessions sealed until the same hour share it. The tag goes at the reset hour or at the next prompt |
 
 Adepts play a smaller version of these reactions at their console.
 
@@ -130,7 +131,7 @@ and the 6 previous days. Each day shows:
 - **Tithe**: tokens (new input/output vs. cache), working time (time sessions spent busy or in a shell),
   event count, tokens and time per department and per model, and 24-hour charts of tokens and working minutes.
 - **Chronicle**: the event log, newest first. It covers commits, pushes, test passes and failures, tool errors,
-  long tasks finished, arrivals, departures, petitions opened and answered, and compactions. You can filter it
+  long tasks finished, arrivals, departures, petitions opened and answered, compactions and usage limits. You can filter it
   by department. While the Chronicon is open, new events appear at the top.
 
 Tokens are counted once per assistant message. Subagent tokens count toward the parent's project. On first sight
