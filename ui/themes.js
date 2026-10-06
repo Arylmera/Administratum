@@ -33,28 +33,46 @@ defineTheme({
   text: { subtitle: 'Ordo Xenos · Archive of the Inquisition', motto: 'Suffer not the alien to live' },
 });
 
-// Ordo Malleus, the vigil against the daemon. The same hall, easy on the eyes: muted parchment and screens, softer glows.
+// Ordo Malleus, the vigil against the daemon: Grey Knight silver for brass, slate-blue robes, warded blue screens and
+// coolant, pale violet witch-candles, the warp glowing beyond the gate. Kept dim and soft, easy on the eyes.
 defineTheme({
   id: 'night', world: 'w40k', name: 'Ordo Malleus',
-  px: { p: '#a89c80', P: '#857652', b: '#a49a86', c: '#4fbf74', o: '#4fbf74', O: '#b8d8c0', f: '#c8883a', F: '#e0c890', '+': '#4f9a6a', h: '#c0944a' },
-  ink: { coolant: '#2a7a4a', screenHot: '#8fcfa0', cant: 'rgba(124,255,158,.18)' },
-  light: { amber: 'rgba(240,168,60,.16)', green: 'rgba(124,255,158,.09)', red: 'rgba(200,40,28,.14)', lampOn: 'rgba(124,255,158,.3)' },
-  ui: { '--ink': '#b8ac8c', '--light': '#d8ccac', '--green': '#4fbf74', '--pink': '#d06a5a', '--red': '#7a1a14', '--glow': '#801c14',
-    '--card': '#b0a078', '--paper': '#b8a882', '--paper-edge': '#a49264', '--paper-hi': '#c4b48c', '--paper-q': '#b8ac8c' },
+  px: { r: '#2a3040', R: '#3e4660', d: '#161a24', t: '#3e4660', T: '#161a24', z: '#2a3040', j: '#2a3040',
+    g: '#a8b0bc', G: '#5e6674', h: '#dce2ea', U: '#2a303a', p: '#a8a28c', P: '#80785e', b: '#a09c8c', x: '#3a4a8a',
+    c: '#8fb4e8', C: '#16203a', o: '#8fb4e8', O: '#d0e0ff', f: '#9a8ad0', F: '#d8d0f0',
+    1: '#1e2028', 2: '#0c0e12', 3: '#2c3040', 4: '#1e2028', 5: '#20222a', 6: '#101218', D: '#1a1e30', E: '#0e1020', N: '#161a2c',
+    X: '#7a8494', Y: '#aab4c4', Z: '#454c5a', i: '#2a2e38', '!': '#3a4a8a', '+': '#8a9ae0', $: '#1a0a2a', '%': '#3a1a5a' },
+  rank: { high: { robe: { r: '#323a54', R: '#4a5478', d: '#1a1e30', z: '#dce2ea', t: '#dce2ea', T: '#a8b0bc', g: '#dce2ea', G: '#a8b0bc' } },
+    novice: { robe: { r: '#3a3c42', R: '#54565e', d: '#222428', z: '#3a3c42', j: '#3a3c42', t: '#54565e', T: '#222428' } } },
+  ink: { coolant: '#5a6ac0', screenHot: '#c8d8ff', screenDim: '#5a7ab0', screenMark: '#3a4a8a', screenFlicker: 'rgba(22,32,58,.55)',
+    screenOff: '#2e3e6a', cant: 'rgba(143,180,232,.2)' },
+  light: { amber: 'rgba(160,140,220,.16)', green: 'rgba(143,180,232,.1)', red: 'rgba(200,40,28,.14)', burn: 'rgba(190,180,240,.4)',
+    lampOn: 'rgba(143,180,232,.3)' },
+  ui: { '--bg': '#04050a', '--bar': '#0a0c14', '--edge': '#262c3c', '--btn': '#10131c', '--ink': '#b0b4c0', '--light': '#d0d6e0',
+    '--dim': '#6e7688', '--copper': '#a8b0bc', '--green': '#8fb4e8', '--red': '#3a4a8a', '--pink': '#9aa8e8', '--blood': '#1a2040',
+    '--glow': '#4a5ac0', '--wax': '#2e3a6a', '--wax-deep': '#10142a', '--label': '#0c0f1c', '--label-sel': '#1a2040',
+    '--label-btn': '#121628', '--plaque': '#0a0c14', '--leather': '#454c5a', '--leather-deep': '#1e222a', '--yes': '#2e3e6a',
+    '--yes-deep': '#16203a', '--card': '#a8a28c', '--paper': '#b0aa92', '--paper-edge': '#989078', '--paper-hi': '#bcb69e',
+    '--paper-q': '#b0b4c0', '--rod-hi': '#c8d0dc', '--rod': '#7a8494', '--rod-lo': '#3a404a', '--rod-edge': '#161a20', '--rod-cap': '#e6ecf4' },
   text: { subtitle: 'Ordo Malleus · Night vigil of the Inquisition', motto: 'The hammer falls in the dark' },
 });
 
-// Ordo Hereticus, whose witch-light leaves no shadow. Accessibility: pure black outlines, a lighter floor, brighter robes, colour-blind-safe departments (Okabe-Ito), no
-// wall weathering, stronger glows, and a high-contrast frame.
+// Ordo Hereticus, whose witch-light leaves no shadow: black, bone and blood red, the screens and coolant burning like
+// a pyre. Accessibility first: pure black outlines, a lighter floor, bright robes, colour-blind-safe departments
+// (Okabe-Ito), no wall weathering, strong glows, a high-contrast frame.
 defineTheme({
   id: 'contrast', world: 'w40k', name: 'Ordo Hereticus',
-  px: { k: '#000000', 1: '#3a3d42', 2: '#0a0b0c', 3: '#5a5e64', 4: '#34343a', 5: '#36363c', r: '#8a1c12', R: '#c23a24', d: '#4a0c08',
-    p: '#f0e6c8', P: '#b8a878', c: '#9affb8', o: '#9affb8' },
+  px: { k: '#000000', 1: '#3a3a3e', 2: '#0a0a0c', 3: '#5e5e64', 4: '#38363a', 5: '#3a383c', r: '#9a1a10', R: '#d0382a', d: '#4a0a06',
+    g: '#e0b040', G: '#8a6010', h: '#ffe080', p: '#f4ead0', P: '#c0ac80', b: '#f0e8d8',
+    c: '#ffc040', C: '#3a1a00', o: '#ffc040', O: '#fff4d0', f: '#ff8a20', F: '#fff0a0',
+    D: '#4a1410', E: '#200806', N: '#3a0c08', '!': '#c03a10', '+': '#ffa040', '%': '#a02010' },
   sash: ['#e69f00', '#56b4e9', '#009e73', '#f0e442', '#0072b2', '#d55e00', '#cc79a7', '#ffffff'],
-  ink: { cant: 'rgba(0,0,0,0)', grime: 'rgba(0,0,0,0)', scratchSheen: 'rgba(0,0,0,0)', scratch: '#0e0a08' },
-  light: { amber: 'rgba(240,168,60,.34)', green: 'rgba(124,255,158,.22)' },
-  ui: { '--bg': '#000000', '--bar': '#000000', '--ink': '#f0e6c8', '--dim': '#c0b090', '--edge': '#8a7a5c', '--red': '#ff3a20', '--pink': '#ffb0a0',
-    '--green': '#9affb8', '--label': '#000000', '--paper-ink': '#000000', '--paper-ink-2': '#2a1a08', '--paper-ink-3': '#1a1006' },
+  ink: { cant: 'rgba(0,0,0,0)', grime: 'rgba(0,0,0,0)', scratchSheen: 'rgba(0,0,0,0)', scratch: '#0e0a08',
+    coolant: '#ff6a20', screenHot: '#fff0b0', screenDim: '#e08a20', screenMark: '#a04a10', screenFlicker: 'rgba(58,26,0,.55)', screenOff: '#7a3a10' },
+  light: { amber: 'rgba(255,150,40,.36)', green: 'rgba(255,192,64,.22)', burn: 'rgba(255,170,60,.6)', lampOn: 'rgba(255,192,64,.55)' },
+  ui: { '--bg': '#000000', '--bar': '#000000', '--ink': '#f4ead0', '--dim': '#c8b890', '--edge': '#8a7a5c', '--red': '#ff3a20', '--pink': '#ffb0a0',
+    '--green': '#ffc040', '--copper': '#e0b040', '--blood': '#6a0e08', '--glow': '#ff3a20', '--yes': '#7a3a10', '--yes-deep': '#3a1a00',
+    '--label': '#000000', '--paper-ink': '#000000', '--paper-ink-2': '#2a1a08', '--paper-ink-3': '#1a1006' },
   text: { subtitle: 'Ordo Hereticus · Witch-light of the Inquisition', motto: 'Innocence proves nothing' },
 });
 
