@@ -33,7 +33,7 @@ pub fn valid_exe(path: &Path) -> Result<&str, String> {
     let ok = path.is_absolute()
         && s.to_ascii_lowercase().ends_with(".exe")
         && s.chars().all(|c| c.is_alphanumeric() || " \\:._-()".contains(c));
-    if ok { Ok(s) } else { Err(format!("cannot build a firewall rule for this program path: {s}")) }
+    if ok { Ok(s) } else { Err(format!("unsupported program path: {s}")) }
 }
 
 pub fn allow_script(port: u16, exe: &str) -> String {
@@ -63,7 +63,7 @@ pub fn encode(script: &str) -> String {
     out
 }
 
-fn powershell(script: &str) -> Result<std::process::Output, String> {
+pub fn powershell(script: &str) -> Result<std::process::Output, String> {
     crate::no_window(Command::new("powershell.exe"))
         .args(["-NoProfile", "-NonInteractive", "-EncodedCommand", &encode(script)])
         .output()

@@ -191,6 +191,20 @@ fn set_toast_text(petition: String, question: String, stale: String, needed: Str
     toast::set(toast::Text { petition, question, stale, needed });
 }
 
+/// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh).
+#[tauri::command(async)]
+fn desktop_shortcut() -> Result<(), String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let exe = firewall::valid_exe(&exe)?;
+    let out = firewall::powershell(&format!(
+        "$ErrorActionPreference = 'Stop'
+$s = (New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop') + '\\Administratum.lnk')
+$s.TargetPath = '{exe}'
+$s.Save()"
+    ))?;
+    if out.status.success() { Ok(()) } else { Err(String::from_utf8_lossy(&out.stderr).trim().to_string()) }
+}
+
 /// "Start at login": `enable` = None reads it. Keeps the tray check item in step.
 #[tauri::command]
 fn start_at_login(enable: Option<bool>, app: AppHandle, login: State<CheckMenuItem<tauri::Wry>>) -> Result<bool, String> {
@@ -354,7 +368,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.

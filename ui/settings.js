@@ -214,6 +214,8 @@ export function initSettings(hooks) {
     for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
     for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
   };
+  const desk = form.querySelector('.desk-icon');
+  desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
   form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
   form.querySelector('.reset').onclick = () => {
     Object.assign(settings, DEFAULTS);
