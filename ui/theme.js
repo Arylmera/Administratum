@@ -106,7 +106,8 @@ export const TEXT = {
     compaction: 'Context compacted' },
   prefs: { theme: 'Theme', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
     stale: 'Petition turns stale after', nap: 'Idle to the Refectorium after', cog: 'Stay at the cogitator for',
-    pauseHint: 'Near-zero CPU when unseen; petitions still alert.' },
+    pauseHint: 'Near-zero CPU when unseen; petitions still alert.',
+    cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed' },
 };

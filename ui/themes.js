@@ -105,6 +105,8 @@ defineTheme({
     '--paper-shade': '#5a5a8a', '--paper-line': '#3a3a7a', '--paper-ink': '#e0e4ff', '--paper-ink-2': '#9aa0d8', '--paper-ink-3': '#7a80c0',
     '--paper-err': '#ff5a8a', '--leather': '#2a2458', '--leather-deep': '#120f2a', '--chart-new': '#ff2e88', '--chart-cache': '#3af0ff',
     '--rod-hi': '#ff8ac0', '--rod': '#ff2e88', '--rod-lo': '#7a0a4a', '--rod-edge': '#1a0410', '--rod-cap': '#ffd0ea',
+    // terminal type for titles, hot pink over the glass
+    '--display': "'VT323', monospace", '--paper-accent': '#ff2e88',
   },
   text: {
     subtitle: 'Sector 7 · Netrunner Den', motto: 'Jack in, stay frosty',
@@ -119,7 +121,8 @@ defineTheme({
     event: { commit: 'Commit signed', petition: 'Request', 'petition-answered': 'Request answered', compaction: 'Cache flushed' },
     prefs: { chime: 'Request ping', petitions: 'Requests', questions: 'A question at the end of a turn counts as a request',
       stale: 'Request goes stale after', nap: 'Idle to the lounge after', cog: 'Stay at the server rack for',
-      pauseHint: 'Near-zero CPU when unseen; requests still alert.' },
+      pauseHint: 'Near-zero CPU when unseen; requests still alert.',
+      cat: { hall: 'Den', petitions: 'Requests', scribes: 'Runners', system: 'System', remote: 'Remote access' } },
     toast: { petition: 'Request from {name}', stale: 'Request still waiting: {name}' },
   },
 });

@@ -148,7 +148,7 @@ export function initSettings(hooks) {
     return invoke(cmd, args).then(showRemote, err => { rvErr.textContent = String(err); readRemote(true); })
       .finally(() => { for (const el of els) el.disabled = false; });
   };
-  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; });
+  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; root.querySelector('.cats [data-cat="remote"]').hidden = true; });
   const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
   // Firewall rule for the port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
   const fwLine = rv.querySelector('.rv-fw'), fwPublic = rv.querySelector('.rv-public'), fwBtns = rv.querySelectorAll('.rv-fw-btn');
@@ -207,6 +207,12 @@ export function initSettings(hooks) {
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
     sync();
+  };
+  // Categories: a side button shows its section of the form, one at a time.
+  const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
+  for (const b of cats) b.onclick = () => {
+    for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
+    for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
   };
   form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
   form.querySelector('.reset').onclick = () => {

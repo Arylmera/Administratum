@@ -28,6 +28,8 @@
     --label: #1e0a08; --label-sel: #3a1410; --label-btn: #2a0d0a; --plaque: #140d09; --yes: #2e6b47; --yes-deep: #16301f;
     /* parchment: the card, the Chronicon, Settings */
     --card: #cdbb8f; --paper: #d8c79c; --paper-edge: #c2ac78; --paper-hi: #e3d4ac; --paper-tab: #bfa877; --paper-q: #d6c79f; --paper-shade: #a8946a; --paper-line: #8a6a3a; --paper-ink: #1a120c; --paper-ink-2: #5a3c16; --paper-ink-3: #3a2810; --paper-err: #621009; --leather: #6e3f17; --leather-deep: #3a200c; --chart-new: #a8281c; --chart-cache: #127a5c;
+    /* titles (header, Chronicon, Settings) and the accent over the parchment */
+    --display: 'Pirata One', serif; --paper-accent: var(--blood);
     /* the scroll rods */
     --rod-hi: #d8a050; --rod: #8a5320; --rod-lo: #4a2a0e; --rod-edge: #2a1606; --rod-cap: #f0d080;
   }
@@ -35,7 +37,7 @@
   body { overflow: clip; } /* not a scroll container: focus() or scrollIntoView() cannot shift the header and the stage */
   body { display: flex; flex-direction: column; background-size: 100% 100%, var(--tile, 40px) var(--tile, 40px); image-rendering: pixelated; }
   header { flex: none; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 12px; background: var(--bar); border-bottom: 2px solid var(--blood); }
-  header h1 { margin: 0; font: 400 22px/1 'Pirata One', serif; }
+  header h1 { margin: 0; font: 400 22px/1 var(--display); }
   .tier { display: flex; flex-direction: column; font-size: 10px; color: var(--green); }
   .tier { min-width: 0; } .tier span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tier .motto { color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
@@ -117,7 +119,7 @@
   #chron .rod::before { left: -.4em; } #chron .rod::after { right: -.4em; }
   #chron .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, var(--paper) 30%, var(--paper-edge) 100%); border-left: 2px solid var(--paper-line); border-right: 2px solid var(--paper-line); box-shadow: inset 0 0 1.5em color-mix(in srgb, var(--leather) 45%, transparent); }
   #chron .top { flex: none; display: flex; align-items: center; gap: .6em; padding: .5em .9em .2em; }
-  #chron h2 { margin: 0; font: 400 1.7em/1 'Pirata One', serif; color: var(--blood); }
+  #chron h2 { margin: 0; font: 400 1.7em/1 var(--display); color: var(--paper-accent); }
   #chron .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: 2px; color: var(--blood); font: inherit; cursor: pointer; }
   /* Parchment ink is explicit everywhere: nothing on the sheet inherits the page's light --ink. */
   #chron .sheet, #chron .legend, #chron .row, #chron .row .n, #chron .stat, #chron .events li, #chron .events .who, #chron .events .d { color: var(--pk); }
@@ -174,42 +176,65 @@
   @media (max-width: 600px) { .tithe { display: none; } }
   @media (max-width: 520px) { #chron .events li { grid-template-columns: 3.2em 1.2em minmax(4em, 8em) 1fr; } #chron .events .dept { display: none; } }
   @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh { animation: none; } }
-  /* Settings: the same parchment scroll as the Chronicon, narrower. */
-  #prefs { position: absolute; z-index: 6; top: 0; left: 50%; transform: translateX(-50%); width: min(28em, calc(100% - 12px)); max-height: 100%;
+  /* Settings: the same scroll as the Chronicon; categories down the side, each one's settings grouped by type.
+     Every colour and the title font come from the theme (T.ui), so the panel follows it. */
+  #prefs { position: absolute; z-index: 6; top: 0; left: 50%; transform: translateX(-50%); width: min(44em, calc(100% - 12px)); max-height: 100%;
     display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; font-size: calc(11px * var(--k, 1)); color: var(--paper-ink); }
   #prefs.open { grid-template-rows: auto 1fr auto; }
   #prefs[hidden] { display: none; }
   #prefs .rod { height: .9em; margin: 0 -.5em; border-radius: .45em; background: linear-gradient(var(--rod-hi), var(--rod) 45%, var(--rod-lo)); border: 1px solid var(--rod-edge); box-shadow: 0 3px 4px rgba(0,0,0,.6); }
   #prefs .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, var(--paper) 30%, var(--paper-edge) 100%); border-left: 2px solid var(--paper-line); border-right: 2px solid var(--paper-line); box-shadow: inset 0 0 1.5em color-mix(in srgb, var(--leather) 45%, transparent); }
   #prefs .top { flex: none; display: flex; align-items: center; padding: .5em .9em .3em; border-bottom: 2px solid var(--paper-line); }
-  #prefs h2 { margin: 0; font: 400 1.7em/1 'Pirata One', serif; color: var(--blood); }
-  #prefs .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: 2px; color: var(--blood); font: inherit; cursor: pointer; }
-  #prefs form { flex: 1; min-height: 0; overflow-y: auto; padding: .3em .9em .8em; scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; }
-  #prefs fieldset { margin: .4em 0 0; padding: 0; border: none; }
-  #prefs legend { padding: 0; margin-bottom: .2em; font-size: .85em; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
-  #prefs label { display: flex; align-items: center; gap: .5em; min-height: 1.9em; border-bottom: 1px dotted color-mix(in srgb, var(--leather) 40%, transparent); }
-  #prefs label > span:first-child { flex: 1; }
+  #prefs h2 { margin: 0; font: 400 1.7em/1 var(--display); color: var(--paper-accent); }
+  #prefs .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: 2px; color: var(--paper-accent); font: inherit; cursor: pointer; }
+  #prefs form { flex: 1 1 auto; height: 26em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every category: no jump between them */
+  #prefs .cats { display: flex; flex-direction: column; padding: .4em 0; background: var(--paper-tab); border-right: 1px solid var(--paper-line); overflow-y: auto; scrollbar-width: thin; }
+  #prefs .cats [data-cat] { display: flex; align-items: center; gap: .5em; min-height: 2.6em; padding: 0 .7em; background: none; border: none; border-left: 3px solid transparent; color: var(--paper-ink-3); font: inherit; font-size: 1.1em; text-align: left; cursor: pointer; }
+  #prefs .cats [data-cat][aria-current="page"] { background: var(--paper); border-left-color: var(--paper-accent); color: var(--paper-accent); }
+  #prefs .cats [data-cat]:hover { background: color-mix(in srgb, var(--paper) 60%, transparent); }
+  #prefs .cats svg { flex: none; width: 1.3em; height: 1.3em; }
+  #prefs .cats .reset { margin: auto .6em .2em; }
+  #prefs .pane { min-height: 0; overflow-y: auto; padding: .2em .9em .8em; scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; }
+  #prefs fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4em; margin: .5em 0 0; padding: 0; border: none; }
+  #prefs fieldset fieldset { display: contents; } /* a disabled group inside a type, no box of its own */
+  #prefs legend, #prefs .sub { float: left; grid-column: 1 / -1; width: 100%; padding: 0 0 .15em; margin-bottom: .1em; border-bottom: 1px solid var(--paper-line); font-size: .85em; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
+  #prefs .sub { float: none; grid-column: 1 / -1; margin-top: .5em; }
+  #prefs label { display: flex; align-items: center; gap: .5em; min-height: 2.4em; padding: .15em .5em; box-sizing: border-box; background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: 3px; }
+  #prefs label > span:first-child { flex: 1; line-height: 1.05; }
+  #prefs .wide, #prefs .hint, #prefs .clear, #prefs .btns, #prefs .rv-on, #prefs .rv-urls { grid-column: 1 / -1; }
+  #prefs .clear { justify-self: start; }
+  #prefs .btns { display: flex; flex-wrap: wrap; gap: .4em; }
+  #prefs .btns .clear, #prefs .rv-on .clear { margin-top: 0; }
   #prefs .unit { width: 3.2em; white-space: nowrap; color: var(--paper-ink-2); }
-  #prefs input[type="number"], #prefs select { width: 5.5em; box-sizing: border-box; padding: .1em .3em; background: var(--paper-hi); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; text-align: right; }
+  #prefs input[type="number"], #prefs select { width: 5.5em; box-sizing: border-box; padding: .1em .3em; background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; text-align: right; }
   #prefs select { width: 8.1em; text-align: left; }
-  #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--blood); }
+  #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--paper-accent); }
   #prefs input:disabled { opacity: .5; }
-  #prefs input[type="range"] { width: 7em; margin: 0; accent-color: var(--blood); }
+  #prefs input[type="range"] { flex: 0 1 12em; min-width: 5em; margin: 0; accent-color: var(--paper-accent); }
   #prefs output[name="scaleOut"] { width: 2.6em; text-align: right; }
   #prefs:has(input[name="scale"]:active) { opacity: .3; } /* see the hall through the panel while dragging the scale */
   #prefs input[name="lat"], #prefs input[name="lon"] { width: 6.5em; }
-  #prefs .hint { margin: .3em 0 0; font-size: .85em; color: var(--paper-ink-2); }
-  #prefs .clear { margin-top: .4em; padding: .2em .7em; background: none; color: var(--blood); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; cursor: pointer; }
-  #prefs .reset { margin-top: .8em; padding: .3em .8em; background: var(--leather); color: var(--light); border: 1px solid var(--leather-deep); border-radius: 2px; font: inherit; cursor: pointer; }
+  #prefs .hint { margin: 0; font-size: .85em; color: var(--paper-ink-2); }
+  #prefs .clear { margin-top: .2em; padding: .2em .7em; background: none; color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; cursor: pointer; }
+  #prefs .reset { padding: .3em .8em; background: var(--leather); color: var(--light); border: 1px solid var(--leather-deep); border-radius: 2px; font: inherit; cursor: pointer; }
   #prefs [hidden] { display: none; }
   #prefs fieldset:disabled label { opacity: .75; }
-  #prefs .rv-urls { margin: .3em 0 0; padding: 0; list-style: none; user-select: text; overflow-wrap: anywhere; }
-  #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: .5em auto 0; padding: 6px; background: #fff; image-rendering: pixelated; }
+  #prefs .rv-urls { margin: 0; padding: 0; list-style: none; user-select: text; overflow-wrap: anywhere; }
+  #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: .5em auto; padding: 6px; background: #fff; image-rendering: pixelated; }
   #prefs .rv-qr[hidden] { display: none; }
   #prefs .rv-err { color: var(--wax); font-weight: 600; }
   #prefs .rv-fw:not([data-rule="allowed"]) { color: var(--wax); }
   #prefs .reset:hover { filter: brightness(1.2); }
-  #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid var(--blood); outline-offset: 1px; }
+  #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid var(--paper-accent); outline-offset: 1px; }
+  /* narrow: the categories become a row of tabs, one column of settings */
+  @media (max-width: 600px) {
+    #prefs form { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    #prefs .cats { flex-direction: row; flex-wrap: wrap; padding: 0; border-right: none; border-bottom: 1px solid var(--paper-line); }
+    #prefs .cats [data-cat] { border-left: none; border-bottom: 3px solid transparent; padding: 0 .5em; }
+    #prefs .cats [data-cat][aria-current="page"] { border-bottom-color: var(--paper-accent); }
+    #prefs .cats .reset { margin: .3em .4em .3em auto; }
+    #prefs fieldset { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
   @media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } #modes button { padding: 5px 6px; } } /* room for the gear at 700 px */
   @keyframes alarm { 50% { background: var(--wax-deep); box-shadow: 0 0 14px 3px color-mix(in srgb, var(--alarm) 90%, transparent); } }
@@ -285,64 +310,95 @@
     <div class="sheet">
       <div class="top"><h2>Settings</h2><button type="button" class="close" aria-label="Close settings">✕</button></div>
       <form>
+        <nav class="cats" aria-label="Settings categories">
+          <button type="button" data-cat="hall" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-5h4v5"></path></svg><span data-t="prefs.cat.hall">Hall</span></button>
+          <button type="button" data-cat="petitions"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg><span data-t="prefs.cat.petitions">Petitions</span></button>
+          <button type="button" data-cat="scribes"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span data-t="prefs.cat.scribes">Scribes</span></button>
+          <button type="button" data-cat="system"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"></rect><path d="M8 20h8M12 16v4"></path></svg><span data-t="prefs.cat.system">System</span></button>
+          <button type="button" data-cat="remote" class="host-only"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0"></path><circle cx="12" cy="20" r="1"></circle></svg><span data-t="prefs.cat.remote">Remote view</span></button>
+          <button type="button" class="reset host-only">Reset to defaults</button>
+        </nav>
+        <div class="pane">
         <p class="hint remote-only" hidden>The PC's settings, read only. Scale, lighting and chime apply to this device.</p>
-        <fieldset><legend>Window</legend>
-          <label class="host-only"><span>Always on top</span><input type="checkbox" name="onTop"></label>
-          <label class="host-only"><span>Start at login</span><input type="checkbox" name="login"></label>
-          <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
-          <label><span>Scale</span><input type="range" name="scale" min="1" max="3" step="0.25" value="2"><output name="scaleOut"></output></label>
-          <p class="hint">Pixel size; the window decides how big the hall is.</p>
-        </fieldset>
-        <fieldset><legend>Hall</legend>
-          <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full" data-t="modes.full">Full light</option><option value="candles" data-t="modes.candles">Candles</option></select></label>
-          <label><span data-t="prefs.theme">Theme</span><select name="world"></select></label>
-          <label><span>Style</span><select name="theme"></select></label>
-          <label><span data-t="prefs.chime">Petition chime</span><input type="checkbox" name="chime"></label>
-        </fieldset>
-        <fieldset data-host><legend data-t="prefs.petitions">Petitions</legend>
-          <label><span data-t="prefs.questions">A question at the end of a turn counts as a petition</span><input type="checkbox" name="questions"></label>
-          <label><span>Toast for questions</span><input type="checkbox" name="questionToast"></label>
-        </fieldset>
-        <fieldset data-host><legend>Thresholds</legend>
-          <label><span data-t="prefs.stale">Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>
-          <label><span data-t="prefs.nap">Idle to the Refectorium after</span><input type="number" name="napMin" min="1" max="120" step="1"><span class="unit">min</span></label>
-          <label><span data-t="prefs.cog">Stay at the cogitator for</span><input type="number" name="cogHoldS" min="0" max="120" step="1"><span class="unit">s</span></label>
-        </fieldset>
-        <fieldset data-host><legend>Context window</legend>
-          <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
-          <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
-        </fieldset>
-        <fieldset data-host><legend>Performance</legend>
-          <label><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
-          <p class="hint">Lower saves CPU when idle; flicker gets choppier.</p>
-          <label><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
-          <p class="hint" data-t="prefs.pauseHint">Near-zero CPU when unseen; petitions still alert.</p>
-        </fieldset>
-        <fieldset data-host><legend>Location</legend>
-          <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
-          <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>
-          <p class="hint">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
-          <button type="button" class="clear">Clear</button>
-        </fieldset>
-        <fieldset id="remote" class="host-only"><legend>Remote view</legend>
+        <section data-cat="hall">
+          <fieldset><legend>Choices</legend>
+            <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full" data-t="modes.full">Full light</option><option value="candles" data-t="modes.candles">Candles</option></select></label>
+            <label><span data-t="prefs.theme">Theme</span><select name="world"></select></label>
+            <label><span>Style</span><select name="theme"></select></label>
+          </fieldset>
+          <fieldset><legend>Switches</legend>
+            <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
+          </fieldset>
+          <fieldset><legend>Values</legend>
+            <label class="wide"><span>Scale</span><input type="range" name="scale" min="1" max="3" step="0.25" value="2"><output name="scaleOut"></output></label>
+            <p class="hint">Pixel size; the window decides how big the hall is.</p>
+          </fieldset>
+          <fieldset data-host><legend>Location</legend>
+            <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
+            <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>
+            <p class="hint">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
+            <button type="button" class="clear">Clear</button>
+          </fieldset>
+        </section>
+        <section data-cat="petitions" hidden>
+          <fieldset><legend>Switches</legend>
+            <label><span data-t="prefs.chime">Petition chime</span><input type="checkbox" name="chime"></label>
+            <fieldset data-host>
+              <label><span>Toast for questions</span><input type="checkbox" name="questionToast"></label>
+              <label class="wide"><span data-t="prefs.questions">A question at the end of a turn counts as a petition</span><input type="checkbox" name="questions"></label>
+            </fieldset>
+          </fieldset>
+          <fieldset data-host><legend>Values</legend>
+            <label class="wide"><span data-t="prefs.stale">Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>
+          </fieldset>
+        </section>
+        <section data-cat="scribes" hidden>
+          <fieldset data-host><legend>Timing</legend>
+            <label class="wide"><span data-t="prefs.nap">Idle to the Refectorium after</span><input type="number" name="napMin" min="1" max="120" step="1"><span class="unit">min</span></label>
+            <label class="wide"><span data-t="prefs.cog">Stay at the cogitator for</span><input type="number" name="cogHoldS" min="0" max="120" step="1"><span class="unit">s</span></label>
+          </fieldset>
+          <fieldset data-host><legend>Context window</legend>
+            <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
+            <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
+          </fieldset>
+        </section>
+        <section data-cat="system" hidden>
+          <fieldset data-host><legend>Switches</legend>
+            <label class="host-only"><span>Always on top</span><input type="checkbox" name="onTop"></label>
+            <label class="host-only"><span>Start at login</span><input type="checkbox" name="login"></label>
+            <label class="wide"><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
+            <p class="hint" data-t="prefs.pauseHint">Near-zero CPU when unseen; petitions still alert.</p>
+          </fieldset>
+          <fieldset data-host><legend>Choices</legend>
+            <label class="wide"><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
+            <p class="hint">Lower saves CPU when idle; flicker gets choppier.</p>
+          </fieldset>
+        </section>
+        <section data-cat="remote" hidden>
+        <fieldset id="remote" class="host-only"><legend>Switches</legend>
           <label><span>Serve on the local network</span><input type="checkbox" name="remoteOn"></label>
           <label><span>Allow remote actions</span><input type="checkbox" name="remoteActions"></label>
           <p class="hint">Anyone with the link on your network can approve or deny Claude Code permission prompts on this PC.</p>
+          <div class="sub">Connection</div>
           <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
           <p class="hint rv-fw" aria-live="polite"></p>
           <p class="hint rv-public" hidden>Windows treats this network as Public, so the rule does not apply. On a home network, mark it Private: Windows Settings → Network &amp; internet → your connection → Private network (or, in an admin PowerShell: Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private).</p>
-          <button type="button" class="clear rv-fw-btn" data-cmd="firewall_allow">Allow this port</button>
-          <button type="button" class="clear rv-fw-btn" data-cmd="firewall_remove">Remove rule</button>
+          <div class="btns">
+            <button type="button" class="clear rv-fw-btn" data-cmd="firewall_allow">Allow this port</button>
+            <button type="button" class="clear rv-fw-btn" data-cmd="firewall_remove">Remove rule</button>
+          </div>
           <p class="hint">Windows will ask for administrator permission.</p>
           <p class="hint rv-err" role="alert" hidden></p>
           <div class="rv-on" hidden>
+            <div class="sub">Pairing</div>
             <ul class="rv-urls"></ul>
             <img class="rv-qr" alt="Pairing QR code" hidden>
             <p class="hint">Scan with the tablet's camera to pair it. A new token unpairs every device.</p>
             <button type="button" class="clear rv-regen">Regenerate token</button>
           </div>
         </fieldset>
-        <button type="button" class="reset host-only">Reset to defaults</button>
+        </section>
+        </div>
       </form>
     </div>
     <div class="rod"></div>

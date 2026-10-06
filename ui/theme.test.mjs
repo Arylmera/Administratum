@@ -77,7 +77,9 @@ const cssVars = new Set([...html.slice(html.indexOf(':root {'), html.indexOf('}'
 assert.ok(cssVars.size > 40, 'found the :root variables');
 for (const id of Object.keys(THEMES)) for (const [k, v] of Object.entries(resolve(THEMES[id]).ui)) {
   assert.ok(cssVars.has(k), `${id}: ui ${k} is not a :root variable`);
-  assert.match(v, COLOR, `${id}: ui ${k}`);
+  // --display is the title font: a bundled family (index.html @font-face) with a generic fallback
+  if (k === '--display') assert.match(v, /^'(VT323|Pirata One)', (serif|monospace)$/, `${id}: ui ${k}`);
+  else assert.match(v, COLOR, `${id}: ui ${k}`);
 }
 
 // Wording: a theme only changes keys TEXT has; every key the page and the code ask for exists.
