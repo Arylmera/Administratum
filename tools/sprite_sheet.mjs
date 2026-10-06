@@ -5,8 +5,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANK, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF } from '../ui/sprites.js';
+import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF } from '../ui/sprites.js';
 import { THEMES, resolve } from '../ui/theme.js';
+import '../ui/themes.js';
 import { png, rgba } from './png_write.mjs';
 
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : dflt; };
@@ -40,10 +41,10 @@ function emit(id, group, frames, over, note) {
   entries.push({ id, group, file, note, size: `${lw}×${lh}`, w, h });
 }
 
-const sash = theme.sash[0], ranks = Object.keys(RANK);
+const sash = theme.sash[0], ranks = RANKS, rankName = r => theme.text.rank[r];
 for (const r of ranks) {
   const robe = { ...theme.rank[r].robe, y: sash };
-  for (const dir of ['down', 'up', 'right', 'left']) emit(`SCRIBE.${r}.${dir}`, 'Scribe (one per session)', SCRIBE[dir], robe, `${RANK[r].name} (${['opus', 'sonnet', 'haiku'].find(m => rankOf(m) === r)}), walking ${dir}, 3 frames. Source: \`ui/art/scribe.png\``);
+  for (const dir of ['down', 'up', 'right', 'left']) emit(`SCRIBE.${r}.${dir}`, 'Scribe (one per session)', SCRIBE[dir], robe, `${rankName(r)} (${['opus', 'sonnet', 'haiku'].find(m => rankOf(m) === r)}), walking ${dir}, 3 frames. Source: \`ui/art/scribe.png\``);
 }
 { // the department colours: one standing scribe per sash
   const f = SCRIBE.down[0], fw = 32, gap = 2, w = theme.sash.length * (fw + gap) - gap, h = f.length;
@@ -52,7 +53,7 @@ for (const r of ranks) {
   fs.writeFileSync(path.join(outDir, 'SCRIBE.sashes.png'), png(w * scale, h * scale, (x, y) => rgba(cells[Math.floor(y / scale) * w + Math.floor(x / scale)])));
   entries.push({ id: 'SCRIBE.sashes', group: 'Scribe (one per session)', file: 'SCRIBE.sashes.png', note: 'Department colours (theme sash), one per project', size: '16×17', w: w * scale, h: h * scale });
 }
-for (const r of ranks) for (const dir of ['down', 'up', 'right', 'left']) emit(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', ADEPT[dir], theme.rank[r].adept, `${RANK[r].name} adept, walking ${dir}, 3 frames. Source: \`ui/art/adept.png\``);
+for (const r of ranks) for (const dir of ['down', 'up', 'right', 'left']) emit(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', ADEPT[dir], theme.rank[r].adept, `${rankName(r)} adept, walking ${dir}, 3 frames. Source: \`ui/art/adept.png\``);
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {

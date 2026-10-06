@@ -3,6 +3,7 @@
 // chronicle_days commands and the live `chronicle` event.
 import { panel } from './panel.js';
 import { invoke, listen } from './bridge.js';
+import { T, t as say } from './theme.js';
 
 export const fmtTok = n => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${+(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k` : String(Math.round(n)));
 export const fmtDur = ms => { const m = Math.floor((ms || 0) / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`; };
@@ -26,7 +27,7 @@ const PIX = {
   petition: '..RRRR...RRwwRR..RRwwRR..RRwwRR..RRRRRR..RRwwRR...RRRR..........',
   'petition-answered': '..gggg...gggggg.gggggwggggggwgggwgwgggggggwggggg.gggggg...gggg..',
 };
-const KIND = { commit: 'Commit sealed', push: 'Pushed', 'tests-pass': 'Tests pass', 'tests-fail': 'Tests fail', 'tool-error': 'Tool error', 'task-done': 'Long task done', arrived: 'Arrived', left: 'Left', petition: 'Petition', 'petition-answered': 'Petition answered', compaction: 'Context compacted' };
+const kindName = kind => (T.text.event[kind] ? say(`event.${kind}`) : kind); // the theme's wording (theme.js TEXT.event)
 const icon = kind => {
   const p = PIX[kind] ?? '...........................kk......kk...........................';
   let r = '';
@@ -48,7 +49,7 @@ export function initChronicon(colorOf = () => null) {
     try {
       const t = await invoke('tithe_day', { day: dayKey() });
       plaque.textContent = `⛁ ${fmtTok(total(t))} · ${fmtDur(t.busyMs)}`;
-      plaque.title = `Tithe today: ${fmtTok(total(t))} tokens, ${fmtDur(t.busyMs)} of work`;
+      plaque.title = say('tithe.day', { tokens: fmtTok(total(t)), time: fmtDur(t.busyMs) });
     } catch { /* backend not ready: keep the last value */ }
   }
   refreshPlaque();
@@ -80,7 +81,7 @@ export function initChronicon(colorOf = () => null) {
     if (my !== seq || !isOpen()) return;
     cur = { day, events: (events ?? []).slice().sort((a, b) => b.ts - a.ts), filter: cur?.day === day ? cur.filter : '' };
     body.replaceChildren();
-    if (!events && !tithe) { body.append(h('p', 'quiet', 'The Chronicon is silent: no record could be read for this day.')); return; }
+    if (!events && !tithe) { body.append(h('p', 'quiet', say('log.silent'))); return; }
     body.append(summary(tithe, day === dayKey()), logSection());
     body.scrollTop = 0;
   }
@@ -198,11 +199,11 @@ export function initChronicon(colorOf = () => null) {
     const li = h('li', e.kind);
     const ico = h('span', 'k');
     ico.innerHTML = icon(e.kind); // static markup from PIX, no event data
-    ico.title = KIND[e.kind] ?? e.kind;
+    ico.title = kindName(e.kind);
     const who = h('span', 'who', e.name);
     if (e.helper) who.append(h('small', null, ` › ${e.helper}`));
-    li.append(h('time', null, hhmm(e.ts)), ico, who, h('span', 'dept', e.dept), h('span', 'd', e.detail || (KIND[e.kind] ?? e.kind)));
-    li.setAttribute('aria-label', `${hhmm(e.ts)} ${KIND[e.kind] ?? e.kind}: ${e.name}, ${e.dept}. ${e.detail ?? ''}`);
+    li.append(h('time', null, hhmm(e.ts)), ico, who, h('span', 'dept', e.dept), h('span', 'd', e.detail || kindName(e.kind)));
+    li.setAttribute('aria-label', `${hhmm(e.ts)} ${kindName(e.kind)}: ${e.name}, ${e.dept}. ${e.detail ?? ''}`);
     return li;
   }
 

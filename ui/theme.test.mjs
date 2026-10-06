@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { BASE, TIER_II, THEMES, T, resolve, defineTheme, setTheme, onTheme, themed, hexA } from './theme.js';
+import fs from 'node:fs';
+import { BASE, TIER_II, THEMES, T, TEXT, resolve, defineTheme, setTheme, onTheme, themed, hexA, t } from './theme.js';
+import './themes.js';
 import { MAPS, SCRIBE, ADEPT } from './sprites.js';
 
 const COLOR = /^(#[0-9a-f]{6}|rgba\(\d+,\d+,\d+,[\d.]+\))$/;
@@ -65,4 +67,42 @@ assert.equal(T.ink.brass, '#b8742e');
 assert.deepEqual(seen, ['test-blue', 'tier2']);
 off();
 delete THEMES['test-blue'];
+// The shipped themes are there (and so checked by the completeness loop above).
+assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'forge', 'night', 'tier2', 'xenos']);
+
+// Chrome colours: a theme's ui keys are CSS variables index.html declares.
+const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+const cssVars = new Set([...html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
+assert.ok(cssVars.size > 40, 'found the :root variables');
+for (const id of Object.keys(THEMES)) for (const [k, v] of Object.entries(resolve(THEMES[id]).ui)) {
+  assert.ok(cssVars.has(k), `${id}: ui ${k} is not a :root variable`);
+  assert.match(v, COLOR, `${id}: ui ${k}`);
+}
+
+// Wording: a theme only changes keys TEXT has; every key the page and the code ask for exists.
+const keysOf = (o, pre = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? keysOf(v, `${pre}${k}.`) : [pre + k]));
+const all = new Set(keysOf(TEXT));
+for (const id of Object.keys(THEMES)) {
+  for (const k of keysOf(THEMES[id].text ?? {})) assert.ok(all.has(k), `${id}: text key ${k} is not in TEXT`);
+  for (const k of keysOf(resolve(THEMES[id]).text)) {
+    const v = k.split('.').reduce((o, p) => o[p], resolve(THEMES[id]).text);
+    assert.ok(typeof v === 'string' || (Array.isArray(v) && v.length === 2 && v.every(x => typeof x === 'string')), `${id}: text ${k}`);
+  }
+}
+const asked = new Set([...html.matchAll(/data-t(?:-title|-aria)?="([^"]+)"/g)].map(m => m[1]));
+for (const f of ['app.js', 'chronicon.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
+assert.ok(asked.size > 25, 'found the texts asked for');
+for (const k of asked) assert.ok(all.has(k), `text key '${k}' is asked for but not in TEXT`);
+for (const k of ['busy', 'shell', 'idle', 'waiting']) assert.ok(all.has(`status.${k}`), `status.${k}`); // app.js: status.${s.status}
+for (const k of ['high', 'standard', 'novice']) assert.ok(all.has(`rank.${k}`), `rank.${k}`);
+// t(): placeholders, plurals, nested keys, a theme's wording, unknown keys
+assert.equal(t('petitions', { n: 1 }), '1 petition');
+assert.equal(t('petitions', { n: 0 }), '0 petitions');
+assert.equal(t('adeptOf', { kind: 'Explore', owner: 'api' }), 'Explore · adept of api');
+assert.equal(t('toast.stale', { name: 'api' }), 'Petition still waiting: api');
+assert.equal(t('no.such.key'), 'no.such.key');
+setTheme('xenos');
+assert.equal(t('motto'), 'Suffer not the alien to live');
+assert.equal(t('rank.high'), 'Magos', 'a theme keeps the wording it does not change');
+setTheme('tier2');
 console.log('theme ok');

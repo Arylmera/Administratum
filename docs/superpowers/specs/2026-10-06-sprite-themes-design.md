@@ -1,6 +1,6 @@
 # Sprites and themes: review, cost, plan
 
-Date: 2026-10-06. Status: phase 1 done; every sprite and the room's structure are art files with their anchors; phases 2 to 4 proposed.
+Date: 2026-10-06. Status: phases 1 and 2 done (themes, picker, chrome, wording); every sprite and the room's structure are art files with their anchors; phases 3 and 4 proposed.
 
 ## How sprites work today
 
@@ -156,28 +156,47 @@ judging the result) is the user's time and is listed separately.
 
 | Depth | What a theme can change | Remaining dev work | Art / design per theme |
 |---|---|---|---|
-| **A. Palette theme** | Every colour: robes, brass, stone, screens, lights, departments | Phase 2: ~0.5–1 day, once | ~0.5 day per palette (≈40 px + ≈80 ink + 13 light + 8 sash), iterated with the gallery |
+| **A. Palette theme** | Every colour: robes, brass, stone, screens, lights, departments, the page's chrome; and the wording | Done (phase 2) | ~0.5 day per palette (≈40 px + ≈80 ink + 13 light + 8 sash), iterated with the gallery |
 | **B. Sprite overrides** | A, plus redrawn sprites with the **same size and anchors** | Phase 3: ~0.5 day, once (per-theme sheets; the art files are done) | Small decor 15–30 min, furniture 1–2 h, cogitator/gate/Magos 2–4 h each, a character set (4 dirs × 3 frames) 4–6 h. A full re-skin is ≈30–50 h of pixel work |
 | **C. New geometry** | B, plus sprites with a new size or new anchor points | Done: characters', props' and room tiles' anchors are in their JSON | as B |
-| **D. Another setting** | Also the room's look (floor, walls, pipes, doors), the vocabulary, the effects | Room tiles done. Left: per-theme text (Magos, petitions...) ~0.5 day; per-theme effect shapes (sparks, steam) only if needed | as B, plus ~25 room tiles (most are small: a 4×4 floor, a 12×10 plate) |
+| **D. Another setting** | Also the room's look (floor, walls, pipes, doors), the vocabulary, the effects | Room tiles done. Wording done (phase 2). Left: per-theme effect shapes (sparks, steam) only if needed | as B, plus ~25 room tiles (most are small: a 4×4 floor, a 12×10 plate) |
 
 Recommendation: ship A next (cheap, and the foundation is ready). Then B/D per setting: the art is files and
 everything the code needs to know about it (anchors, fill rules) is in their JSON, so a new setting is mostly art.
 
-## Phase 2: first alternative palette + picker (proposed)
+## Phase 2: themes, picker, chrome and wording (done)
 
-1. **Picker**: an "Appearance" row in Settings with a theme dropdown, stored as `adm.theme`. `settings.js` already
-   persists any `adm.*` key to `settings.json`, so the Rust side needs no change. Apply `setTheme` before the first
-   static draw. The remote view inherits the PC's theme. (~1–2 h)
-2. **HTML chrome**: move the `index.html` colours to CSS variables, add a `ui` part to themes (applied with
-   `documentElement.style.setProperty`), and move `chronicon.js` `PAL` into the theme. (~2–3 h)
-3. **Palette tooling**: export a theme's `px` as a GIMP/Aseprite `.gpl` palette from `tools/sprite_sheet.mjs`, and
-   render the gallery for any theme (`--theme <id>` already works). (~30 min)
-4. **A first palette**, chosen by you. Candidates that reuse the art as is:
-   - *Forge World* (cooler iron, orange plasma)
-   - *Ordo Xenos* (green/black)
-   - *Night shift* (low-glare, dim)
-   - *High contrast* (accessibility: stronger outlines, colour-blind-safe sash set)
+- **Five themes** (`ui/themes.js`, previews compared in the app before choosing):
+  - *Tier II* (default)
+  - *Forge World*: rust plates, orange plasma, amber screens
+  - *Ordo Xenos*: black-green robes, silver, teal, cold light
+  - *Night Shift*: muted, softer glows
+  - *High Contrast*: black outlines, lighter floor, colour-blind-safe departments, no weathering
+- **Picker**:
+  - in Settings → Hall → Theme, stored as `adm.theme`, with no Rust change for the setting itself
+  - applied before the first draw
+  - the remote view keeps its own choice, like scale and lighting
+  - Reset returns to Tier II
+- **Chrome**: `index.html` has no colour literals left except the startup error box.
+  - About 45 CSS variables are named by role in `:root`: header, petitions and alarms, labels, parchment, scroll rods.
+    Translucent tints are `color-mix()` of the same variable.
+  - A theme's `ui` part overrides any of them. `app.js` applies them and the browser `theme-color`, and clears them when
+    switching back.
+  - The stale-petition alarm stays red in every theme on purpose.
+- **Wording** (`TEXT` in `theme.js`, a theme's `text` part, `t(key, vars)`):
+  - rank names, statuses, petitions and questions (singular/plural pairs), the overflow plaque, the empty hall
+  - the Chronicon and its event names, the Tithe, Settings labels, and the Windows toasts
+  - `index.html` marks its texts with `data-t`, `data-t-title` and `data-t-aria`
+  - **Toasts**: `src-tauri/src/toast.rs` holds the toast templates; `app.js` pushes them with `set_toast_text` on start
+    and on a theme change. An empty or over-long template keeps Tier II's.
+  - Forge World and Ordo Xenos have their own subtitle and motto.
+  - For a non-40k setting: a theme with `text: { rank: { high: 'Director', standard: 'Engineer', novice: 'Intern' },
+    petitions: ['{n} request', '{n} requests'], status: { napping: 'Idle · in the break room' }, log: { title: 'Logbook' }, … }`.
+- **Tests**:
+  - every theme's `ui` keys are `:root` variables
+  - every text key the page or code asks for exists, and a theme's `text` has no unknown keys
+  - plurals, placeholders and the fallback
+  - Rust: the toast templates and their fallbacks
 
 ## Phase 3: per-theme sprite art (proposed)
 

@@ -1,13 +1,34 @@
 import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
-import { RES, RANK, rankOf } from './sprites.js';
-import { T, onTheme } from './theme.js';
+import { RES, rankOf } from './sprites.js';
+import { T, onTheme, setTheme, t } from './theme.js';
+import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, initSettings, renderSettings } from './settings.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
+
+// The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
+setTheme(store.get('adm.theme', 'tier2'));
+// The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
+// data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
+let chromeSet = [];
+function applyChrome() {
+  const root = document.documentElement.style;
+  for (const k of chromeSet) root.removeProperty(k);
+  chromeSet = Object.keys(T.ui);
+  for (const [k, v] of Object.entries(T.ui)) root.setProperty(k, v);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bar').trim());
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-t-title]')) el.title = t(el.dataset.tTitle);
+  for (const el of document.querySelectorAll('[data-t-aria]')) el.setAttribute('aria-label', t(el.dataset.tAria));
+  document.title = t('title');
+  if (!REMOTE) invoke('set_toast_text', { petition: t('toast.petition'), question: t('toast.question'), stale: t('toast.stale'), needed: t('toast.needed') }).catch(() => {});
+}
+applyChrome();
+onTheme(applyChrome);
 
 const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
@@ -253,9 +274,8 @@ const fillOf = ctx => (ctx ? ctx.tokens / windowOf(ctx.model) : 0);
 const kM = n => (n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 const contextLine = ctx => `Context · ${ctx ? `${kM(ctx.tokens)} / ${kM(windowOf(ctx.model))} (${Math.round(100 * fillOf(ctx))}%)` : '—'}`;
 const modelName = model => { const m = /opus|sonnet|haiku|fable/i.exec(model ?? '')?.[0].toLowerCase(); return m ? m[0].toUpperCase() + m.slice(1) : model ?? 'unrecorded'; };
-const rankLine = model => `${modelName(model)} · ${RANK[rankOf(model)].name}`;
+const rankLine = model => `${modelName(model)} · ${t(`rank.${rankOf(model)}`)}`;
 
-const STATUS_TEXT = { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door' };
 const cast = new Cast();
 const deptOrder = [];
 let layout = { blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0, plan: [] };
@@ -285,8 +305,8 @@ function onRoster(next) {
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
   const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;
   const count = document.getElementById('count');
-  const qs = `${nq} question${nq === 1 ? '' : 's'}`;
-  count.textContent = n || !nq ? `${n} petition${n === 1 ? '' : 's'}${nq ? ` · ${qs}` : ''}` : qs;
+  const qs = t('questions', { n: nq });
+  count.textContent = n || !nq ? `${t('petitions', { n })}${nq ? ` · ${qs}` : ''}` : qs;
   count.classList.toggle('on', n > 0);
   count.classList.toggle('ask', !n && nq > 0);
   count.classList.toggle('alarm', roster.some(isStale));
@@ -337,8 +357,8 @@ function consolesOf(dept) {
 const plaques = new Map();
 function renderPlaques(blocks) {
   const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
-  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
-  if (!roster.length) want.set('empty', ['empty', 'No scribes on duty', 0, 120 + (hall.h - SCENE.h) / 2]);
+  if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
+  if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + (hall.h - SCENE.h) / 2]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
   for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
     let el = plaques.get(k);
@@ -356,7 +376,7 @@ function renderCard() {
   if (a?.h && !a.leaving) {
     card.hidden = false;
     const owner = roster.find(r => r.id === a.owner);
-    card.querySelector('.name').textContent = `${a.h.kind} · adept of ${owner?.name ?? '?'}`;
+    card.querySelector('.name').textContent = t('adeptOf', { kind: a.h.kind, owner: owner?.name ?? '?' });
     card.querySelector('.title').hidden = true;
     card.querySelector('.meta').textContent = `Model: ${rankLine(a.h.model ?? a.h.context?.model)}`;
     card.querySelector('.ctx').textContent = contextLine(a.h.context);
@@ -373,7 +393,7 @@ function renderCard() {
   const title = card.querySelector('.title');
   title.textContent = s.title ?? '';
   title.hidden = !s.title;
-  const status = s.background ? 'Idle · background shell running' : a?.target?.pose === 'nap' ? 'Idle · dozing in the Refectorium' : STATUS_TEXT[s.status] ?? s.status;
+  const status = s.background ? t('status.background') : a?.target?.pose === 'nap' ? t('status.napping') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status;
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
   card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.task;
@@ -490,7 +510,7 @@ function syncLabels() {
       const who = document.createElement('button');
       who.className = 'who';
       who.onclick = () => pick(a.id);
-      who.setAttribute('aria-label', `${a.s.name}, petition: ${want}`);
+      who.setAttribute('aria-label', t('petitionLabel', { name: a.s.name, want }));
       const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; who.appendChild(s); };
       line('', a.s.name);
       line('sub', `${want} · ${ago(a.s.sinceMs)}`);
@@ -547,7 +567,7 @@ function syncEdges() {
     setStyle(b, flat ? { left: along, top: at } : { left: at, top: along });
     b.classList.toggle('alarm', pets.length > 0);
     if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
-    const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${pets.length} petitioning` : ''}`;
+    const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${t('petitioning', { n: pets.length })}` : ''}`;
     if (b.title !== label) { b.title = label; b.setAttribute('aria-label', label); }
     b.to = t.a; // read by the click handler set once below
   }

@@ -6,6 +6,8 @@
 //   ink   colours drawn in code (scene.js, actors.js, app.js), by name. Where it is the same material as a px char
 //         (brass, iron, parchment, phosphor, flame) it is derived from px, so recolouring the material moves both.
 //   light glow colours (lighting.js reads them off the lights, scene.js picks them), the night tint, the window beams
+//   ui    the page's chrome colours: CSS variables of index.html's :root by name ('--blood': '#...'), only those changed
+//   text  the wording: rank names, petitions, rooms, the Chronicon... (TEXT below), only the keys a theme changes
 // A theme lists only what it changes from its base (default Tier II); px edits flow into the derived ink.
 
 // Tier II palette (ported from the Claude Design board "Tier II — Data-Shrine").
@@ -83,6 +85,35 @@ const LIGHT = {
   night: '6,4,3', beam: '235,220,180', // rgb: the darkness over the hall, the daylight shafts (alpha set by lighting.js)
 };
 
+// Tier II's wording, by key. {name} placeholders are filled by t(); [one, other] pairs pick by {n}. A setting that is
+// not the 40k scriptorium replaces what it needs (an office: Director, requests, the break room, the logbook...).
+// index.html marks its texts with data-t / data-t-title / data-t-aria (app.js applies them).
+export const TEXT = {
+  title: 'Administratum', subtitle: 'II · Data-Shrine of the Cult Mechanicus', motto: 'Knowledge is power, guard it well',
+  rank: { high: 'Magos', standard: 'Tech-priest', novice: 'Novice' },
+  status: { busy: 'Writing', shell: 'At the cogitator', idle: 'Turn done, awaiting orders', waiting: 'Petition at your door',
+    background: 'Idle · background shell running', napping: 'Idle · dozing in the Refectorium' },
+  petitions: ['{n} petition', '{n} petitions'], questions: ['{n} question', '{n} questions'], petitioning: '{n} petitioning',
+  petitionLabel: '{name}, petition: {want}', adeptOf: '{kind} · adept of {owner}',
+  overflow: '+{n} in the stacks', empty: 'No scribes on duty',
+  modes: { full: 'Full light', candles: 'Candles' },
+  log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.' },
+  tithe: { hint: 'Tithe today: tokens and working time', day: 'Tithe today: {tokens} tokens, {time} of work' },
+  event: { commit: 'Commit sealed', push: 'Pushed', 'tests-pass': 'Tests pass', 'tests-fail': 'Tests fail', 'tool-error': 'Tool error',
+    'task-done': 'Long task done', arrived: 'Arrived', left: 'Left', petition: 'Petition', 'petition-answered': 'Petition answered',
+    compaction: 'Context compacted' },
+  prefs: { theme: 'Theme', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
+    stale: 'Petition turns stale after', nap: 'Idle to the Refectorium after', cog: 'Stay at the cogitator for',
+    pauseHint: 'Near-zero CPU when unseen; petitions still alert.' },
+  // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
+  toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed' },
+};
+const merge = (a, b) => { // deep merge of plain objects (b wins), arrays replaced
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b ?? {})) out[k] = v && typeof v === 'object' && !Array.isArray(v) && a?.[k] && typeof a[k] === 'object' && !Array.isArray(a[k]) ? merge(a[k], v) : v;
+  return out;
+};
+
 export const TIER_II = {
   id: 'tier2', name: 'Tier II — Data-Shrine',
   px: BASE,
@@ -94,6 +125,8 @@ export const TIER_II = {
   },
   ink: inkOf,
   light: LIGHT,
+  ui: {},
+  text: TEXT,
 };
 
 // Registered themes by id. A theme: { id, name, px?, sash?, rank?, ink?, light? }, each part only what changes.
@@ -102,13 +135,13 @@ export function defineTheme(t) { THEMES[t.id] = t; return t; }
 
 // A theme over Tier II: px, light and the rank parts merged, ink derived from the merged px then overridden.
 export function resolve(t) {
-  if (t === TIER_II) return { id: t.id, name: t.name, px: { ...BASE }, sash: [...t.sash], rank: t.rank, ink: inkOf(BASE), light: { ...LIGHT } };
+  if (t === TIER_II) return { id: t.id, name: t.name, px: { ...BASE }, sash: [...t.sash], rank: t.rank, ink: inkOf(BASE), light: { ...LIGHT }, ui: {}, text: TEXT };
   const px = { ...BASE, ...t.px }, rank = {};
   for (const [c, [base, layer]] of Object.entries(OVER)) if (!t.px?.[c] && t.px?.[base]) px[c] = over(px[base], layer);
   for (const [k, r] of Object.entries(TIER_II.rank)) rank[k] = { robe: { ...r.robe, ...t.rank?.[k]?.robe }, adept: { ...r.adept, ...t.rank?.[k]?.adept } };
   const ink = inkOf(px);
   if (t.ink) Object.assign(ink, typeof t.ink === 'function' ? t.ink(px) : t.ink);
-  return { id: t.id, name: t.name, px, sash: t.sash ?? [...TIER_II.sash], rank, ink, light: { ...LIGHT, ...t.light } };
+  return { id: t.id, name: t.name, px, sash: t.sash ?? [...TIER_II.sash], rank, ink, light: { ...LIGHT, ...t.light }, ui: { ...t.ui }, text: merge(TEXT, t.text) };
 }
 
 // The active theme, read at draw time (T.ink.brass). T.px, T.ink and T.light are the same objects for the app's
@@ -122,7 +155,7 @@ export function setTheme(id) {
   const next = resolve(THEMES[id] ?? TIER_II);
   if (next.id === T.id) return;
   Object.assign(T.px, next.px); Object.assign(T.ink, next.ink); Object.assign(T.light, next.light);
-  Object.assign(T, { id: next.id, name: next.name, sash: next.sash, rank: next.rank, gen: T.gen + 1 });
+  Object.assign(T, { id: next.id, name: next.name, sash: next.sash, rank: next.rank, ui: next.ui, text: next.text, gen: T.gen + 1 });
   for (const f of listeners) f(T);
 }
 // fn(T) after every theme change (drop caches drawn with the old colours).
@@ -135,3 +168,12 @@ export function themed(make) {
 }
 // '#rrggbb' + alpha -> 'rgba(r,g,b,a)'.
 export const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+
+// The active theme's wording for a dotted key ('log.title'), placeholders filled from vars; an [one, other] pair picks
+// by vars.n. An unknown key reads as itself, so a typo shows on screen instead of vanishing.
+export function t(key, vars = {}) {
+  let v = key.split('.').reduce((o, k) => o?.[k], T.text);
+  if (Array.isArray(v)) v = v[vars.n === 1 ? 0 : 1];
+  if (typeof v !== 'string') return key;
+  return v.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
