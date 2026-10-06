@@ -1,4 +1,5 @@
 import { RES } from './sprites.js';
+import { T, onTheme } from './theme.js';
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
 // radius with drawImage, the vignette a canvas per scene size and phase. No gradient is built per frame.
@@ -35,6 +36,7 @@ function vignette(w, h, beams) {
   return c;
 }
 let layer = null, beam = null;
+onTheme(() => { beam = null; });
 
 // Darkness with light holes (destination-out), then additive glows, beams by day, vignette. w, h: the scene's
 // logical size (hallOf); windows: the x of each window (scene.js propsOf), a beam falls from each by day.
@@ -42,8 +44,8 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   if (level.beams) {
     if (!beam) {
       beam = g.createLinearGradient(0, 26, 0, 116);
-      beam.addColorStop(0, 'rgba(235,220,180,.16)');
-      beam.addColorStop(1, 'rgba(235,220,180,0)');
+      beam.addColorStop(0, `rgba(${T.light.beam},.16)`);
+      beam.addColorStop(1, `rgba(${T.light.beam},0)`);
     }
     g.fillStyle = beam;
     for (const bx of windows.map(x => x - 4)) {
@@ -59,7 +61,7 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   const d = layer.getContext('2d');
   d.globalCompositeOperation = 'source-over';
   d.clearRect(0, 0, w, h);
-  d.fillStyle = `rgba(6,4,3,${level.dark})`;
+  d.fillStyle = `rgba(${T.light.night},${level.dark})`;
   d.fillRect(0, 0, w, h);
   d.globalCompositeOperation = 'destination-out';
   for (const l of lights) {

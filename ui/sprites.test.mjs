@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { BASE, MAPS, SCRIBE, ADEPT, SASH, RES } from './sprites.js';
+import { BASE, MAPS, SCRIBE, ADEPT, RES } from './sprites.js';
+import { TIER_II } from './theme.js';
 
 // Low-res [width, height] of every map, recorded from the up()-only file before the HD redraw.
 const LOW = {
@@ -11,7 +12,7 @@ const LOW = {
 };
 
 assert.equal(RES, 2);
-assert.equal(SASH.length, 8);
+assert.equal(TIER_II.sash.length, 8);
 const check = (name, map, [w, h]) => {
   assert.equal(map.length, 2 * h, `${name}: height`);
   map.forEach((row, j) => {

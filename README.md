@@ -316,10 +316,18 @@ Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --versio
 cargo test --manifest-path src-tauri/Cargo.toml   # registry, poller, chronicle, settings, demo
 node ui/layout.test.mjs                           # layout, routes, stable desks, compact/bays
 node ui/sprites.test.mjs                          # sprite maps and ranks
+node ui/theme.test.mjs                            # themes: complete palettes, runtime switch
 node ui/sun.test.mjs                              # sun times and Auto phases
 ```
 
 The node self-checks are plain `assert` scripts with no test framework.
+
+### Sprites and themes
+
+Sprites are pixel maps in `ui/sprites.js`; every colour (theirs and the ones drawn in code) comes from the active
+theme in `ui/theme.js`. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
+the gallery used to discuss them one by one (a **Sprite** issue each). Design and roadmap:
+[`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
 
 ### Build the installer
 

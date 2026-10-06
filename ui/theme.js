@@ -1,0 +1,129 @@
+// Themes: every colour the hall is drawn with, swappable at runtime
+// (docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
+//   px    the pixel-map palette, one char per colour (the maps in sprites.js)
+//   sash  department colours (rug, plaque, the scribe's sash: px y)
+//   rank  per-model overrides of px: robe (scribe maps), adept (adept maps)
+//   ink   colours drawn in code (scene.js, actors.js, app.js), by name. Where it is the same material as a px char
+//         (brass, iron, parchment, phosphor, flame) it is derived from px, so recolouring the material moves both.
+//   light glow colours (lighting.js reads them off the lights, scene.js picks them), the night tint, the window beams
+// A theme lists only what it changes from its base (default Tier II); px edits flow into the derived ink.
+
+// Tier II palette (ported from the Claude Design board "Tier II — Data-Shrine").
+export const BASE = {
+  k: '#0e0a08', g: '#b8742e', G: '#6e3f17', p: '#d6c79f', P: '#a8946a', w: '#4a3020', W: '#2e1c12',
+  m: '#5a5e63', M: '#2a2c30', c: '#7cff9e', C: '#16301f', f: '#f0a83c', F: '#ffe6a0', x: '#8e1c16',
+  b: '#cfc3a8', B: '#948669', n: '#140c08', u: '#2b3f5e', v: '#2f4a33', r: '#5e1710', d: '#3a0d09',
+  a: '#ff3a20', o: '#7cff9e', y: '#d9a84e', s: '#b89a7c', e: '#120c0a',
+  // HD mid-tones/highlights: robe lit, brass lit, iron lit, optic glint, wood lit
+  R: '#8c2c1c', h: '#e8b45a', l: '#8a9096', O: '#e6ffee', L: '#6a4630',
+  // adept robe: bone mid, bone shadow
+  q: '#a89a78', Q: '#6a5e48',
+  // rank markers in the scribe maps (t hood rim, T shoulder seam, z cog, j cog hub): robe-coloured unless rank gilds them
+  t: '#8c2c1c', T: '#3a0d09', z: '#5e1710', j: '#5e1710',
+  J: '#a89a78', I: '#a89a78', // adept hood cog, bone unless gilded
+};
+
+// robe: scribe palette overrides; adept: adept palette overrides (x = hem/stripe trim).
+const gilt = (r, R, d) => ({ r, R, d, z: '#e8b45a', j: '#6e3f17', t: '#e8b45a', T: '#b8742e', g: '#e8b45a', G: '#b8742e' });
+const plain = (r, R, d) => ({ r, R, d, z: r, j: r, t: R, T: d, g: d, G: d });
+
+const inkOf = px => ({
+  // shared with the maps
+  outline: px.k, brass: px.g, brassDark: px.G, brassLit: px.h, parchment: px.p, parchmentShade: px.P, bone: px.b,
+  iron: px.m, ironDark: px.M, ironLit: px.l, phosphor: px.c, phosphorDark: px.C, glint: px.O,
+  flame: px.f, flameCore: px.F, alarm: px.a, crimson: px.x,
+  // floor grate, wall plates, the dark walls between rooms
+  grate: '#2b2d30', grateGap: '#141516', grateLip: '#383b3f',
+  wallPlate: '#2a2a2c', wallPlateEast: '#2c2c2e', wallSeam: '#18191b', wallFoot: '#140f0c', wallDark: '#100b08',
+  sheen: 'rgba(255,240,220,.07)', rivetGlint: 'rgba(255,240,220,.18)', scratchSheen: 'rgba(255,240,220,.06)',
+  grime: 'rgba(10,6,4,.35)', pillar: '#1c1d20',
+  sanctumPlate: '#301612', sanctumSeam: '#1e0c09', sanctumFloor: '#3a110e',
+  // copper pipes, brass flanges
+  copper: '#c8853a', copperLit: '#e8b070', copperShade: '#8a4f22', copperDark: '#5a3214', brassDeep: '#3a200c',
+  // coolant channels and the binary cant on the walls
+  coolantEdge: '#2a8a50', coolant: '#3aa864', coolantCore: '#b4ffc8', cant: 'rgba(124,255,158,.38)',
+  // screens: the cogitator bank, the Magos's chest, an unlit desk slate
+  screenHot: '#b8ffc8', screenDim: '#3aa864', screenMark: '#2a8a50', screenFlicker: 'rgba(22,48,31,.55)', screenOff: '#2e6b47',
+  lampDead: '#1c1d20',
+  // shadows under props and furniture
+  shadow: 'rgba(0,0,0,.4)', shadowDeep: 'rgba(0,0,0,.45)',
+  // paper, the red warning sheet, scrolls
+  parchmentWarn: '#d8a08a', scrollRod: '#b89a7c', scrollInk: '#5a3c16',
+  // wax seals, the compaction fire, smoke (rgb; alpha set where drawn)
+  wax: '#c8281a', waxLit: '#ff8a6a', waxDark: '#5e1710', ash: '#3a3430', flash: '#ffffff',
+  smoke: '#beb4a4', sparkSmoke: '#c4bcae', steam: '#d6cebe',
+  // test lamp: [bulb, shine] per state (scene.js lampColor)
+  lamp: { on: [px.c, px.O], off: [px.C, '#2a8a50'], red: [px.a, '#ffd0b0'], dim: [px.x, '#c8281a'], dark: ['#3a0d09', '#5e1710'] },
+  // alarm beacon and the servo-skull's red eye
+  alarmGlow: '#ffd0b0', beaconOn: '#c8281a', beaconOff: '#5e1710', beaconRimOn: px.x, beaconRimOff: '#3a0d09',
+  beaconSweep: '#ff6a4a', beaconGlint: '#8c2c1c', searchlight: '#ff321e',
+  // the grand gate's void
+  void: '#060404', voidEmber: '#2a0a07', voidGlow: '#4e110c',
+  // windows by day and night (px overrides of MAPS.WINDOW)
+  windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' },
+  windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28' },
+  // the riveted iron tile behind the scene (app.js)
+  backdrop: '#17181b', backdropLit: '#24262a', backdropEdge: '#202226', backdropDark: '#0b0b0c',
+  backdropSeam: '#101113', backdropSeamLit: '#1f2124', backdropRivet: '#3a3d42', backdropRivetLit: px.m,
+  overflowPlaque: '#8a7a5c',
+});
+
+const LIGHT = {
+  amber: 'rgba(240,168,60,.26)', green: 'rgba(124,255,158,.16)', red: 'rgba(200,40,28,.22)',
+  burn: 'rgba(255,196,96,.5)', lampOn: 'rgba(124,255,158,.55)', lampRed: 'rgba(255,58,32,.6)', lampDim: 'rgba(255,58,32,.3)',
+  stamp: 'rgba(255,58,32,.7)', spark: 'rgba(255,230,160,.8)', glint: 'rgba(232,180,90,.6)',
+  beacon: 'rgba(255,58,32,.6)', beaconSweep: 'rgba(255,40,20,.4)', skullAlarm: 'rgba(255,58,32,.45)',
+  night: '6,4,3', beam: '235,220,180', // rgb: the darkness over the hall, the daylight shafts (alpha set by lighting.js)
+};
+
+export const TIER_II = {
+  id: 'tier2', name: 'Tier II — Data-Shrine',
+  px: BASE,
+  sash: ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'],
+  rank: {
+    high: { robe: gilt('#6e120d', '#9a2a18', '#300806'), adept: { x: '#d9a84e', b: '#e8dcb8', J: '#e8b45a', I: '#6e3f17' } },
+    standard: { robe: {}, adept: {} },
+    novice: { robe: plain('#6e3a30', '#8a5244', '#43231c'), adept: { x: '#5a564c', q: '#8e8a7e', Q: '#5a564c', b: '#a8a496', J: '#8e8a7e', I: '#8e8a7e' } },
+  },
+  ink: inkOf,
+  light: LIGHT,
+};
+
+// Registered themes by id. A theme: { id, name, px?, sash?, rank?, ink?, light? }, each part only what changes.
+export const THEMES = { [TIER_II.id]: TIER_II };
+export function defineTheme(t) { THEMES[t.id] = t; return t; }
+
+// A theme over Tier II: px, light and the rank parts merged, ink derived from the merged px then overridden.
+export function resolve(t) {
+  if (t === TIER_II) return { id: t.id, name: t.name, px: { ...BASE }, sash: [...t.sash], rank: t.rank, ink: inkOf(BASE), light: { ...LIGHT } };
+  const px = { ...BASE, ...t.px }, rank = {};
+  for (const [k, r] of Object.entries(TIER_II.rank)) rank[k] = { robe: { ...r.robe, ...t.rank?.[k]?.robe }, adept: { ...r.adept, ...t.rank?.[k]?.adept } };
+  const ink = inkOf(px);
+  if (t.ink) Object.assign(ink, typeof t.ink === 'function' ? t.ink(px) : t.ink);
+  return { id: t.id, name: t.name, px, sash: t.sash ?? [...TIER_II.sash], rank, ink, light: { ...LIGHT, ...t.light } };
+}
+
+// The active theme, read at draw time (T.ink.brass). T.px, T.ink and T.light are the same objects for the app's
+// life, refilled on a theme change (every theme has the same keys), so `const I = T.ink` is safe to keep. Values in
+// them (a colour, ink.lamp, ink.windowDay) are replaced: keep those only through themed().
+export const T = { gen: 0, ...resolve(TIER_II) };
+const listeners = new Set();
+
+// Switches the hall to the theme with this id (unknown ids fall back to Tier II). Caches reset through onTheme.
+export function setTheme(id) {
+  const next = resolve(THEMES[id] ?? TIER_II);
+  if (next.id === T.id) return;
+  Object.assign(T.px, next.px); Object.assign(T.ink, next.ink); Object.assign(T.light, next.light);
+  Object.assign(T, { id: next.id, name: next.name, sash: next.sash, rank: next.rank, gen: T.gen + 1 });
+  for (const f of listeners) f(T);
+}
+// fn(T) after every theme change (drop caches drawn with the old colours).
+export const onTheme = fn => { listeners.add(fn); return () => listeners.delete(fn); };
+// A value built from the active theme, rebuilt once after each change: keeps a stable identity in between, so the
+// sprite cache still finds override objects by identity.
+export function themed(make) {
+  let gen = -1, v;
+  return () => (gen === T.gen ? v : (gen = T.gen, v = make(T)));
+}
+// '#rrggbb' + alpha -> 'rgba(r,g,b,a)'.
+export const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;

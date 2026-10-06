@@ -1,4 +1,5 @@
-import { SCRIBE, ADEPT, MAPS, RANK, rankOf, blit } from './sprites.js';
+import { SCRIBE, ADEPT, MAPS, rankOf, blit } from './sprites.js';
+import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
 
@@ -176,17 +177,18 @@ export class Cast {
   }
 }
 
-// Scribe palette per (rank, department sash), kept so the sprite cache finds it by identity.
+// Scribe palette per (rank, department sash), kept so the sprite cache finds it by identity; per theme.
 const robes = new Map(); // rank -> sash -> palette
+onTheme(() => robes.clear());
 const robeOf = (rank, sash) => {
   const by = robes.get(rank) ?? robes.set(rank, new Map()).get(rank);
-  return by.get(sash) ?? by.set(sash, { ...RANK[rank].robe, y: sash }).get(sash);
+  return by.get(sash) ?? by.set(sash, { ...T.rank[rank].robe, y: sash }).get(sash);
 };
 
 // Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
 export function drawActor(g, a) {
   if (a.h) { // adept: 12x14, feet at (x, y)
-    const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14, over = RANK[rankOf(a.h.model ?? a.h.context?.model)].adept;
+    const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
     if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
     else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), over); // typing bob, 1 art px
     return;
@@ -211,23 +213,24 @@ export function drawActor(g, a) {
 
 // An unrolled scroll, 13x5 logical, rolled ends, writing and a red seal (art px = 0.5).
 function heldScroll(g, x, y) {
-  const r = (dx, dy, w, h, c) => { g.fillStyle = c; g.fillRect(x + dx, y + dy, w, h); };
-  r(-0.5, -0.5, 14, 6, '#0e0a08'); r(0.5, 0, 12, 5, '#d6c79f'); r(0.5, 4, 12, 1, '#a8946a');
-  for (const dx of [0, 11.5]) { r(dx - 0.5, -1, 2, 7, '#0e0a08'); r(dx, -0.5, 1, 6, '#b89a7c'); r(dx, -0.5, 0.5, 6, '#cfc3a8'); }
-  for (const [dy, w] of [[1, 8], [2, 9], [3, 6]]) r(2, dy, w, 0.5, '#5a3c16');
-  r(9, 2.5, 2, 2, '#0e0a08'); r(9.5, 3, 1, 1, '#c8281a'); r(9.5, 4, 0.5, 1.5, '#8e1c16');
+  const r = (dx, dy, w, h, c) => { g.fillStyle = c; g.fillRect(x + dx, y + dy, w, h); }, I = T.ink;
+  r(-0.5, -0.5, 14, 6, I.outline); r(0.5, 0, 12, 5, I.parchment); r(0.5, 4, 12, 1, I.parchmentShade);
+  for (const dx of [0, 11.5]) { r(dx - 0.5, -1, 2, 7, I.outline); r(dx, -0.5, 1, 6, I.scrollRod); r(dx, -0.5, 0.5, 6, I.bone); }
+  for (const [dy, w] of [[1, 8], [2, 9], [3, 6]]) r(2, dy, w, 0.5, I.scrollInk);
+  r(9, 2.5, 2, 2, I.outline); r(9.5, 3, 1, 1, I.wax); r(9.5, 4, 0.5, 1.5, I.crimson);
 }
 
 // "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.
 // One 7x7 art-px sprite (a dark outline so it reads over paper, a pale core), drawn twice with fading alpha.
 const Z = ['11111', '00010', '00100', '01000', '11111'];
 let zCv = null;
+onTheme(() => { zCv = null; });
 function zSprite() {
   if (zCv) return zCv;
   zCv = document.createElement('canvas');
   zCv.width = zCv.height = 7;
   const c = zCv.getContext('2d');
-  for (const [col, o, w] of [['#0e0a08', 0, 3], ['#e6ffee', 1, 1]]) {
+  for (const [col, o, w] of [[T.ink.outline, 0, 3], [T.ink.glint, 1, 1]]) {
     c.fillStyle = col;
     Z.forEach((row, j) => { for (let i = 0; i < 5; i++) if (row[i] === '1') c.fillRect(i + o, j + o, w, w); });
   }

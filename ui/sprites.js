@@ -1,38 +1,24 @@
-// Tier II palette and pixel maps (ported from the Claude Design board "Tier II — Data-Shrine").
-export const BASE = {
-  k: '#0e0a08', g: '#b8742e', G: '#6e3f17', p: '#d6c79f', P: '#a8946a', w: '#4a3020', W: '#2e1c12',
-  m: '#5a5e63', M: '#2a2c30', c: '#7cff9e', C: '#16301f', f: '#f0a83c', F: '#ffe6a0', x: '#8e1c16',
-  b: '#cfc3a8', B: '#948669', n: '#140c08', u: '#2b3f5e', v: '#2f4a33', r: '#5e1710', d: '#3a0d09',
-  a: '#ff3a20', o: '#7cff9e', y: '#d9a84e', s: '#b89a7c', e: '#120c0a',
-  // HD mid-tones/highlights: robe lit, brass lit, iron lit, optic glint, wood lit
-  R: '#8c2c1c', h: '#e8b45a', l: '#8a9096', O: '#e6ffee', L: '#6a4630',
-  // adept robe: bone mid, bone shadow
-  q: '#a89a78', Q: '#6a5e48',
-  // rank markers in the scribe maps (t hood rim, T shoulder seam, z cog, j cog hub): robe-coloured unless RANK gilds them
-  t: '#8c2c1c', T: '#3a0d09', z: '#5e1710', j: '#5e1710',
-  J: '#a89a78', I: '#a89a78', // adept hood cog, bone unless gilded
-};
-export const SASH = ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'];
+// Pixel maps (ported from the Claude Design board "Tier II — Data-Shrine"). Each char is a colour of the active
+// theme's px palette (theme.js), '.' transparent.
+import { BASE, T, onTheme } from './theme.js';
+export { BASE };
 
 // Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
+// Its colours (robe, adept) are the theme's: T.rank[rank].
 export const rankOf = model => (/opus|fable/i.test(model ?? '') ? 'high' : /haiku/i.test(model ?? '') ? 'novice' : 'standard');
-// robe: scribe palette overrides; adept: adept palette overrides (x = hem/stripe trim).
-const gilt = (r, R, d) => ({ r, R, d, z: '#e8b45a', j: '#6e3f17', t: '#e8b45a', T: '#b8742e', g: '#e8b45a', G: '#b8742e' });
-const plain = (r, R, d) => ({ r, R, d, z: r, j: r, t: R, T: d, g: d, G: d });
-export const RANK = {
-  high: { name: 'Magos', robe: gilt('#6e120d', '#9a2a18', '#300806'), adept: { x: '#d9a84e', b: '#e8dcb8', J: '#e8b45a', I: '#6e3f17' } },
-  standard: { name: 'Tech-priest', robe: {}, adept: {} },
-  novice: { name: 'Novice', robe: plain('#6e3a30', '#8a5244', '#43231c'), adept: { x: '#5a564c', q: '#8e8a7e', Q: '#5a564c', b: '#a8a496', J: '#8e8a7e', I: '#8e8a7e' } },
-};
+export const RANK = { high: { name: 'Magos' }, standard: { name: 'Tech-priest' }, novice: { name: 'Novice' } };
 
 export const RES = 2; // art pixels per logical pixel
 // Nearest-neighbour 2x upscale of a hand-written map: each char doubles horizontally, each row doubles vertically.
 // Only the two loose-sheet maps are still written low-res.
 const up = map => map.flatMap(row => { const r = row.split('').map(c => c + c).join(''); return [r, r]; });
 
-// Cached per map, then by the override object's identity (callers keep their overrides as constants), so a blit
-// costs no JSON; a new object with the same overrides still finds the canvas by its JSON key.
-const cache = new WeakMap(), NONE = {};
+// Cached per map, then by the override object's identity (callers keep their overrides as constants, or themed()),
+// so a blit costs no JSON; a new object with the same overrides still finds the canvas by its JSON key.
+// A theme change drops the whole cache.
+let cache = new WeakMap();
+const NONE = {};
+onTheme(() => { cache = new WeakMap(); });
 export function sprite(map, over = NONE) {
   let byMap = cache.get(map);
   if (!byMap) { byMap = { obj: new WeakMap(), json: new Map() }; cache.set(map, byMap); }
@@ -41,7 +27,7 @@ export function sprite(map, over = NONE) {
   const key = JSON.stringify(over);
   cv = byMap.json.get(key);
   if (!cv) {
-    const pal = { ...BASE, ...over };
+    const pal = { ...T.px, ...over };
     cv = document.createElement('canvas');
     cv.width = Math.max(...map.map(r => r.length));
     cv.height = map.length;
