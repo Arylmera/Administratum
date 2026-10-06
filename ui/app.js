@@ -372,8 +372,9 @@ function renderPlaques(blocks) {
 
 function renderCard() {
   const card = document.getElementById('card');
+  if (cast.actors.get(sel)?.leaving ?? true) sel = null; // the selected character left the hall: deselect it
   const s = roster.find(r => r.id === sel), a = cast.actors.get(sel);
-  if (a?.h && !a.leaving) {
+  if (a?.h) {
     card.hidden = false;
     const owner = roster.find(r => r.id === a.owner);
     card.querySelector('.name').textContent = t('adeptOf', { kind: a.h.kind, owner: owner?.name ?? '?' });
