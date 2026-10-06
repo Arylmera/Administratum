@@ -161,7 +161,8 @@ fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String) {
                 let Some((choice, since, id)) = arg.as_deref().and_then(toast::parse_action) else { return Ok(()) };
                 let open = handle.state::<Live>().lock().ok().and_then(|r| toast::still_open(&r, id, since).map(str::to_string));
                 if let Some(orca) = open {
-                    if answer_petition(orca, choice.to_string()).is_err() {
+                    if let Err(e) = answer_petition(orca, choice.to_string()) {
+                        eprintln!("toast answer: {e}");
                         let _ = handle.notification().builder().title(toast::fill(&toast::get().failed, &name)).show();
                     }
                 }
@@ -346,7 +347,13 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
             remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
             remote::Call::TitheDay(day) => json(tithe_day(day, a.state())),
             remote::Call::ChronicleDays => json(chronicle_days(a.state())),
-            remote::Call::SettingsLoad => settings_load(a.clone()),
+            remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
+                // The remote (LAN) view never learns the local "open folder" program/path; the local UI keeps them.
+                if let Some(o) = v.as_object_mut() {
+                    o.retain(|k, _| !k.starts_with("adm.open"));
+                }
+                v
+            }),
             remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
             remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
         }),
@@ -490,6 +497,13 @@ fn open_folder(path: String, app: AppHandle, live: State<Live>) -> Result<(), St
     Ok(())
 }
 
+/// Quiet-hours settings as saved by the UI (adm.quiet/"1", adm.quietFrom/adm.quietTo, minutes after
+/// midnight as strings): defaults to off, 1320 (22:00), 480 (8:00) on a missing or unparsable value.
+fn quiet_from_settings(v: &serde_json::Value) -> (bool, u16, u16) {
+    let num = |key: &str, default: u16| v[key].as_str().and_then(|s| s.parse().ok()).unwrap_or(default);
+    (v["adm.quiet"].as_str() == Some("1"), num("adm.quietFrom", 1320), num("adm.quietTo", 480))
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -508,6 +522,11 @@ fn main() {
             let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });
             app.manage::<Chron>(Mutex::new(Chronicle::open(dir, now_ms(), demo)));
             app.manage::<Live>(Mutex::new(Vec::new()));
+            // Apply quiet hours before the poll thread's first tick, so a restart during the
+            // night window does not toast until the webview gets around to pushing set_quiet.
+            let saved = settings_path(app.handle()).map(|p| settings::load(&p)).unwrap_or_default();
+            let (on, from, to) = quiet_from_settings(&saved);
+            quiet::set(on, from, to);
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             if let Ok((enabled, port, actions, token)) = settings_path(app.handle()).and_then(|p| remote_conf(&p)) {
@@ -580,17 +599,23 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 emit(&app, "petition-stale", &s);
             }
             let mut limit_events = vec![];
-            for wave in tracker.new_limits(&roster) {
-                let reset = wave[0].limit.as_ref().and_then(|l| l.reset_ms);
-                let time = reset.map_or_else(|| "later".to_string(), toast::hhmm);
-                if !quiet {
-                    let names: Vec<&str> = wave.iter().map(|s| s.name.as_str()).collect();
-                    let body = if wave.len() == 1 { format!("{} · {}", wave[0].dept, wave[0].limit.as_ref().map_or("", |l| l.text.as_str())) } else { names.join(", ") };
-                    let _ = app.notification().builder().title(toast::limit_title(&words, &names, &time)).body(body).show();
-                }
-                emit(&app, "limit", wave.len());
-                for s in &wave {
-                    limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
+            if first {
+                // A session already sealed before this app start is not a new wave: seed the tracker,
+                // but skip the toast, the chime event and the Chronicon record for it.
+                tracker.new_limits(&roster);
+            } else {
+                for wave in tracker.new_limits(&roster) {
+                    let reset = wave[0].limit.as_ref().and_then(|l| l.reset_ms);
+                    let time = reset.map_or_else(|| "later".to_string(), toast::hhmm);
+                    if !quiet {
+                        let names: Vec<&str> = wave.iter().map(|s| s.name.as_str()).collect();
+                        let body = if wave.len() == 1 { format!("{} · {}", wave[0].dept, wave[0].limit.as_ref().map_or("", |l| l.text.as_str())) } else { names.join(", ") };
+                        let _ = app.notification().builder().title(toast::limit_title(&words, &names, &time)).body(body).show();
+                    }
+                    emit(&app, "limit", wave.len());
+                    for s in &wave {
+                        limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
+                    }
                 }
             }
             let mut turns = std::collections::HashMap::new();
@@ -751,6 +776,16 @@ mod tests {
         assert_eq!(pts.len(), 25);
         assert!(pts.iter().all(|&(x, y)| (100..600).contains(&x) && (50..450).contains(&y)));
         assert_eq!((pts[0], pts[24]), ((150, 90), (550, 410)));
+    }
+
+    #[test]
+    fn quiet_from_settings_defaults_and_parses() {
+        assert_eq!(quiet_from_settings(&serde_json::json!({})), (false, 1320, 480), "missing keys: off, defaults");
+        assert_eq!(
+            quiet_from_settings(&serde_json::json!({"adm.quiet": "1", "adm.quietFrom": "60", "adm.quietTo": "120"})),
+            (true, 60, 120)
+        );
+        assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "0", "adm.quietFrom": "oops"})), (false, 1320, 480), "unparsable falls back");
     }
 
     #[test]

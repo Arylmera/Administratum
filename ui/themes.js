@@ -138,12 +138,13 @@ const NEON = defineTheme({
     modes: { full: 'Daylight', candles: 'Neon only' },
     log: { title: 'Netlog', open: 'Open the Netlog', close: 'Close the Netlog', silent: 'The Netlog is empty: no record could be read for this day.' },
     tithe: { hint: 'Bandwidth today: tokens and uptime', day: 'Bandwidth today: {tokens} tokens, {time} of uptime' },
-    event: { commit: 'Commit signed', petition: 'Request', 'petition-answered': 'Request answered', compaction: 'Cache flushed' },
+    event: { commit: 'Commit signed', petition: 'Request', 'petition-answered': 'Request answered', compaction: 'Cache flushed', limit: 'Throttled' },
     prefs: { chime: 'Request ping', petitions: 'Requests', questions: 'A question at the end of a turn counts as a request',
       stale: 'Request goes stale after', nap: 'Idle to the lounge after', cog: 'Stay at the server rack for',
       pauseHint: 'Near-zero CPU when unseen; requests still alert.',
       cat: { hall: 'Den', petitions: 'Requests', scribes: 'Runners', system: 'System', remote: 'Remote access' } },
-    toast: { petition: 'Request from {name}', stale: 'Request still waiting: {name}' },
+    limitLabel: 'throttled · back at {time}', limitSealed: 'throttled',
+    toast: { petition: 'Request from {name}', stale: 'Request still waiting: {name}', limit: '{name} throttled until {time}', limitMany: '{n} runners throttled until {time}' },
   },
 });
 
@@ -208,12 +209,13 @@ defineTheme({
     modes: { full: 'Cabin lights', candles: 'Night cycle' },
     log: { title: 'Flight log', open: 'Open the flight log', close: 'Close the flight log', silent: 'The flight log is empty: no record could be read for this day.' },
     tithe: { hint: 'Telemetry today: tokens and mission time', day: 'Telemetry today: {tokens} tokens, {time} of mission time' },
-    event: { commit: 'Commit uplinked', petition: 'Call', 'petition-answered': 'Call answered', compaction: 'Memory purged' },
+    event: { commit: 'Commit uplinked', petition: 'Call', 'petition-answered': 'Call answered', compaction: 'Memory purged', limit: 'Grounded' },
     prefs: { chime: 'Call chime', petitions: 'Calls', questions: 'A question at the end of a turn counts as a call',
       stale: 'Call goes stale after', nap: 'Idle to the bunk after', cog: 'Stay at the airlock for',
       pauseHint: 'Near-zero CPU when unseen; calls still alert.',
       cat: { hall: 'Deck', petitions: 'Calls', scribes: 'Crew', system: 'System', remote: 'Remote access' } },
-    toast: { petition: 'Call from {name}', stale: 'Call still waiting: {name}' },
+    limitLabel: 'grounded · relaunch {time}', limitSealed: 'grounded',
+    toast: { petition: 'Call from {name}', stale: 'Call still waiting: {name}', limit: '{name} grounded until {time}', limitMany: '{n} crew grounded until {time}' },
   },
 });
 
