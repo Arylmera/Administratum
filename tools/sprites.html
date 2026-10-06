@@ -4,6 +4,8 @@
     python -m http.server 8123      then   http://localhost:8123/tools/sprites.html
   Edit an art file, press R (or Reload) to see it. Each family links to its GitHub discussion issue; each sprite
   can open a new prefilled Sprite issue. The static gallery for issues is still tools/sprite_sheet.mjs.
+  Cells are named like a spreadsheet: column = theme (A Tier II ... F Neon Grid), row = sprite number, so "C12" is
+  one sprite in one theme; #C12 in the URL jumps to it. The same key in a terminal: node tools/sprite_sheet.mjs --list
 -->
 <!doctype html>
 <meta charset="utf-8">
@@ -39,6 +41,8 @@
     background: linear-gradient(to right, #fff2 1px, transparent 1px) 0 0 / var(--z) var(--z),
                 linear-gradient(to bottom, #fff2 1px, transparent 1px) 0 0 / var(--z) var(--z); }
   .same { opacity: .45; }
+  .ref { color: var(--accent); font-weight: 600; margin-right: 4px; }
+  figure:target .stage { outline: 2px solid var(--accent); outline-offset: 2px; }
   .err { color: #ff7a6a; white-space: pre-wrap; }
   @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
 </style>
@@ -81,6 +85,7 @@ for (const id of ids) {
   }) }]));
 }
 const order = [...byTheme[ids[0]].values()];
+const col = id => String.fromCharCode(65 + ids.indexOf(id)); // A, B, ... in THEMES order, whatever is shown
 
 // Colour grid -> ImageData; cells laid side by side 2 px apart (as the PNG gallery), or one per frame when animated.
 function image(cells) {
@@ -109,8 +114,9 @@ function render() {
   $('zv').textContent = `${z}×`;
   animated.length = 0;
   const out = document.createDocumentFragment(), sections = new Map();
-  for (const base of order) {
-    if (q && !`${base.id} ${base.family} ${base.note}`.toLowerCase().includes(q)) continue;
+  order.forEach((base, i) => {
+    const n = i + 1; // row number over the whole list, so a filter never renumbers
+    if (q && !`${n} ${base.id} ${base.family} ${base.note}`.toLowerCase().includes(q)) return;
     let sec = sections.get(base.family);
     if (!sec) {
       sec = document.createElement('section');
@@ -120,7 +126,7 @@ function render() {
     }
     const row = document.createElement('div');
     row.className = 'row';
-    row.innerHTML = `<div class="meta"><code>${base.id}</code><p>${base.size} logical px · ${base.note.replace(/`([^`]+)`/g, '<code>$1</code>')}</p>
+    row.innerHTML = `<div class="meta"><span class="ref">${n}</span><code>${base.id}</code><p>${base.size} logical px · ${base.note.replace(/`([^`]+)`/g, '<code>$1</code>')}</p>
       <a href="${newIssue(base.id)}" target="_blank">new issue ↗</a></div><div class="themes"></div>`;
     const strip = row.querySelector('.themes');
     for (const id of ids) {
@@ -134,15 +140,17 @@ function render() {
       cv.getContext('2d').putImageData(frames[0], 0, 0);
       if (frames.length > 1) animated.push([cv, frames]);
       const theirs = e.src.includes('/');
-      fig.innerHTML = `<div class="stage"></div><figcaption>${names[id]}${theirs ? ' · own art' : ''}</figcaption>`;
+      fig.id = `${col(id)}${n}`;
+      fig.innerHTML = `<div class="stage"></div><figcaption><span class="ref">${fig.id}</span>${names[id]}${theirs ? ' · own art' : ''}</figcaption>`;
       fig.firstChild.append(cv, document.createElement('i'));
       if ($('diff').checked && id !== ids[0] && !theirs && same(e, base)) fig.classList.add('same');
       strip.append(fig);
     }
     sec.append(row);
-  }
+  });
   $('out').replaceChildren(out);
   if (!sections.size) $('out').textContent = 'No sprite matches.';
+  document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'center' });
 }
 
 // Walk cycles at the hall's pace.
@@ -152,7 +160,7 @@ setInterval(() => { tick++; for (const [cv, f] of animated) cv.getContext('2d').
 // Controls, remembered per browser.
 for (const id of ids) {
   const b = document.createElement('button');
-  b.className = 'chip'; b.textContent = names[id]; b.setAttribute('aria-pressed', shown.has(id));
+  b.className = 'chip'; b.textContent = `${col(id)} · ${names[id]}`; b.setAttribute('aria-pressed', shown.has(id));
   b.onclick = () => { shown.has(id) ? shown.delete(id) : shown.add(id); b.setAttribute('aria-pressed', shown.has(id)); save('themes', [...shown].join(',')); render(); };
   $('themes').append(b);
 }
@@ -165,6 +173,7 @@ $('grid').onchange = () => { save('grid', $('grid').checked ? '1' : ''); setBg()
 $('diff').onchange = () => { save('diff', $('diff').checked ? '1' : ''); render(); };
 $('q').oninput = render;
 $('reload').onclick = () => location.reload();
+addEventListener('hashchange', () => document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'center' }));
 addEventListener('keydown', ev => { if (ev.key === 'r' && ev.target === document.body) location.reload(); });
 setBg(); render();
 </script>

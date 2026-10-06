@@ -334,7 +334,20 @@ drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus 
 fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
 active theme: `ui/theme.js` (Tier II) and `ui/themes.js` (Forge World, Ordo Xenos, Night Shift, High Contrast, and
 Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/`), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
-the gallery used to discuss them one by one (a **Sprite** issue each). Design and roadmap:
+the gallery used to discuss them one by one (a **Sprite** issue each).
+
+To work on the art, use the live viewer: every sprite in every theme side by side, read straight from `ui/art/`,
+walk cycles animated, zoom, pixel grid, backgrounds and a filter. Serve the repo root and open it:
+
+```sh
+python -m http.server 8123        # from the repo root
+# http://localhost:8123/tools/sprites.html   (edit an art file, press R)
+```
+
+Cells are named like a spreadsheet so a sprite in a theme is one short reference: the column is the theme
+(A Tier II, B Forge World, C Ordo Xenos, D Night Shift, E High Contrast, F Neon Grid), the row is the sprite's number,
+so `F52` is the Neon Grid shelf. `#F52` in the URL jumps to it; `node tools/sprite_sheet.mjs --list` prints the key.
+Each family links to its discussion issue, each sprite to a prefilled new Sprite issue. Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
 
 ### Build the installer

@@ -1,6 +1,7 @@
 // Renders every sprite of a theme to PNG, plus a gallery page, for reviewing and discussing them one by one
 // (docs/sprites/README.md, docs/superpowers/specs/2026-10-06-sprite-themes-design.md). No dependencies.
 //   node tools/sprite_sheet.mjs [--theme tier2] [--scale 4] [--out docs/sprites]
+//   node tools/sprite_sheet.mjs --list     the viewer's cell key (tools/sprites.html): columns = themes, rows = sprites
 // Re-run after editing a map or a palette: the PNGs are committed so issues and the gallery can show them.
 // To browse every theme live instead, see tools/sprites.html.
 import fs from 'node:fs';
@@ -17,6 +18,14 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const themeId = arg('theme', 'tier2'), scale = Number(arg('scale', 4)), outRoot = path.resolve(root, arg('out', 'docs/sprites'));
 if (!THEMES[themeId]) throw new Error(`unknown theme ${themeId}: ${Object.keys(THEMES).join(', ')}`);
 setTheme(themeId); // the theme's palette and its own art (sprites.js), where it has some
+
+if (process.argv.includes('--list')) { // "C12" -> theme C, sprite 12, numbered over the default theme's list as in the viewer
+  const ids = Object.keys(THEMES);
+  console.log(ids.map((id, i) => `${String.fromCharCode(65 + i)} ${THEMES[id].name}`).join('\n'));
+  setTheme(ids[0]);
+  catalog().forEach((e, i) => console.log(`${String(i + 1).padStart(3)} ${e.id.padEnd(28)} ${e.family}`));
+  process.exit(0);
+}
 
 // Cells side by side, 2 art px apart, each scaled; a map char resolves through the theme's px and the cell's overrides.
 function strip(cells) {
