@@ -43,7 +43,7 @@ JS the same cases in a small `quiet.test.mjs`.
 **Branch.** Read without running git: `<cwd>/.git/HEAD`. If `.git` is a file (worktree), follow its `gitdir: <path>`
 line and read `HEAD` there. `ref: refs/heads/<name>` → `<name>`; a bare hash → the first 7 chars (detached). Anything
 else, missing or unreadable → no branch. Walk up parent directories to find `.git` (the cwd may be a subfolder), at most
-to the drive root. Cached per cwd, re-read when the `HEAD` file's mtime changes (checked at most every 5 s).
+to the drive root. Cached per cwd, re-read at most every 5 s.
 
 New field `Session.branch: Option<String>`. The plaque shows it under the department name in a smaller line, only when it
 is not `main` or `master`. If a department's scribes are on different branches, the most recent session's wins.
@@ -69,19 +69,17 @@ garbage) on temp dirs; `open_folder` rejects a path not in the roster; custom co
   A text that doesn't match the pattern (e.g. a date for a weekly limit) gives `reset_ms: None`.
 - The limit is dropped once `now > reset_ms`.
 
-**Fix on the way:** `context_of` skips assistant lines whose model is `<synthetic>`. Today the limit line would reset
-the context fill to 0.
+(`context_of` already skips `<synthetic>` lines, so the limit line does not reset the context fill.)
 
 New field `Session.limit: Option<Limit { reset_ms: Option<i64>, text: String }>`.
 
-**Scene.** A limited scribe stays at its desk with a red seal over the desk (new sprite `SEAL.limit` in each theme's
-art; Neon Grid and Orbital Station draw their own) and a label `sealed · resets 14:00` (theme wording key
-`limitLabel`, `{time}`; `sealed` when there is no reset time). The card shows the full `text`. It does not go to the
-Refectorium while sealed.
+**Scene.** A limited scribe stays at its desk (it does not go to the Refectorium while sealed) under a small overlay
+tag `sealed · resets 14:00`, drawn like the petition labels so it works in every theme without new art (wording keys
+`limitLabel` with `{time}`, and `limitSealed` when there is no reset time). The card's task line shows the full `text`.
 
-**Notification.** One toast and one chime per **wave**: the tracker gathers sessions that became limited within the same
-5 s and sends one toast. One session: `{name} sealed until 14:00`. Several: `6 sessions sealed until 14:00` (the
-earliest reset). Quiet hours mute it. Theme wording keys `limit` and `limitMany`, pushed with the other toast strings.
+**Notification.** One toast and one chime per **wave**: the tracker gathers sessions that became limited until the same reset and sends one toast. One session: `{name} sealed until 14:00`. Several: `6 sessions sealed until 14:00`. A wave is
+the set of sessions sealed until the same reset time: a session joining a wave already toasted adds no toast. Quiet hours
+mute it. Theme wording keys `toast.limit` and `toast.limitMany`, pushed with the other toast strings.
 Chronicon event `limit` (department, reset time).
 
 **Tests:** Rust `limit_of` (limit line alone, followed by a tool result → still limited, followed by a prompt →
@@ -108,7 +106,10 @@ plugin so the toast still shows as Administratum. Other toasts stay on the plugi
    its handle changed → do nothing (the user already answered in the terminal).
 3. Call the existing `answer_petition(handle, choice)`. Its screen check stays the safety: only the digit is typed, and
    only if the dialog is at the bottom of the screen.
-4. On error, show a plain toast `{name}: open the terminal` (theme wording key `toastFailed`), no buttons.
+4. On error, show a plain toast `{name}: open the terminal` (theme wording key `toast.failed`), no buttons.
+
+The button labels are plain `Approve` / `Deny` in every theme. In a dev build (exe under `target/debug` or
+`target/release`) toasts use PowerShell's app id, like the notification plugin does.
 
 A click on the toast body (not a button) keeps today's behaviour.
 
@@ -124,7 +125,7 @@ hand: approve and deny a real prompt in an Orca terminal from the toast, and cli
 changed.
 
 **Where it is computed.** In `chronicle.rs`, which already reads each transcript's appended bytes every tick. Per
-session, a `Turn { started_ms, tools: u32, files: Vec<String> (≤ 50, insertion order), more_files: u32 }`:
+session, a `TurnSummary { started_ms, last_ms, tools: u32, files: Vec<String> (≤ 50, insertion order), more_files: u32 }`:
 - A real user prompt (a `user` line that is not only `tool_result`s, and not a `<command-name>` / local-command line)
   starts a new turn: reset, `started_ms` = its timestamp.
 - Each `tool_use` block in an assistant line → `tools += 1`.
@@ -132,13 +133,13 @@ session, a `Turn { started_ms, tools: u32, files: Vec<String> (≤ 50, insertion
   relative to the session cwd when inside it; otherwise kept absolute).
 - Subagent transcripts are not counted (the parent's `Agent` call counts as one tool).
 
-On first sight of a transcript, only today's lines are read (as now), so a turn begun before midnight starts empty. That
-is acceptable. The poll loop copies `Turn` into the new `Session.turn: Option<Turn>`. It is not persisted, and a restart
-rebuilds it from today's bytes.
+The chronicle's read offsets are persisted, so after a restart the turn in progress counts only from the restart (no
+start time until the next prompt). On first sight of a transcript only today's bytes are read. That is acceptable.
+The poll loop copies it into the new `Session.turn: Option<TurnSummary>` (`TurnSummary` also carries `last_ms`, the newest
+assistant line, to freeze the duration once idle). It is not persisted.
 
-**Scene.** While the session is busy or in the shell and `files > 0`, a tiny stack of sheets with the count (`5`) sits
-on the desk's front edge (new sprite `SHEETS.turn`; the number is drawn as text by the overlay, like labels). It is hidden
-when idle.
+**Scene.** While the session is busy or in the shell, at its desk, with at least one file changed, a tiny overlay tag
+`✎5` sits by the desk (same mechanism as the sealed tag, no new art). It is hidden when idle.
 
 **Card.** One line `Turn: 4 min · 23 tools · 5 files`. The duration runs live while busy, and is frozen at the last
 assistant line once idle. Then the file list, monospace, at most 8 shown with `+N more`, and a click expands it. An adept's
