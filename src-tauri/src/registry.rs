@@ -577,6 +577,11 @@ pub fn pending_ask(tail: &str) -> Option<String> {
     None
 }
 
+/// Whether a `pending_ask` line is a shell command (Bash/PowerShell).
+fn is_shell_call(ask: &str) -> bool {
+    ["Bash", "PowerShell"].iter().any(|n| ask.strip_prefix(n).is_some_and(|r| r.is_empty() || r.starts_with(':') || r.starts_with(' ')))
+}
+
 /// The usage limit a session is stopped on: its newest assistant line is Claude Code's synthetic
 /// `"error":"rate_limit"` message ("You've hit your limit · resets 2pm (Europe/Paris)") and no prompt came after it.
 pub fn limit_of(tail: &str) -> Option<Limit> {
@@ -693,6 +698,10 @@ pub fn scan(
         }
         let mut status = normalize_status(rec.status.as_deref()).to_string();
         let (tail, helper_list) = details(&rec.session_id, &rec.cwd);
+        // Claude Code 2.1.28x writes "busy" through a shell command too: an unanswered Bash/PowerShell call means "shell".
+        if status == "busy" && tail.as_ref().and_then(|t| t.asks.as_deref()).is_some_and(is_shell_call) {
+            status = "shell".to_string();
+        }
         let background = status == "shell" && tail.as_ref().is_some_and(|t| t.turn_done);
         let compacted = tail.as_ref().and_then(|t| t.compacted_at);
         let limit = tail.as_ref().and_then(|t| t.limit.clone());
@@ -1067,6 +1076,15 @@ mod tests {
         assert_eq!(pending_ask(&edit).as_deref(), Some(r"Edit: C:\git\ui\app.js"));
         let long = tool("Bash", "toolu_4", &format!(r#"{{"command":"{}"}}"#, "y".repeat(300)));
         assert_eq!(pending_ask(&long).unwrap().chars().count(), 140);
+    }
+
+    #[test]
+    fn shell_call_is_bash_or_powershell_only() {
+        assert!(is_shell_call("Bash: ls — List files"));
+        assert!(is_shell_call("PowerShell: Get-Date"));
+        assert!(is_shell_call("Bash"));
+        assert!(!is_shell_call("BashOutput: x"));
+        assert!(!is_shell_call("Edit: ui/app.js"));
     }
 
     #[test]
