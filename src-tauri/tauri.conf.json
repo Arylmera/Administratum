@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Administratum",
-  "version": "0.1.0",
   "identifier": "com.arylmera.administratum",
   "build": { "frontendDist": "../ui" },
   "app": {
@@ -22,8 +21,16 @@
     ],
     "security": { "csp": null }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxNjdCODE5OEQxMzVEQkYKUldTL1hST05HYmhud2NGVzhDTDBQWUEzN1dURHE4VjZid0xSSWpsNUluVEE4UTh0bVFMcGhQMUgK",
+      "endpoints": ["https://github.com/Arylmera/Administratum/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis"],
     "windows": { "nsis": { "installerHooks": "./installer-hooks.nsh" } },
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
