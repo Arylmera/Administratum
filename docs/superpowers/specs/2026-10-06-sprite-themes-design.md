@@ -238,8 +238,10 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
       at the desk, sleeves with neon cuffs and dark gloves (chosen over a street cyborg and a netrunner suit)
     - adepts → AI daemons: a cyan hologram over a projector puck, the rank in its ring light and chest core
       (gold, magenta, grey)
-    - the Magos → the fixer: silver hair, chrome jaw, magenta optics, a trench coat with neon lining, a chest
-      implant screen; the swinging limb is a cyber-arm with a folded mantis blade
+    - the Magos → a rogue AI in a suit: an old CRT monitor for a head (pale casing, knobs, vents, a smiling pixel
+      face; the optics are its eyes), antennas, a white shirt and magenta tie, a pocket LCD for the chest scan line,
+      chrome robot hands; the swinging piece is its power cord with the plug (chosen over a corpo CEO, an oni
+      yakuza, a jacked-in netrunner and other AI forms)
     - the Magos's desk → a black slab with a holo-projector, credsticks and a drink, a neon corp eye in front (no skull)
     - the cogitator → a mainframe wall: server racks with fans (the drums), exhaust stacks (the vents), cyan-framed
       scopes and centre screen, patch cables, a status LED row and a jack-in deck
