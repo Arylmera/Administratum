@@ -122,11 +122,11 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_off.png" height="80"> |
 | <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_on.png" height="80"> |
 | <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_cage.png" height="80"> |
-| <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.pipe_h.png" height="24"> |
-| <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.pipe_v.png" height="160"> |
-| <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.fitting_h.png" height="40"> |
-| <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.fitting_v.png" height="24"> |
-| <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.fitting_wide.png" height="16"> |
+| <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.pipe_h.png" height="24"> |
+| <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.pipe_v.png" height="160"> |
+| <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.fitting_h.png" height="40"> |
+| <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.fitting_v.png" height="24"> |
+| <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/cyber/room-pipes.png` | <img src="cyber/ROOM.fitting_wide.png" height="16"> |
 | <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_sanctum_closed.png" height="160"> |
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_refectory_closed.png" height="160"> |
