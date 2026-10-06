@@ -27,6 +27,13 @@ task names its section).
   Never hard-code rank or department into fixed colours.
 - Characters are drawn from scratch, not recoloured 40k shapes. Nothing 40k (skulls, cogs-with-skull, aquila,
   gothic spires, purity seals) may remain in a family the theme redraws.
+- **Every sprite is a brand-new design for its world, never a derivative of the 40k (or Neon Grid) art.** Do not
+  start from the default frame's pixels or silhouette and recolour or tweak it: the default is read only for its
+  frame size and anchor coordinates (where the code draws screens, lamps, feet, the arm pivot). Design the object
+  as it would exist in that world (a real space console, a real station manager, a real airlock), then fit it in
+  the box. A frame that a viewer could recognise as the 40k shape in new colours fails review.
+- The 40k roles are renamed per world, not reskinned: the "Magos" is the world's boss (station manager / Archmage /
+  Overseer), the "cogitator" is that world's machine, and so on, each drawn from its own reference.
 - UI text in English. Code comments match the surrounding style (short, plain).
 - Never use `ANTHROPIC_API_KEY`. On Windows, run Python with `PYTHONUTF8=1`.
 - One commit per task, pushed immediately (`git push`). Commit subject style of the repo:
@@ -40,8 +47,9 @@ task names its section).
    ```bash
    node -e "import('./ui/sprites.js').then(({ART})=>{const s=ART.base['walls'];for(const[n,f]of Object.entries(s.frames))console.log(n,f[0].length+'x'+f.length,'\n'+f.join('\n'));console.log(JSON.stringify(s.anchors))})"
    ```
-   Also read `ui/art/<family>.json` (anchors, `meta.tiles`), and look at the Neon Grid redraw of the same family
-   for the level of detail expected: same command with `ART.themed.cyber['walls']`.
+   Also read `ui/art/<family>.json` (anchors, `meta.tiles`). Use the default only for sizes and anchor positions,
+   never as a drawing to trace or recolour. The Neon Grid redraw (`ART.themed.cyber['walls']`) shows the level of
+   detail expected, not shapes to copy.
    Anchors tell you where the code draws effects on top (screens, lamps, seals, feet, arm pivot): keep those
    features at those coordinates, or move the anchor (same name) to where you draw them.
 2. **Write a generator script** in the session scratchpad

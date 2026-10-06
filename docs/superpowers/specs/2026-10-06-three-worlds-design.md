@@ -7,7 +7,9 @@ is a theme entry plus its own art, exactly like Neon Grid.
 ## Scope
 
 Three new worlds, each at full depth (like Neon Grid): palette, chrome, wording, toasts, and every art family that
-reads as 40k redrawn, characters drawn from scratch (not recoloured 40k shapes).
+reads as 40k redrawn. Every sprite is a new design for its world (the operator's rule): the default art gives only
+frame sizes and anchor points, never shapes to recolour or tweak. The 40k roles become the world's own (the Magos is
+the station manager, the cogitator a real space console...), each drawn from that world's references.
 
 | World id (`WORLDS`) | World name | Theme id | Theme name |
 |---|---|---|---|
