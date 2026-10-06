@@ -133,7 +133,7 @@ defineTheme({
 // seen through the windows. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
   id: 'orbital', world: 'space', name: 'Orbital Station',
-  art: ['scribe', 'adept', 'magos', 'sanctum'], // ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches
+  art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator'], // ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches, crew flight consoles, a rack terminal and a strapped-down laptop, the flight-control screen wall
   px: {
     k: '#0c0e14', e: '#141822', n: '#0a0c12',
     r: '#2a4a8a', R: '#3a62b0', d: '#16284e', t: '#ff7a1a', T: '#16284e', z: '#ff7a1a', j: '#ffe0c0', // flight suit, orange trim
