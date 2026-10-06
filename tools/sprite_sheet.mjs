@@ -4,33 +4,16 @@
 // Re-run after editing a map or a palette: the PNGs are committed so issues and the gallery can show them.
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { MAPS, SCRIBE, ADEPT, RES, RANK, rankOf } from '../ui/sprites.js';
 import { THEMES, resolve } from '../ui/theme.js';
+import { png, rgba } from './png_write.mjs';
 
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : dflt; };
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const themeId = arg('theme', 'tier2'), scale = Number(arg('scale', 4)), outRoot = path.resolve(root, arg('out', 'docs/sprites'));
 if (!THEMES[themeId]) throw new Error(`unknown theme ${themeId}: ${Object.keys(THEMES).join(', ')}`);
 const theme = resolve(THEMES[themeId]);
-
-// PNG (RGBA, 8 bit) from a pixel getter.
-const CRC = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
-const crc = buf => { let c = 0xffffffff; for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-function chunk(type, data) {
-  const len = Buffer.alloc(4), sum = Buffer.alloc(4), td = Buffer.concat([Buffer.from(type), data]);
-  len.writeUInt32BE(data.length); sum.writeUInt32BE(crc(td));
-  return Buffer.concat([len, td, sum]);
-}
-function png(w, h, rgbaAt) {
-  const raw = Buffer.alloc((w * 4 + 1) * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) raw.set(rgbaAt(x, y), y * (w * 4 + 1) + 1 + x * 4);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
-}
-const rgba = hex => (hex ? [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16), 255] : [0, 0, 0, 0]);
 
 // Frames side by side, 2 art px apart, each scaled; a map char resolves through the theme's px and the overrides.
 function strip(frames, over = {}) {

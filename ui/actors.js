@@ -1,4 +1,4 @@
-import { SCRIBE, ADEPT, MAPS, rankOf, blit } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, MAPS, rankOf, blit } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -185,7 +185,7 @@ const robeOf = (rank, sash) => {
   return by.get(sash) ?? by.set(sash, { ...T.rank[rank].robe, y: sash }).get(sash);
 };
 
-// Sprite top-left is (feet.x - 8, feet.y - 17); offsets match the Tier II board.
+// A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
   if (a.h) { // adept: 12x14, feet at (x, y)
     const fx = Math.round(a.x) - 6, fy = Math.round(a.y) - 14, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
@@ -194,20 +194,20 @@ export function drawActor(g, a) {
     return;
   }
   const over = robeOf(rankOf(a.s.context?.model), a.sash);
-  const fx = Math.round(a.x) - 8, fy = Math.round(a.y) - 17;
+  const A = SCRIBE_AT, fx = Math.round(a.x) - A.feet.x, fy = Math.round(a.y) - A.feet.y;
   if (a.pose === 'burn') { blit(g, SCRIBE.down[0], fx, fy, over); return; } // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
     blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
-    if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + 14, fy + 8);
+    if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
     return;
   }
   blit(g, SCRIBE.up[0], fx, fy, over);
   const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
   const lift = done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0; // eased up, held, back down
-  blit(g, MAPS.ARM, fx + 14, fy + 2 - lift);
-  blit(g, MAPS.ARM_L, fx, fy + 2 - lift); // body art spans cols 4..31, so the mirror of ARM at fx+14 lands at fx
+  blit(g, MAPS.ARM, fx + A.arm.x, fy + A.arm.y - lift);
+  blit(g, MAPS.ARM_L, fx + A.armL.x, fy + A.armL.y - lift);
   if (done) heldScroll(g, fx + 2, fy - 3 - lift); // task done: the finished scroll held up in both hands
-  if (a.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + 14, fy + 8);
+  if (a.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
   if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
 }
 

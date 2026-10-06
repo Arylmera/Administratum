@@ -1,6 +1,7 @@
 // Pixel maps (ported from the Claude Design board "Tier II — Data-Shrine"). Each char is a colour of the active
 // theme's px palette (theme.js), '.' transparent.
 import { BASE, T, onTheme } from './theme.js';
+import { loadSheet } from './art.js';
 export { BASE };
 
 // Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
@@ -53,132 +54,12 @@ export function blit(g, map, x, y, over) {
 const mirror = map => map.map(row => row.split('').reverse().join(''));
 const withFeet = (body, feet) => body.slice(0, -feet.length).concat(feet);
 
-const SCRIBE_BACK = [
-  '............kkkkkkkkkkkk........',
-  '..........kkRRRRrrrrrrrrkk......',
-  '........kkRRRrrzrzzrzrrrrdkk....',
-  '.......kRRrrrrrrzzzzrrrrrrrdk...',
-  '......kRrrrrrrrzzjjzzrrrrrrrdk..',
-  '.....kRrrrrrrrrrzzzzrrrrrrrrrdk.',
-  '....kRrrrrrrrrrzrzzrzrrrrrrrrddk',
-  '....kRrrrrrrrrrrrrrrrrrrrrrrrddk',
-  '....kRrrrrrrrrrkkkkkkrrrrrrrrddk',
-  '....kRrrrrrrrrkmmmmmMkrrrrrrrddk',
-  '....kRrrrrrrrrkmkOokMkrrrrrrrddk',
-  '....kRrrrrrrrrkmkookMkrrrrrrrddk',
-  '....kRrrrrrrrrkMmmmMMkrrrrrrrddk',
-  '....kRrrrrrrrrrkkkkkkrrrrrrrrddk',
-  '....kRrrrrrrrrrrkmMkrrrrrrrrrddk',
-  '....kdRrrrrrrrrrkmMkrrrrrrrrdddk',
-  '.....kdRrrrrrrrrkMMkrrrrrrrrddk.',
-  '......kddrrrrrrrkmMkrrrrrrrddk..',
-  '....kktzTTTTTTTTkmMkTTTTTTTTTTkk',
-  '....kRrrrrrrrrrrkMMkrrrrrrrrrddk',
-  '....kRmmrrrrrrrrkmMkrrrrrrrrmmdk',
-  '....kRmMrrrrrrrrkmMkrrrrrrrrmMdk',
-  '....kyyyyyyyyyyyyyyyyyyyyyyyyyyk',
-  '....kyyyyyyyyyyyyyyyyyyyyyyyyyyk',
-  '....kRrrrrrrrrrrrrrrrrrrrrrrdddk',
-  '....kRrrrrrrrrrrrdrrrrrrdrrrdddk',
-  '....kRrrrrrrrrrrRdrrrrrRdrrddddk',
-  '....kdRrrrrrrrrrRdrrrrrRdrrddddk',
-  '....kdRrrrrrrrrrRdrrrrrRdrdddddk',
-  '....kddrrrrrrrrrRdrrrrrRdrdddddk',
-  '.....kGgGgGgGgGgGgGgGgGgGgGgGk..',
-  '......kkkkkkkkkkkkkkkkkkkkkkkk..',
-  '.........kmmmmmMk..kmmmmmMk.....',
-  '..........kkkkkk....kkkkkk......',
-];
-const SCRIBE_FRONT = [
-  '............kkkkkkkkkkkk........',
-  '..........kkRRRRrrrrrrrrkk......',
-  '........kkRRRrrrrrrrrrrrrdkk....',
-  '.......kRRrrrrrrrrrrrrrrrrrdk...',
-  '......kRrrrrrrrrrrrrrrrrrrrrdk..',
-  '.....kRrrrrrrrrrrrrrrrrrrrrrrdk.',
-  '....kRrrrrrrttttttttttttrrrrrddk',
-  '....kRrrrrRkkkkkkkkkkkkkkdrrrddk',
-  '....kRrrrRkeeeeeeeeeeeeeekdrrddk',
-  '....kRrrrRkeeeeeeeeeeeeeekdrrddk',
-  '....kRrrrRkeeeOoeeeeOoeeekdrrddk',
-  '....kRrrrRkeeeooeeeeooeeekdrrddk',
-  '....kRrrrRkeeeeeeeeeeeeeekdrrddk',
-  '....kRrrrRkeeeemMmMmMeeeekdrrddk',
-  '....kRrrrRkeeeeeeeeeeeeeekdrrddk',
-  '....kdRrrrRkkkkkkkkkkkkkkdrrdddk',
-  '.....kdRrrrrrrrrrrrrrrrrrrrrddk.',
-  '......kddrrrrrrrrrrrrrrrrrrddk..',
-  '....kktzTTTTTTTTTTTTTTTTTTTTTTkk',
-  '....kRrrrrrrrrrrzzzzrrrrrrrrrddk',
-  '....kRlmrrrrrrrzzjjzzrrrrrrrlmdk',
-  '....kRmMrrkyykrrzzzzrrrrrrrrmMdk',
-  '....kyyyyyyyyyyyyyyyyyyyyyyyyyyk',
-  '....kyyyyyyyyyyyyyyyyyyyyyyyyyyk',
-  '....kRrrrkyyykrrrrrrrrrrrrrrdddk',
-  '....kRrrrkykykrrrdrrrrrrdrrrdddk',
-  '....kRrrrkykykrrRdrrrrrRdrrddddk',
-  '....kdRrrrkrkrrrRdrrrrrRdrrddddk',
-  '....kdRrrrrrrrrrRdrrrrrRdrdddddk',
-  '....kddrrrrrrrrrRdrrrrrRdrdddddk',
-  '.....kGgGgGgGgGgGgGgGgGgGgGgGk..',
-  '......kkkkkkkkkkkkkkkkkkkkkkkk..',
-  '.........klmmmmMk..klmmmmMk.....',
-  '..........kkkkkk....kkkkkk......',
-];
-const SCRIBE_SIDE = [
-  '............kkkkkkkkk...........',
-  '..........kkRRRRrrrrkk..........',
-  '........kkRRRrrrrrrrrrkk........',
-  '.......kRRrrrrrrrrrrrrrrk.......',
-  '......kRrrrrrrrrrrrrrrrrrk......',
-  '......kRrrrrrrrrrrrrrrrrrrk.....',
-  '......kRrrrrrrrrrrrttttttttk....',
-  '......kRrrrrrrrrrRkkkkkkkkkk....',
-  '......kRrrrrrrrrrRkeeeeeeeek....',
-  '......kRrrrrrrrrrrkeeeeeeeek....',
-  '......kRrrrrrrrrrrkeeeOoeeek....',
-  '......kRrrrrrrrrrrkeeeooeeek....',
-  '......kRrrrrrrrrrrkeeeeeeeek....',
-  '......kRrrrrrrrrrrkeeeemMmMk....',
-  '......kRrrrrrrrrrrkeeeeeeeek....',
-  '......kdRrrrrrrrrrkkkkkkkkk.....',
-  '.......kdRrrrrrrrrrrrrrrdk......',
-  '........kddrrrrrrrrrrrrdk.......',
-  '......kktzTTTTTTTTTTTTTTTkkk....',
-  '......kRrrzzzzrrrrrrrrrrrddk....',
-  '......kRrzzjjzzrrrrrdlmsssk.....',
-  '......kRrrzzzzrrrrrrdmMssBk.....',
-  '......kyyyyyyyyyyyyyyyyyyyyk....',
-  '......kyyyyyyyyyyyyyyyyyyyyk....',
-  '......kRrrrrrrrrrrrrrrrrrddk....',
-  '......kRrrrrRdrrrrrRdrrrrddk....',
-  '......kRrrrrRdrrrrrRdrrrdddk....',
-  '......kdRrrrRdrrrrrRdrrrdddk....',
-  '......kddRrrRdrrrrrRdrrddddk....',
-  '......kddRrrRdrrrrrRdrrddddk....',
-  '.......kGgGgGgGgGgGgGgGgGgk.....',
-  '........kkkkkkkkkkkkkkkkkk......',
-  '........klmmmMMkklmmmMMk........',
-  '.........kkkkkk..kkkkkk.........',
-];
-// Walk cycle: each frame swaps the 2 HD feet rows under the hem.
-const FEET = [
-  ['.........klmmmmMk..klmmmmMk.....', '..........kkkkkk....kkkkkk......'],
-  ['......klmmmmMk........kkkk......', '.......kkkkkk...................'],
-  ['........kkkk........klmmmmMk....', '.....................kkkkkk.....'],
-];
-const FEET_SIDE = [
-  ['........klmmmMMkklmmmMMk........', '.........kkkkkk..kkkkkk.........'],
-  ['......klmmmMMk....klmmmMMk......', '.......kkkkkk......kkkkkk.......'],
-  ['..........klmmmmmmmMMk..........', '...........kkkkkkkkkk...........'],
-];
-const RIGHT = FEET_SIDE.map(f => withFeet(SCRIBE_SIDE, f));
-export const SCRIBE = {
-  up: FEET.map(f => withFeet(SCRIBE_BACK, f)),
-  down: FEET.map(f => withFeet(SCRIBE_FRONT, f)),
-  right: RIGHT,
-  left: RIGHT.map(mirror),
-};
+// Scribe (one per session): ui/art/scribe.png, 16x17 logical, 3 walk frames a direction (left mirrors right), and the
+// arm drawn over the desk. SCRIBE_AT: its anchor points, logical px from the frame's top-left (feet: the actor's position).
+const scribe = await loadSheet('scribe');
+const walk = dir => [0, 1, 2].map(i => scribe.frames[`${dir} ${i}`]);
+export const SCRIBE = { up: walk('up'), down: walk('down'), right: walk('right'), left: walk('right').map(mirror) };
+export const SCRIBE_AT = Object.fromEntries(Object.entries(scribe.anchors).map(([k, [x, y]]) => [k, { x: x / RES, y: y / RES }]));
 
 // Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate.
 const ADEPT_FRONT = [
@@ -289,28 +170,9 @@ export const ADEPT = {
   left: ADEPT_RIGHT.map(mirror),
 };
 
-const ARM = [
-  '.k..k...',
-  'kl.kl...',
-  'kl.km...',
-  '.kkkMk..',
-  '.klmMk..',
-  '.kkkkk..',
-  '..klMk..',
-  '..kmMk..',
-  '...kkkk.',
-  '...klMk.',
-  '...kmMk.',
-  '..kkkkk.',
-  '..klMk..',
-  '.kmMk...',
-  '.kkkk...',
-  'klMk....',
-];
-
 export const MAPS = {
-  ARM,
-  ARM_L: mirror(ARM),
+  ARM: scribe.frames.arm,
+  ARM_L: mirror(scribe.frames.arm),
   SCROLL: [
     '.kkkkkkkkk..',
     'kbppppppPPk.',

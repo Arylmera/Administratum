@@ -1,6 +1,6 @@
 # Sprites and themes: review, cost, plan
 
-Date: 2026-10-06. Status: phase 1 done (this branch), phases 2 to 4 proposed.
+Date: 2026-10-06. Status: phase 1 done, art files started (the scribe), phases 2 to 4 proposed.
 
 ## How sprites work today
 
@@ -30,8 +30,8 @@ Date: 2026-10-06. Status: phase 1 done (this branch), phases 2 to 4 proposed.
    (122 of the 206 hex literals in `scene.js`). Recolouring brass meant editing dozens of lines. **Fixed in phase 1.**
 2. Nothing could change the palette at runtime: the caches (sprites, static background, paper piles, lights, robes)
    had no invalidation. **Fixed in phase 1.**
-3. Maps are hand-edited strings. There is no picture of the whole set and no import from a pixel editor.
-   **Gallery added in phase 1. Import tool in phase 3.**
+3. Maps are hand-edited strings. There is no picture of the whole set, and the art can't be drawn in a pixel editor.
+   **Gallery added in phase 1. Moving to art files: see "Art files", the scribe is done.**
 4. The single-char palette is nearly full: 13 letters left (`A D E H K N S U V X Y Z i`), plus digits and symbols.
    That is fine for palette themes, but new materials will need digits or a second scheme.
 5. The HTML chrome (`index.html` CSS: 143 hex / 18 rgba, only 8 CSS variables; `chronicon.js` icon palette) is
@@ -58,6 +58,41 @@ Date: 2026-10-06. Status: phase 1 done (this branch), phases 2 to 4 proposed.
     return trip matched the baseline.
 - `tools/sprite_sheet.mjs` renders every sprite and variant (64 images) to `docs/sprites/` with a gallery page.
 
+## Art files (common practice), started with the scribe
+
+Text maps in code are typical of tiny projects and game jams. Most 2D pixel-art games keep sprites as image files
+drawn in an editor (Aseprite, Piskel), exported as a sprite sheet plus JSON (frame rects, anchors). Palette swaps are
+done by remapping an indexed palette at load time, and effects (sparks, smoke, flicker) stay in code. This project
+now follows that, family by family:
+
+- **Source**: `ui/art/<family>.png`, a sprite sheet, and `ui/art/<family>.json`, Aseprite-style json-hash with frame
+  rects and `meta.anchors` (art px from a frame's top-left).
+- **Key palette** `ui/art/key.gpl`: one colour per palette slot, to load in the editor. Slots that share a colour
+  in Tier II (the rank markers share the robe's reds, the optic shares the phosphor) are nudged by one or two steps
+  of blue. They look the same, but the loader can tell them apart, so themes still recolour every slot. The key
+  never changes once art depends on it.
+- **Loading**: `ui/art.js` reads the sheet at startup, using `ui/png.js` (decodes 8-bit RGBA/RGB and 1–8-bit
+  indexed PNGs, with no canvas, so the node tests use it too). Each frame becomes the same text rows the maps use,
+  so the sprite cache and themes are unchanged. A pixel outside the key palette, or half transparent, fails loudly
+  with the file and pixel.
+- **Anchors**: the scribe's feet, arms and scroll offsets moved from `actors.js` into `scribe.json`
+  (`SCRIBE_AT`). Effects drawn in code (the held scroll, the Zs) keep their offsets in code.
+- **Converting a family**: `node tools/map_to_art.mjs <family>` lays out its current maps as a sheet. Then delete
+  the maps and load the sheet in `sprites.js`.
+- **Done: the scribe** (12 walk frames and the arm; left frames and the left arm are mirrored at load).
+  - Verification:
+    - `ui/art.test.mjs` checks that the frames are identical to the old maps, the decoder against every PNG filter,
+      RGB/RGBA and indexed 4/8-bit, and the key palette (unique colours, every slot present, within 4 steps of Tier
+      II).
+    - The browser harness matched the old baseline outside the light flicker.
+  - Next families: adept, then the props (one sheet per family as in "Discussing sprites"). Each is ~1–2 h:
+    converter entry, anchors, sprites.js swap, test. Floor and walls would become a tileset later (depth D).
+- **Editing a sprite**:
+  1. Open the PNG in Aseprite with `key.gpl` and draw using only key colours.
+  2. Export the PNG (indexed or RGBA, no interlacing).
+  3. Run the tests.
+  4. Regenerate the gallery.
+
 ## Cost of themes, by depth
 
 Estimates are focused work for one developer working with Claude sessions. The art direction (choosing colours,
@@ -66,8 +101,8 @@ judging the result) is the user's time and is listed separately.
 | Depth | What a theme can change | Remaining dev work | Art / design per theme |
 |---|---|---|---|
 | **A. Palette theme** | Every colour: robes, brass, stone, screens, lights, departments | Phase 2: ~0.5–1 day, once | ~0.5 day per palette (≈40 px + ≈80 ink + 13 light + 8 sash), iterated with the gallery |
-| **B. Sprite overrides** | A, plus redrawn sprites with the **same size and anchors** | Phase 3: ~1–1.5 days, once | Small decor 15–30 min, furniture 1–2 h, cogitator/gate/Magos 2–4 h each, a character set (4 dirs × 3 frames) 4–6 h. A full re-skin is ≈30–50 h of pixel work |
-| **C. New geometry** | B, plus sprites with a new size or new anchor points | +1–2 days, once (move hard-coded offsets into per-sprite metadata) | as B |
+| **B. Sprite overrides** | A, plus redrawn sprites with the **same size and anchors** | Phase 3: ~1–2 days, once (art files for every family + per-theme sheets) | Small decor 15–30 min, furniture 1–2 h, cogitator/gate/Magos 2–4 h each, a character set (4 dirs × 3 frames) 4–6 h. A full re-skin is ≈30–50 h of pixel work |
+| **C. New geometry** | B, plus sprites with a new size or new anchor points | +0.5–1.5 days, once (anchors into each family's JSON, as done for the scribe) | as B |
 | **D. Another setting** | Also the procedural pieces' shapes, the animations and the vocabulary | +3–5 days (theme-provided draw hooks or maps for pipes/grate/doors/beacon; theme text) | as B, plus the procedural art |
 
 Recommendation: ship A next (cheap, and the foundation is ready). Do B one sprite at a time through the discussion
@@ -90,13 +125,16 @@ issues. Leave C and D until a concrete theme needs them.
 
 ## Phase 3: per-theme sprite art (proposed)
 
-1. Themes get `maps: { NAME: [...rows] }` overrides (and `scribe` / `adept` frame sets). `MAPS` becomes a stable
-   object refilled on a theme change, like `T.ink`. The drawing code already reads `MAPS.X` at draw time.
-   Tests require an override to keep the original size unless the sprite declares new anchors (phase C).
-2. `tools/png_to_map.mjs`: import a PNG drawn in Aseprite/Piskel with the exported palette and turn it into map rows
-   (nearest palette colour, error on unknown colours). That removes hand-typing strings and makes outside art usable.
-3. Per sprite, the work is: discuss it in its issue, draw it, import it, regenerate the gallery, and open a PR. Because
-   the PNGs are committed, the PR shows the before/after as a GitHub image diff.
+1. Convert the remaining families to art files (see "Art files").
+2. A theme can ship its own sheets: `ui/art/<theme>/<family>.png` + `.json`, falling back to the default sheet.
+   `MAPS` / `SCRIBE` / `ADEPT` become stable objects refilled on a theme change, like `T.ink`; the drawing code already
+   reads them at draw time. Tests require a theme's frames to match the default sizes unless its JSON declares
+   its own anchors (depth C).
+3. Per sprite, the work is:
+   1. Discuss it in its issue.
+   2. Draw it in Aseprite.
+   3. Export it, run the tests and regenerate the gallery.
+   4. Open a PR. Because the PNG is the committed source, the PR shows the before/after as a GitHub image diff.
 
 ## Discussing sprites
 

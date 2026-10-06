@@ -1,0 +1,44 @@
+GIMP Palette
+Name: Administratum key
+Columns: 8
+# Draw sprites in these exact colours. Each one is a palette slot that themes recolour (ui/theme.js);
+# the first letter of a name is its slot. Never edit: the art files depend on these values.
+ 14  10   8	k outline
+184 116  46	g brass
+110  63  23	G brass shadow
+214 199 159	p parchment
+168 148 106	P parchment shadow
+ 74  48  32	w wood
+ 46  28  18	W wood dark
+ 90  94  99	m iron
+ 42  44  48	M iron dark
+124 255 158	c phosphor
+ 22  48  31	C phosphor dark
+240 168  60	f flame
+255 230 160	F flame core
+142  28  22	x red trim
+207 195 168	b bone
+148 134 105	B bone shadow
+ 20  12   8	n near black
+ 43  63  94	u deep blue
+ 47  74  51	v deep green
+ 94  23  16	r robe
+ 58  13   9	d robe shadow
+255  58  32	a alarm red
+124 255 159	o optic
+217 168  78	y sash (department colour)
+184 154 124	s tan
+ 18  12  10	e hood shadow
+140  44  28	R robe lit
+232 180  90	h brass lit
+138 144 150	l iron lit
+230 255 238	O optic glint
+106  70  48	L wood lit
+168 154 120	q adept bone
+106  94  72	Q adept bone shadow
+140  44  29	t rank: hood rim
+ 58  13  10	T rank: shoulder seam
+ 94  23  17	z rank: cog
+ 94  23  18	j rank: cog hub
+168 154 121	J adept rank: hood cog
+168 154 122	I adept rank: cog hub
