@@ -3,6 +3,7 @@ mod chronicle;
 mod demo;
 mod firewall;
 mod poller;
+mod quiet;
 mod registry;
 mod remote;
 mod settings;
@@ -183,6 +184,12 @@ static QUESTION_TOAST: AtomicBool = AtomicBool::new(true);
 fn set_question_prefs(enabled: bool, toast: bool) {
     QUESTIONS.store(enabled, Ordering::Relaxed);
     QUESTION_TOAST.store(toast, Ordering::Relaxed);
+}
+
+/// Quiet hours from the settings panel (quiet.rs): minutes after midnight, local.
+#[tauri::command]
+fn set_quiet(enabled: bool, from_min: u16, to_min: u16) {
+    quiet::set(enabled, from_min, to_min);
 }
 
 /// The toasts' wording from the active theme (toast.rs; app.js pushes it on start and on a theme change).
@@ -394,7 +401,7 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_quiet, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
@@ -443,13 +450,16 @@ fn poll_loop(app: AppHandle, demo: bool) {
         let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
             let words = toast::get();
+            let quiet = quiet::active();
             for s in tracker.new_petitions(&roster) {
-                let _ = app
-                    .notification()
-                    .builder()
-                    .title(toast::fill(&words.petition, &s.name))
-                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
-                    .show();
+                if !quiet {
+                    let _ = app
+                        .notification()
+                        .builder()
+                        .title(toast::fill(&words.petition, &s.name))
+                        .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
+                        .show();
+                }
                 emit(&app, "petition", &s);
             }
             // Questions never go stale: one toast (if wanted) and one chime per episode.
@@ -457,7 +467,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 if !QUESTIONS.load(Ordering::Relaxed) {
                     continue;
                 }
-                if QUESTION_TOAST.load(Ordering::Relaxed) {
+                if QUESTION_TOAST.load(Ordering::Relaxed) && !quiet {
                     let q = s.question.clone().unwrap_or_default();
                     let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
                     let _ = app.notification().builder().title(toast::fill(&words.question, &s.name)).body(format!("{} · {q}", s.dept)).show();

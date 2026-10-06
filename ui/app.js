@@ -6,7 +6,8 @@ import { T, onTheme, setTheme, t } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, perf, view as scaleSetting, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
+import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
@@ -32,6 +33,14 @@ onTheme(applyChrome);
 
 const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
+// Quiet hours: chimes for new petitions, questions, long tasks and usage limits stay silent (stale ones still chime).
+const quietNow = () => quietAt(quiet, new Date());
+const quietEl = document.getElementById('quiet');
+function renderQuiet() {
+  const on = quietNow();
+  quietEl.hidden = !on;
+  quietEl.title = on ? `Quiet until ${hhmmOf(quiet.to)}` : '';
+}
 
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
@@ -86,6 +95,7 @@ function renderModes() {
       b.title = s ? sunLine(s) : '';
     }
   }
+  renderQuiet();
   renderSettings();
 }
 function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
@@ -652,17 +662,17 @@ muteBtn.onclick = toggleMute;
 renderMute();
 
 let refreshTithe = null;
-initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit });
+initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit, quieted: renderQuiet });
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;
 if (tauri() || REMOTE) {
   listen('roster', e => onRoster(e.payload));
-  listen('petition', () => chime());
-  listen('question', () => chime([880, 1175]));
+  listen('petition', () => quietNow() || chime());
+  listen('question', () => quietNow() || chime([880, 1175]));
   listen('petition-stale', () => chime([990, 660, 990, 660]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
-  listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done') chime([1320, 1760]); });
+  listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done' && !quietNow()) chime([1320, 1760]); });
   listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
   listen('visible', e => { visible = e.payload; wake(); }); // the app's window only
   refreshTithe = initChronicon(colorOf);

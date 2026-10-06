@@ -7,6 +7,7 @@
 import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
+import { minutesOf, hhmmOf } from './quiet.js';
 
 const mem = {};
 let saved = null;
@@ -70,6 +71,15 @@ const setQuestions = (on, toast) => {
   store.set('adm.questions', on ? '1' : '0'); store.set('adm.questionToast', toast ? '1' : '0');
 };
 
+// Quiet hours (adm.quiet, adm.quietFrom, adm.quietTo; minutes after midnight): read live by app.js (chimes, the header
+// moon), pushed to the backend (set_quiet) for its toasts.
+const minutes = (v, d) => (v !== '' && Number.isInteger(+v) && +v >= 0 && +v < 1440 ? +v : d);
+export const quiet = { on: store.get('adm.quiet', '0') === '1', from: minutes(store.get('adm.quietFrom', '1320'), 1320), to: minutes(store.get('adm.quietTo', '480'), 480) };
+const setQuiet = (on, from, to) => {
+  Object.assign(quiet, { on, from, to });
+  store.set('adm.quiet', on ? '1' : '0'); store.set('adm.quietFrom', String(from)); store.set('adm.quietTo', String(to));
+};
+
 // Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by app.js's fit().
 const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
 export const view = { scale: okScale(store.get('adm.scale')) };
@@ -78,7 +88,7 @@ const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', 
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
-// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled() } from app.js.
+// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const win = () => tauri()?.window?.getCurrentWindow();
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -92,6 +102,7 @@ export function initSettings(hooks) {
   const save = () => store.set('adm.settings', JSON.stringify(settings));
   const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
   const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
+  const pushQuiet = () => invoke('set_quiet', { enabled: quiet.on, fromMin: quiet.from, toMin: quiet.to }).catch(() => {});
   if (REMOTE) {
     // The PC's settings, read only; window, login, remote view and reset belong to the PC.
     for (const f of form.querySelectorAll('[data-host]')) f.disabled = true;
@@ -99,7 +110,7 @@ export function initSettings(hooks) {
     form.querySelector('.remote-only').hidden = false;
   } else {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
-    pushStale(); pushQuestions();
+    pushStale(); pushQuestions(); pushQuiet();
   }
 
   sync = () => {
@@ -121,6 +132,11 @@ export function initSettings(hooks) {
     field('questions').checked = questions.on;
     field('questionToast').checked = questions.toast;
     field('questionToast').disabled = !questions.on;
+    field('quietOn').checked = quiet.on;
+    for (const k of ['quietFrom', 'quietTo']) {
+      if (document.activeElement !== field(k)) field(k).value = hhmmOf(quiet[k === 'quietFrom' ? 'from' : 'to']);
+      field(k).disabled = !quiet.on;
+    }
     field('login').checked = !!login;
     field('login').disabled = login === null;
     field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
@@ -228,6 +244,10 @@ export function initSettings(hooks) {
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
+    else if (k === 'quietOn' || k === 'quietFrom' || k === 'quietTo') {
+      setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
+      pushQuiet(); hooks.quieted?.();
+    }
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
     else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
@@ -248,12 +268,14 @@ export function initSettings(hooks) {
     setPlace(NaN, NaN);
     setPerf(12, true);
     setQuestions(true, true);
+    setQuiet(false, 1320, 480);
     store.set('adm.updateCheck', '1');
     setScale('auto'); hooks.rescaled();
-    save(); applyTop(); pushStale(); pushQuestions();
+    save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
     hooks.setMode('auto'); hooks.setMuted(false);
     pickTheme('tier2');
     sync();
+    hooks.quieted?.();
   };
 
   panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); } sync(); } }); // readLogin: the tray may have changed it

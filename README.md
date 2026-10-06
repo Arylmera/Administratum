@@ -149,6 +149,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den and Orbital Station a space station, not 40k; the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
+| Quiet hours | off, 22:00–08:00 | any times | Inside the window no toast and no chime for a new petition, question, long task or usage limit. A petition turning stale still toasts and chimes. A moon in the header shows while it is quiet |
 | Idle to the Refectorium after | 2 min | 1–120 | How long a scribe stays idle at its desk before it goes to nap |
 | Stay at the cogitator for | 10 s | 0–120 | How long a scribe stays at the cogitator after its last shell command |
 | Context window: Haiku | 200 k tokens | 8–10 000 | Window used for the context fill of Haiku sessions |
