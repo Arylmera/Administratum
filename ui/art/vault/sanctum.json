@@ -1,0 +1,47 @@
+{
+  "frames": {
+    "THRONE": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 40
+      }
+    },
+    "LORD_DESK": {
+      "frame": {
+        "x": 41,
+        "y": 0,
+        "w": 88,
+        "h": 26
+      }
+    },
+    "COG_MECH": {
+      "frame": {
+        "x": 130,
+        "y": 0,
+        "w": 40,
+        "h": 36
+      }
+    },
+    "SEAL": {
+      "frame": {
+        "x": 171,
+        "y": 0,
+        "w": 12,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "sanctum.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 183,
+      "h": 40
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
