@@ -1,0 +1,73 @@
+{
+  "frames": {
+    "door sanctum closed": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 20,
+        "h": 80
+      }
+    },
+    "door sanctum open": {
+      "frame": {
+        "x": 21,
+        "y": 0,
+        "w": 20,
+        "h": 80
+      }
+    },
+    "door refectory closed": {
+      "frame": {
+        "x": 42,
+        "y": 0,
+        "w": 20,
+        "h": 48
+      }
+    },
+    "door refectory open": {
+      "frame": {
+        "x": 63,
+        "y": 0,
+        "w": 20,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital theme art",
+    "image": "room-doors.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 83,
+      "h": 80
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "door sanctum closed": {
+        "door": [
+          2,
+          4
+        ]
+      },
+      "door sanctum open": {
+        "door": [
+          2,
+          4
+        ]
+      },
+      "door refectory closed": {
+        "door": [
+          2,
+          4
+        ]
+      },
+      "door refectory open": {
+        "door": [
+          2,
+          4
+        ]
+      }
+    },
+    "tiles": {}
+  }
+}

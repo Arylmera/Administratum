@@ -1,0 +1,207 @@
+{
+  "frames": {
+    "wall top": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall": {
+      "frame": {
+        "x": 25,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall east top": {
+      "frame": {
+        "x": 50,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall east": {
+      "frame": {
+        "x": 75,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall sanctum top": {
+      "frame": {
+        "x": 100,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall sanctum": {
+      "frame": {
+        "x": 125,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "wall foot": {
+      "frame": {
+        "x": 0,
+        "y": 21,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "wall dark": {
+      "frame": {
+        "x": 5,
+        "y": 21,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "wall base": {
+      "frame": {
+        "x": 10,
+        "y": 21,
+        "w": 4,
+        "h": 6
+      }
+    },
+    "sanctum base": {
+      "frame": {
+        "x": 15,
+        "y": 21,
+        "w": 4,
+        "h": 6
+      }
+    },
+    "pillar": {
+      "frame": {
+        "x": 20,
+        "y": 21,
+        "w": 20,
+        "h": 8
+      }
+    },
+    "pilaster": {
+      "frame": {
+        "x": 41,
+        "y": 21,
+        "w": 8,
+        "h": 39
+      }
+    },
+    "beacon off": {
+      "frame": {
+        "x": 50,
+        "y": 21,
+        "w": 14,
+        "h": 20
+      }
+    },
+    "beacon on": {
+      "frame": {
+        "x": 65,
+        "y": 21,
+        "w": 14,
+        "h": 20
+      }
+    },
+    "beacon cage": {
+      "frame": {
+        "x": 80,
+        "y": 21,
+        "w": 14,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital theme art",
+    "image": "room-walls.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 149,
+      "h": 60
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "pilaster": {
+        "sill": [
+          0,
+          30
+        ]
+      },
+      "beacon off": {
+        "centre": [
+          7,
+          8
+        ],
+        "sweep": [
+          2,
+          4,
+          10,
+          7
+        ]
+      },
+      "beacon on": {
+        "centre": [
+          7,
+          8
+        ],
+        "sweep": [
+          2,
+          4,
+          10,
+          7
+        ]
+      },
+      "beacon cage": {
+        "centre": [
+          7,
+          8
+        ],
+        "sweep": [
+          2,
+          4,
+          10,
+          7
+        ]
+      }
+    },
+    "tiles": {
+      "wall": {
+        "fill": "repeat",
+        "top": "wall top"
+      },
+      "wall east": {
+        "fill": "repeat",
+        "top": "wall east top"
+      },
+      "wall sanctum": {
+        "fill": "repeat",
+        "top": "wall sanctum top"
+      },
+      "wall foot": {
+        "fill": "repeat"
+      },
+      "wall dark": {
+        "fill": "repeat"
+      },
+      "wall base": {
+        "fill": "repeat-x"
+      },
+      "sanctum base": {
+        "fill": "repeat-x"
+      },
+      "pillar": {
+        "fill": "repeat-y"
+      }
+    }
+  }
+}
