@@ -298,7 +298,7 @@ defineTheme({
     high: { robe: { r: '#241848', R: '#3e2e78', d: '#120a28', z: '#ffd870', j: '#8a6418', t: '#ffd870', T: '#8a6418', g: '#ffd870', G: '#8a6418' },
       adept: { x: '#ffd870', b: '#fff4d0', J: '#ffd870', I: '#fff4d0' } },
     novice: { robe: { r: '#4a3424', R: '#6a4e38', d: '#2a1c12', z: '#4a3424', j: '#4a3424', t: '#6a4e38', T: '#2a1c12', g: '#2a1c12', G: '#2a1c12' },
-      adept: { x: '#6a5840', q: '#8a7858', Q: '#4a3828', b: '#9a8868', J: '#8a7858', I: '#8a7858' } },
+      adept: { x: '#6a5840', q: '#8a7858', Q: '#4a3828', b: '#9a8868', J: '#8a7858', I: '#c9bfa0' } },
   },
   ink: {
     coolant: '#3ad8c8', screenHot: '#eafffa', screenDim: '#1a8a7a', screenMark: '#14645a', screenFlicker: 'rgba(10,40,36,.55)', screenOff: '#1a4a44',
