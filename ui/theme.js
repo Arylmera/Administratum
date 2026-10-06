@@ -120,7 +120,7 @@ const merge = (a, b) => { // deep merge of plain objects (b wins), arrays replac
 };
 
 export const TIER_II = {
-  id: 'tier2', world: 'w40k', name: 'Tier II — Data-Shrine',
+  id: 'tier2', world: 'w40k', name: 'Ordo Administratum',
   px: BASE,
   sash: ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'],
   rank: {
@@ -135,7 +135,7 @@ export const TIER_II = {
 };
 
 // The settings a theme belongs to: Settings picks a world, then one of its themes as the style.
-export const WORLDS = { w40k: 'Warhammer 40k', cyber: 'Cyberpunk' };
+export const WORLDS = { w40k: 'Warhammer 40k', cyber: 'Cyberpunk', space: 'Space' };
 // Registered themes by id. A theme: { id, world, name, px?, sash?, rank?, ink?, light? }, each part only what changes.
 export const THEMES = { [TIER_II.id]: TIER_II };
 export function defineTheme(t) { THEMES[t.id] = t; return t; }
