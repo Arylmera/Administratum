@@ -1,6 +1,7 @@
+use chrono::{Local, TimeZone};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
@@ -56,7 +57,7 @@ pub fn list_subagents(dir: &Path) -> Vec<FileStat> {
     out
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Session {
     pub id: String,
@@ -81,6 +82,12 @@ pub struct Session {
     pub compacted_at: Option<i64>,
     /// The closing question of a finished turn (`ends_with_question`), only while idle in the foreground.
     pub question: Option<String>,
+    /// The git branch of `cwd` (git.rs, refreshed by the poller every few seconds); None outside a repo.
+    pub branch: Option<String>,
+    /// Stopped on a subscription usage limit (newest assistant line `"error":"rate_limit"`, no prompt since).
+    pub limit: Option<Limit>,
+    /// The current or last turn (chronicle.rs), filled by the poll loop.
+    pub turn: Option<TurnSummary>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -98,6 +105,27 @@ pub struct Helper {
 pub struct Context {
     pub tokens: u64,
     pub model: String,
+}
+
+/// A usage limit the session is stopped on (`limit_of`): until `reset_ms` when the message names an hour.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Limit {
+    pub reset_ms: Option<i64>,
+    pub text: String,
+}
+
+/// A session's current (or last) turn, folded from its main transcript by the chronicle (`track_turn`): when its
+/// prompt came, the newest assistant line, how many tool calls, the files Edit / Write / MultiEdit / NotebookEdit
+/// changed (relative to the cwd when inside it; at most MAX_TURN_FILES, the rest counted in `more_files`).
+#[derive(Serialize, Clone, Debug, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TurnSummary {
+    pub started_ms: Option<i64>,
+    pub last_ms: Option<i64>,
+    pub tools: u32,
+    pub files: Vec<String>,
+    pub more_files: u32,
 }
 
 /// Current context size of the newest assistant transcript line that has a usage object:
@@ -549,6 +577,56 @@ pub fn pending_ask(tail: &str) -> Option<String> {
     None
 }
 
+/// Whether a `pending_ask` line is a shell command (Bash/PowerShell).
+fn is_shell_call(ask: &str) -> bool {
+    ["Bash", "PowerShell"].iter().any(|n| ask.strip_prefix(n).is_some_and(|r| r.is_empty() || r.starts_with(':') || r.starts_with(' ')))
+}
+
+/// The usage limit a session is stopped on: its newest assistant line is Claude Code's synthetic
+/// `"error":"rate_limit"` message ("You've hit your limit · resets 2pm (Europe/Paris)") and no prompt came after it.
+pub fn limit_of(tail: &str) -> Option<Limit> {
+    for line in tail.lines().rev() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        let blocks = v["message"]["content"].as_array();
+        match v["type"].as_str() {
+            Some("assistant") => {
+                if v["error"] != "rate_limit" {
+                    return None;
+                }
+                let text = blocks.into_iter().flatten().filter_map(|b| b["text"].as_str()).collect::<Vec<_>>().join(" ");
+                let reset_ms = v["timestamp"].as_str().and_then(iso_utc_ms).and_then(|ts| reset_after(&text, ts));
+                return Some(Limit { reset_ms, text: text.chars().take(120).collect() });
+            }
+            Some("user") if !blocks.is_some_and(|a| a.iter().any(|b| b["type"] == "tool_result")) && v["isMeta"] != true => return None,
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The local time `resets 2pm` / `resets 2:30pm` / `resets 12am` names, at its first occurrence after `after_ms`.
+// ponytail: the zone in parentheses is ignored, the PC's clock is taken as the user's; a date (weekly limit) -> None.
+pub fn reset_after(text: &str, after_ms: i64) -> Option<i64> {
+    let word = text.split("resets ").nth(1)?.split_whitespace().next()?.to_ascii_lowercase();
+    let (clock, pm) = match word.strip_suffix("pm") {
+        Some(c) => (c, true),
+        None => (word.strip_suffix("am")?, false),
+    };
+    let (h, m) = match clock.split_once(':') {
+        Some((h, m)) => (h.parse::<u32>().ok()?, m.parse::<u32>().ok()?),
+        None => (clock.parse::<u32>().ok()?, 0),
+    };
+    if !(1..=12).contains(&h) || m > 59 {
+        return None;
+    }
+    let after = Local.timestamp_millis_opt(after_ms).single()?;
+    let mut at = after.date_naive().and_hms_opt(h % 12 + if pm { 12 } else { 0 }, m, 0)?;
+    if at <= after.naive_local() {
+        at += chrono::TimeDelta::days(1);
+    }
+    Some(Local.from_local_datetime(&at).earliest()?.timestamp_millis())
+}
+
 pub struct Scan {
     pub sessions: Vec<Session>,
     pub unreadable_pids: Vec<u32>,
@@ -565,6 +643,7 @@ pub struct Tail {
     pub title: Option<String>,
     pub asks: Option<String>,
     pub question: Option<String>,
+    pub limit: Option<Limit>,
 }
 
 /// The `Tail` of a transcript, `read(n)` giving its last `n` bytes (None: no transcript). When
@@ -585,7 +664,7 @@ pub fn read_tail(read: impl Fn(u64) -> Option<String>) -> Option<Tail> {
             tail = bigger;
         }
     }
-    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail), title: title_of(&tail), asks: pending_ask(&tail), question: ends_with_question(&tail) })
+    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail), title: title_of(&tail), asks: pending_ask(&tail), question: ends_with_question(&tail), limit: limit_of(&tail) })
 }
 
 /// One pass over `~/.claude/sessions`. A file that fails to parse is reported by the pid in its
@@ -619,8 +698,13 @@ pub fn scan(
         }
         let mut status = normalize_status(rec.status.as_deref()).to_string();
         let (tail, helper_list) = details(&rec.session_id, &rec.cwd);
+        // Claude Code 2.1.28x writes "busy" through a shell command too: an unanswered Bash/PowerShell call means "shell".
+        if status == "busy" && tail.as_ref().and_then(|t| t.asks.as_deref()).is_some_and(is_shell_call) {
+            status = "shell".to_string();
+        }
         let background = status == "shell" && tail.as_ref().is_some_and(|t| t.turn_done);
         let compacted = tail.as_ref().and_then(|t| t.compacted_at);
+        let limit = tail.as_ref().and_then(|t| t.limit.clone());
         if background {
             status = "idle".to_string();
         }
@@ -647,6 +731,9 @@ pub fn scan(
             background,
             compacted_at: compacted,
             question,
+            branch: None,
+            limit,
+            turn: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -716,6 +803,7 @@ pub struct Tracker {
     open: HashSet<String>,
     stale: HashSet<String>,
     asked: HashSet<String>,
+    limits: HashSet<String>,
 }
 
 impl Tracker {
@@ -761,6 +849,20 @@ impl Tracker {
             }
         }
         out
+    }
+
+    /// Usage-limit waves seen for the first time, each the sessions sealed until the same reset (the message text when
+    /// it names no hour): one toast per wave; a session joining a wave already toasted adds none.
+    pub fn new_limits(&mut self, roster: &[Session]) -> Vec<Vec<Session>> {
+        let mut waves: BTreeMap<String, Vec<Session>> = BTreeMap::new();
+        for s in roster {
+            if let Some(l) = &s.limit {
+                waves.entry(l.reset_ms.map_or_else(|| l.text.clone(), |r| r.to_string())).or_default().push(s.clone());
+            }
+        }
+        let fresh = waves.iter().filter(|(k, _)| !self.limits.contains(*k)).map(|(_, v)| v.clone()).collect();
+        self.limits = waves.into_keys().collect();
+        fresh
     }
 }
 
@@ -825,8 +927,7 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
 /// A plain idle session for other modules' tests.
 #[cfg(test)]
 pub fn tests_session(id: &str) -> Session {
-    Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), waiting_for: None,
-              since_ms: 0, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None, question: None }
+    Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), task: "—".into(), ..Default::default() }
 }
 
 #[cfg(test)]
@@ -978,6 +1079,15 @@ mod tests {
     }
 
     #[test]
+    fn shell_call_is_bash_or_powershell_only() {
+        assert!(is_shell_call("Bash: ls — List files"));
+        assert!(is_shell_call("PowerShell: Get-Date"));
+        assert!(is_shell_call("Bash"));
+        assert!(!is_shell_call("BashOutput: x"));
+        assert!(!is_shell_call("Edit: ui/app.js"));
+    }
+
+    #[test]
     fn scan_sets_title_always_and_asks_only_while_waiting() {
         let d = temp_dir("scan-asks");
         fs::write(d.join("10.json"), record(10, "a", "terra-a", "waiting")).unwrap();
@@ -1041,8 +1151,7 @@ mod tests {
     }
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
-        Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None, question: None }
+        Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(), status: status.into(), since_ms: since, task: "—".into(), ..Default::default() }
     }
 
     #[test]
@@ -1587,6 +1696,45 @@ mod tests {
         assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 100)]).len(), 0, "same episode");
         assert_eq!(t.new_petitions(&[session("a", 1, "busy", 200)]).len(), 0);
         assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 300)]).len(), 1, "new episode");
+    }
+
+    #[test]
+    fn usage_limit_lines() {
+        use chrono::{Local, TimeZone};
+        let at = |h, m| Local.with_ymd_and_hms(2026, 10, 6, h, m, 0).unwrap().timestamp_millis();
+        let iso = |ms: i64| chrono::DateTime::from_timestamp_millis(ms).unwrap().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+        let limit = |text: &str, ms: i64| format!(r#"{{"type":"assistant","timestamp":"{}","message":{{"model":"<synthetic>","content":[{{"type":"text","text":"{text}"}}]}},"error":"rate_limit","isApiErrorMessage":true}}"#, iso(ms));
+        let prompt = r#"{"type":"user","message":{"content":"go on"}}"#;
+        let result = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"x","content":"ok"}]}}"#;
+        let answer = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"text","text":"done"}]}}"#;
+
+        let l = limit_of(&limit("You've hit your limit · resets 2pm (Europe/Paris)", at(10, 0))).unwrap();
+        assert_eq!(l.reset_ms, Some(at(14, 0)));
+        assert_eq!(l.text, "You've hit your limit · resets 2pm (Europe/Paris)");
+        assert!(limit_of(&format!("{}\n{result}", limit("resets 2pm", at(10, 0)))).is_some(), "a tool result after it: still limited");
+        assert_eq!(limit_of(&format!("{}\n{prompt}", limit("resets 2pm", at(10, 0)))), None, "a prompt after it: lifted");
+        assert_eq!(limit_of(&format!("{}\n{answer}", limit("resets 2pm", at(10, 0)))), None, "a normal answer after it");
+        assert_eq!(limit_of(answer), None);
+
+        assert_eq!(reset_after("resets 2:30pm (UTC)", at(10, 0)), Some(at(14, 30)));
+        assert_eq!(reset_after("resets 12am", at(10, 0)), Some(at(0, 0) + 86_400_000), "midnight: the next day");
+        assert_eq!(reset_after("resets 9am", at(10, 0)), Some(at(9, 0) + 86_400_000), "already past today: tomorrow");
+        assert_eq!(reset_after("resets 12pm", at(10, 0)), Some(at(12, 0)));
+        assert_eq!(reset_after("resets Oct 8, 2pm", at(10, 0)), None, "a date: no countdown");
+        assert_eq!(reset_after("no reset here", at(10, 0)), None);
+    }
+
+    #[test]
+    fn limit_waves_toast_once() {
+        let lim = |id: &str, reset: Option<i64>| Session { limit: Some(Limit { reset_ms: reset, text: "x".into() }), ..session(id, 1, "idle", 0) };
+        let mut t = Tracker::default();
+        let first = t.new_limits(&[lim("a", Some(5)), lim("b", Some(5)), session("c", 3, "busy", 0)]);
+        assert_eq!(first.len(), 1, "one wave");
+        assert_eq!(first[0].iter().map(|s| s.id.as_str()).collect::<Vec<_>>(), ["a", "b"]);
+        assert!(t.new_limits(&[lim("a", Some(5)), lim("b", Some(5)), lim("c", Some(5))]).is_empty(), "joining a toasted wave: no toast");
+        assert_eq!(t.new_limits(&[lim("a", Some(9))]).len(), 1, "a new reset time: a new wave");
+        assert!(t.new_limits(&[]).is_empty());
+        assert_eq!(t.new_limits(&[lim("a", Some(9))]).len(), 1, "after it ended, the same reset is new again");
     }
 
     #[test]

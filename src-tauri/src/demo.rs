@@ -33,6 +33,7 @@ fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since
         background: false,
         compacted_at: None,
         question: None,
+        ..Default::default()
     }
 }
 

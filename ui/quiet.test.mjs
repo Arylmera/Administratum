@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { inWindow, minutesOf, hhmmOf, quietAt } from './quiet.js';
+
+assert.equal(inWindow(600, 540, 1020), true);
+assert.equal(inWindow(1020, 540, 1020), false);
+assert.equal(inWindow(540, 540, 1020), true);
+assert.equal(inWindow(0, 1320, 480), true);
+assert.equal(inWindow(479, 1320, 480), true);
+assert.equal(inWindow(480, 1320, 480), false);
+assert.equal(inWindow(600, 600, 600), false);
+assert.equal(minutesOf('22:00'), 1320);
+assert.equal(minutesOf('8:05'), 485);
+assert.equal(minutesOf('24:00'), null);
+assert.equal(minutesOf(''), null);
+assert.equal(hhmmOf(485), '08:05');
+const at = (h, m) => new Date(2026, 9, 6, h, m);
+assert.equal(quietAt({ on: true, from: 1320, to: 480 }, at(23, 30)), true);
+assert.equal(quietAt({ on: false, from: 1320, to: 480 }, at(23, 30)), false);
+assert.equal(quietAt({ on: true, from: 1320, to: 480 }, at(12, 0)), false);
+console.log('quiet ok');

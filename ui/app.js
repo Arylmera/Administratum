@@ -6,7 +6,8 @@ import { T, onTheme, setTheme, t } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, perf, view as scaleSetting, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
+import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
@@ -25,13 +26,22 @@ function applyChrome() {
   for (const el of document.querySelectorAll('[data-t-title]')) el.title = t(el.dataset.tTitle);
   for (const el of document.querySelectorAll('[data-t-aria]')) el.setAttribute('aria-label', t(el.dataset.tAria));
   document.title = t('title');
-  if (!REMOTE) invoke('set_toast_text', { petition: t('toast.petition'), question: t('toast.question'), stale: t('toast.stale'), needed: t('toast.needed') }).catch(() => {});
+  if (!REMOTE) invoke('set_toast_text', { petition: t('toast.petition'), question: t('toast.question'), stale: t('toast.stale'), needed: t('toast.needed'),
+    limit: t('toast.limit'), limitMany: t('toast.limitMany'), failed: t('toast.failed') }).catch(() => {});
 }
 applyChrome();
 onTheme(applyChrome);
 
 const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
+// Quiet hours: chimes for new petitions, questions, long tasks and usage limits stay silent (stale ones still chime).
+const quietNow = () => quietAt(quiet, new Date());
+const quietEl = document.getElementById('quiet');
+function renderQuiet() {
+  const on = quietNow();
+  quietEl.hidden = !on;
+  quietEl.title = on ? `Quiet until ${hhmmOf(quiet.to)}` : '';
+}
 
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
@@ -86,6 +96,7 @@ function renderModes() {
       b.title = s ? sunLine(s) : '';
     }
   }
+  renderQuiet();
   renderSettings();
 }
 function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
@@ -261,6 +272,8 @@ function frame(now) {
   drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
+  syncTags(sealTags, 'sealed', sealText, 0, -18);
+  syncTags(sheetTags, 'sheets', sheetText, 10, -2);
   syncHover();
   syncEdges();
 }
@@ -353,19 +366,39 @@ function consolesOf(dept) {
   return order;
 }
 
+// A department's most recently active session: its cwd is what the plaque opens, its branch what the plaque shows.
+const deptHead = name => roster.filter(s => s.dept === name).reduce((p, q) => (!p || q.sinceMs > p.sinceMs ? q : p), null);
+const shownBranch = b => (b && b !== 'main' && b !== 'master' ? b : '');
+function openDept(name) {
+  const s = deptHead(name), el = plaques.get(`b:${name}`);
+  if (!s || REMOTE) return;
+  invoke('open_folder', { path: s.cwd }).catch(err => {
+    if (!el) return;
+    el.title = String(err); el.classList.add('err');
+    setTimeout(() => { el.title = 'Open the folder'; el.classList.remove('err'); }, 5000);
+  });
+}
+
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
 function renderPlaques(blocks) {
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
   if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + (hall.h - SCENE.h) / 2]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
-  for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
+  for (const [k, [cls, text, x, y, color, maxWidth, branch = '']] of want) {
     let el = plaques.get(k);
-    if (!el) { el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el); }
+    if (!el) {
+      el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
+      if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
+    }
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
       width: cls === 'empty' ? `${hall.sw * scale}px` : '' }; // the empty hall's notice, centred on the scriptorium
-    if (el.textContent !== text) el.textContent = text;
+    if (el.dataset.text !== `${text}|${branch}`) {
+      el.dataset.text = `${text}|${branch}`;
+      const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;
+      el.replaceChildren(text, ...(branch ? [sub] : []));
+    }
     for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
   }
 }
@@ -384,6 +417,7 @@ function renderCard() {
     card.querySelector('.task').textContent = a.h.task || 'No task given';
     card.querySelector('.path').textContent = '';
     renderAsks(card, null);
+    renderTurn(card, null);
     renderAnswer(card, null);
     renderLinks(card, owner);
     return;
@@ -397,9 +431,10 @@ function renderCard() {
   const status = s.background ? t('status.background') : a?.target?.pose === 'nap' ? t('status.napping') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status;
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
-  card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.task;
+  card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.limit ? s.limit.text : s.task;
   card.querySelector('.path').textContent = s.cwd;
   renderAsks(card, s);
+  renderTurn(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
 }
@@ -412,6 +447,37 @@ function renderAsks(card, s) {
   el.dataset.q = q;
   const b = document.createElement('b'); b.textContent = 'Asks: ';
   el.replaceChildren(b, q);
+}
+
+// The turn in progress (or the last one, frozen at its newest answer): length, tool calls, files changed (backend `turn`).
+const expanded = new Set(); // session ids whose file list is shown in full
+const span = ms => { const m = Math.floor(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}`; };
+const filesOf = tr => (tr ? tr.files.length + tr.moreFiles : 0);
+function renderTurn(card, s) {
+  const line = card.querySelector('.turn'), list = card.querySelector('.files'), tr = s?.turn;
+  line.hidden = !tr;
+  list.hidden = !filesOf(tr);
+  if (!tr) return;
+  const working = ['busy', 'shell', 'waiting'].includes(s.status), n = filesOf(tr);
+  const took = tr.startedMs ? `${span((working ? Date.now() : tr.lastMs ?? Date.now()) - tr.startedMs)} · ` : '';
+  line.textContent = `Turn · ${took}${tr.tools} tool${tr.tools === 1 ? '' : 's'} · ${n} file${n === 1 ? '' : 's'}`;
+  const all = expanded.has(s.id), shown = all ? tr.files : tr.files.slice(0, 8);
+  const key = `${s.id}|${all}|${tr.files.join('|')}|${tr.moreFiles}`;
+  if (list.dataset.key === key) return;
+  list.dataset.key = key;
+  list.replaceChildren(...shown.map(f => { const li = document.createElement('li'); li.textContent = f; return li; }));
+  const rest = n - shown.length;
+  if (rest > 0) {
+    const li = document.createElement('li');
+    if (all) li.textContent = `+${rest} more`;
+    else {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'more'; b.textContent = `+${rest} more`;
+      b.onclick = () => { expanded.add(s.id); renderCard(); };
+      li.appendChild(b);
+    }
+    list.appendChild(li);
+  }
 }
 
 // Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
@@ -574,6 +640,28 @@ function syncEdges() {
   }
 }
 
+// Small read-only tags over characters (a sealed scribe; Task 5's sheet count): one element per actor id, kept while
+// textOf(actor) is non-empty, placed at the actor's feet + (dx, dy) logical px.
+function syncTags(tags, cls, textOf, dx, dy) {
+  for (const [id, el] of tags) { const a = cast.actors.get(id); if (!a || !textOf(a)) { el.remove(); tags.delete(id); } }
+  for (const a of cast.actors.values()) {
+    const text = textOf(a);
+    if (!text) continue;
+    let el = tags.get(a.id);
+    if (!el) { el = document.createElement('div'); el.className = `lbl tag ${cls}`; overlay.appendChild(el); tags.set(a.id, el); }
+    if (el.textContent !== text) el.textContent = text;
+    setStyle(el, { left: `${(a.x + dx) * scale}px`, top: `${(a.y + dy) * scale}px` });
+  }
+}
+// A scribe stopped on a usage limit (backend `limit`): sealed until the reset hour.
+const sealTags = new Map();
+const sealText = a => (!a.h && !a.leaving && a.s.limit && !labels.has(a.id)
+  ? (a.s.limit.resetMs ? t('limitLabel', { time: hhmm(new Date(a.s.limit.resetMs)) }) : t('limitSealed')) : '');
+
+// A working scribe's files changed this turn, by its desk.
+const sheetTags = new Map();
+const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.status === 'busy' || a.s.status === 'shell') && filesOf(a.s.turn) ? `✎${filesOf(a.s.turn)}` : '');
+
 // Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
 const tip = document.getElementById('tip');
 let mouse = null;
@@ -652,17 +740,18 @@ muteBtn.onclick = toggleMute;
 renderMute();
 
 let refreshTithe = null;
-initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit });
+initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit, quieted: renderQuiet });
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;
 if (tauri() || REMOTE) {
   listen('roster', e => onRoster(e.payload));
-  listen('petition', () => chime());
-  listen('question', () => chime([880, 1175]));
+  listen('petition', () => quietNow() || chime());
+  listen('question', () => quietNow() || chime([880, 1175]));
   listen('petition-stale', () => chime([990, 660, 990, 660]));
+  listen('limit', () => quietNow() || chime([520, 390]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
-  listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done') chime([1320, 1760]); });
+  listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done' && !quietNow()) chime([1320, 1760]); });
   listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
   listen('visible', e => { visible = e.payload; wake(); }); // the app's window only
   refreshTithe = initChronicon(colorOf);

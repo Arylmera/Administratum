@@ -36,6 +36,8 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Green lamp on the desk (20 s) / blinking red lamp | Test run passed / failed (`cargo test`, `npm test`, `npm run test`, `pnpm test`, `yarn test`, `pytest`, `vitest`, `jest`, `go test`) |
 | Spark and smoke puff on the desk | A tool call returned an error |
 | Scribe raises its scroll, gold glint, soft chime | A turn that took 5 min or more finished |
+| Scribe stays at its desk under a `sealed · resets 14:00` tag | The session hit a subscription usage limit. One toast per wave: sessions sealed until the same hour share it. The tag goes at the reset hour or at the next prompt. The wording follows the theme (*throttled* in the cyberpunk den, *grounded* on the orbital station) |
+| `✎5` by a working scribe's desk | Files the current turn has changed (Edit, Write, MultiEdit, NotebookEdit). The card lists them |
 
 Adepts play a smaller version of these reactions at their console.
 
@@ -52,7 +54,7 @@ low sun count as dusk. The *Auto* button's tooltip then shows today's sunrise an
 braziers, screens and coolant channels.
 
 **Header.** From left to right: lighting switch, petition counter, Tithe plaque (`⛁ tokens · working time`
-today), Chronicon, Settings, mute chime, hide to tray. To move the window, drag the header.
+today), Chronicon, Settings, a moon while quiet hours are on, mute chime, hide to tray. To move the window, drag the header.
 
 ---
 
@@ -86,13 +88,17 @@ To launch it at sign-in, turn on **Start at login** from the tray menu or from S
 - **Click** a scribe or adept to open its card. If the session runs in an Orca terminal, that terminal is also
   brought to the front. Click again, press **Escape**, or click elsewhere to close the card.
 - The card shows the scribe's name and department, state and time in state, context (`184k / 200k (92%)`),
-  model and rank, the last task line, and the project path. An adept's card shows its subagent type, its owner,
+  model and rank, the last task line, the turn (`Turn · 4 min · 23 tools · 5 files`, then the files it changed),
+  and the project path. An adept's card shows its subagent type, its owner,
   model, context and task.
 - **Open in Orca** switches Orca to the session's terminal. It is shown only for sessions started inside Orca,
   which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process.
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
   only when the session record carries a claude.ai session id.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
+- **Click a department's plaque** to open its folder (the most recently active session's working directory) in
+  Explorer, VS Code or a command of your own (Settings > System). A branch other than `main` / `master` shows under
+  the department's name, read from `.git/HEAD` (worktrees included).
 
 ### Answering petitions
 
@@ -101,6 +107,10 @@ To launch it at sign-in, turn on **Start at login** from the tray menu or from S
 When a petition is a **permission prompt** (`approve ...`) in an **Orca** terminal, the widget can answer it.
 Use **✓ / ✗** on the queue label, or **Approve / Always / Deny** on the card. *Always* picks the prompt's first
 "Yes, ..." option (don't ask again / allow all edits). If the prompt has no such option, it returns an error.
+
+The petition toast itself carries **Approve** and **Deny** for the same prompts (permission, in Orca). A click runs
+the same check below. If the petition was already answered in the terminal, nothing is typed. *Always* stays on the
+card: on a toast it could be clicked without reading the prompt.
 
 What happens when you click:
 
@@ -127,7 +137,7 @@ and the 6 previous days. Each day shows:
 - **Tithe**: tokens (new input/output vs. cache), working time (time sessions spent busy or in a shell),
   event count, tokens and time per department and per model, and 24-hour charts of tokens and working minutes.
 - **Chronicle**: the event log, newest first. It covers commits, pushes, test passes and failures, tool errors,
-  long tasks finished, arrivals, departures, petitions opened and answered, and compactions. You can filter it
+  long tasks finished, arrivals, departures, petitions opened and answered, compactions and usage limits. You can filter it
   by department. While the Chronicon is open, new events appear at the top.
 
 Tokens are counted once per assistant message. Subagent tokens count toward the parent's project. On first sight
@@ -149,6 +159,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station and Arcane Tower a wizards' tower, not 40k; the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
+| Quiet hours | off, 22:00–08:00 | any times | Inside the window no toast and no chime for a new petition, question, long task or usage limit. A petition turning stale still toasts and chimes. A moon in the header shows while it is quiet |
 | Idle to the Refectorium after | 2 min | 1–120 | How long a scribe stays idle at its desk before it goes to nap |
 | Stay at the cogitator for | 10 s | 0–120 | How long a scribe stays at the cogitator after its last shell command |
 | Context window: Haiku | 200 k tokens | 8–10 000 | Window used for the context fill of Haiku sessions |
@@ -156,6 +167,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Latitude / Longitude | empty | ±90 / ±180 | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30 | Redraw rate while nothing moves (anything walking or animating always runs at 30 fps). Lower = less CPU/GPU |
 | Pause when hidden or covered | on | — | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
+| Open departments with | Explorer | Explorer / VS Code / Custom command | What a plaque click opens the folder with. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
 
 **Reset to defaults** restores every value above except *Start at login*.
 
@@ -194,6 +206,7 @@ configuration, and installs no hooks. It reads:
 | `.../<sessionId>/subagents/agent-*.jsonl` and `agent-*.meta.json` | Active subagents: type, task, model, context |
 | `ORCA_TERMINAL_HANDLE` in the environment of running `claude.exe` processes | Which Orca terminal a session lives in. Read once per process |
 | Process name and start time of each session's pid | Whether the session is still alive (guards against pid reuse) |
+| `.git/HEAD` in or above each session's working directory (following a worktree's `.git` file) | The branch shown under the department plaque. Read directly, git is never run |
 
 **What it writes, and where.** Everything goes under `%APPDATA%\com.arylmera.administratum\`:
 
@@ -207,18 +220,25 @@ configuration, and installs no hooks. It reads:
 Chronicon files older than 7 days are deleted at startup. Demo mode uses a separate `chronicon-demo\` folder,
 which is wiped at each start.
 
-**Nothing leaves the machine.** There is no telemetry, no update check and no network call. The only outbound
-action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That
-URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
+**Nothing about your sessions leaves the machine.** There is no telemetry. The only network call is the update
+check: it fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
+turned off) and when you click *Check now*. The only other outbound action is opening a `https://claude.ai/code/<id>`
+link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an
-Orca terminal after you click. The safeguards:
+Orca terminal after you click, in the widget or on a toast. The safeguards:
 
 - The terminal handle is validated (`term_` followed by hex digits and dashes).
 - Arguments go straight to the `orca` process, never through a shell.
 - The digit is typed only after the rendered screen has been checked as described [above](#answering-petitions).
 - Screen contents are never echoed, logged or sent.
 - Errors are fixed strings.
+- A toast's button only acts while the petition it was raised for is still open (same session, same episode).
+  Answered in the terminal already, or gone: nothing is typed.
+
+**Opening a department's folder.** A plaque click starts Explorer, VS Code or your custom command, and only for the
+working directory of a session currently in the hall. The folder is passed as one argument, never through a shell.
+The remote view cannot do it, and never receives the custom command.
 
 ---
 

@@ -68,7 +68,7 @@ export class Cast {
   // spots: the refectory's (hallOf().refectory); a sleeper whose bench went with a smaller room takes another.
   napping(roster, spots = this.hall.refectory, now = Date.now()) {
     for (const [id, i] of this.naps) if (i >= spots.length) this.naps.delete(id);
-    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && !isQuestion(s) && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
+    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && !s.limit && !isQuestion(s) && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
     for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
     for (const s of sleepy) {
       if (this.naps.has(s.id)) continue;

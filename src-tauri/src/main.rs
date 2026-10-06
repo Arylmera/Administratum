@@ -2,7 +2,9 @@
 mod chronicle;
 mod demo;
 mod firewall;
+mod git;
 mod poller;
+mod quiet;
 mod registry;
 mod remote;
 mod settings;
@@ -132,6 +134,47 @@ fn answer_petition(handle: String, choice: String) -> Result<(), String> {
 }
 
 type Chron = Mutex<Chronicle>;
+/// The newest roster, for commands that act on a live session (open_folder, toast buttons).
+type Live = Mutex<Vec<Session>>;
+
+/// The app id toasts show under: the installed app's identifier; PowerShell's in a dev build (the identifier is only
+/// registered by the installer), as tauri-plugin-notification does.
+#[cfg(windows)]
+fn toast_app_id(app: &AppHandle) -> String {
+    let dev = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.ends_with(std::path::Path::new("target").join("debug")) || d.ends_with(std::path::Path::new("target").join("release")))).unwrap_or(false);
+    if dev { tauri_winrt_notification::Toast::POWERSHELL_APP_ID.to_string() } else { app.config().identifier.clone() }
+}
+
+/// A petition toast. A permission prompt in an Orca terminal gets Approve / Deny: a click answers through
+/// `answer_petition` (the same screen check as the card), only while that petition is still open (toast::still_open);
+/// a failure shows a plain "open the terminal" toast. Anything else, or a WinRT error: the plugin's plain toast.
+fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String) {
+    #[cfg(windows)]
+    if toast::has_buttons(s) {
+        let (handle, name) = (app.clone(), s.name.clone());
+        let shown = tauri_winrt_notification::Toast::new(&toast_app_id(app))
+            .title(&title)
+            .text1(&body)
+            .add_button("Approve", &toast::action_arg("yes", s.since_ms, &s.id))
+            .add_button("Deny", &toast::action_arg("no", s.since_ms, &s.id))
+            .on_activated(move |arg| {
+                let Some((choice, since, id)) = arg.as_deref().and_then(toast::parse_action) else { return Ok(()) };
+                let open = handle.state::<Live>().lock().ok().and_then(|r| toast::still_open(&r, id, since).map(str::to_string));
+                if let Some(orca) = open {
+                    if let Err(e) = answer_petition(orca, choice.to_string()) {
+                        eprintln!("toast answer: {e}");
+                        let _ = handle.notification().builder().title(toast::fill(&toast::get().failed, &name)).show();
+                    }
+                }
+                Ok(())
+            })
+            .show();
+        if shown.is_ok() {
+            return;
+        }
+    }
+    let _ = app.notification().builder().title(title).body(body).show();
+}
 
 fn now_ms() -> i64 {
     SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
@@ -185,10 +228,17 @@ fn set_question_prefs(enabled: bool, toast: bool) {
     QUESTION_TOAST.store(toast, Ordering::Relaxed);
 }
 
+/// Quiet hours from the settings panel (quiet.rs): minutes after midnight, local.
+#[tauri::command]
+fn set_quiet(enabled: bool, from_min: u16, to_min: u16) {
+    quiet::set(enabled, from_min, to_min);
+}
+
 /// The toasts' wording from the active theme (toast.rs; app.js pushes it on start and on a theme change).
 #[tauri::command]
-fn set_toast_text(petition: String, question: String, stale: String, needed: String) {
-    toast::set(toast::Text { petition, question, stale, needed });
+#[allow(clippy::too_many_arguments)]
+fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String) {
+    toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed });
 }
 
 /// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh).
@@ -297,7 +347,13 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
             remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
             remote::Call::TitheDay(day) => json(tithe_day(day, a.state())),
             remote::Call::ChronicleDays => json(chronicle_days(a.state())),
-            remote::Call::SettingsLoad => settings_load(a.clone()),
+            remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
+                // The remote (LAN) view never learns the local "open folder" program/path; the local UI keeps them.
+                if let Some(o) = v.as_object_mut() {
+                    o.retain(|k, _| !k.starts_with("adm.open"));
+                }
+                v
+            }),
             remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
             remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
         }),
@@ -383,6 +439,71 @@ fn firewall_remove(port: u16) -> Result<firewall::Status, String> {
     firewall::status(port)
 }
 
+/// The program and arguments that open a department's folder (Settings: adm.openWith = explorer | code | custom,
+/// adm.openCmd). `path` is always one argument: `{path}` in a custom command is replaced inside its word, and
+/// appended as the last argument when the command has none. Nothing goes through a shell.
+fn opener(kind: &str, custom: &str, path: &str) -> Result<(String, Vec<String>), String> {
+    match kind {
+        "code" => Ok(("code.cmd".into(), vec![path.into()])),
+        "custom" => {
+            let words = split_words(custom);
+            let (program, rest) = words.split_first().ok_or("no custom command set")?;
+            let mut args: Vec<String> = rest.iter().map(|w| w.replace("{path}", path)).collect();
+            if !rest.iter().any(|w| w.contains("{path}")) {
+                args.push(path.into());
+            }
+            Ok((program.clone(), args))
+        }
+        _ => Ok(("explorer.exe".into(), vec![path.into()])),
+    }
+}
+
+/// Words of a command line; double quotes group (no escapes): `"C:\Program Files\x.exe" -n {path}`.
+fn split_words(s: &str) -> Vec<String> {
+    let (mut out, mut cur, mut quoted, mut any) = (vec![], String::new(), false, false);
+    for c in s.chars() {
+        match c {
+            '"' => {
+                quoted = !quoted;
+                any = true;
+            }
+            c if c.is_whitespace() && !quoted => {
+                if any {
+                    out.push(std::mem::take(&mut cur));
+                    any = false;
+                }
+            }
+            c => {
+                cur.push(c);
+                any = true;
+            }
+        }
+    }
+    if any {
+        out.push(cur);
+    }
+    out
+}
+
+/// A department plaque was clicked: open `path` (a live session's cwd, nothing else) with the program chosen in Settings.
+#[tauri::command(async)]
+fn open_folder(path: String, app: AppHandle, live: State<Live>) -> Result<(), String> {
+    if !live.lock().map_err(|_| "roster unavailable")?.iter().any(|s| s.cwd == path) {
+        return Err("not a session folder".into());
+    }
+    let v = settings::load(&settings_path(&app)?);
+    let (program, args) = opener(v["adm.openWith"].as_str().unwrap_or("explorer"), v["adm.openCmd"].as_str().unwrap_or(""), &path)?;
+    no_window(Command::new(&program)).args(args).spawn().map_err(|e| format!("{program}: {e}"))?;
+    Ok(())
+}
+
+/// Quiet-hours settings as saved by the UI (adm.quiet/"1", adm.quietFrom/adm.quietTo, minutes after
+/// midnight as strings): defaults to off, 1320 (22:00), 480 (8:00) on a missing or unparsable value.
+fn quiet_from_settings(v: &serde_json::Value) -> (bool, u16, u16) {
+    let num = |key: &str, default: u16| v[key].as_str().and_then(|s| s.parse().ok()).unwrap_or(default);
+    (v["adm.quiet"].as_str() == Some("1"), num("adm.quietFrom", 1320), num("adm.quietTo", 480))
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -394,12 +515,18 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
+        .invoke_handler(tauri::generate_handler![open_session, open_folder, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_quiet, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
             let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });
             app.manage::<Chron>(Mutex::new(Chronicle::open(dir, now_ms(), demo)));
+            app.manage::<Live>(Mutex::new(Vec::new()));
+            // Apply quiet hours before the poll thread's first tick, so a restart during the
+            // night window does not toast until the webview gets around to pushing set_quiet.
+            let saved = settings_path(app.handle()).map(|p| settings::load(&p)).unwrap_or_default();
+            let (on, from, to) = quiet_from_settings(&saved);
+            quiet::set(on, from, to);
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             if let Ok((enabled, port, actions, token)) = settings_path(app.handle()).and_then(|p| remote_conf(&p)) {
@@ -441,15 +568,14 @@ fn poll_loop(app: AppHandle, demo: bool) {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
         let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
+            let mut roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
             let words = toast::get();
+            let quiet = quiet::active();
             for s in tracker.new_petitions(&roster) {
-                let _ = app
-                    .notification()
-                    .builder()
-                    .title(toast::fill(&words.petition, &s.name))
-                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
-                    .show();
+                if !quiet {
+                    let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+                    petition_toast(&app, &s, toast::fill(&words.petition, &s.name), body);
+                }
                 emit(&app, "petition", &s);
             }
             // Questions never go stale: one toast (if wanted) and one chime per episode.
@@ -457,7 +583,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 if !QUESTIONS.load(Ordering::Relaxed) {
                     continue;
                 }
-                if QUESTION_TOAST.load(Ordering::Relaxed) {
+                if QUESTION_TOAST.load(Ordering::Relaxed) && !quiet {
                     let q = s.question.clone().unwrap_or_default();
                     let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
                     let _ = app.notification().builder().title(toast::fill(&words.question, &s.name)).body(format!("{} · {q}", s.dept)).show();
@@ -468,14 +594,31 @@ fn poll_loop(app: AppHandle, demo: bool) {
             // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
             let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
             for s in tracker.stale_petitions(&roster, now_ms + shift) {
-                let _ = app
-                    .notification()
-                    .builder()
-                    .title(toast::fill(&words.stale, &s.name))
-                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
-                    .show();
+                let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+                petition_toast(&app, &s, toast::fill(&words.stale, &s.name), body);
                 emit(&app, "petition-stale", &s);
             }
+            let mut limit_events = vec![];
+            if first {
+                // A session already sealed before this app start is not a new wave: seed the tracker,
+                // but skip the toast, the chime event and the Chronicon record for it.
+                tracker.new_limits(&roster);
+            } else {
+                for wave in tracker.new_limits(&roster) {
+                    let reset = wave[0].limit.as_ref().and_then(|l| l.reset_ms);
+                    let time = reset.map_or_else(|| "later".to_string(), toast::hhmm);
+                    if !quiet {
+                        let names: Vec<&str> = wave.iter().map(|s| s.name.as_str()).collect();
+                        let body = if wave.len() == 1 { format!("{} · {}", wave[0].dept, wave[0].limit.as_ref().map_or("", |l| l.text.as_str())) } else { names.join(", ") };
+                        let _ = app.notification().builder().title(toast::limit_title(&words, &names, &time)).body(body).show();
+                    }
+                    emit(&app, "limit", wave.len());
+                    for s in &wave {
+                        limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
+                    }
+                }
+            }
+            let mut turns = std::collections::HashMap::new();
             {
                 let now = now_ms;
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
@@ -492,11 +635,14 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     last_t = t;
                     ev
                 } else {
-                    c.read_transcripts(&roster, &poller.files, now)
+                    let ev = c.read_transcripts(&roster, &poller.files, now);
+                    turns = c.turns(&poller.files);
+                    ev
                 };
                 if !first {
                     events.extend(chronicle::lifecycle(&prev, &roster, now));
                 }
+                events.extend(limit_events);
                 for e in &events {
                     c.record(e);
                     // The first scan backfills today; only fresh events play live in the scene.
@@ -507,6 +653,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 c.maybe_flush(now);
                 first = false;
             }
+            for s in roster.iter_mut() {
+                s.turn = turns.remove(&s.id);
+            }
+            *app.state::<Live>().lock().unwrap_or_else(|e| e.into_inner()) = roster.clone();
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
             prev = roster;
@@ -618,11 +768,34 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn sample_grid_stays_inside_and_spans_the_rect() {
         let pts: Vec<_> = super::sample_grid(100, 50, 600, 450).collect();
         assert_eq!(pts.len(), 25);
         assert!(pts.iter().all(|&(x, y)| (100..600).contains(&x) && (50..450).contains(&y)));
         assert_eq!((pts[0], pts[24]), ((150, 90), (550, 410)));
+    }
+
+    #[test]
+    fn quiet_from_settings_defaults_and_parses() {
+        assert_eq!(quiet_from_settings(&serde_json::json!({})), (false, 1320, 480), "missing keys: off, defaults");
+        assert_eq!(
+            quiet_from_settings(&serde_json::json!({"adm.quiet": "1", "adm.quietFrom": "60", "adm.quietTo": "120"})),
+            (true, 60, 120)
+        );
+        assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "0", "adm.quietFrom": "oops"})), (false, 1320, 480), "unparsable falls back");
+    }
+
+    #[test]
+    fn opener_keeps_the_path_one_argument() {
+        let p = r"C:\My Projects\x & y";
+        assert_eq!(opener("explorer", "", p).unwrap(), ("explorer.exe".to_string(), vec![p.to_string()]));
+        assert_eq!(opener("code", "", p).unwrap(), ("code.cmd".to_string(), vec![p.to_string()]));
+        assert_eq!(opener("custom", r#""C:\Program Files\Ed\ed.exe" -n {path}"#, p).unwrap(), (r"C:\Program Files\Ed\ed.exe".to_string(), vec!["-n".to_string(), p.to_string()]));
+        assert_eq!(opener("custom", "ed --dir={path}", p).unwrap().1, vec![format!("--dir={p}")]);
+        assert_eq!(opener("custom", "ed", p).unwrap().1, vec![p.to_string()], "no {{path}}: appended");
+        assert!(opener("custom", "  ", p).is_err());
     }
 }
