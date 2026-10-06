@@ -345,7 +345,7 @@ python -m http.server 8123        # from the repo root
 ```
 
 Cells are named like a spreadsheet so a sprite in a theme is one short reference: the column is the theme
-(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Arcane Tower, I Corpo Tower, J Rain City, K Green Code, L Sunset Drive), the row is the sprite's number,
+(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code, K Sunset Drive, L Arcane Tower), the row is the sprite's number,
 so `F52` is the Neon Grid shelf. `#F52` in the URL jumps to it; `node tools/sprite_sheet.mjs --list` prints the key.
 Each family links to its discussion issue, each sprite to a prefilled new Sprite issue. Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
