@@ -31,6 +31,14 @@
         "w": 64,
         "h": 42
       }
+    },
+    "GAUGE": {
+      "frame": {
+        "x": 134,
+        "y": 0,
+        "w": 12,
+        "h": 12
+      }
     }
   },
   "meta": {
@@ -38,7 +46,7 @@
     "image": "walls.png",
     "format": "RGBA8888",
     "size": {
-      "w": 133,
+      "w": 146,
       "h": 42
     },
     "palette": "key.gpl",

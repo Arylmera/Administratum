@@ -39,6 +39,22 @@
         "w": 24,
         "h": 20
       }
+    },
+    "wall sanctum": {
+      "frame": {
+        "x": 125,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "pillar": {
+      "frame": {
+        "x": 150,
+        "y": 0,
+        "w": 20,
+        "h": 8
+      }
     }
   },
   "meta": {
@@ -46,7 +62,7 @@
     "image": "room-walls.png",
     "format": "RGBA8888",
     "size": {
-      "w": 124,
+      "w": 170,
       "h": 20
     },
     "palette": "key.gpl",

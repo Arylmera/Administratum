@@ -15,6 +15,14 @@
         "w": 8,
         "h": 12
       }
+    },
+    "COMMIT_TAG": {
+      "frame": {
+        "x": 18,
+        "y": 0,
+        "w": 8,
+        "h": 15
+      }
     }
   },
   "meta": {
@@ -22,7 +30,7 @@
     "image": "commits.png",
     "format": "RGBA8888",
     "size": {
-      "w": 17,
+      "w": 26,
       "h": 15
     },
     "palette": "key.gpl",

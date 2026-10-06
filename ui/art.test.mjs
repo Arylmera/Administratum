@@ -116,12 +116,12 @@ for (const [id, fams] of Object.entries(ART.themed)) for (const [fam, sh] of Obj
   for (const [n, a] of Object.entries(sh.anchors)) for (const k of Object.keys(a)) assert.ok(ART.base[fam].anchors[n]?.[k] !== undefined, `${id}/${fam}: anchor ${n}.${k} unknown`);
 }
 // Switching: a theme's frames come in, everything else stays the default, and back again.
-const plain = { banner: MAPS.BANNER, gauge: MAPS.GAUGE };
+const plain = { banner: MAPS.BANNER, table: MAPS.TABLE };
 setTheme('cyber');
 assert.notDeepEqual(MAPS.BANNER, plain.banner, 'cyber brings its banner');
-assert.equal(MAPS.GAUGE, plain.gauge, 'frames a theme does not redraw stay the default');
+assert.equal(MAPS.TABLE, plain.table, 'frames a theme does not redraw stay the default');
 assert.equal(SHEET_OF.BANNER, 'cyber/walls');
-assert.equal(SHEET_OF.GAUGE, 'walls'); // the theme's walls sheet redraws the banner, not the gauge
+assert.equal(SHEET_OF.TABLE, 'refectorium'); // the theme has no refectorium art: the table stays the default
 setTheme('tier2');
 assert.equal(MAPS.BANNER, plain.banner);
 assert.equal(SHEET_OF.BANNER, 'walls');

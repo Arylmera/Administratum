@@ -78,14 +78,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.night.png" height="136"> |
 | <a id="banner"></a>`BANNER` | 12×15 | Wall banner. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/BANNER.png" height="120"> |
 | <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/SHELF.png" height="160"> |
-| <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/walls.png`, drawn by scene.js | <img src="cyber/GAUGE.png" height="48"> |
+| <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/GAUGE.png" height="48"> |
 | <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/CENSER.png" height="80"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/BOOKS.png" height="72"> |
-| <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="cyber/LOOSE_A.png" height="32"> |
-| <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="cyber/LOOSE_B.png" height="40"> |
-| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/clutter.png`, drawn by scene.js | <img src="cyber/CRATE.png" height="96"> |
+| <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/LOOSE_A.png" height="32"> |
+| <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/LOOSE_B.png" height="40"> |
+| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/CRATE.png" height="96"> |
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/cyber/skull.png`, drawn by scene.js | <img src="cyber/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/cyber/skull.png` | <img src="cyber/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL.png" height="56"> |
@@ -94,7 +94,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_SEAL.png" height="60"> |
-| <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_TAG.png" height="60"> |
+| <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_TAG.png" height="60"> |
 | <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_STAMP.png" height="48"> |
 
 ## Room tiles
@@ -112,12 +112,12 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_east_top.png" height="80"> |
 | <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_east.png" height="160"> |
 | <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_sanctum_top.png" height="80"> |
-| <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_sanctum.png" height="160"> |
+| <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.wall_sanctum.png" height="160"> |
 | <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_foot.png" height="48"> |
 | <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_dark.png" height="48"> |
 | <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.wall_base.png" height="24"> |
 | <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.sanctum_base.png" height="24"> |
-| <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.pillar.png" height="160"> |
+| <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/cyber/room-walls.png` | <img src="cyber/ROOM.pillar.png" height="160"> |
 | <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.pilaster.png" height="156"> |
 | <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_off.png" height="80"> |
 | <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/room-walls.png` | <img src="cyber/ROOM.beacon_on.png" height="80"> |
