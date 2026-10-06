@@ -278,7 +278,7 @@ accent(NEON, {
 // parchment. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
   id: 'tower', world: 'arcane', name: 'Arcane Tower',
-  art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator'], // ui/art/tower/: apprentices in pointed hats, wisp-owl familiars, the Archmage on his carved high seat, spellbook lectern, sigil circle, rune seals, alchemist tables and slant-top desks with glowing grimoires, scrying crystals, the orrery wall
+  art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire'], // ui/art/tower/: apprentices in pointed hats, wisp-owl familiars, the Archmage on his carved high seat, spellbook lectern, sigil circle, rune seals, alchemist tables and slant-top desks with glowing grimoires, scrying crystals, the orrery wall, round-arched leaded windows, tower tapestries, potion shelves, hourglasses, lanterns, the bat-winged floating eye, the runic arch with plank doors on a portal, cauldrons over log fires, candle clusters in a gold dish
   px: {
     k: '#0a0a12', e: '#12141f', n: '#0a0a12',
     r: '#3a2a6a', R: '#5a46a0', d: '#1e1438', t: '#c0c4d0', T: '#5a5e68', z: '#c0c4d0', j: '#8a8e98', // apprentice robe, silver stars
@@ -305,9 +305,9 @@ defineTheme({
     cant: 'rgba(0,0,0,0)', grime: 'rgba(10,8,16,.3)', scratchSheen: 'rgba(255,240,220,.08)',
     parchmentWarn: '#c89060',
     smoke: '#c8c0b0', sparkSmoke: '#d0c8c0', steam: '#dcd4c8', alarmGlow: '#c89aff', beaconSweep: '#9a5aff', searchlight: '#3ad8c8',
-    // the arched window's glass: a sky and a gold sun by day; by night the indigo dark and a pale moon
-    windowDay: { u: '#4a7ab0', v: '#3a5a40', g: '#f0c86a', x: '#8a5e38' },
-    windowNight: { u: '#1a1a38', v: '#141428', g: '#d8d0e0' },
+    // the arched window's leaded glass: blue sky, green hills, a round sun by day; by night indigo, stars, a crescent moon
+    windowDay: { u: '#5a8cc8', v: '#4a7a48', g: '#ffe080', h: '#ffe080', x: '#5a8cc8' },
+    windowNight: { u: '#181a3c', v: '#10122a', g: '#e8e4d0', h: '#181a3c', x: '#c8c8f0' },
     backdrop: '#141024', backdropLit: '#201a38', backdropEdge: '#1a1630', backdropDark: '#0a0814', backdropSeam: '#0e0a1c', backdropSeamLit: '#1e1836',
     backdropRivet: '#3a2a6a', overflowPlaque: '#8a7aa0',
   },

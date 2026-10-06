@@ -1,0 +1,38 @@
+{
+  "frames": {
+    "SKULL": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 20,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "tower theme art",
+    "image": "skull.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 20,
+      "h": 20
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "SKULL": {
+        "centre": [
+          10,
+          10
+        ],
+        "carry": [
+          7,
+          19
+        ],
+        "beam": [
+          10,
+          18
+        ]
+      }
+    }
+  }
+}
