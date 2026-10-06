@@ -36,6 +36,8 @@ export const BASE = {
   '&': '#c8281a', '*': '#5e1710', '-': '#3a0d09', '=': '#8c2c1c', // alarm beacon: lit dome, dark dome, dark rim, dull glint
   // the commit seals' wax (and the stamp's wax drop), the held scroll's writing
   '(': '#c8281a', ')': '#ff8a6a', '[': '#5e1710', ']': '#5a3c16',
+  // skin, lit and shadow: faces and hands (unused by Tier II's hooded scribes; Neon Grid's crew)
+  ':': '#c89a74', ';': '#8a6248',
 };
 // Slots blended from another (a plate's sheen, a seam's lit rivet): [base slot, [r, g, b, alpha] laid over it]. A theme
 // that changes the base and not the blend gets it recomputed.

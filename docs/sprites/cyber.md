@@ -53,14 +53,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="cyber/ARM.png" height="64"> |
-| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="cyber/ARM_L.png" height="64"> |
+| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/cyber/scribe.png`, drawn by actors.js | <img src="cyber/ARM.png" height="64"> |
+| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/cyber/scribe.png`, drawn by actors.js | <img src="cyber/ARM_L.png" height="64"> |
 | <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="cyber/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/cyber/workstations.png` | <img src="cyber/DESK.unlit.png" height="160"> |
 | <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="cyber/LECTERN.png" height="160"> |
 | <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/cyber/workstations.png` | <img src="cyber/LECTERN.unlit.png" height="160"> |
-| <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="cyber/CONSOLE.png" height="80"> |
-| <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/workstations.png` | <img src="cyber/CONSOLE.unlit.png" height="80"> |
+| <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="cyber/CONSOLE.png" height="80"> |
+| <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/cyber/workstations.png` | <img src="cyber/CONSOLE.unlit.png" height="80"> |
 | <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cyber/cogitator.png`, drawn by scene.js | <img src="cyber/COGITATOR.png" height="160"> |
 | <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/THRONE.png" height="160"> |
 | <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="cyber/LORD_DESK.png" height="104"> |
@@ -127,7 +127,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.fitting_h.png" height="40"> |
 | <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.fitting_v.png" height="24"> |
 | <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="cyber/ROOM.fitting_wide.png" height="16"> |
-| <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="cyber/ROOM.door_sanctum_closed.png" height="160"> |
-| <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="cyber/ROOM.door_sanctum_open.png" height="160"> |
-| <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="cyber/ROOM.door_refectory_closed.png" height="160"> |
-| <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="cyber/ROOM.door_refectory_open.png" height="160"> |
+| <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_sanctum_closed.png" height="160"> |
+| <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_sanctum_open.png" height="160"> |
+| <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_refectory_closed.png" height="160"> |
+| <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/cyber/room-doors.png` | <img src="cyber/ROOM.door_refectory_open.png" height="160"> |

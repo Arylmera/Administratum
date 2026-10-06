@@ -222,16 +222,24 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
     - the gothic windows → a skyline window
     - the Cog Mechanicus → a hex-chip emblem
     - the servo-skull → a drone
-    - the grand gate and its spires → a blast door with a neon sign and hazard shutters
+    - the grand gate and its spires → a tagged roll-up shutter between a vertical neon sign and a camera pylon
+    - the room doors → sliding doors with hazard tips, a neon seam and a red / cyan status lamp
     - the cogitator's skull → a faceplate
     - the throne's skull → a headrest; the lord desk's purity seals → a holo-chip
-    - the desk and lectern candles → neon desk lamps; the candle clusters → neon tubes; the braziers → oil drums
+    - the desks → battlestations (glass tower with fans, two screens, backlit keyboard, energy drink); the lectern →
+      a compact one with a router; the console → a cyberdeck on a pole
+    - the candle clusters → neon tubes; the braziers → oil drums
     - the petition scrolls → datapads, the raised scroll → a tablet
     - the commit purity seals → holo-stickers, the wax stamp → a scanner
-  - The characters are redrawn too:
-    - scribes → hackers: visor, headphones, zipped jacket, crew logo on the back
-    - adepts → LED-studded drones with a visor
-    - the Magos → a netrunner boss with a visor and a cyan belt lantern
+  - The characters are drawn from scratch (not recoloured 40k shapes):
+    - scribes → hackers: spiky hair in the department colour (`y`), a visor in the rank colour (`t`: cyan
+      netrunner, magenta hacker, grey shades for the script kiddie), open jacket with neon piping, a bolt on the
+      back, jeans and sneakers; the desk arms are sleeves with fingerless gloves
+    - adepts → AI daemons: a cyan hologram over a projector puck, the rank in its ring light and chest core
+      (gold, magenta, grey)
+    - the Magos → the fixer: silver hair, chrome jaw, magenta optics, a trench coat with neon lining, a chest
+      implant screen; the swinging limb is a cyber-arm with a folded mantis blade
+    - faces and hands use two palette slots added for them, skin `:` and skin shadow `;`
   - The commit seals, the stamp and the raised scroll were code-drawn; they are now art (`ui/art/commits.png`,
     `SCROLL_HELD` in `petitions.png`) so a theme can redraw them, at the same pixels for Tier II.
 - **Tests**:

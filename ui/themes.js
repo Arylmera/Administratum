@@ -61,13 +61,13 @@ defineTheme({
 // replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).
 defineTheme({
   id: 'cyber', world: 'cyber', name: 'Neon Grid',
-  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the blast door, the terminal bank, the hacker crew and the netrunner boss, neon desk lamps, oil drums, datapads, holo-stickers
+  art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits', 'room-doors'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the shutter gate, the terminal bank, the hacker crew, the hologram daemons and the fixer, battlestations and a cyberdeck, oil drums, datapads, holo-stickers, sliding doors
   px: {
     k: '#05040a', e: '#08060e', n: '#0a0812',
     r: '#1c1a2a', R: '#2e2c44', d: '#0e0c18', t: '#ff2e88', T: '#0e0c18', z: '#ff2e88', j: '#ffd0ea', // hoodie, neon trim
     g: '#2fb8d8', G: '#155a78', h: '#9af0ff', U: '#0a2a3a', // chrome cyan for brass
     m: '#4a4a66', M: '#22223a', l: '#7a7aa0', V: '#0e0e1c',
-    p: '#d8dcec', P: '#9aa0bc', b: '#c8ccdc', B: '#8a8ea4', s: '#a0a4bc', q: '#b0b4c8', Q: '#6a6e88', J: '#3af0ff', I: '#3af0ff',
+    p: '#d8dcec', P: '#9aa0bc', b: '#c8ccdc', B: '#8a8ea4', s: '#a0a4bc', ':': '#e0a888', ';': '#9a6450', q: '#b0b4c8', Q: '#6a6e88', J: '#3af0ff', I: '#3af0ff',
     w: '#2a2440', W: '#16121f', L: '#3e3658', u: '#1a2a5a', v: '#1a3a3a',
     c: '#3af0ff', C: '#06222c', o: '#ff2e88', O: '#ffd0ea', x: '#ff2e88', a: '#ff2040',
     1: '#14141f', 2: '#07070c', 3: '#2a2a3e', 4: '#16142a', 5: '#181630', 6: '#0b0a18', 0: '#0a0814', A: '#08060f',
@@ -79,7 +79,7 @@ defineTheme({
   sash: ['#ff2e88', '#3af0ff', '#b4ff3a', '#ffd23a', '#b04aff', '#ff7a2e', '#2effc0', '#ff5aff'],
   rank: {
     high: { robe: { r: '#1a1030', R: '#30205a', d: '#0c0618', z: '#3af0ff', j: '#e0fcff', t: '#3af0ff', T: '#155a78', g: '#3af0ff', G: '#155a78' },
-      adept: { x: '#3af0ff', b: '#e8ecff', J: '#3af0ff', I: '#155a78' } },
+      adept: { x: '#ffd23a', b: '#e8ecff', J: '#ffd23a', I: '#fff4c0' } },
     novice: { robe: { r: '#2a2a32', R: '#3e3e4a', d: '#16161c', z: '#6a6a7a', j: '#6a6a7a', t: '#3e3e4a', T: '#16161c', g: '#16161c', G: '#16161c' },
       adept: { x: '#6a6a7a', q: '#8a8a98', Q: '#4a4a56', b: '#a0a0ac', J: '#8a8a98', I: '#8a8a98' } },
   },
