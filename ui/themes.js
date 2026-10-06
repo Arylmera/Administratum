@@ -351,7 +351,7 @@ defineTheme({
 // Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green
 // phosphor, Nuka-Cola red, warm incandescent light. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
-  id: 'vault', world: 'vault', name: 'Vault 111', art: [],
+  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots
   px: {
     k: '#0c0c0c', e: '#141822', n: '#0a0c10',
     r: '#1e4a8a', R: '#2e66b8', d: '#12305e', t: '#f2c23a', T: '#a07a14', z: '#f2c23a', j: '#a07a14', // jumpsuit, yellow stripe
@@ -369,7 +369,7 @@ defineTheme({
   },
   sash: ['#f2c23a', '#5aff7a', '#2e66b8', '#d8202a', '#9aa0a8', '#ffd890', '#8a4a24', '#d9cf9a'],
   rank: {
-    high: { robe: { z: '#9aa0a8', j: '#6a7078', t: '#9aa0a8', T: '#3a3e44', g: '#9aa0a8', G: '#3a3e44' },
+    high: { robe: { r: '#1a3e78', R: '#2a5aa6', d: '#0e2852', z: '#9aa0a8', j: '#6a7078', t: '#9aa0a8', T: '#3a3e44', g: '#9aa0a8', G: '#3a3e44' },
       adept: { x: '#9aa0a8', b: '#d8dce0', J: '#9aa0a8', I: '#eef0f2' } },
     novice: { robe: { r: '#3a4a68', R: '#5a6a88', d: '#242e40', z: '#6a6a5a', j: '#6a6a5a', t: '#8a8a78', T: '#4a4a3e', g: '#4a4a3e', G: '#4a4a3e' },
       adept: { x: '#5a5a4e', q: '#8a8e98', Q: '#5a6068', b: '#9a9a90', J: '#5a7a5e', I: '#7a9a7e' } },
