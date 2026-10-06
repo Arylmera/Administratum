@@ -1,57 +1,15 @@
-import { blit, sprite, MAPS, RES } from './sprites.js';
+import { blit, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
+import { T, onTheme, themed, hexA } from './theme.js';
+import { tile, roomAt } from './room.js';
+
+const I = T.ink; // every colour drawn here, by name (theme.js)
 import { SCENE, hallOf } from './layout.js';
 import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 
-const AMBER = 'rgba(240,168,60,.26)';
-const GREEN = 'rgba(124,255,158,.16)';
-const RED = 'rgba(200,40,28,.22)';
-
-const WIN_DAY = { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' };
-const WIN_NIGHT = { u: '#3a2236', v: '#36401f', g: '#7a5a28' };
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
-// Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES).
-function grate(g, x, y, w, h) {
-  g.fillStyle = '#2b2d30'; g.fillRect(x, y, w, h);
-  g.fillStyle = '#141516';
-  for (let i = x; i < x + w; i += 4) g.fillRect(i, y, 0.5, h);
-  for (let j = y; j < y + h; j += 4) g.fillRect(x, j, w, 0.5);
-  g.fillStyle = '#383b3f'; // lit lip of each bar
-  for (let i = x; i < x + w; i += 4) g.fillRect(i + 0.5, y, 0.5, h);
-  for (let j = y; j < y + h; j += 4) g.fillRect(x, j + 0.5, w, 0.5);
-}
-function plates(g, x, y, w, h, base, line) {
-  g.fillStyle = base; g.fillRect(x, y, w, h);
-  for (let j = y + 9; j < y + h; j += 10) {
-    g.fillStyle = line; g.fillRect(x, j, w, 0.5);
-    g.fillStyle = 'rgba(255,240,220,.07)'; g.fillRect(x, j + 0.5, w, 0.5);
-    for (let i = x + 3; i < x + w; i += 12) { // rivets either side of the seam
-      g.fillStyle = line; g.fillRect(i, j - 2, 1, 1); g.fillRect(i, j + 1.5, 1, 1);
-      g.fillStyle = 'rgba(255,240,220,.18)'; g.fillRect(i, j - 2, 0.5, 0.5); g.fillRect(i, j + 1.5, 0.5, 0.5);
-    }
-  }
-}
-function pipeH(g, x, y, w) {
-  rect(g, x, y, w, 1, '#c8853a'); rect(g, x, y, w, 0.5, '#e8b070');
-  rect(g, x, y + 1, w, 2, '#8a4f22'); rect(g, x, y + 2.5, w, 0.5, '#5a3214');
-}
-function pipeV(g, x, y, h) {
-  rect(g, x, y, 1, h, '#c8853a'); rect(g, x, y, 0.5, h, '#e8b070');
-  rect(g, x + 1, y, 2, h, '#8a4f22'); rect(g, x + 2.5, y, 0.5, h, '#5a3214');
-}
-// Flange ring around a pipe: lit top/left edge, dark bottom/right edge, a bolt.
-function flange(g, x, y, w, h) {
-  rect(g, x, y, w, h, '#6e3f17');
-  rect(g, x, y, w, 0.5, '#b8742e'); rect(g, x, y, 0.5, h, '#b8742e');
-  rect(g, x, y + h - 0.5, w, 0.5, '#3a200c'); rect(g, x + w - 0.5, y, 0.5, h, '#3a200c');
-  rect(g, x + w / 2 - 0.5, y + h / 2 - 0.5, 1, 1, '#e8b45a');
-}
-// Coolant channel: dark glow edge, green body, bright inner core.
-function coolant(g, x, y, w, h) {
-  rect(g, x, y, w, h, '#2a8a50');
-  if (w > h) { rect(g, x, y + 0.5, w, h - 1, '#3aa864'); rect(g, x, y + h / 2 - 0.25, w, 0.5, '#b4ffc8'); }
-  else { rect(g, x + 0.5, y, w - 1, h, '#3aa864'); rect(g, x + w / 2 - 0.25, y, 0.5, h, '#b4ffc8'); }
-}
+// Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES). The room's structure is tiles
+// (room.js, ui/art/room-*.png); what stays drawn here is weathering and effects, in theme colours.
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
 const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
@@ -122,84 +80,77 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   const { w, h, sw, rx, ox, dx, sd, sb, split, baseH } = hall, hy = h - SCENE.h, ex = sw - 200;
   const { props, windows, channels } = propsOf(hall);
   const d0 = 150 + sd, d1 = 186 + sd; // the sanctum's door in the east wall
-  plates(g, 0, 0, sw, 40, '#2a2a2c', '#18191b'); rect(g, 0, 36, sw, 4, '#140f0c');
-  grate(g, 0, 40, sw, h - 40);
-  plates(g, rx, 0, 138, 40, '#2c2c2e', '#18191b'); rect(g, rx, 36, 138, 4, '#140f0c');
-  grate(g, rx, 40, 138, split - 50);
-  rect(g, rx, split - 10, 138, 10, '#100b08');
-  plates(g, rx, split, 138, 30, '#301612', '#1e0c09'); rect(g, rx, split + 26, 138, 4, '#100b08');
-  rect(g, rx, split + 30, 138, baseH - split - 30, '#3a110e');
-  g.strokeStyle = '#6e3f17'; g.lineWidth = 1; g.strokeRect(rx + 6.5, split + 36.5, 125, baseH - split - 43);
-  rect(g, sw, 0, 8, d0, '#100b08'); rect(g, sw, d1, 8, h - d1, '#100b08'); rect(g, sw, d0, 8, 36, '#3a110e');
+  tile(g, 'wall', 0, 0, sw, 40); tile(g, 'wall foot', 0, 36, sw, 4);
+  tile(g, 'floor', 0, 40, sw, h - 40);
+  tile(g, 'wall east', rx, 0, 138, 40); tile(g, 'wall foot', rx, 36, 138, 4);
+  tile(g, 'floor', rx, 40, 138, split - 50);
+  tile(g, 'wall dark', rx, split - 10, 138, 10);
+  tile(g, 'wall sanctum', rx, split, 138, 30); tile(g, 'wall dark', rx, split + 26, 138, 4);
+  tile(g, 'sanctum floor', rx, split + 30, 138, baseH - split - 30);
+  tile(g, 'wall dark', sw, 0, 8, d0); tile(g, 'wall dark', sw, d1, 8, h - d1); tile(g, 'sanctum passage', sw, d0, 8, 36);
   if (hall.dy) bayWall(g, hall);
 
-  g.save(); g.shadowColor = '#3aa864'; g.shadowBlur = 4;
-  for (let j = 0; j < hall.rows; j++) coolant(g, 0, j ? 118 + 64 * j : 116, sw, 2); // under each slot row
-  for (const x of channels) coolant(g, x, 40, 2, h - 40);
-  g.restore();
+  for (let j = 0; j < hall.rows; j++) tile(g, 'channel h', 0, j ? 118 + 64 * j : 116, sw, 2); // under each slot row
+  for (const x of channels) tile(g, 'channel v', x, 40, 2, h - 40);
   for (let k = 1; k <= hall.bays; k++) bayArch(g, 56 + 64 * (hall.rows - hall.bays + k - 1), sw);
 
-  pipeH(g, 0, 4, sw); pipeH(g, rx, 4, 138);
-  [20, 64, 110, 150, 190].forEach(x => flange(g, x, 3, 3, 5));
-  for (let x = 230; x < sw - 6; x += 40) flange(g, x, 3, 3, 5);
-  [230, 280, 330].forEach(x => flange(g, x + ox, 3, 3, 5));
-  pipeV(g, sw + 3, 0, d0); pipeV(g, sw + 3, d1, h - d1);
-  [36, 74, 112].forEach(y => flange(g, sw + 2, y, 5, 3));
-  for (let y = 150; y < d0 - 4; y += 38) flange(g, sw + 2, y, 5, 3);
-  pipeV(g, 144 + dx, 7, 29); pipeV(g, 194 + dx, 7, 29);
+  tile(g, 'pipe h', 0, 4, sw); tile(g, 'pipe h', rx, 4, 138);
+  [20, 64, 110, 150, 190].forEach(x => tile(g, 'fitting h', x, 3));
+  for (let x = 230; x < sw - 6; x += 40) tile(g, 'fitting h', x, 3);
+  [230, 280, 330].forEach(x => tile(g, 'fitting h', x + ox, 3));
+  tile(g, 'pipe v', sw + 3, 0, 3, d0); tile(g, 'pipe v', sw + 3, d1, 3, h - d1);
+  [36, 74, 112].forEach(y => tile(g, 'fitting v', sw + 2, y));
+  for (let y = 150; y < d0 - 4; y += 38) tile(g, 'fitting v', sw + 2, y);
+  tile(g, 'pipe v', 144 + dx, 7, 3, 29); tile(g, 'pipe v', 194 + dx, 7, 3, 29);
   const scratch = (x, i) => {
     const sh = 10 + (i * 7) % 18;
-    rect(g, x, 7, 0.5, sh, '#0e0a08'); rect(g, x + 0.5, 7, 0.5, sh, 'rgba(255,240,220,.06)'); rect(g, x, 7 + sh - 1, 2, 1, '#0e0a08');
+    rect(g, x, 7, 0.5, sh, I.scratch); rect(g, x + 0.5, 7, 0.5, sh, I.scratchSheen); rect(g, x, 7 + sh - 1, 2, 1, I.scratch);
   };
   [8, 26, 50, 74, 96, 128, 150, 172, 196].forEach((x, i) => { for (let k = 0; x + 200 * k < sw - 2; k++) scratch(x + 200 * k, i + k); });
   scratch(220 + ox, 9);
   // Binary cant: 1-art-px glyphs (ones tall, zeros a dot), one per logical px.
-  g.fillStyle = 'rgba(124,255,158,.38)';
+  g.fillStyle = I.cant;
   [[2, 32, sw - 2], [74, 38, sw - 2], [rx + 2, 32, w - 2], [rx + 2, split - 5, w - 2]].forEach(([x, y, end]) => {
     for (let i = 0; x + i < end; i++) g.fillRect(x + i, y, 0.5, BIN[(i + x) % BIN.length] === '1' ? 1 : 0.5);
   });
-  [[60, 104, 14, 1], [73, 104, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, '#0e0a08'));
-  [[30, 120, 18, 8], [146 + ex, 186 + hy, 8, 6], [270 + ox, 196 + sb, 14, 6]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, 'rgba(10,6,4,.35)'));
+  [[60, 104, 14, 1], [73, 104, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.scratch)); // cracks
+  [[30, 120, 18, 8], [146 + ex, 186 + hy, 8, 6], [270 + ox, 196 + sb, 14, 6]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.grime));
 
-  const win = daylight ? WIN_DAY : WIN_NIGHT;
+  const win = daylight ? I.windowDay : I.windowNight;
   windows.forEach(x => blit(g, MAPS.WINDOW, x, 10, win));
   [210 + ox, 334 + ox].forEach(x => { // the sanctum's pillars
-    rect(g, x, split - 2, 10, baseH - split + 2, '#1c1d20'); rect(g, x + 9, split - 2, 1, baseH - split + 2, '#0e0a08');
-    pipeV(g, x + 3, split - 2, baseH - split + 2);
+    tile(g, 'pillar', x, split - 2, 10, baseH - split + 2);
+    tile(g, 'pipe v', x + 3, split - 2, 3, baseH - split + 2);
     for (let y = split + 14; y < baseH - 24; y += 36) blit(g, MAPS.GAUGE, x + 2, y);
   });
-  rect(g, 210 + ox, d0, 10, 36, '#3a110e'); flange(g, 210 + ox, d0 - 2, 10, 2); flange(g, 210 + ox, d1, 10, 2); // pillar opens onto the passage door
-  rect(g, 254 + ox, 163 + sd, 44, 3, 'rgba(0,0,0,.45)');
+  tile(g, 'sanctum passage', 210 + ox, d0, 10, 36); tile(g, 'fitting wide', 210 + ox, d0 - 2); tile(g, 'fitting wide', 210 + ox, d1); // pillar opens onto the passage door
+  rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
   for (const [name, x, y] of props) blit(g, MAPS[name], x, y);
-  rect(g, 0, h - 3, sw, 3, '#100b08'); rect(g, 0, h - 3, sw, 0.5, '#6e3f17'); // scriptorium's bottom wall, the gate sits in it
+  tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }
 
 // A bay's seam (y: its first slot row's top, minus 2): a brass-edged iron sill across the floor between two
 // pilasters standing out of the side walls, the arch the new floor opens behind.
 function bayArch(g, y, sw) {
-  rect(g, 0, y, sw, 2, '#1c1d20'); rect(g, 0, y, sw, 0.5, '#b8742e'); rect(g, 0, y + 1.5, sw, 0.5, '#0e0a08');
-  for (let x = 6; x < sw; x += 12) { rect(g, x, y + 0.5, 1, 1, '#6e3f17'); rect(g, x, y + 0.5, 0.5, 0.5, '#e8b45a'); }
-  for (const x of [0, sw - 4]) {
-    rect(g, x, y - 14, 4, 18, '#0e0a08'); rect(g, x + 0.5, y - 13.5, 3, 17, '#2a2c30');
-    rect(g, x + 0.5, y - 13.5, 0.5, 17, '#5a5e63'); rect(g, x + 3, y - 13.5, 0.5, 17, '#141516');
-    flange(g, x, y - 15, 4, 2); flange(g, x, y + 3, 4, 1.5); // capital and base
-  }
+  tile(g, 'sill', 0, y, sw, 2);
+  const [, top] = roomAt('pilaster').sill;
+  for (const x of [0, sw - 4]) tile(g, 'pilaster', x, y - top); // capital and base on a pillar out of the side walls
 }
 // East of the scriptorium, below the sanctum: plated wall the length of the bays, a pipe run, cant and banners per bay.
 function bayWall(g, { rx, ox, baseH, dy }) {
   const x = v => v + ox;
-  plates(g, rx, baseH, 138, dy, '#2a2a2c', '#18191b');
-  rect(g, rx, baseH, 138, 3, '#100b08'); rect(g, rx, baseH + 2.5, 138, 0.5, '#6e3f17'); // the sanctum's bottom wall
+  tile(g, 'wall', rx, baseH, 138, dy);
+  tile(g, 'sanctum base', rx, baseH, 138, 3); // the sanctum's bottom wall
   for (let y = baseH; y < baseH + dy; y += 64) {
-    pipeH(g, x(220), y + 10, 114);
-    [232, 272, 312].forEach(fx => flange(g, x(fx), y + 9, 3, 5));
-    g.fillStyle = 'rgba(124,255,158,.38)';
+    tile(g, 'pipe h', x(220), y + 10, 114);
+    [232, 272, 312].forEach(fx => tile(g, 'fitting h', x(fx), y + 9));
+    g.fillStyle = I.cant;
     for (let i = 0; 222 + i < 332; i++) g.fillRect(x(222) + i, y + 20, 0.5, BIN[(i + y) % BIN.length] === '1' ? 1 : 0.5);
-    blit(g, MAPS.BANNER, x(240), y + 30); blit(g, MAPS.BANNER, x(294), y + 30); blit(g, MAPS.WINDOW, x(263), y + 28, WIN_NIGHT);
+    blit(g, MAPS.BANNER, x(240), y + 30); blit(g, MAPS.BANNER, x(294), y + 30); blit(g, MAPS.WINDOW, x(263), y + 28, I.windowNight);
   }
   for (const px of [x(210), x(334)]) { // the sanctum's pillars carry on down
-    rect(g, px, baseH + 3, 10, dy - 3, '#1c1d20'); rect(g, px + 9, baseH + 3, 1, dy - 3, '#0e0a08');
-    pipeV(g, px + 3, baseH + 3, dy - 3);
+    tile(g, 'pillar', px, baseH + 3, 10, dy - 3);
+    tile(g, 'pipe v', px + 3, baseH + 3, 3, dy - 3);
     for (let y = baseH + 40; y < baseH + dy; y += 64) blit(g, MAPS.GAUGE, px + 2, y);
   }
 }
@@ -207,7 +158,6 @@ function bayWall(g, { rx, ox, baseH, dy }) {
 let H = hallOf(0); // the hall drawn this frame
 let lastNow = 0, frameDt = 0; // s since the previous drawScene: frame-rate independent easing and random flicker
 const perFrame = p => Math.min(1, p * frameDt * 30); // a per-frame chance tuned at 30 fps, at any frame rate
-const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 const rugInk = new Map(); // block colour -> [fill, outline]
 const rugOf = c => rugInk.get(c) ?? rugInk.set(c, [hexA(c, 0.07), hexA(c, 0.3)]).get(c);
 
@@ -239,9 +189,9 @@ export function drawScene(g, layout, actors, fillOf, now) {
     if (d.id) lights.push(deskLight(d, busy));
     if (d.id && a) reactions(a, d, KIND[kindOf(d)].at, over, lights, now);
     if (a?.puff > 0) {
-      const k = 1 - a.puff / PUFF_S, mid = KIND[kindOf(d)].mid;
-      items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + mid, d.y + 11, k) });
-      lights.push({ x: d.x + mid, y: d.y + 10, r: 18 * (1 - k), color: AMBER });
+      const k = 1 - a.puff / PUFF_S, [px, py] = KIND[kindOf(d)].at.puff;
+      items.push({ y: d.y + 22, draw: g2 => puff(g2, d.x + px, d.y + py, k) });
+      lights.push({ x: d.x + px, y: d.y + py - 1, r: 18 * (1 - k), color: T.light.amber });
     }
   }
   for (const c of layout.consoles) {
@@ -258,7 +208,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier sits south of the burner: its fire draws over the robe hem
     const k = 1 - a.burn.left / BURN_S, f = a.burn.fire, heat = k < 0.25 ? k / 0.25 : (1 - k) / 0.75;
     flare(g, f, k, heat, now / 1000);
-    lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: 'rgba(255,196,96,.5)', flicker: true });
+    lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: T.light.burn, flicker: true });
   }
   drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
   return staticLights(H).concat(lights, drawAlarm(g, all, now));
@@ -277,14 +227,14 @@ function drawRugs(g, blocks) {
 // Desks, lecterns and the adepts' consoles. lit: candle/screen on (else the dimmed palette); pile: its paper's id.
 const kindOf = d => (d.compact ? 'lectern' : 'desk');
 function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
-  const K = KIND[kind], [sx, sy, sw, sh] = K.shadow;
+  const K = KIND[kind], [sx, sy, sw, sh] = K.at.shadow;
   return {
     y: at.y + sy,
     draw(g) {
-      rect(g, at.x + sx, at.y + sy, sw, sh, 'rgba(0,0,0,.4)');
-      blit(g, MAPS[K.map], at.x, at.y, lit ? undefined : K.dim);
+      rect(g, at.x + sx, at.y + sy, sw, sh, I.shadow);
+      blit(g, MAPS[K.map], at.x, at.y, lit ? undefined : K.dim());
       paperTop(g, pile, kind, fill, at);
-      if (bgShell) spinCog(g, at.x + K.w - 4, at.y + 7, now / 1000);
+      if (bgShell) spinCog(g, at.x + K.at.cog[0], at.y + K.at.cog[1], now / 1000);
       if (a) furnitureFx(g, a, at, K.at);
     },
   };
@@ -292,28 +242,31 @@ function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
 
 // A background shell still runs after the turn: a tiny brass cog turning on the desk corner (art px = 0.5).
 function spinCog(g, cx, cy, t) {
-  rect(g, cx - 2, cy - 1, 4, 3, '#0e0a08'); rect(g, cx - 1.5, cy - 1.5, 3, 4, '#0e0a08'); // outline
+  rect(g, cx - 2, cy - 1, 4, 3, I.outline); rect(g, cx - 1.5, cy - 1.5, 3, 4, I.outline); // outline
   for (let i = 0; i < 8; i++) { // 8 teeth, turning ~1 rev / 3 s
     const ang = t * 2 + i * Math.PI / 4;
-    rect(g, half(cx - 0.25 + Math.cos(ang) * 2.25), half(cy - 0.25 + Math.sin(ang) * 2.25), 1, 1, i ? '#8a4f22' : '#e8b45a');
+    rect(g, half(cx - 0.25 + Math.cos(ang) * 2.25), half(cy - 0.25 + Math.sin(ang) * 2.25), 1, 1, i ? I.copperShade : I.brassLit);
   }
-  rect(g, cx - 1.5, cy - 1, 3, 2, '#b8742e'); rect(g, cx - 1, cy - 1.5, 2, 3, '#b8742e');
-  rect(g, cx - 1.5, cy - 1, 0.5, 1, '#e8b45a'); rect(g, cx - 1, cy - 1.5, 1, 0.5, '#e8b45a'); // lit upper-left
-  rect(g, cx - 0.5, cy - 0.5, 1, 1, '#2a2c30'); // axle
+  rect(g, cx - 1.5, cy - 1, 3, 2, I.brass); rect(g, cx - 1, cy - 1.5, 2, 3, I.brass);
+  rect(g, cx - 1.5, cy - 1, 0.5, 1, I.brassLit); rect(g, cx - 1, cy - 1.5, 1, 0.5, I.brassLit); // lit upper-left
+  rect(g, cx - 0.5, cy - 0.5, 1, 1, I.ironDark); // axle
 }
 
 
 // Context paper. fill = context tokens / model window: 0..0.5 covers the desk (or a small pile beside a
 // console), above 0.5 sheets fall and spread over the department floor, dense at 1. Red sheets from 0.9.
 // Every desk/console has one deterministic sheet list (seeded by its id); fill only picks how many show.
+// x0, y0: the pile's origin on the surface; cx, cy: where fallen sheets spread from (the sprite's paper / pile anchors).
+const paperAt = (name, k) => ({ ...k, x0: PROP_AT[name].paper[0], y0: PROP_AT[name].paper[1], cx: PROP_AT[name].pile[0], cy: PROP_AT[name].pile[1] });
 const PAPER = {
-  desk: { cols: 6, rows: 3, x0: 1, dx: 4.8, y0: 10.5, dy: 2.6, layers: 4, floor: 56, cx: 16, cy: 12, r0: 14, reach: 30 },
-  lectern: { cols: 4, rows: 3, x0: 1, dx: 4.4, y0: 10.5, dy: 2.6, layers: 4, floor: 40, cx: 11, cy: 12, r0: 11, reach: 22 },
-  console: { cols: 1, rows: 3, x0: 15, dx: 0, y0: 8, dy: 0.5, layers: 2, floor: 5, cx: 7, cy: 6, r0: 9, reach: 6 },
+  desk: paperAt('DESK', { cols: 6, rows: 3, dx: 4.8, dy: 2.6, layers: 4, floor: 56, r0: 14, reach: 30 }),
+  lectern: paperAt('LECTERN', { cols: 4, rows: 3, dx: 4.4, dy: 2.6, layers: 4, floor: 40, r0: 11, reach: 22 }),
+  console: paperAt('CONSOLE', { cols: 1, rows: 3, dx: 0, dy: 0.5, layers: 2, floor: 5, r0: 9, reach: 6 }),
 };
 // Paper is cached: each pile's desk-top sheets, and its settled floor sheets, are rasterised once into a small canvas
 // (redrawn only when the sheet count, the red warning or the place changes) and blitted; fluttering sheets draw live.
 const piles = new Map(); // `${kind}:${id}` -> sheet lists and caches; dropped a minute after the pile was last drawn
+onTheme(() => { for (const p of piles.values()) { p.topKey = -1; p.fKey = []; } }); // redraw the cached sheets in the new colours
 let pruned = 0;
 function prunePiles(now, layout) {
   if (Math.abs(now - pruned) < 5000) return;
@@ -362,9 +315,9 @@ function rasterIn(cv, x0, y0, w, h) {
   return cv;
 }
 function sheet(g, x, y, w, h, red) {
-  rect(g, x - 0.5, y - 0.5, w + 1, h + 1, '#0e0a08');
-  rect(g, x, y, w, h, red ? '#d8a08a' : '#d6c79f');
-  g.fillStyle = red ? '#8e1c16' : '#a8946a'; g.fillRect(x + 0.5, y + 1, w - 1.5, 0.5);
+  rect(g, x - 0.5, y - 0.5, w + 1, h + 1, I.outline);
+  rect(g, x, y, w, h, red ? I.parchmentWarn : I.parchment);
+  g.fillStyle = red ? I.crimson : I.parchmentShade; g.fillRect(x + 0.5, y + 1, w - 1.5, 0.5);
   if (h > 3) g.fillRect(x + 0.5, y + 2.5, w - 2, 0.5);
 }
 // On the desk surface (or beside the console), drawn with the furniture.
@@ -441,42 +394,40 @@ function bundle(g, a, fill) {
   }
   x = half(x); y = half(y); w = half(w);
   const top = y - n * 0.5;
-  rect(g, x - 0.5, top - 0.5, w + 1, n * 0.5 + 1.5, '#0e0a08');
-  for (let i = 0; i < n; i++) rect(g, x + (i % 3 === 1 ? 0.5 : 0), top + i * 0.5, w - 0.5, 0.5, i % 2 ? '#a8946a' : '#d6c79f');
-  rect(g, x, y, w, 0.5, '#d6c79f'); // the bottom sheet's lit edge
-  rect(g, half(x + w / 2 - 0.5), top - 0.5, 1, n * 0.5 + 1.5, '#8e1c16'); // cord
+  rect(g, x - 0.5, top - 0.5, w + 1, n * 0.5 + 1.5, I.outline);
+  for (let i = 0; i < n; i++) rect(g, x + (i % 3 === 1 ? 0.5 : 0), top + i * 0.5, w - 0.5, 0.5, i % 2 ? I.parchmentShade : I.parchment);
+  rect(g, x, y, w, 0.5, I.parchment); // the bottom sheet's lit edge
+  rect(g, half(x + w / 2 - 0.5), top - 0.5, 1, n * 0.5 + 1.5, I.crimson); // cord
 }
 // The pile burning in the brazier: tall flame tongues, rising sparks and charred flakes. k: 0..1 of the burn, heat: 0..1..0.
 function flare(g, f, k, heat, t) {
   for (let dx = -3; dx <= 3; dx += 0.5) {
     const h = heat * Math.max(0, 9 - Math.abs(dx) * 2.2) * (0.7 + 0.3 * Math.sin(t * 23 + dx * 3.1));
     if (h < 0.5) continue;
-    rect(g, f.x + dx - 0.25, half(f.y - h), 0.5, half(h), '#f0a83c');
-    if (Math.abs(dx) < 2) rect(g, f.x + dx - 0.25, half(f.y - h * 0.6), 0.5, half(h * 0.6), '#ffe6a0');
+    rect(g, f.x + dx - 0.25, half(f.y - h), 0.5, half(h), I.flame);
+    if (Math.abs(dx) < 2) rect(g, f.x + dx - 0.25, half(f.y - h * 0.6), 0.5, half(h * 0.6), I.flameCore);
   }
   for (let i = 0; i < 18; i++) {
     const p = (k * 1.8 + hash(i * 7919)) % 1, life = 1 - p;
     if (k > 0.85 && p > 0.5) continue; // the last sparks die out
     const x = f.x + (hash(i * 131) - 0.5) * 10 * p + Math.sin(t * 6 + i) * p, y = f.y - 3 - p * (14 + 10 * hash(i * 37));
-    rect(g, half(x), half(y), 0.5, 0.5, i % 5 === 0 ? '#3a3430' : life > 0.6 ? '#ffe6a0' : life > 0.3 ? '#f0a83c' : '#ff3a20');
+    rect(g, half(x), half(y), 0.5, 0.5, i % 5 === 0 ? I.ash : life > 0.6 ? I.flameCore : life > 0.3 ? I.flame : I.alarm);
   }
 }
 // Papers vanishing off an unattended desk: a grey puff spreading and fading, a few embers at first. k: 0..1.
 function puff(g, x, y, k) {
   for (let i = 0; i < 8; i++) {
     const ang = i * 0.785 + hash(i * 53) * 0.6, d = 2 + 9 * k * (0.6 + 0.4 * hash(i * 17)), r = 1 + 2.5 * k;
-    g.fillStyle = `rgba(190,180,164,${0.75 * (1 - k)})`;
+    g.fillStyle = hexA(I.smoke, 0.75 * (1 - k));
     g.fillRect(half(x + Math.cos(ang) * d - r), half(y + Math.sin(ang) * d * 0.6 - r - 4 * k), 2 * r, 2 * r);
-    if (k < 0.4) rect(g, half(x + Math.cos(ang) * d * 1.3), half(y + Math.sin(ang) * d - 2 * k), 0.5, 0.5, i % 2 ? '#ffe6a0' : '#f0a83c');
+    if (k < 0.4) rect(g, half(x + Math.cos(ang) * d * 1.3), half(y + Math.sin(ang) * d - 2 * k), 0.5, 0.5, i % 2 ? I.flameCore : I.flame);
   }
 }
 
 // Chronicle reactions (actors.js Cast.chronicle). Offsets from the desk/console's top-left: the screen that sparks, the
 // test lamp on its frame, where the commit's purity seal goes (on a desk they stay: a.seals, max 3, hung on the front edge
 // clear of the seated scribe).
-const DESK_AT = { screen: [8.5, 2.5, 7, 4.5], lamp: [8, -3], seals: [[1.5, 8], [5.5, 8.5], [26.5, 8]], scale: 1 };
-const LECTERN_AT = { screen: [2.5, 2.5, 7, 4.5], lamp: [2, -3], seals: [[0.5, 8], [19, 8], [19, 12.5]], scale: 1 };
-const CONSOLE_AT = { screen: [3, 1.5, 7.5, 3.5], lamp: [10, -2.5], seals: [[15, 3.5]], scale: 0.6 };
+const DESK_AT = { ...PROP_AT.DESK, scale: 1 }, LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }, CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 };
 const STAMP_HIT = 0.9; // s into a commit: the stamp comes down and the seal is set
 const newest = a => Math.max(0, (a.seals ?? 1) - 1);
 const stamping = a => a.fx?.some(f => f.kind === 'commit' && f.t < STAMP_HIT);
@@ -485,7 +436,6 @@ function lampColor(l) {
   if (l.ok) return l.t < LAMP_S ? 'on' : 'off';
   return l.t >= LAMP_S ? 'dim' : Math.floor(l.t * 3) % 3 ? 'red' : 'dark';
 }
-const LAMP = { on: ['#7cff9e', '#e6ffee'], off: ['#16301f', '#2a8a50'], red: ['#ff3a20', '#ffd0b0'], dim: ['#8e1c16', '#c8281a'], dark: ['#3a0d09', '#5e1710'] };
 // Drawn with the furniture (under the scribe): sealed sheets and the lamp.
 function furnitureFx(g, a, at, AT) {
   if (!a.h) {
@@ -493,10 +443,10 @@ function furnitureFx(g, a, at, AT) {
     for (let i = 0; i < n; i++) seal(g, at.x + AT.seals[i][0], at.y + AT.seals[i][1], 1);
   }
   if (a.lamp) {
-    const [body, shine] = LAMP[lampColor(a.lamp)], x = at.x + AT.lamp[0], y = at.y + AT.lamp[1];
-    rect(g, x - 0.5, y - 0.5, 3.5, 3.5, '#0e0a08'); // cage outline, bulb, shine, brass collar onto the frame
+    const [body, shine] = I.lamp[lampColor(a.lamp)], x = at.x + AT.lamp[0], y = at.y + AT.lamp[1];
+    rect(g, x - 0.5, y - 0.5, 3.5, 3.5, I.outline); // cage outline, bulb, shine, brass collar onto the frame
     rect(g, x, y, 2.5, 2.5, body); rect(g, x + 0.5, y + 0.5, 0.5, 0.5, shine);
-    rect(g, x - 0.5, y + 2.5, 3.5, 0.5, '#b8742e');
+    rect(g, x - 0.5, y + 2.5, 3.5, 0.5, I.brass);
   }
 }
 // Everything else plays over the scene; lights join the frame's.
@@ -504,59 +454,59 @@ function reactions(a, at, AT, over, lights, now) {
   const t = now / 1000;
   if (a.lamp) {
     const c = lampColor(a.lamp), x = at.x + AT.lamp[0] + 1.25, y = at.y + AT.lamp[1] + 1.25;
-    if (c === 'on') lights.push({ x, y, r: 16, color: 'rgba(124,255,158,.55)' });
-    if (c === 'red') lights.push({ x, y, r: 18, color: 'rgba(255,58,32,.6)' });
-    if (c === 'dim') lights.push({ x, y, r: 6, color: 'rgba(255,58,32,.3)' });
+    if (c === 'on') lights.push({ x, y, r: 16, color: T.light.lampOn });
+    if (c === 'red') lights.push({ x, y, r: 18, color: T.light.lampRed });
+    if (c === 'dim') lights.push({ x, y, r: 6, color: T.light.lampDim });
   }
   for (const f of a.fx ?? []) {
     const k = f.t / FX_S[f.kind];
     if (f.kind === 'commit') {
       const [sx, sy] = AT.seals[a.h ? 0 : newest(a)], x = at.x + sx, y = at.y + sy;
       over.push(g => stamp(g, x, y, f.t, a.h));
-      if (f.t > STAMP_HIT && f.t < STAMP_HIT + 0.6) lights.push({ x: x + 1.5, y: y + 1.5, r: 18 * (1 - (f.t - STAMP_HIT) / 0.6), color: 'rgba(255,58,32,.7)' });
+      if (f.t > STAMP_HIT && f.t < STAMP_HIT + 0.6) lights.push({ x: x + 1.5, y: y + 1.5, r: 18 * (1 - (f.t - STAMP_HIT) / 0.6), color: T.light.stamp });
     }
     if (f.kind === 'push') {
       const [sx, sy] = AT.seals[a.h ? 0 : f.slot], p = courier(f.t, at.x + sx + 1.5, at.y + sy - 6, t);
-      over.push(g => { blit(g, MAPS.SKULL, half(p.x) - 5, half(p.y) - 5); if (f.t >= PICK_S) seal(g, half(p.x) - 1.5, half(p.y) + 4.5, 1); });
-      lights.push({ x: p.x, y: p.y, r: 10, color: GREEN });
+      over.push(g => { const [cx, cy] = SK.centre, [kx, ky] = SK.carry; blit(g, MAPS.SKULL, half(p.x) - cx, half(p.y) - cy); if (f.t >= PICK_S) seal(g, half(p.x) - cx + kx, half(p.y) - cy + ky, 1); });
+      lights.push({ x: p.x, y: p.y, r: 10, color: T.light.green });
     }
     if (f.kind === 'tool-error') {
       const [sx, sy, sw, sh] = AT.screen, x = at.x + sx, y = at.y + sy;
       over.push(g => spark(g, x, y, sw, sh, k, AT.scale, t));
-      lights.push({ x: x + sw / 2, y: y + sh / 2, r: 34 * AT.scale * (1 - k), color: 'rgba(255,230,160,.8)' });
+      lights.push({ x: x + sw / 2, y: y + sh / 2, r: 34 * AT.scale * (1 - k), color: T.light.spark });
     }
     if (f.kind === 'task-done') {
       const x = a.h || a.pose !== 'desk' ? a.x : a.x + 6, y = a.h ? a.y - 17 : a.pose === 'desk' ? a.y - 25 : a.y - 20;
       over.push(g => glint(g, x, y, k));
-      lights.push({ x, y, r: 16 * Math.sin(Math.PI * k), color: 'rgba(232,180,90,.6)' });
+      lights.push({ x, y, r: 16 * Math.sin(Math.PI * k), color: T.light.glint });
     }
   }
 }
 // A purity seal (art px = 0.5): two parchment strips hanging below a red wax disc, (x, y) its top-left; wax 0 = strips only.
 function seal(g, x, y, wax) {
-  rect(g, x, y + 2, 2, 5, '#0e0a08'); rect(g, x + 1.5, y + 2, 2, 4, '#0e0a08');
-  rect(g, x + 0.5, y + 2.5, 1, 4, '#d6c79f'); rect(g, x + 2, y + 2.5, 1, 3, '#cfc3a8');
-  rect(g, x + 0.5, y + 4, 1, 0.5, '#a8946a'); rect(g, x + 0.5, y + 5.5, 0.5, 0.5, '#a8946a'); rect(g, x + 2, y + 4.5, 1, 0.5, '#a8946a');
+  rect(g, x, y + 2, 2, 5, I.outline); rect(g, x + 1.5, y + 2, 2, 4, I.outline);
+  rect(g, x + 0.5, y + 2.5, 1, 4, I.parchment); rect(g, x + 2, y + 2.5, 1, 3, I.bone);
+  rect(g, x + 0.5, y + 4, 1, 0.5, I.parchmentShade); rect(g, x + 0.5, y + 5.5, 0.5, 0.5, I.parchmentShade); rect(g, x + 2, y + 4.5, 1, 0.5, I.parchmentShade);
   if (!wax) return;
-  rect(g, x - 0.5, y, 4, 3, '#0e0a08'); rect(g, x, y - 0.5, 3, 4, '#0e0a08');
-  rect(g, x, y + 0.5, 3, 2, '#c8281a'); rect(g, x + 0.5, y, 2, 3, '#c8281a');
-  rect(g, x + 1, y + 1, 1, 1, '#8e1c16'); rect(g, x + 0.5, y + 0.5, 0.5, 0.5, '#ff8a6a'); rect(g, x + 2, y + 2, 0.5, 0.5, '#5e1710');
+  rect(g, x - 0.5, y, 4, 3, I.outline); rect(g, x, y - 0.5, 3, 4, I.outline);
+  rect(g, x, y + 0.5, 3, 2, I.wax); rect(g, x + 0.5, y, 2, 3, I.wax);
+  rect(g, x + 1, y + 1, 1, 1, I.crimson); rect(g, x + 0.5, y + 0.5, 0.5, 0.5, I.waxLit); rect(g, x + 2, y + 2, 0.5, 0.5, I.waxDark);
 }
 // The commit: a wax drop falls on a fresh sheet, the stamp comes down (STAMP_HIT), lifts away, the seal glints.
 function stamp(g, x, y, t, small) {
   if (t < STAMP_HIT) {
     seal(g, x, y, 0);
     const d = Math.min(1, t / 0.4); // the wax drop, a blob once it lands
-    if (d < 1) rect(g, x + 1, half(y + 1 - 8 * (1 - d) ** 2), 1, 1.5, '#c8281a');
-    else { rect(g, x, y + 0.5, 3, 2, '#0e0a08'); rect(g, x + 0.5, y + 1, 2, 1, '#c8281a'); }
+    if (d < 1) rect(g, x + 1, half(y + 1 - 8 * (1 - d) ** 2), 1, 1.5, I.wax);
+    else { rect(g, x, y + 0.5, 3, 2, I.outline); rect(g, x + 0.5, y + 1, 2, 1, I.wax); }
   }
   const down = t < STAMP_HIT ? Math.max(0, (t - 0.35) / (STAMP_HIT - 0.35)) : t < 1.2 ? 1 : Math.max(0, 1 - (t - 1.2) / 0.5);
   if (down > 0) {
     const sy = half(y - 12 + 8.5 * down * down) + (t >= STAMP_HIT && t < 1.05 ? 0.5 : 0), sx = x;
-    rect(g, sx - 0.5, sy - 0.5, 4, 6, '#0e0a08'); // knob, brass stem, iron foot
-    rect(g, sx + 0.5, sy, 2, 1.5, '#b8742e'); rect(g, sx + 0.5, sy, 1.5, 0.5, '#e8b45a');
-    rect(g, sx + 1, sy + 1.5, 1, 2, '#6e3f17'); rect(g, sx + 1, sy + 1.5, 0.5, 2, '#b8742e');
-    rect(g, sx, sy + 3.5, 3, 1.5, '#2a2c30'); rect(g, sx, sy + 3.5, 3, 0.5, '#8a9096');
+    rect(g, sx - 0.5, sy - 0.5, 4, 6, I.outline); // knob, brass stem, iron foot
+    rect(g, sx + 0.5, sy, 2, 1.5, I.brass); rect(g, sx + 0.5, sy, 1.5, 0.5, I.brassLit);
+    rect(g, sx + 1, sy + 1.5, 1, 2, I.brassDark); rect(g, sx + 1, sy + 1.5, 0.5, 2, I.brass);
+    rect(g, sx, sy + 3.5, 3, 1.5, I.ironDark); rect(g, sx, sy + 3.5, 3, 0.5, I.ironLit);
   }
   if (!small && t > 1.5) glint(g, x + 1.5, y + 1.5, (t - 1.5) / 1.5);
 }
@@ -573,22 +523,22 @@ function courier(t, x, y, now) {
 // Tool error: the screen (x, y, w, h) shorts in white flashes, sparks spray up and fall, then pale smoke rises. k: 0..1.
 function spark(g, x, y, w, h, k, sc, t) {
   const cx = x + w / 2, cy = y + h / 2;
-  if (k < 0.3 && Math.floor(t * 20) % 2 === 0) rect(g, x, y, w, h, k < 0.12 ? '#ffffff' : '#ffe6a0');
+  if (k < 0.3 && Math.floor(t * 20) % 2 === 0) rect(g, x, y, w, h, k < 0.12 ? I.flash : I.flameCore);
   if (k < 0.25) for (let i = 0, px = cx - 3 * sc, py = y - 0.5; i < 6; i++) { // an arc crackling over the frame
     const nx = px + 1.5 * sc, ny = y - 1.5 - 2 * sc * hash(i * 31 + Math.floor(t * 20));
-    rect(g, half(px), half(Math.min(py, ny)), half(nx - px) || 0.5, Math.max(0.5, half(Math.abs(ny - py))), '#e6ffee');
+    rect(g, half(px), half(Math.min(py, ny)), half(nx - px) || 0.5, Math.max(0.5, half(Math.abs(ny - py))), I.glint);
     px = nx; py = ny;
   }
   for (let i = 0; i < 12; i++) {
     const ang = -Math.PI / 2 + (i - 5.5) * 0.36 + (hash(i * 71) - 0.5) * 0.3, sp = (8 + 10 * hash(i * 13)) * sc;
     const px = cx + Math.cos(ang) * sp * k, py = cy + Math.sin(ang) * sp * k + 22 * sc * k * k; // flung up, falling back
     if (k > 0.75 - 0.3 * hash(i * 29)) continue;
-    rect(g, half(px) - 0.25, half(py) - 0.25, 1, 1, k < 0.25 ? '#ffffff' : k < 0.5 ? '#ffe6a0' : '#f0a83c');
-    rect(g, half(px - Math.cos(ang) * 1.2), half(py - Math.sin(ang) * 1.2 + 0.5), 0.5, 0.5, '#f0a83c');
+    rect(g, half(px) - 0.25, half(py) - 0.25, 1, 1, k < 0.25 ? I.flash : k < 0.5 ? I.flameCore : I.flame);
+    rect(g, half(px - Math.cos(ang) * 1.2), half(py - Math.sin(ang) * 1.2 + 0.5), 0.5, 0.5, I.flame);
   }
   if (k > 0.2) for (let i = 0; i < 7; i++) {
     const p = (k - 0.2) / 0.8, r = (1 + 2 * p + hash(i * 7)) * sc;
-    g.fillStyle = `rgba(196,188,174,${0.8 * (1 - p) ** 1.5})`;
+    g.fillStyle = hexA(I.sparkSmoke, 0.8 * (1 - p) ** 1.5);
     g.fillRect(half(cx + (hash(i * 97) - 0.5) * 8 * sc + Math.sin(p * 6 + i) * p - r), half(y - 1 - 14 * sc * p * (0.5 + 0.5 * hash(i * 3)) - r), 2 * r, 2 * r);
   }
 }
@@ -597,24 +547,24 @@ function glint(g, x, y, k) {
   const s = Math.sin(Math.PI * Math.min(1, k)), n = half(0.5 + 3 * s * (0.8 + 0.2 * Math.sin(k * 30)));
   if (s <= 0) return;
   x = half(x); y = half(y);
-  rect(g, x - n, y - 0.25, 2 * n + 0.5, 0.5, '#e8b45a'); rect(g, x - 0.25, y - n, 0.5, 2 * n + 0.5, '#e8b45a');
-  rect(g, x - 0.75, y - 0.75, 1.5, 1.5, '#ffe6a0'); rect(g, x - 0.25, y - 0.25, 0.5, 0.5, '#ffffff');
+  rect(g, x - n, y - 0.25, 2 * n + 0.5, 0.5, I.brassLit); rect(g, x - 0.25, y - n, 0.5, 2 * n + 0.5, I.brassLit);
+  rect(g, x - 0.75, y - 0.75, 1.5, 1.5, I.flameCore); rect(g, x - 0.25, y - 0.25, 0.5, 0.5, I.flash);
 }
 
 // shadow: [dx, dy, w, h] under the furniture, dy also its depth-sort line; dim: its palette while unlit.
-const DIM_DESK = { f: null, F: null, c: '#2e6b47' };
+const dimDesk = themed(t => ({ f: null, F: null, c: t.ink.screenOff })), dimConsole = themed(t => ({ c: t.ink.screenOff }));
 const KIND = {
-  desk: { map: 'DESK', w: 32, mid: 16, at: DESK_AT, candle: 25, slate: 13, shadow: [1, 21, 30, 2], dim: DIM_DESK },
-  lectern: { map: 'LECTERN', w: 22, mid: 11, at: LECTERN_AT, candle: 17.5, slate: 7, shadow: [1, 21, 20, 2], dim: DIM_DESK },
-  console: { map: 'CONSOLE', at: CONSOLE_AT, shadow: [4, 10, 6, 1], dim: { c: '#2e6b47' } },
+  desk: { map: 'DESK', at: DESK_AT, dim: dimDesk },
+  lectern: { map: 'LECTERN', at: LECTERN_AT, dim: dimDesk },
+  console: { map: 'CONSOLE', at: CONSOLE_AT, dim: dimConsole },
 };
-const consoleLight = (con, lit) => ({ x: con.x + 7, y: con.y + 3, r: lit ? 10 : 5, color: GREEN });
+const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 
 function deskLight(desk, busy) {
   const K = KIND[kindOf(desk)];
   return busy
-    ? { x: desk.x + K.candle, y: desk.y + 1, r: 22, color: AMBER, flicker: true }
-    : { x: desk.x + K.slate, y: desk.y + 5, r: 10, color: GREEN };
+    ? { x: desk.x + K.at.candle[0], y: desk.y + K.at.candle[1], r: 22, color: T.light.amber, flicker: true }
+    : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green };
 }
 
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
@@ -625,90 +575,98 @@ function drawDecorFrame(g, t, cog = 0) {
   g.save(); g.translate(H.dx, 0); drawCogitator(g, t, cog); g.restore();
 }
 
-// The cogitator bank (MAPS.COGITATOR at 116,2): everything animated sits above y 40, clear of the scribes in front.
+// The cogitator bank (MAPS.COGITATOR, placed by PROPS.c): its screens, lamps, reels and vents are its anchors
+// (PROP_AT.COGITATOR); everything animated sits above y 40, clear of the scribes in front.
 const hash = n => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
+const [, COG_X, COG_Y] = PROPS.c.find(([name]) => name === 'COGITATOR');
+const DRUM_SPIN = [1, -1, -1, 1]; // each reel's turning direction
 function drawCogitator(g, t, cog) {
-  const on = cog > 0, speed = on ? 6 + 2 * cog : 1.5;
-  // centre screen (149,15.5 16x16.5): rows of green cant scrolling up, one row per 1.5 logical px
+  const on = cog > 0, speed = on ? 6 + 2 * cog : 1.5, C = PROP_AT.COGITATOR, at = ([x, y]) => [COG_X + x, COG_Y + y];
+  // centre screen: rows of green cant scrolling up, one row per 1.5 logical px, a marker then words to 1.5 px short of the edge
+  const [sx, sy] = at(C.screen), [, , sw, sh] = C.screen, end = sx + sw - 1.5;
   const s = t * speed, top = Math.floor(s), off = (s - top) * 1.5;
-  g.save(); g.beginPath(); g.rect(149, 15.5, 16, 16.5); g.clip();
+  g.save(); g.beginPath(); g.rect(sx, sy, sw, sh); g.clip();
   for (let i = 0; i < 12; i++) {
-    const row = top + i, y = half(16 + i * 1.5 - off);
-    let x = 150, h = hash(row);
-    rect(g, 149, y, 0.5, 0.5, h < 0.2 ? '#e6ffee' : '#2a8a50'); // line marker
-    while (x < 163.5) {
-      const w = Math.min(163.5 - x, 0.5 + Math.floor((h = hash(h * 4294967296 + row)) * 6) / 2);
-      rect(g, x, y, w, 0.5, h < 0.15 ? '#b8ffc8' : h < 0.7 ? '#7cff9e' : '#3aa864');
+    const row = top + i, y = half(sy + 0.5 + i * 1.5 - off);
+    let x = sx + 1, h = hash(row);
+    rect(g, sx, y, 0.5, 0.5, h < 0.2 ? I.glint : I.screenMark); // line marker
+    while (x < end) {
+      const w = Math.min(end - x, 0.5 + Math.floor((h = hash(h * 4294967296 + row)) * 6) / 2);
+      rect(g, x, y, w, 0.5, h < 0.15 ? I.screenHot : h < 0.7 ? I.phosphor : I.screenDim);
       x += w + 0.5 + (h > 0.85 ? 2 : 0);
     }
   }
-  if (Math.random() < perFrame(on ? 0.06 : 0.02)) rect(g, 149, 15.5, 16, 16.5, 'rgba(22,48,31,.55)'); // flicker
+  if (Math.random() < perFrame(on ? 0.06 : 0.02)) rect(g, sx, sy, sw, sh, I.screenFlicker); // flicker
   g.restore();
-  // side screens (133 / 170, 15.5, 11x8.5): left a waveform, right a bar chart
-  for (let x = 0; x < 11; x += 0.5) {
-    const y = 19.5 + Math.round(Math.sin(x * 0.9 + t * (on ? 9 : 3)) * Math.sin(t * 0.7 + x * 0.2) * 6) / 2;
-    rect(g, 133 + x, y, 0.5, 0.5, '#7cff9e');
+  // side screens: left a waveform, right a bar chart
+  const [wx, wy] = at(C.wave), [, , ww] = C.wave;
+  for (let x = 0; x < ww; x += 0.5) {
+    const y = wy + 4 + Math.round(Math.sin(x * 0.9 + t * (on ? 9 : 3)) * Math.sin(t * 0.7 + x * 0.2) * 6) / 2;
+    rect(g, wx + x, y, 0.5, 0.5, I.phosphor);
   }
+  const [bx, by] = at(C.bars);
   for (let i = 0; i < 7; i++) {
     const h = 1 + Math.floor(hash(i * 977 + Math.floor(t * (on ? 6 : 1.5))) * 14) / 2;
-    rect(g, 170.5 + i * 1.5, 23.5 - h, 1, h, i % 3 ? '#3aa864' : '#7cff9e');
+    rect(g, bx + 0.5 + i * 1.5, by + 8 - h, 1, h, i % 3 ? I.screenDim : I.phosphor);
   }
   // lamp row: idle a slow chase, busy a random chatter
+  const [lx, ly] = at(C.lamps);
   for (let i = 0; i < 7; i++) {
     const lit = on ? hash(i * 31 + Math.floor(t * 8)) < 0.5 : Math.floor(t * 2) % 7 === i;
-    if (!lit) rect(g, 149 + 2.5 * i, 34.5, 1, 1, '#1c1d20');
+    if (!lit) rect(g, lx + 2.5 * i, ly, 1, 1, I.lampDead);
   }
   // data-drums: a light notch turning on each reel
-  for (const [cx, cy, dir] of [[125, 18, 1], [125, 29, -1], [188, 18, -1], [188, 29, 1]]) {
-    const a = t * dir * (on ? 6 : 1.2);
-    rect(g, half(cx + Math.cos(a) * 2) - 0.25, half(cy + Math.sin(a) * 2) - 0.25, 0.5, 0.5, '#e8b45a');
-  }
-  // steam from the two vent stacks: a puff every few seconds idle, a steady plume while working
-  for (const vx of [138, 175.5]) for (let i = 0; i < 3; i++) {
-    const c = t * 0.6 + i / 3 + vx, p = c % 1;
+  C.drums.forEach((d, i) => {
+    const [cx, cy] = at(d), a = t * DRUM_SPIN[i] * (on ? 6 : 1.2);
+    rect(g, half(cx + Math.cos(a) * 2) - 0.25, half(cy + Math.sin(a) * 2) - 0.25, 0.5, 0.5, I.brassLit);
+  });
+  // steam from the vent stacks: a puff every few seconds idle, a steady plume while working
+  for (const v of C.vents) for (let i = 0; i < 3; i++) {
+    const [vx, vy] = at(v), c = t * 0.6 + i / 3 + vx, p = c % 1;
     if (!on && Math.floor(c) % 3) continue;
     const r = 1 + p * 2.5;
-    g.fillStyle = `rgba(214,206,190,${0.55 * (1 - p)})`;
-    g.fillRect(half(vx - r + Math.sin(c * 5) * p), half(5 - p * 9 - r), 2 * r, 2 * r);
+    g.fillStyle = hexA(I.steam, 0.55 * (1 - p));
+    g.fillRect(half(vx - r + Math.sin(c * 5) * p), half(vy - p * 9 - r), 2 * r, 2 * r);
   }
 }
 
-// The Magos on the throne: the hanging drill forearm (art cols 0..9) swings 1 art px, chest screen scans, optics pulse.
+// The Magos on the throne: the hanging drill forearm swings 1 art px, chest screen scans, optics pulse (anchors: MAGOS_AT).
 const MAG = { x: 264, y: 120 };
 function drawMagos(g, t) {
-  const cv = sprite(MAPS.MAGOS), A = 10, h = cv.height / 2, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
-  g.drawImage(cv, A, 0, cv.width - A, cv.height, MAG.x + A / 2, MAG.y, (cv.width - A) / 2, h);
-  g.drawImage(cv, 0, 0, A, cv.height, MAG.x + sway, MAG.y, A / 2, h);
-  rect(g, MAG.x + 13, MAG.y + 15 + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? '#16301f' : '#b8ffc8');
-  if (Math.sin(t * 2.2) > 0.4) { rect(g, MAG.x + 13, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); rect(g, MAG.x + 14.5, MAG.y + 9.5, 0.5, 0.5, '#e6ffee'); }
+  const A = MAGOS_AT, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
+  blit(g, MAGOS.body, MAG.x, MAG.y);
+  blit(g, MAGOS.arm, MAG.x + A.arm.x + sway, MAG.y + A.arm.y);
+  rect(g, MAG.x + A.chest.x, MAG.y + A.chest.y + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
+  if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, MAG.x + e.x, MAG.y + e.y, 0.5, 0.5, I.glint);
 }
 
 // The room's own lights, by what they move with (see PROPS), plus the floor's coolant crossings on every slot
 // row, the windows and the gate's braziers and void: once per scene size.
 const STATIC_LIGHTS = {
-  c: [{ x: 157, y: 26, r: 36, color: GREEN }, { x: 139, y: 20, r: 16, color: GREEN }, { x: 176, y: 20, r: 16, color: GREEN }, // cogitator screens
-    { x: 106, y: 48, r: 14, color: AMBER, flicker: true }, { x: 96, y: 14, r: 10, color: AMBER, flicker: true }],
-  e: [{ x: 198, y: 67, r: 10, color: AMBER, flicker: true }],
-  r: [{ x: 222, y: 30, r: 14, color: GREEN }, { x: 248, y: 56, r: 12, color: GREEN }], // recaff, skull
-  s: [{ x: 256, y: 138, r: 20, color: AMBER, flicker: true }, { x: 298, y: 138, r: 20, color: AMBER, flicker: true },
-    { x: 274, y: 153, r: 14, color: GREEN }, { x: 278, y: 132, r: 9, color: GREEN }, // lord desk, Magos optics + chest screen
-    { x: 276, y: 186, r: 26, color: RED }],
-  sb: [{ x: 228, y: 197, r: 26, color: AMBER, flicker: true }, { x: 324, y: 197, r: 26, color: AMBER, flicker: true }],
+  c: [{ x: 157, y: 26, r: 36, color: 'green' }, { x: 139, y: 20, r: 16, color: 'green' }, { x: 176, y: 20, r: 16, color: 'green' }, // cogitator screens
+    { x: 106, y: 48, r: 14, color: 'amber', flicker: true }, { x: 96, y: 14, r: 10, color: 'amber', flicker: true }],
+  e: [{ x: 198, y: 67, r: 10, color: 'amber', flicker: true }],
+  r: [{ x: 222, y: 30, r: 14, color: 'green' }, { x: 248, y: 56, r: 12, color: 'green' }], // recaff, skull
+  s: [{ x: 256, y: 138, r: 20, color: 'amber', flicker: true }, { x: 298, y: 138, r: 20, color: 'amber', flicker: true },
+    { x: 274, y: 153, r: 14, color: 'green' }, { x: 278, y: 132, r: 9, color: 'green' }, // lord desk, Magos optics + chest screen
+    { x: 276, y: 186, r: 26, color: 'red' }],
+  sb: [{ x: 228, y: 197, r: 26, color: 'amber', flicker: true }, { x: 324, y: 197, r: 26, color: 'amber', flicker: true }],
 };
 const lightsBySize = new Map();
+onTheme(() => lightsBySize.clear());
 function staticLights(hall) {
   const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
   let L = lightsBySize.get(key);
   if (!L) {
     if (lightsBySize.size > 8) lightsBySize.clear();
-    const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(l => ({ ...l, x: l.x + mx, y: l.y + my }));
+    const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(l => ({ ...l, x: l.x + mx, y: l.y + my, color: T.light[l.color] }));
     const S = STATIC_LIGHTS, floor = [];
     for (let j = 0; j < hall.rows; j++) for (let fx = (50 + hall.dx) % 100; fx < hall.sw - 10; fx += 100) floor.push({ x: fx, y: j ? 119 + 64 * j : 117, r: 14 });
     for (const cx of channels) for (let j = 0; j < hall.rows - 1; j++) floor.push({ x: cx + 1, y: 150 + 64 * j, r: 14 });
     L = windows.map(wx => ({ x: wx + 8, y: 22, r: 22 })).concat(
       at(S.c, hall.dx, 0), at(S.e, hall.sw - 200, 0), at(S.r, hall.ox, 0), at(S.s, hall.ox, hall.sd), at(S.sb, hall.ox, hall.sb), floor,
-      { x: x - 23, y: y - 11, r: 26, color: AMBER, flicker: true }, { x: x + 23, y: y - 11, r: 26, color: AMBER, flicker: true }, // gate braziers
-      { x, y: y - 12, r: 18, color: RED },
+      { x: x - 23, y: y - 11, r: 26, color: T.light.amber, flicker: true }, { x: x + 23, y: y - 11, r: 26, color: T.light.amber, flicker: true }, // gate braziers
+      { x, y: y - 12, r: 18, color: T.light.red },
     );
     lightsBySize.set(key, L);
   }
@@ -718,52 +676,36 @@ function staticLights(hall) {
 // Doors, drawn each frame: open while any actor is within 12 logical px of the doorway.
 // Leaves slide up/down inside the scriptorium's east wall (sw..sw + 8).
 const doorsOf = ({ sw, sd }) => [
-  { x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
-  { x0: sw, x1: sw + 8, y0: 78, y1: 98, floor: '#1c1d20' }, // scriptorium <-> refectorium (hall.refOut/refIn)
+  { name: 'sanctum', x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
+  { name: 'refectory', x0: sw, x1: sw + 8, y0: 78, y1: 98 }, // scriptorium <-> refectorium (hall.refOut/refIn)
 ];
-function cog(g, cx, cy) {
-  rect(g, cx - 0.5, cy - 3.5, 1, 7, '#b8742e'); rect(g, cx - 3.5, cy - 0.5, 7, 1, '#b8742e');
-  [[-3, -3], [2, -3], [-3, 2], [2, 2]].forEach(([dx, dy]) => rect(g, cx + dx, cy + dy, 1, 1, '#8a4f22'));
-  rect(g, cx - 2.5, cy - 2.5, 5, 5, '#b8742e'); rect(g, cx - 2.5, cy - 2.5, 5, 0.5, '#e8b45a'); rect(g, cx - 2.5, cy - 2.5, 0.5, 5, '#e8b45a');
-  rect(g, cx - 1, cy - 1, 2, 2, '#2a2c30'); rect(g, cx - 0.5, cy - 0.5, 1, 1, '#8e1c16');
-}
-function leaf(g, x, y, w, h) {
-  rect(g, x, y, w, h, '#2a2c30'); rect(g, x, y, w, 0.5, '#5a5e63'); rect(g, x, y, 0.5, h, '#5a5e63');
-  rect(g, x + w - 0.5, y, 0.5, h, '#141516'); rect(g, x, y + h - 0.5, w, 0.5, '#141516');
-  if (h > 4) for (let j = y + 1.5; j < y + h - 1; j += 3) { rect(g, x + 1, j, 0.5, 0.5, '#8a9096'); rect(g, x + w - 1.5, j, 0.5, 0.5, '#8a9096'); }
-  if (w > 4) for (let i = x + 1.5; i < x + w - 1; i += 3) { rect(g, i, y + 1, 0.5, 0.5, '#8a9096'); rect(g, i, y + h - 1.5, 0.5, 0.5, '#8a9096'); }
-}
 // Is anyone within 12 logical px of the rect x0..x1, y0..y1?
 const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);
 function drawDoors(g, actors) {
   for (const d of doorsOf(H)) {
-    const open = near(actors, d.x0, d.y0, d.x1, d.y1);
-    const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
-    if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
-    else { leaf(g, d.x0 + 0.5, d.y0, 7, cy - d.y0); leaf(g, d.x0 + 0.5, cy, 7, d.y1 - cy); rect(g, d.x0 + 0.5, cy - 0.25, 7, 0.5, '#0e0a08'); cog(g, cx, cy); }
-    for (const y of [d.y0 - 2, d.y1]) flange(g, d.x0 - 1, y, 10, 2); // brass lintels
-    rect(g, d.x0, d.y0, 0.5, d.y1 - d.y0, '#b8742e'); rect(g, d.x1 - 0.5, d.y0, 0.5, d.y1 - d.y0, '#6e3f17');
+    const name = `door ${d.name} ${near(actors, d.x0, d.y0, d.x1, d.y1) ? 'open' : 'closed'}`, [ax, ay] = roomAt(name).door;
+    tile(g, name, d.x0 - ax, d.y0 - ay); // leaves, lock cog, brass lintels and jambs
   }
 }
 
 // The grand gate at ENTRY: the iron leaves slide apart into the piers (eased) while anyone is near.
 // The void is floor-level; leaves and frame (piers + arch) are returned as a drawable at the wall's base,
 // so anyone north of the wall walks behind the arch.
-// 32x30 frame at (entry.x - 16, entry.y - 28); opening 16x22 at +8,+5.
+// The frame's entry anchor sits on hall.entry; the leaves slide in its opening (PROP_AT.GATE).
 let gateOpen = 0, gateTo = 0;
 function drawGate(g, actors) {
-  const GATE = { x: H.entry.x - 16, y: H.entry.y - 28 }, ox = GATE.x + 8, oy = GATE.y + 5;
-  gateTo = near(actors, ox, oy, ox + 16, oy + 22) ? 1 : 0;
+  const A = PROP_AT.GATE, GATE = { x: H.entry.x - A.entry[0], y: H.entry.y - A.entry[1] };
+  const [ow, oh] = A.opening.slice(2), ox = GATE.x + A.opening[0], oy = GATE.y + A.opening[1];
+  gateTo = near(actors, ox, oy, ox + ow, oy + oh) ? 1 : 0;
   gateOpen += (gateTo - gateOpen) * (1 - 0.82 ** (frameDt * 30)); // 0.18 per frame at 30 fps
   if (Math.abs(gateTo - gateOpen) < 0.01) gateOpen = gateTo; // at rest (half(0.01 * 7) is 0)
-  rect(g, ox, oy, 16, 22, '#060404');
-  rect(g, ox + 2, oy + 16, 12, 6, '#2a0a07'); rect(g, ox + 5, oy + 18, 6, 4, '#4e110c'); // the void beyond, lit by the braziers
-  const s = half(gateOpen * 7);
+  blit(g, MAPS.GATE_VOID, ox, oy); // the void beyond, lit by the braziers
+  const s = half(gateOpen * A.slide[0]);
   return {
-    y: GATE.y + 30,
+    y: GATE.y + MAPS.GATE.length / RES,
     draw(g2) {
-      g2.save(); g2.beginPath(); g2.rect(ox, oy, 16, 22); g2.clip();
-      blit(g2, MAPS.GATE_L, ox - s, oy); blit(g2, MAPS.GATE_R, ox + 8 + s, oy);
+      g2.save(); g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
+      blit(g2, MAPS.GATE_L, GATE.x + A.leafL[0] - s, GATE.y + A.leafL[1]); blit(g2, MAPS.GATE_R, GATE.x + A.leafR[0] + s, GATE.y + A.leafR[1]);
       g2.restore();
       blit(g2, MAPS.GATE, GATE.x, GATE.y);
     },
@@ -776,7 +718,8 @@ const beaconOf = ({ ox, sd }) => ({ x: 226 + ox, y: 118 + sd });
 const perchOf = ({ ox, sd }) => ({ x: 297 + ox, y: 128 + sd }); // a resize moves it: the skull flies there
 const skull = { ...perchOf(hallOf(0)), last: 0 };
 const SKULL_SPEED = 60; // logical px per second
-const SKULL_RED = { o: '#ff3a20', O: '#ffd0b0' };
+const SK = PROP_AT.SKULL; // centre (its position), carry (a pushed sheet), beam (the searchlight)
+const skullRed = themed(t => ({ o: t.ink.alarm, O: t.ink.alarmGlow }));
 // Something of the scene is mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate.
 export const sceneBusy = () => gateOpen !== gateTo || !!skull.flying;
 function drawAlarm(g, actors, now) {
@@ -786,8 +729,8 @@ function drawAlarm(g, actors, now) {
   drawBeacon(g, t, on, BEACON);
   if (on) {
     const sweep = Math.sin(t * 5); // the reflector's turn: the glow swings across the wall and the floor below
-    lights.push({ x: BEACON.x, y: BEACON.y, r: 14, color: 'rgba(255,58,32,.6)' },
-      { x: BEACON.x + 20 * sweep, y: BEACON.y + 16, r: 30 + 8 * Math.abs(Math.cos(t * 5)), color: 'rgba(255,40,20,.4)' });
+    lights.push({ x: BEACON.x, y: BEACON.y, r: 14, color: T.light.beacon },
+      { x: BEACON.x + 20 * sweep, y: BEACON.y + 16, r: 30 + 8 * Math.abs(Math.cos(t * 5)), color: T.light.beaconSweep });
   }
   const dt = skull.last ? Math.min(0.25, (now - skull.last) / 1000) : 0;
   skull.last = now;
@@ -799,28 +742,25 @@ function drawAlarm(g, actors, now) {
   if (on && d <= step) { // hovering: a red searchlight down onto the petitioner
     g.save();
     g.globalCompositeOperation = 'lighter';
-    g.fillStyle = `rgba(255,50,30,${0.1 + 0.04 * Math.sin(t * 8)})`;
-    g.beginPath(); g.moveTo(skull.x - 1.5, y + 4); g.lineTo(skull.x + 1.5, y + 4); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
+    g.fillStyle = hexA(I.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
+    const by = y - SK.centre[1] + SK.beam[1], bx = skull.x - SK.centre[0] + SK.beam[0];
+    g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
     g.restore();
   }
-  blit(g, MAPS.SKULL, half(skull.x) - 5, half(y) - 5, on ? SKULL_RED : undefined);
-  lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? 'rgba(255,58,32,.45)' : GREEN });
+  blit(g, MAPS.SKULL, half(skull.x) - SK.centre[0], half(y) - SK.centre[1], on ? skullRed() : undefined);
+  lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
   return lights;
 }
 
-// Alarm beacon on its wall bracket (art px = 0.5): a caged red dome whose reflector strip sweeps round when on.
+// Alarm beacon on its wall bracket: its dome lit or dark, the reflector strip sweeping across the dome when on, under the
+// cage (room tiles 'beacon on/off', 'beacon cage'; anchors: centre on the bracket point, the dome the sweep crosses).
 function drawBeacon(g, t, on, { x, y }) {
-  rect(g, x - 0.5, y + 3, 1, 3, '#3a200c'); // stem into the wall
-  rect(g, x - 3.5, y + 2.5, 7, 2.5, '#0e0a08'); rect(g, x - 3, y + 3, 6, 1.5, '#6e3f17'); rect(g, x - 3, y + 3, 6, 0.5, '#b8742e');
-  rect(g, x - 2.5, y + 3.5, 0.5, 0.5, '#e8b45a'); rect(g, x + 2, y + 3.5, 0.5, 0.5, '#e8b45a'); // bolts
-  rect(g, x - 3, y - 2.5, 6, 5.5, '#0e0a08'); rect(g, x - 2.5, y - 3, 5, 0.5, '#0e0a08'); // dome outline, rounded top
-  rect(g, x - 2.5, y - 2, 5, 4.5, on ? '#c8281a' : '#5e1710'); rect(g, x - 2, y - 2.5, 4, 0.5, on ? '#c8281a' : '#5e1710');
-  rect(g, x - 2.5, y + 1.5, 5, 1, on ? '#8e1c16' : '#3a0d09'); // shaded lower rim
+  const A = roomAt('beacon off'), fx = x - A.centre[0], fy = y - A.centre[1];
+  tile(g, on ? 'beacon on' : 'beacon off', fx, fy);
   if (on) {
-    const p = (t * 2.5) % 1, sx = half(x - 2.5 + p * 4.5);
-    rect(g, sx, y - 2, 0.5, 3.5, '#ffd0b0');
-    if (sx + 0.5 < x + 2.5) rect(g, sx + 0.5, y - 2, 0.5, 3.5, '#ff6a4a');
-  } else rect(g, x - 2, y - 1.5, 0.5, 1.5, '#8c2c1c'); // dull glint
-  rect(g, x - 2.5, y, 5, 0.5, '#2a2c30'); rect(g, x - 1, y - 2.5, 0.5, 4, '#2a2c30'); rect(g, x + 0.5, y - 2.5, 0.5, 4, '#2a2c30'); // cage
-  rect(g, x - 1.5, y - 4, 3, 1, '#6e3f17'); rect(g, x - 1.5, y - 4, 3, 0.5, '#e8b45a'); // brass cap
+    const [sx0, sy, sw, sh] = A.sweep, p = (t * 2.5) % 1, sx = half(fx + sx0 + p * (sw - 0.5));
+    rect(g, sx, fy + sy, 0.5, sh, I.alarmGlow);
+    if (sx + 0.5 < fx + sx0 + sw) rect(g, sx + 0.5, fy + sy, 0.5, sh, I.beaconSweep);
+  }
+  tile(g, 'beacon cage', fx, fy);
 }

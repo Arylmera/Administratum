@@ -1,0 +1,52 @@
+name: Sprite
+description: Discuss one sprite (or one sprite family): a redraw, a recolour, a new theme variant, a glitch.
+title: "[sprite] "
+labels: ["sprite"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue per sprite or family (all `SCRIBE.*`, the gate leaves...), so each thread stays about one piece of art.
+        Find the id and the current render in the [sprite gallery](../blob/main/docs/sprites/README.md).
+  - type: input
+    id: sprite
+    attributes:
+      label: Sprite id
+      description: As in the gallery, e.g. `COGITATOR`, `SCRIBE.high.*`, `WINDOW.night`.
+      placeholder: COGITATOR
+    validations:
+      required: true
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Tier II — Data-Shrine (default)
+        - A new theme
+        - Every theme
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - Recolour (palette only)
+        - Redraw (same size and anchor points)
+        - Redraw with a new size or anchor (touches layout code)
+        - New sprite
+        - Glitch / bug
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What and why
+      description: What looks wrong or could be better, and what you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: refs
+    attributes:
+      label: References
+      description: Mock-ups, screenshots, a pasted pixel map, links. Images can be dropped here.

@@ -1,0 +1,76 @@
+{
+  "frames": {
+    "COGITATOR": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 164,
+        "h": 100
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/map_to_art.mjs",
+    "image": "cogitator.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 164,
+      "h": 100
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "COGITATOR": {
+        "screen": [
+          66,
+          27,
+          32,
+          33
+        ],
+        "wave": [
+          34,
+          27,
+          22,
+          17
+        ],
+        "bars": [
+          108,
+          27,
+          22,
+          17
+        ],
+        "lamps": [
+          66,
+          65
+        ],
+        "drums": [
+          [
+            18,
+            32
+          ],
+          [
+            18,
+            54
+          ],
+          [
+            144,
+            32
+          ],
+          [
+            144,
+            54
+          ]
+        ],
+        "vents": [
+          [
+            44,
+            6
+          ],
+          [
+            119,
+            6
+          ]
+        ]
+      }
+    }
+  }
+}

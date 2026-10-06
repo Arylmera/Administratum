@@ -1,0 +1,88 @@
+{
+  "frames": {
+    "floor": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      }
+    },
+    "channel h": {
+      "frame": {
+        "x": 9,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "channel v": {
+      "frame": {
+        "x": 18,
+        "y": 0,
+        "w": 4,
+        "h": 8
+      }
+    },
+    "sanctum passage": {
+      "frame": {
+        "x": 23,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "sill": {
+      "frame": {
+        "x": 28,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      }
+    },
+    "sanctum floor": {
+      "frame": {
+        "x": 0,
+        "y": 9,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/map_to_art.mjs",
+    "image": "room-floor.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 52,
+      "h": 49
+    },
+    "palette": "key.gpl",
+    "anchors": {},
+    "tiles": {
+      "floor": {
+        "fill": "repeat"
+      },
+      "channel h": {
+        "fill": "repeat-x",
+        "glow": "coolant",
+        "glowPasses": 2
+      },
+      "channel v": {
+        "fill": "repeat-y",
+        "glow": "coolant",
+        "glowPasses": 2
+      },
+      "sanctum floor": {
+        "fill": "nine",
+        "edge": 14
+      },
+      "sanctum passage": {
+        "fill": "repeat"
+      },
+      "sill": {
+        "fill": "repeat-x"
+      }
+    }
+  }
+}

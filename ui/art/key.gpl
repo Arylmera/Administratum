@@ -1,0 +1,77 @@
+GIMP Palette
+Name: Administratum key
+Columns: 8
+# Draw sprites in these exact colours. Each one is a palette slot that themes recolour (ui/theme.js);
+# the first letter of a name is its slot. Never edit: the art files depend on these values.
+ 14  10   8	k outline
+184 116  46	g brass
+110  63  23	G brass shadow
+214 199 159	p parchment
+168 148 106	P parchment shadow
+ 74  48  32	w wood
+ 46  28  18	W wood dark
+ 90  94  99	m iron
+ 42  44  48	M iron dark
+124 255 158	c phosphor
+ 22  48  31	C phosphor dark
+240 168  60	f flame
+255 230 160	F flame core
+142  28  22	x red trim
+207 195 168	b bone
+148 134 105	B bone shadow
+ 20  12   8	n near black
+ 43  63  94	u deep blue
+ 47  74  51	v deep green
+ 94  23  16	r robe
+ 58  13   9	d robe shadow
+255  58  32	a alarm red
+124 255 159	o optic
+217 168  78	y sash (department colour)
+184 154 124	s tan
+ 18  12  10	e hood shadow
+140  44  28	R robe lit
+232 180  90	h brass lit
+138 144 150	l iron lit
+230 255 238	O optic glint
+106  70  48	L wood lit
+168 154 120	q adept bone
+106  94  72	Q adept bone shadow
+140  44  29	t rank: hood rim
+ 58  13  10	T rank: shoulder seam
+ 94  23  17	z rank: cog
+ 94  23  18	j rank: cog hub
+168 154 121	J adept rank: hood cog
+168 154 122	I adept rank: cog hub
+# room tiles (added 2026-10-06)
+ 20  15  12	0 wall foot
+ 43  45  48	1 floor grate
+ 20  21  22	2 floor gap
+ 56  59  63	3 floor lip
+ 42  42  44	4 wall plate
+ 44  44  46	5 wall plate east
+ 24  25  27	6 wall seam
+ 57  56  56	7 wall sheen (derived from 4)
+ 58  57  58	8 wall east sheen (derived from 5)
+ 65  63  62	9 wall rivet glint (derived from 6)
+ 16  11   8	A wall dark
+ 48  22  18	D sanctum plate
+ 30  12   9	E sanctum seam
+ 62  37  32	H sanctum sheen (derived from D)
+ 70  52  47	K sanctum rivet glint (derived from E)
+ 58  17  14	N sanctum floor
+ 28  29  32	S pillar
+ 58  32  12	U brass deep shadow
+ 20  21  23	V iron shadow
+200 133  58	X copper
+232 176 112	Y copper lit
+138  79  34	Z copper shade
+ 90  50  20	i copper dark
+ 42 138  80	! channel edge
+119 212 150	+ channel core
+  6   4   4	@ void
+ 42  10   7	$ void ember
+ 78  17  12	% void glow
+200  40  26	& beacon lit
+ 94  23  19	* beacon dark
+ 58  13  11	- beacon rim dark
+140  44  30	= beacon glint

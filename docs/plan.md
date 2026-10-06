@@ -40,7 +40,8 @@ spec: docs/spec.md
 | `src-tauri/src/main.rs` | Poll loop, emit, toast, tray, plugins |
 | `tools/make_icon.py` | Generates the Cog Mechanicus source PNG for `cargo tauri icon` |
 | `ui/index.html` | Header, stage, card, CSS |
-| `ui/sprites.js` | Palette, pixel maps, cached sprite canvases |
+| `ui/sprites.js` | Pixel maps, cached sprite canvases |
+| `ui/theme.js` | Themes: every colour (map palette, colours drawn in code, lights), runtime switch (added 2026-10-06) |
 | `ui/layout.js` | Pure geometry: department layout, waypoints, routes, lighting levels |
 | `ui/layout.test.mjs` | Node `assert` self-check for `layout.js` |
 | `ui/scene.js` | Static room drawing, desks, rugs, static lights |

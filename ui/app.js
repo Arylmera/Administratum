@@ -1,7 +1,8 @@
 import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
-import { SASH, RES, RANK, rankOf } from './sprites.js';
+import { RES, RANK, rankOf } from './sprites.js';
+import { T, onTheme } from './theme.js';
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, initSettings, renderSettings } from './settings.js';
@@ -27,7 +28,7 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const at = `:${hall.w}x${hall.h}`, k = `${day ? 'day' : 'night'}${at}`;
+  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${at}`;
   if (!bg[k]) {
     for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
     const c = document.createElement('canvas');
@@ -176,15 +177,17 @@ addEventListener('keydown', e => {
   panTo(from.x + d[0] * 60, from.y + d[1] * 60);
 });
 
-// Riveted iron plates behind the scene instead of plain black (40x40 art px tile).
-{
+// Riveted iron plates behind the scene instead of plain black (40x40 art px tile), redrawn per theme.
+function backdrop() {
   const c = document.createElement('canvas'); c.width = c.height = 40;
-  const t = c.getContext('2d'), r = (x, y, w, h, col) => { t.fillStyle = col; t.fillRect(x, y, w, h); };
-  r(0, 0, 40, 40, '#17181b'); r(0, 0, 40, 1, '#24262a'); r(0, 0, 1, 40, '#202226');
-  r(0, 39, 40, 1, '#0b0b0c'); r(39, 0, 1, 40, '#0b0b0c'); r(1, 19, 38, 1, '#101113'); r(1, 20, 38, 1, '#1f2124');
-  for (const [x, y] of [[3, 3], [35, 3], [3, 35], [35, 35], [3, 16], [35, 16], [3, 23], [35, 23]]) { r(x, y, 2, 2, '#3a3d42'); r(x, y, 1, 1, '#5a5e63'); }
+  const t = c.getContext('2d'), r = (x, y, w, h, col) => { t.fillStyle = col; t.fillRect(x, y, w, h); }, I = T.ink;
+  r(0, 0, 40, 40, I.backdrop); r(0, 0, 40, 1, I.backdropLit); r(0, 0, 1, 40, I.backdropEdge);
+  r(0, 39, 40, 1, I.backdropDark); r(39, 0, 1, 40, I.backdropDark); r(1, 19, 38, 1, I.backdropSeam); r(1, 20, 38, 1, I.backdropSeamLit);
+  for (const [x, y] of [[3, 3], [35, 3], [3, 35], [35, 35], [3, 16], [35, 16], [3, 23], [35, 23]]) { r(x, y, 2, 2, I.backdropRivet); r(x, y, 1, 1, I.backdropRivetLit); }
   document.body.style.backgroundImage = `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65)), url(${c.toDataURL()})`;
 }
+backdrop();
+onTheme(backdrop);
 
 // 30 fps while anything moves; at rest (nobody walking, no effect, glide, gate or pan, no petition) the idle
 // rate (settings, 6-30 fps): only the slow ambient loops (flicker, cogitator, Zs) run then. Every animation is
@@ -261,7 +264,7 @@ const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3, shrink: s * 1
 const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
 let roster = [];
 let sel = null;
-const colorOf = dept => SASH[deptOrder.indexOf(dept) % SASH.length];
+const colorOf = dept => T.sash[deptOrder.indexOf(dept) % T.sash.length];
 const ago = ms => {
   if (!ms) return '—'; // missing statusUpdatedAt, not a huge elapsed time
   const m = Math.max(0, Math.floor((Date.now() - ms) / 60000));
@@ -334,7 +337,7 @@ function consolesOf(dept) {
 const plaques = new Map();
 function renderPlaques(blocks) {
   const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
-  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120 + hall.dx, hall.y1 - 10, '#8a7a5c']);
+  if (layout.overflow) want.set('overflow', ['plaque', `+${layout.overflow} in the stacks`, 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
   if (!roster.length) want.set('empty', ['empty', 'No scribes on duty', 0, 120 + (hall.h - SCENE.h) / 2]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
   for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
