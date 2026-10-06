@@ -46,8 +46,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/magos.png` | <img src="orbital/MAGOS.png" height="160"> |
-| <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png` | <img src="orbital/MAGOS.arm.png" height="160"> |
+| <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/orbital/magos.png` | <img src="orbital/MAGOS.png" height="160"> |
+| <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/orbital/magos.png` | <img src="orbital/MAGOS.arm.png" height="160"> |
 
 ## Props and furniture
 
@@ -62,10 +62,10 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="orbital/CONSOLE.png" height="80"> |
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/workstations.png` | <img src="orbital/CONSOLE.unlit.png" height="80"> |
 | <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cogitator.png`, drawn by scene.js | <img src="orbital/COGITATOR.png" height="160"> |
-| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="orbital/THRONE.png" height="160"> |
-| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="orbital/LORD_DESK.png" height="104"> |
-| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="orbital/COG_MECH.png" height="144"> |
-| <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="orbital/SEAL.png" height="80"> |
+| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/THRONE.png" height="160"> |
+| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/LORD_DESK.png" height="104"> |
+| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/COG_MECH.png" height="144"> |
+| <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/SEAL.png" height="80"> |
 | <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE.png" height="160"> |
 | <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE_L.png" height="160"> |
 | <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE_R.png" height="160"> |
