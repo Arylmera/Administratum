@@ -147,6 +147,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Always on top | on | — | Keeps the window above others |
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
+| Theme | Tier II | Tier II / Forge World / Ordo Xenos / Night Shift / High Contrast | Colours of the hall and the window, and the wording (the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
 | Idle to the Refectorium after | 2 min | 1–120 | How long a scribe stays idle at its desk before it goes to nap |
@@ -287,7 +288,10 @@ commands.
 | `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `scene.js` | Canvas drawing of the static hall and each frame (furniture, paper, effects, beacon, servo-skull) |
-| `sprites.js` | Pixel maps, palettes, model ranks |
+| `sprites.js` | Loads the art files (`ui/art/`), sprite cache, model ranks |
+| `art.js`, `png.js` | Art file loader (sheet + JSON → palette rows) and PNG decoder |
+| `room.js` | The room's structure from tiles (fill rules: repeat, strips, nine-slice) |
+| `theme.js`, `themes.js` | Themes: every colour (art, code, chrome) and the wording; `setTheme`, `t()` |
 | `lighting.js` | Darkness, light pools and glows from pre-rendered stamps |
 | `sun.js` | Sunrise, sunset and civil twilight (NOAA formulas) for *Auto* lighting |
 | `chronicon.js` | Chronicon parchment: tabs, Tithe charts, event log |
@@ -327,8 +331,9 @@ The node self-checks are plain `assert` scripts with no test framework.
 
 Sprites and the room's tiles (floor, walls, pipes, doors) are art files in `ui/art/`: one PNG sheet per family,
 drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus JSON frames, anchors and the tiles'
-fill rules. Every colour, theirs and the ones drawn in code, comes from
-the active theme in `ui/theme.js`. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
+fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
+active theme: `ui/theme.js` (Tier II) and `ui/themes.js` (Forge World, Ordo Xenos, Night Shift, High Contrast),
+picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
 the gallery used to discuss them one by one (a **Sprite** issue each). Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
 

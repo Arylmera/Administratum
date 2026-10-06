@@ -6,13 +6,14 @@
 // are read once and never written back: the view's own scale, lighting and chime stay in this browser.
 import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
+import { T, THEMES, setTheme } from './theme.js';
 
 const mem = {};
 let saved = null;
 try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
 const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err)), 300); };
-const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale']; // the remote view's own choices
+const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme']; // the remote view's own choices
 if (REMOTE) {
   if (saved && typeof saved === 'object') Object.assign(mem, saved);
   try { for (const k of LOCAL) { const v = localStorage.getItem(k); if (v != null) mem[k] = v; } } catch { /* storage blocked */ }
@@ -82,6 +83,7 @@ export function initSettings(hooks) {
   const win = () => tauri()?.window?.getCurrentWindow();
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
+  field('theme').replaceChildren(...Object.values(THEMES).map(th => new Option(th.name, th.id))); // theme.js + themes.js
   let login = null;
 
   const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
@@ -102,6 +104,7 @@ export function initSettings(hooks) {
     field('onTop').checked = settings.onTop;
     field('scale').value = view.scale;
     field('mode').value = hooks.mode();
+    field('theme').value = T.id;
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
@@ -185,6 +188,7 @@ export function initSettings(hooks) {
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
     else if (k === 'scale') { setScale(el.value); hooks.rescaled(); }
     else if (k === 'mode') hooks.setMode(el.value);
+    else if (k === 'theme') { store.set('adm.theme', el.value); setTheme(el.value); }
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
@@ -202,6 +206,7 @@ export function initSettings(hooks) {
     setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions();
     hooks.setMode('auto'); hooks.setMuted(false);
+    store.set('adm.theme', 'tier2'); setTheme('tier2');
     sync();
   };
 

@@ -6,6 +6,7 @@ mod poller;
 mod registry;
 mod remote;
 mod settings;
+mod toast;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
@@ -184,6 +185,12 @@ fn set_question_prefs(enabled: bool, toast: bool) {
     QUESTION_TOAST.store(toast, Ordering::Relaxed);
 }
 
+/// The toasts' wording from the active theme (toast.rs; app.js pushes it on start and on a theme change).
+#[tauri::command]
+fn set_toast_text(petition: String, question: String, stale: String, needed: String) {
+    toast::set(toast::Text { petition, question, stale, needed });
+}
+
 /// "Start at login": `enable` = None reads it. Keeps the tray check item in step.
 #[tauri::command]
 fn start_at_login(enable: Option<bool>, app: AppHandle, login: State<CheckMenuItem<tauri::Wry>>) -> Result<bool, String> {
@@ -347,7 +354,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, start_at_login, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove])
+        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_toast_text, start_at_login, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
@@ -395,12 +402,13 @@ fn poll_loop(app: AppHandle, demo: bool) {
         // tick runs as usual instead of the widget freezing on stale state.
         let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
+            let words = toast::get();
             for s in tracker.new_petitions(&roster) {
                 let _ = app
                     .notification()
                     .builder()
-                    .title(format!("Petition from {}", s.name))
-                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                    .title(toast::fill(&words.petition, &s.name))
+                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
                     .show();
                 emit(&app, "petition", &s);
             }
@@ -412,7 +420,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 if QUESTION_TOAST.load(Ordering::Relaxed) {
                     let q = s.question.clone().unwrap_or_default();
                     let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
-                    let _ = app.notification().builder().title(format!("Question from {}", s.name)).body(format!("{} · {q}", s.dept)).show();
+                    let _ = app.notification().builder().title(toast::fill(&words.question, &s.name)).body(format!("{} · {q}", s.dept)).show();
                 }
                 emit(&app, "question", &s);
             }
@@ -423,8 +431,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 let _ = app
                     .notification()
                     .builder()
-                    .title(format!("Petition still waiting: {}", s.name))
-                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| "input needed".into())))
+                    .title(toast::fill(&words.stale, &s.name))
+                    .body(format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone())))
                     .show();
                 emit(&app, "petition-stale", &s);
             }

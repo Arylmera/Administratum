@@ -6,9 +6,9 @@ import { loadSheet } from './art.js';
 export { BASE };
 
 // Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
-// Its colours (robe, adept) are the theme's: T.rank[rank].
+// Its colours (robe, adept) are the theme's T.rank[rank], its name the theme's wording t(`rank.${rank}`).
 export const rankOf = model => (/opus|fable/i.test(model ?? '') ? 'high' : /haiku/i.test(model ?? '') ? 'novice' : 'standard');
-export const RANK = { high: { name: 'Magos' }, standard: { name: 'Tech-priest' }, novice: { name: 'Novice' } };
+export const RANKS = ['high', 'standard', 'novice'];
 
 export const RES = 2; // art pixels per logical pixel
 
