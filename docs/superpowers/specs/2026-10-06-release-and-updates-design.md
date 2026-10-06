@@ -60,8 +60,8 @@ The step fails if the installer or its `.sig` is missing, rather than publishing
 
 ### App side
 
-- Dependencies: `tauri-plugin-updater = "2"`, `tauri-plugin-process = "2"` (relaunch). Capabilities:
-  `updater:default`, `process:allow-restart`.
+- Dependency: `tauri-plugin-updater = "2"`. The relaunch is core `AppHandle::restart()` and the plugin is only
+  called from Rust, so no `tauri-plugin-process` and no new capability.
 - Settings > System gains an **Updates** block:
   - installed version;
   - checkbox "Check for updates at startup", on by default, persisted with the other settings (`settings.rs`);
@@ -80,8 +80,8 @@ pre-release rule.
 
 ### Testing
 
-- No version logic of our own: the plugin compares versions and checks signatures. Settings persistence of the new
-  checkbox gets a case in the existing `settings.rs` tests.
+- No version logic of our own: the plugin compares versions and checks signatures. The new checkbox is one more
+  opaque `adm.*` key, already covered by the settings round-trip tests.
 - CI: the `release` job's own guards (missing installer or `.sig` fails the run).
 - End to end, once: publish `v0.1.1`, install it, publish `v0.1.2`, check the app offers and installs it.
 
