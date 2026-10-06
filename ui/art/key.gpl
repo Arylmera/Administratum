@@ -42,3 +42,36 @@ Columns: 8
  94  23  18	j rank: cog hub
 168 154 121	J adept rank: hood cog
 168 154 122	I adept rank: cog hub
+# room tiles (added 2026-10-06)
+ 20  15  12	0 wall foot
+ 43  45  48	1 floor grate
+ 20  21  22	2 floor gap
+ 56  59  63	3 floor lip
+ 42  42  44	4 wall plate
+ 44  44  46	5 wall plate east
+ 24  25  27	6 wall seam
+ 57  56  56	7 wall sheen (derived from 4)
+ 58  57  58	8 wall east sheen (derived from 5)
+ 65  63  62	9 wall rivet glint (derived from 6)
+ 16  11   8	A wall dark
+ 48  22  18	D sanctum plate
+ 30  12   9	E sanctum seam
+ 62  37  32	H sanctum sheen (derived from D)
+ 70  52  47	K sanctum rivet glint (derived from E)
+ 58  17  14	N sanctum floor
+ 28  29  32	S pillar
+ 58  32  12	U brass deep shadow
+ 20  21  23	V iron shadow
+200 133  58	X copper
+232 176 112	Y copper lit
+138  79  34	Z copper shade
+ 90  50  20	i copper dark
+ 42 138  80	! channel edge
+119 212 150	+ channel core
+  6   4   4	@ void
+ 42  10   7	$ void ember
+ 78  17  12	% void glow
+200  40  26	& beacon lit
+ 94  23  19	* beacon dark
+ 58  13  11	- beacon rim dark
+140  44  30	= beacon glint

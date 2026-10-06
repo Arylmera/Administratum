@@ -21,7 +21,23 @@ export const BASE = {
   // rank markers in the scribe maps (t hood rim, T shoulder seam, z cog, j cog hub): robe-coloured unless rank gilds them
   t: '#8c2c1c', T: '#3a0d09', z: '#5e1710', j: '#5e1710',
   J: '#a89a78', I: '#a89a78', // adept hood cog, bone unless gilded
+  // the room tiles (ui/art/room-*.png): floor grate, wall plates, sanctum, pillars, copper pipes, coolant, the gate's void,
+  // the alarm beacon. 7 8 9 H K (sheen and rivet glints) are derived from their plate / seam unless a theme sets them.
+  1: '#2b2d30', 2: '#141516', 3: '#383b3f', // floor: grate, gaps, lit lips
+  4: '#2a2a2c', 5: '#2c2c2e', 6: '#18191b', 7: '#393838', 8: '#3a393a', 9: '#413f3e', // plates west / east, seams, sheens, rivet glint
+  0: '#140f0c', A: '#100b08', // wall foot, dark walls between rooms
+  D: '#301612', E: '#1e0c09', H: '#3e2520', K: '#46342f', N: '#3a110e', // sanctum: plates, seams, sheen, rivet glint, floor
+  S: '#1c1d20', U: '#3a200c', V: '#141516', // pillar iron, deep brass shadow, iron shadow
+  X: '#c8853a', Y: '#e8b070', Z: '#8a4f22', i: '#5a3214', // copper pipe: body, lit, shade, dark
+  '!': '#2a8a50', '+': '#77d496', // coolant channel: edge, glowing core
+  '@': '#060404', $: '#2a0a07', '%': '#4e110c', // the void beyond the gate: dark, ember, glow
+  '&': '#c8281a', '*': '#5e1710', '-': '#3a0d09', '=': '#8c2c1c', // alarm beacon: lit dome, dark dome, dark rim, dull glint
 };
+// Slots blended from another (a plate's sheen, a seam's lit rivet): [base slot, [r, g, b, alpha] laid over it]. A theme
+// that changes the base and not the blend gets it recomputed.
+const OVER = { 7: ['4', [255, 240, 220, 0.07]], 8: ['5', [255, 240, 220, 0.07]], 9: ['6', [255, 240, 220, 0.18]],
+  H: ['D', [255, 240, 220, 0.07]], K: ['E', [255, 240, 220, 0.18]] };
+const over = (hex, [r, g, b, a]) => '#' + [r, g, b].map((c, i) => Math.round(c * a + parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16) * (1 - a)).toString(16).padStart(2, '0')).join('');
 
 // robe: scribe palette overrides; adept: adept palette overrides (x = hem/stripe trim).
 const gilt = (r, R, d) => ({ r, R, d, z: '#e8b45a', j: '#6e3f17', t: '#e8b45a', T: '#b8742e', g: '#e8b45a', G: '#b8742e' });
@@ -32,16 +48,10 @@ const inkOf = px => ({
   outline: px.k, brass: px.g, brassDark: px.G, brassLit: px.h, parchment: px.p, parchmentShade: px.P, bone: px.b,
   iron: px.m, ironDark: px.M, ironLit: px.l, phosphor: px.c, phosphorDark: px.C, glint: px.O,
   flame: px.f, flameCore: px.F, alarm: px.a, crimson: px.x,
-  // floor grate, wall plates, the dark walls between rooms
-  grate: '#2b2d30', grateGap: '#141516', grateLip: '#383b3f',
-  wallPlate: '#2a2a2c', wallPlateEast: '#2c2c2e', wallSeam: '#18191b', wallFoot: '#140f0c', wallDark: '#100b08',
-  sheen: 'rgba(255,240,220,.07)', rivetGlint: 'rgba(255,240,220,.18)', scratchSheen: 'rgba(255,240,220,.06)',
-  grime: 'rgba(10,6,4,.35)', pillar: '#1c1d20',
-  sanctumPlate: '#301612', sanctumSeam: '#1e0c09', sanctumFloor: '#3a110e',
-  // copper pipes, brass flanges
-  copper: '#c8853a', copperLit: '#e8b070', copperShade: '#8a4f22', copperDark: '#5a3214', brassDeep: '#3a200c',
-  // coolant channels and the binary cant on the walls
-  coolantEdge: '#2a8a50', coolant: '#3aa864', coolantCore: '#b4ffc8', cant: 'rgba(124,255,158,.38)',
+  // weathering on the walls: scratches and cracks, their lit edge, the binary cant, grime stains (transparent to drop them)
+  scratch: px.k, scratchSheen: 'rgba(255,240,220,.06)', cant: 'rgba(124,255,158,.38)', grime: 'rgba(10,6,4,.35)',
+  // the background-shell cog's teeth (copper, as the room's pipes); the coolant channels' glow
+  copperShade: px.Z, coolant: '#3aa864',
   // screens: the cogitator bank, the Magos's chest, an unlit desk slate
   screenHot: '#b8ffc8', screenDim: '#3aa864', screenMark: '#2a8a50', screenFlicker: 'rgba(22,48,31,.55)', screenOff: '#2e6b47',
   lampDead: '#1c1d20',
@@ -54,11 +64,8 @@ const inkOf = px => ({
   smoke: '#beb4a4', sparkSmoke: '#c4bcae', steam: '#d6cebe',
   // test lamp: [bulb, shine] per state (scene.js lampColor)
   lamp: { on: [px.c, px.O], off: [px.C, '#2a8a50'], red: [px.a, '#ffd0b0'], dim: [px.x, '#c8281a'], dark: ['#3a0d09', '#5e1710'] },
-  // alarm beacon and the servo-skull's red eye
-  alarmGlow: '#ffd0b0', beaconOn: '#c8281a', beaconOff: '#5e1710', beaconRimOn: px.x, beaconRimOff: '#3a0d09',
-  beaconSweep: '#ff6a4a', beaconGlint: '#8c2c1c', searchlight: '#ff321e',
-  // the grand gate's void
-  void: '#060404', voidEmber: '#2a0a07', voidGlow: '#4e110c',
+  // the alarm beacon's sweep, the servo-skull's red eye and searchlight
+  alarmGlow: '#ffd0b0', beaconSweep: '#ff6a4a', searchlight: '#ff321e',
   // windows by day and night (px overrides of MAPS.WINDOW)
   windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' },
   windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28' },
@@ -97,6 +104,7 @@ export function defineTheme(t) { THEMES[t.id] = t; return t; }
 export function resolve(t) {
   if (t === TIER_II) return { id: t.id, name: t.name, px: { ...BASE }, sash: [...t.sash], rank: t.rank, ink: inkOf(BASE), light: { ...LIGHT } };
   const px = { ...BASE, ...t.px }, rank = {};
+  for (const [c, [base, layer]] of Object.entries(OVER)) if (!t.px?.[c] && t.px?.[base]) px[c] = over(px[base], layer);
   for (const [k, r] of Object.entries(TIER_II.rank)) rank[k] = { robe: { ...r.robe, ...t.rank?.[k]?.robe }, adept: { ...r.adept, ...t.rank?.[k]?.adept } };
   const ink = inkOf(px);
   if (t.ink) Object.assign(ink, typeof t.ink === 'function' ? t.ink(px) : t.ink);

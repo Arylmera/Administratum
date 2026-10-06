@@ -53,7 +53,10 @@ const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
 const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire'];
-const [scribe, adept, magos, ...props] = await Promise.all(['scribe', 'adept', 'magos', ...PROP_SHEETS].map(loadSheet));
+// The room's structure: tiles with fill rules (room.js).
+const ROOM_SHEETS = ['room-floor', 'room-walls', 'room-pipes', 'room-doors'];
+const [scribe, adept, magos, ...rest] = await Promise.all(['scribe', 'adept', 'magos', ...PROP_SHEETS, ...ROOM_SHEETS].map(loadSheet));
+const props = rest.slice(0, PROP_SHEETS.length), room = rest.slice(PROP_SHEETS.length);
 const anchorsOf = sheet => Object.fromEntries(Object.entries(sheet.anchors).map(([k, [x, y]]) => [k, { x: x / RES, y: y / RES }]));
 const logical = v => (Array.isArray(v) ? v.map(logical) : typeof v === 'number' ? v / RES : Object.fromEntries(Object.entries(v).map(([k, w]) => [k, logical(w)])));
 const walk = (sheet, dir) => [0, 1, 2].map(i => sheet.frames[`${dir} ${i}`]);
@@ -76,5 +79,9 @@ export const MAPS = Object.assign({ ARM: scribe.frames.arm, ARM_L: mirror(scribe
 // Prop anchors by sprite name, logical px from its top-left: points [x, y], rects [x, y, w, h] (what each one is: the
 // sheet's JSON, tools/map_to_art.mjs PROP_ANCHORS). Desks, lecterns, consoles, the cogitator, the gate, the skull.
 export const PROP_AT = Object.assign({}, ...props.map(p => logical(p.anchors ?? {})));
+// Room tiles by name: frames, fill rules and anchors (logical px), merged over the room sheets.
+export const ROOM = { frames: Object.assign({}, ...room.map(r => r.frames)), tiles: Object.assign({}, ...room.map(r => r.tiles)),
+  anchors: Object.assign({}, ...room.map(r => logical(r.anchors))) };
+export const ROOM_SHEET_OF = Object.fromEntries(ROOM_SHEETS.flatMap((f, i) => Object.keys(room[i].frames).map(n => [n, f])));
 // Which art file each MAPS sprite comes from (the gallery, the tests).
 export const SHEET_OF = { ARM: 'scribe', ARM_L: 'scribe', ...Object.fromEntries(PROP_SHEETS.flatMap((f, i) => Object.keys(props[i].frames).map(n => [n, f]))) };

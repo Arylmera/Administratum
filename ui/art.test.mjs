@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, RES } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES } from './sprites.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -66,7 +66,7 @@ const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./ar
   .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
 const owner = {};
 for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {
-  if (['scribe', 'adept', 'magos'].includes(fam)) continue; // characters: frames named per family
+  if (['scribe', 'adept', 'magos'].includes(fam) || fam.startsWith('room-')) continue; // characters and room tiles: named per family
   assert.ok(!owner[n], `frame ${n} in both ${owner[n]} and ${fam}`); owner[n] = fam;
 }
 for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);
@@ -88,4 +88,18 @@ for (const [name, keys] of Object.entries(need)) for (const k of keys) {
 }
 assert.equal(PROP_AT.DESK.seals.length, 3, 'a desk keeps up to 3 commit seals');
 assert.deepEqual(PROP_AT.GATE.opening, [8, 5, 16, 22]);
+// Room tiles: every tile scene.js draws exists, fill rules are known, nine-slice edges fit, `top` rows match their tile.
+const scene = fs.readFileSync(new URL('./scene.js', import.meta.url), 'utf8');
+const drawn = new Set([...scene.matchAll(/tile\(g2?, '([^']+)'/g)].map(m => m[1]));
+for (const d of ['sanctum', 'refectory']) for (const s of ['open', 'closed']) drawn.add(`door ${d} ${s}`);
+for (const b of ['beacon on', 'beacon off', 'beacon cage']) drawn.add(b);
+assert.ok(drawn.size > 20, 'found the tiles scene.js draws');
+for (const n of drawn) assert.ok(ROOM.frames[n], `room tile '${n}' is missing`);
+for (const [n, t] of Object.entries(ROOM.tiles)) {
+  assert.ok(['repeat', 'repeat-x', 'repeat-y', 'nine', 'once', undefined].includes(t.fill), `${n}: fill ${t.fill}`);
+  const f = ROOM.frames[n];
+  if (t.fill === 'nine') assert.ok(2 * t.edge < f.length && 2 * t.edge < f[0].length, `${n}: edges larger than the tile`);
+  if (t.top) assert.deepEqual([ROOM.frames[t.top].length, ROOM.frames[t.top][0].length], [f.length, f[0].length], `${n}: top tile size`);
+}
+for (const n of ['door sanctum open', 'door sanctum closed', 'door refectory open', 'door refectory closed']) assert.ok(ROOM.anchors[n]?.door, `${n}: door anchor`);
 console.log('art ok');

@@ -9,7 +9,8 @@ const tier = resolve(TIER_II);
 // Tier II is the art as it was before themes: spot-check values the drawing code used to hard-code.
 assert.equal(tier.px.k, '#0e0a08');
 assert.equal(tier.ink.brass, '#b8742e');
-assert.equal(tier.ink.copper, '#c8853a');
+assert.equal(tier.px.X, '#c8853a');
+assert.equal(tier.ink.copperShade, tier.px.Z, 'ink follows the room palette');
 assert.equal(tier.ink.screenOff, '#2e6b47');
 assert.equal(tier.light.amber, 'rgba(240,168,60,.26)');
 assert.equal(hexA(tier.ink.smoke, 0.5), 'rgba(190,180,164,0.5)');
@@ -26,7 +27,7 @@ defineTheme({ id: 'test-blue', name: 'Test', px: { g: '#2244aa' }, ink: { wax: '
 const blue = resolve(THEMES['test-blue']);
 assert.equal(blue.ink.brass, '#2244aa');
 assert.equal(blue.ink.wax, '#123456');
-assert.equal(blue.ink.copper, tier.ink.copper);
+assert.equal(blue.ink.coolant, tier.ink.coolant);
 assert.equal(blue.rank.high.robe.r, '#000080');
 assert.equal(blue.rank.high.robe.z, tier.rank.high.robe.z);
 assert.equal(blue.light.green, 'rgba(1,2,3,.4)');

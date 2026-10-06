@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANK, rankOf, SHEET_OF } from '../ui/sprites.js';
+import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANK, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF } from '../ui/sprites.js';
 import { THEMES, resolve } from '../ui/theme.js';
 import { png, rgba } from './png_write.mjs';
 
@@ -88,6 +88,16 @@ for (const [name, map] of Object.entries(MAPS)) {
   const where = usedIn(name);
   emit(name, 'Props and furniture', [map], {}, `${ABOUT[name] ?? '?'}. Source: \`ui/art/${SHEET_OF[name]}.png\`, drawn by ${where.length ? where.join(', ') : '(not referenced by name)'}`);
   for (const [v, over] of VARIANTS[name] ?? []) emit(`${name}.${v}`, 'Props and furniture', [map], over, `${name}, ${v}`);
+}
+
+// Room tiles: each tile, and for tiles that repeat a 3x3 (or 6-long) sample of the fill, as it covers the floor or a wall.
+const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
+for (const [name, rows] of Object.entries(ROOM.frames)) {
+  const t = ROOM.tiles[name] ?? {}, id = `ROOM.${name.replace(/ /g, '_')}`;
+  const how = t.fill ? FILL[t.fill] + (t.top ? `, first row from \`${t.top}\`` : '') + (t.glow ? `, glows (${t.glow})` : '') : 'drawn as is';
+  const n = t.fill === 'repeat' ? 3 : 1, nx = t.fill === 'repeat-x' ? 6 : n, ny = t.fill === 'repeat-y' ? 6 : n;
+  const sample = Array.from({ length: rows.length * ny }, (_, j) => rows[j % rows.length].repeat(nx));
+  emit(id, 'Room tiles', [sample], {}, `\`${name}\`: ${how}${nx * ny > 1 ? ' (shown repeated)' : ''}. Source: \`ui/art/${ROOM_SHEET_OF[name]}.png\``);
 }
 
 // Gallery page: one row per sprite, an anchor per sprite to link from its discussion issue.

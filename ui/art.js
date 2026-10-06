@@ -27,7 +27,7 @@ const key = () => (keyP ??= read('key.gpl').then(bytes => {
   return map;
 }));
 
-// -> { frames: { name: rows[] }, anchors: { name: [x, y] } (art px) }. Throws on a colour outside the key palette or a
+// -> { frames: { name: rows[] }, anchors (art px), tiles (fill rules, room.js) }. Throws on a colour outside the key palette or a
 // half-transparent pixel, naming the file and the pixel, so a bad export fails loudly (and in the tests).
 export async function loadSheet(family) {
   const [json, img, map] = await Promise.all([read(`${family}.json`, 'json'), read(`${family}.png`).then(decodePng), key()]);
@@ -45,5 +45,5 @@ export async function loadSheet(family) {
       return row;
     });
   }
-  return { frames, anchors: json.meta?.anchors ?? {} };
+  return { frames, anchors: json.meta?.anchors ?? {}, tiles: json.meta?.tiles ?? {} };
 }

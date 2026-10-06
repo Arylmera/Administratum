@@ -50,7 +50,7 @@ const WALK = [['down 0', 'down 1', 'down 2', 'up 0', 'up 1', 'up 2', 'right 0', 
 // Prop families, one sheet each, as the sprite discussion issues group them (docs/superpowers/specs/...-design.md).
 export const PROPS = {
   workstations: ['DESK', 'LECTERN', 'CONSOLE'], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'LORD_DESK', 'COG_MECH', 'SEAL'],
-  gate: ['GATE', 'GATE_L', 'GATE_R'], refectorium: ['RECAFF', 'TABLE', 'BENCH'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER'],
+  gate: ['GATE', 'GATE_L', 'GATE_R', 'GATE_VOID'], refectorium: ['RECAFF', 'TABLE', 'BENCH'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER'],
   clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL'],
   fire: ['BRAZIER', 'CANDLES'],
 };
@@ -77,7 +77,8 @@ const PROP_ANCHORS = {
   // centre: the skull's position; carry: the sheet it carries on a push; beam: the searchlight's source.
   skull: { SKULL: { centre: [10, 10], carry: [7, 19], beam: [10, 18] } },
 };
-const existing = family => { try { return JSON.parse(fs.readFileSync(path.join(artDir, `${family}.json`), 'utf8')).meta.anchors; } catch { return undefined; } };
+const metaOf = family => { try { return JSON.parse(fs.readFileSync(path.join(artDir, `${family}.json`), 'utf8')).meta; } catch { return undefined; } };
+const existing = family => metaOf(family)?.anchors;
 const FAMILIES = {
   async scribe() {
     const { SCRIBE, MAPS } = await import('../ui/sprites.js');
@@ -100,6 +101,13 @@ const FAMILIES = {
     walkFrames(ADEPT, frames);
     return { frames, rows: WALK, anchors: { feet: [12, 28] } };
   },
+  // Room tiles (baked from the old procedural drawing, 2026-10-06): repacked from themselves, rows as they are.
+  ...Object.fromEntries(['room-floor', 'room-walls', 'room-pipes', 'room-doors'].map(fam => [fam, async () => {
+    const { ROOM, ROOM_SHEET_OF } = await import('../ui/sprites.js');
+    const names = Object.keys(ROOM.frames).filter(n => ROOM_SHEET_OF[n] === fam), json = JSON.parse(fs.readFileSync(path.join(artDir, `${fam}.json`), 'utf8'));
+    const rows = Object.values(Object.groupBy(names, n => json.frames[n].frame.y));
+    return { frames: Object.fromEntries(names.map(n => [n, ROOM.frames[n]])), rows, anchors: json.meta.anchors };
+  }])),
   ...Object.fromEntries(Object.entries(PROPS).map(([fam, names]) => [fam, async () => {
     const { MAPS } = await import('../ui/sprites.js');
     return { frames: Object.fromEntries(names.map(n => [n, MAPS[n]])), rows: [names], anchors: PROP_ANCHORS[fam] ?? {} };
@@ -143,7 +151,7 @@ const img = png(W, H, (x, yy) => { const c = cells[yy * W + x]; return c ? [...k
 fs.writeFileSync(path.join(artDir, `${family}.png`), img);
 // Aseprite-style "json-hash" sheet data, plus meta.anchors (art px) for the drawing code.
 const json = { frames: Object.fromEntries(Object.entries(rect).map(([n, r]) => [n, { frame: r }])),
-  meta: { app: 'tools/map_to_art.mjs', image: `${family}.png`, format: 'RGBA8888', size: { w: W, h: H }, palette: 'key.gpl', anchors } };
+  meta: { app: 'tools/map_to_art.mjs', image: `${family}.png`, format: 'RGBA8888', size: { w: W, h: H }, palette: 'key.gpl', anchors, ...(metaOf(family)?.tiles && { tiles: metaOf(family).tiles }) } };
 fs.writeFileSync(path.join(artDir, `${family}.json`), JSON.stringify(json, null, 2) + '\n');
 console.log(`wrote ui/art/${family}.png (${W}x${H}) and ${family}.json: ${Object.keys(rect).length} frames`);
 }

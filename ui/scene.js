@@ -1,5 +1,6 @@
 import { blit, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
+import { tile, roomAt } from './room.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
 import { SCENE, hallOf } from './layout.js';
@@ -7,48 +8,8 @@ import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './acto
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
-// Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES).
-function grate(g, x, y, w, h) {
-  g.fillStyle = I.grate; g.fillRect(x, y, w, h);
-  g.fillStyle = I.grateGap;
-  for (let i = x; i < x + w; i += 4) g.fillRect(i, y, 0.5, h);
-  for (let j = y; j < y + h; j += 4) g.fillRect(x, j, w, 0.5);
-  g.fillStyle = I.grateLip; // lit lip of each bar
-  for (let i = x; i < x + w; i += 4) g.fillRect(i + 0.5, y, 0.5, h);
-  for (let j = y; j < y + h; j += 4) g.fillRect(x, j + 0.5, w, 0.5);
-}
-function plates(g, x, y, w, h, base, line) {
-  g.fillStyle = base; g.fillRect(x, y, w, h);
-  for (let j = y + 9; j < y + h; j += 10) {
-    g.fillStyle = line; g.fillRect(x, j, w, 0.5);
-    g.fillStyle = I.sheen; g.fillRect(x, j + 0.5, w, 0.5);
-    for (let i = x + 3; i < x + w; i += 12) { // rivets either side of the seam
-      g.fillStyle = line; g.fillRect(i, j - 2, 1, 1); g.fillRect(i, j + 1.5, 1, 1);
-      g.fillStyle = I.rivetGlint; g.fillRect(i, j - 2, 0.5, 0.5); g.fillRect(i, j + 1.5, 0.5, 0.5);
-    }
-  }
-}
-function pipeH(g, x, y, w) {
-  rect(g, x, y, w, 1, I.copper); rect(g, x, y, w, 0.5, I.copperLit);
-  rect(g, x, y + 1, w, 2, I.copperShade); rect(g, x, y + 2.5, w, 0.5, I.copperDark);
-}
-function pipeV(g, x, y, h) {
-  rect(g, x, y, 1, h, I.copper); rect(g, x, y, 0.5, h, I.copperLit);
-  rect(g, x + 1, y, 2, h, I.copperShade); rect(g, x + 2.5, y, 0.5, h, I.copperDark);
-}
-// Flange ring around a pipe: lit top/left edge, dark bottom/right edge, a bolt.
-function flange(g, x, y, w, h) {
-  rect(g, x, y, w, h, I.brassDark);
-  rect(g, x, y, w, 0.5, I.brass); rect(g, x, y, 0.5, h, I.brass);
-  rect(g, x, y + h - 0.5, w, 0.5, I.brassDeep); rect(g, x + w - 0.5, y, 0.5, h, I.brassDeep);
-  rect(g, x + w / 2 - 0.5, y + h / 2 - 0.5, 1, 1, I.brassLit);
-}
-// Coolant channel: dark glow edge, green body, bright inner core.
-function coolant(g, x, y, w, h) {
-  rect(g, x, y, w, h, I.coolantEdge);
-  if (w > h) { rect(g, x, y + 0.5, w, h - 1, I.coolant); rect(g, x, y + h / 2 - 0.25, w, 0.5, I.coolantCore); }
-  else { rect(g, x + 0.5, y, w - 1, h, I.coolant); rect(g, x + w / 2 - 0.25, y, 0.5, h, I.coolantCore); }
-}
+// Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES). The room's structure is tiles
+// (room.js, ui/art/room-*.png); what stays drawn here is weathering and effects, in theme colours.
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
 const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
@@ -119,34 +80,31 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   const { w, h, sw, rx, ox, dx, sd, sb, split, baseH } = hall, hy = h - SCENE.h, ex = sw - 200;
   const { props, windows, channels } = propsOf(hall);
   const d0 = 150 + sd, d1 = 186 + sd; // the sanctum's door in the east wall
-  plates(g, 0, 0, sw, 40, I.wallPlate, I.wallSeam); rect(g, 0, 36, sw, 4, I.wallFoot);
-  grate(g, 0, 40, sw, h - 40);
-  plates(g, rx, 0, 138, 40, I.wallPlateEast, I.wallSeam); rect(g, rx, 36, 138, 4, I.wallFoot);
-  grate(g, rx, 40, 138, split - 50);
-  rect(g, rx, split - 10, 138, 10, I.wallDark);
-  plates(g, rx, split, 138, 30, I.sanctumPlate, I.sanctumSeam); rect(g, rx, split + 26, 138, 4, I.wallDark);
-  rect(g, rx, split + 30, 138, baseH - split - 30, I.sanctumFloor);
-  g.strokeStyle = I.brassDark; g.lineWidth = 1; g.strokeRect(rx + 6.5, split + 36.5, 125, baseH - split - 43);
-  rect(g, sw, 0, 8, d0, I.wallDark); rect(g, sw, d1, 8, h - d1, I.wallDark); rect(g, sw, d0, 8, 36, I.sanctumFloor);
+  tile(g, 'wall', 0, 0, sw, 40); tile(g, 'wall foot', 0, 36, sw, 4);
+  tile(g, 'floor', 0, 40, sw, h - 40);
+  tile(g, 'wall east', rx, 0, 138, 40); tile(g, 'wall foot', rx, 36, 138, 4);
+  tile(g, 'floor', rx, 40, 138, split - 50);
+  tile(g, 'wall dark', rx, split - 10, 138, 10);
+  tile(g, 'wall sanctum', rx, split, 138, 30); tile(g, 'wall dark', rx, split + 26, 138, 4);
+  tile(g, 'sanctum floor', rx, split + 30, 138, baseH - split - 30);
+  tile(g, 'wall dark', sw, 0, 8, d0); tile(g, 'wall dark', sw, d1, 8, h - d1); tile(g, 'sanctum passage', sw, d0, 8, 36);
   if (hall.dy) bayWall(g, hall);
 
-  g.save(); g.shadowColor = I.coolant; g.shadowBlur = 4;
-  for (let j = 0; j < hall.rows; j++) coolant(g, 0, j ? 118 + 64 * j : 116, sw, 2); // under each slot row
-  for (const x of channels) coolant(g, x, 40, 2, h - 40);
-  g.restore();
+  for (let j = 0; j < hall.rows; j++) tile(g, 'channel h', 0, j ? 118 + 64 * j : 116, sw, 2); // under each slot row
+  for (const x of channels) tile(g, 'channel v', x, 40, 2, h - 40);
   for (let k = 1; k <= hall.bays; k++) bayArch(g, 56 + 64 * (hall.rows - hall.bays + k - 1), sw);
 
-  pipeH(g, 0, 4, sw); pipeH(g, rx, 4, 138);
-  [20, 64, 110, 150, 190].forEach(x => flange(g, x, 3, 3, 5));
-  for (let x = 230; x < sw - 6; x += 40) flange(g, x, 3, 3, 5);
-  [230, 280, 330].forEach(x => flange(g, x + ox, 3, 3, 5));
-  pipeV(g, sw + 3, 0, d0); pipeV(g, sw + 3, d1, h - d1);
-  [36, 74, 112].forEach(y => flange(g, sw + 2, y, 5, 3));
-  for (let y = 150; y < d0 - 4; y += 38) flange(g, sw + 2, y, 5, 3);
-  pipeV(g, 144 + dx, 7, 29); pipeV(g, 194 + dx, 7, 29);
+  tile(g, 'pipe h', 0, 4, sw); tile(g, 'pipe h', rx, 4, 138);
+  [20, 64, 110, 150, 190].forEach(x => tile(g, 'fitting h', x, 3));
+  for (let x = 230; x < sw - 6; x += 40) tile(g, 'fitting h', x, 3);
+  [230, 280, 330].forEach(x => tile(g, 'fitting h', x + ox, 3));
+  tile(g, 'pipe v', sw + 3, 0, 3, d0); tile(g, 'pipe v', sw + 3, d1, 3, h - d1);
+  [36, 74, 112].forEach(y => tile(g, 'fitting v', sw + 2, y));
+  for (let y = 150; y < d0 - 4; y += 38) tile(g, 'fitting v', sw + 2, y);
+  tile(g, 'pipe v', 144 + dx, 7, 3, 29); tile(g, 'pipe v', 194 + dx, 7, 3, 29);
   const scratch = (x, i) => {
     const sh = 10 + (i * 7) % 18;
-    rect(g, x, 7, 0.5, sh, I.outline); rect(g, x + 0.5, 7, 0.5, sh, I.scratchSheen); rect(g, x, 7 + sh - 1, 2, 1, I.outline);
+    rect(g, x, 7, 0.5, sh, I.scratch); rect(g, x + 0.5, 7, 0.5, sh, I.scratchSheen); rect(g, x, 7 + sh - 1, 2, 1, I.scratch);
   };
   [8, 26, 50, 74, 96, 128, 150, 172, 196].forEach((x, i) => { for (let k = 0; x + 200 * k < sw - 2; k++) scratch(x + 200 * k, i + k); });
   scratch(220 + ox, 9);
@@ -155,48 +113,44 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   [[2, 32, sw - 2], [74, 38, sw - 2], [rx + 2, 32, w - 2], [rx + 2, split - 5, w - 2]].forEach(([x, y, end]) => {
     for (let i = 0; x + i < end; i++) g.fillRect(x + i, y, 0.5, BIN[(i + x) % BIN.length] === '1' ? 1 : 0.5);
   });
-  [[60, 104, 14, 1], [73, 104, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.outline));
+  [[60, 104, 14, 1], [73, 104, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.scratch)); // cracks
   [[30, 120, 18, 8], [146 + ex, 186 + hy, 8, 6], [270 + ox, 196 + sb, 14, 6]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.grime));
 
   const win = daylight ? I.windowDay : I.windowNight;
   windows.forEach(x => blit(g, MAPS.WINDOW, x, 10, win));
   [210 + ox, 334 + ox].forEach(x => { // the sanctum's pillars
-    rect(g, x, split - 2, 10, baseH - split + 2, I.pillar); rect(g, x + 9, split - 2, 1, baseH - split + 2, I.outline);
-    pipeV(g, x + 3, split - 2, baseH - split + 2);
+    tile(g, 'pillar', x, split - 2, 10, baseH - split + 2);
+    tile(g, 'pipe v', x + 3, split - 2, 3, baseH - split + 2);
     for (let y = split + 14; y < baseH - 24; y += 36) blit(g, MAPS.GAUGE, x + 2, y);
   });
-  rect(g, 210 + ox, d0, 10, 36, I.sanctumFloor); flange(g, 210 + ox, d0 - 2, 10, 2); flange(g, 210 + ox, d1, 10, 2); // pillar opens onto the passage door
+  tile(g, 'sanctum passage', 210 + ox, d0, 10, 36); tile(g, 'fitting wide', 210 + ox, d0 - 2); tile(g, 'fitting wide', 210 + ox, d1); // pillar opens onto the passage door
   rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
   for (const [name, x, y] of props) blit(g, MAPS[name], x, y);
-  rect(g, 0, h - 3, sw, 3, I.wallDark); rect(g, 0, h - 3, sw, 0.5, I.brassDark); // scriptorium's bottom wall, the gate sits in it
+  tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }
 
 // A bay's seam (y: its first slot row's top, minus 2): a brass-edged iron sill across the floor between two
 // pilasters standing out of the side walls, the arch the new floor opens behind.
 function bayArch(g, y, sw) {
-  rect(g, 0, y, sw, 2, I.pillar); rect(g, 0, y, sw, 0.5, I.brass); rect(g, 0, y + 1.5, sw, 0.5, I.outline);
-  for (let x = 6; x < sw; x += 12) { rect(g, x, y + 0.5, 1, 1, I.brassDark); rect(g, x, y + 0.5, 0.5, 0.5, I.brassLit); }
-  for (const x of [0, sw - 4]) {
-    rect(g, x, y - 14, 4, 18, I.outline); rect(g, x + 0.5, y - 13.5, 3, 17, I.ironDark);
-    rect(g, x + 0.5, y - 13.5, 0.5, 17, I.iron); rect(g, x + 3, y - 13.5, 0.5, 17, I.grateGap);
-    flange(g, x, y - 15, 4, 2); flange(g, x, y + 3, 4, 1.5); // capital and base
-  }
+  tile(g, 'sill', 0, y, sw, 2);
+  const [, top] = roomAt('pilaster').sill;
+  for (const x of [0, sw - 4]) tile(g, 'pilaster', x, y - top); // capital and base on a pillar out of the side walls
 }
 // East of the scriptorium, below the sanctum: plated wall the length of the bays, a pipe run, cant and banners per bay.
 function bayWall(g, { rx, ox, baseH, dy }) {
   const x = v => v + ox;
-  plates(g, rx, baseH, 138, dy, I.wallPlate, I.wallSeam);
-  rect(g, rx, baseH, 138, 3, I.wallDark); rect(g, rx, baseH + 2.5, 138, 0.5, I.brassDark); // the sanctum's bottom wall
+  tile(g, 'wall', rx, baseH, 138, dy);
+  tile(g, 'sanctum base', rx, baseH, 138, 3); // the sanctum's bottom wall
   for (let y = baseH; y < baseH + dy; y += 64) {
-    pipeH(g, x(220), y + 10, 114);
-    [232, 272, 312].forEach(fx => flange(g, x(fx), y + 9, 3, 5));
+    tile(g, 'pipe h', x(220), y + 10, 114);
+    [232, 272, 312].forEach(fx => tile(g, 'fitting h', x(fx), y + 9));
     g.fillStyle = I.cant;
     for (let i = 0; 222 + i < 332; i++) g.fillRect(x(222) + i, y + 20, 0.5, BIN[(i + y) % BIN.length] === '1' ? 1 : 0.5);
     blit(g, MAPS.BANNER, x(240), y + 30); blit(g, MAPS.BANNER, x(294), y + 30); blit(g, MAPS.WINDOW, x(263), y + 28, I.windowNight);
   }
   for (const px of [x(210), x(334)]) { // the sanctum's pillars carry on down
-    rect(g, px, baseH + 3, 10, dy - 3, I.pillar); rect(g, px + 9, baseH + 3, 1, dy - 3, I.outline);
-    pipeV(g, px + 3, baseH + 3, dy - 3);
+    tile(g, 'pillar', px, baseH + 3, 10, dy - 3);
+    tile(g, 'pipe v', px + 3, baseH + 3, 3, dy - 3);
     for (let y = baseH + 40; y < baseH + dy; y += 64) blit(g, MAPS.GAUGE, px + 2, y);
   }
 }
@@ -722,31 +676,15 @@ function staticLights(hall) {
 // Doors, drawn each frame: open while any actor is within 12 logical px of the doorway.
 // Leaves slide up/down inside the scriptorium's east wall (sw..sw + 8).
 const doorsOf = ({ sw, sd }) => [
-  { x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
-  { x0: sw, x1: sw + 8, y0: 78, y1: 98, floor: I.pillar }, // scriptorium <-> refectorium (hall.refOut/refIn)
+  { name: 'sanctum', x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
+  { name: 'refectory', x0: sw, x1: sw + 8, y0: 78, y1: 98 }, // scriptorium <-> refectorium (hall.refOut/refIn)
 ];
-function cog(g, cx, cy) {
-  rect(g, cx - 0.5, cy - 3.5, 1, 7, I.brass); rect(g, cx - 3.5, cy - 0.5, 7, 1, I.brass);
-  [[-3, -3], [2, -3], [-3, 2], [2, 2]].forEach(([dx, dy]) => rect(g, cx + dx, cy + dy, 1, 1, I.copperShade));
-  rect(g, cx - 2.5, cy - 2.5, 5, 5, I.brass); rect(g, cx - 2.5, cy - 2.5, 5, 0.5, I.brassLit); rect(g, cx - 2.5, cy - 2.5, 0.5, 5, I.brassLit);
-  rect(g, cx - 1, cy - 1, 2, 2, I.ironDark); rect(g, cx - 0.5, cy - 0.5, 1, 1, I.crimson);
-}
-function leaf(g, x, y, w, h) {
-  rect(g, x, y, w, h, I.ironDark); rect(g, x, y, w, 0.5, I.iron); rect(g, x, y, 0.5, h, I.iron);
-  rect(g, x + w - 0.5, y, 0.5, h, I.grateGap); rect(g, x, y + h - 0.5, w, 0.5, I.grateGap);
-  if (h > 4) for (let j = y + 1.5; j < y + h - 1; j += 3) { rect(g, x + 1, j, 0.5, 0.5, I.ironLit); rect(g, x + w - 1.5, j, 0.5, 0.5, I.ironLit); }
-  if (w > 4) for (let i = x + 1.5; i < x + w - 1; i += 3) { rect(g, i, y + 1, 0.5, 0.5, I.ironLit); rect(g, i, y + h - 1.5, 0.5, 0.5, I.ironLit); }
-}
 // Is anyone within 12 logical px of the rect x0..x1, y0..y1?
 const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);
 function drawDoors(g, actors) {
   for (const d of doorsOf(H)) {
-    const open = near(actors, d.x0, d.y0, d.x1, d.y1);
-    const cx = (d.x0 + d.x1) / 2, cy = (d.y0 + d.y1) / 2;
-    if (open) { if (d.floor) rect(g, d.x0, d.y0, 8, d.y1 - d.y0, d.floor); leaf(g, d.x0 + 0.5, d.y0, 7, 2); leaf(g, d.x0 + 0.5, d.y1 - 2, 7, 2); }
-    else { leaf(g, d.x0 + 0.5, d.y0, 7, cy - d.y0); leaf(g, d.x0 + 0.5, cy, 7, d.y1 - cy); rect(g, d.x0 + 0.5, cy - 0.25, 7, 0.5, I.outline); cog(g, cx, cy); }
-    for (const y of [d.y0 - 2, d.y1]) flange(g, d.x0 - 1, y, 10, 2); // brass lintels
-    rect(g, d.x0, d.y0, 0.5, d.y1 - d.y0, I.brass); rect(g, d.x1 - 0.5, d.y0, 0.5, d.y1 - d.y0, I.brassDark);
+    const name = `door ${d.name} ${near(actors, d.x0, d.y0, d.x1, d.y1) ? 'open' : 'closed'}`, [ax, ay] = roomAt(name).door;
+    tile(g, name, d.x0 - ax, d.y0 - ay); // leaves, lock cog, brass lintels and jambs
   }
 }
 
@@ -761,8 +699,7 @@ function drawGate(g, actors) {
   gateTo = near(actors, ox, oy, ox + ow, oy + oh) ? 1 : 0;
   gateOpen += (gateTo - gateOpen) * (1 - 0.82 ** (frameDt * 30)); // 0.18 per frame at 30 fps
   if (Math.abs(gateTo - gateOpen) < 0.01) gateOpen = gateTo; // at rest (half(0.01 * 7) is 0)
-  rect(g, ox, oy, ow, oh, I.void);
-  rect(g, ox + 2, oy + 16, 12, 6, I.voidEmber); rect(g, ox + 5, oy + 18, 6, 4, I.voidGlow); // the void beyond, lit by the braziers
+  blit(g, MAPS.GATE_VOID, ox, oy); // the void beyond, lit by the braziers
   const s = half(gateOpen * A.slide[0]);
   return {
     y: GATE.y + MAPS.GATE.length / RES,
@@ -815,19 +752,15 @@ function drawAlarm(g, actors, now) {
   return lights;
 }
 
-// Alarm beacon on its wall bracket (art px = 0.5): a caged red dome whose reflector strip sweeps round when on.
+// Alarm beacon on its wall bracket: its dome lit or dark, the reflector strip sweeping across the dome when on, under the
+// cage (room tiles 'beacon on/off', 'beacon cage'; anchors: centre on the bracket point, the dome the sweep crosses).
 function drawBeacon(g, t, on, { x, y }) {
-  rect(g, x - 0.5, y + 3, 1, 3, I.brassDeep); // stem into the wall
-  rect(g, x - 3.5, y + 2.5, 7, 2.5, I.outline); rect(g, x - 3, y + 3, 6, 1.5, I.brassDark); rect(g, x - 3, y + 3, 6, 0.5, I.brass);
-  rect(g, x - 2.5, y + 3.5, 0.5, 0.5, I.brassLit); rect(g, x + 2, y + 3.5, 0.5, 0.5, I.brassLit); // bolts
-  rect(g, x - 3, y - 2.5, 6, 5.5, I.outline); rect(g, x - 2.5, y - 3, 5, 0.5, I.outline); // dome outline, rounded top
-  rect(g, x - 2.5, y - 2, 5, 4.5, on ? I.beaconOn : I.beaconOff); rect(g, x - 2, y - 2.5, 4, 0.5, on ? I.beaconOn : I.beaconOff);
-  rect(g, x - 2.5, y + 1.5, 5, 1, on ? I.beaconRimOn : I.beaconRimOff); // shaded lower rim
+  const A = roomAt('beacon off'), fx = x - A.centre[0], fy = y - A.centre[1];
+  tile(g, on ? 'beacon on' : 'beacon off', fx, fy);
   if (on) {
-    const p = (t * 2.5) % 1, sx = half(x - 2.5 + p * 4.5);
-    rect(g, sx, y - 2, 0.5, 3.5, I.alarmGlow);
-    if (sx + 0.5 < x + 2.5) rect(g, sx + 0.5, y - 2, 0.5, 3.5, I.beaconSweep);
-  } else rect(g, x - 2, y - 1.5, 0.5, 1.5, I.beaconGlint); // dull glint
-  rect(g, x - 2.5, y, 5, 0.5, I.ironDark); rect(g, x - 1, y - 2.5, 0.5, 4, I.ironDark); rect(g, x + 0.5, y - 2.5, 0.5, 4, I.ironDark); // cage
-  rect(g, x - 1.5, y - 4, 3, 1, I.brassDark); rect(g, x - 1.5, y - 4, 3, 0.5, I.brassLit); // brass cap
+    const [sx0, sy, sw, sh] = A.sweep, p = (t * 2.5) % 1, sx = half(fx + sx0 + p * (sw - 0.5));
+    rect(g, sx, fy + sy, 0.5, sh, I.alarmGlow);
+    if (sx + 0.5 < fx + sx0 + sw) rect(g, sx + 0.5, fy + sy, 0.5, sh, I.beaconSweep);
+  }
+  tile(g, 'beacon cage', fx, fy);
 }

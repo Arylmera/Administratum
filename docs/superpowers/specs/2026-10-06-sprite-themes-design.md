@@ -1,6 +1,6 @@
 # Sprites and themes: review, cost, plan
 
-Date: 2026-10-06. Status: phase 1 done, every sprite moved to art files, phases 2 to 4 proposed.
+Date: 2026-10-06. Status: phase 1 done; every sprite and the room's structure are art files with their anchors; phases 2 to 4 proposed.
 
 ## How sprites work today
 
@@ -77,17 +77,23 @@ now follows that: `ui/sprites.js` went from 1,286 lines of text maps to about 80
   with the file and pixel.
 - **Anchors**: the characters' anchors moved from `actors.js` into their JSON: the scribe's feet, arms and
   scroll (`SCRIBE_AT`), the adept's feet (`ADEPT_AT`), and the Magos's drill-arm pivot, chest screen and optics
-  (`MAGOS_AT`). Effects drawn in code (the held scroll, the Zs) keep their
-  offsets in code, and so do the props' anchors in `scene.js` (desk screen, lamp and seals, cogitator screens, gate
-  opening...). Moving those is depth C, needed only for props redrawn at a new size.
+  (`MAGOS_AT`). The props' anchors moved from `scene.js` into theirs (`PROP_AT`):
+  - desks, lecterns, consoles: screen, test lamp, seal slots, candle, slate, shadow, paper origin and spread,
+    background cog, puff
+  - cogitator: centre screen, side screens, lamp row, data reels, vents
+  - gate: entry point, opening, leaves, slide
+  - servo-skull: centre, carried sheet, searchlight
+
+  Effects drawn in code (the held scroll, the Zs) keep their offsets in code.
 - **Sheets**, one per discussion family:
   - characters: `scribe` (12 walk frames and the arm), `adept` (walk frames); left frames and the left arm are
     mirrored at load
   - `magos`: the Magos on the throne as two frames, the body and the drill forearm that swings. The code used to cut
     the arm out of a single sprite at "art columns 0..9", so a redraw could not move it; now the arm is its own frame
     with its own anchor
-  - props: `workstations`, `cogitator`, `sanctum`, `gate`, `refectorium`, `walls`, `clutter`, `skull`, `petitions`,
-    `fire`
+  - props: `workstations`, `cogitator`, `sanctum`, `gate` (with the void beyond it), `refectorium`, `walls`,
+    `clutter`, `skull`, `petitions`, `fire`
+  - room: `room-floor`, `room-walls`, `room-pipes`, `room-doors` (see "Room tiles")
 
   `node tools/map_to_art.mjs <family|all>` repacks them, to regroup or add a family.
   - Verification:
@@ -98,12 +104,50 @@ now follows that: `ui/sprites.js` went from 1,286 lines of text maps to about 80
     - the sheets: every sprite has one, no frame name is defined twice, and the characters' anchors
   - With the lighting layer stubbed out, the original commit and this one render the same hall in the browser,
     apart from time-driven animation (CSS pulses, searchlight, skull bob, cogitator waveform).
-  - Floor and walls are still drawn in code; they would become a tileset later (depth D).
 - **Editing a sprite**:
   1. Open the PNG in Aseprite with `key.gpl` and draw using only key colours.
   2. Export the PNG (indexed or RGBA, no interlacing).
   3. Run the tests.
   4. Regenerate the gallery.
+
+## Room tiles
+
+The room's structure used to be drawn in code (grate, plates, pipes, flanges, coolant, doors, pillars, beacon). It
+is now a tileset with roles, so another setting can skin the same room: carpet for the grate, plaster for the plates,
+cable trays for the pipes, wooden doors for the iron ones. `ui/room.js` fills rects with tiles. Each tile's JSON
+gives its fill rule (`meta.tiles`):
+
+| Fill | Meaning | Tiles |
+|---|---|---|
+| `repeat` | tiled both ways from the rect's corner; `top`: a different tile for the first row | `floor`, `wall` / `wall east` / `wall sanctum` (+ their `top`), `wall foot`, `wall dark`, `sanctum passage` |
+| `repeat-x` / `repeat-y` | a strip along one axis | `pipe h` / `pipe v`, `channel h` / `channel v` (glowing), `sill`, `wall base`, `sanctum base`, `pillar` |
+| `nine` | nine-slice: corners kept, edges and centre repeat (`edge` in art px) | `sanctum floor` (the red floor and its brass border) |
+| once | drawn as is, placed by its anchors | the four door frames (open/closed), `fitting h/v/wide`, `pilaster`, `beacon on/off/cage` |
+
+- **Where things go stays in `scene.js`** (the layout): a theme changes what the floor, walls and pipes look like,
+  not where the rooms are. A completely different floor plan would be a layout change, outside theming.
+- **Glow**: `glow` names an ink colour that the tile glows in; `glowPasses` sets the glow's strength (the coolant
+  uses 2).
+- **Still drawn in code, as theme colours**: the wall weathering (scratches, cracks, binary cant, grime), shadows,
+  the beacon's sweep, and all effects (sparks, smoke, steam, seals, lamps, screens). Each is an `ink` colour, so a
+  theme can recolour or remove it, for example by setting `cant` to `rgba(0,0,0,0)`.
+- **Palette**: 31 room slots added to `key.gpl` and the theme `px`:
+  - floor
+  - plates and seams for three walls
+  - sanctum
+  - pillar
+  - copper
+  - coolant
+  - void
+  - beacon
+
+  The plate sheen and the lit rivets are **derived** slots: a theme that recolours a wall gets matching sheen.
+- **How they were made**: baked once from the old procedural drawing in Chromium, then mapped to slots. Compared to
+  the old code with `drawStatic` called directly (deterministic, with and without bays), everything is pixel-identical
+  except three things:
+  - the coolant glow, which is close: the old code cast three overlapping glows, the tile casts two passes
+  - 2 bolt pixels on each bay pilaster (an antialiased blend, snapped to brass)
+  - a sliver of rivets at the very bottom of the bay wall
 
 ## Cost of themes, by depth
 
@@ -114,11 +158,11 @@ judging the result) is the user's time and is listed separately.
 |---|---|---|---|
 | **A. Palette theme** | Every colour: robes, brass, stone, screens, lights, departments | Phase 2: ~0.5–1 day, once | ~0.5 day per palette (≈40 px + ≈80 ink + 13 light + 8 sash), iterated with the gallery |
 | **B. Sprite overrides** | A, plus redrawn sprites with the **same size and anchors** | Phase 3: ~0.5 day, once (per-theme sheets; the art files are done) | Small decor 15–30 min, furniture 1–2 h, cogitator/gate/Magos 2–4 h each, a character set (4 dirs × 3 frames) 4–6 h. A full re-skin is ≈30–50 h of pixel work |
-| **C. New geometry** | B, plus sprites with a new size or new anchor points | +0.5–1.5 days, once (anchors into each family's JSON, as done for the scribe) | as B |
-| **D. Another setting** | Also the procedural pieces' shapes, the animations and the vocabulary | +3–5 days (theme-provided draw hooks or maps for pipes/grate/doors/beacon; theme text) | as B, plus the procedural art |
+| **C. New geometry** | B, plus sprites with a new size or new anchor points | Done: characters', props' and room tiles' anchors are in their JSON | as B |
+| **D. Another setting** | Also the room's look (floor, walls, pipes, doors), the vocabulary, the effects | Room tiles done. Left: per-theme text (Magos, petitions...) ~0.5 day; per-theme effect shapes (sparks, steam) only if needed | as B, plus ~25 room tiles (most are small: a 4×4 floor, a 12×10 plate) |
 
-Recommendation: ship A next (cheap, and the foundation is ready). Do B one sprite at a time through the discussion
-issues. Leave C and D until a concrete theme needs them.
+Recommendation: ship A next (cheap, and the foundation is ready). Then B/D per setting: the art is files and
+everything the code needs to know about it (anchors, fill rules) is in their JSON, so a new setting is mostly art.
 
 ## Phase 2: first alternative palette + picker (proposed)
 
@@ -164,7 +208,7 @@ Recommended: **one GitHub issue per sprite or sprite family, backed by the gener
   - *A shared web page with comments*: nice on a phone, but it lives outside the repo and isn't tied to commits.
   - *One big thread*: you can't follow a single sprite in it.
 
-Suggested starting set: 14 issues by family, not 65.
+Suggested starting set: 18 issues by family, not 96.
 
 | Issue | Sprites |
 |---|---|
@@ -181,4 +225,8 @@ Suggested starting set: 14 issues by family, not 65.
 | Servo-skull | `SKULL`, `SKULL.alarm` |
 | Petitions | `SCROLL`, `QSCROLL` |
 | Fire and light | `BRAZIER`, `CANDLES` |
-| Procedural art | grate, plates, pipes, coolant, doors, beacon, seals/stamp, test lamp, paper sheets, sparks |
+| Room: floor | `floor`, `channel h/v`, `sanctum floor`, `sanctum passage`, `sill` |
+| Room: walls | `wall`, `wall east`, `wall sanctum` (+ tops), `wall foot`, `wall dark`, `wall base`, `sanctum base`, `pillar`, `pilaster` |
+| Room: pipes | `pipe h/v`, `fitting h/v/wide` |
+| Room: doors and alarm | the four door frames, `beacon on/off/cage` |
+| Effects (code) | wall weathering, seals and stamp, test lamp, paper sheets, sparks, smoke, steam |

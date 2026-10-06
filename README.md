@@ -325,8 +325,9 @@ The node self-checks are plain `assert` scripts with no test framework.
 
 ### Sprites and themes
 
-Sprites are art files in `ui/art/`: one PNG sheet per family, drawn in the key palette `ui/art/key.gpl` (load it
-in Aseprite or Piskel), plus JSON frames and anchors. Every colour, theirs and the ones drawn in code, comes from
+Sprites and the room's tiles (floor, walls, pipes, doors) are art files in `ui/art/`: one PNG sheet per family,
+drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus JSON frames, anchors and the tiles'
+fill rules. Every colour, theirs and the ones drawn in code, comes from
 the active theme in `ui/theme.js`. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
 the gallery used to discuss them one by one (a **Sprite** issue each). Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
