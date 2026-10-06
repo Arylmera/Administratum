@@ -79,7 +79,7 @@ defineTheme({
 // Not the 40k scriptorium: a neon netrunner den. Hooded robes read as hoodies, optics as visors; brass turns to chrome
 // cyan, copper pipes to magenta neon tubes, coolant to violet floor light, parchment panels to dark glass. Its own art
 // replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).
-defineTheme({
+const NEON = defineTheme({
   id: 'cyber', world: 'cyber', name: 'Neon Grid',
   art: ['walls', 'sanctum', 'skull', 'gate', 'cogitator', 'scribe', 'adept', 'magos', 'workstations', 'fire', 'petitions', 'commits', 'room-doors', 'clutter', 'room-floor', 'room-walls', 'room-pipes', 'refectorium'], // ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the shutter gate, the terminal bank, the hacker crew, the hologram daemons and the fixer, battlestations and a cyberdeck, oil drums, datapads, holo-stickers, sliding doors, a server rack and data-rod clutter, a neon-grid floor and panelled walls under neon tubes, neon tube runs on dark clips
   px: {
@@ -215,4 +215,52 @@ defineTheme({
       cat: { hall: 'Deck', petitions: 'Calls', scribes: 'Crew', system: 'System', remote: 'Remote access' } },
     toast: { petition: 'Call from {name}', stale: 'Call still waiting: {name}' },
   },
+});
+
+// Accents of Neon Grid, as the Ordos are of Tier II: the same den, art and wording, its colours moved hue band by hue
+// band (bands: the pink neon, the violet coolant, the night blue of its walls, the cyan chrome and screens), each to
+// [hue, saturation x, lightness +]. The alarm red, skin, gold rank trim and the department sashes keep their colours.
+const BANDS = [['pink', 300, 345], ['violet', 260, 300], ['night', 210, 260], ['cyan', 165, 210]];
+function rehue(rgb, bands) {
+  const [r, g, b] = rgb.map(c => c / 255), max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, l = (max + min) / 2;
+  if (!d) return rgb;
+  const h = 60 * (max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4);
+  const to = bands[BANDS.find(([, lo, hi]) => h >= lo && h < hi)?.[0]];
+  if (!to) return rgb;
+  const [H, sx = 1, dl = 0] = to, L = Math.min(1, Math.max(0, l + dl)), S = Math.min(1, d / (1 - Math.abs(2 * l - 1)) * sx);
+  const a = S * Math.min(L, 1 - L), k = n => (n + H / 30) % 12;
+  return [0, 8, 4].map(n => Math.round(255 * (L - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)))));
+}
+// Every '#rrggbb', 'rgba(r,g,b,a)' and 'r,g,b' in a theme part, rehued.
+const recolour = (v, bands) => typeof v === 'string'
+  ? v.replace(/#([0-9a-f]{6})/gi, (m, x) => '#' + rehue([0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)), bands).map(n => n.toString(16).padStart(2, '0')).join(''))
+    .replace(/(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})/g, (m, ...c) => rehue(c.slice(0, 3).map(Number), bands).join(','))
+  : v && typeof v === 'object' ? (Array.isArray(v) ? v.map(x => recolour(x, bands)) : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, recolour(x, bands)])))
+  : v;
+function accent(base, { bands, text, ...t }) {
+  const { px: { ':': skin, ';': shade, ...px }, rank, ink, light, ui } = base;
+  const c = recolour({ px, rank, ink, light, ui }, bands);
+  return defineTheme({ world: base.world, artOf: base.id, sash: base.sash, ...c, ...t, px: { ...c.px, ':': skin, ';': shade, ...t.px },
+    text: { ...base.text, ...text } });
+}
+
+// Corpo Tower: a megacorp's netsec floor. Black glass, blood-red neon, white chrome and white screens.
+accent(NEON, {
+  id: 'corpo', name: 'Corpo Tower',
+  bands: { pink: [356, 1, -0.04], violet: [352, 0.9, -0.06], night: [0, 0.12], cyan: [210, 0.1, 0.2] },
+  text: { subtitle: 'Tower 42 · Corporate netsec floor', motto: 'The company owns the night' },
+});
+
+// Rain City: the lower levels in the rain. Sodium-amber neon, teal screens, burnt-orange coolant, blue-green smog.
+accent(NEON, {
+  id: 'rain', name: 'Rain City',
+  bands: { pink: [30, 1, 0.02], violet: [18, 0.8, -0.04], night: [196, 0.7], cyan: [174, 0.75, -0.04] },
+  text: { subtitle: 'Lower Levels · Night market den', motto: 'It never stops raining down here' },
+});
+
+// Green Code: the mainframe seen from inside. Every neon, screen and wall turned phosphor green on black.
+accent(NEON, {
+  id: 'matrix', name: 'Green Code',
+  bands: { pink: [128, 1, 0], violet: [150, 0.8, -0.06], night: [140, 0.5, -0.02], cyan: [105, 0.9, 0.04] },
+  text: { subtitle: 'Mainframe · Green-code terminal', motto: 'Follow the white rabbit' },
 });

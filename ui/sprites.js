@@ -62,14 +62,16 @@ const loaded = await Promise.all(FAMILIES.map(loadSheet));
 Object.keys(base).forEach((f, i) => { base[f] = loaded[i]; });
 // A theme's own art (theme.art: the families it redraws): ui/art/<theme>/<family>.png + .json holding only the frames it
 // changes, same sizes; anchors and fill rules it lists replace the default's. Everything else stays the default art.
-const themed = {}; // theme id -> family -> sheet
+// A theme with artOf draws with that theme's art (an accent of Neon Grid: same sprites, its own colours).
+const themed = {}; // art folder (theme id) -> family -> sheet
+const dirOf = id => THEMES[id]?.artOf ?? id;
 await Promise.all(Object.values(THEMES).flatMap(th => (th.art ?? []).map(async f => {
   if (!base[f]) throw new Error(`theme ${th.id}: no art family '${f}'`);
   (themed[th.id] ??= {})[f] = await loadSheet(`${th.id}/${f}`);
 })));
 // The sheet of a family as the theme sees it: the default with the theme's frames, anchors and tiles laid over.
 function sheetOf(id, f) {
-  const o = themed[id]?.[f], d = base[f];
+  const o = themed[dirOf(id)]?.[f], d = base[f];
   if (!o) return d;
   const anchors = { ...d.anchors };
   for (const [k, v] of Object.entries(o.anchors)) anchors[k] = v && typeof v === 'object' && !Array.isArray(v) && anchors[k] && !Array.isArray(anchors[k]) ? { ...anchors[k], ...v } : v;
@@ -103,7 +105,7 @@ export const SHEET_OF = {}, ROOM_SHEET_OF = {};
 
 function useArt(id) {
   const S = Object.fromEntries(FAMILIES.map(f => [f, sheetOf(id, f)]));
-  const src = (f, n) => (themed[id]?.[f]?.frames[n] ? `${id}/${f}` : f);
+  const dir = dirOf(id), src = (f, n) => (themed[dir]?.[f]?.frames[n] ? `${dir}/${f}` : f);
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
   refill(ADEPT, walker(S.adept)); refill(ADEPT_AT, anchorsOf(S.adept));
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm }); refill(MAGOS_AT, anchorsOf(S.magos));
@@ -118,4 +120,4 @@ function useArt(id) {
 useArt(T.id);
 onTheme(t => useArt(t.id));
 // For the tests and the art tools: the default sheets, and each theme's own.
-export const ART = { base, themed };
+export const ART = { base, themed, dirOf };
