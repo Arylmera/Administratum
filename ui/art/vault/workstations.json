@@ -1,0 +1,39 @@
+{
+  "frames": {
+    "DESK": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 42
+      }
+    },
+    "LECTERN": {
+      "frame": {
+        "x": 65,
+        "y": 0,
+        "w": 44,
+        "h": 42
+      }
+    },
+    "CONSOLE": {
+      "frame": {
+        "x": 110,
+        "y": 0,
+        "w": 28,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "workstations.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 138,
+      "h": 42
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

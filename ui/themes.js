@@ -351,7 +351,7 @@ defineTheme({
 // Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green
 // phosphor, Nuka-Cola red, warm incandescent light. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
-  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges
+  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal
   px: {
     k: '#0c0c0c', e: '#141822', n: '#0a0c10',
     r: '#1e4a8a', R: '#2e66b8', d: '#12305e', t: '#f2c23a', T: '#a07a14', z: '#f2c23a', j: '#a07a14', // jumpsuit, yellow stripe
