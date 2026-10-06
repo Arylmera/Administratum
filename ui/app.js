@@ -363,19 +363,39 @@ function consolesOf(dept) {
   return order;
 }
 
+// A department's most recently active session: its cwd is what the plaque opens, its branch what the plaque shows.
+const deptHead = name => roster.filter(s => s.dept === name).reduce((p, q) => (!p || q.sinceMs > p.sinceMs ? q : p), null);
+const shownBranch = b => (b && b !== 'main' && b !== 'master' ? b : '');
+function openDept(name) {
+  const s = deptHead(name), el = plaques.get(`b:${name}`);
+  if (!s || REMOTE) return;
+  invoke('open_folder', { path: s.cwd }).catch(err => {
+    if (!el) return;
+    el.title = String(err); el.classList.add('err');
+    setTimeout(() => { el.title = 'Open the folder'; el.classList.remove('err'); }, 5000);
+  });
+}
+
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
 function renderPlaques(blocks) {
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4]]));
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
   if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + (hall.h - SCENE.h) / 2]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
-  for (const [k, [cls, text, x, y, color, maxWidth]] of want) {
+  for (const [k, [cls, text, x, y, color, maxWidth, branch = '']] of want) {
     let el = plaques.get(k);
-    if (!el) { el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el); }
+    if (!el) {
+      el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
+      if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
+    }
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
       width: cls === 'empty' ? `${hall.sw * scale}px` : '' }; // the empty hall's notice, centred on the scriptorium
-    if (el.textContent !== text) el.textContent = text;
+    if (el.dataset.text !== `${text}|${branch}`) {
+      el.dataset.text = `${text}|${branch}`;
+      const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;
+      el.replaceChildren(text, ...(branch ? [sub] : []));
+    }
     for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
   }
 }

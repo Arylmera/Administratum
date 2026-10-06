@@ -129,6 +129,9 @@ export function initSettings(hooks) {
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
     field('idleFps').value = String(perf.idleFps);
     field('pauseHidden').checked = perf.pauseHidden;
+    field('openWith').value = store.get('adm.openWith', 'explorer');
+    if (document.activeElement !== field('openCmd')) field('openCmd').value = store.get('adm.openCmd', '');
+    field('openCmd').disabled = field('openWith').value !== 'custom';
     field('questions').checked = questions.on;
     field('questionToast').checked = questions.toast;
     field('questionToast').disabled = !questions.on;
@@ -248,6 +251,7 @@ export function initSettings(hooks) {
       setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
       pushQuiet(); hooks.quieted?.();
     }
+    else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
     else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
@@ -269,6 +273,7 @@ export function initSettings(hooks) {
     setPerf(12, true);
     setQuestions(true, true);
     setQuiet(false, 1320, 480);
+    store.set('adm.openWith', 'explorer');
     store.set('adm.updateCheck', '1');
     setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();

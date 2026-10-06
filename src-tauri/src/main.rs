@@ -2,6 +2,7 @@
 mod chronicle;
 mod demo;
 mod firewall;
+mod git;
 mod poller;
 mod quiet;
 mod registry;
@@ -133,6 +134,8 @@ fn answer_petition(handle: String, choice: String) -> Result<(), String> {
 }
 
 type Chron = Mutex<Chronicle>;
+/// The newest roster, for commands that act on a live session (open_folder, toast buttons).
+type Live = Mutex<Vec<Session>>;
 
 fn now_ms() -> i64 {
     SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
@@ -390,6 +393,64 @@ fn firewall_remove(port: u16) -> Result<firewall::Status, String> {
     firewall::status(port)
 }
 
+/// The program and arguments that open a department's folder (Settings: adm.openWith = explorer | code | custom,
+/// adm.openCmd). `path` is always one argument: `{path}` in a custom command is replaced inside its word, and
+/// appended as the last argument when the command has none. Nothing goes through a shell.
+fn opener(kind: &str, custom: &str, path: &str) -> Result<(String, Vec<String>), String> {
+    match kind {
+        "code" => Ok(("code.cmd".into(), vec![path.into()])),
+        "custom" => {
+            let words = split_words(custom);
+            let (program, rest) = words.split_first().ok_or("no custom command set")?;
+            let mut args: Vec<String> = rest.iter().map(|w| w.replace("{path}", path)).collect();
+            if !rest.iter().any(|w| w.contains("{path}")) {
+                args.push(path.into());
+            }
+            Ok((program.clone(), args))
+        }
+        _ => Ok(("explorer.exe".into(), vec![path.into()])),
+    }
+}
+
+/// Words of a command line; double quotes group (no escapes): `"C:\Program Files\x.exe" -n {path}`.
+fn split_words(s: &str) -> Vec<String> {
+    let (mut out, mut cur, mut quoted, mut any) = (vec![], String::new(), false, false);
+    for c in s.chars() {
+        match c {
+            '"' => {
+                quoted = !quoted;
+                any = true;
+            }
+            c if c.is_whitespace() && !quoted => {
+                if any {
+                    out.push(std::mem::take(&mut cur));
+                    any = false;
+                }
+            }
+            c => {
+                cur.push(c);
+                any = true;
+            }
+        }
+    }
+    if any {
+        out.push(cur);
+    }
+    out
+}
+
+/// A department plaque was clicked: open `path` (a live session's cwd, nothing else) with the program chosen in Settings.
+#[tauri::command(async)]
+fn open_folder(path: String, app: AppHandle, live: State<Live>) -> Result<(), String> {
+    if !live.lock().map_err(|_| "roster unavailable")?.iter().any(|s| s.cwd == path) {
+        return Err("not a session folder".into());
+    }
+    let v = settings::load(&settings_path(&app)?);
+    let (program, args) = opener(v["adm.openWith"].as_str().unwrap_or("explorer"), v["adm.openCmd"].as_str().unwrap_or(""), &path)?;
+    no_window(Command::new(&program)).args(args).spawn().map_err(|e| format!("{program}: {e}"))?;
+    Ok(())
+}
+
 fn claude_dir() -> PathBuf {
     PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
 }
@@ -401,12 +462,13 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![open_session, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_quiet, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
+        .invoke_handler(tauri::generate_handler![open_session, open_folder, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_quiet, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
             let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });
             app.manage::<Chron>(Mutex::new(Chronicle::open(dir, now_ms(), demo)));
+            app.manage::<Live>(Mutex::new(Vec::new()));
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             if let Ok((enabled, port, actions, token)) = settings_path(app.handle()).and_then(|p| remote_conf(&p)) {
@@ -517,6 +579,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 c.maybe_flush(now);
                 first = false;
             }
+            *app.state::<Live>().lock().unwrap_or_else(|e| e.into_inner()) = roster.clone();
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
             prev = roster;
@@ -628,11 +691,24 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn sample_grid_stays_inside_and_spans_the_rect() {
         let pts: Vec<_> = super::sample_grid(100, 50, 600, 450).collect();
         assert_eq!(pts.len(), 25);
         assert!(pts.iter().all(|&(x, y)| (100..600).contains(&x) && (50..450).contains(&y)));
         assert_eq!((pts[0], pts[24]), ((150, 90), (550, 410)));
+    }
+
+    #[test]
+    fn opener_keeps_the_path_one_argument() {
+        let p = r"C:\My Projects\x & y";
+        assert_eq!(opener("explorer", "", p).unwrap(), ("explorer.exe".to_string(), vec![p.to_string()]));
+        assert_eq!(opener("code", "", p).unwrap(), ("code.cmd".to_string(), vec![p.to_string()]));
+        assert_eq!(opener("custom", r#""C:\Program Files\Ed\ed.exe" -n {path}"#, p).unwrap(), (r"C:\Program Files\Ed\ed.exe".to_string(), vec!["-n".to_string(), p.to_string()]));
+        assert_eq!(opener("custom", "ed --dir={path}", p).unwrap().1, vec![format!("--dir={p}")]);
+        assert_eq!(opener("custom", "ed", p).unwrap().1, vec![p.to_string()], "no {{path}}: appended");
+        assert!(opener("custom", "  ", p).is_err());
     }
 }

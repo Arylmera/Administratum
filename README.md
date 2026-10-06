@@ -93,6 +93,9 @@ To launch it at sign-in, turn on **Start at login** from the tray menu or from S
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
   only when the session record carries a claude.ai session id.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
+- **Click a department's plaque** to open its folder (the most recently active session's working directory) in
+  Explorer, VS Code or a command of your own (Settings > System). A branch other than `main` / `master` shows under
+  the department's name, read from `.git/HEAD` (worktrees included).
 
 ### Answering petitions
 
@@ -157,6 +160,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Latitude / Longitude | empty | ±90 / ±180 | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30 | Redraw rate while nothing moves (anything walking or animating always runs at 30 fps). Lower = less CPU/GPU |
 | Pause when hidden or covered | on | — | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
+| Open departments with | Explorer | Explorer / VS Code / Custom command | What a plaque click opens the folder with. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
 
 **Reset to defaults** restores every value above except *Start at login*.
 

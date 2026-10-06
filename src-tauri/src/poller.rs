@@ -1,12 +1,18 @@
 //! The live roster, polled once a second. Per-tick work is kept to a few stats: liveness probes
 //! only the pids named in `~/.claude/sessions` (no whole-system process snapshot), and transcript
 //! tails and helpers are re-read only when their file's (len, mtime) changed.
+use crate::git;
 use crate::registry::{self, FileStat, Helper, Session, Tail};
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
+    time::{Duration, Instant},
 };
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+
+/// Branch per cwd is re-read from `.git/HEAD` at most this often.
+const BRANCH_EVERY: Duration = Duration::from_secs(5);
+
 
 /// Transcript files per live session id: the main one (false) and its subagents' (true).
 pub type Files = HashMap<String, Vec<(FileStat, bool)>>;
@@ -26,6 +32,8 @@ pub struct Poller {
     found: HashMap<String, Option<PathBuf>>,
     tails: Memo<Option<Tail>>,
     helpers: Memo<Helper>,
+    /// Branch per cwd, re-read from `.git/HEAD` at most every BRANCH_EVERY.
+    branches: HashMap<String, (Instant, Option<String>)>,
     /// This tick's transcript files, for the chronicle.
     pub files: Files,
 }
@@ -41,12 +49,13 @@ impl Poller {
             found: HashMap::new(),
             tails: HashMap::new(),
             helpers: HashMap::new(),
+            branches: HashMap::new(),
             files: HashMap::new(),
         }
     }
 
     pub fn roster(&mut self, prev: &[Session], now_ms: i64) -> Vec<Session> {
-        let Poller { sessions, projects, sys, completions, orca_cache, found, tails, helpers, files } = self;
+        let Poller { sessions, projects, sys, completions, orca_cache, found, tails, helpers, branches, files } = self;
         files.clear();
         let scanned = registry::scan(
             sessions,
@@ -64,6 +73,13 @@ impl Poller {
         );
         let mut roster = registry::merge(prev, scanned);
         registry::track_compaction(prev, &mut roster, now_ms);
+        for s in roster.iter_mut() {
+            if !branches.get(&s.cwd).is_some_and(|(at, _)| at.elapsed() < BRANCH_EVERY) {
+                branches.insert(s.cwd.clone(), (Instant::now(), git::branch_of(Path::new(&s.cwd))));
+            }
+            s.branch = branches.get(&s.cwd).and_then(|(_, b)| b.clone());
+        }
+        branches.retain(|cwd, _| roster.iter().any(|s| &s.cwd == cwd));
         // Sessions carried over from the last tick (record mid-write) still get their files listed.
         for s in &roster {
             if !files.contains_key(&s.id) {

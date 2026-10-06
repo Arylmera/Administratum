@@ -56,7 +56,7 @@ pub fn list_subagents(dir: &Path) -> Vec<FileStat> {
     out
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Session {
     pub id: String,
@@ -81,6 +81,8 @@ pub struct Session {
     pub compacted_at: Option<i64>,
     /// The closing question of a finished turn (`ends_with_question`), only while idle in the foreground.
     pub question: Option<String>,
+    /// The git branch of `cwd` (git.rs, refreshed by the poller every few seconds); None outside a repo.
+    pub branch: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -647,6 +649,7 @@ pub fn scan(
             background,
             compacted_at: compacted,
             question,
+            branch: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -825,8 +828,7 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
 /// A plain idle session for other modules' tests.
 #[cfg(test)]
 pub fn tests_session(id: &str) -> Session {
-    Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), waiting_for: None,
-              since_ms: 0, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None, question: None }
+    Session { id: id.into(), pid: 1, name: id.into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), status: "idle".into(), task: "—".into(), ..Default::default() }
 }
 
 #[cfg(test)]
@@ -1041,8 +1043,7 @@ mod tests {
     }
 
     fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
-        Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(),
-                  status: status.into(), waiting_for: None, since_ms: since, task: "—".into(), title: None, asks: None, helpers: vec![], context: None, orca: None, web: None, background: false, compacted_at: None, question: None }
+        Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(), status: status.into(), since_ms: since, task: "—".into(), ..Default::default() }
     }
 
     #[test]
