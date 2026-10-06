@@ -66,33 +66,33 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/LORD_DESK.png" height="104"> |
 | <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/SEAL.png" height="80"> |
-| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/gate.png`, drawn by scene.js | <img src="orbital/GATE_VOID.png" height="160"> |
+| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE_R.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE_VOID.png" height="160"> |
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="orbital/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="orbital/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="orbital/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js, theme.js | <img src="orbital/WINDOW.png" height="136"> |
-| <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/walls.png` | <img src="orbital/WINDOW.day.png" height="136"> |
-| <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/walls.png` | <img src="orbital/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner. Source: `ui/art/walls.png`, drawn by scene.js | <img src="orbital/BANNER.png" height="120"> |
-| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/walls.png`, drawn by scene.js | <img src="orbital/SHELF.png" height="160"> |
-| <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/walls.png`, drawn by scene.js | <img src="orbital/GAUGE.png" height="48"> |
-| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/walls.png`, drawn by scene.js | <img src="orbital/CENSER.png" height="80"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/orbital/walls.png`, drawn by scene.js, theme.js | <img src="orbital/WINDOW.png" height="136"> |
+| <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/orbital/walls.png` | <img src="orbital/WINDOW.day.png" height="136"> |
+| <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/orbital/walls.png` | <img src="orbital/WINDOW.night.png" height="136"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/BANNER.png" height="120"> |
+| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/SHELF.png" height="160"> |
+| <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/GAUGE.png" height="48"> |
+| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/CENSER.png" height="80"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="orbital/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="orbital/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="orbital/BOOKS.png" height="72"> |
 | <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="orbital/LOOSE_A.png" height="32"> |
 | <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="orbital/LOOSE_B.png" height="40"> |
 | <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/clutter.png`, drawn by scene.js | <img src="orbital/CRATE.png" height="96"> |
-| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/skull.png`, drawn by scene.js | <img src="orbital/SKULL.png" height="80"> |
-| <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/skull.png` | <img src="orbital/SKULL.alarm.png" height="80"> |
+| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/orbital/skull.png`, drawn by scene.js | <img src="orbital/SKULL.png" height="80"> |
+| <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/orbital/skull.png` | <img src="orbital/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="orbital/SCROLL.png" height="56"> |
 | <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="orbital/QSCROLL.png" height="56"> |
 | <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="orbital/SCROLL_HELD.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/fire.png`, drawn by scene.js | <img src="orbital/BRAZIER.png" height="104"> |
-| <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/fire.png`, drawn by scene.js | <img src="orbital/CANDLES.png" height="72"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/orbital/fire.png`, drawn by scene.js | <img src="orbital/BRAZIER.png" height="104"> |
+| <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/orbital/fire.png`, drawn by scene.js | <img src="orbital/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_TAG.png" height="60"> |
 | <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_STAMP.png" height="48"> |

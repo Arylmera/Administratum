@@ -133,7 +133,7 @@ defineTheme({
 // seen through the windows. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
   id: 'orbital', world: 'space', name: 'Orbital Station',
-  art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator'], // ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches, crew flight consoles, a rack terminal and a strapped-down laptop, the flight-control screen wall
+  art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire'], // ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches, crew flight consoles, a rack terminal and a strapped-down laptop, the flight-control screen wall, portholes, a mission poster, stowage nets, pressure gauges and pendant LED lamps, the floating camera drone, the airlock with its sliding hatch and the starfield beyond, air scrubbers and LED light strips
   px: {
     k: '#0c0e14', e: '#141822', n: '#0a0c12',
     r: '#2a4a8a', R: '#3a62b0', d: '#16284e', t: '#ff7a1a', T: '#16284e', z: '#ff7a1a', j: '#ffe0c0', // flight suit, orange trim
@@ -160,7 +160,9 @@ defineTheme({
     cant: 'rgba(0,0,0,0)', grime: 'rgba(10,12,16,.25)', scratchSheen: 'rgba(255,255,255,.08)',
     parchmentWarn: '#ffb380',
     smoke: '#c8ccd4', sparkSmoke: '#d8dce2', steam: '#e8ecf0', alarmGlow: '#ffd0a0', beaconSweep: '#ff9a4a', searchlight: '#ff7a1a',
-    windowDay: { u: '#2a6ad8', v: '#3a8a4a', g: '#fff0d0', x: '#5ad8ff' }, windowNight: { u: '#050814', v: '#0a1020', g: '#2a3a5a' },
+    // the porthole's glass: Earth's limb by day; by night its dark side, the ocean specks and space dots turn to stars
+    windowDay: { u: '#2a6ad8', v: '#3a8a4a', G: '#eef4fa', x: '#5ad8ff', g: '#eef4fa', h: '#0a0c12' },
+    windowNight: { u: '#070b18', v: '#08101e', G: '#070b18', x: '#12224a', g: '#c8d8ff', h: '#ffffff' },
     backdrop: '#0c0e16', backdropLit: '#181c28', backdropEdge: '#141620', backdropDark: '#08090e', backdropSeam: '#0a0c12', backdropSeamLit: '#1a1e2a',
     backdropRivet: '#3a3e46', overflowPlaque: '#8a8ea0',
   },
