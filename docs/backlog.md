@@ -11,6 +11,8 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
   - Context window per model (200k / 1M)
 
 ## Ideas not scheduled
+- Desktop strip mode (Desktop Goose style, on the Windows taskbar): plan docs/superpowers/plans/2026-10-07-desktop-strip.md
+- Depth pass, "2.5D" without new art (shadows, AO, height-aware lights, parallax): spec docs/superpowers/specs/2026-10-07-depth-2-5d-design.md
 - Global hotkey to show/hide; petition count badge on the tray icon
 - Binharic sound pack per event
 - Day/night from real sunrise/sunset
