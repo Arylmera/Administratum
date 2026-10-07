@@ -22,9 +22,9 @@ function stamp(stops) {
 let hole = null;
 const glows = new Map(); // light colour -> its glow stamp (the colours are a fixed set of literals)
 const glowOf = color => glows.get(color) ?? glows.set(color, stamp([[0, color], [0.7, 'rgba(0,0,0,0)']])).get(color);
-const vignettes = new Map(); // `${w}x${h}:${beams}` -> full-scene canvas
-function vignette(w, h, beams) {
-  const k = `${w}x${h}:${beams}`;
+const vignettes = new Map(); // `${w}x${h}:${beams}:${dov}` -> full-scene canvas
+function vignette(w, h, beams, dov) {
+  const k = `${w}x${h}:${beams}:${dov}`;
   let c = vignettes.get(k);
   if (!c) {
     if (vignettes.size > 3) vignettes.clear(); // the hall changed size: drop the old ones
@@ -37,9 +37,29 @@ function vignette(w, h, beams) {
     v.addColorStop(1, `rgba(0,0,0,${beams ? 0.35 : 0.7})`);
     x.fillStyle = v;
     x.fillRect(0, 0, w, h);
+    if (dov) x.fillStyle = farOf(x, h, '0,0,0'), x.fillRect(0, 0, w, h); // depth of view: the far end a little darker
     vignettes.set(k, c);
   }
   return c;
+}
+// Depth of view (Depth: Full + its switch): 8 % at the back wall (the top), 0 at the bottom aisle.
+const farOf = (x, h, rgb) => {
+  const grad = x.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, `rgba(${rgb},.08)`);
+  grad.addColorStop(1, `rgba(${rgb},0)`);
+  return grad;
+};
+let grey = null; // ...and greyer: a grey layer drawn with the saturation blend, per scene size
+function greyOf(w, h) {
+  if (grey?.width !== w * RES || grey?.height !== h * RES) {
+    grey = document.createElement('canvas');
+    grey.width = w * RES; grey.height = h * RES;
+    const x = grey.getContext('2d');
+    x.setTransform(RES, 0, 0, RES, 0, 0);
+    x.fillStyle = farOf(x, h, '128,128,128');
+    x.fillRect(0, 0, w, h);
+  }
+  return grey;
 }
 let layer = null, beam = null;
 onTheme(() => { beam = null; });
@@ -94,5 +114,7 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   }
   g.restore();
 
-  g.drawImage(vignette(w, h, level.beams), 0, 0, w, h);
+  const dov = on('dov');
+  if (dov) { g.save(); g.globalCompositeOperation = 'saturation'; g.drawImage(greyOf(w, h), 0, 0, w, h); g.restore(); }
+  g.drawImage(vignette(w, h, level.beams, dov), 0, 0, w, h);
 }
