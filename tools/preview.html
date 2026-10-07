@@ -15,6 +15,8 @@ const n = Math.max(1, Math.min(40, +(q.get('n') ?? 9)));
 const fake = `
   window.__ROSTER_N = ${n};
   const H = {};
+  // A tab in the background gets no animation frames: drive the loop with timers (throttled, but it moves).
+  window.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 16);
   window.__TAURI__ = {
     core: { invoke: name => (name === 'settings_load' ? Promise.resolve({}) : Promise.reject('preview: no backend')) },
     event: { listen: (name, cb) => { (H[name] ??= []).push(cb); return Promise.resolve(() => {}); } },

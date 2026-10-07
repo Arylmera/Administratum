@@ -2,6 +2,7 @@ import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, MAPS, rankOf, blit } from './sprite
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
+import { on } from './depth.js';
 
 const SPEED = 80; // logical px per second
 // Thresholds come from the settings panel (settings.js), read live:
@@ -195,17 +196,20 @@ export function bodyOf(a) {
   }
   const i = a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
   const map = a.pose === 'burn' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
-  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk ? i : -1 };
+  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !(a.wait > 0) ? i : -1 };
 }
+
+// A walker's body rises 1 art px on the passing frame (depth: motion cues); its shadow stays on the floor.
+export const bobOf = b => (b.step === 0 && on('motion') ? 0.5 : 0);
 
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
   const b = bodyOf(a);
   if (a.h) { // adept: typing bob of 1 art px at its console
-    blit(g, b.map, b.x, b.y + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
+    blit(g, b.map, b.x, b.y - bobOf(b) + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;
   }
-  const A = SCRIBE_AT, fx = b.x, fy = b.y;
+  const A = SCRIBE_AT, fx = b.x, fy = b.y - bobOf(b);
   blit(g, b.map, fx, fy, b.over);
   if (a.pose === 'burn') return; // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
