@@ -1,0 +1,63 @@
+{
+  "frames": {
+    "pipe h": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 6
+      }
+    },
+    "pipe v": {
+      "frame": {
+        "x": 9,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      }
+    },
+    "fitting h": {
+      "frame": {
+        "x": 16,
+        "y": 0,
+        "w": 6,
+        "h": 10
+      }
+    },
+    "fitting v": {
+      "frame": {
+        "x": 23,
+        "y": 0,
+        "w": 10,
+        "h": 6
+      }
+    },
+    "fitting wide": {
+      "frame": {
+        "x": 34,
+        "y": 0,
+        "w": 20,
+        "h": 4
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "room-pipes.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 54,
+      "h": 10
+    },
+    "palette": "key.gpl",
+    "anchors": {},
+    "tiles": {
+      "pipe h": {
+        "fill": "repeat-x"
+      },
+      "pipe v": {
+        "fill": "repeat-y"
+      }
+    }
+  }
+}

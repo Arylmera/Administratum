@@ -101,33 +101,33 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="vault/ROOM.floor.png" height="96"> |
-| <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="vault/ROOM.channel_h.png" height="16"> |
-| <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="vault/ROOM.channel_v.png" height="160"> |
-| <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="vault/ROOM.sanctum_passage.png" height="48"> |
-| <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/room-floor.png` | <img src="vault/ROOM.sill.png" height="16"> |
-| <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/room-floor.png` | <img src="vault/ROOM.sanctum_floor.png" height="160"> |
-| <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_top.png" height="80"> |
-| <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall.png" height="160"> |
-| <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_east_top.png" height="80"> |
-| <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_east.png" height="160"> |
-| <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_sanctum_top.png" height="80"> |
-| <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_sanctum.png" height="160"> |
-| <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_foot.png" height="48"> |
-| <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_dark.png" height="48"> |
-| <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.wall_base.png" height="24"> |
-| <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.sanctum_base.png" height="24"> |
-| <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/room-walls.png` | <img src="vault/ROOM.pillar.png" height="160"> |
-| <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.pilaster.png" height="156"> |
-| <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.beacon_off.png" height="80"> |
-| <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.beacon_on.png" height="80"> |
-| <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/room-walls.png` | <img src="vault/ROOM.beacon_cage.png" height="80"> |
-| <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/room-pipes.png` | <img src="vault/ROOM.pipe_h.png" height="24"> |
-| <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/room-pipes.png` | <img src="vault/ROOM.pipe_v.png" height="160"> |
-| <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="vault/ROOM.fitting_h.png" height="40"> |
-| <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="vault/ROOM.fitting_v.png" height="24"> |
-| <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="vault/ROOM.fitting_wide.png" height="16"> |
-| <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="vault/ROOM.door_sanctum_closed.png" height="160"> |
-| <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="vault/ROOM.door_sanctum_open.png" height="160"> |
-| <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="vault/ROOM.door_refectory_closed.png" height="160"> |
-| <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="vault/ROOM.door_refectory_open.png" height="160"> |
+| <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/vault/room-floor.png` | <img src="vault/ROOM.floor.png" height="96"> |
+| <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/vault/room-floor.png` | <img src="vault/ROOM.channel_h.png" height="16"> |
+| <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/vault/room-floor.png` | <img src="vault/ROOM.channel_v.png" height="160"> |
+| <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/vault/room-floor.png` | <img src="vault/ROOM.sanctum_passage.png" height="48"> |
+| <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/vault/room-floor.png` | <img src="vault/ROOM.sill.png" height="16"> |
+| <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/vault/room-floor.png` | <img src="vault/ROOM.sanctum_floor.png" height="160"> |
+| <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_top.png" height="80"> |
+| <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall.png" height="160"> |
+| <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_east_top.png" height="80"> |
+| <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_east.png" height="160"> |
+| <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_sanctum_top.png" height="80"> |
+| <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_sanctum.png" height="160"> |
+| <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_foot.png" height="48"> |
+| <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_dark.png" height="48"> |
+| <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.wall_base.png" height="24"> |
+| <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.sanctum_base.png" height="24"> |
+| <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.pillar.png" height="160"> |
+| <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.pilaster.png" height="156"> |
+| <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.beacon_off.png" height="80"> |
+| <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.beacon_on.png" height="80"> |
+| <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/vault/room-walls.png` | <img src="vault/ROOM.beacon_cage.png" height="80"> |
+| <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/vault/room-pipes.png` | <img src="vault/ROOM.pipe_h.png" height="24"> |
+| <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/vault/room-pipes.png` | <img src="vault/ROOM.pipe_v.png" height="160"> |
+| <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/vault/room-pipes.png` | <img src="vault/ROOM.fitting_h.png" height="40"> |
+| <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/vault/room-pipes.png` | <img src="vault/ROOM.fitting_v.png" height="24"> |
+| <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/vault/room-pipes.png` | <img src="vault/ROOM.fitting_wide.png" height="16"> |
+| <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_sanctum_closed.png" height="160"> |
+| <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_sanctum_open.png" height="160"> |
+| <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_refectory_closed.png" height="160"> |
+| <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_refectory_open.png" height="160"> |

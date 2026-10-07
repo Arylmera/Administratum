@@ -351,7 +351,7 @@ defineTheme({
 // Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green
 // phosphor, Nuka-Cola red, warm incandescent light. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
-  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal, riveted viewports onto the wasteland, a Vault-Tec poster, steel supply shelves with cans and kits, Geiger dials, caged ceiling lamps, the Eyebot, the cog vault door in its hazard-striped frame and the dark tunnel beyond, barrel fires, a work lantern with road flares, G.O.A.T. forms in a wire tray, heaps of holotapes, Vault-Tec manuals, a Nuka-Cola crate, the G.O.A.T. sheet a dweller brings (a big red ? for a question), the clipboard with the APPROVED stamp, Vault Boy thumbs-up stickers, a bottle cap, the rubber APPROVED stamp, the Nuka-Cola vending machine, steel cafeteria tables with trays and blue vinyl benches
+  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium', 'room-floor', 'room-walls', 'room-doors', 'room-pipes'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal, riveted viewports onto the wasteland, a Vault-Tec poster, steel supply shelves with cans and kits, Geiger dials, caged ceiling lamps, the Eyebot, the cog vault door in its hazard-striped frame and the dark tunnel beyond, barrel fires, a work lantern with road flares, G.O.A.T. forms in a wire tray, heaps of holotapes, Vault-Tec manuals, a Nuka-Cola crate, the G.O.A.T. sheet a dweller brings (a big red ? for a question), the clipboard with the APPROVED stamp, Vault Boy thumbs-up stickers, a bottle cap, the rubber APPROVED stamp, the Nuka-Cola vending machine, steel cafeteria tables with trays and blue vinyl benches, a diamond-plate deck with yellow-lit floor strips, the Overseer's checkered floor with a Vault-Tec gear in each corner, ribbed blue-grey wall panels under a yellow and white band with vent grilles, ribbed steel columns, a radiation alarm light, sliding bulkheads with hazard stripes, steel and yellow gas pipes with red valve wheels and gauges
   px: {
     k: '#0c0c0c', e: '#141822', n: '#0a0c10',
     r: '#1e4a8a', R: '#2e66b8', d: '#12305e', t: '#f2c23a', T: '#a07a14', z: '#f2c23a', j: '#a07a14', // jumpsuit, yellow stripe
@@ -361,7 +361,7 @@ defineTheme({
     q: '#8a909a', Q: '#5a6068', J: '#5aff7a', I: '#c8ffd8', // Mr. Handy eye glow, Pip-Boy green
     w: '#5a5a54', W: '#3a3a36', L: '#7a7a70', u: '#12305e', v: '#3a3e34', // concrete
     c: '#5aff7a', C: '#0a2a12', o: '#5aff7a', O: '#c8ffd8', f: '#ffd890', F: '#fff4d0', x: '#d8202a', a: '#d8202a', // Pip-Boy green, incandescent, Nuka-Cola red
-    1: '#8a9098', 2: '#2a2e32', 3: '#a8aeb4', 4: '#4a4e54', 5: '#52565c', 6: '#2a2e32', 0: '#16181a', A: '#0e0f10',
+    1: '#8a9098', 2: '#2a2e32', 3: '#a8aeb4', 4: '#48525e', 5: '#505a66', 6: '#2a2e32', 0: '#16181a', A: '#0e0f10',
     D: '#12305e', E: '#0a1c38', N: '#1a3660', S: '#6a7078',
     X: '#7a8088', Y: '#9aa0a8', Z: '#4a4e54', i: '#2a2e32', '!': '#1a8a4a', '+': '#7affa0',
     '@': '#05060a', $: '#3a2a10', '%': '#5a4018', '*': '#4a0a0e', '-': '#2a0608', '=': '#8a3a3e', '&': '#d8202a',
@@ -375,7 +375,7 @@ defineTheme({
       adept: { x: '#5a5a4e', q: '#8a8e98', Q: '#5a6068', b: '#9a9a90', J: '#5a7a5e', I: '#7a9a7e' } },
   },
   ink: {
-    coolant: '#5aff7a', screenHot: '#eafff0', screenDim: '#1a8a4a', screenMark: '#136a3a', screenFlicker: 'rgba(10,42,18,.55)', screenOff: '#1a5a30',
+    coolant: '#f2c23a', screenHot: '#eafff0', screenDim: '#1a8a4a', screenMark: '#136a3a', screenFlicker: 'rgba(10,42,18,.55)', screenOff: '#1a5a30',
     cant: 'rgba(0,0,0,0)', grime: 'rgba(10,10,10,.25)', scratchSheen: 'rgba(255,240,220,.08)',
     parchmentWarn: '#e0a080',
     smoke: '#c8c8c0', sparkSmoke: '#d0d0c8', steam: '#dcdcd0', alarmGlow: '#ffd890', beaconSweep: '#d8202a', searchlight: '#5aff7a',
