@@ -1,0 +1,77 @@
+<!--
+  Projection trial: one corner of the scriptorium (Ordo Administratum) in several views side by side, same scene, same
+  scale, the scribe walking in each: today's flat 3/4 hall, 2:1 isometric, oblique front-facing, shallow dimetric.
+  To judge whether a hall with real depth is worth doing. Not part of the app.
+    python -m http.server 8123      then   http://localhost:8123/tools/iso.html
+  Built in tools/iso.mjs (projections, shear, boxes) from the existing art; the iso scribe is hand-drawn in tools/iso_art.mjs.
+-->
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administratum — Projection trial</title>
+<style>
+  :root { --bg: #121315; --panel: #1b1c1f; --edge: #2c2e33; --ink: #d8d4cc; --dim: #8a8780; --accent: #e0a64a; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--edge); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  main { padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  figure { margin: 0; overflow: auto; max-width: 100%; }
+  figcaption { color: var(--dim); margin-bottom: 6px; }
+  figcaption b { color: var(--ink); }
+  canvas { display: block; image-rendering: pixelated; background: #0a0a0b; }
+  .err { color: #ff7a6a; white-space: pre-wrap; }
+</style>
+<header>
+  <h1>Projection trial</h1>
+  <label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+  <label>Show <select id="only"><option value="">all</option><option value="flat">flat 3/4</option><option value="iso">isometric</option><option value="oblique">oblique (a) cabinet</option><option value="oblique2">oblique (a2) 2:1</option><option value="persp">oblique (b) perspective</option><option value="dimetric">dimetric</option></select></label>
+  <label><input type="checkbox" id="night"> night</label>
+  <label><input type="checkbox" id="pause"> pause</label>
+  <label>Step <input type="range" id="step" min="0" max="287" value="0"></label>
+</header>
+<main id="out"></main>
+<script type="module">
+const $ = id => document.getElementById(id);
+try {
+  const { build, drawScene, drawFlat, FLAT, PROJ, PERIOD } = await import('./iso.mjs');
+  const views = [
+    { id: 'flat', title: 'Today: flat 3/4', note: 'the existing sprites blitted as the hall draws them' },
+    { id: 'iso', title: '2:1 isometric', note: 'both walls sheared 2-1; hand-drawn iso scribe (SW/NE + mirrors)' },
+    { id: 'oblique', title: 'Oblique (a) cabinet 1:1', note: 'back wall and fronts as today, depth recedes in 1-1 steps at half length; today\'s scribe frames' },
+    { id: 'oblique2', title: 'Oblique (a2) 2:1 steps', note: 'depth recedes in 2-1 steps (the iso slope), back wall still flat; today\'s scribe frames' },
+    { id: 'persp', title: 'Oblique (b) light one-point perspective', note: 'shell converges, rows shorten toward the back; furniture crisp (cabinet), placed in perspective, darker further back' },
+    { id: 'dimetric', title: 'Dimetric, rotated ~14°', note: 'back wall slopes 1 down per 4, side wall steep; today\'s scribe frames' },
+  ];
+  for (const v of views) {
+    v.S = v.id === 'flat' ? null : build(v.id);
+    const size = v.S ? v.S.size : FLAT;
+    const f = document.createElement('figure');
+    f.id = `f-${v.id}`;
+    f.innerHTML = `<figcaption><b>${v.title}</b> — ${v.note}</figcaption><canvas width="${size.w}" height="${size.h}"></canvas>`;
+    $('out').append(f);
+    v.cv = f.querySelector('canvas'); v.g = v.cv.getContext('2d'); v.g.imageSmoothingEnabled = false; v.fig = f;
+  }
+  $('step').max = PERIOD - 1;
+  const pref = (k, d) => { try { return localStorage.getItem(`iso.${k}`) ?? d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(`iso.${k}`, v); } catch {} };
+  $('zoom').value = pref('zoom', '2'); $('only').value = pref('only', ''); $('night').checked = pref('night', '') === '1';
+  const layout = () => {
+    const z = +$('zoom').value, only = $('only').value;
+    for (const v of views) { v.cv.style.width = `${v.cv.width * z}px`; v.cv.style.height = `${v.cv.height * z}px`; v.fig.hidden = !!only && only !== v.id; }
+    save('zoom', $('zoom').value); save('only', only); save('night', $('night').checked ? '1' : '');
+  };
+  for (const id of ['zoom', 'only', 'night']) $(id).onchange = layout;
+  layout();
+  let t = 0;
+  const draw = () => { const n = $('night').checked; for (const v of views) v.S ? drawScene(v.g, v.S, t, n) : drawFlat(v.g, t, n); };
+  $('step').oninput = () => { t = +$('step').value; draw(); };
+  // setTimeout, not requestAnimationFrame: a background tab gets no frames
+  const tick = () => { if (!$('pause').checked) { t = (t + 1) % PERIOD; $('step').value = t; } draw(); setTimeout(tick, 70); };
+  tick();
+} catch (e) {
+  $('out').innerHTML = `<p class="err">${String(e.stack ?? e)}</p>`;
+  throw e;
+}
+</script>
