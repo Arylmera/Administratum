@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { BASE, MAPS, SCRIBE, ADEPT, MAGOS, RES } from './sprites.js';
+import {
+  BASE, MAPS, SCRIBE, ADEPT, MAGOS, RES,
+  FAMILIES39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, checkComplete39,
+} from './sprites.js';
 import { TIER_II } from './theme.js';
 
 // [width, height] in logical px of every sprite (the art is RES times that). The drawing code places them by these
@@ -34,4 +37,27 @@ check('MAGOS.arm', MAGOS.arm, [5, 24]);
 const flip = r => [...r].reverse().join('');
 for (const n of ['THRONE', 'LORD_DESK', 'COG_MECH']) MAPS[n].forEach((r, j) => assert.equal(r.replace(/[^.]/g, '#'), flip(r).replace(/[^.]/g, '#'), `${n}: silhouette row ${j}`));
 MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).replace(/[^.k]/g, '#'), `THRONE: outline row ${j}`));
+
+// 39° character families (wave 2, no art yet): no ui/art/*39.* file in this repo, so the app still loads and every
+// export is empty. When an art agent's file lands, checkComplete39 (called by useArt) demands every frame and
+// anchor below be present, so partial art fails loudly instead of drawing a half-built character.
+assert.deepEqual(FAMILIES39, ['scribe39', 'adept39', 'magos39', 'skull39']);
+for (const [obj, at] of [[SCRIBE39, SCRIBE39_AT], [ADEPT39, ADEPT39_AT], [MAGOS39, MAGOS39_AT], [SKULL39, SKULL39_AT]]) {
+  assert.deepEqual(obj, {}); assert.deepEqual(at, {});
+}
+// Any 39 family that does land (e.g. once an art agent has run) must be complete: every row still a key-palette char.
+const dirRows = (obj, name) => ['E', 'W', 'S', 'N'].flatMap(d => (obj[d] ?? []).map((rows, i) => [`${name}.${d}[${i}]`, rows]));
+for (const [name, obj, extra] of [['SCRIBE39', SCRIBE39, ['arm', 'armL', 'scroll']], ['ADEPT39', ADEPT39, []], ['MAGOS39', MAGOS39, ['body', 'arm']], ['SKULL39', SKULL39, ['skull']]]) {
+  if (!Object.keys(obj).length) continue;
+  for (const [label, rows] of [...dirRows(obj, name), ...extra.map(n => [`${name}.${n}`, obj[n]])]) {
+    for (const row of rows) for (const c of row) assert.ok(c === '.' || c in BASE, `${label}: bad char '${c}'`);
+  }
+}
+
+// Mutation-check: checkComplete39 must fail on a sheet missing a required frame (proves the "complete" check is not
+// vacuous), and must fail on one missing a required anchor too. A fully empty sheet (no file yet) is not a failure.
+assert.equal(checkComplete39('skull39', { frames: {}, anchors: {} }), false);
+assert.throws(() => checkComplete39('skull39', { frames: { skull: ['k'] }, anchors: { centre: [0, 0], carry: [0, 0] } }), /anchor beam/);
+assert.throws(() => checkComplete39('magos39', { frames: { arm: ['k'] }, anchors: { arm: [0, 0], chest: [0, 0], eyeL: [0, 0], eyeR: [0, 0] } }), /body/);
+assert.equal(checkComplete39('skull39', { frames: { skull: ['k'] }, anchors: { centre: [0, 0], carry: [0, 0], beam: [0, 0] } }), true);
 console.log('sprites ok');

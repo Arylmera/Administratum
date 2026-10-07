@@ -3,7 +3,10 @@
 // -> [{ id, group, family, src, cells: [{ rows, over }], anim, note, size }]
 //    family: the art family ('walls'), as the sprite issues group them; src: its art file for this theme ('cyber/walls').
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
-import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART } from '../ui/sprites.js';
+import {
+  MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
+  SCRIBE39, ADEPT39, MAGOS39, SKULL39,
+} from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
@@ -48,6 +51,21 @@ export function catalog() {
   const seated = MAGOS.body.map((row, j) => [...row].map((c, i) => { const a = MAGOS.arm[j - ay]?.[i - ax]; return a && a !== '.' ? a : c; }).join(''));
   add('MAGOS', 'Magos (on the throne)', srcOf('magos'), [{ rows: seated, over: {} }], false, 'Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames)');
   add('MAGOS.arm', 'Magos (on the throne)', srcOf('magos'), [{ rows: MAGOS.arm, over: {} }], false, 'The drill forearm, its own frame so it can swing');
+
+  // 39° characters (wave 2): one generic section, listing every frame present for the active theme. Empty until an
+  // art agent's PNG exists (sprites.js checkComplete39), so the viewer shows a world's frames the moment they land.
+  const CH39 = [
+    { name: 'SCRIBE39', family: 'scribe39', obj: SCRIBE39, extra: ['arm', 'armL', 'scroll'] },
+    { name: 'ADEPT39', family: 'adept39', obj: ADEPT39, extra: [] },
+    { name: 'MAGOS39', family: 'magos39', obj: MAGOS39, extra: ['body', 'arm'] },
+    { name: 'SKULL39', family: 'skull39', obj: SKULL39, extra: ['skull'] },
+  ];
+  for (const { name, family, obj, extra } of CH39) {
+    if (!Object.keys(obj).length) continue;
+    const src = srcOf(family);
+    for (const d of ['E', 'W', 'S', 'N']) if (obj[d]) add(`${name}.${d}`, '39° characters', src, obj[d].map(rows => ({ rows, over: {} })), true, `${name}, 39° view, walking ${d}, 3 frames`);
+    for (const n of extra) add(`${name}.${n}`, '39° characters', src, [{ rows: obj[n], over: {} }], false, `${name}, ${n}`);
+  }
 
   const VARIANTS = { // extra renders of maps that are drawn with overrides
     WINDOW: [['day', theme.ink.windowDay], ['night', theme.ink.windowNight]],
