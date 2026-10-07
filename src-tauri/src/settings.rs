@@ -48,11 +48,7 @@ pub fn validate(v: &Value) -> Result<String, String> {
 
 /// The saved object, or {} when missing, unreadable, corrupt or invalid.
 pub fn load(path: &Path) -> Value {
-    fs::read_to_string(path)
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .filter(|v| validate(v).is_ok())
-        .unwrap_or_else(|| Value::Object(Map::new()))
+    fs::read_to_string(path).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).filter(|v| validate(v).is_ok()).unwrap_or_else(|| Value::Object(Map::new()))
 }
 
 /// Validate, then write atomically (temp file + rename), creating the directory if needed.

@@ -1,6 +1,9 @@
 use crate::chronicle::{Event, Tokens, Usage};
 use crate::registry::{Context, Helper, Session};
-use std::{sync::OnceLock, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    sync::OnceLock,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 /// Wall-clock ms at the first demo tick, so `sinceMs` reads as a real timestamp in the UI.
 fn start_ms() -> i64 {
@@ -70,10 +73,7 @@ pub fn roster(t: u64) -> Vec<Session> {
         v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000, HAIKU));
     }
     if (0..20).contains(&phase) {
-        v[0].helpers = vec![
-            helper("a1", "general-purpose", "Implement Task 3", 30_000, OPUS),
-            helper("a2", "Explore", "find callers", 80_000, SONNET),
-        ];
+        v[0].helpers = vec![helper("a1", "general-purpose", "Implement Task 3", 30_000, OPUS), helper("a2", "Explore", "find callers", 80_000, SONNET)];
     }
     if (30..50).contains(&phase) {
         v[3].helpers = vec![helper("b1", "general-purpose", "", 55_000, HAIKU)];
@@ -99,7 +99,15 @@ pub fn chronicle(from: u64, to: u64, roster: &[Session], now_ms: i64) -> Vec<Eve
     for t in from.max(to.saturating_sub(60)) + 1..=to {
         for (_, kind, name, helper, detail) in BEATS.iter().filter(|b| b.0 == t % 60) {
             let Some(s) = roster.iter().find(|s| s.name == *name) else { continue };
-            out.push(Event { ts: now_ms, kind: kind.to_string(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: helper.map(str::to_string), detail: detail.to_string() });
+            out.push(Event {
+                ts: now_ms,
+                kind: kind.to_string(),
+                session_id: s.id.clone(),
+                name: s.name.clone(),
+                dept: s.dept.clone(),
+                helper: helper.map(str::to_string),
+                detail: detail.to_string(),
+            });
         }
     }
     out

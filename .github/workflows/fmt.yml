@@ -1,0 +1,16 @@
+name: fmt
+
+# The Rust crate stays rustfmt-clean (src-tauri/rustfmt.toml). Formatting only: no build, no system libraries.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rustfmt:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add rustfmt
+      - run: cargo fmt --check
+        working-directory: src-tauri

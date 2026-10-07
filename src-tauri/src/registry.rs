@@ -474,10 +474,7 @@ fn tool_detail<'a>(name: &str, input: &'a serde_json::Value) -> Option<&'a str> 
 
 /// What a pending tool call asks permission for: "<Tool>: <command or file> — <description>".
 fn ask_line(name: &str, input: &serde_json::Value) -> String {
-    let target = ["command", "file_path", "notebook_path", "pattern", "url", "query", "skill", "prompt"]
-        .iter()
-        .find_map(|k| field(input, k))
-        .or_else(|| first_string(input));
+    let target = ["command", "file_path", "notebook_path", "pattern", "url", "query", "skill", "prompt"].iter().find_map(|k| field(input, k)).or_else(|| first_string(input));
     let mut out = match target {
         Some(t) => format!("{name}: {t}"),
         None => name.to_string(),
@@ -492,9 +489,7 @@ fn ask_line(name: &str, input: &serde_json::Value) -> String {
 /// command echoes (`<command-…>`, `<local-command-…>`, `<task-notification>`, `<system-reminder>`).
 fn injected(t: &str) -> bool {
     t.starts_with('<')
-        || ["Another Claude session", "[SYSTEM", "Caveat:", "This session is being continued from a previous conversation", "[Request interrupted"]
-            .iter()
-            .any(|p| t.starts_with(p))
+        || ["Another Claude session", "[SYSTEM", "Caveat:", "This session is being continued from a previous conversation", "[Request interrupted"].iter().any(|p| t.starts_with(p))
         || (t.starts_with("You have ") && t.contains("orchestration message"))
 }
 
@@ -505,9 +500,7 @@ pub fn task_line(tail: &str) -> String {
         let content = &v["message"]["content"];
         match v["type"].as_str() {
             Some("assistant") => {
-                let tool = content
-                    .as_array()
-                    .and_then(|a| a.iter().rev().find(|b| b["type"] == "tool_use"));
+                let tool = content.as_array().and_then(|a| a.iter().rev().find(|b| b["type"] == "tool_use"));
                 if let Some(tool) = tool {
                     let name = tool["name"].as_str().unwrap_or("tool");
                     return clip(&match tool_detail(name, &tool["input"]) {
@@ -517,13 +510,8 @@ pub fn task_line(tail: &str) -> String {
                 }
             }
             Some("user") if v["isMeta"] != true && v["isCompactSummary"] != true => {
-                let text = content.as_str().map(str::to_string).or_else(|| {
-                    content
-                        .as_array()
-                        .and_then(|a| a.iter().find(|b| b["type"] == "text"))
-                        .and_then(|b| b["text"].as_str())
-                        .map(str::to_string)
-                });
+                let text =
+                    content.as_str().map(str::to_string).or_else(|| content.as_array().and_then(|a| a.iter().find(|b| b["type"] == "text")).and_then(|b| b["text"].as_str()).map(str::to_string));
                 if let Some(t) = text {
                     let t = t.trim();
                     if !t.is_empty() && !injected(t) {
@@ -564,9 +552,7 @@ pub fn pending_ask(tail: &str) -> Option<String> {
                 answered.extend(results.iter().filter_map(|b| b["tool_use_id"].as_str().map(str::to_string)));
             }
             Some("assistant") => {
-                let pending = blocks.into_iter().flatten().rev().find(|b| {
-                    b["type"] == "tool_use" && !b["id"].as_str().is_some_and(|id| answered.contains(id))
-                });
+                let pending = blocks.into_iter().flatten().rev().find(|b| b["type"] == "tool_use" && !b["id"].as_str().is_some_and(|id| answered.contains(id)));
                 if let Some(b) = pending {
                     return Some(ask_line(b["name"].as_str().unwrap_or("tool"), &b["input"]));
                 }
@@ -664,19 +650,23 @@ pub fn read_tail(read: impl Fn(u64) -> Option<String>) -> Option<Tail> {
             tail = bigger;
         }
     }
-    Some(Tail { task, context, turn_done: turn_done(&tail), compacted_at: compacted_at(&tail), title: title_of(&tail), asks: pending_ask(&tail), question: ends_with_question(&tail), limit: limit_of(&tail) })
+    Some(Tail {
+        task,
+        context,
+        turn_done: turn_done(&tail),
+        compacted_at: compacted_at(&tail),
+        title: title_of(&tail),
+        asks: pending_ask(&tail),
+        question: ends_with_question(&tail),
+        limit: limit_of(&tail),
+    })
 }
 
 /// One pass over `~/.claude/sessions`. A file that fails to parse is reported by the pid in its
 /// name (only if that pid is still alive) so the caller can keep that session's last known state
 /// (Claude Code may be mid-write) without resurrecting a session whose process already died.
 /// `alive(pid, procStart)`; `details(session id, cwd)` gives the transcript tail and active helpers.
-pub fn scan(
-    dir: &Path,
-    alive: impl Fn(u32, Option<&str>) -> bool,
-    mut details: impl FnMut(&str, &str) -> (Option<Tail>, Vec<Helper>),
-    mut orca_handle: impl FnMut(u32) -> Option<String>,
-) -> Scan {
+pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: impl FnMut(&str, &str) -> (Option<Tail>, Vec<Helper>), mut orca_handle: impl FnMut(u32) -> Option<String>) -> Scan {
     let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
     let Ok(entries) = fs::read_dir(dir) else { return out };
     for entry in entries.flatten() {
@@ -781,8 +771,7 @@ pub fn valid_orca_handle(handle: &str) -> bool {
 /// Only a claude.ai code-session URL may be opened via the shell.
 pub fn valid_claude_web_url(url: &str) -> bool {
     // The id is passed through `cmd /c start`, so only allow characters cmd can't interpret (& | ^ < > etc.).
-    url.strip_prefix("https://claude.ai/code/")
-        .is_some_and(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
+    url.strip_prefix("https://claude.ai/code/").is_some_and(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
 }
 
 pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
@@ -972,7 +961,8 @@ mod tests {
         let tail = [
             r#"{"type":"user","message":{"content":"fix the hololith page"}}"#,
             r#"{"type":"assistant","message":{"content":[{"type":"text","text":"ok"},{"type":"tool_use","name":"Edit","input":{"file_path":"ui/hololith.html"}}]}}"#,
-        ].join("\n");
+        ]
+        .join("\n");
         assert_eq!(task_line(&tail), "Edit · hololith.html");
     }
 
@@ -982,7 +972,8 @@ mod tests {
             r#"{"type":"user","message":{"content":"port the Lex index"}}"#,
             r#"{"type":"user","message":{"content":[{"type":"tool_result","content":"done"}]}}"#,
             r#"{"type":"user","message":{"content":"<command-name>/clear</command-name>"}}"#,
-        ].join("\n");
+        ]
+        .join("\n");
         assert_eq!(task_line(&tail), "“port the Lex index”");
     }
 
@@ -1053,7 +1044,8 @@ mod tests {
             r#"{"type":"user","message":{"content":"go"}}"#,
             r#"{"type":"ai-title","aiTitle":"Card text from the Magos","sessionId":"s"}"#,
             r#"{"type":"assistant","message":{"content":[{"type":"text","text":"ok"}]}}"#,
-        ].join("\n");
+        ]
+        .join("\n");
         assert_eq!(title_of(&tail).as_deref(), Some("Card text from the Magos"));
         assert_eq!(title_of(r#"{"type":"user","message":{"content":"ai-title"}}"#), None);
     }
@@ -1066,7 +1058,8 @@ mod tests {
             tool("Read", "toolu_1", r#"{"file_path":"C:\\x\\README.md"}"#),
             r#"{"type":"user","message":{"content":[{"tool_use_id":"toolu_1","type":"tool_result","content":"..."}]}}"#.to_string(),
             bash.clone(),
-        ].join("\n");
+        ]
+        .join("\n");
         assert_eq!(pending_ask(&tail).as_deref(), Some("Bash: echo hello > .superpowers/sdd/permtest.txt — Writing hello to a test file"));
         let answered = format!("{tail}\n{}", r#"{"type":"user","message":{"content":[{"tool_use_id":"toolu_2","type":"tool_result","content":""}]}}"#);
         assert_eq!(pending_ask(&answered), None, "every call answered");
@@ -1105,7 +1098,8 @@ mod tests {
         let tail = [
             r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":100,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":5}}}"#,
             r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":2,"cache_creation_input_tokens":350,"cache_read_input_tokens":306393,"output_tokens":365}}}"#,
-        ].join("\n");
+        ]
+        .join("\n");
         let c = context_of(&tail).expect("has usage");
         assert_eq!(c.tokens, 2 + 350 + 306393);
         assert_eq!(c.model, "claude-opus-5-5");
@@ -1117,7 +1111,8 @@ mod tests {
             r#"{"type":"user","message":{"content":"hi"}}"#,
             r#"{"type":"assistant","message":{"model":"<synthetic>","usage":{"input_tokens":9}}}"#,
             r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":5,"output_tokens":1}}}"#,
-        ].join("\n");
+        ]
+        .join("\n");
         assert_eq!(context_of(&tail), Some(Context { tokens: 5, model: "claude-opus-5-5".to_string() }));
     }
 
@@ -1129,7 +1124,12 @@ mod tests {
         assert_eq!(context_of(tail), Some(Context { tokens: 0, model: "claude-opus-5-5".to_string() }));
     }
 
-    use std::{fs, io::Write, path::PathBuf, time::{Duration, SystemTime}};
+    use std::{
+        fs,
+        io::Write,
+        path::PathBuf,
+        time::{Duration, SystemTime},
+    };
 
     fn tail_of(s: &str) -> Option<Tail> {
         read_tail(|_| Some(s.to_string()))
@@ -1358,7 +1358,9 @@ mod tests {
     fn completions_scan_is_incremental_and_merges_across_polls() {
         let d = temp_dir("completions-scan");
         let p = d.join("parent.jsonl");
-        let line = |id: &str, ts: &str| format!(r#"{{"type":"queue-operation","timestamp":"{ts}","content":"<task-notification>\n<task-id>{id}</task-id>\n<status>completed</status>\n</task-notification>"}}"#);
+        let line = |id: &str, ts: &str| {
+            format!(r#"{{"type":"queue-operation","timestamp":"{ts}","content":"<task-notification>\n<task-id>{id}</task-id>\n<status>completed</status>\n</task-notification>"}}"#)
+        };
         fs::write(&p, format!("{}\n", line("old", "2026-10-05T17:00:00.000Z"))).unwrap(); // already there before tracking starts
         let mut c = Completions::default();
         assert_eq!(c.scan("s1", &stat(&p).unwrap()).len(), 1, "first sight looks back: a subagent that finished just before startup counts");
@@ -1371,16 +1373,26 @@ mod tests {
     }
 
     const REAL_SHELL_TAIL: &str = concat!(
-        r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#, "\n",
-        r#"{"type":"user","message":{"content":[{"type":"tool_result","content":"done"}]}}"#, "\n",
-        r#"{"type":"assistant","message":{"content":[{"type":"text","text":"all set"}]}}"#, "\n",
-        r#"{"type":"system","subtype":"stop_hook_summary","hookCount":2}"#, "\n",
-        r#"{"type":"system","subtype":"turn_duration","durationMs":19925}"#, "\n",
-        r#"{"type":"last-prompt","lastPrompt":"go quand tu les as"}"#, "\n",
-        r#"{"type":"ai-title","aiTitle":"Public APIs repo integration"}"#, "\n",
-        r#"{"type":"mode","mode":"normal"}"#, "\n",
-        r#"{"type":"permission-mode","permissionMode":"bypassPermissions"}"#, "\n",
-        r#"{"type":"bridge-session","bridgeSessionId":"cse_018oaCXrud1SYhmpzjVcGZDY"}"#, "\n",
+        r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#,
+        "\n",
+        r#"{"type":"user","message":{"content":[{"type":"tool_result","content":"done"}]}}"#,
+        "\n",
+        r#"{"type":"assistant","message":{"content":[{"type":"text","text":"all set"}]}}"#,
+        "\n",
+        r#"{"type":"system","subtype":"stop_hook_summary","hookCount":2}"#,
+        "\n",
+        r#"{"type":"system","subtype":"turn_duration","durationMs":19925}"#,
+        "\n",
+        r#"{"type":"last-prompt","lastPrompt":"go quand tu les as"}"#,
+        "\n",
+        r#"{"type":"ai-title","aiTitle":"Public APIs repo integration"}"#,
+        "\n",
+        r#"{"type":"mode","mode":"normal"}"#,
+        "\n",
+        r#"{"type":"permission-mode","permissionMode":"bypassPermissions"}"#,
+        "\n",
+        r#"{"type":"bridge-session","bridgeSessionId":"cse_018oaCXrud1SYhmpzjVcGZDY"}"#,
+        "\n",
         r#"{"type":"system","subtype":"away_summary","content":"on nettoie GyroidVault"}"#,
     );
 
@@ -1489,10 +1501,7 @@ mod tests {
     #[test]
     fn scan_fills_orca_handle_and_web_url() {
         let d = temp_dir("scan-orca-web");
-        fs::write(
-            d.join("10.json"),
-            r#"{"pid":10,"sessionId":"a","cwd":"C:\\git\\Terra","status":"idle","bridgeSessionId":"session_01abc"}"#,
-        ).unwrap();
+        fs::write(d.join("10.json"), r#"{"pid":10,"sessionId":"a","cwd":"C:\\git\\Terra","status":"idle","bridgeSessionId":"session_01abc"}"#).unwrap();
         let out = scan(&d, |_, _| true, |_, _| (None, vec![]), |pid| (pid == 10).then(|| "term_abc-123".to_string()));
         assert_eq!(out.sessions[0].orca.as_deref(), Some("term_abc-123"));
         assert_eq!(out.sessions[0].web.as_deref(), Some("https://claude.ai/code/session_01abc"));
@@ -1632,8 +1641,10 @@ mod tests {
 
     // Shape of a real Claude Code compaction marker (trimmed), followed by the summary turn.
     const COMPACT_TAIL: &str = concat!(
-        r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":900000}}}"#, "\n",
-        r#"{"parentUuid":null,"isSidechain":false,"type":"system","subtype":"compact_boundary","content":"Conversation compacted","isMeta":false,"timestamp":"2026-04-10T18:08:48.679Z","level":"info","compactMetadata":{"trigger":"auto","preTokens":178595}}"#, "\n",
+        r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":900000}}}"#,
+        "\n",
+        r#"{"parentUuid":null,"isSidechain":false,"type":"system","subtype":"compact_boundary","content":"Conversation compacted","isMeta":false,"timestamp":"2026-04-10T18:08:48.679Z","level":"info","compactMetadata":{"trigger":"auto","preTokens":178595}}"#,
+        "\n",
         r#"{"type":"user","message":{"role":"user","content":"This session is being continued from a previous conversation"}}"#,
     );
 
@@ -1703,7 +1714,12 @@ mod tests {
         use chrono::{Local, TimeZone};
         let at = |h, m| Local.with_ymd_and_hms(2026, 10, 6, h, m, 0).unwrap().timestamp_millis();
         let iso = |ms: i64| chrono::DateTime::from_timestamp_millis(ms).unwrap().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-        let limit = |text: &str, ms: i64| format!(r#"{{"type":"assistant","timestamp":"{}","message":{{"model":"<synthetic>","content":[{{"type":"text","text":"{text}"}}]}},"error":"rate_limit","isApiErrorMessage":true}}"#, iso(ms));
+        let limit = |text: &str, ms: i64| {
+            format!(
+                r#"{{"type":"assistant","timestamp":"{}","message":{{"model":"<synthetic>","content":[{{"type":"text","text":"{text}"}}]}},"error":"rate_limit","isApiErrorMessage":true}}"#,
+                iso(ms)
+            )
+        };
         let prompt = r#"{"type":"user","message":{"content":"go on"}}"#;
         let result = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"x","content":"ok"}]}}"#;
         let answer = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"text","text":"done"}]}}"#;
