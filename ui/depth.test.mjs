@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { depth, on, setDepth, onDepth, footOf, shadowOf, silhouette, aoBands, EFFECTS } from './depth.js';
+import { depth, on, setDepth, onDepth, footOf, shadowOf, silhouette, aoBands, casterOf, EFFECTS } from './depth.js';
 import { hallOf } from './layout.js';
 
 // Footprint: the opaque span of the frame's bottom 3 art rows, in logical px (RES 2).
@@ -51,4 +51,12 @@ for (const bays of [0, 2]) {
   assert.ok(bands.some(r => r.side === 'n' && r.x === 0 && r.y === 40 && r.w === H.sw), 'scriptorium wall foot');
   assert.ok(bands.some(r => r.side === 'e' && r.x + r.w === H.sw), 'east wall, scriptorium side');
 }
+// Cast shadows: by day one direction for everyone; at night the nearest coloured light in reach, fading with distance.
+const day = casterOf(100, 100, [], 0.18), day2 = casterOf(10, 50, [], 0.18);
+assert.deepEqual([day.from.x - 100, day.from.y - 100], [day2.from.x - 10, day2.from.y - 50]);
+const lamps = [{ x: 0, y: 0, r: 20, color: 'c' }, { x: 30, y: 0, r: 20, color: 'c' }, { x: 12, y: 0, r: 40 }];
+assert.equal(casterOf(10, 0, lamps, 0.78).from, lamps[0]); // the uncoloured one (a window) casts nothing
+assert.equal(casterOf(22, 0, lamps, 0.78).from, lamps[1]);
+assert.equal(casterOf(100, 0, lamps, 0.78), null);
+assert.ok(casterOf(1, 0, lamps, 0.78).alpha > casterOf(15, 0, lamps, 0.78).alpha);
 console.log('depth ok');

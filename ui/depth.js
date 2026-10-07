@@ -83,13 +83,27 @@ silhouette.make = cv => {
 export function castShadow(g, cv, box, from, alpha) {
   if (alpha <= 0) return;
   const fx = box.x + box.w / 2, fy = box.y + box.h, dx = fx - from.x, dy = fy - from.y, d = Math.max(8, Math.hypot(dx, dy));
-  const sy = dy < 0 ? 0.4 : -0.4, kx = (-dx / d) * 0.9 * Math.sign(sy);
+  const sy = dy < 0 ? 0.4 : -0.4, kx = (-dx / d) * 0.9; // the top of the figure leans away from the light
   g.save();
   g.globalAlpha *= alpha;
   g.translate(fx, fy);
   g.transform(1, 0, kx, sy, 0, 0);
   g.drawImage(silhouette(cv), box.x - fx, box.y - fy, box.w, box.h);
   g.restore();
+}
+
+// The light that casts an actor's shadow, and how dark: at night the nearest coloured light within 1.2 times its
+// reach, fading with distance; by day one shared direction, down and to the right like the window beams.
+// lights: the frame's ({ x, y, r, color }); dark: lightLevel().dark. -> { from, alpha } or null.
+export function casterOf(fx, fy, lights, dark) {
+  if (dark < 0.5) return { from: { x: fx - 30, y: fy - 90 }, alpha: 0.18 };
+  let best = null, bd = Infinity;
+  for (const l of lights) {
+    if (!l.color || !(l.r > 0)) continue;
+    const d = Math.hypot(fx - l.x, fy - l.y);
+    if (d < 1.2 * l.r && d < bd) { best = l; bd = d; }
+  }
+  return best && { from: best, alpha: 0.4 * (1 - bd / (1.2 * best.r)) };
 }
 
 // Ambient occlusion: a dark band on the floor along every wall foot (side: where the wall is). Rects in the hall's

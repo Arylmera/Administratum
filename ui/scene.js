@@ -1,4 +1,4 @@
-import { blit, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
 
@@ -7,7 +7,7 @@ const I = T.ink; // every colour drawn here, by name (theme.js)
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { SCENE, hallOf } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
-import { on, on as depthOn, shadowOf, contactShadow, drawAO, FLY_H } from './depth.js';
+import { on, on as depthOn, shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
@@ -214,9 +214,15 @@ export function drawScene(g, layout, actors, fillOf, now) {
   }
   for (const a of all) items.push({ y: a.y, draw: g2 => { drawActor(g2, a); if (a.burn) bundle(g2, a, fillOf(a.burn.old)); } });
   if (on('contact')) {
+    const lit = on('cast') && staticLights(H).concat(lights); // the lights known so far: the room's and the desks'
     for (const a of all) {
       const b = bodyOf(a), e = shadowOf(b.map, b.x, b.y);
       if (e && b.step > 0 && on('motion')) e.rx -= 0.5; // a stride: the feet apart, the body low, the shadow tighter
+      const c = lit && casterOf(a.x, a.y, lit, dark);
+      if (c) {
+        const cv = sprite(b.map, b.over);
+        floor.push(() => castShadow(g, cv, { x: b.x, y: b.y, w: cv.width / RES, h: cv.height / RES }, c.from, c.alpha));
+      }
       floor.push(() => contactShadow(g, e, shade));
     }
     floor.forEach(f => f(g));
