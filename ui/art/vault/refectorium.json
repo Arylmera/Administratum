@@ -1,0 +1,39 @@
+{
+  "frames": {
+    "RECAFF": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 36
+      }
+    },
+    "TABLE": {
+      "frame": {
+        "x": 0,
+        "y": 37,
+        "w": 92,
+        "h": 16
+      }
+    },
+    "BENCH": {
+      "frame": {
+        "x": 0,
+        "y": 54,
+        "w": 92,
+        "h": 8
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "refectorium.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 92,
+      "h": 62
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
