@@ -21,12 +21,13 @@
   figcaption { color: var(--dim); margin-bottom: 6px; }
   figcaption b { color: var(--ink); }
   canvas { display: block; image-rendering: pixelated; background: #0a0a0b; }
+  h2.br { flex-basis: 100%; margin: 8px 0 0; font-size: 14px; color: var(--dim); }
   .err { color: #ff7a6a; white-space: pre-wrap; }
 </style>
 <header>
   <h1>Projection trial</h1>
   <label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
-  <label>Show <select id="only"><option value="">all</option><option value="flat">flat 3/4</option><option value="iso">isometric</option><option value="oblique">oblique (a) cabinet</option><option value="oblique2">oblique (a2) 2:1</option><option value="persp">oblique (b) perspective</option><option value="dimetric">dimetric</option></select></label>
+  <label>Show <select id="only"><option value="">all</option><option value="flat">flat 3/4</option><option value="iso">isometric 45°</option><option value="a39">39°</option><option value="a30">30°</option><option value="oblique">oblique (a) cabinet</option><option value="oblique2">oblique (a2) 2:1</option><option value="persp">oblique (b) perspective</option><option value="dimetric">dimetric</option></select></label>
   <label><input type="checkbox" id="night"> night</label>
   <label><input type="checkbox" id="pause"> pause</label>
   <label>Step <input type="range" id="step" min="0" max="287" value="0"></label>
@@ -37,8 +38,10 @@ const $ = id => document.getElementById(id);
 try {
   const { build, drawScene, drawFlat, FLAT, PROJ, PERIOD } = await import('./iso.mjs');
   const views = [
-    { id: 'flat', title: 'Today: flat 3/4', note: 'the existing sprites blitted as the hall draws them' },
-    { id: 'iso', title: '2:1 isometric', note: 'both walls sheared 2-1; hand-drawn iso scribe (SW/NE + mirrors)' },
+    { id: 'iso', title: '45° — 2:1 isometric', note: 'both walls sheared 2-1; hand-drawn iso scribe (SW/NE + mirrors)' },
+    { id: 'a39', title: '39° — back wall 3:1, side wall 2:1', note: 'hand-drawn S39/N39 along the side wall, SE/NW along the back' },
+    { id: 'a30', title: '30° — back wall 3:1, side wall 1:1', note: 'scribe frames as at 39°' },
+    { id: 'flat', title: 'Today: flat 3/4', note: 'the existing sprites blitted as the hall draws them', br: true },
     { id: 'oblique', title: 'Oblique (a) cabinet 1:1', note: 'back wall and fronts as today, depth recedes in 1-1 steps at half length; today\'s scribe frames' },
     { id: 'oblique2', title: 'Oblique (a2) 2:1 steps', note: 'depth recedes in 2-1 steps (the iso slope), back wall still flat; today\'s scribe frames' },
     { id: 'persp', title: 'Oblique (b) light one-point perspective', note: 'shell converges, rows shorten toward the back; furniture crisp (cabinet), placed in perspective, darker further back' },
@@ -50,6 +53,7 @@ try {
     const f = document.createElement('figure');
     f.id = `f-${v.id}`;
     f.innerHTML = `<figcaption><b>${v.title}</b> — ${v.note}</figcaption><canvas width="${size.w}" height="${size.h}"></canvas>`;
+    if (v.br) { const h = document.createElement('h2'); h.className = 'br'; h.textContent = 'Other views'; $('out').append(h); }
     $('out').append(f);
     v.cv = f.querySelector('canvas'); v.g = v.cv.getContext('2d'); v.g.imageSmoothingEnabled = false; v.fig = f;
   }

@@ -95,10 +95,83 @@ const NE_FEET = [
   ['..........kMMk', '...........kk'],
 ];
 
+// For the asymmetric rotations (39 deg, 30 deg) the diagonals are not mirrors: walking along the side wall (+v / -v)
+// the scribe is turned only ~39 deg (or 30) from the viewer, along the back wall (+u / -u) ~51 deg (or 60). S39 / N39
+// are the less-turned pair, drawn here; the more-turned pair reuses SW / NE mirrored (SE / NW).
+// S39: toward the viewer, a little to the left: the face opening just left of centre, both eyes, the cog and the sash
+// tab left of centre, the sash dipping at the front.
+const S39_BODY = [
+  '............kkkkkkkk',
+  '..........kkRRRrrrrrkk',
+  '........kkRRrrrrrrrrrrkk',
+  '.......kRRrrrrrrrrrrrrrrdk',
+  '......kRrrrrrrrrrrrrrrrrrdk',
+  '.....kRrrrrrrrrrrrrrrrrrrrdk',
+  '....kRrttttttttttttttrrrrddk',
+  '....kRrtkkkkkkkkkkkkkdrrrrddk',
+  '....kRrtkeeeeeeeeeeekdrrrrddk',
+  '....kRrtkeeeeeeeeeeekdrrrrddk',
+  '....kRrtkeOoeeeOoeeekdrrrrddk',
+  '....kRrtkeooeeeooeeekdrrrrddk',
+  '....kRrtkeeeeeeeeeeekdrrrrddk',
+  '....kRrtkeeemMmMmeeekdrrrrddk',
+  '....kRrtkeeeeeeeeeeekdrrrrddk',
+  '....kdRtkkkkkkkkkkkkkdrrrdddk',
+  '....kdRrrrrrrrrrrrrrrrrrrdddk',
+  '.....kddrrrrrrrrrrrrrrrrrddk',
+  '...kktzTTTTTTTTTTTTTTTTTTTTkk',
+  '...kRrrrrrrzzzzrrrrrrrrrrdddk',
+  '...kRrrrrrzzjjzzrrrrrrrrrlmdk',
+  '...kRlmrrrrzzzzrrrrrryyyyyyyk',
+  '...kyyyyyyyyyyyyyyyyyyyyyyyyk',
+  '...kyyyyyyyyyyyyyyyyyrrrrdddk',
+  '...kRrrrkyyykrrrrrrrrrrrrdddk',
+  '...kRrrrkykykrrrdrrrrrdrrdddk',
+  '...kRrrrkykykrrRdrrrrRdrrdddk',
+  '...kdRrrrkrkrrRdrrrrrRdrddddk',
+  '...kdRrrrrrrrRdrrrrrRdrddddk',
+  '...kddrrrrrrrrrRdrrGgGgGgGgGk',
+  '...kGgGgGgGgGgGgGgGkkkkkkkkkk',
+  '....kkkkkkkkkkkkkkk',
+];
+const S39_FEET = [
+  ['.....klmmMk..klmmMk', '....kkkkkk..kkkkkk'],
+  ['...klmmMk.......kkkk', '..kkkkkk'],
+  ['.........klmmMk', '........kkkkkk'],
+];
+// N39: away from the viewer, a little to the right: the back plate, spine and hood cog nearer the middle than NE.
+const N39_BODY = [
+  '............kkkkkkkk',
+  '..........kkRRRrrrrrkk',
+  '........kkRRrrrrrrrrrrkk',
+  '......kRRrrrrrzrzzrzrrrdk',
+  '.....kRrrrrrrrrzzzzrrrrrdk',
+  '....kRrrrrrrrrzzjjzzrrrrddk',
+  '....kRrrrrrrrrrzzzzrrrrrrrdk',
+  '....kRrrrrrrrrzrzzrzrrrrtddk',
+  '....kRrrrrrkkkkkkrrrrrrrtddk',
+  '....kRrrrrkmmmmmMkrrrrrrtddk',
+  '....kRrrrrkmkOokMkrrrrrrtddk',
+  '....kRrrrrkmkookMkrrrrrrtddk',
+  '....kRrrrrkMmmmMMkrrrrrrtddk',
+  '....kRrrrrrkkkkkkrrrrrrrtddk',
+  '....kRrrrrrrkmMkrrrrrrrrtddk',
+  '....kdRrrrrrkmMkrrrrrrrrdddk',
+  '.....kdRrrrrkmMkrrrrrrrrdddk',
+  '......kddrrrkmMkrrrrrrrdddk',
+  '....kktzTTTTkmMkTTTTTTTTTkk',
+  '....kRrrrrrrkMMkrrrrrrrdddk',
+  '....kRmmrrrrkmMkrrrrrrrmmdk',
+  '....kRmMrrrrkmMkyyyyyyyyyyk',
+  ...NE_BODY.slice(22),
+];
+
 const frames = (name, body, feet) => feet.map((f, i) => pad(`${name} ${i}`, [...body, ...f]));
 const mirror = map => map.map(r => [...r].reverse().join(''));
 
 export const SCRIBE_ISO = { sw: frames('sw', SW_BODY, SW_FEET), ne: frames('ne', NE_BODY, NE_FEET) };
 SCRIBE_ISO.se = SCRIBE_ISO.sw.map(mirror);
 SCRIBE_ISO.nw = SCRIBE_ISO.ne.map(mirror);
+SCRIBE_ISO.s39 = frames('s39', S39_BODY, S39_FEET);
+SCRIBE_ISO.n39 = frames('n39', N39_BODY, NE_FEET);
 export const SCRIBE_ISO_FEET = { x: 15, y: 33 }; // art px: the frame's point on the floor

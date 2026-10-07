@@ -20,6 +20,14 @@ const fl = Math.floor;
 export const PROJ = {
   iso: { name: '2:1 isometric', VS: 1, P: (u, v, z) => [u - v, fl((u + v) / 2) - z] },
   oblique: { name: 'oblique, front-facing', VS: 2, P: (u, v, z) => [u - fl(v / 2), fl(v / 2) - z] },
+  // Asymmetric rotations: the back wall (u) recedes 3:1, the side wall (v) 2:1 (39 deg) or 1:1 (30 deg). With vertical
+  // squash s and rotation t, s tan t = 1/3 and s cot t = 1/2 (39: s^2 = 1/6, tan t = 0.816) or 1 (30: tan t = 0.577).
+  // u keeps 1 px across per unit (the art's width); v is foreshortened to w = floor(v tan t) px across, so both slopes
+  // stay clean repeating stairs (3-3-3 and 2-2-2 / 1-1-1) with the room's proportions true.
+  a39: { name: '39° rotation (3:1 / 2:1)', VS: 2 / Math.sqrt(2 / 3), asym: true,
+    P: (u, v, z) => { const w = fl(v * Math.sqrt(2 / 3)); return [u - w, fl(u / 3) + fl(w / 2) - z]; } },
+  a30: { name: '30° rotation (3:1 / 1:1)', VS: Math.sqrt(3), asym: true,
+    P: (u, v, z) => { const w = fl(v / Math.sqrt(3)); return [u - w, fl(u / 3) + w - z]; } },
   oblique2: { name: 'oblique, 2:1 steps', VS: 2, wideU: true, P: (u, v, z) => [u - v, fl(v / 2) - z] },
   // Light one-point perspective: the cabinet oblique scaled about (PX, 0) by s = 1 + A v, so the back wall (v = 0) stays
   // at scale 1 (today's art untouched), the side wall and the floor edges converge toward the back, floor rows get
@@ -81,6 +89,19 @@ class Buf {
   // Outline ('k') the pixels of the given ids that touch the void or something further back.
   outline(ids, gap = 3) {
     const { w, h } = SIZE, mark = [];
+    // ponytail: the 39/30 deg projections leave single-pixel holes inside top faces (where the 3- and 2-stairs step
+    // together); fill each from its left (or upper) neighbour on the same top face. Edges are unaffected.
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      if (this.ch[i] !== '.') continue;
+      for (let [a, b] of [[i - 1, i + 1], [i - w, i + w]]) {
+        if (this.ch[a] === '.' || this.ch[b] === '.' || (this.face[a] !== 0 && this.face[b] !== 0)) continue;
+        if (this.face[a] !== 0) a = b;
+        this.ch[i] = this.ch[a]; this.dp[i] = this.dp[a]; this.id[i] = this.id[a]; this.face[i] = 0;
+        for (let k = 0; k < 3; k++) this.w[3 * i + k] = this.w[3 * a + k];
+        break;
+      }
+    }
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (!ids.has(this.id[i])) continue;
@@ -269,9 +290,11 @@ export const order = (a, b) => (behind(a, b) ? -1 : behind(b, a) ? 1 : (a.u0 + a
 
 // Scribe frames per direction. Iso: the hand-drawn iso frames (in iso, +u walks down-right = SE). Oblique and
 // dimetric: today's frames, reused (east = right, south = down toward the viewer).
+// 39 and 30 deg: along the side wall (+v / -v) the less-turned S39 / N39, along the back wall (+u / -u) SE / NW.
 function scribeFrames(proj) {
-  const iso = { e: 'se', w: 'nw', s: 'sw', n: 'ne' }, flat = { e: 'right', w: 'left', s: 'down', n: 'up' };
-  return Object.fromEntries(['e', 'w', 's', 'n'].map(d => [d, proj === 'iso' ? SCRIBE_ISO[iso[d]].map(f => paint(f)) : SCRIBE[flat[d]].map(f => paint(f))]));
+  const iso = { e: 'se', w: 'nw', s: 'sw', n: 'ne' }, asym = { e: 'se', w: 'nw', s: 's39', n: 'n39' }, flat = { e: 'right', w: 'left', s: 'down', n: 'up' };
+  const set = proj === 'iso' ? iso : PROJ[proj].asym ? asym : null;
+  return Object.fromEntries(['e', 'w', 's', 'n'].map(d => [d, (set ? SCRIBE_ISO[set[d]] : SCRIBE[flat[d]]).map(f => paint(f))]));
 }
 
 export function build(proj = 'iso') {
@@ -294,7 +317,7 @@ export function build(proj = 'iso') {
     proj, P: main.P, PL: PR.P, dov: main.dov ?? 0, size: SIZE, cogOff,
     room: { ...canv(room), windowDay: paint(room.window, T.ink.windowDay), windowNight: paint(room.window, T.ink.windowNight) },
     desks: [canv(deskA), canv(deskB)], cog: [0, 1, 2, 3].map(cogFrame).map(canv), screens: cogScreens(),
-    scribe: scribeFrames(proj), feet: proj === 'iso' ? SCRIBE_ISO_FEET : { x: 16, y: 33 },
+    scribe: scribeFrames(proj), feet: proj === 'iso' || main.asym ? SCRIBE_ISO_FEET : { x: 16, y: 33 },
   };
   PR = main; VS = PR.VS;
   return S;
@@ -333,7 +356,7 @@ export function drawScene(g, S, t, night) {
   for (const d of S.desks) { const { u0, u1, v0, v1 } = d.box; poly(g, [[u0 - 2, v0 - 2], [u1 + 2, v0 - 2], [u1 + 3, v1 + 3], [u0 - 2, v1 + 3]].map(([u, v]) => L(d.off, u, v))); g.fill(); }
   poly(g, [[COG_U + 4, 0], [COG_U + 160, 0], [COG_U + 160, COG_V + 4], [COG_U + 4, COG_V + 4]].map(([u, v]) => L(S.cogOff, u, v))); g.fill();
   g.restore();
-  contactShadow(g, { cx: px, cy: py, rx: 11, ry: S.proj === 'iso' ? 5.5 : 4 }, 0.55);
+  contactShadow(g, { cx: px, cy: py, rx: 11, ry: S.proj === 'iso' ? 5.5 : S.proj === 'a30' ? 6 : S.proj === 'a39' ? 5 : 4 }, 0.55);
   // layers back to front
   const frame = [1, 0, 2, 0][fl(t / 6) % 4], cog = S.cog[fl(t / 10) % S.cog.length];
   const layers = [
