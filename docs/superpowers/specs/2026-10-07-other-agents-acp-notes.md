@@ -50,7 +50,23 @@ ACP gives more **agents**, not more models directly: the model is whatever each 
 - **Updates on Windows.** A running relay cannot be overwritten; the updater must install the new version
   alongside it.
 - **Claude gains little.** `claude` typed in a terminal or Orca does not use ACP and never passes through the relay,
-  so file-watching stays anyway. As far as we know the Claude adapter still writes the usual transcripts.
+  so file-watching stays anyway. See below: Claude over ACP keeps using Claude Code's own session store.
+
+## Claude over ACP (checked 2026-10-07)
+
+Source read: `agentclientprotocol/claude-agent-acp` 0.86.0 (formerly `zed-industries/claude-code-acp`, npm
+`@agentclientprotocol/claude-agent-acp`), built on `@anthropic-ai/claude-agent-sdk`.
+
+- **Access**: it uses the Claude Code login already on the PC (subscription or `ANTHROPIC_API_KEY`). An integration
+  can hide the claude.ai subscription login with a flag; Zed and the default setup do not.
+- **Same session store**: it lists sessions with the SDK's `listSessions` and replays them with
+  `getSessionMessages`, i.e. Claude Code's transcripts under `~/.claude/projects`. A Claude session started from an
+  ACP editor is therefore written where Administratum already reads.
+- **`session/list`, `session/load`, `session/resume`**: advertised (`loadSession: true`). An ACP editor can list and
+  reopen a Claude session started in a terminal, and the other way round. That is a resume in a new process, not an
+  attach to the running one: still no joining a live session without the relay.
+- **To verify before relying on it**: that a session started through the adapter also gets its pid file in
+  `~/.claude/sessions`, which is how the registry finds live sessions (transcripts alone are not enough today).
 
 ## If we pick it up
 
