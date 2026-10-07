@@ -639,6 +639,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     turns = c.turns(&poller.files);
                     ev
                 };
+                let from_transcripts = !demo && !events.is_empty();
                 if !first {
                     events.extend(chronicle::lifecycle(&prev, &roster, now));
                 }
@@ -650,7 +651,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                         emit(&app, "chronicle", e);
                     }
                 }
-                c.maybe_flush(now);
+                c.maybe_flush(now, from_transcripts);
                 first = false;
             }
             for s in roster.iter_mut() {

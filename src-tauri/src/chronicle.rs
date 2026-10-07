@@ -158,6 +158,9 @@ pub struct Src<'a> {
     pub name: &'a str,
     pub dept: &'a str,
     pub helper: Option<&'a str>,
+    /// The session's current git branch, for a live read only (a backfill may predate a checkout): what a
+    /// bare `git push` pushed when neither the command nor its output says.
+    pub branch: Option<&'a str>,
 }
 
 const TEST_RUNNERS: [&str; 9] = ["cargo test", "npm test", "npm run test", "pnpm test", "yarn test", "pytest", "vitest", "jest", "go test"];
@@ -239,7 +242,7 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
             Some("user") => {
                 for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_result") {
                     let p = b["tool_use_id"].as_str().and_then(|id| cur.pending.remove(id));
-                    for (kind, detail) in classify(p.as_ref(), b) {
+                    for (kind, detail) in classify(p.as_ref(), b, src.branch) {
                         emit(kind, detail);
                     }
                 }
@@ -320,7 +323,7 @@ fn relative(p: &str, cwd: &str) -> String {
     }
 }
 
-fn classify(p: Option<&Pending>, b: &Value) -> Vec<(&'static str, String)> {
+fn classify(p: Option<&Pending>, b: &Value, branch: Option<&str>) -> Vec<(&'static str, String)> {
     let is_error = b["is_error"].as_bool();
     let failed = is_error == Some(true);
     let text = result_text(&b["content"]);
@@ -329,11 +332,13 @@ fn classify(p: Option<&Pending>, b: &Value) -> Vec<(&'static str, String)> {
         // Match on the command line itself, not on a heredoc body it feeds (briefs, scripts).
         let head = cmd.split("<<").next().unwrap_or("");
         let mut git = vec![];
-        if !failed && head.contains("git commit") && !head.contains("--dry-run") {
+        if !failed && git_sub(head, "commit").is_some() && !head.contains("--dry-run") {
             git.push(("commit", commit_message(cmd)));
         }
-        if !failed && head.contains("git push") {
-            git.push(("push", push_target(head)));
+        if let Some((i, j)) = git_sub(head, "push").filter(|_| !failed) {
+            // `git -C <dir>` may push another repo than the session's: its branch says nothing then.
+            let branch = branch.filter(|_| !head[i..j].contains(" -C"));
+            git.push(("push", push_target(&head[j..], &text, branch)));
         }
         if !git.is_empty() {
             return git;
@@ -385,7 +390,7 @@ fn says_failed(text: &str) -> bool {
 /// First line of the commit message: heredoc body (`-F - <<'EOF'`, `-m "$(cat <<'EOF'`) or a
 /// quoted/bare `-m` / `-am` / `--message` value; else the command clipped.
 fn commit_message(cmd: &str) -> String {
-    let after = &cmd[cmd.find("git commit").unwrap_or(0)..];
+    let after = &cmd[git_sub(cmd, "commit").map_or(0, |(i, _)| i)..];
     let heredoc = || after.find("<<").and_then(|i| after[i..].lines().skip(1).map(str::trim).find(|l| !l.is_empty()));
     let line = match message_flag(after) {
         Some(v) if v.starts_with("$(") => heredoc(),
@@ -415,11 +420,59 @@ fn message_flag(after: &str) -> Option<&str> {
     })
 }
 
-/// "origin/main" from `git push [-flags] origin main`, "" when not spelled out.
-fn push_target(cmd: &str) -> String {
-    let after = &cmd[cmd.find("git push").map_or(0, |i| i + 8)..];
-    let seg = after.split(['&', ';', '|', '\n']).next().unwrap_or("");
-    seg.split_whitespace().filter(|w| !w.starts_with('-') && !w.contains('>')).take(2).collect::<Vec<_>>().join("/")
+/// Where `git [global options] <sub>` starts in `cmd` and where it ends (`git -C dir push`, `git -c k=v commit`), if any.
+fn git_sub(cmd: &str, sub: &str) -> Option<(usize, usize)> {
+    cmd.match_indices("git ").filter(|&(i, _)| i == 0 || cmd[..i].ends_with([' ', '&', ';', '|', '(', '\n'])).find_map(|(i, _)| {
+        let mut rest = &cmd[i + 4..];
+        loop {
+            rest = rest.trim_start_matches(' ');
+            let word = rest.split_whitespace().next()?;
+            if word == sub {
+                return Some((i, cmd.len() - rest.len() + sub.len()));
+            }
+            if !word.starts_with('-') {
+                return None;
+            }
+            // -C <dir> and -c <key=value> take the next word; --git-dir=… and friends are one word.
+            let skip = if word == "-C" || word == "-c" { 2 } else { 1 };
+            for _ in 0..skip {
+                let w = rest.split_whitespace().next()?;
+                rest = &rest[rest.find(w)? + w.len()..];
+            }
+        }
+    })
+}
+
+/// What a push sent, "origin/main": the remote and branch from `args` (after `git push`), else from git's output
+/// (`main -> main`, `set up to track 'origin/main'`), else `branch` (the session's own); "" when nothing says.
+fn push_target(args: &str, output: &str, branch: Option<&str>) -> String {
+    let seg = args.split(['&', ';', '|', '\n']).next().unwrap_or("");
+    let mut words = vec![];
+    let mut it = seg.split_whitespace();
+    while let Some(w) = it.next() {
+        if w == "-o" || w == "--push-option" || w == "--repo" {
+            it.next(); // takes a value
+        } else if !w.starts_with('-') && !w.contains('>') {
+            words.push(w);
+        }
+    }
+    let mut remote = words.first().map(|r| r.to_string());
+    // `src:dst` pushes to dst; `+ref` forces; HEAD is the current branch, which only the output names.
+    let mut target = words.get(1).map(|r| r.rsplit(':').next().unwrap_or(r).trim_start_matches('+')).filter(|r| !r.is_empty() && *r != "HEAD").map(str::to_string);
+    if let Some(tracked) = output.lines().find_map(|l| l.split("set up to track '").nth(1)?.split('\'').next()) {
+        let (r, b) = tracked.split_once('/').unwrap_or(("", tracked));
+        remote = remote.or_else(|| Some(r.to_string()).filter(|r| !r.is_empty()));
+        target = target.or_else(|| Some(b.to_string()));
+    }
+    // A ref update line: `   1a2b..3c4d  main -> main`, ` * [new branch]      feat -> feat`, ` + 1a2b...3c4d feat -> feat (forced update)`.
+    let updated = || output.lines().find_map(|l| l.split(" -> ").nth(1)?.split_whitespace().next().map(|d| d.trim_start_matches("refs/heads/").to_string()));
+    let target = target.or_else(updated).or_else(|| branch.map(str::to_string));
+    match (remote, target) {
+        (Some(r), Some(b)) => format!("{r}/{b}"),
+        (_, Some(b)) => b,
+        (Some(r), None) => r,
+        (None, None) => String::new(),
+    }
 }
 
 fn fmt_duration(ms: u64) -> String {
@@ -593,7 +646,8 @@ impl Chronicle {
                         track_turn(&mut cur.turn, line, &s.cwd);
                     }
                     if events {
-                        let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref() };
+                        let branch = s.branch.as_deref().filter(|_| !today_only);
+                        let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref(), branch };
                         extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
                     }
                 });
@@ -673,10 +727,11 @@ impl Chronicle {
         }
     }
 
-    // ponytail: offsets persist with the tithe every 30 s, and only if either changed; a crash
-    // replays at most 30 s of events.
-    pub fn maybe_flush(&mut self, now_ms: i64) {
-        if self.dirty && now_ms - self.last_flush_ms >= FLUSH_MS {
+    /// Offsets persist with the Tithe, so the two always agree: tokens are never counted twice. Every 30 s at most
+    /// while only tokens moved; at once in a tick that `recorded` transcript events, so a crash cannot replay them
+    /// into the day file a second time (the window shrinks to the gap between the append and this write).
+    pub fn maybe_flush(&mut self, now_ms: i64, recorded: bool) {
+        if self.dirty && (recorded || now_ms - self.last_flush_ms >= FLUSH_MS) {
             self.last_flush_ms = now_ms;
             self.dirty = false;
             self.flush();
@@ -731,7 +786,7 @@ mod tests {
         SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
     }
 
-    const SRC: Src = Src { session_id: "s1", name: "terra-77", dept: "Terra", helper: None };
+    const SRC: Src = Src { session_id: "s1", name: "terra-77", dept: "Terra", helper: None, branch: None };
 
     // Real-shape lines (trimmed): Claude Code 2.1.283 transcripts.
     fn bash_use(id: &str, cmd: &str, ts: i64) -> String {
@@ -792,7 +847,52 @@ mod tests {
         assert_eq!(kinds(&ev), [("push", "origin/main")]);
         let ev = run(&mut cur, &[bash_use("b", "git commit -qm \"x\" && git push -q", 0), result("b", "".into(), Some(false), 0)]);
         assert_eq!(kinds(&ev), [("commit", "x"), ("push", "")], "one command, both events");
-        assert_eq!(push_target("git push"), "");
+        assert_eq!(push_target("", "", None), "");
+    }
+
+    #[test]
+    fn push_target_from_the_command_then_the_output_then_the_branch() {
+        let up = "To github.com:arylmera/Administratum.git\n   1a2b3c4..5d6e7f8  main -> main\n";
+        assert_eq!(push_target(" origin feat", up, Some("x")), "origin/feat", "the command wins");
+        assert_eq!(push_target(" origin src:dst", "", None), "origin/dst");
+        assert_eq!(push_target(" --force origin +feat", "", None), "origin/feat");
+        assert_eq!(push_target(" -o ci.skip origin main", "", None), "origin/main", "-o takes a value");
+        assert_eq!(push_target("", up, Some("x")), "main", "bare push: the ref update line");
+        assert_eq!(push_target(" origin", up, None), "origin/main");
+        assert_eq!(push_target(" -u origin HEAD", " * [new branch]      claude/x -> claude/x\nbranch 'claude/x' set up to track 'origin/claude/x'.\n", None), "origin/claude/x");
+        assert_eq!(push_target("", " + 1a2b...3c4d feat -> feat (forced update)\n", None), "feat");
+        assert_eq!(push_target("", "Everything up-to-date\n", Some("dev")), "dev", "nothing in the output: the session's branch");
+        assert_eq!(push_target(" -q", "", None), "");
+    }
+
+    #[test]
+    fn git_with_global_options_still_matches() {
+        assert_eq!(git_sub("git push", "push"), Some((0, 8)));
+        assert!(git_sub("cd x && git -C ../repo push origin main", "push").is_some());
+        assert!(git_sub("git -c user.name=x commit -m y", "commit").is_some());
+        assert!(git_sub("git --no-pager push", "push").is_some());
+        assert!(git_sub("git log --grep push", "push").is_none(), "push as an argument, not the subcommand");
+        assert!(git_sub("legit push", "push").is_none());
+        assert!(git_sub("echo 'git status' && git commit -m x", "commit").is_some());
+        let mut cur = Cursor::default();
+        let ev = run(&mut cur, &[bash_use("a", "git -C ../other push", 0), result("a", "".into(), Some(false), 0)]);
+        assert_eq!(kinds(&ev), [("push", "")]);
+    }
+
+    #[test]
+    fn bare_push_uses_the_output_or_the_live_branch() {
+        let mut cur = Cursor::default();
+        let live = Src { branch: Some("dev"), ..SRC };
+        let mut out = Found::default();
+        for l in [bash_use("a", "git push", 0), result("a", "Everything up-to-date".into(), Some(false), 0)] {
+            extract_line(&mut cur, &l, i64::MIN, &live, 0, &mut out);
+        }
+        assert_eq!(out.0[0].detail, "dev");
+        let mut out = Found::default();
+        for l in [bash_use("b", "git -C ../other push", 0), result("b", "".into(), Some(false), 0)] {
+            extract_line(&mut cur, &l, i64::MIN, &live, 0, &mut out);
+        }
+        assert_eq!(out.0[0].detail, "", "another repo: the session's branch says nothing");
     }
 
     #[test]
@@ -954,14 +1054,27 @@ mod tests {
         let t = now();
         let mut c = Chronicle::open(d.clone(), t, true);
         let saved = d.join("offsets.json");
-        c.maybe_flush(t + FLUSH_MS);
-        assert!(!saved.exists(), "idle: no write");
+        c.maybe_flush(t + FLUSH_MS, true);
+        assert!(!saved.exists(), "idle: no write, even after events");
         c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
-        c.maybe_flush(t + 2 * FLUSH_MS);
+        c.maybe_flush(t + 2 * FLUSH_MS, false);
         assert!(saved.exists());
         fs::remove_file(&saved).unwrap();
-        c.maybe_flush(t + 3 * FLUSH_MS);
+        c.maybe_flush(t + 3 * FLUSH_MS, false);
         assert!(!saved.exists(), "clean again after a flush");
+    }
+
+    #[test]
+    fn recorded_events_flush_at_once() {
+        let d = temp_dir("events");
+        let t = now();
+        let mut c = Chronicle::open(d.clone(), t, true);
+        let saved = d.join("offsets.json");
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.maybe_flush(t + 1_000, false);
+        assert!(!saved.exists(), "tokens only: wait for the 30 s");
+        c.maybe_flush(t + 2_000, true);
+        assert!(saved.exists(), "events recorded this tick: their offsets are saved with them");
     }
 
     #[test]

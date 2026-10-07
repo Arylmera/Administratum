@@ -12,6 +12,8 @@ use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 /// Branch per cwd is re-read from `.git/HEAD` at most this often.
 const BRANCH_EVERY: Duration = Duration::from_secs(5);
+/// How long a session whose transcript is in no project folder waits before the folders are scanned again.
+const RESCAN_EVERY: Duration = Duration::from_secs(30);
 
 
 /// Transcript files per live session id: the main one (false) and its subagents' (true).
@@ -26,10 +28,10 @@ pub struct Poller {
     completions: registry::Completions,
     /// Orca terminal handle per pid: environ() is only ever read for a pid not seen yet.
     orca_cache: HashMap<u32, Option<String>>,
-    /// Session id -> transcript found by the all-projects scan, done once per id when the direct
-    /// slug path misses. ponytail: a miss is cached for the session's life; a transcript that later
-    /// appears outside the direct path is not found (the direct path is still checked every tick).
-    found: HashMap<String, Option<PathBuf>>,
+    /// Session id -> transcript found by the all-projects scan when the direct slug path misses (the
+    /// cwd changed since the session started), with when it was scanned. A miss, or a hit whose file
+    /// went away, is scanned again after RESCAN_EVERY: the transcript may not exist yet.
+    found: HashMap<String, (Instant, Option<PathBuf>)>,
     tails: Memo<Option<Tail>>,
     helpers: Memo<Helper>,
     /// Branch per cwd, re-read from `.git/HEAD` at most every BRANCH_EVERY.
@@ -61,7 +63,7 @@ impl Poller {
             sessions,
             alive,
             |id, cwd| {
-                let (main, subs) = locate(projects, found, id, cwd);
+                let (main, subs) = locate(projects, found, id, cwd, Instant::now());
                 let tail = main.as_ref().and_then(|m| memo(tails, m, || registry::read_tail(|n| registry::file_tail(&m.path, n))));
                 let empty = HashMap::new();
                 let completed = main.as_ref().map_or(&empty, |m| completions.scan(id, m));
@@ -86,7 +88,7 @@ impl Poller {
         // Sessions carried over from the last tick (record mid-write) still get their files listed.
         for s in &roster {
             if !files.contains_key(&s.id) {
-                let (main, subs) = locate(projects, found, &s.id, &s.cwd);
+                let (main, subs) = locate(projects, found, &s.id, &s.cwd, Instant::now());
                 files.insert(s.id.clone(), main.into_iter().map(|m| (m, false)).chain(subs.into_iter().map(|f| (f, true))).collect());
             }
         }
@@ -105,9 +107,16 @@ impl Poller {
 }
 
 /// A session's transcript (direct slug path, else the cached all-projects scan) and its subagents.
-fn locate(projects: &Path, found: &mut HashMap<String, Option<PathBuf>>, id: &str, cwd: &str) -> (Option<FileStat>, Vec<FileStat>) {
+fn locate(projects: &Path, found: &mut HashMap<String, (Instant, Option<PathBuf>)>, id: &str, cwd: &str, now: Instant) -> (Option<FileStat>, Vec<FileStat>) {
     let direct = registry::direct_transcript(projects, id, cwd);
-    let main = registry::stat(&direct).or_else(|| found.entry(id.to_string()).or_insert_with(|| registry::find_transcript(projects, id)).as_deref().and_then(registry::stat));
+    let main = registry::stat(&direct).or_else(|| {
+        // A hit is kept while its file is there; a miss or a vanished file is scanned again after RESCAN_EVERY.
+        let rescan = found.get(id).map_or(true, |(at, p)| now.saturating_duration_since(*at) >= RESCAN_EVERY && !p.as_deref().is_some_and(Path::is_file));
+        if rescan {
+            found.insert(id.to_string(), (now, registry::find_transcript(projects, id)));
+        }
+        found.get(id)?.1.as_deref().and_then(registry::stat)
+    });
     // `<project>/<id>.jsonl` keeps its subagents in `<project>/<id>/subagents`.
     let dir = main.as_ref().map_or(direct, |m| m.path.clone()).with_extension("").join("subagents");
     (main, registry::list_subagents(&dir))
@@ -229,14 +238,20 @@ mod tests {
         std::fs::write(moved.join("s1.jsonl"), "{}\n").unwrap();
         std::fs::write(moved.join("s1").join("subagents").join("agent-a.jsonl"), "{}\n").unwrap();
         let mut found = HashMap::new();
-        let (main, subs) = locate(&d, &mut found, "s1", r"C:\moved");
+        let t = Instant::now();
+        let (main, subs) = locate(&d, &mut found, "s1", r"C:\moved", t);
         assert_eq!(main.map(|m| m.path), Some(moved.join("s1.jsonl")));
         assert_eq!(subs.len(), 1, "subagents next to the transcript found");
         std::fs::remove_dir_all(&moved).unwrap();
         std::fs::create_dir_all(d.join("C--other")).unwrap();
         std::fs::write(d.join("C--other").join("s1.jsonl"), "{}\n").unwrap();
-        assert!(locate(&d, &mut found, "s1", r"C:\moved").0.is_none(), "cached path, no second scan");
-        let (none, _) = locate(&d, &mut found, "s2", r"C:\x");
-        assert!(none.is_none() && found["s2"].is_none());
+        assert!(locate(&d, &mut found, "s1", r"C:\moved", t).0.is_none(), "cached path, no second scan");
+        assert!(locate(&d, &mut found, "s1", r"C:\moved", t + RESCAN_EVERY).0.is_some(), "file gone: scanned again later");
+        let (none, _) = locate(&d, &mut found, "s2", r"C:\x", t);
+        assert!(none.is_none() && found["s2"].1.is_none());
+        // The transcript is only written at the first prompt: a miss must not stick for the session's life.
+        std::fs::write(d.join("C--other").join("s2.jsonl"), "{}\n").unwrap();
+        assert!(locate(&d, &mut found, "s2", r"C:\x", t + RESCAN_EVERY / 2).0.is_none(), "miss cached for a while");
+        assert!(locate(&d, &mut found, "s2", r"C:\x", t + RESCAN_EVERY).0.is_some(), "then found");
     }
 }
