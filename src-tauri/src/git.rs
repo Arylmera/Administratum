@@ -34,6 +34,13 @@ pub fn branch_of(dir: &Path) -> Option<String> {
     parse_head(&fs::read_to_string(head_file(dir)?).ok()?)
 }
 
+/// The main repo folder of a linked worktree (`<repo>/.git/worktrees/<name>/HEAD` -> `<repo>`); None outside one.
+pub fn worktree_repo(dir: &Path) -> Option<PathBuf> {
+    let wt = head_file(dir)?.parent()?.to_path_buf();
+    let git = wt.parent().filter(|p| p.ends_with("worktrees"))?.parent().filter(|p| p.ends_with(".git"))?;
+    git.parent().map(Path::to_path_buf)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -74,6 +81,10 @@ mod tests {
         fs::create_dir_all(d.join("wt2")).unwrap();
         fs::write(d.join("wt2/.git"), "gitdir: ../repo/.git/worktrees/wt\n").unwrap();
         assert_eq!(branch_of(&d.join("wt2")).as_deref(), Some("wt-branch"), "relative gitdir");
+
+        assert_eq!(worktree_repo(&d.join("wt")).and_then(|p| p.file_name().map(|n| n.to_owned())).as_deref(), Some("repo".as_ref()));
+        assert_eq!(worktree_repo(&d.join("wt2")).and_then(|p| p.file_name().map(|n| n.to_owned())).as_deref(), Some("repo".as_ref()));
+        assert_eq!(worktree_repo(&d.join("repo/src")), None, "the main checkout is no worktree");
 
         fs::create_dir_all(d.join("bare/.git")).unwrap();
         assert_eq!(branch_of(&d.join("bare")), None, "no HEAD file");

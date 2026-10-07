@@ -411,7 +411,16 @@ pub fn parse_record(text: &str) -> Option<RawRecord> {
     serde_json::from_str(text).ok()
 }
 
+/// The project a session belongs to: its folder's name, or for a linked git worktree (an Orca workspace) the main
+/// repo's name, so `workspaces/Geneseed/verification-law` counts as Geneseed.
 pub fn dept_of(cwd: &str) -> String {
+    if let Some(name) = crate::git::worktree_repo(Path::new(cwd)).and_then(|r| r.file_name()?.to_str().map(str::to_string)) {
+        return name;
+    }
+    folder_of(cwd)
+}
+
+fn folder_of(cwd: &str) -> String {
     let trimmed = cwd.trim_end_matches(['\\', '/']);
     trimmed.rsplit(['\\', '/']).next().unwrap_or(trimmed).to_string()
 }
@@ -707,7 +716,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             title,
             asks: if status == "waiting" { asks } else { None },
             dept: dept_of(&rec.cwd),
-            name: rec.name.clone().unwrap_or_else(|| dept_of(&rec.cwd)),
+            name: rec.name.clone().unwrap_or_else(|| folder_of(&rec.cwd)),
             id: rec.session_id,
             pid: rec.pid,
             cwd: rec.cwd,
