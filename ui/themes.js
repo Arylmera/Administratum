@@ -149,7 +149,7 @@ const NEON = defineTheme({
 });
 
 // A white orbital station, not 40k: off-white hull panels, safety orange and blue accents, cyan screens, Earth
-// seen through the windows. Its own art (later tasks) replaces what only fits 40k.
+// seen through the windows. Its own art replaces what only fits 40k.
 defineTheme({
   id: 'orbital', world: 'space', name: 'Orbital Station',
   art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'petitions', 'commits', 'clutter', 'refectorium', 'room-floor', 'room-walls', 'room-doors', 'room-pipes'], // ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches, crew flight consoles, a rack terminal and a strapped-down laptop, the flight-control screen wall, portholes, a mission poster, stowage nets, pressure gauges and pendant LED lamps, the floating camera drone, the airlock with its sliding hatch and the starfield beyond, air scrubbers and LED light strips, checklist cards and a clipboard, mission stickers on flight tags and the label scanner, velcroed checklists, cargo bags, strapped manuals, drifting pages and cargo containers, the galley food warmer and drink dispenser, galley tables and padded benches with foot loops, grid deck plates with LED floor strips, the command deck, the hatch tunnel floor, the module joint ring, padded wall cushions with handrails, galley stowage lockers, navy command-module padding, white columns, bulkhead posts, a rotating warning light, sliding module hatches with hazard-striped pockets and status lamps, cable trays on hangers and flex air ducts with clamp rings
@@ -277,7 +277,7 @@ accent(NEON, {
 });
 
 // A wizards' tower, not 40k: night-blue stone, warm wood, gold trim, violet and teal arcane glow, candles,
-// parchment. Its own art (later tasks) replaces what only fits 40k.
+// parchment. Its own art replaces what only fits 40k.
 defineTheme({
   id: 'tower', world: 'arcane', name: 'Arcane Tower',
   art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'commits', 'petitions', 'clutter', 'refectorium', 'room-floor', 'room-walls', 'room-doors', 'room-pipes'], // ui/art/tower/: apprentices in pointed hats, wisp-owl familiars, the Archmage on his carved high seat, spellbook lectern, sigil circle, rune seals, alchemist tables and slant-top desks with glowing grimoires, scrying crystals, the orrery wall, round-arched leaded windows, tower tapestries, potion shelves, hourglasses, lanterns, the bat-winged floating eye, the runic arch with plank doors on a portal, cauldrons over log fires, candle clusters in a gold dish, grimoire piles with clasps, a basket of scrolls, rune pages, an iron-bound chest, ribboned letters under wax rune seals, a scroll on wooden rollers, signet rings, the kitchen stove with its brass kettle, a trestle table and split-log benches, square flagstones, glowing rune lines, the sanctum's mosaic with its inlaid ring, coursed stone masonry under a dentil cornice, stone columns and half-columns, the magic crystal on its gold sconce, arched oak doors, oak beams on iron brackets
@@ -339,17 +339,18 @@ defineTheme({
     modes: { full: 'Daylight', candles: 'Candlelight' },
     log: { title: 'Grimoire', open: 'Open the Grimoire', close: 'Close the Grimoire', silent: 'The Grimoire is blank: no record could be read for this day.' },
     tithe: { hint: 'Mana spent today: tokens and time', day: 'Mana spent today: {tokens} tokens, {time} of study' },
-    event: { commit: 'Spell sealed', petition: 'Plea', 'petition-answered': 'Plea answered', compaction: 'Memory distilled' },
+    event: { commit: 'Spell sealed', petition: 'Plea', 'petition-answered': 'Plea answered', compaction: 'Memory distilled', limit: 'Mana spent' },
     prefs: { chime: 'Plea chime', petitions: 'Pleas', questions: 'A question at the end of a turn counts as a plea',
       stale: 'Plea goes stale after', nap: 'Idle to the fireside after', cog: 'Stay at the scrying orb for',
       pauseHint: 'Near-zero CPU when unseen; pleas still alert.',
       cat: { hall: 'Hall', petitions: 'Pleas', scribes: 'Apprentices', system: 'System', remote: 'Remote access' } },
-    toast: { petition: 'Plea from {name}', stale: 'Plea still waiting: {name}' },
+    limitLabel: 'out of mana · back at {time}', limitSealed: 'out of mana',
+    toast: { petition: 'Plea from {name}', stale: 'Plea still waiting: {name}', limit: '{name} out of mana until {time}', limitMany: '{n} apprentices out of mana until {time}' },
   },
 });
 
 // Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green
-// phosphor, Nuka-Cola red, warm incandescent light. Its own art (later tasks) replaces what only fits 40k.
+// phosphor, Nuka-Cola red, warm incandescent light. Its own art replaces what only fits 40k.
 defineTheme({
   id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium', 'room-floor', 'room-walls', 'room-doors', 'room-pipes'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal, riveted viewports onto the wasteland, a Vault-Tec poster, steel supply shelves with cans and kits, Geiger dials, caged ceiling lamps, the Eyebot, the cog vault door in its hazard-striped frame and the dark tunnel beyond, barrel fires, a work lantern with road flares, G.O.A.T. forms in a wire tray, heaps of holotapes, Vault-Tec manuals, a Nuka-Cola crate, the G.O.A.T. sheet a dweller brings (a big red ? for a question), the clipboard with the APPROVED stamp, Vault Boy thumbs-up stickers, a bottle cap, the rubber APPROVED stamp, the Nuka-Cola vending machine, steel cafeteria tables with trays and blue vinyl benches, a diamond-plate deck with yellow-lit floor strips, the Overseer's checkered floor with a Vault-Tec gear in each corner, ribbed blue-grey wall panels under a yellow and white band with vent grilles, ribbed steel columns, a radiation alarm light, sliding bulkheads with hazard stripes, steel and yellow gas pipes with red valve wheels and gauges
   px: {
@@ -411,11 +412,12 @@ defineTheme({
     modes: { full: 'Day shift', candles: 'Lights out' },
     log: { title: "Overseer's log", open: "Open the Overseer's log", close: "Close the Overseer's log", silent: "The Overseer's log is empty: no record could be read for this day." },
     tithe: { hint: 'Rations today: tokens and shift time', day: 'Rations today: {tokens} tokens, {time} on shift' },
-    event: { commit: 'Commit approved', petition: 'Requisition', 'petition-answered': 'Requisition approved', compaction: 'Records archived' },
+    event: { commit: 'Commit approved', petition: 'Requisition', 'petition-answered': 'Requisition approved', compaction: 'Records archived', limit: 'Rations out' },
     prefs: { chime: 'Requisition chime', petitions: 'Requisitions', questions: 'A question at the end of a turn counts as a requisition',
       stale: 'Requisition goes stale after', nap: 'Idle to the bunk after', cog: 'Stay at the mainframe for',
       pauseHint: 'Near-zero CPU when unseen; requisitions still alert.',
       cat: { hall: 'Vault', petitions: 'Requisitions', scribes: 'Dwellers', system: 'System', remote: 'Remote access' } },
-    toast: { petition: 'Requisition from {name}', stale: 'Requisition still waiting: {name}' },
+    limitLabel: 'off shift · back at {time}', limitSealed: 'off shift',
+    toast: { petition: 'Requisition from {name}', stale: 'Requisition still waiting: {name}', limit: '{name} off shift until {time}', limitMany: '{n} dwellers off shift until {time}' },
   },
 });

@@ -353,7 +353,7 @@ drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus 
 fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
 active theme: `ui/theme.js` (Ordo Administratum) and `ui/themes.js` (Ordo Machinum, Ordo Xenos, Ordo Malleus, Ordo Hereticus,
 Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/` and three accents of it (Corpo Tower, Rain City, Green Code, Sunset Drive: same art, recoloured), Orbital Station, a space station with its own art in
-`ui/art/orbital/`, Arcane Tower, a wizards' tower, and Vault 111, a Fallout vault), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
+`ui/art/orbital/`, Arcane Tower, a wizards' tower with its own art in `ui/art/tower/`, and Vault 111, a Fallout vault with its own art in `ui/art/vault/`), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
 the gallery used to discuss them one by one (a **Sprite** issue each).
 
 To work on the art, use the live viewer: every sprite in every theme side by side, read straight from `ui/art/`,
