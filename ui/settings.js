@@ -8,13 +8,14 @@ import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
+import { view as viewMode, setView } from './view.js';
 
 const mem = {};
 let saved = null;
 try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
 const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err)), 300); };
-const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme']; // the remote view's own choices
+const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme', 'adm.view']; // the remote view's own choices
 if (REMOTE) {
   if (saved && typeof saved === 'object') Object.assign(mem, saved);
   try { for (const k of LOCAL) { const v = localStorage.getItem(k); if (v != null) mem[k] = v; } } catch { /* storage blocked */ }
@@ -96,6 +97,7 @@ export function initSettings(hooks) {
   field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
   const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
   const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
+  const pickView = mode => { store.set('adm.view', mode); setView(mode); };
   let login = null;
 
   const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
@@ -124,6 +126,7 @@ export function initSettings(hooks) {
     field('world').value = world;
     field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
     field('theme').value = T.id;
+    field('view').value = viewMode.mode;
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
@@ -244,6 +247,7 @@ export function initSettings(hooks) {
     else if (k === 'mode') hooks.setMode(el.value);
     else if (k === 'world') pickTheme(styles(el.value)[0].id);
     else if (k === 'theme') pickTheme(el.value);
+    else if (k === 'view') pickView(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
@@ -279,6 +283,7 @@ export function initSettings(hooks) {
     save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
     hooks.setMode('auto'); hooks.setMuted(false);
     pickTheme('tier2');
+    pickView('flat');
     sync();
     hooks.quieted?.();
   };
