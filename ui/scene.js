@@ -1,6 +1,7 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, SHEET_OF } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
+import { WIN_Y, wallArt } from './wallart.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
@@ -47,20 +48,15 @@ function alcoves(from, to) {
   const n = Math.floor((to - from) / 40), x0 = from + Math.floor((to - from - 40 * n) / 2);
   return Array.from({ length: n }, (_, i) => ({ x: x0 + 40 * i, win: i % 2 === 0 }));
 }
-// On the back wall: a banner, a censer (by their measured y, above the old 40 px wall).
-const hung = (name, y) => (name === 'BANNER' || name === 'CENSER') && y < 40;
+// On the back wall: a banner, a censer, by their measured y, above the old wall (WALL - WALL_DY: the pre-shift
+// height PROPS was measured against, layout.js). A new wall prop hung here must be added to this name list too.
+const hung = (name, y) => (name === 'BANNER' || name === 'CENSER') && y < WALL - WALL_DY;
 // The back walls' window and hangings: the tall gothic window and the full-height hanging, unless the theme redraws
 // the short ones (WINDOW, BANNER) without tall ones of its own; then the short ones, as before, at their old place.
 // win: the window's frame, drawn at (x + winDx, WIN_Y) for a 16 px window slot x (propsOf windows), its glass ending
 // at winBottom (lighting.js starts the beams there).
-const dirOf = n => SHEET_OF[n].replace(/[^/]*$/, ''); // 'cyber/' or '' (the default art)
-export const WIN_Y = 10; // every window's top
 const HANG_Y = WALL - 56; // a hanging's top: its brass rod under the pipe, its fringe just above the wall foot
-export function wallArt() {
-  const tallWin = dirOf('WINDOW_TALL') === dirOf('WINDOW'), tallHang = dirOf('HANGING') === dirOf('BANNER');
-  const win = MAPS[tallWin ? 'WINDOW_TALL' : 'WINDOW'];
-  return { win, winDx: (16 - win[0].length / RES) / 2, winBottom: WIN_Y + win.length / RES, tallHang };
-}
+export { WIN_Y, wallArt }; // re-exported from ./wallart.js: layout.test.mjs still imports them from here
 // Everything static that depends on the scene's size, once per size: props (placed), windows (x of each 16 px
 // window slot, top at WIN_Y, lighting.js casts their beams), vertical coolant channels. A back-wall banner (12 px,
 // top at y 10) is listed as the HANGING (13 px) centred on it; drawStatic puts the banner back for a theme without

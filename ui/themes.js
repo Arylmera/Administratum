@@ -108,7 +108,7 @@ const NEON = defineTheme({
     cant: 'rgba(255,46,136,.34)', grime: 'rgba(20,10,40,.4)', scratchSheen: 'rgba(150,200,255,.06)',
     parchmentWarn: '#ffa0c8',
     smoke: '#8a8aa8', sparkSmoke: '#9a9ab8', steam: '#a8a0d0', alarmGlow: '#ffc0d0', beaconSweep: '#ff7090', searchlight: '#ff2e88',
-    windowDay: { u: '#2a4a8a', v: '#5a2a7a', g: '#ff2e88', x: '#3af0ff' }, windowNight: { u: '#0e0820', v: '#2a0a3a', g: '#ff2e88' },
+    windowDay: { u: '#2a4a8a', v: '#5a2a7a', g: '#ff2e88', x: '#3af0ff' }, windowNight: { u: '#0e0820', v: '#2a0a3a', g: '#ff2e88', x: '#0e0820' },
     backdrop: '#0b0a16', backdropLit: '#16142a', backdropEdge: '#121022', backdropDark: '#050409', backdropSeam: '#08070f', backdropSeamLit: '#141228',
     backdropRivet: '#2a2848', overflowPlaque: '#7a7aa8',
   },

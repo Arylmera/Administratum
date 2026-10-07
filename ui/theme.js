@@ -72,9 +72,10 @@ const inkOf = px => ({
   lamp: { on: [px.c, px.O], off: [px.C, '#2a8a50'], red: [px.a, '#ffd0b0'], dim: [px.x, '#c8281a'], dark: ['#3a0d09', '#5e1710'] },
   // the alarm beacon's sweep, the servo-skull's red eye and searchlight
   alarmGlow: '#ffd0b0', beaconSweep: '#ff6a4a', searchlight: '#ff321e',
-  // windows by day and night (px overrides of MAPS.WINDOW)
-  windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' },
-  windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28' },
+  // windows by day and night (px overrides of MAPS.WINDOW and, for the tall gothic window, WINDOW_TALL's extra
+  // lattice-gem red 'a')
+  windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a', a: '#ff3a20' },
+  windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28', x: '#3a0d09', a: '#3a0d09' },
   // the riveted iron tile behind the scene (app.js)
   backdrop: '#17181b', backdropLit: '#24262a', backdropEdge: '#202226', backdropDark: '#0b0b0c',
   backdropSeam: '#101113', backdropSeamLit: '#1f2124', backdropRivet: '#3a3d42', backdropRivetLit: px.m,

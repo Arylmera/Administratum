@@ -4,9 +4,10 @@
 //
 // Mapping to the 3D world (art px, the trial's units): a floor point (x, y >= WALL) -> u = 2x, v = 2(y - WALL),
 // z = 0; a point on the back wall band (x, y < WALL) -> u = 2x, v = 0, z = 2(WALL - y). WALL (logical px, the back
-// wall's height) is a parameter here, defaulting to 40 (today's wall band): ui/layout.js will export its own WALL
-// once Task 3 lands; this module is not allowed to import layout.js, so callers pass it explicitly when it matters.
-export const WALL_DEFAULT = 40; // ponytail: Task 3 adds the real export const WALL to layout.js; swap the default for it then.
+// wall's height, ui/layout.js) is a parameter here, defaulting to the real wall, so callers only pass it explicitly
+// when they measure against a different one (the tests).
+import { WALL as WALL_DEFAULT } from './layout.js';
+export { WALL_DEFAULT };
 
 export function floorToWorld(x, y, WALL = WALL_DEFAULT) {
   return y >= WALL ? [2 * x, 2 * (y - WALL), 0] : [2 * x, 0, 2 * (WALL - y)];

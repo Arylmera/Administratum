@@ -1,4 +1,4 @@
-import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
+import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES, rankOf } from './sprites.js';
@@ -288,7 +288,7 @@ function frame(now) {
   if (canvas.width !== hall.w * RES || canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize
   const back = background(level.beams);
   g.drawImage(back, 0, 0, hall.w, hall.h);
-  if (lag.x || lag.y) g.drawImage(back, 0, 0, back.width, 40 * RES, lag.x, lag.y, hall.w, 40); // the back wall, trailing the pan
+  if (lag.x || lag.y) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(now);
   view.hall = hall;
   view.level = level;
@@ -408,7 +408,7 @@ const plaques = new Map();
 function renderPlaques(blocks) {
   const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
-  if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + (hall.h - SCENE.h) / 2]);
+  if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + WALL_DY + (hall.h - SCENE.h) / 2]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
   for (const [k, [cls, text, x, y, color, maxWidth, branch = '']] of want) {
     let el = plaques.get(k);

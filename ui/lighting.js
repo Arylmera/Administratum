@@ -1,7 +1,7 @@
 import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { WALL } from './layout.js';
-import { wallArt } from './scene.js';
+import { wallArt } from './wallart.js';
 
 // Depth: a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
 // pool into an ellipse lying on the floor in perspective, the lower the flatter.

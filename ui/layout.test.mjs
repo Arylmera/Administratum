@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY } from './layout.js';
-import { propsOf, WIN_Y } from './scene.js';
+import { propsOf, WIN_Y, wallArt } from './scene.js';
 import { MAPS, RES } from './sprites.js';
+import { setTheme } from './theme.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -380,5 +381,14 @@ for (const S of [SCENE, { w: MAX_W, h: 400 }]) {
   assert.ok(hangs.length >= 2, 'hangings on the scriptorium and refectorium walls');
   for (const [, , y] of hangs) assert.ok(y >= 4 && y + MAPS.HANGING.length / RES <= WALL - 4, `hanging at y ${y}`);
 }
+
+// wallArt(): tier2 (no art of its own) draws the tall gothic window and full-height hanging; a theme without its
+// own tall art (cyber redraws 'walls' but not WINDOW_TALL/HANGING) falls back to the short WINDOW/BANNER.
+assert.equal(wallArt().win, MAPS.WINDOW_TALL);
+assert.equal(wallArt().tallHang, true);
+setTheme('cyber');
+assert.equal(wallArt().win, MAPS.WINDOW);
+assert.equal(wallArt().tallHang, false);
+setTheme('tier2');
 
 console.log('layout ok');

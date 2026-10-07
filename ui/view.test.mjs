@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { P39, floorToWorld, view, setView, onView, toScreen, toFloor, sceneSize } from './view.js';
+import { P39, floorToWorld, WALL_DEFAULT, view, setView, onView, toScreen, toFloor, sceneSize } from './view.js';
+import { WALL as LAYOUT_WALL } from './layout.js';
 
 // P39: the exact formula from the trial.
 assert.deepEqual(P39(0, 0, 0), [0, 0]);
@@ -7,11 +8,12 @@ assert.deepEqual(P39(3, 0, 0), [3, 1]); // u/3 steps Y every 3 u
 assert.deepEqual(P39(0, 3, 0), [-2, 1]); // w = floor(3*sqrt(2/3)) = 2
 assert.deepEqual(P39(5, 0, 2), [5, 1 - 2]); // z shifts Y down only
 
-// floorToWorld: floor (y >= WALL) vs the back wall band (y < WALL), default WALL = 40.
-assert.deepEqual(floorToWorld(10, 40), [20, 0, 0]);
-assert.deepEqual(floorToWorld(10, 60), [20, 40, 0]);
-assert.deepEqual(floorToWorld(10, 10), [20, 0, 60]);
-assert.deepEqual(floorToWorld(10, 60, 50), [20, 20, 0]); // explicit WALL
+// floorToWorld: floor (y >= WALL) vs the back wall band (y < WALL), default WALL the real one (ui/layout.js).
+assert.equal(WALL_DEFAULT, LAYOUT_WALL);
+assert.deepEqual(floorToWorld(10, WALL_DEFAULT), [20, 0, 0]);
+assert.deepEqual(floorToWorld(10, WALL_DEFAULT + 20), [20, 40, 0]);
+assert.deepEqual(floorToWorld(10, WALL_DEFAULT - 30), [20, 0, 60]);
+assert.deepEqual(floorToWorld(10, 60, 50), [20, 20, 0]); // explicit WALL, unaffected by the default
 
 // view mode: default flat, setView switches, onView notifies, unknown mode falls back to flat.
 assert.equal(view.mode, 'flat');
