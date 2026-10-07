@@ -1,6 +1,6 @@
 # Three new worlds: Orbital Station, Arcane Tower, Vault
 
-Date: 2026-10-06. Status: approved design, not started.
+Date: 2026-10-06. Status: done (Orbital Station, Arcane Tower, Vault 111 shipped with their own art).
 Builds on `2026-10-06-sprite-themes-design.md` (phase 3: per-theme art, Neon Grid). No engine change: each world
 is a theme entry plus its own art, exactly like Neon Grid.
 
