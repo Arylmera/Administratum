@@ -16,3 +16,4 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
 - Binharic sound pack per event
 - Day/night from real sunrise/sunset
 - Bundle the Google Fonts locally (fully offline)
+- Other agents (Gemini CLI, Codex…) in the hall: their session files first, an opt-in ACP relay later (notes: docs/superpowers/specs/2026-10-07-other-agents-acp-notes.md)
