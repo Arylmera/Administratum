@@ -1,7 +1,7 @@
 import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
-import { depth, onDepth } from './depth.js';
+import { depth, onDepth, on as depthOn } from './depth.js';
 import { RES, rankOf } from './sprites.js';
 import { T, onTheme, setTheme, t } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
@@ -124,6 +124,20 @@ function setPan(x, y) {
   world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
 }
 const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
+// Depth (Full): while the view pans, the back wall (y < 40) trails the floor a little (0.92 of its speed), then
+// catches up: lag is that offset in logical px, 0 at rest so nothing is ever misaligned once the pan stops.
+const PARALLAX = 0.08, LAG_MAX = 1.5, lag = { x: 0, y: 0 };
+function panStep(x, y) { // a pan the user makes (drag, glide, coast), as opposed to a resize re-centring the view
+  const { x: x0, y: y0 } = pan;
+  setPan(x, y);
+  if (!depthOn('parallax')) return;
+  const clampLag = v => Math.max(-LAG_MAX, Math.min(LAG_MAX, v));
+  lag.x = clampLag(lag.x - PARALLAX * (pan.x - x0) / scale); lag.y = clampLag(lag.y - PARALLAX * (pan.y - y0) / scale);
+}
+function settleLag(ms) {
+  const k = 0.85 ** (ms / 16);
+  lag.x = Math.abs(lag.x * k) < 0.05 ? 0 : lag.x * k; lag.y = Math.abs(lag.y * k) < 0.05 ? 0 : lag.y * k;
+}
 const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
 let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
 function fit() {
@@ -165,11 +179,11 @@ function relayout() {
 function stepPan(ms) {
   if (pan.to) {
     const { x, y } = pan.to, k = Math.min(1, ms / 90);
-    setPan(pan.x + (x - pan.x) * k, pan.y + (y - pan.y) * k);
-    if (Math.abs(x - pan.x) < 0.5 && Math.abs(y - pan.y) < 0.5) { setPan(x, y); pan.to = null; }
+    panStep(pan.x + (x - pan.x) * k, pan.y + (y - pan.y) * k);
+    if (Math.abs(x - pan.x) < 0.5 && Math.abs(y - pan.y) < 0.5) { panStep(x, y); pan.to = null; }
   } else if (!drag?.on && Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02) {
     const { x, y } = pan;
-    setPan(x + pan.vx * ms, y + pan.vy * ms);
+    panStep(x + pan.vx * ms, y + pan.vy * ms);
     const f = 0.88 ** (ms / 16);
     pan.vx = pan.x === x ? 0 : pan.vx * f; pan.vy = pan.y === y ? 0 : pan.vy * f; // stops at the scene's edge
   }
@@ -194,7 +208,7 @@ canvas.addEventListener('pointermove', e => {
   const t = performance.now(), dt = Math.max(1, t - drag.t);
   pan.vx = (e.clientX - drag.lx) / dt; pan.vy = (e.clientY - drag.ly) / dt;
   Object.assign(drag, { lx: e.clientX, ly: e.clientY, t });
-  setPan(drag.px + dx, drag.py + dy);
+  panStep(drag.px + dx, drag.py + dy);
 });
 const endDrag = () => {
   if (drag?.on) { dragged = true; if (performance.now() - drag.t > 80) pan.vx = pan.vy = 0; } // held still before letting go: no coast
@@ -228,7 +242,7 @@ onTheme(backdrop);
 // time-based (steps capped at 0.25 s, above a 6 fps frame), so only smoothness changes.
 const FPS = 30;
 function busy(now) {
-  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || gliding(now) || sceneBusy()) return true;
+  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || sceneBusy()) return true;
   for (const a of cast.actors.values()) {
     if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || (!a.h && a.s.status === 'waiting')) return true;
   }
@@ -260,6 +274,7 @@ function frame(now) {
   acc += ms / 1000;
   last = now;
   stepPan(ms);
+  settleLag(ms);
   const step = 1 / (busy(now) ? FPS : perf.idleFps);
   // Keep the remainder (a 60 Hz pair of 16.6 ms vsyncs counts as one 1/30 step, not three), backlog capped at a step.
   if (acc < step - 0.004) return;
@@ -268,7 +283,9 @@ function frame(now) {
   drawn = now;
   cast.update(dt);
   if (canvas.width !== hall.w * RES || canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize
-  g.drawImage(background(level.beams), 0, 0, hall.w, hall.h);
+  const back = background(level.beams);
+  g.drawImage(back, 0, 0, hall.w, hall.h);
+  if (lag.x || lag.y) g.drawImage(back, 0, 0, back.width, 40 * RES, lag.x, lag.y, hall.w, 40); // the back wall, trailing the pan
   const view = glide(now);
   view.hall = hall;
   view.level = level;

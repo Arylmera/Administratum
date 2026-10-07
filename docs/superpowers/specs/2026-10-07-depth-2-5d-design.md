@@ -77,6 +77,8 @@ back wall canvas, floor and everything on it, the frame. The static background i
 (wall band, floor) to allow it.
 
 - Only during pan; at rest everything is aligned exactly as today (offset 0), so no seam can show.
+- As built (2026-10-07): only the back wall trails (a lag of at most 1.5 logical px that eases back to 0). The brass
+  frame is the window's edge, not a layer of the scene, so it stays put.
 - Cost: one extra `drawImage` of a cached canvas.
 
 ### 6. Depth of view (Full, off by default even in Full)
