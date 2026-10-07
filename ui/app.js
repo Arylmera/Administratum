@@ -7,12 +7,15 @@ import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
+import { view as viewMode, setView, onView } from './view.js';
 import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
+// The saved view (adm.view): flat or 39°. Inert until a later task draws the 39° hall; still drops caches live.
+setView(store.get('adm.view', 'flat'));
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
 let chromeSet = [];
@@ -72,6 +75,9 @@ function background(day) {
   }
   return bg[k];
 }
+// The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
+// view will need a different canvas size once a later task draws it; for now this is inert).
+onView(() => { for (const k in bg) delete bg[k]; fit(); });
 
 // Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
 let sun = null, sunDay = '';
@@ -286,6 +292,7 @@ function frame(now) {
   const view = glide(now);
   view.hall = hall;
   view.level = level;
+  view.mode = viewMode.mode; // flat or 39°; drawScene ignores it until a later task draws the 39° hall
   drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
