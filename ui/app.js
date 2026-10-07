@@ -1,6 +1,7 @@
 import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
+import { depth, onDepth } from './depth.js';
 import { RES, rankOf } from './sprites.js';
 import { T, onTheme, setTheme, t } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
@@ -59,7 +60,7 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${at}`;
+  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${depth.level}:${day ? 'day' : 'night'}${at}`;
   if (!bg[k]) {
     for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
     const c = document.createElement('canvas');
@@ -72,6 +73,7 @@ function background(day) {
   }
   return bg[k];
 }
+onDepth(() => { for (const k in bg) delete bg[k]; });
 
 // Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
 let sun = null, sunDay = '';
@@ -269,6 +271,7 @@ function frame(now) {
   g.drawImage(background(level.beams), 0, 0, hall.w, hall.h);
   const view = glide(now);
   view.hall = hall;
+  view.level = level;
   drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();

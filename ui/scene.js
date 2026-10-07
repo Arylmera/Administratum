@@ -6,7 +6,8 @@ const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { SCENE, hallOf } from './layout.js';
-import { drawActor, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
+import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
+import { on, shadowOf, contactShadow, drawAO } from './depth.js';
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
@@ -76,6 +77,8 @@ export function propsOf(hall) {
   return F;
 }
 
+// Props that stand on the floor and get a contact shadow (depth.js); the rest hangs on a wall or lies flat.
+const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
 // The scriptorium is 0..sw, its east wall sw..rx, the right column rx..w (refectorium 0..split - 10, a wall, the
 // sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
 export function drawStatic(g, daylight, hall = hallOf(0)) {
@@ -127,6 +130,8 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   });
   tile(g, 'sanctum passage', 210 + ox, d0, 10, 36); tile(g, 'fitting wide', 210 + ox, d0 - 2); tile(g, 'fitting wide', 210 + ox, d1); // pillar opens onto the passage door
   rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
+  if (on('ao')) drawAO(g, hall);
+  if (on('contact')) for (const [name, x, y] of props) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
   for (const [name, x, y] of props) blit(g, MAPS[name], x, y);
   tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }
@@ -168,7 +173,7 @@ const lastFill = new Map(); // desk key -> its occupant's last paper fill, for t
 
 // One frame of everything that moves or depends on the roster, over the static background.
 // actors: Cast.actors; fillOf: context -> paper fill. Returns every light of the frame for drawLighting.
-// layout.hall: hallOf() of the current bays.
+// layout.hall: hallOf() of the current bays; layout.level: lightLevel() (shadows soften at night).
 export function drawScene(g, layout, actors, fillOf, now) {
   H = layout.hall ?? hallOf(0);
   frameDt = lastNow ? Math.min(0.25, (now - lastNow) / 1000) : 0; // 0.25: above a 6 fps idle frame
@@ -177,7 +182,8 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const all = [...actors.values()];
   drawRugs(g, layout.blocks);
   drawDoors(g, all);
-  const items = [drawGate(g, all)], lights = [], over = [];
+  const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
+  const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key;
@@ -188,6 +194,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     paperFloor(g, pile, kindOf(d), fill, d, blockOf(d.dept), now);
     items.push(furniture(kindOf(d), d, pile, busy, fill, d.id && a, !!a?.s.background, now));
+    floor.push(() => contactShadow(g, shadowOf(MAPS[KIND[kindOf(d)].map], d.x, d.y), shade));
     if (d.id) lights.push(deskLight(d, busy));
     if (d.id && a) reactions(a, d, KIND[kindOf(d)].at, over, lights, now);
     if (a?.puff > 0) {
@@ -201,10 +208,15 @@ export function drawScene(g, layout, actors, fillOf, now) {
     const lit = !!a && a.pose === 'console';
     paperFloor(g, c.id, 'console', fill, c, blockOf(c.dept), now);
     items.push(furniture('console', c, c.id, lit, fill, a, false, now));
+    floor.push(() => contactShadow(g, shadowOf(MAPS.CONSOLE, c.x, c.y), shade));
     lights.push(consoleLight(c, lit));
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now);
   }
   for (const a of all) items.push({ y: a.y, draw: g2 => { drawActor(g2, a); if (a.burn) bundle(g2, a, fillOf(a.burn.old)); } });
+  if (on('contact')) {
+    for (const a of all) { const b = bodyOf(a); floor.push(() => contactShadow(g, shadowOf(b.map, b.x, b.y), shade)); }
+    floor.forEach(f => f());
+  }
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
   over.forEach(f => f(g));
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier sits south of the burner: its fire draws over the robe hem

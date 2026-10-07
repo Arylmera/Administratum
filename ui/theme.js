@@ -87,6 +87,7 @@ const LIGHT = {
   stamp: 'rgba(255,58,32,.7)', spark: 'rgba(255,230,160,.8)', glint: 'rgba(232,180,90,.6)',
   beacon: 'rgba(255,58,32,.6)', beaconSweep: 'rgba(255,40,20,.4)', skullAlarm: 'rgba(255,58,32,.45)',
   night: '6,4,3', beam: '235,220,180', // rgb: the darkness over the hall, the daylight shafts (alpha set by lighting.js)
+  shadow: '6,4,3', // rgb: shadows on the floor and ambient occlusion (depth.js)
 };
 
 // Tier II's wording, by key. {name} placeholders are filled by t(); [one, other] pairs pick by {n}. A setting that is

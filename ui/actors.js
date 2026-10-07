@@ -185,23 +185,33 @@ const robeOf = (rank, sash) => {
   return by.get(sash) ?? by.set(sash, { ...T.rank[rank].robe, y: sash }).get(sash);
 };
 
+// The body frame an actor is drawn with and its top-left (feet at a.x, a.y), for drawActor and its floor shadow
+// (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing.
+export function bodyOf(a) {
+  const walk = a.pose === 'walk';
+  if (a.h) { // adept: 12x14
+    const i = Math.floor(a.t * 16) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
+    return { map: walk ? ADEPT[a.dir][i] : ADEPT[a.target.dir][0], over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
+  }
+  const i = a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
+  const map = a.pose === 'burn' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
+  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk ? i : -1 };
+}
+
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
-  if (a.h) { // adept: 12x14, feet at (x, y)
-    const fx = Math.round(a.x) - ADEPT_AT.feet.x, fy = Math.round(a.y) - ADEPT_AT.feet.y, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
-    if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
-    else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), over); // typing bob, 1 art px
+  const b = bodyOf(a);
+  if (a.h) { // adept: typing bob of 1 art px at its console
+    blit(g, b.map, b.x, b.y + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;
   }
-  const over = robeOf(rankOf(a.s.context?.model), a.sash);
-  const A = SCRIBE_AT, fx = Math.round(a.x) - A.feet.x, fy = Math.round(a.y) - A.feet.y;
-  if (a.pose === 'burn') { blit(g, SCRIBE.down[0], fx, fy, over); return; } // standing over the brazier (bundle + flare: scene.js)
+  const A = SCRIBE_AT, fx = b.x, fy = b.y;
+  blit(g, b.map, fx, fy, b.over);
+  if (a.pose === 'burn') return; // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
-    blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
     if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
     return;
   }
-  blit(g, SCRIBE.up[0], fx, fy, over);
   const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
   const lift = done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0; // eased up, held, back down
   blit(g, MAPS.ARM, fx + A.arm.x, fy + A.arm.y - lift);
