@@ -14,7 +14,7 @@
 import { MAPS, ROOM, PROP_AT, SCRIBE, RES } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { contactShadow } from '../ui/depth.js';
-import { SCRIBE_ISO, SCRIBE_ISO_FEET } from './iso_art.mjs';
+import { SCRIBE_ISO, SCRIBE_ISO_FEET, GOTHIC_WINDOW, HANGING } from './iso_art.mjs';
 
 const fl = Math.floor;
 export const PROJ = {
@@ -24,7 +24,7 @@ export const PROJ = {
   // squash s and rotation t, s tan t = 1/3 and s cot t = 1/2 (39: s^2 = 1/6, tan t = 0.816) or 1 (30: tan t = 0.577).
   // u keeps 1 px across per unit (the art's width); v is foreshortened to w = floor(v tan t) px across, so both slopes
   // stay clean repeating stairs (3-3-3 and 2-2-2 / 1-1-1) with the room's proportions true.
-  a39: { name: '39° rotation (3:1 / 2:1)', VS: 2 / Math.sqrt(2 / 3), asym: true,
+  a39: { name: '39° rotation (3:1 / 2:1)', VS: 2 / Math.sqrt(2 / 3), asym: true, wideU: true,
     P: (u, v, z) => { const w = fl(v * Math.sqrt(2 / 3)); return [u - w, fl(u / 3) + fl(w / 2) - z]; } },
   a30: { name: '30° rotation (3:1 / 1:1)', VS: Math.sqrt(3), asym: true,
     P: (u, v, z) => { const w = fl(v / Math.sqrt(3)); return [u - w, fl(u / 3) + w - z]; } },
@@ -40,6 +40,8 @@ export const PROJ = {
 };
 let PR = PROJ.iso, VS = 1, SIZE = null;
 const P = (u, v, z = 0) => PR.P(u, v, z);
+// v units per pixel column along v (a decal on the side wall puts one texel per column): measured on the projection
+const VX = () => (PR.vx ??= 64 / Math.abs(PR.P(0, 64, 0)[0] - PR.P(0, 0, 0)[0]));
 
 // The scene: floor u 0..ROOM_U, v 0..ROOM_V; walls on v < 0 (back) and u < 0 (left side), WALL_H tall.
 const ROOM_U = 320, ROOM_V = 160, WALL_H = 128, WALL_T = 8, SLAB = 6;
@@ -66,9 +68,25 @@ class Buf {
   // A box u0..u1, v0..v1, z0..z1 (half-open). Texture coords, pixel units (j is v / VS):
   // top(i, j, U, J) i along u, j along v from the back; front(i, r, U, Z) r down from the top;
   // side(j, r, J, Z) j from the front corner toward the back.
-  box({ u0, u1, v0, v1, z0, z1, top, front, side, id = 0 }) {
+  box({ u0, u1, v0, v1, z0, z1, top, front, side, id = 0, tdz = 0 }) {
     const U = u1 - u0, J = Math.ceil((v1 - v0) / VS), Z = z1 - z0, d = 1 / (PR.ss ?? 1); // d: sample step
-    if (top) for (let u = u0; u < u1; u += d) for (let v = v0; v < v1; v += d) this.put(u, v, z1, top(fl(u - u0), fl((v - v0) / VS), U, J), id, 0);
+    if (top) {
+      const mine = new Set();
+      for (let u = u0; u < u1; u += d) for (let v = v0; v < v1; v += d) {
+        const [sx, sy] = P(u, v, z1);
+        mine.add((sy + SIZE.oy) * SIZE.w + sx + SIZE.ox);
+        this.put(u, v, z1, top(fl(u - u0), fl((v - v0) / VS), U, J), id, 0, tdz);
+      }
+      // the 39 / 30 deg projections miss single pixels inside a top face (where both stairs step together): take them
+      // from the face's neighbour, over whatever further back showed through
+      if (PR.asym) for (const i of mine) for (const s of [1, SIZE.w]) {
+        const j = i + s;
+        if (!mine.has(j) && mine.has(j + s) && this.dp[j] < this.dp[i] && this.id[i] === id) {
+          this.ch[j] = this.ch[i]; this.dp[j] = this.dp[i]; this.id[j] = id; this.face[j] = 0;
+          for (let k = 0; k < 3; k++) this.w[3 * j + k] = this.w[3 * i + k];
+        }
+      }
+    }
     if (front) for (let u = u0; u < u1; u += d) for (let z = z0; z < z1; z += d) this.put(u, v1 - 1, z, front(fl(u - u0), fl(z1 - z - d), U, Z), id, 1);
     if (side) for (let v = v0; v < v1; v += d) for (let z = z0; z < z1; z += d) this.put(u1 - 1, v, z, side(fl((v1 - d - v) / VS), fl(z1 - z - d), J, Z), id, 2);
   }
@@ -78,7 +96,7 @@ class Buf {
     const w = map[0].length, d = 1 / (PR.ss ?? 1);
     map.forEach((row, r) => { for (let c = 0; c < row.length; c++) for (let a = 0; a < 1; a += d) for (let b = 0; b < 1; b += d) {
       if (plane === 'v') this.put(from + c + a, at, ztop - r - b, row[c], id, 1, dz);
-      else for (let k = 0; k < VS; k++) this.put(at, from + (w - 1 - c) * VS + k + a, ztop - r - b, row[c], id, 2, dz);
+      else for (let k = 0; k < VX(); k++) this.put(at, from + (w - 1 - c) * VX() + k + a, ztop - r - b, row[c], id, 2, dz);
     } });
   }
   // A map standing upright, not sheared (round things: candles, drums, the spire), bottom centre on (u, v, z).
@@ -152,7 +170,7 @@ function shadeLayer(buf, ao, side = 0.2) {
 // ---- the room ------------------------------------------------------------------------------------------------------
 const FLOOR = 1, WALL_L = 2, WALL_B = 3, PIPE = 4, SHELF = 5, WINDOW = 6, BANNER = 7, CHANNEL_V = 120;
 const CHANNEL = ['!', '+', '+', '!']; // the coolant channel across v (ROOM 'channel h' rows)
-const SHELF_U = 8, WINDOW_U = 84, COG_U = 116, BANNER_U = 286, PIPE_Z = 104;
+const SHELF_U = 2, WINDOW_U = 70, WINDOW_TOP = 112, COG_U = 116, BANNER_U = 288, PIPE_Z = 116;
 
 function wallTex(tile) {
   return (i, r) => {
@@ -167,7 +185,7 @@ function buildRoom() {
   const b = new Buf(), floor = ROOM.frames.floor, wall = ROOM.frames.wall, wallE = ROOM.frames['wall east'];
   const cut = (i, r) => (r === 0 ? 'm' : 'M'), ch = fl(CHANNEL_V / VS);
   // floor slab: the grate tile laid along u and v, the coolant channel along u
-  b.box({ u0: 0, u1: ROOM_U, v0: 0, v1: ROOM_V, z0: -SLAB, z1: 0, id: FLOOR, front: cut, side: cut,
+  b.box({ u0: 0, u1: ROOM_U, v0: 0, v1: ROOM_V, z0: -SLAB, z1: 0, id: FLOOR, front: cut, side: cut, tdz: -3,
     top: (i, j) => (j >= ch && j < ch + 4 ? CHANNEL[j - ch] : j === ch - 1 || j === ch + 4 ? '2' : floor[j % 8][PR.wideU ? [0, 0, 1, 2, 2, 2, 2, 2][i % 8] : i % 8]) });
   // the left side wall (faces +u): east plates, darker as a side face; the back wall (faces +v): west plates
   const cap = () => '7', end = (i, r) => (r < WALL_H ? 'S' : 'M');
@@ -186,9 +204,10 @@ function buildRoom() {
   b.box({ u0: SHELF_U, u1: su1, v0: 0, v1: 10, z0: 0, z1: sz, id: SHELF,
     top: (i, j, U, J) => (j === J - 1 ? 'L' : 'w'), front: (i, r) => sh[r][i], side: (j, r, J) => (r === 0 ? 'k' : j === 0 || j === J - 1 ? 'W' : 'w') });
   // banners: on the back wall right of the cogitator, on the side wall
-  b.decal(MAPS.BANNER, 'v', 0, BANNER_U, 98, BANNER);
-  b.decal(MAPS.BANNER, 'u', 0, 60, 98, BANNER);
-  b.outline(new Set([WALL_L, WALL_B, SHELF, FLOOR]));
+  b.decal(HANGING, 'v', 0, BANNER_U, PIPE_Z - 1, BANNER);
+  b.decal(HANGING, 'u', 0, 56, PIPE_Z - 1, BANNER);
+  b.outline(new Set([SHELF]), 0.5); // the shelf sits against the wall: any step back is its edge
+  b.outline(new Set([WALL_L, WALL_B, FLOOR]));
   // ambient occlusion: the floor darkens toward the walls and the shelf, the walls toward the floor
   const ao = new Float32Array(b.ch.length);
   for (let i = 0; i < b.ch.length; i++) {
@@ -201,7 +220,7 @@ function buildRoom() {
   }
   // the window: its own layer, to recolour by day and by night
   const w = new Buf();
-  w.decal(MAPS.WINDOW, 'v', 0, WINDOW_U, 100, WINDOW);
+  w.decal(GOTHIC_WINDOW, 'v', 0, WINDOW_U, WINDOW_TOP, WINDOW);
   return { map: b.rows(), shade: shadeLayer(b, ao), window: w.rows() };
 }
 
@@ -248,10 +267,12 @@ function cogScreens() {
 const DESK_V = 24, DESK_H = 24; // the body: DESK rows 18..41 on the front, 64 long
 function buildDesk(u0, v0, { slate = true, pile = false } = {}) {
   const D = MAPS.DESK, b = new Buf(), top = DESK_H;
-  const legs = (j, J) => { const L = J >= 20 ? 'kmMMMk' : 'kmk'; return j < L.length ? L[j] : j >= J - L.length ? L[j - J + L.length] : '.'; };
+  const legs = (j, J) => { const L = J >= 20 ? 'kmMMMk' : J >= 9 ? 'kmMk' : 'kmk'; return j < L.length ? L[j] : j >= J - L.length ? L[j - J + L.length] : '.'; };
   b.box({ u0, u1: u0 + 64, v0, v1: v0 + DESK_V, z0: 0, z1: DESK_H, id: 1,
     front: (i, r) => D[18 + r][i],
-    side: (j, r, J) => (r >= 19 ? legs(j, J) : j === 0 ? D[18 + r][63] : r === 0 || r === 10 || r === 18 ? 'k' : r === 1 ? 'w' : 'W'),
+    // the end of the desk: a lit top rail, a brass trim line, a framed wooden panel, the legs (wood w/W/L, brass g/G)
+    side: (j, r, J) => (r >= 19 ? legs(j, J) : r === 0 || r === 18 ? 'k' : r === 1 ? 'L' : r === 2 ? 'g' : r === 17 ? 'G'
+      : j === 0 || j === J - 1 || r === 3 || r === 16 ? 'W' : r === 10 ? 'W' : j === 1 || r === 4 || r === 11 ? 'L' : 'w'),
     top: (i, j, U, J) => {
       const p0 = fl(9 / VS), p1 = fl(21 / VS);
       if (i >= 3 && i < 19 && j >= p0 && j < p1) return j === p0 || j === p1 - 1 || i === 3 || i === 18 ? 'P' : j % 2 ? 'p' : i > 5 && i < 5 + ((i * 7 + j * 5) % 11) ? 'P' : 'p';
@@ -342,14 +363,16 @@ export function drawScene(g, S, t, night) {
   g.drawImage(S.room.cv, 0, 0);
   g.drawImage(night ? S.room.windowNight : S.room.windowDay, 0, 0);
   g.drawImage(S.room.shade, 0, 0);
-  // daylight through the window: a pale patch on the floor in front of it
-  if (!night) {
-    g.save(); g.globalCompositeOperation = 'lighter';
-    poly(g, [[WINDOW_U, 0], [WINDOW_U + 32, 0], [WINDOW_U + 44, 70], [WINDOW_U + 8, 70]].map(([u, v]) => Q(u, v)));
-    const [ax, ay] = Q(WINDOW_U + 16, 0), [bx, by] = Q(WINDOW_U + 26, 70), grad = g.createLinearGradient(ax, ay, bx, by);
-    grad.addColorStop(0, `rgba(${T.light.beam},.14)`); grad.addColorStop(1, `rgba(${T.light.beam},0)`);
-    g.fillStyle = grad; g.fill(); g.restore();
-  }
+  // daylight through the window: a shaft from the glass down to a patch on the floor (drawn with the lights below)
+  const beam = night ? null : (l) => {
+    const W = GOTHIC_WINDOW[0].length, zt = WINDOW_TOP - 30, far = 100, near = 30;
+    const shaft = [Q(WINDOW_U + 4, 0, zt), Q(WINDOW_U + W - 4, 0, zt), Q(WINDOW_U + W + 8, far), Q(WINDOW_U + 16, far)];
+    const [ax, ay] = Q(WINDOW_U + W / 2, 0, zt), [bx, by] = Q(WINDOW_U + W / 2 + 12, far), grad = l.createLinearGradient(ax, ay, bx, by);
+    grad.addColorStop(0, `rgba(${T.light.beam},.10)`); grad.addColorStop(1, `rgba(${T.light.beam},.02)`);
+    poly(l, shaft); l.fillStyle = grad; l.fill();
+    poly(l, [Q(WINDOW_U + 2, near), Q(WINDOW_U + W + 2, near), Q(WINDOW_U + W + 8, far), Q(WINDOW_U + 16, far)]);
+    l.fillStyle = `rgba(${T.light.beam},.10)`; l.fill();
+  };
   // contact shadows: furniture (its footprint, a little wider), the cogitator, the scribe
   const s = scribeAt(t), [px, py] = Q(s.u, s.v);
   g.save(); g.fillStyle = `rgba(${T.light.shadow},.35)`; g.filter = 'blur(1.5px)';
@@ -368,13 +391,20 @@ export function drawScene(g, S, t, night) {
   g.filter = 'none';
   // light: at night the dark, then the candles, screens and coolant burn through it
   if (night) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(${T.light.night},.6)`; g.fillRect(0, 0, w, h); g.restore(); }
-  g.save(); g.globalCompositeOperation = 'lighter';
+  const lc = (drawScene.lights ??= document.createElement('canvas'));
+  lc.width = w; lc.height = h;
+  const l = lc.getContext('2d');
+  l.globalCompositeOperation = 'lighter';
+  if (beam) beam(l);
+  { const g = l;
   for (const q of S.screens) { poly(g, q.map(([x, y]) => [x + ox + S.cogOff[0], y + oy + S.cogOff[1]])); g.fillStyle = 'rgba(124,255,158,.10)'; g.fill(); }
   const [cx, cy] = L(S.cogOff, COG_U + 82, COG_V + 10, 40);
   glow(g, cx, cy, night ? 90 : 50, night ? 'rgba(124,255,158,.16)' : 'rgba(124,255,158,.06)');
   for (const d of S.desks) { const [fx, fy] = at([d.flame.x + d.off[0], d.flame.y + d.off[1]]); glow(g, fx, fy, night ? 46 : 18, T.light.amber); }
   for (let u = 8; u < ROOM_U; u += 24) { const [x, y] = Q(u, CHANNEL_V + 2); glow(g, x, y, night ? 16 : 10, 'rgba(58,168,100,.18)'); }
-  g.restore();
+  }
+  l.globalCompositeOperation = 'destination-in'; l.drawImage(g.canvas, 0, 0); // keep the light on the room only
+  g.save(); g.globalCompositeOperation = 'lighter'; g.drawImage(lc, 0, 0); g.restore();
 }
 
 // ---- the flat 3/4 reference: the same objects, blitted as the hall draws them ---------------------------------------
