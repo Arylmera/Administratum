@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
-  BASE, MAPS, SCRIBE, ADEPT, MAGOS, RES,
-  FAMILIES39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, checkComplete39,
+  BASE, MAPS, SCRIBE, ADEPT, MAGOS, RES, ART,
+  FAMILIES39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, checkComplete39, resolve39,
 } from './sprites.js';
 import { TIER_II } from './theme.js';
 
@@ -39,9 +39,13 @@ for (const n of ['THRONE', 'LORD_DESK', 'COG_MECH']) MAPS[n].forEach((r, j) => a
 MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).replace(/[^.k]/g, '#'), `THRONE: outline row ${j}`));
 
 // 39° character families (wave 2, no art yet): no ui/art/*39.* file in this repo, so the app still loads and every
-// export is empty. When an art agent's file lands, checkComplete39 (called by useArt) demands every frame and
-// anchor below be present, so partial art fails loudly instead of drawing a half-built character.
+// export is empty. At RUNTIME an incomplete file degrades instead of throwing (resolve39 below); completeness is
+// enforced by THIS TEST instead, over every file actually committed, so an incomplete one can never land.
 assert.deepEqual(FAMILIES39, ['scribe39', 'adept39', 'magos39', 'skull39']);
+for (const f of FAMILIES39) if (Object.keys(ART.base[f].frames).length) assert.equal(checkComplete39(f, ART.base[f]), true, `ui/art/${f}.json: incomplete`);
+for (const [themeId, families] of Object.entries(ART.themed)) {
+  for (const f of FAMILIES39) if (families[f] && Object.keys(families[f].frames).length) assert.equal(checkComplete39(f, families[f]), true, `ui/art/${themeId}/${f}.json: incomplete`);
+}
 for (const [obj, at] of [[SCRIBE39, SCRIBE39_AT], [ADEPT39, ADEPT39_AT], [MAGOS39, MAGOS39_AT], [SKULL39, SKULL39_AT]]) {
   assert.deepEqual(obj, {}); assert.deepEqual(at, {});
 }
@@ -60,4 +64,25 @@ assert.equal(checkComplete39('skull39', { frames: {}, anchors: {} }), false);
 assert.throws(() => checkComplete39('skull39', { frames: { skull: ['k'] }, anchors: { centre: [0, 0], carry: [0, 0] } }), /anchor beam/);
 assert.throws(() => checkComplete39('magos39', { frames: { arm: ['k'] }, anchors: { arm: [0, 0], chest: [0, 0], eyeL: [0, 0], eyeR: [0, 0] } }), /body/);
 assert.equal(checkComplete39('skull39', { frames: { skull: ['k'] }, anchors: { centre: [0, 0], carry: [0, 0], beam: [0, 0] } }), true);
+
+// resolve39 (the runtime degrade seam, built from fabricated sheets, no files under ui/art touched): themed missing
+// or incomplete falls back to base; both bad falls back to empty; degrading logs console.error instead of throwing.
+{
+  const complete = { frames: { skull: ['k'] }, anchors: { centre: [0, 0], carry: [0, 0], beam: [0, 0] } };
+  const incomplete = { frames: { skull: ['k'] }, anchors: { centre: [0, 0], carry: [0, 0] } }; // missing anchor beam
+  const empty = { frames: {}, anchors: {} };
+  const logged = [], realError = console.error;
+  console.error = (...a) => logged.push(a.join(' '));
+  try {
+    assert.equal(resolve39('skull39', null, complete, "theme 'x'"), complete, 'no themed file: base used');
+    assert.equal(resolve39('skull39', incomplete, complete, "theme 'x'"), complete, 'themed incomplete: falls back to base');
+    assert.ok(logged.some(m => m.includes("theme 'x'") && m.includes('skull39') && m.includes('beam')), 'degrade should log the family, theme and the missing anchor');
+    logged.length = 0;
+    assert.deepEqual(resolve39('skull39', incomplete, empty, "theme 'x'"), { frames: {}, anchors: {}, tiles: {}, meta: {} }, 'both bad: empty, still no throw');
+    // only the themed attempt logs (incomplete, not absent); the base attempt is wholly absent (empty frames), which
+    // checkComplete39 treats as false without throwing, so no second log. Mutation-check: a version that always
+    // falls through to base without checking themed first would log 0 here, not 1.
+    assert.equal(logged.length, 1, 'the themed attempt should log, the empty base attempt should not');
+  } finally { console.error = realError; }
+}
 console.log('sprites ok');
