@@ -160,7 +160,7 @@
    "frame": { "x": 105, "y": 210, "w": 7, "h": 3 }
   },
   "TABLE mug 2 top": {
-   "frame": { "x": 113, "y": 210, "w": 7, "h": 3 }
+   "frame": { "x": 113, "y": 210, "w": 6, "h": 3 }
   },
   "TABLE cup top": {
    "frame": { "x": 121, "y": 210, "w": 2, "h": 1 }
@@ -417,7 +417,7 @@
      { "name": "plate 2", "rect": [42, 3, 6, 6], "kind": "top", "v": 7 },
      { "name": "cup", "rect": [56, 5, 2, 2], "kind": "cyl", "v": 14, "z": 5 },
      { "name": "plate 3", "rect": [70, 3, 6, 6], "kind": "top", "v": 7 },
-     { "name": "mug 2", "rect": [84, 3, 7, 4], "kind": "cyl", "v": 11, "z": 5 }
+     { "name": "mug 2", "rect": [84, 3, 6, 4], "kind": "cyl", "v": 11, "z": 5 }
     ],
     "flatOnly": [
      { "name": "table top", "rect": [0, 0, 92, 11] }
@@ -468,13 +468,13 @@
    },
    "SEAL": {
     "details": [
-     { "name": "wax", "rect": [1, 0, 10, 8], "kind": "disc", "v": 1, "t": 2, "rim": "r", "round": true },
+     { "name": "wax", "rect": [1, 0, 10, 8], "kind": "disc", "v": 1, "t": 2, "rim": "r" },
      { "name": "ribbon", "rect": [2, 8, 7, 12], "kind": "disc", "v": 0, "t": 1, "rim": "P" }
     ]
    },
    "GAUGE": {
     "details": [
-     { "name": "dial", "rect": [0, 0, 12, 12], "kind": "disc", "v": 0, "t": 2, "rim": "G", "round": true }
+     { "name": "dial", "rect": [0, 0, 12, 12], "kind": "disc", "v": 0, "t": 2, "rim": "G" }
     ]
    },
    "CENSER": {
