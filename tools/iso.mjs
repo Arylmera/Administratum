@@ -15,6 +15,7 @@ import { MAPS, ROOM, PROP_AT, SCRIBE, RES } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { contactShadow } from '../ui/depth.js';
 import { SCRIBE_ISO, SCRIBE_ISO_FEET, GOTHIC_WINDOW, HANGING } from './iso_art.mjs';
+import { deskSheet, shelfSheet, cogSheet, composeFlat } from './faces.mjs';
 
 const fl = Math.floor;
 export const PROJ = {
@@ -39,6 +40,9 @@ export const PROJ = {
   dimetric: { name: 'dimetric, rotated ~14°', VS: 2, P: (u, v, z) => [u - fl(v / 4), fl((u + 2 * v) / 4) - z] },
 };
 let PR = PROJ.iso, VS = 1, SIZE = null;
+// Where a pixel's art comes from: 0 shared with the flat view (today's faces, details, textures), 1 this view only
+// (side and top faces, drawn new). Set around each drawing call; the page can tint the view-only pixels.
+let OWN = 0;
 const P = (u, v, z = 0) => PR.P(u, v, z);
 // v units per pixel column along v (a decal on the side wall puts one texel per column): measured on the projection
 const VX = () => (PR.vx ??= 64 / Math.abs(PR.P(0, 64, 0)[0] - PR.P(0, 0, 0)[0]));
@@ -54,6 +58,7 @@ class Buf {
     this.id = new Int16Array(n).fill(-1);
     this.face = new Int8Array(n).fill(-1); // 0 top, 1 front (faces +v), 2 side (faces +u), 3 billboard
     this.w = new Int16Array(3 * n); // the world (u, v, z) each pixel shows
+    this.own = new Uint8Array(n); // OWN when drawn
   }
   px(sx, sy, d, c, id, face, u = 0, v = 0, z = 0) {
     if (c == null || c === '.') return;
@@ -61,15 +66,16 @@ class Buf {
     if (x < 0 || y < 0 || x >= SIZE.w || y >= SIZE.h) return;
     const i = y * SIZE.w + x;
     if (d < this.dp[i]) return;
-    this.dp[i] = d; this.ch[i] = c; this.id[i] = id; this.face[i] = face;
+    this.dp[i] = d; this.ch[i] = c; this.id[i] = id; this.face[i] = face; this.own[i] = OWN;
     this.w[3 * i] = u; this.w[3 * i + 1] = v; this.w[3 * i + 2] = z;
   }
   put(u, v, z, c, id, face, dz = 0) { const [sx, sy] = P(u, v, z); this.px(sx, sy, u + v + z + dz, c, id, face, u, v, z); }
   // A box u0..u1, v0..v1, z0..z1 (half-open). Texture coords, pixel units (j is v / VS):
   // top(i, j, U, J) i along u, j along v from the back; front(i, r, U, Z) r down from the top;
   // side(j, r, J, Z) j from the front corner toward the back.
-  box({ u0, u1, v0, v1, z0, z1, top, front, side, id = 0, tdz = 0 }) {
+  box({ u0, u1, v0, v1, z0, z1, top, front, side, id = 0, tdz = 0, own = {} }) {
     const U = u1 - u0, J = Math.ceil((v1 - v0) / VS), Z = z1 - z0, d = 1 / (PR.ss ?? 1); // d: sample step
+    OWN = own.top ?? 0;
     if (top) {
       const mine = new Set();
       for (let u = u0; u < u1; u += d) for (let v = v0; v < v1; v += d) {
@@ -82,13 +88,16 @@ class Buf {
       if (PR.asym) for (const i of mine) for (const s of [1, SIZE.w]) {
         const j = i + s;
         if (!mine.has(j) && mine.has(j + s) && this.dp[j] < this.dp[i] && this.id[i] === id) {
-          this.ch[j] = this.ch[i]; this.dp[j] = this.dp[i]; this.id[j] = id; this.face[j] = 0;
+          this.ch[j] = this.ch[i]; this.dp[j] = this.dp[i]; this.id[j] = id; this.face[j] = 0; this.own[j] = this.own[i];
           for (let k = 0; k < 3; k++) this.w[3 * j + k] = this.w[3 * i + k];
         }
       }
     }
+    OWN = own.front ?? 0;
     if (front) for (let u = u0; u < u1; u += d) for (let z = z0; z < z1; z += d) this.put(u, v1 - 1, z, front(fl(u - u0), fl(z1 - z - d), U, Z), id, 1);
+    OWN = own.side ?? 0;
     if (side) for (let v = v0; v < v1; v += d) for (let z = z0; z < z1; z += d) this.put(u1 - 1, v, z, side(fl((v1 - d - v) / VS), fl(z1 - z - d), J, Z), id, 2);
+    OWN = 0;
   }
   // A flat map on a wall plane: plane 'v' faces +v at v = at, column c at u = from + c; plane 'u' faces +u at u = at,
   // column c at v = from + (width - 1 - c) * VS (one pixel column each). Row r at z = ztop - r.
@@ -115,7 +124,7 @@ class Buf {
       for (let [a, b] of [[i - 1, i + 1], [i - w, i + w]]) {
         if (this.ch[a] === '.' || this.ch[b] === '.' || (this.face[a] !== 0 && this.face[b] !== 0)) continue;
         if (this.face[a] !== 0) a = b;
-        this.ch[i] = this.ch[a]; this.dp[i] = this.dp[a]; this.id[i] = this.id[a]; this.face[i] = 0;
+        this.ch[i] = this.ch[a]; this.dp[i] = this.dp[a]; this.id[i] = this.id[a]; this.face[i] = 0; this.own[i] = this.own[a];
         for (let k = 0; k < 3; k++) this.w[3 * i + k] = this.w[3 * a + k];
         break;
       }
@@ -167,6 +176,30 @@ function shadeLayer(buf, ao, side = 0.2) {
   return cv;
 }
 
+function ownLayer(buf) {
+  const cv = document.createElement('canvas');
+  cv.width = SIZE.w; cv.height = SIZE.h;
+  const g = cv.getContext('2d'), img = g.createImageData(SIZE.w, SIZE.h);
+  for (let i = 0; i < buf.ch.length; i++) if (buf.own[i] && buf.ch[i] !== '.') img.data.set([255, 40, 200, 150], 4 * i);
+  g.putImageData(img, 0, 0);
+  return cv;
+}
+
+// An object from its face sheet (tools/faces.mjs), its frame's column 0 at u = u0, its back at v = v0: the front
+// (shared, sheared by the projection), the side and top (this view only), the details (shared, each as it stands).
+function buildObject(b, sh, u0, v0, id) {
+  const top = sh.h, X = u0 + sh.x0;
+  b.box({ u0: X, u1: X + sh.w, v0, v1: v0 + sh.d, z0: 0, z1: top, id, front: (i, r) => sh.front[r][i], side: sh.side, top: sh.top, own: { top: 1, side: 1 } });
+  for (const { map, iso: o } of sh.details) {
+    const u = u0 + o.u, v = v0 + o.v;
+    if (o.kind === 'box') b.box({ u0: u, u1: u + map[0].length, v0: v, v1: v + o.d, z0: top, z1: top + map.length, id: id + 1, front: (i, r) => map[r][i], side: o.side, top: o.top, own: { top: 1, side: 1 } });
+    else if (o.kind === 'top') map.forEach((row, r) => { for (let c = 0; c < row.length; c++) for (let k = 0; k < VS; k++) b.put(u + c, v + r * VS + k, top, row[c], id, 0, 1); });
+    else if (o.kind === 'decal') b.decal(map, 'v', v, u, top + map.length - 1, id, 100);
+    else if (o.kind === 'bill') b.bill(map, u, v, top, id + 2, 100);
+    else if (o.kind === 'drum') b.bill(map, u, v, 0, id, 200);
+  }
+}
+
 // ---- the room ------------------------------------------------------------------------------------------------------
 const FLOOR = 1, WALL_L = 2, WALL_B = 3, PIPE = 4, SHELF = 5, WINDOW = 6, BANNER = 7, CHANNEL_V = 120;
 const CHANNEL = ['!', '+', '+', '!']; // the coolant channel across v (ROOM 'channel h' rows)
@@ -193,20 +226,19 @@ function buildRoom() {
     side: (j, r, J) => wallTex(wallE)(J - 1 - j, r) });
   b.box({ u0: -WALL_T, u1: ROOM_U, v0: -WALL_T, v1: 0, z0: -SLAB, z1: WALL_H, id: WALL_B, top: cap, front: wallTex(wall), side: end });
   // copper pipe run along both walls, brass fittings
-  const pipeRows = ['X', 'X', 'Z', 'Z', 'Z', 'i'], pz = PIPE_Z;
-  b.box({ u0: -WALL_T, u1: ROOM_U, v0: 0, v1: 3, z0: pz, z1: pz + 6, id: PIPE, top: () => 'Y', front: (i, r) => pipeRows[r], side: () => 'Z' });
-  b.box({ u0: 0, u1: 3, v0: -WALL_T, v1: ROOM_V, z0: pz, z1: pz + 6, id: PIPE, top: () => 'Y', side: (j, r) => pipeRows[r], front: () => 'Z' });
+  const pipeRows = ROOM.frames['pipe h'].map(r => r[0]), pz = PIPE_Z; // the hall's pipe tile, across its run
+  b.box({ u0: -WALL_T, u1: ROOM_U, v0: 0, v1: 3, z0: pz, z1: pz + 6, id: PIPE, top: () => pipeRows[0], front: (i, r) => pipeRows[r], side: () => 'Z' });
+  b.box({ u0: 0, u1: 3, v0: -WALL_T, v1: ROOM_V, z0: pz, z1: pz + 6, id: PIPE, top: () => pipeRows[0], side: (j, r) => pipeRows[r], front: () => 'Z' });
   const fit = (i, r, U) => (r === 9 ? 'U' : i === 0 ? 'g' : i === U - 1 ? 'U' : (r === 4 || r === 5) && i > 0 ? 'h' : 'G');
   for (let u = 24; u < ROOM_U; u += 48) b.box({ u0: u, u1: u + 4, v0: 0, v1: 5, z0: pz - 2, z1: pz + 8, id: PIPE, top: () => 'g', front: fit, side: () => 'U' });
   for (let v = 20; v < ROOM_V; v += 48) b.box({ u0: 0, u1: 5, v0: v, v1: v + 4, z0: pz - 2, z1: pz + 8, id: PIPE, top: () => 'g', side: fit, front: () => 'U' });
-  // the shelf against the back wall: SHELF on its front, a wooden top and side
-  const sh = MAPS.SHELF, su1 = SHELF_U + sh[0].length, sz = sh.length;
-  b.box({ u0: SHELF_U, u1: su1, v0: 0, v1: 10, z0: 0, z1: sz, id: SHELF,
-    top: (i, j, U, J) => (j === J - 1 ? 'L' : 'w'), front: (i, r) => sh[r][i], side: (j, r, J) => (r === 0 ? 'k' : j === 0 || j === J - 1 ? 'W' : 'w') });
+  // the shelf against the back wall, from its face sheet
+  const shelf = shelfSheet(), su1 = SHELF_U + shelf.w;
+  buildObject(b, shelf, SHELF_U, 0, SHELF);
   // banners: on the back wall right of the cogitator, on the side wall
   b.decal(HANGING, 'v', 0, BANNER_U, PIPE_Z - 1, BANNER);
   b.decal(HANGING, 'u', 0, 56, PIPE_Z - 1, BANNER);
-  b.outline(new Set([SHELF]), 0.5); // the shelf sits against the wall: any step back is its edge
+  b.outline(new Set([SHELF, SHELF + 1, SHELF + 2]), 0.5); // the shelf sits against the wall: any step back is its edge
   b.outline(new Set([WALL_L, WALL_B, FLOOR]));
   // ambient occlusion: the floor darkens toward the walls and the shelf, the walls toward the floor
   const ao = new Float32Array(b.ch.length);
@@ -221,13 +253,14 @@ function buildRoom() {
   // the window: its own layer, to recolour by day and by night
   const w = new Buf();
   w.decal(GOTHIC_WINDOW, 'v', 0, WINDOW_U, WINDOW_TOP, WINDOW);
-  return { map: b.rows(), shade: shadeLayer(b, ao), window: w.rows() };
+  return { map: b.rows(), shade: shadeLayer(b, ao), own: ownLayer(b), window: w.rows() };
 }
 
 // ---- the cogitator bank ---------------------------------------------------------------------------------------------
 const COG_V = 22, COG_TOP = 15, COG_BOT = 96; // its body: COGITATOR rows 15..96, cols 9..154 on the front
 const rect = a => a.map(n => Math.round(n * RES));
-function cogFrame(f) {
+// Today's frame with screen f's text, wave and bars lit (the hall animates them in code; here, 4 frames).
+export function cogLit(f) {
   const src = MAPS.COGITATOR.map(r => r.split('')), at = PROP_AT.COGITATOR;
   const hash = (a, b) => ((a * 73856093) ^ (b * 19349663) ^ (f * 83492791)) >>> 0;
   const on = (x, y) => { if (src[y]?.[x] === 'C') src[y][x] = 'c'; };
@@ -237,22 +270,13 @@ function cogFrame(f) {
   for (let x = wx; x < wx + ww; x++) on(x, Math.round(wy + wh / 2 + (wh / 2 - 2) * Math.sin((x + f * 4) / 2.5)));
   const [bx, by, bw, bh] = rect(at.bars);
   for (let x = bx + 2; x < bx + bw - 2; x += 3) { const n = 3 + (hash(x, 2) % (bh - 4)); for (let y = by + bh - 2; y > by + bh - 2 - n; y--) { on(x, y); on(x + 1, y); } }
-  const cog = src.map(r => r.join(''));
-  const b = new Buf(), Z = COG_BOT - COG_TOP + 1;
-  b.box({ u0: COG_U + 9, u1: COG_U + 155, v0: 0, v1: COG_V, z0: 0, z1: Z, id: 1,
-    front: (i, r) => cog[COG_TOP + r][9 + i],
-    side: (j, r, J) => (j === 0 ? cog[COG_TOP + r][154] : j === J - 1 ? 'k' : cog[COG_TOP + r][148]),
-    top: (i, j, U, J) => (j === J - 1 ? 'l' : j % 4 === 1 && i % 16 > 2 && i % 16 < 13 ? 'k' : 'M') });
-  // the vents on top, on a plane halfway back; the spire upright (round, so not sheared)
-  const crop = (x0, x1, y0, y1) => cog.slice(y0, y1 + 1).map(r => r.slice(x0, x1 + 1));
-  b.decal(crop(34, 54, 6, 14), 'v', 10, COG_U + 34, Z + 8, 1, 100);
-  b.decal(crop(108, 128, 6, 14), 'v', 10, COG_U + 108, Z + 8, 1, 100);
-  b.bill(crop(70, 93, 0, 14), COG_U + 82, 10, Z, 1, 100);
-  // the drums at both ends, upright
-  b.bill(crop(0, 10, 29, COG_BOT), COG_U + 5, COG_V - 2, 0, 1, 200);
-  b.bill(crop(153, 163, 29, COG_BOT), COG_U + 158, COG_V - 2, 0, 1, 200);
-  b.outline(new Set([1]));
-  return { map: b.rows(), shade: shadeLayer(b, null) };
+  return src.map(r => r.join(''));
+}
+function cogFrame(f) {
+  const b = new Buf();
+  buildObject(b, cogSheet(cogLit(f)), COG_U, 0, 1);
+  b.outline(new Set([1, 2, 3]));
+  return { map: b.rows(), shade: shadeLayer(b, null), own: ownLayer(b) };
 }
 // The cogitator's screens on screen (for their glow): each one's rect on the front plane, as 4 points.
 function cogScreens() {
@@ -264,31 +288,13 @@ function cogScreens() {
 }
 
 // ---- desks ----------------------------------------------------------------------------------------------------------
-const DESK_V = 24, DESK_H = 24; // the body: DESK rows 18..41 on the front, 64 long
-function buildDesk(u0, v0, { slate = true, pile = false } = {}) {
-  const D = MAPS.DESK, b = new Buf(), top = DESK_H;
-  const legs = (j, J) => { const L = J >= 20 ? 'kmMMMk' : J >= 9 ? 'kmMk' : 'kmk'; return j < L.length ? L[j] : j >= J - L.length ? L[j - J + L.length] : '.'; };
-  b.box({ u0, u1: u0 + 64, v0, v1: v0 + DESK_V, z0: 0, z1: DESK_H, id: 1,
-    front: (i, r) => D[18 + r][i],
-    // the end of the desk: a lit top rail, a brass trim line, a framed wooden panel, the legs (wood w/W/L, brass g/G)
-    side: (j, r, J) => (r >= 19 ? legs(j, J) : r === 0 || r === 18 ? 'k' : r === 1 ? 'L' : r === 2 ? 'g' : r === 17 ? 'G'
-      : j === 0 || j === J - 1 || r === 3 || r === 16 ? 'W' : r === 10 ? 'W' : j === 1 || r === 4 || r === 11 ? 'L' : 'w'),
-    top: (i, j, U, J) => {
-      const p0 = fl(9 / VS), p1 = fl(21 / VS);
-      if (i >= 3 && i < 19 && j >= p0 && j < p1) return j === p0 || j === p1 - 1 || i === 3 || i === 18 ? 'P' : j % 2 ? 'p' : i > 5 && i < 5 + ((i * 7 + j * 5) % 11) ? 'P' : 'p';
-      if (j === J - 1) return 'L';
-      return j % 6 === 2 && (i * 7 + j * 3) % 11 > 3 ? 'W' : 'w';
-    } });
-  if (slate) b.box({ u0: u0 + 14, u1: u0 + 38, v0: v0 + 2, v1: v0 + 5, z0: top, z1: top + 18, id: 2,
-    front: (i, r) => D[r][12 + i], top: () => 'h', side: (j, r) => (r >= 15 || j === 0 ? 'G' : 'U') });
-  if (pile) b.box({ u0: u0 + 6, u1: u0 + 22, v0: v0 + 6, v1: v0 + 18, z0: top, z1: top + 11, id: 3,
-    front: (i, r) => (i === 8 ? 'x' : i === 9 ? 'r' : r % 2 ? 'P' : 'p'), side: (j, r) => (r % 2 ? 'B' : 'P'),
-    top: (i, j) => (i === 8 ? 'x' : i === 9 ? 'r' : j % 3 === 0 ? 'P' : 'p') });
-  // the candle on its brass tray: upright
-  b.bill(D.slice(0, 18).map(r => r.slice(46, 60)), u0 + 52, v0 + 12, top, 4, 2);
+function buildDesk(u0, v0, { pile = false } = {}) {
+  const b = new Buf(), sh = deskSheet();
+  buildObject(b, sh, u0, v0, 1);
+  if (pile) b.bill(MAPS.PAPER_STACK, u0 + 30, v0 + 16, sh.h, 4, 2); // the paper stack, shared unchanged
   b.outline(new Set([1, 2, 3, 4]));
-  const [fx, fy] = P(u0 + 52, v0 + 12, top + 15);
-  return { map: b.rows(), shade: shadeLayer(b, null), box: { u0, u1: u0 + 64, v0, v1: v0 + DESK_V }, flame: { x: fx, y: fy } };
+  const c = sh.details.find(d => d.name === 'candle').iso, [fx, fy] = P(u0 + c.u, v0 + c.v, sh.h + 15);
+  return { map: b.rows(), shade: shadeLayer(b, null), own: ownLayer(b), box: { u0, u1: u0 + sh.w, v0, v1: v0 + sh.d }, flame: { x: fx, y: fy } };
 }
 
 // ---- the scene ------------------------------------------------------------------------------------------------------
@@ -353,7 +359,9 @@ function glow(g, x, y, r, col) {
 const poly = (g, pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); };
 
 // Draw scene S at tick t (walked units) into g (S.size canvas, art px).
-export function drawScene(g, S, t, night) {
+// tint: lay a colour over the pixels drawn for this view only (side and top faces, the scribe).
+export function drawScene(g, S, t, night, tint = false) {
+  const tints = [[S.room.own, 0, 0]];
   const { w, h, ox, oy } = S.size, at = ([x, y]) => [x + ox, y + oy], Q = (u, v, z = 0) => at(S.P(u, v, z));
   // a point of a piece of furniture: its local projection, moved by its offset
   const L = (o, u, v, z = 0) => { const [x, y] = at(S.PL(u, v, z)); return [x + o[0], y + o[1]]; };
@@ -383,9 +391,9 @@ export function drawScene(g, S, t, night) {
   // layers back to front
   const frame = [1, 0, 2, 0][fl(t / 6) % 4], cog = S.cog[fl(t / 10) % S.cog.length];
   const layers = [
-    { u0: COG_U, u1: COG_U + 164, v0: 0, v1: COG_V, draw: () => { const [x, y] = S.cogOff; g.drawImage(cog.cv, x, y); g.drawImage(cog.shade, x, y); } },
-    ...S.desks.map(d => ({ ...d.box, draw: () => { const [x, y] = d.off; g.drawImage(d.cv, x, y); g.drawImage(d.shade, x, y); } })),
-    { u0: s.u - 6, u1: s.u + 6, v0: s.v - 6, v1: s.v + 6, draw: () => g.drawImage(S.scribe[s.dir][frame], px - S.feet.x, py - S.feet.y) },
+    { u0: COG_U, u1: COG_U + 164, v0: 0, v1: COG_V, draw: () => { const [x, y] = S.cogOff; g.drawImage(cog.cv, x, y); g.drawImage(cog.shade, x, y); tints.push([cog.own, x, y]); } },
+    ...S.desks.map(d => ({ ...d.box, draw: () => { const [x, y] = d.off; g.drawImage(d.cv, x, y); g.drawImage(d.shade, x, y); tints.push([d.own, x, y]); } })),
+    { u0: s.u - 6, u1: s.u + 6, v0: s.v - 6, v1: s.v + 6, draw: () => { const f = S.scribe[s.dir][frame]; g.drawImage(f, px - S.feet.x, py - S.feet.y); tints.push([tinted(f), px - S.feet.x, py - S.feet.y]); } },
   ].sort(order);
   for (const o of layers) { g.filter = dim((o.v0 + o.v1) / 2); o.draw(); }
   g.filter = 'none';
@@ -405,34 +413,66 @@ export function drawScene(g, S, t, night) {
   }
   l.globalCompositeOperation = 'destination-in'; l.drawImage(g.canvas, 0, 0); // keep the light on the room only
   g.save(); g.globalCompositeOperation = 'lighter'; g.drawImage(lc, 0, 0); g.restore();
+  if (tint) for (const [cv, x, y] of tints) g.drawImage(cv, x, y);
+}
+// A sprite's pixels in the tint colour (view-only art), once per canvas.
+const tintCache = new WeakMap();
+export function tinted(cv) {
+  let t = tintCache.get(cv);
+  if (!t) {
+    t = document.createElement('canvas'); t.width = cv.width; t.height = cv.height;
+    const x = t.getContext('2d'); x.drawImage(cv, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = 'rgba(255,40,200,.6)'; x.fillRect(0, 0, t.width, t.height);
+    tintCache.set(cv, t);
+  }
+  return t;
 }
 
-// ---- the flat 3/4 reference: the same objects, blitted as the hall draws them ---------------------------------------
-export const FLAT = { w: 400, h: 260 };
-export function drawFlat(g, t, night) {
+// ---- the flat 3/4 view, from the same face sheets ----------------------------------------------------------------------
+// Today's flat frames are rebuilt by composeFlat (faces.test.mjs proves them equal to today's), on a back wall with the
+// same textures (wall plates, floor grate, pipe, coolant) and the same new gothic window and hangings as the 39 deg
+// view. The room maps onto it as x = u + FX, the floor y = WALL + v * 7/8. Per-view art: the scribe frames, and the
+// cogitator's painted shadow (flatOnly).
+const FX = 30, WALL = 134;
+export const FLAT = { w: ROOM_U + FX + 12, h: WALL + 146 };
+const fy = v => WALL + Math.round(v * 7 / 8);
+export function drawFlat(g, t, night, tint = false) {
   g.clearRect(0, 0, FLAT.w, FLAT.h);
   const C = (drawFlat.cache ??= {}), P2 = (k, map, over) => (C[k] ??= paint(map, over));
-  const tile = (k, map, x0, y0, x1, y1) => { const cv = P2(k, map); for (let y = y0; y < y1; y += cv.height) for (let x = x0; x < x1; x += cv.width) g.drawImage(cv, x, y); };
-  tile('wall', ROOM.frames.wall, 0, 0, FLAT.w, 120);
-  tile('foot', ROOM.frames['wall foot'], 0, 116, FLAT.w, 120);
-  tile('floor', ROOM.frames.floor, 0, 120, FLAT.w, FLAT.h);
-  tile('chan', ROOM.frames['channel h'], 0, 240, FLAT.w, 244);
-  tile('pipe', ROOM.frames['pipe h'], 0, 8, FLAT.w, 14);
-  g.drawImage(P2('shelf', MAPS.SHELF), 8, 78);
-  g.drawImage(P2(night ? 'wn' : 'wd', MAPS.WINDOW, night ? T.ink.windowNight : T.ink.windowDay), 82, 30);
-  g.drawImage(P2('cog', MAPS.COGITATOR), 116, 20);
-  g.drawImage(P2('banner', MAPS.BANNER), 290, 40);
-  const desk = P2('desk', MAPS.DESK), pile = P2('pile', MAPS.PAPER_STACK);
-  // the scribe walks left and right behind the desks
-  const span = 300, d = (t * 2) % (2 * span), right = d < span, x = 30 + (right ? d : 2 * span - d) * 0.95;
-  const sc = P2(`s${right}${[1, 0, 2, 0][fl(t / 6) % 4]}`, SCRIBE[right ? 'right' : 'left'][[1, 0, 2, 0][fl(t / 6) % 4]]);
-  contactShadow(g, { cx: x + 16, cy: 178, rx: 11, ry: 4 }, 0.55);
-  g.drawImage(sc, x, 178 - sc.height);
-  for (const dx of [120, 230]) { contactShadow(g, { cx: dx + 32, cy: 228, rx: 34, ry: 6 }, 0.5); g.drawImage(desk, dx, 186); }
-  g.drawImage(pile, 238, 166);
+  const tile = (k, map, x0, y0, x1, y1) => { const cv = P2(k, map); g.save(); g.beginPath(); g.rect(x0, y0, x1 - x0, y1 - y0); g.clip(); for (let y = y0; y < y1; y += cv.height) for (let x = x0; x < x1; x += cv.width) g.drawImage(cv, x, y); g.restore(); };
+  const W = FLAT.w;
+  tile('wall', ROOM.frames.wall, 0, 0, W, WALL);
+  tile('foot', ROOM.frames['wall foot'], 0, WALL - 4, W, WALL);
+  tile('floor', ROOM.frames.floor, 0, WALL, W, FLAT.h);
+  tile('chan', ROOM.frames['channel h'], 0, fy(CHANNEL_V), W, fy(CHANNEL_V) + 4);
+  tile('pipe', ROOM.frames['pipe h'], 0, WALL - PIPE_Z - 6, W, WALL - PIPE_Z);
+  const tints = [];
+  // wall: two hangings, the window, the shelf, the cogitator (its screens lit like the 39 deg one)
+  g.drawImage(P2('hang', HANGING), 2, WALL - PIPE_Z + 1);
+  g.drawImage(P2('hang', HANGING), BANNER_U + FX, WALL - PIPE_Z + 1);
+  g.drawImage(P2(night ? 'wn' : 'wd', GOTHIC_WINDOW, night ? T.ink.windowNight : T.ink.windowDay), WINDOW_U + FX, WALL - WINDOW_TOP);
+  g.drawImage(P2('shelf', composeFlat(shelfSheet())), SHELF_U + FX, WALL - 42);
+  const f = fl(t / 10) % 4, cogS = cogSheet(cogLit(f)), cogY = WALL - 97;
+  g.drawImage(P2('cog' + f, composeFlat(cogS)), COG_U + FX, cogY);
+  const sh = cogS.flatOnly[0];
+  tints.push([tinted(P2('cogshadow', sh.map)), COG_U + FX + sh.at[0], cogY + sh.at[1]]);
+  // desks and the scribe, back to front by their floor line
+  const desk = P2('desk', composeFlat(deskSheet())), pile = P2('pile', MAPS.PAPER_STACK);
+  const s = scribeAt(t), dirs = { e: 'right', w: 'left', s: 'down', n: 'up' };
+  const sc = P2(`s${s.dir}${[1, 0, 2, 0][fl(t / 6) % 4]}`, SCRIBE[dirs[s.dir]][[1, 0, 2, 0][fl(t / 6) % 4]]);
+  const items = [
+    ...[DESK_A, DESK_B].map((u, i) => ({ y: fy(DESK_Y + 24), draw: () => {
+      const x = u + FX, y = fy(DESK_Y + 24) - 42;
+      contactShadow(g, { cx: x + 32, cy: y + 42, rx: 34, ry: 5 }, 0.5);
+      g.drawImage(desk, x, y);
+      if (i) g.drawImage(pile, x + 22, y + 18 - pile.height);
+    } })),
+    { y: fy(s.v), draw: () => { const x = s.u + FX - 16, y = fy(s.v); contactShadow(g, { cx: x + 16, cy: y, rx: 11, ry: 4 }, 0.55); g.drawImage(sc, x, y - sc.height); tints.push([tinted(sc), x, y - sc.height]); } },
+  ].sort((a, b) => a.y - b.y);
+  for (const o of items) o.draw();
   if (night) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(${T.light.night},.6)`; g.fillRect(0, 0, FLAT.w, FLAT.h); g.restore(); }
   g.save(); g.globalCompositeOperation = 'lighter';
-  for (const dx of [120, 230]) glow(g, dx + 50, 188, night ? 46 : 18, T.light.amber);
-  glow(g, 198, 60, night ? 90 : 50, night ? 'rgba(124,255,158,.16)' : 'rgba(124,255,158,.06)');
+  for (const u of [DESK_A, DESK_B]) glow(g, u + FX + 52, fy(DESK_Y + 24) - 42 + 2, night ? 46 : 18, T.light.amber);
+  glow(g, COG_U + FX + 82, cogY + 45, night ? 90 : 50, night ? 'rgba(124,255,158,.16)' : 'rgba(124,255,158,.06)');
   g.restore();
+  if (tint) for (const [cv, x, y] of tints) g.drawImage(cv, x, y);
 }

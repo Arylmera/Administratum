@@ -29,19 +29,21 @@
   <label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
   <label>Show <select id="only"><option value="">all</option><option value="flat">flat 3/4</option><option value="iso">isometric 45°</option><option value="a39">39°</option><option value="a30">30°</option><option value="oblique">oblique (a) cabinet</option><option value="oblique2">oblique (a2) 2:1</option><option value="persp">oblique (b) perspective</option><option value="dimetric">dimetric</option></select></label>
   <label><input type="checkbox" id="night"> night</label>
+  <label title="Tint the pixels drawn for one view only: side and top faces, the scribe, the flat-only retouch"><input type="checkbox" id="tint"> tint view-only art</label>
   <label><input type="checkbox" id="pause"> pause</label>
   <label>Step <input type="range" id="step" min="0" max="287" value="0"></label>
 </header>
+<p id="legend" style="margin:12px 16px 0;color:var(--dim)"></p>
 <main id="out"></main>
 <script type="module">
 const $ = id => document.getElementById(id);
 try {
   const { build, drawScene, drawFlat, FLAT, PROJ, PERIOD } = await import('./iso.mjs');
   const views = [
-    { id: 'iso', title: '45° — 2:1 isometric', note: 'both walls sheared 2-1; hand-drawn iso scribe (SW/NE + mirrors)' },
-    { id: 'a39', title: '39° — back wall 3:1, side wall 2:1', note: 'hand-drawn S39/N39 along the side wall, SE/NW along the back' },
-    { id: 'a30', title: '30° — back wall 3:1, side wall 1:1', note: 'scribe frames as at 39°' },
-    { id: 'flat', title: 'Today: flat 3/4', note: 'the existing sprites blitted as the hall draws them', br: true },
+    { id: 'flat', title: 'Flat 3/4', note: "today's frames rebuilt from the face sheets; today's scribe" },
+    { id: 'a39', title: '39°', note: 'the same face sheets: fronts sheared 3:1, new side and top faces; the iso scribe' },
+    { id: 'iso', title: '45° — 2:1 isometric', note: 'same sheets', br: true },
+    { id: 'a30', title: '30° — back wall 3:1, side wall 1:1', note: 'same sheets' },
     { id: 'oblique', title: 'Oblique (a) cabinet 1:1', note: 'back wall and fronts as today, depth recedes in 1-1 steps at half length; today\'s scribe frames' },
     { id: 'oblique2', title: 'Oblique (a2) 2:1 steps', note: 'depth recedes in 2-1 steps (the iso slope), back wall still flat; today\'s scribe frames' },
     { id: 'persp', title: 'Oblique (b) light one-point perspective', note: 'shell converges, rows shorten toward the back; furniture crisp (cabinet), placed in perspective, darker further back' },
@@ -60,6 +62,7 @@ try {
   $('step').max = PERIOD - 1;
   const pref = (k, d) => { try { return localStorage.getItem(`iso.${k}`) ?? d; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(`iso.${k}`, v); } catch {} };
+  $('tint').onchange = () => draw();
   $('zoom').value = pref('zoom', '2'); $('only').value = pref('only', ''); $('night').checked = pref('night', '') === '1';
   const layout = () => {
     const z = +$('zoom').value, only = $('only').value;
@@ -67,9 +70,18 @@ try {
     save('zoom', $('zoom').value); save('only', only); save('night', $('night').checked ? '1' : '');
   };
   for (const id of ['zoom', 'only', 'night']) $(id).onchange = layout;
+  // what is shared and what each view needs of its own
+  const { deskSheet, shelfSheet, cogSheet } = await import('./faces.mjs');
+  const sheets = [deskSheet(), shelfSheet(), cogSheet()];
+  const shared = sheets.length + sheets.reduce((n, s) => n + s.details.length, 0) + 1 /* paper stack */ + 2 /* window, hanging */ + 5 /* floor, wall, wall east, pipe, coolant */;
+  const newFaces = 2 * sheets.length + 2 /* the slate's side and top */;
+  $('legend').innerHTML = `<b>Shared by both views:</b> ${shared} pieces of art (${sheets.length} fronts cut from today's frames, ${sheets.reduce((n, s) => n + s.details.length, 0)} details, the paper stack, the gothic window, the hanging, 5 textures).
+    <b>39° only:</b> ${newFaces} new side/top faces (rules) and 12 scribe frames (SW, NE, S39, N39 drawn; SE, NW mirrored).
+    <b>Flat only:</b> 12 scribe frames (today's) and 1 retouch (the cogitator's painted shadow).
+    Tick <i>tint view-only art</i> to see them in magenta.`;
   layout();
   let t = 0;
-  const draw = () => { const n = $('night').checked; for (const v of views) v.S ? drawScene(v.g, v.S, t, n) : drawFlat(v.g, t, n); };
+  const draw = () => { const n = $('night').checked, ti = $('tint').checked; for (const v of views) v.S ? drawScene(v.g, v.S, t, n, ti) : drawFlat(v.g, t, n, ti); };
   $('step').oninput = () => { t = +$('step').value; draw(); };
   // setTimeout, not requestAnimationFrame: a background tab gets no frames
   const tick = () => { if (!$('pause').checked) { t = (t + 1) % PERIOD; $('step').value = t; } draw(); setTimeout(tick, 70); };
