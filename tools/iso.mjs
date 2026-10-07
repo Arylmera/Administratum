@@ -1,16 +1,13 @@
-// Projection trial (tools/iso.html): one corner of the scriptorium drawn in three pixel projections next to today's flat
-// 3/4 hall, at the hall's art-px scale, built from the key-palette art. Not used by the app (nothing under ui/ changes).
+// Projection trial (tools/iso.html): one corner of the scriptorium in the 39 deg view next to today's flat 3/4 hall, at
+// the hall's art-px scale, both built from the same key-palette art (tools/faces.mjs). Not used by the app.
 //
 // World: u along the back wall (screen right), v toward the viewer, z up; 1 unit = 1 art px along an axis.
-// Each projection maps (u, v, z) to a pixel with integer steps, so every edge is a clean stair:
-//   iso       2:1 isometric   sx = u - v,          sy = floor((u + v) / 2) - z    both walls sheared 2-1
-//   oblique   front-facing    sx = u - floor(v/2), sy = floor(v / 2) - z          back wall flat (today's art as is),
-//                                                                                  depth recedes 1-1 at half length
-//   dimetric  rotated ~14 deg sx = u - floor(v/4), sy = floor((u + 2v) / 4) - z   back wall slopes 1 down per 4,
-//                                                                                  side wall steep (2 down per 1)
-// A flat map laid on a wall plane is a column shear under that projection. Hidden surfaces: a z-buffer per layer, depth
-// u + v + z (the view direction has positive u, v and z in all three). Layers (desks, the cogitator, the scribe) are
-// painted back to front by their floor boxes. VS: v units per pixel row along v (textures across v sample every VS).
+// 39 deg: the back wall recedes 3:1, the side wall 2:1. With vertical squash s and rotation t, s tan t = 1/3 and
+// s cot t = 1/2 (s^2 = 1/6, tan t = 0.816). u keeps 1 px across per unit (the art's width); v is foreshortened to
+// w = floor(v tan t) px across, so both slopes are clean repeating stairs (3-3-3 and 2-2-2) with the room's proportions
+// true. A flat map laid on a wall plane is a column shear. Hidden surfaces: a z-buffer per layer, depth u + v + z (the
+// view direction has positive u, v and z). Layers (desks, the cogitator, the scribe) are painted back to front by their
+// floor boxes.
 import { MAPS, ROOM, PROP_AT, SCRIBE, RES } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { contactShadow } from '../ui/depth.js';
@@ -18,35 +15,13 @@ import { SCRIBE_ISO, SCRIBE_ISO_FEET, GOTHIC_WINDOW, HANGING } from './iso_art.m
 import { deskSheet, shelfSheet, cogSheet, composeFlat } from './faces.mjs';
 
 const fl = Math.floor;
-export const PROJ = {
-  iso: { name: '2:1 isometric', VS: 1, P: (u, v, z) => [u - v, fl((u + v) / 2) - z] },
-  oblique: { name: 'oblique, front-facing', VS: 2, P: (u, v, z) => [u - fl(v / 2), fl(v / 2) - z] },
-  // Asymmetric rotations: the back wall (u) recedes 3:1, the side wall (v) 2:1 (39 deg) or 1:1 (30 deg). With vertical
-  // squash s and rotation t, s tan t = 1/3 and s cot t = 1/2 (39: s^2 = 1/6, tan t = 0.816) or 1 (30: tan t = 0.577).
-  // u keeps 1 px across per unit (the art's width); v is foreshortened to w = floor(v tan t) px across, so both slopes
-  // stay clean repeating stairs (3-3-3 and 2-2-2 / 1-1-1) with the room's proportions true.
-  a39: { name: '39° rotation (3:1 / 2:1)', VS: 2 / Math.sqrt(2 / 3), asym: true, wideU: true,
-    P: (u, v, z) => { const w = fl(v * Math.sqrt(2 / 3)); return [u - w, fl(u / 3) + fl(w / 2) - z]; } },
-  a30: { name: '30° rotation (3:1 / 1:1)', VS: Math.sqrt(3), asym: true,
-    P: (u, v, z) => { const w = fl(v / Math.sqrt(3)); return [u - w, fl(u / 3) + w - z]; } },
-  oblique2: { name: 'oblique, 2:1 steps', VS: 2, wideU: true, P: (u, v, z) => [u - v, fl(v / 2) - z] },
-  // Light one-point perspective: the cabinet oblique scaled about (PX, 0) by s = 1 + A v, so the back wall (v = 0) stays
-  // at scale 1 (today's art untouched), the side wall and the floor edges converge toward the back, floor rows get
-  // shorter toward the back. Only the room shell is drawn through it (supersampled, ss, so a stretch leaves no holes);
-  // furniture keeps the crisp cabinet shape (local) and is placed at its perspective position; layers further back are
-  // darker (dov).
-  persp: { name: 'oblique, light one-point perspective', VS: 2, ss: 2, local: 'oblique', dov: 0.16,
-    P: (u, v, z) => { const s = 1 + (0.16 / 160) * v; return [fl(150 + s * (u - v / 2 - 150)), fl(s * (v / 2 - z))]; } },
-  dimetric: { name: 'dimetric, rotated ~14°', VS: 2, P: (u, v, z) => [u - fl(v / 4), fl((u + 2 * v) / 4) - z] },
-};
-let PR = PROJ.iso, VS = 1, SIZE = null;
+const TAN = Math.sqrt(2 / 3);
+export const P = (u, v, z = 0) => { const w = fl(v * TAN); return [u - w, fl(u / 3) + fl(w / 2) - z]; };
+const VS = 2 / TAN, VX = 1 / TAN; // v units per pixel row along v, per pixel column along v
+let SIZE = null;
 // Where a pixel's art comes from: 0 shared with the flat view (today's faces, details, textures), 1 this view only
 // (side and top faces, drawn new). Set around each drawing call; the page can tint the view-only pixels.
 let OWN = 0;
-const P = (u, v, z = 0) => PR.P(u, v, z);
-// v units per pixel column along v (a decal on the side wall puts one texel per column): measured on the projection
-const VX = () => (PR.vx ??= 64 / Math.abs(PR.P(0, 64, 0)[0] - PR.P(0, 0, 0)[0]));
-
 // The scene: floor u 0..ROOM_U, v 0..ROOM_V; walls on v < 0 (back) and u < 0 (left side), WALL_H tall.
 const ROOM_U = 320, ROOM_V = 160, WALL_H = 128, WALL_T = 8, SLAB = 6;
 
@@ -74,18 +49,18 @@ class Buf {
   // top(i, j, U, J) i along u, j along v from the back; front(i, r, U, Z) r down from the top;
   // side(j, r, J, Z) j from the front corner toward the back.
   box({ u0, u1, v0, v1, z0, z1, top, front, side, id = 0, tdz = 0, own = {} }) {
-    const U = u1 - u0, J = Math.ceil((v1 - v0) / VS), Z = z1 - z0, d = 1 / (PR.ss ?? 1); // d: sample step
+    const U = u1 - u0, J = Math.ceil((v1 - v0) / VS), Z = z1 - z0
     OWN = own.top ?? 0;
     if (top) {
       const mine = new Set();
-      for (let u = u0; u < u1; u += d) for (let v = v0; v < v1; v += d) {
+      for (let u = u0; u < u1; u++) for (let v = v0; v < v1; v++) {
         const [sx, sy] = P(u, v, z1);
         mine.add((sy + SIZE.oy) * SIZE.w + sx + SIZE.ox);
-        this.put(u, v, z1, top(fl(u - u0), fl((v - v0) / VS), U, J), id, 0, tdz);
+        this.put(u, v, z1, top(u - u0, fl((v - v0) / VS), U, J), id, 0, tdz);
       }
-      // the 39 / 30 deg projections miss single pixels inside a top face (where both stairs step together): take them
-      // from the face's neighbour, over whatever further back showed through
-      if (PR.asym) for (const i of mine) for (const s of [1, SIZE.w]) {
+      // the projection misses single pixels inside a top face (where both stairs step together): take them from the
+      // face's neighbour, over whatever further back showed through
+      for (const i of mine) for (const s of [1, SIZE.w]) {
         const j = i + s;
         if (!mine.has(j) && mine.has(j + s) && this.dp[j] < this.dp[i] && this.id[i] === id) {
           this.ch[j] = this.ch[i]; this.dp[j] = this.dp[i]; this.id[j] = id; this.face[j] = 0; this.own[j] = this.own[i];
@@ -94,18 +69,18 @@ class Buf {
       }
     }
     OWN = own.front ?? 0;
-    if (front) for (let u = u0; u < u1; u += d) for (let z = z0; z < z1; z += d) this.put(u, v1 - 1, z, front(fl(u - u0), fl(z1 - z - d), U, Z), id, 1);
+    if (front) for (let u = u0; u < u1; u++) for (let z = z0; z < z1; z++) this.put(u, v1 - 1, z, front(u - u0, z1 - 1 - z, U, Z), id, 1);
     OWN = own.side ?? 0;
-    if (side) for (let v = v0; v < v1; v += d) for (let z = z0; z < z1; z += d) this.put(u1 - 1, v, z, side(fl((v1 - d - v) / VS), fl(z1 - z - d), J, Z), id, 2);
+    if (side) for (let v = v0; v < v1; v++) for (let z = z0; z < z1; z++) this.put(u1 - 1, v, z, side(fl((v1 - 1 - v) / VS), z1 - 1 - z, J, Z), id, 2);
     OWN = 0;
   }
   // A flat map on a wall plane: plane 'v' faces +v at v = at, column c at u = from + c; plane 'u' faces +u at u = at,
   // column c at v = from + (width - 1 - c) * VS (one pixel column each). Row r at z = ztop - r.
   decal(map, plane, at, from, ztop, id = 0, dz = 0.5) {
-    const w = map[0].length, d = 1 / (PR.ss ?? 1);
-    map.forEach((row, r) => { for (let c = 0; c < row.length; c++) for (let a = 0; a < 1; a += d) for (let b = 0; b < 1; b += d) {
-      if (plane === 'v') this.put(from + c + a, at, ztop - r - b, row[c], id, 1, dz);
-      else for (let k = 0; k < VX(); k++) this.put(at, from + (w - 1 - c) * VX() + k + a, ztop - r - b, row[c], id, 2, dz);
+    const w = map[0].length;
+    map.forEach((row, r) => { for (let c = 0; c < row.length; c++) {
+      if (plane === 'v') this.put(from + c, at, ztop - r, row[c], id, 1, dz);
+      else for (let k = 0; k < VX; k++) this.put(at, from + (w - 1 - c) * VX + k, ztop - r, row[c], id, 2, dz);
     } });
   }
   // A map standing upright, not sheared (round things: candles, drums, the spire), bottom centre on (u, v, z).
@@ -116,7 +91,7 @@ class Buf {
   // Outline ('k') the pixels of the given ids that touch the void or something further back.
   outline(ids, gap = 3) {
     const { w, h } = SIZE, mark = [];
-    // ponytail: the 39/30 deg projections leave single-pixel holes inside top faces (where the 3- and 2-stairs step
+    // ponytail: the projection leaves single-pixel holes inside top faces (where the 3- and 2-stairs step
     // together); fill each from its left (or upper) neighbour on the same top face. Edges are unaffected.
     for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
       const i = y * w + x;
@@ -219,7 +194,7 @@ function buildRoom() {
   const cut = (i, r) => (r === 0 ? 'm' : 'M'), ch = fl(CHANNEL_V / VS);
   // floor slab: the grate tile laid along u and v, the coolant channel along u
   b.box({ u0: 0, u1: ROOM_U, v0: 0, v1: ROOM_V, z0: -SLAB, z1: 0, id: FLOOR, front: cut, side: cut, tdz: -3,
-    top: (i, j) => (j >= ch && j < ch + 4 ? CHANNEL[j - ch] : j === ch - 1 || j === ch + 4 ? '2' : floor[j % 8][PR.wideU ? [0, 0, 1, 2, 2, 2, 2, 2][i % 8] : i % 8]) });
+    top: (i, j) => (j >= ch && j < ch + 4 ? CHANNEL[j - ch] : j === ch - 1 || j === ch + 4 ? '2' : floor[j % 8][[0, 0, 1, 2, 2, 2, 2, 2][i % 8]]) });
   // the left side wall (faces +u): east plates, darker as a side face; the back wall (faces +v): west plates
   const cap = () => '7', end = (i, r) => (r < WALL_H ? 'S' : 'M');
   b.box({ u0: -WALL_T, u1: 0, v0: -WALL_T, v1: ROOM_V, z0: -SLAB, z1: WALL_H, id: WALL_L, top: cap, front: end,
@@ -248,7 +223,6 @@ function buildRoom() {
       const shelf = u >= SHELF_U - 2 && u < su1 + 2 ? Math.max(0, 1 - Math.max(0, v - 10) / 10) * 0.35 : 0;
       ao[i] = Math.max(0.45 * Math.max(0, 1 - Math.min(u, v) / 14), shelf);
     } else if ((b.id[i] === WALL_L || b.id[i] === WALL_B) && b.face[i] > 0 && z >= 0 && z < 16) ao[i] = 0.3 * (1 - z / 16);
-    if (PR.dov && b.ch[i] !== '.') ao[i] += PR.dov * (1 - Math.min(ROOM_V, Math.max(0, v)) / ROOM_V);
   }
   // the window: its own layer, to recolour by day and by night
   const w = new Buf();
@@ -315,39 +289,26 @@ export function scribeAt(t) { // t: units walked; dir: +u east, -u west, +v sout
 const behind = (a, b) => a.u1 <= b.u0 || a.v1 <= b.v0;
 export const order = (a, b) => (behind(a, b) ? -1 : behind(b, a) ? 1 : (a.u0 + a.u1 + a.v0 + a.v1) - (b.u0 + b.u1 + b.v0 + b.v1));
 
-// Scribe frames per direction. Iso: the hand-drawn iso frames (in iso, +u walks down-right = SE). Oblique and
-// dimetric: today's frames, reused (east = right, south = down toward the viewer).
-// 39 and 30 deg: along the side wall (+v / -v) the less-turned S39 / N39, along the back wall (+u / -u) SE / NW.
-function scribeFrames(proj) {
-  const iso = { e: 'se', w: 'nw', s: 'sw', n: 'ne' }, asym = { e: 'se', w: 'nw', s: 's39', n: 'n39' }, flat = { e: 'right', w: 'left', s: 'down', n: 'up' };
-  const set = proj === 'iso' ? iso : PROJ[proj].asym ? asym : null;
-  return Object.fromEntries(['e', 'w', 's', 'n'].map(d => [d, (set ? SCRIBE_ISO[set[d]] : SCRIBE[flat[d]]).map(f => paint(f))]));
+// The scribe's frames per direction: along the side wall (+v / -v) the less-turned S39 / N39, along the back wall
+// (+u / -u) SE / NW (the 45 deg SW / NE mirrored).
+function scribeFrames() {
+  const by = { e: 'se', w: 'nw', s: 's39', n: 'n39' };
+  return Object.fromEntries(Object.entries(by).map(([d, k]) => [d, SCRIBE_ISO[k].map(f => paint(f))]));
 }
 
-export function build(proj = 'iso') {
-  PR = PROJ[proj]; VS = PR.VS;
+export function build() {
   // the canvas: the room's corners projected, plus a margin
   const xs = [], ys = [];
-  for (const u of [-WALL_T, ROOM_U]) for (const v of [-WALL_T, ROOM_V]) for (const z of [-SLAB, WALL_H + 2]) { const [x, y] = PR.P(u, v, z); xs.push(x); ys.push(y); }
+  for (const u of [-WALL_T, ROOM_U]) for (const v of [-WALL_T, ROOM_V]) for (const z of [-SLAB, WALL_H + 2]) { const [x, y] = P(u, v, z); xs.push(x); ys.push(y); }
   const m = 6, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m;
   SIZE = { w: Math.max(...xs) + m - x0, h: Math.max(...ys) + m - y0, ox: -x0, oy: -y0 };
-  const room = buildRoom(), main = PR;
-  // furniture: built in the local projection (crisp, unscaled), moved so its front-bottom-left corner lands where the
-  // main projection puts it (the same place when there is no local projection)
-  if (main.local) { PR = PROJ[main.local]; VS = PR.VS; }
-  const off = (u, v) => { const a = main.P(u, v, 0), b = PR.P(u, v, 0); return [a[0] - b[0], a[1] - b[1]]; };
-  const deskA = buildDesk(DESK_A, DESK_Y), deskB = buildDesk(DESK_B, DESK_Y, { pile: true });
-  for (const d of [deskA, deskB]) d.off = off(d.box.u0, d.box.v1 - 1);
-  const cogOff = off(COG_U + 9, COG_V - 1);
-  const canv = o => ({ ...o, cv: paint(o.map) });
-  const S = {
-    proj, P: main.P, PL: PR.P, dov: main.dov ?? 0, size: SIZE, cogOff,
+  const room = buildRoom(), canv = o => ({ ...o, cv: paint(o.map) });
+  return {
+    size: SIZE,
     room: { ...canv(room), windowDay: paint(room.window, T.ink.windowDay), windowNight: paint(room.window, T.ink.windowNight) },
-    desks: [canv(deskA), canv(deskB)], cog: [0, 1, 2, 3].map(cogFrame).map(canv), screens: cogScreens(),
-    scribe: scribeFrames(proj), feet: proj === 'iso' || main.asym ? SCRIBE_ISO_FEET : { x: 16, y: 33 },
+    desks: [buildDesk(DESK_A, DESK_Y), buildDesk(DESK_B, DESK_Y, { pile: true })].map(canv),
+    cog: [0, 1, 2, 3].map(cogFrame).map(canv), screens: cogScreens(), scribe: scribeFrames(), feet: SCRIBE_ISO_FEET,
   };
-  PR = main; VS = PR.VS;
-  return S;
 }
 
 // Glow: a radial light added at (x, y).
@@ -362,11 +323,7 @@ const poly = (g, pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.line
 // tint: lay a colour over the pixels drawn for this view only (side and top faces, the scribe).
 export function drawScene(g, S, t, night, tint = false) {
   const tints = [[S.room.own, 0, 0]];
-  const { w, h, ox, oy } = S.size, at = ([x, y]) => [x + ox, y + oy], Q = (u, v, z = 0) => at(S.P(u, v, z));
-  // a point of a piece of furniture: its local projection, moved by its offset
-  const L = (o, u, v, z = 0) => { const [x, y] = at(S.PL(u, v, z)); return [x + o[0], y + o[1]]; };
-  // depth of view: a layer further back drawn darker (in the perspective variant)
-  const dim = v => (S.dov ? `brightness(${(1 - S.dov * (1 - Math.max(0, Math.min(ROOM_V, v)) / ROOM_V)).toFixed(3)})` : 'none');
+  const { w, h, ox, oy } = S.size, at = ([x, y]) => [x + ox, y + oy], Q = (u, v, z = 0) => at(P(u, v, z));
   g.clearRect(0, 0, w, h);
   g.drawImage(S.room.cv, 0, 0);
   g.drawImage(night ? S.room.windowNight : S.room.windowDay, 0, 0);
@@ -384,19 +341,18 @@ export function drawScene(g, S, t, night, tint = false) {
   // contact shadows: furniture (its footprint, a little wider), the cogitator, the scribe
   const s = scribeAt(t), [px, py] = Q(s.u, s.v);
   g.save(); g.fillStyle = `rgba(${T.light.shadow},.35)`; g.filter = 'blur(1.5px)';
-  for (const d of S.desks) { const { u0, u1, v0, v1 } = d.box; poly(g, [[u0 - 2, v0 - 2], [u1 + 2, v0 - 2], [u1 + 3, v1 + 3], [u0 - 2, v1 + 3]].map(([u, v]) => L(d.off, u, v))); g.fill(); }
-  poly(g, [[COG_U + 4, 0], [COG_U + 160, 0], [COG_U + 160, COG_V + 4], [COG_U + 4, COG_V + 4]].map(([u, v]) => L(S.cogOff, u, v))); g.fill();
+  for (const d of S.desks) { const { u0, u1, v0, v1 } = d.box; poly(g, [[u0 - 2, v0 - 2], [u1 + 2, v0 - 2], [u1 + 3, v1 + 3], [u0 - 2, v1 + 3]].map(([u, v]) => Q(u, v))); g.fill(); }
+  poly(g, [[COG_U + 4, 0], [COG_U + 160, 0], [COG_U + 160, COG_V + 4], [COG_U + 4, COG_V + 4]].map(([u, v]) => Q(u, v))); g.fill();
   g.restore();
-  contactShadow(g, { cx: px, cy: py, rx: 11, ry: S.proj === 'iso' ? 5.5 : S.proj === 'a30' ? 6 : S.proj === 'a39' ? 5 : 4 }, 0.55);
+  contactShadow(g, { cx: px, cy: py, rx: 11, ry: 5 }, 0.55);
   // layers back to front
   const frame = [1, 0, 2, 0][fl(t / 6) % 4], cog = S.cog[fl(t / 10) % S.cog.length];
   const layers = [
-    { u0: COG_U, u1: COG_U + 164, v0: 0, v1: COG_V, draw: () => { const [x, y] = S.cogOff; g.drawImage(cog.cv, x, y); g.drawImage(cog.shade, x, y); tints.push([cog.own, x, y]); } },
-    ...S.desks.map(d => ({ ...d.box, draw: () => { const [x, y] = d.off; g.drawImage(d.cv, x, y); g.drawImage(d.shade, x, y); tints.push([d.own, x, y]); } })),
+    { u0: COG_U, u1: COG_U + 164, v0: 0, v1: COG_V, draw: () => { g.drawImage(cog.cv, 0, 0); g.drawImage(cog.shade, 0, 0); tints.push([cog.own, 0, 0]); } },
+    ...S.desks.map(d => ({ ...d.box, draw: () => { g.drawImage(d.cv, 0, 0); g.drawImage(d.shade, 0, 0); tints.push([d.own, 0, 0]); } })),
     { u0: s.u - 6, u1: s.u + 6, v0: s.v - 6, v1: s.v + 6, draw: () => { const f = S.scribe[s.dir][frame]; g.drawImage(f, px - S.feet.x, py - S.feet.y); tints.push([tinted(f), px - S.feet.x, py - S.feet.y]); } },
   ].sort(order);
-  for (const o of layers) { g.filter = dim((o.v0 + o.v1) / 2); o.draw(); }
-  g.filter = 'none';
+  for (const o of layers) o.draw();
   // light: at night the dark, then the candles, screens and coolant burn through it
   if (night) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(${T.light.night},.6)`; g.fillRect(0, 0, w, h); g.restore(); }
   const lc = (drawScene.lights ??= document.createElement('canvas'));
@@ -405,10 +361,10 @@ export function drawScene(g, S, t, night, tint = false) {
   l.globalCompositeOperation = 'lighter';
   if (beam) beam(l);
   { const g = l;
-  for (const q of S.screens) { poly(g, q.map(([x, y]) => [x + ox + S.cogOff[0], y + oy + S.cogOff[1]])); g.fillStyle = 'rgba(124,255,158,.10)'; g.fill(); }
-  const [cx, cy] = L(S.cogOff, COG_U + 82, COG_V + 10, 40);
+  for (const q of S.screens) { poly(g, q.map(at)); g.fillStyle = 'rgba(124,255,158,.10)'; g.fill(); }
+  const [cx, cy] = Q(COG_U + 82, COG_V + 10, 40);
   glow(g, cx, cy, night ? 90 : 50, night ? 'rgba(124,255,158,.16)' : 'rgba(124,255,158,.06)');
-  for (const d of S.desks) { const [fx, fy] = at([d.flame.x + d.off[0], d.flame.y + d.off[1]]); glow(g, fx, fy, night ? 46 : 18, T.light.amber); }
+  for (const d of S.desks) { const [fx, fy] = at([d.flame.x, d.flame.y]); glow(g, fx, fy, night ? 46 : 18, T.light.amber); }
   for (let u = 8; u < ROOM_U; u += 24) { const [x, y] = Q(u, CHANNEL_V + 2); glow(g, x, y, night ? 16 : 10, 'rgba(58,168,100,.18)'); }
   }
   l.globalCompositeOperation = 'destination-in'; l.drawImage(g.canvas, 0, 0); // keep the light on the room only

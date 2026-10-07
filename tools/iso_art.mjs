@@ -1,9 +1,9 @@
-// Iso trial art (tools/iso.html): the hand-drawn isometric frames, in the key palette (ui/art/key.gpl, one char per
+// 39 deg trial art (tools/iso.html): the hand-drawn scribe frames, the gothic window and the hangings, in the key palette (ui/art/key.gpl, one char per
 // colour slot, '.' transparent), so they can become PNG sheets through tools/map_to_art.mjs if the trial is kept.
-// Everything else in the trial (floor, walls, cogitator, desks) is built in tools/iso.mjs from the existing flat art.
+// Everything else (floor, walls, cogitator, desks) is built from the existing flat art (tools/faces.mjs, tools/iso.mjs).
 //
-// The scribe, 32x34 art px like SCRIBE (feet: bottom centre). SW faces the viewer diagonally (down-left on screen),
-// NE faces away (up-right); SE and NW are their mirrors. 3 walk frames each: 0 standing, 1 and 2 a foot forward.
+// The scribe, 32x34 art px like SCRIBE (feet: bottom centre). SW faces the viewer diagonally (turned ~45 deg),
+// NE faces away; SE and NW, their mirrors, are the 39 deg view's facings along the back wall. 3 walk frames each: 0 standing, 1 and 2 a foot forward.
 const W = 32;
 const pad = (name, rows) => rows.map((r, i) => {
   if (r.length > W) throw new Error(`${name} row ${i}: ${r.length} > ${W}`);
@@ -95,8 +95,8 @@ const NE_FEET = [
   ['..........kMMk', '...........kk'],
 ];
 
-// For the asymmetric rotations (39 deg, 30 deg) the diagonals are not mirrors: walking along the side wall (+v / -v)
-// the scribe is turned only ~39 deg (or 30) from the viewer, along the back wall (+u / -u) ~51 deg (or 60). S39 / N39
+// In the 39 deg view the diagonals are not mirrors: walking along the side wall (+v / -v) the scribe is turned only
+// ~39 deg from the viewer, along the back wall (+u / -u) ~51 deg. S39 / N39
 // are the less-turned pair, drawn here; the more-turned pair reuses SW / NE mirrored (SE / NW).
 // S39: toward the viewer, a little to the left: the face opening just left of centre, both eyes, the cog and the sash
 // tab left of centre, the sash dipping at the front.
