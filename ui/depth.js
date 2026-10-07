@@ -4,6 +4,7 @@
 // the hall's rooms beyond a hallOf() object, so the desktop strip draws the same shadows.
 import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
+import { WALL } from './layout.js';
 
 export const FLY_H = 12; // logical px between a flying servo-skull and its shadow on the floor
 
@@ -99,11 +100,11 @@ const AO = 8;
 export function aoBands(hall) {
   const { w, h, sw, rx, split, baseH, dy } = hall, right = w - rx;
   const bands = [
-    { x: 0, y: 40, w: sw, h: AO, side: 'n' }, // the scriptorium's back wall
-    { x: sw - AO, y: 40, w: AO, h: h - 43, side: 'e' }, // its east wall
+    { x: 0, y: WALL, w: sw, h: AO, side: 'n' }, // the scriptorium's back wall
+    { x: sw - AO, y: WALL, w: AO, h: h - 3 - WALL, side: 'e' }, // its east wall
     { x: 0, y: h - 3 - AO, w: sw, h: AO, side: 's' }, // its bottom wall (the gate's)
-    { x: rx, y: 40, w: right, h: AO, side: 'n' }, // the refectorium's back wall
-    { x: rx, y: 40, w: AO, h: split - 50, side: 'w' },
+    { x: rx, y: WALL, w: right, h: AO, side: 'n' }, // the refectorium's back wall
+    { x: rx, y: WALL, w: AO, h: split - 10 - WALL, side: 'w' },
     { x: rx, y: split - 10 - AO, w: right, h: AO, side: 's' }, // the wall between refectorium and sanctum
     { x: rx, y: split + 30, w: right, h: AO, side: 'n' }, // the sanctum's back wall
     { x: rx, y: split + 30, w: AO, h: baseH - split - 30, side: 'w' },
