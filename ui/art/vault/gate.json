@@ -1,0 +1,47 @@
+{
+  "frames": {
+    "GATE": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 60
+      }
+    },
+    "GATE_L": {
+      "frame": {
+        "x": 65,
+        "y": 0,
+        "w": 16,
+        "h": 44
+      }
+    },
+    "GATE_R": {
+      "frame": {
+        "x": 82,
+        "y": 0,
+        "w": 16,
+        "h": 44
+      }
+    },
+    "GATE_VOID": {
+      "frame": {
+        "x": 99,
+        "y": 0,
+        "w": 32,
+        "h": 44
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "gate.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 131,
+      "h": 60
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

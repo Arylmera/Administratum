@@ -1,0 +1,55 @@
+{
+  "frames": {
+    "WINDOW": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "BANNER": {
+      "frame": {
+        "x": 33,
+        "y": 0,
+        "w": 24,
+        "h": 30
+      }
+    },
+    "SHELF": {
+      "frame": {
+        "x": 58,
+        "y": 0,
+        "w": 64,
+        "h": 42
+      }
+    },
+    "GAUGE": {
+      "frame": {
+        "x": 123,
+        "y": 0,
+        "w": 12,
+        "h": 12
+      }
+    },
+    "CENSER": {
+      "frame": {
+        "x": 136,
+        "y": 0,
+        "w": 10,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "walls.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 146,
+      "h": 42
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

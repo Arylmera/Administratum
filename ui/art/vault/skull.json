@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "SKULL": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 20,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "skull.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 20,
+      "h": 20
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

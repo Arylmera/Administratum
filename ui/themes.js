@@ -351,7 +351,7 @@ defineTheme({
 // Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green
 // phosphor, Nuka-Cola red, warm incandescent light. Its own art (later tasks) replaces what only fits 40k.
 defineTheme({
-  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal
+  id: 'vault', world: 'vault', name: 'Vault 111', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire'], // ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal, riveted viewports onto the wasteland, a Vault-Tec poster, steel supply shelves with cans and kits, Geiger dials, caged ceiling lamps, the Eyebot, the cog vault door in its hazard-striped frame and the dark tunnel beyond, barrel fires, a work lantern with road flares
   px: {
     k: '#0c0c0c', e: '#141822', n: '#0a0c10',
     r: '#1e4a8a', R: '#2e66b8', d: '#12305e', t: '#f2c23a', T: '#a07a14', z: '#f2c23a', j: '#a07a14', // jumpsuit, yellow stripe
@@ -380,8 +380,8 @@ defineTheme({
     parchmentWarn: '#e0a080',
     smoke: '#c8c8c0', sparkSmoke: '#d0d0c8', steam: '#dcdcd0', alarmGlow: '#ffd890', beaconSweep: '#d8202a', searchlight: '#5aff7a',
     // the wasteland viewport: dusty sky and hazy sun by day; dark and starless by night
-    windowDay: { u: '#a89868', v: '#8a9a6a', g: '#d8c080', x: '#b8604a' },
-    windowNight: { u: '#1a1a20', v: '#141418', g: '#4a4038' },
+    windowDay: { u: '#c89858', h: '#dcb478', g: '#fff0c0', x: '#7a5034', v: '#a07a48' },
+    windowNight: { u: '#14141a', h: '#1e1c20', g: '#5a5448', x: '#0a0a0c', v: '#18160f' },
     backdrop: '#141822', backdropLit: '#202838', backdropEdge: '#1a2230', backdropDark: '#0a0c12', backdropSeam: '#0e1218', backdropSeamLit: '#1e2838',
     backdropRivet: '#3a4048', overflowPlaque: '#8a8e98',
   },

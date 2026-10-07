@@ -1,0 +1,31 @@
+{
+  "frames": {
+    "BRAZIER": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 20,
+        "h": 26
+      }
+    },
+    "CANDLES": {
+      "frame": {
+        "x": 21,
+        "y": 0,
+        "w": 24,
+        "h": 18
+      }
+    }
+  },
+  "meta": {
+    "app": "vault theme art",
+    "image": "fire.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 45,
+      "h": 26
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
