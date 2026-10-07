@@ -5,6 +5,7 @@
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
 import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
+import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
@@ -68,6 +69,16 @@ export function catalog() {
     const n = t.fill === 'repeat' ? 3 : 1, nx = t.fill === 'repeat-x' ? 6 : n, ny = t.fill === 'repeat-y' ? 6 : n;
     const sample = Array.from({ length: rows.length * ny }, (_, j) => rows[j % rows.length].repeat(nx));
     add(`ROOM.${name.replace(/ /g, '_')}`, 'Room tiles', ROOM_SHEET_OF[name], [{ rows: sample, over: {} }], false, `\`${name}\`: ${how}${nx * ny > 1 ? ' (shown repeated)' : ''}`);
+  }
+
+  // Face sheets (ui/faces.js): the faces only the 39° view draws, side by side per object (main box side and top, its
+  // screens' bezel sides and floors, then its details' sides, tops and disc rims). A world without its 39° art lists none.
+  for (const name of FACE_OBJECTS) {
+    const s = sheetOf(name), src = FACES.worlds[dir]?.objects[name] ? `${dir}/faces` : 'faces';
+    const bezel = (pre, list = []) => list.flatMap(r => [[`${pre}${r.name} wall`, r.wallFrame], [`${pre}${r.name} floor`, r.floorFrame]]);
+    const faces = [['side', s.side], ['top', s.top], ...bezel('', s.recess), ...s.details.flatMap(d => (d.parts ?? [d]).flatMap(p =>
+      [[`${p.name} side`, p.side], [`${p.name} top`, p.top], [`${p.name} rim`, p.rimFrame], ...bezel(`${p.name} `, p.recess)]))].filter(([, f]) => f);
+    if (faces.length) add(`FACES.${name}`, 'Face sheets (39° side and top faces)', src, faces.map(([, rows]) => ({ rows, over: {} })), false, `${name}, 39° view only: ${faces.map(([k]) => k).join(', ')}`);
   }
   return out;
 }

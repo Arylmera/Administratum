@@ -27,12 +27,13 @@ const key = () => (keyP ??= read('key.gpl').then(bytes => {
   return map;
 }));
 
-// -> { frames: { name: rows[] }, anchors (art px), tiles (fill rules, room.js) }. Throws on a colour outside the key palette or a
+// -> { frames: { name: rows[] }, anchors (art px), tiles (fill rules, room.js), meta (the JSON's whole meta) }. Throws on a colour outside the key palette or a
 // half-transparent pixel, naming the file and the pixel, so a bad export fails loudly (and in the tests).
 export async function loadSheet(family) {
-  const [json, img, map] = await Promise.all([read(`${family}.json`, 'json'), read(`${family}.png`).then(decodePng), key()]);
+  const json = await read(`${family}.json`, 'json'); // a sheet without frames (a world's face rects) has no PNG
+  const [img, map] = Object.keys(json.frames ?? {}).length ? await Promise.all([read(`${family}.png`).then(decodePng), key()]) : [];
   const frames = {};
-  for (const [name, { frame: r }] of Object.entries(json.frames)) {
+  for (const [name, { frame: r }] of Object.entries(json.frames ?? {})) {
     frames[name] = Array.from({ length: r.h }, (_, j) => {
       let row = '';
       for (let i = 0; i < r.w; i++) {
@@ -45,5 +46,5 @@ export async function loadSheet(family) {
       return row;
     });
   }
-  return { frames, anchors: json.meta?.anchors ?? {}, tiles: json.meta?.tiles ?? {} };
+  return { frames, anchors: json.meta?.anchors ?? {}, tiles: json.meta?.tiles ?? {}, meta: json.meta ?? {} };
 }

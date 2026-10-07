@@ -63,7 +63,7 @@ for (const { c, rgb } of key) {
 }
 
 // The sheets: every family loads, no frame name is defined twice, characters have their walk frames and feet.
-const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./art/', import.meta.url)).filter(f => f.endsWith('.json')) // the default art (themes' art: below)
+const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./art/', import.meta.url)).filter(f => f.endsWith('.json') && f !== 'faces.json') // the default art (themes' art: below; faces.json: faces.test.mjs)
   .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
 const owner = {};
 for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {

@@ -1,0 +1,130 @@
+{
+ "frames": {},
+ "meta": {
+  "note": "orbital: hand-edited source (no generator). Rects cut to this world's frames (flat view exact). Provisional split: the main box's front as in the base, everything else one upright cutout, until this world's 39° art splits it into volumes and draws its side and top faces (faces.png).",
+  "objects": {
+   "DESK": {
+    "front": [0, 18, 64, 24],
+    "d": 24,
+    "details": [
+     { "name": "above", "rect": [1, 0, 62, 18], "kind": "bill", "v": 12 }
+    ]
+   },
+   "LECTERN": {
+    "front": [0, 18, 44, 24],
+    "d": 24,
+    "details": [
+     { "name": "above", "rect": [0, 0, 44, 18], "kind": "bill", "v": 12 }
+    ]
+   },
+   "CONSOLE": {
+    "front": [0, 12, 28, 8],
+    "d": 14,
+    "details": [
+     { "name": "above", "rect": [2, 0, 24, 12], "kind": "bill", "v": 7 }
+    ]
+   },
+   "SHELF": { "front": [0, 0, 64, 42], "d": 10 },
+   "COGITATOR": {
+    "front": [9, 15, 146, 82],
+    "d": 22,
+    "details": [
+     { "name": "above", "rect": [28, 1, 108, 14], "kind": "bill", "v": 11 },
+     { "name": "left", "rect": [0, 20, 9, 76], "kind": "bill", "v": 11 },
+     { "name": "right", "rect": [155, 20, 9, 76], "kind": "bill", "v": 11 }
+    ]
+   },
+   "CRATE": {
+    "front": [0, 4, 28, 20],
+    "d": 24,
+    "details": [
+     { "name": "above", "rect": [1, 0, 26, 4], "kind": "bill", "v": 12 }
+    ]
+   },
+   "TABLE": {
+    "front": [0, 11, 92, 5],
+    "d": 26,
+    "flatOnly": [
+     { "name": "table top", "rect": [0, 0, 92, 11] }
+    ]
+   },
+   "BENCH": {
+    "front": [0, 4, 92, 4],
+    "d": 9,
+    "flatOnly": [
+     { "name": "seat", "rect": [0, 0, 92, 4] }
+    ]
+   },
+   "RECAFF": { "front": [0, 0, 32, 36], "d": 16 },
+   "LORD_DESK": {
+    "front": [0, 11, 88, 15],
+    "d": 26,
+    "flatOnly": [
+     { "name": "desk top", "rect": [0, 0, 88, 11] }
+    ]
+   },
+   "THRONE": {
+    "front": [2, 28, 36, 12],
+    "d": 24,
+    "details": [
+     { "name": "above", "rect": [0, 0, 40, 28], "kind": "bill", "v": 12 }
+    ]
+   },
+   "COG_MECH": {
+    "details": [
+     { "name": "cutout", "rect": [2, 1, 36, 34], "kind": "bill", "v": 4 }
+    ]
+   },
+   "SEAL": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 12, 19], "kind": "bill", "v": 4 }
+    ]
+   },
+   "GAUGE": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 12, 12], "kind": "bill", "v": 4 }
+    ]
+   },
+   "CENSER": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 10, 17], "kind": "bill", "v": 4 }
+    ]
+   },
+   "CANDLES": {
+    "details": [
+     { "name": "cutout", "rect": [0, 2, 24, 16], "kind": "bill", "v": 4 }
+    ]
+   },
+   "BRAZIER": {
+    "details": [
+     { "name": "cutout", "rect": [1, 0, 18, 26], "kind": "bill", "v": 4 }
+    ]
+   },
+   "BOOKS": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 20, 18], "kind": "bill", "v": 4 }
+    ]
+   },
+   "PAPER_STACK": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 16, 24], "kind": "bill", "v": 4 }
+    ]
+   },
+   "SCROLL_PILE": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 36, 14], "kind": "bill", "v": 4 }
+    ]
+   },
+   "LOOSE_A": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 10, 8], "kind": "bill", "v": 4 }
+    ]
+   },
+   "LOOSE_B": {
+    "details": [
+     { "name": "cutout", "rect": [0, 0, 8, 10], "kind": "bill", "v": 4 }
+    ]
+   }
+  }
+ }
+}
