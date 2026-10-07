@@ -39,6 +39,22 @@
         "w": 10,
         "h": 20
       }
+    },
+    "WINDOW_TALL": {
+      "frame": {
+        "x": 147,
+        "y": 0,
+        "w": 36,
+        "h": 84
+      }
+    },
+    "HANGING": {
+      "frame": {
+        "x": 184,
+        "y": 0,
+        "w": 26,
+        "h": 100
+      }
     }
   },
   "meta": {
@@ -46,8 +62,8 @@
     "image": "walls.png",
     "format": "RGBA8888",
     "size": {
-      "w": 146,
-      "h": 42
+      "w": 210,
+      "h": 100
     },
     "palette": "key.gpl",
     "anchors": {}

@@ -1,11 +1,11 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, SHEET_OF } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
-import { SCENE, hallOf } from './layout.js';
+import { hallOf, WALL, WALL_DY } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
 
@@ -16,11 +16,12 @@ const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
 const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
-// Static props [map, x, y] on the minimum scene, by what they move with as the scene grows (hallOf):
-// w the scriptorium's west end, c its centre (gate, cogitator bank: + dx), e its east wall (+ sw - 200),
-// *b also its bottom wall (+ h - 226), f the floor between the desks (repeated across and down the hall),
+// Static props [map, x, y] on the measured hall (layout.js: 346x226, 40 px wall), by what they move with as the scene
+// grows (hallOf): w the scriptorium's west end, c its centre (gate, cogitator bank: + dx), e its east wall (+ sw - 200),
+// *b also its bottom wall (+ hy), f the floor between the desks (repeated across and down the hall),
 // r the right column (+ ox), s the sanctum by its top wall (+ ox, + sd), sb by its bottom wall (+ ox, + sb).
-// None may sit under a queue slot (layout.test.mjs, propsOf).
+// w, c, e, f, r stand on the floor below the back wall (+ WALL_DY), except what hangs on that wall (hung()).
+// A BANNER on the back wall becomes the full-height HANGING (wallArt). None may sit under a queue slot (layout.test.mjs, propsOf).
 const PROPS = {
   w: [['SHELF', 6, 19], ['PAPER_STACK', 10, 8], ['PAPER_STACK', 18, 10], ['SCROLL_PILE', 22, 13],
     ['SHELF', 40, 19], ['BOOKS', 44, 11], ['PAPER_STACK', 58, 8], ['LOOSE_A', 66, 15]],
@@ -46,29 +47,46 @@ function alcoves(from, to) {
   const n = Math.floor((to - from) / 40), x0 = from + Math.floor((to - from - 40 * n) / 2);
   return Array.from({ length: n }, (_, i) => ({ x: x0 + 40 * i, win: i % 2 === 0 }));
 }
+// On the back wall: a banner, a censer (by their measured y, above the old 40 px wall).
+const hung = (name, y) => (name === 'BANNER' || name === 'CENSER') && y < 40;
+// The back walls' window and hangings: the tall gothic window and the full-height hanging, unless the theme redraws
+// the short ones (WINDOW, BANNER) without tall ones of its own; then the short ones, as before, at their old place.
+// win: the window's frame, drawn at (x + winDx, WIN_Y) for a 16 px window slot x (propsOf windows), its glass ending
+// at winBottom (lighting.js starts the beams there).
+const dirOf = n => SHEET_OF[n].replace(/[^/]*$/, ''); // 'cyber/' or '' (the default art)
+export const WIN_Y = 10; // every window's top
+const HANG_Y = WALL - 56; // a hanging's top: its brass rod under the pipe, its fringe just above the wall foot
+export function wallArt() {
+  const tallWin = dirOf('WINDOW_TALL') === dirOf('WINDOW'), tallHang = dirOf('HANGING') === dirOf('BANNER');
+  const win = MAPS[tallWin ? 'WINDOW_TALL' : 'WINDOW'];
+  return { win, winDx: (16 - win[0].length / RES) / 2, winBottom: WIN_Y + win.length / RES, tallHang };
+}
 // Everything static that depends on the scene's size, once per size: props (placed), windows (x of each 16 px
-// window, top at y 10, lighting.js casts their beams), vertical coolant channels.
+// window slot, top at WIN_Y, lighting.js casts their beams), vertical coolant channels. A back-wall banner (12 px,
+// top at y 10) is listed as the HANGING (13 px) centred on it; drawStatic puts the banner back for a theme without
+// tall hangings (wallArt).
+const asHanging = x => ['HANGING', x - 0.5, HANG_Y];
 const furnished = new Map();
 export function propsOf(hall) {
   const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
   let F = furnished.get(key);
   if (F) return F;
   if (furnished.size > 8) furnished.clear();
-  const { sw, dx, ox, sd, sb, h } = hall, ex = sw - 200, hy = h - SCENE.h;
-  const move = (list, mx, my) => list.map(([name, x, y]) => [name, x + mx, y + my]);
-  const props = [...move(PROPS.w, 0, 0), ...move(PROPS.c, dx, 0), ...move(PROPS.e, ex, 0),
+  const { sw, dx, ox, sd, sb, hy } = hall, ex = sw - 200, D = WALL_DY;
+  const move = (list, mx, my) => list.map(([name, x, y]) => (!hung(name, y) ? [name, x + mx, y + my] : name === 'BANNER' ? asHanging(x + mx) : [name, x + mx, y]));
+  const props = [...move(PROPS.w, 0, D), ...move(PROPS.c, dx, D), ...move(PROPS.e, ex, D),
     ...move(PROPS.wb, 0, hy), ...move(PROPS.cb, dx, hy), ...move(PROPS.eb, ex, hy),
-    ...move(PROPS.r, ox, 0), ...move(PROPS.s, ox, sd), ...move(PROPS.sb, ox, sb)];
+    ...move(PROPS.r, ox, D), ...move(PROPS.s, ox, sd), ...move(PROPS.sb, ox, sb)];
   // Floor clutter: again every 200 px across (clear of the corridor), its second slot row's again on every further row.
   for (let i = 0; 200 * i < sw - 30; i++) for (let j = 0; j < hall.rows - 1; j++) {
-    for (const [name, x, y] of PROPS.f) if ((j === 0 || y >= 120) && (i === 0 || x + 200 * i < sw - 24)) props.push([name, x + 200 * i, y + 64 * j]);
+    for (const [name, x, y] of PROPS.f) if ((j === 0 || y >= 120) && (i === 0 || x + 200 * i < sw - 24)) props.push([name, x + 200 * i, y + D + 64 * j]);
   }
   // Refectory tables, a bench south of each (hallOf().refectory sits on the benches, three a bench).
-  for (let k = 0; k < hall.refectory.length / 3; k++) props.push(['TABLE', 262 + ox, 46 + 24 * k], ['BENCH', 262 + ox, 58 + 24 * k]);
+  for (let k = 0; k < hall.refectory.length / 3; k++) props.push(['TABLE', 262 + ox, 46 + D + 24 * k], ['BENCH', 262 + ox, 58 + D + 24 * k]);
   const windows = [78 + dx, 292 + ox];
   for (const a of [...alcoves(76, 76 + dx), ...alcoves(200 + dx, sw - 2)]) {
-    if (a.win) { windows.push(a.x + 6); props.push(['BANNER', a.x + 26, 10]); }
-    else props.push(['SHELF', a.x + 4, 19], ['PAPER_STACK', a.x + 8, 8], ['BOOKS', a.x + 18, 11], ['PAPER_STACK', a.x + 28, 9]);
+    if (a.win) { windows.push(a.x + 6); props.push(asHanging(a.x + 26)); }
+    else props.push(['SHELF', a.x + 4, 19 + D], ['PAPER_STACK', a.x + 8, 8 + D], ['BOOKS', a.x + 18, 11 + D], ['PAPER_STACK', a.x + 28, 9 + D]);
   }
   const channels = [];
   for (let x = 98 + dx - 200 * Math.floor((88 + dx) / 200); x < sw - 20; x += 200) channels.push(x);
@@ -82,31 +100,31 @@ const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'R
 // The scriptorium is 0..sw, its east wall sw..rx, the right column rx..w (refectorium 0..split - 10, a wall, the
 // sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
 export function drawStatic(g, daylight, hall = hallOf(0)) {
-  const { w, h, sw, rx, ox, dx, sd, sb, split, baseH } = hall, hy = h - SCENE.h, ex = sw - 200;
+  const { w, h, sw, rx, ox, dx, sd, sb, hy, split, baseH } = hall, ex = sw - 200, D = WALL_DY;
   const { props, windows, channels } = propsOf(hall);
   const d0 = 150 + sd, d1 = 186 + sd; // the sanctum's door in the east wall
-  tile(g, 'wall', 0, 0, sw, 40); tile(g, 'wall foot', 0, 36, sw, 4);
-  tile(g, 'floor', 0, 40, sw, h - 40);
-  tile(g, 'wall east', rx, 0, 138, 40); tile(g, 'wall foot', rx, 36, 138, 4);
-  tile(g, 'floor', rx, 40, 138, split - 50);
+  tile(g, 'wall', 0, 0, sw, WALL); tile(g, 'wall foot', 0, WALL - 4, sw, 4);
+  tile(g, 'floor', 0, WALL, sw, h - WALL);
+  tile(g, 'wall east', rx, 0, 138, WALL); tile(g, 'wall foot', rx, WALL - 4, 138, 4);
+  tile(g, 'floor', rx, WALL, 138, split - 10 - WALL);
   tile(g, 'wall dark', rx, split - 10, 138, 10);
   tile(g, 'wall sanctum', rx, split, 138, 30); tile(g, 'wall dark', rx, split + 26, 138, 4);
   tile(g, 'sanctum floor', rx, split + 30, 138, baseH - split - 30);
   tile(g, 'wall dark', sw, 0, 8, d0); tile(g, 'wall dark', sw, d1, 8, h - d1); tile(g, 'sanctum passage', sw, d0, 8, 36);
   if (hall.dy) bayWall(g, hall);
 
-  for (let j = 0; j < hall.rows; j++) tile(g, 'channel h', 0, j ? 118 + 64 * j : 116, sw, 2); // under each slot row
-  for (const x of channels) tile(g, 'channel v', x, 40, 2, h - 40);
-  for (let k = 1; k <= hall.bays; k++) bayArch(g, 56 + 64 * (hall.rows - hall.bays + k - 1), sw);
+  for (let j = 0; j < hall.rows; j++) tile(g, 'channel h', 0, D + (j ? 118 + 64 * j : 116), sw, 2); // under each slot row
+  for (const x of channels) tile(g, 'channel v', x, WALL, 2, h - WALL);
+  for (let k = 1; k <= hall.bays; k++) bayArch(g, 56 + D + 64 * (hall.rows - hall.bays + k - 1), sw);
 
   tile(g, 'pipe h', 0, 4, sw); tile(g, 'pipe h', rx, 4, 138);
   [20, 64, 110, 150, 190].forEach(x => tile(g, 'fitting h', x, 3));
   for (let x = 230; x < sw - 6; x += 40) tile(g, 'fitting h', x, 3);
   [230, 280, 330].forEach(x => tile(g, 'fitting h', x + ox, 3));
   tile(g, 'pipe v', sw + 3, 0, 3, d0); tile(g, 'pipe v', sw + 3, d1, 3, h - d1);
-  [36, 74, 112].forEach(y => tile(g, 'fitting v', sw + 2, y));
-  for (let y = 150; y < d0 - 4; y += 38) tile(g, 'fitting v', sw + 2, y);
-  tile(g, 'pipe v', 144 + dx, 7, 3, 29); tile(g, 'pipe v', 194 + dx, 7, 3, 29);
+  [36, 74, 112].forEach(y => tile(g, 'fitting v', sw + 2, y + D));
+  for (let y = 150 + D; y < d0 - 4; y += 38) tile(g, 'fitting v', sw + 2, y);
+  tile(g, 'pipe v', 144 + dx, 7, 3, WALL - 11); tile(g, 'pipe v', 194 + dx, 7, 3, WALL - 11); // down to the wall foot
   const scratch = (x, i) => {
     const sh = 10 + (i * 7) % 18;
     rect(g, x, 7, 0.5, sh, I.scratch); rect(g, x + 0.5, 7, 0.5, sh, I.scratchSheen); rect(g, x, 7 + sh - 1, 2, 1, I.scratch);
@@ -115,14 +133,14 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   scratch(220 + ox, 9);
   // Binary cant: 1-art-px glyphs (ones tall, zeros a dot), one per logical px.
   g.fillStyle = I.cant;
-  [[2, 32, sw - 2], [74, 38, sw - 2], [rx + 2, 32, w - 2], [rx + 2, split - 5, w - 2]].forEach(([x, y, end]) => {
+  [[2, WALL - 8, sw - 2], [74, WALL - 2, sw - 2], [rx + 2, WALL - 8, w - 2], [rx + 2, split - 5, w - 2]].forEach(([x, y, end]) => {
     for (let i = 0; x + i < end; i++) g.fillRect(x + i, y, 0.5, BIN[(i + x) % BIN.length] === '1' ? 1 : 0.5);
   });
-  [[60, 104, 14, 1], [73, 104, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.scratch)); // cracks
-  [[30, 120, 18, 8], [146 + ex, 186 + hy, 8, 6], [270 + ox, 196 + sb, 14, 6]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.grime));
+  [[60, 104 + D, 14, 1], [73, 104 + D, 1, 6], [120 + dx, 204 + hy, 1, 12]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.scratch)); // cracks
+  [[30, 120 + D, 18, 8], [146 + ex, 186 + hy, 8, 6], [270 + ox, 196 + sb, 14, 6]].forEach(([x, y, cw, ch]) => rect(g, x, y, cw, ch, I.grime));
 
-  const win = daylight ? I.windowDay : I.windowNight;
-  windows.forEach(x => blit(g, MAPS.WINDOW, x, 10, win));
+  const glass = daylight ? I.windowDay : I.windowNight, art = wallArt();
+  windows.forEach(x => blit(g, art.win, x + art.winDx, WIN_Y, glass));
   [210 + ox, 334 + ox].forEach(x => { // the sanctum's pillars
     tile(g, 'pillar', x, split - 2, 10, baseH - split + 2);
     tile(g, 'pipe v', x + 3, split - 2, 3, baseH - split + 2);
@@ -132,7 +150,10 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
   drawAO(g, hall);
   for (const [name, x, y] of props) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
-  for (const [name, x, y] of props) blit(g, MAPS[name], x, y);
+  for (const [name, x, y] of props) {
+    if (name === 'HANGING' && !art.tallHang) blit(g, MAPS.BANNER, x + 0.5, 10); // the short banner, where it hung
+    else blit(g, MAPS[name], x, y);
+  }
   tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }
 
@@ -586,15 +607,15 @@ function deskLight(desk, busy) {
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
 // Drawn in the minimum scene's coordinates, moved with their room.
 function drawDecorFrame(g, t, cog = 0) {
-  const sy = 50 + Math.round(2 * Math.sin(t * 4));
-  flyShadow(g, 244 + H.ox + SK.centre[0], 50 + SK.centre[1]);
+  const sy = 50 + WALL_DY + Math.round(2 * Math.sin(t * 4));
+  flyShadow(g, 244 + H.ox + SK.centre[0], 50 + WALL_DY + SK.centre[1]);
   blit(g, MAPS.SKULL, 244 + H.ox, sy);
   g.save(); g.translate(H.ox, H.sd); drawMagos(g, t); g.restore();
-  g.save(); g.translate(H.dx, 0); drawCogitator(g, t, cog); g.restore();
+  g.save(); g.translate(H.dx, WALL_DY); drawCogitator(g, t, cog); g.restore();
 }
 
 // The cogitator bank (MAPS.COGITATOR, placed by PROPS.c): its screens, lamps, reels and vents are its anchors
-// (PROP_AT.COGITATOR); everything animated sits above y 40, clear of the scribes in front.
+// (PROP_AT.COGITATOR); everything animated sits above the floor (y WALL), clear of the scribes in front.
 const hash = n => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
 const [, COG_X, COG_Y] = PROPS.c.find(([name]) => name === 'COGITATOR');
 const DRUM_SPIN = [1, -1, -1, 1]; // each reel's turning direction
@@ -658,11 +679,11 @@ function drawMagos(g, t) {
   if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, MAG.x + e.x, MAG.y + e.y, 0.5, 0.5, I.glint);
 }
 
-// The room's own lights, by what they move with (see PROPS), plus the floor's coolant crossings on every slot
+// The room's own lights, by what they move with (see PROPS; c, e, r also + WALL_DY unless hung), plus the floor's coolant crossings on every slot
 // row, the windows and the gate's braziers and void: once per scene size.
 const STATIC_LIGHTS = {
   c: [{ x: 157, y: 26, r: 36, color: 'green' }, { x: 139, y: 20, r: 16, color: 'green' }, { x: 176, y: 20, r: 16, color: 'green' }, // cogitator screens
-    { x: 106, y: 48, r: 14, color: 'amber', flicker: true }, { x: 96, y: 14, r: 10, color: 'amber', flicker: true }],
+    { x: 106, y: 48, r: 14, color: 'amber', flicker: true }, { x: 96, y: 14, r: 10, color: 'amber', flicker: true, hung: true }], // ...the censer, on the wall
   e: [{ x: 198, y: 67, r: 10, color: 'amber', flicker: true }],
   r: [{ x: 222, y: 30, r: 14, color: 'green' }, { x: 248, y: 56, r: 12, color: 'green' }], // recaff, skull
   s: [{ x: 256, y: 138, r: 20, color: 'amber', flicker: true }, { x: 298, y: 138, r: 20, color: 'amber', flicker: true },
@@ -677,12 +698,13 @@ function staticLights(hall) {
   let L = lightsBySize.get(key);
   if (!L) {
     if (lightsBySize.size > 8) lightsBySize.clear();
-    const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(l => ({ ...l, x: l.x + mx, y: l.y + my, color: T.light[l.color] }));
-    const S = STATIC_LIGHTS, floor = [];
-    for (let j = 0; j < hall.rows; j++) for (let fx = (50 + hall.dx) % 100; fx < hall.sw - 10; fx += 100) floor.push({ x: fx, y: j ? 119 + 64 * j : 117, r: 14, z: 0 });
-    for (const cx of channels) for (let j = 0; j < hall.rows - 1; j++) floor.push({ x: cx + 1, y: 150 + 64 * j, r: 14, z: 0 }); // z: on the floor (lighting.js)
-    L = windows.map(wx => ({ x: wx + 8, y: 22, r: 22 })).concat(
-      at(S.c, hall.dx, 0), at(S.e, hall.sw - 200, 0), at(S.r, hall.ox, 0), at(S.s, hall.ox, hall.sd), at(S.sb, hall.ox, hall.sb), floor,
+    const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(({ hung, ...l }) => ({ ...l, x: l.x + mx, y: l.y + (hung ? 0 : my), color: T.light[l.color] }));
+    const S = STATIC_LIGHTS, floor = [], D = WALL_DY, { winBottom } = wallArt();
+    for (let j = 0; j < hall.rows; j++) for (let fx = (50 + hall.dx) % 100; fx < hall.sw - 10; fx += 100) floor.push({ x: fx, y: D + (j ? 119 + 64 * j : 117), r: 14, z: 0 });
+    for (const cx of channels) for (let j = 0; j < hall.rows - 1; j++) floor.push({ x: cx + 1, y: D + 150 + 64 * j, r: 14, z: 0 }); // z: on the floor (lighting.js)
+    const wh = winBottom - WIN_Y; // a window's light: 12 px down a 17 px window, bigger for a tall one
+    L = windows.map(wx => ({ x: wx + 8, y: WIN_Y + wh * 12 / 17, r: wh > 17 ? 30 : 22 })).concat(
+      at(S.c, hall.dx, D), at(S.e, hall.sw - 200, D), at(S.r, hall.ox, D), at(S.s, hall.ox, hall.sd), at(S.sb, hall.ox, hall.sb), floor,
       { x: x - 23, y: y - 11, r: 26, color: T.light.amber, flicker: true }, { x: x + 23, y: y - 11, r: 26, color: T.light.amber, flicker: true }, // gate braziers
       { x, y: y - 12, r: 18, color: T.light.red },
     );
@@ -695,7 +717,7 @@ function staticLights(hall) {
 // Leaves slide up/down inside the scriptorium's east wall (sw..sw + 8).
 const doorsOf = ({ sw, sd }) => [
   { name: 'sanctum', x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
-  { name: 'refectory', x0: sw, x1: sw + 8, y0: 78, y1: 98 }, // scriptorium <-> refectorium (hall.refOut/refIn)
+  { name: 'refectory', x0: sw, x1: sw + 8, y0: 78 + WALL_DY, y1: 98 + WALL_DY }, // scriptorium <-> refectorium (hall.refOut/refIn)
 ];
 // Is anyone within 12 logical px of the rect x0..x1, y0..y1?
 const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);

@@ -76,10 +76,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/cyber/walls.png`, drawn by scene.js, theme.js | <img src="cyber/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/BANNER.png" height="120"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/BANNER.png" height="120"> |
 | <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/GAUGE.png" height="48"> |
 | <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/CENSER.png" height="80"> |
+| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js | <img src="cyber/WINDOW_TALL.png" height="160"> |
+| <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="cyber/WINDOW_TALL.day.png" height="160"> |
+| <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="cyber/WINDOW_TALL.night.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by scene.js | <img src="cyber/HANGING.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/BOOKS.png" height="72"> |

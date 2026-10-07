@@ -1,10 +1,12 @@
 import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
+import { WALL } from './layout.js';
+import { wallArt } from './scene.js';
 
 // Depth: a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
 // pool into an ellipse lying on the floor in perspective, the lower the flatter.
 const FLAT = [0.7, 0.85, 1];
-const flatOf = l => FLAT[l.z ?? (l.y < 44 ? 2 : 1)];
+const flatOf = l => FLAT[l.z ?? (l.y < WALL + 4 ? 2 : 1)];
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
 // radius with drawImage, the vignette a canvas per scene size and phase. No gradient is built per frame.
@@ -64,23 +66,26 @@ let layer = null, beam = null;
 onTheme(() => { beam = null; });
 
 // Darkness with light holes (destination-out), then additive glows, beams by day, vignette. w, h: the scene's
-// logical size (hallOf); windows: the x of each window (scene.js propsOf), a beam falls from each by day.
+// logical size (hallOf); windows: the x of each window (scene.js propsOf), a beam falls from each by day, from the
+// bottom of its glass (wallArt) to 76 px out on the floor.
 export function drawLighting(g, lights, level, t, w, h, windows = []) {
   if (level.beams) {
-    if (!beam) {
-      beam = g.createLinearGradient(0, 26, 0, 116);
+    const y0 = wallArt().winBottom - 1, y1 = WALL + 76;
+    if (beam?.y0 !== y0) {
+      beam = g.createLinearGradient(0, y0, 0, y1);
+      beam.y0 = y0;
       beam.addColorStop(0, `rgba(${T.light.beam},.16)`);
       beam.addColorStop(1, `rgba(${T.light.beam},0)`);
     }
     g.fillStyle = beam;
     for (const bx of windows.map(x => x - 4)) {
-      g.beginPath(); g.moveTo(bx + 9, 26); g.lineTo(bx + 21, 26); g.lineTo(bx + 30, 116); g.lineTo(bx, 116); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(bx + 9, y0); g.lineTo(bx + 21, y0); g.lineTo(bx + 30, y1); g.lineTo(bx, y1); g.closePath(); g.fill();
     }
     // where each beam meets the floor: a brighter patch, flat as the floor
     g.save();
     g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
     const patch = glowOf(`rgba(${T.light.beam},1)`);
-    for (const x of windows) g.drawImage(patch, x - 4, 108, 30, 10); // the beam's foot spans x - 4 .. x + 26 at y 116
+    for (const x of windows) g.drawImage(patch, x - 4, y1 - 8, 30, 10); // the beam's foot spans x - 4 .. x + 26 at y1
     g.restore();
   }
   if (!layer || layer.width !== w * RES || layer.height !== h * RES) {

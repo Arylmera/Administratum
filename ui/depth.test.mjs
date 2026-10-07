@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { footOf, shadowOf, silhouette, aoBands, casterOf } from './depth.js';
-import { hallOf } from './layout.js';
+import { hallOf, WALL } from './layout.js';
 
 // Footprint: the opaque span of the frame's bottom 3 art rows, in logical px (RES 2).
 const map = ['......', '..##..', '.####.', '......', '..##..', '...#..'];
@@ -28,7 +28,7 @@ for (const bays of [0, 2]) {
     assert.ok(r.x >= 0 && r.y >= 0 && r.x + r.w <= H.w && r.y + r.h <= H.h, `band inside the hall: ${JSON.stringify(r)}`);
     assert.ok(r.w > 0 && r.h > 0 && 'nsew'.includes(r.side));
   }
-  assert.ok(bands.some(r => r.side === 'n' && r.x === 0 && r.y === 40 && r.w === H.sw), 'scriptorium wall foot');
+  assert.ok(bands.some(r => r.side === 'n' && r.x === 0 && r.y === WALL && r.w === H.sw), 'scriptorium wall foot');
   assert.ok(bands.some(r => r.side === 'e' && r.x + r.w === H.sw), 'east wall, scriptorium side');
 }
 // Cast shadows: by day one direction for everyone; at night the nearest coloured light in reach, fading with distance.

@@ -18,7 +18,8 @@ const ABOUT = {
   LORD_DESK: 'The Magos\'s desk, petitions queue before it', BRAZIER: 'Brazier at the gate and in the Sanctum; compaction burns here',
   RECAFF: 'Recaff dispenser (Refectorium), first stop of an idle scribe', CONSOLE: 'Adept console, one per subagent',
   COGITATOR: 'Cogitator bank on the back wall: where shell commands run', WINDOW: 'Window: day or night glass, casts a beam by day',
-  BANNER: 'Wall banner', CRATE: 'Supply crate', PAPER_STACK: 'Paper tower (decor)', SCROLL_PILE: 'Scroll pile (decor)', BOOKS: 'Book pile (decor)',
+  WINDOW_TALL: 'Tall gothic window on the back walls: day or night glass, casts a beam by day', HANGING: 'Full-height hanging on the back walls',
+  BANNER: 'Wall banner (the Sanctum wall; the back walls of a world without its own hangings)', CRATE: 'Supply crate', PAPER_STACK: 'Paper tower (decor)', SCROLL_PILE: 'Scroll pile (decor)', BOOKS: 'Book pile (decor)',
   LOOSE_A: 'Loose sheet on the floor (decor)', LOOSE_B: 'Loose sheet on the floor (decor)', GAUGE: 'Pressure gauge on the Sanctum pillars',
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',
   GATE_R: 'Grand gate, right leaf (slides open)', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
@@ -49,6 +50,7 @@ export function catalog() {
 
   const VARIANTS = { // extra renders of maps that are drawn with overrides
     WINDOW: [['day', theme.ink.windowDay], ['night', theme.ink.windowNight]],
+    WINDOW_TALL: [['day', theme.ink.windowDay], ['night', theme.ink.windowNight]],
     DESK: [['unlit', { f: null, F: null, c: theme.ink.screenOff }]],
     LECTERN: [['unlit', { f: null, F: null, c: theme.ink.screenOff }]],
     CONSOLE: [['unlit', { c: theme.ink.screenOff }]],
