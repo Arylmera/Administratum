@@ -1,7 +1,7 @@
 {
  "frames": {},
  "meta": {
-  "note": "orbital: rects cut to this world's frames (flat view exact). Provisional split: the main box's front as in the base, everything else one upright cutout, until this world's 39° art splits it into volumes and draws its side and top faces (faces.png).",
+  "note": "orbital: hand-edited source (no generator). Rects cut to this world's frames (flat view exact). Provisional split: the main box's front as in the base, everything else one upright cutout, until this world's 39° art splits it into volumes and draws its side and top faces (faces.png).",
   "objects": {
    "DESK": {
     "front": [0, 18, 64, 24],

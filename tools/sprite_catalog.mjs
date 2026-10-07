@@ -69,11 +69,13 @@ export function catalog() {
     add(`ROOM.${name.replace(/ /g, '_')}`, 'Room tiles', ROOM_SHEET_OF[name], [{ rows: sample, over: {} }], false, `\`${name}\`: ${how}${nx * ny > 1 ? ' (shown repeated)' : ''}`);
   }
 
-  // Face sheets (ui/faces.js): the faces only the 39° view draws, side by side per object (main box side and top, then
-  // its details' sides and tops). A world without its own 39° art yet lists none.
+  // Face sheets (ui/faces.js): the faces only the 39° view draws, side by side per object (main box side and top, its
+  // screens' bezel sides and floors, then its details' sides, tops and disc rims). A world without its 39° art lists none.
   for (const name of FACE_OBJECTS) {
     const s = sheetOf(name), src = FACES.worlds[dir]?.objects[name] ? `${dir}/faces` : 'faces';
-    const faces = [['side', s.side], ['top', s.top], ...s.details.flatMap(d => (d.parts ?? [d]).flatMap(p => [[`${p.name} side`, p.side], [`${p.name} top`, p.top]]))].filter(([, f]) => f);
+    const bezel = (pre, list = []) => list.flatMap(r => [[`${pre}${r.name} wall`, r.wallFrame], [`${pre}${r.name} floor`, r.floorFrame]]);
+    const faces = [['side', s.side], ['top', s.top], ...bezel('', s.recess), ...s.details.flatMap(d => (d.parts ?? [d]).flatMap(p =>
+      [[`${p.name} side`, p.side], [`${p.name} top`, p.top], [`${p.name} rim`, p.rimFrame], ...bezel(`${p.name} `, p.recess)]))].filter(([, f]) => f);
     if (faces.length) add(`FACES.${name}`, 'Face sheets (39° side and top faces)', src, faces.map(([, rows]) => ({ rows, over: {} })), false, `${name}, 39° view only: ${faces.map(([k]) => k).join(', ')}`);
   }
   return out;

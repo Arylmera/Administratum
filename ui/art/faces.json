@@ -60,6 +60,12 @@
   "CONSOLE monitor top": {
    "frame": { "x": 39, "y": 50, "w": 22, "h": 2 }
   },
+  "CONSOLE monitor screen wall": {
+   "frame": { "x": 62, "y": 50, "w": 1, "h": 7 }
+  },
+  "CONSOLE monitor screen floor": {
+   "frame": { "x": 64, "y": 50, "w": 15, "h": 1 }
+  },
   "SHELF side": {
    "frame": { "x": 0, "y": 63, "w": 5, "h": 42 }
   },
@@ -87,6 +93,51 @@
   "COGITATOR spire/knob top": {
    "frame": { "x": 212, "y": 106, "w": 4, "h": 2 }
   },
+  "COGITATOR spire/cog rim": {
+   "frame": { "x": 217, "y": 106, "w": 24, "h": 13 }
+  },
+  "COGITATOR gauge 1 rim": {
+   "frame": { "x": 242, "y": 106, "w": 11, "h": 11 }
+  },
+  "COGITATOR gauge 2 rim": {
+   "frame": { "x": 254, "y": 106, "w": 11, "h": 11 }
+  },
+  "COGITATOR gauge 3 rim": {
+   "frame": { "x": 266, "y": 106, "w": 11, "h": 11 }
+  },
+  "COGITATOR gauge 4 rim": {
+   "frame": { "x": 278, "y": 106, "w": 11, "h": 11 }
+  },
+  "COGITATOR dial 1 rim": {
+   "frame": { "x": 290, "y": 106, "w": 13, "h": 15 }
+  },
+  "COGITATOR dial 2 rim": {
+   "frame": { "x": 304, "y": 106, "w": 13, "h": 15 }
+  },
+  "COGITATOR dial 3 rim": {
+   "frame": { "x": 318, "y": 106, "w": 13, "h": 15 }
+  },
+  "COGITATOR dial 4 rim": {
+   "frame": { "x": 332, "y": 106, "w": 13, "h": 15 }
+  },
+  "COGITATOR screen wall": {
+   "frame": { "x": 346, "y": 106, "w": 2, "h": 33 }
+  },
+  "COGITATOR screen floor": {
+   "frame": { "x": 349, "y": 106, "w": 32, "h": 2 }
+  },
+  "COGITATOR wave wall": {
+   "frame": { "x": 382, "y": 106, "w": 2, "h": 17 }
+  },
+  "COGITATOR wave floor": {
+   "frame": { "x": 385, "y": 106, "w": 22, "h": 2 }
+  },
+  "COGITATOR bars wall": {
+   "frame": { "x": 408, "y": 106, "w": 2, "h": 17 }
+  },
+  "COGITATOR bars floor": {
+   "frame": { "x": 411, "y": 106, "w": 22, "h": 2 }
+  },
   "CRATE side": {
    "frame": { "x": 0, "y": 189, "w": 10, "h": 20 }
   },
@@ -105,6 +156,15 @@
   "TABLE top": {
    "frame": { "x": 12, "y": 210, "w": 92, "h": 11 }
   },
+  "TABLE mug 1 top": {
+   "frame": { "x": 105, "y": 210, "w": 7, "h": 3 }
+  },
+  "TABLE mug 2 top": {
+   "frame": { "x": 113, "y": 210, "w": 7, "h": 3 }
+  },
+  "TABLE cup top": {
+   "frame": { "x": 121, "y": 210, "w": 2, "h": 1 }
+  },
   "BENCH side": {
    "frame": { "x": 0, "y": 222, "w": 4, "h": 4 }
   },
@@ -116,6 +176,18 @@
   },
   "RECAFF top": {
    "frame": { "x": 8, "y": 227, "w": 32, "h": 7 }
+  },
+  "RECAFF screen wall": {
+   "frame": { "x": 41, "y": 227, "w": 1, "h": 7 }
+  },
+  "RECAFF screen floor": {
+   "frame": { "x": 43, "y": 227, "w": 15, "h": 1 }
+  },
+  "RECAFF alcove wall": {
+   "frame": { "x": 59, "y": 227, "w": 3, "h": 6 }
+  },
+  "RECAFF alcove floor": {
+   "frame": { "x": 63, "y": 227, "w": 11, "h": 3 }
   },
   "LORD_DESK side": {
    "frame": { "x": 0, "y": 264, "w": 11, "h": 15 }
@@ -150,77 +222,90 @@
   "THRONE arm R top": {
    "frame": { "x": 102, "y": 280, "w": 6, "h": 8 }
   },
+  "THRONE crest rim": {
+   "frame": { "x": 109, "y": 280, "w": 20, "h": 8 }
+  },
+  "COG_MECH cog rim": {
+   "frame": { "x": 0, "y": 301, "w": 36, "h": 36 }
+  },
+  "SEAL wax rim": {
+   "frame": { "x": 0, "y": 338, "w": 10, "h": 8 }
+  },
+  "GAUGE dial rim": {
+   "frame": { "x": 0, "y": 347, "w": 12, "h": 12 }
+  },
   "CENSER bowl top": {
-   "frame": { "x": 0, "y": 301, "w": 10, "h": 5 }
+   "frame": { "x": 0, "y": 360, "w": 10, "h": 5 }
   },
   "CANDLES candle 1 top": {
-   "frame": { "x": 0, "y": 307, "w": 7, "h": 3 }
+   "frame": { "x": 0, "y": 366, "w": 7, "h": 3 }
   },
   "CANDLES candle 2 top": {
-   "frame": { "x": 8, "y": 307, "w": 7, "h": 3 }
+   "frame": { "x": 8, "y": 366, "w": 7, "h": 3 }
   },
   "CANDLES candle 3 top": {
-   "frame": { "x": 16, "y": 307, "w": 6, "h": 3 }
+   "frame": { "x": 16, "y": 366, "w": 6, "h": 3 }
   },
   "CANDLES dish top": {
-   "frame": { "x": 23, "y": 307, "w": 24, "h": 10 }
+   "frame": { "x": 23, "y": 366, "w": 24, "h": 10 }
   },
   "BRAZIER bowl top": {
-   "frame": { "x": 0, "y": 318, "w": 14, "h": 6 }
+   "frame": { "x": 0, "y": 377, "w": 14, "h": 6 }
   },
   "BRAZIER foot top": {
-   "frame": { "x": 15, "y": 318, "w": 14, "h": 6 }
+   "frame": { "x": 15, "y": 377, "w": 14, "h": 6 }
   },
   "BOOKS book 1 side": {
-   "frame": { "x": 0, "y": 325, "w": 5, "h": 5 }
+   "frame": { "x": 0, "y": 384, "w": 5, "h": 5 }
   },
   "BOOKS book 1 top": {
-   "frame": { "x": 6, "y": 325, "w": 14, "h": 5 }
+   "frame": { "x": 6, "y": 384, "w": 14, "h": 5 }
   },
   "BOOKS book 2 side": {
-   "frame": { "x": 21, "y": 325, "w": 5, "h": 5 }
+   "frame": { "x": 21, "y": 384, "w": 5, "h": 5 }
   },
   "BOOKS book 2 top": {
-   "frame": { "x": 27, "y": 325, "w": 18, "h": 5 }
+   "frame": { "x": 27, "y": 384, "w": 18, "h": 5 }
   },
   "BOOKS book 3 side": {
-   "frame": { "x": 46, "y": 325, "w": 5, "h": 4 }
+   "frame": { "x": 46, "y": 384, "w": 5, "h": 4 }
   },
   "BOOKS book 3 top": {
-   "frame": { "x": 52, "y": 325, "w": 16, "h": 5 }
+   "frame": { "x": 52, "y": 384, "w": 16, "h": 5 }
   },
   "BOOKS book 4 side": {
-   "frame": { "x": 69, "y": 325, "w": 6, "h": 6 }
+   "frame": { "x": 69, "y": 384, "w": 6, "h": 6 }
   },
   "BOOKS book 4 top": {
-   "frame": { "x": 76, "y": 325, "w": 20, "h": 6 }
+   "frame": { "x": 76, "y": 384, "w": 20, "h": 6 }
   },
   "PAPER_STACK ream 1 side": {
-   "frame": { "x": 0, "y": 332, "w": 6, "h": 9 }
+   "frame": { "x": 0, "y": 391, "w": 6, "h": 9 }
   },
   "PAPER_STACK ream 1 top": {
-   "frame": { "x": 7, "y": 332, "w": 16, "h": 6 }
+   "frame": { "x": 7, "y": 391, "w": 16, "h": 6 }
   },
   "PAPER_STACK ream 2 side": {
-   "frame": { "x": 24, "y": 332, "w": 5, "h": 7 }
+   "frame": { "x": 24, "y": 391, "w": 5, "h": 7 }
   },
   "PAPER_STACK ream 2 top": {
-   "frame": { "x": 30, "y": 332, "w": 14, "h": 5 }
+   "frame": { "x": 30, "y": 391, "w": 14, "h": 5 }
   },
   "PAPER_STACK ream 3 side": {
-   "frame": { "x": 45, "y": 332, "w": 6, "h": 10 }
+   "frame": { "x": 45, "y": 391, "w": 6, "h": 10 }
   },
   "PAPER_STACK ream 3 top": {
-   "frame": { "x": 52, "y": 332, "w": 16, "h": 6 }
+   "frame": { "x": 52, "y": 391, "w": 16, "h": 6 }
   }
  },
  "meta": {
   "app": "face sheets (ui/faces.js)",
   "image": "faces.png",
   "format": "RGBA8888",
-  "size": { "w": 216, "h": 342 },
+  "size": { "w": 433, "h": 401 },
   "palette": "key.gpl",
   "anchors": {},
+  "note": "Hand-edited source: faces.png (Aseprite, key palette) and this file are the face sheets themselves, no generator. Format: ui/faces.js header. A new frame goes into faces.png and its rect into frames here.",
   "objects": {
    "DESK": {
     "front": [0, 18, 64, 24],
@@ -233,7 +318,7 @@
       "v": 2,
       "d": 3,
       "recess": [
-       { "rect": [17, 5, 14, 9], "depth": 1, "wall": "k" }
+       { "name": "screen", "rect": [17, 5, 14, 9], "depth": 1, "wall": "k" }
       ]
      },
      { "name": "paper", "rect": [2, 8, 10, 10], "kind": "box", "v": 6, "d": 8 },
@@ -254,7 +339,7 @@
       "v": 2,
       "d": 3,
       "recess": [
-       { "rect": [5, 5, 14, 9], "depth": 1, "wall": "k" }
+       { "name": "screen", "rect": [5, 5, 14, 9], "depth": 1, "wall": "k" }
       ]
      },
      { "name": "dish", "rect": [30, 15, 14, 3], "kind": "cyl", "v": 13 },
@@ -274,7 +359,7 @@
       "v": 2,
       "d": 4,
       "recess": [
-       { "rect": [6, 3, 15, 7], "depth": 2, "wall": "k" }
+       { "name": "screen", "rect": [6, 3, 15, 7], "depth": 2, "wall": "k" }
       ]
      }
     ]
@@ -284,9 +369,9 @@
     "front": [9, 15, 146, 82],
     "d": 22,
     "recess": [
-     { "rect": [66, 27, 32, 33], "depth": 3, "wall": "k" },
-     { "rect": [34, 27, 22, 17], "depth": 3, "wall": "k" },
-     { "rect": [108, 27, 22, 17], "depth": 3, "wall": "k" }
+     { "name": "screen", "rect": [66, 27, 32, 33], "depth": 3, "wall": "k" },
+     { "name": "wave", "rect": [34, 27, 22, 17], "depth": 3, "wall": "k" },
+     { "name": "bars", "rect": [108, 27, 22, 17], "depth": 3, "wall": "k" }
     ],
     "details": [
      { "name": "vents L", "rect": [34, 6, 21, 9], "kind": "box", "v": 6, "d": 8 },
@@ -301,14 +386,14 @@
        { "name": "knob", "rect": [80, 0, 4, 3], "kind": "cyl", "v": 10 }
       ]
      },
-     { "name": "gauge 1", "rect": [34, 48, 11, 11], "kind": "disc", "t": 2, "rim": "G" },
-     { "name": "gauge 2", "rect": [45, 48, 11, 11], "kind": "disc", "t": 2, "rim": "G" },
-     { "name": "gauge 3", "rect": [108, 48, 11, 11], "kind": "disc", "t": 2, "rim": "k" },
-     { "name": "gauge 4", "rect": [119, 48, 11, 11], "kind": "disc", "t": 2, "rim": "k" },
-     { "name": "dial 1", "rect": [12, 25, 13, 15], "kind": "disc", "t": 1, "rim": "M" },
-     { "name": "dial 2", "rect": [12, 47, 13, 15], "kind": "disc", "t": 1, "rim": "M" },
-     { "name": "dial 3", "rect": [139, 25, 13, 15], "kind": "disc", "t": 1, "rim": "M" },
-     { "name": "dial 4", "rect": [139, 47, 13, 15], "kind": "disc", "t": 1, "rim": "M" },
+     { "name": "gauge 1", "rect": [34, 48, 11, 11], "kind": "disc", "t": 2, "rim": "G", "round": true },
+     { "name": "gauge 2", "rect": [45, 48, 11, 11], "kind": "disc", "t": 2, "rim": "G", "round": true },
+     { "name": "gauge 3", "rect": [108, 48, 11, 11], "kind": "disc", "t": 2, "rim": "k", "round": true },
+     { "name": "gauge 4", "rect": [119, 48, 11, 11], "kind": "disc", "t": 2, "rim": "k", "round": true },
+     { "name": "dial 1", "rect": [12, 25, 13, 15], "kind": "disc", "t": 1, "rim": "M", "round": true },
+     { "name": "dial 2", "rect": [12, 47, 13, 15], "kind": "disc", "t": 1, "rim": "M", "round": true },
+     { "name": "dial 3", "rect": [139, 25, 13, 15], "kind": "disc", "t": 1, "rim": "M", "round": true },
+     { "name": "dial 4", "rect": [139, 47, 13, 15], "kind": "disc", "t": 1, "rim": "M", "round": true },
      { "name": "drum L", "rect": [0, 29, 11, 68], "kind": "cyl", "v": 15 },
      { "name": "drum R", "rect": [153, 29, 11, 68], "kind": "cyl", "v": 15 }
     ],
@@ -328,11 +413,11 @@
     "d": 26,
     "details": [
      { "name": "plate 1", "rect": [14, 3, 6, 6], "kind": "top", "v": 7 },
-     { "name": "mug 1", "rect": [26, 4, 7, 4], "kind": "top", "v": 10 },
+     { "name": "mug 1", "rect": [26, 4, 7, 4], "kind": "cyl", "v": 13, "z": 5 },
      { "name": "plate 2", "rect": [42, 3, 6, 6], "kind": "top", "v": 7 },
-     { "name": "cup", "rect": [56, 5, 2, 2], "kind": "top", "v": 12 },
+     { "name": "cup", "rect": [56, 5, 2, 2], "kind": "cyl", "v": 14, "z": 5 },
      { "name": "plate 3", "rect": [70, 3, 6, 6], "kind": "top", "v": 7 },
-     { "name": "mug 2", "rect": [84, 3, 7, 4], "kind": "top", "v": 7 }
+     { "name": "mug 2", "rect": [84, 3, 7, 4], "kind": "cyl", "v": 11, "z": 5 }
     ],
     "flatOnly": [
      { "name": "table top", "rect": [0, 0, 92, 11] }
@@ -349,8 +434,8 @@
     "front": [0, 0, 32, 36],
     "d": 16,
     "recess": [
-     { "rect": [4, 14, 15, 7], "depth": 2, "wall": "k" },
-     { "rect": [10, 24, 11, 6], "depth": 4, "wall": "M" }
+     { "name": "screen", "rect": [4, 14, 15, 7], "depth": 2, "wall": "k" },
+     { "name": "alcove", "rect": [10, 24, 11, 6], "depth": 4, "wall": "M" }
     ]
    },
    "LORD_DESK": {
@@ -360,7 +445,7 @@
      { "name": "petition", "rect": [12, 3, 10, 7], "kind": "top", "v": 7 },
      { "name": "slate", "rect": [30, 3, 14, 7], "kind": "top", "v": 7 },
      { "name": "note", "rect": [56, 3, 6, 7], "kind": "top", "v": 7 },
-     { "name": "inkwell", "rect": [74, 3, 6, 6], "kind": "cyl", "v": 14 }
+     { "name": "inkwell", "rect": [74, 3, 6, 6], "kind": "cyl", "v": 14, "z": 15 }
     ],
     "flatOnly": [
      { "name": "desk top", "rect": [0, 0, 88, 11] }
@@ -378,18 +463,18 @@
    },
    "COG_MECH": {
     "details": [
-     { "name": "cog", "rect": [2, 0, 36, 36], "kind": "disc", "v": 0, "t": 3, "rim": "B" }
+     { "name": "cog", "rect": [2, 0, 36, 36], "kind": "disc", "v": 0, "t": 3, "rim": "B", "round": true }
     ]
    },
    "SEAL": {
     "details": [
-     { "name": "wax", "rect": [1, 0, 10, 8], "kind": "disc", "v": 1, "t": 2, "rim": "r" },
+     { "name": "wax", "rect": [1, 0, 10, 8], "kind": "disc", "v": 1, "t": 2, "rim": "r", "round": true },
      { "name": "ribbon", "rect": [2, 8, 7, 12], "kind": "disc", "v": 0, "t": 1, "rim": "P" }
     ]
    },
    "GAUGE": {
     "details": [
-     { "name": "dial", "rect": [0, 0, 12, 12], "kind": "disc", "v": 0, "t": 2, "rim": "G" }
+     { "name": "dial", "rect": [0, 0, 12, 12], "kind": "disc", "v": 0, "t": 2, "rim": "G", "round": true }
     ]
    },
    "CENSER": {

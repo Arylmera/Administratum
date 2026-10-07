@@ -8,12 +8,17 @@
 // v from the object's back toward the viewer, z up from the floor, all art px):
 //   front    rect of the main box's front face; the box is front.w x d x front.h, its column 0 at u = front.x
 //   d        the main box's depth
-//   recess   [{ rect, depth, wall }]: screens set into the front (glass set back by depth, bezel sides in `wall`)
+//   recess   [{ name, rect, depth, wall }]: screens set into the front (glass set back by depth; the bezel's inner
+//            left side and floor from frames '<NAME> <recess> wall' (h rows x depth-1) and '... floor' (depth-1 rows
+//            x w), else the colour `wall`)
 //   details  [{ name, rect, kind, u?, v, z?, ... }], the parts on or around it, each a volume in the 39° view:
 //              box   d (+ recess): a small box (books, slates, paper stacks), front = rect
 //              cyl   an upright cylinder, diameter rect.w (candles, drums, censers, pots); u, v its axis
-//              disc  t, rim: a thin disc on the plane v, standing proud by t (cog emblems, gauges, seals, dials)
-//              top   laid flat on the plane z (papers, slates lying on a desk)
+//              disc  t, rim, round: a thin disc on the plane v, standing proud by t (cog emblems, gauges, seals,
+//                    dials; round: only the ellipse inscribed in the rect);
+//                    its thickness from frame '<NAME> <detail> rim' (the art's size), else the colour `rim`
+//              top   laid flat on the plane z: only what lies flat (papers, plates, a slate lying on a desk);
+//                    anything standing up is a volume (mugs and inkwells are cylinders)
 //              bill  upright, never sheared (flames); u, v its bottom centre
 //              spire parts: [detail...] stacked shapes (boxes, cylinders, discs) sharing the spire's v
 //            u defaults to rect.x (the centre for cyl and bill), z to where the flat frame puts it (its bottom row's
@@ -23,7 +28,8 @@
 // faces.png frames, named '<NAME> side' / '<NAME> top' (main box), '<NAME> <detail> side|top' (a box or cylinder
 // detail), '<NAME> <spire>/<part> side|top': a side frame is h rows x cols(d) columns (column 0 at the front corner),
 // a top frame cols(d) rows x w columns (row 0 at the back). Missing frames are allowed (a world without its 39° art
-// yet): the builder then derives the face from the front's edge colours.
+// yet): the builder then derives the face from the front's edge colours. A box detail's recess frames are
+// '<NAME> <detail> <recess> wall|floor'. faces.png and faces.json are hand-edited source (no generator).
 import { T, THEMES } from './theme.js';
 import { MAPS, ART } from './sprites.js';
 import { loadSheet } from './art.js';
@@ -31,16 +37,15 @@ import { loadSheet } from './art.js';
 export const VS = 2 / Math.sqrt(2 / 3); // v units per texel of a top face's rows and a side face's columns (39°)
 export const cols = d => Math.ceil(d / VS); // texels across a depth d
 
+const missing = e => e.code === 'ENOENT' || /HTTP 404/.test(e.message);
 async function load(dir) {
-  let json;
   try {
-    json = (await import(new URL(`./art/${dir}faces.json`, import.meta.url), { with: { type: 'json' } })).default;
+    const { frames, meta } = await loadSheet(`${dir}faces`);
+    return { objects: meta.objects, frames };
   } catch (e) {
-    if (dir) return null; // a world without face sheets draws with the base ones
+    if (dir && missing(e)) return null; // a world without face sheets draws with the base ones; anything else throws
     throw e;
   }
-  const frames = Object.keys(json.frames ?? {}).length ? (await loadSheet(`${dir}faces`)).frames : {};
-  return { objects: json.meta.objects, frames };
 }
 const base = await load('');
 const worlds = {};
@@ -60,15 +65,17 @@ export function sheetOf(name, map = MAPS[name], id = T.id) {
   const [x0, above, bw, bh] = o.front ?? [0, 0, 0, 0];
   const B = o.front ? above + bh : map.length; // the flat row of z = 0
   const frame = n => F[`${name} ${n}`] ?? null;
+  const recess = (list = [], pre) => list.map(r => ({ ...r, wallFrame: frame(`${pre}${r.name} wall`), floorFrame: frame(`${pre}${r.name} floor`) }));
   const part = (p, key) => {
     const [x, y, pw, ph] = p.rect, mid = p.kind === 'cyl' || p.kind === 'bill';
     return { ...p, map: crop(map, p.rect), at: [x, y], u: p.u ?? x + (mid ? pw >> 1 : 0), v: p.v ?? (p.kind === 'disc' ? o.d ?? 0 : 0),
-      z: p.z ?? (p.kind === 'top' ? bh : B - (y + ph)), side: frame(`${key} side`), top: frame(`${key} top`),
+      z: p.z ?? (p.kind === 'top' ? bh : B - (y + ph)), side: frame(`${key} side`), top: frame(`${key} top`), rimFrame: frame(`${key} rim`),
+      ...(p.recess && { recess: recess(p.recess, `${key} `) }),
       ...(p.parts && { parts: p.parts.map(q => part({ v: p.v, ...q }, `${key}/${q.name}`)) }) };
   };
   return {
     name, fw: map[0].length, fh: map.length, x0, above, w: bw, d: o.d ?? 0, h: bh, rect: o.front ?? null,
-    front: o.front ? crop(map, o.front) : null, side: frame('side'), top: frame('top'), recess: o.recess ?? [],
+    front: o.front ? crop(map, o.front) : null, side: frame('side'), top: frame('top'), recess: recess(o.recess, ''),
     details: (o.details ?? []).map(p => part(p, p.name)),
     flatOnly: (o.flatOnly ?? []).map(p => ({ ...p, map: crop(map, p.rect), at: p.rect.slice(0, 2) })),
   };
@@ -98,13 +105,15 @@ function box(buf, { map, side, top, recess = [] }, [x, y, w, h], U, V, Z, d, id)
     front: (i, r) => (hole(i, r) ? '.' : map[r][i]),
     side: (j, r) => (side ? side[r]?.[j] ?? '.' : edge(map[r])),
     top: (i, j) => (top ? top[j]?.[i] ?? '.' : lid(map, i)) });
-  // a screen set into the front: the glass pushed back by depth, the bezel's floor and left inner side between
-  for (const { rect: [rx, ry, rw, rh], depth = 1, wall = 'k' } of recess) {
-    const ui = U + rx - x, vg = V + d - 1 - depth, zt = Z + h - 1 - (ry - y), zb = zt - rh + 1;
+  // a screen set into the front: the glass pushed back by depth; between it and the front, the bezel's floor (the top
+  // face of the row under the hole, at z = zb as a box's top sits at z1) and its left inner side (the +u face of the
+  // column left of the hole, at u = ui - 1 as a box's side sits at u1 - 1), from their frames or the wall colour
+  for (const { rect: [rx, ry, rw, rh], depth = 1, wall = 'k', wallFrame, floorFrame } of recess) {
+    const ui = U + rx - x, vg = V + d - 1 - depth, zt = Z + h - 1 - (ry - y), zb = zt - rh + 1, vf = V + d - 1;
     for (let i = 0; i < rw; i++) for (let r = 0; r < rh; r++) buf.put(ui + i, vg, zt - r, map[ry - y + r][rx - x + i], id, 1);
-    for (let v = vg + 1; v < V + d - 1; v++) {
-      for (let i = 0; i < rw; i++) buf.put(ui + i, v, zb - 1, wall, id, 0);
-      for (let z = zb; z <= zt; z++) buf.put(ui - 1, v, z, wall, id, 2);
+    for (let v = vg + 1; v < vf; v++) {
+      for (let i = 0; i < rw; i++) buf.put(ui + i, v, zb, floorFrame?.[v - vg - 1]?.[i] ?? wall, id, 0);
+      for (let z = zb; z <= zt; z++) buf.put(ui - 1, v, z, wallFrame?.[zt - z]?.[vf - 1 - v] ?? wall, id, 2);
     }
   }
 }
@@ -117,14 +126,19 @@ function cyl(buf, { map, top }, U, V, Z, id) {
     for (let dv = -half; dv < half; dv++) {
       for (let r = 0; r < h; r++) buf.put(u, V + dv, Z + h - 1 - r, map[r][c], id, du < 0 ? 1 : 2);
       const rim = du * du + (dv + 0.5) ** 2 > (R - 1) ** 2;
-      buf.put(u, V + dv, Z + h, rim ? 'k' : top ? top[Math.min(J - 1, Math.floor((dv + half) / VS))]?.[c] ?? '.' : lid(map, c), id, 0);
+      buf.put(u, V + dv, Z + h, rim ? 'k' : top ? top[Math.min(J - 1, Math.floor((dv + R) / VS))]?.[c] ?? '.' : lid(map, c), id, 0);
     }
   }
 }
-// A thin disc on the plane v = V (facing +v), standing proud by t: the art on its face, rim colour behind it.
-function disc(buf, { map, t = 2, rim = 'k' }, U, V, Z, id) {
-  const h = map.length;
-  map.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] !== '.') for (let k = 0; k < t; k++) buf.put(U + c, V + k, Z + h - 1 - r, k === t - 1 ? row[c] : rim, id, k === t - 1 ? 1 : 2); });
+// A thin disc on the plane v = V (facing +v), standing proud by t: the art on its face (v = V + t - 1), the rim behind it
+// from its rim frame (same size as the art: the thickness colour behind each pixel) or the rim colour. A round disc
+// keeps only the ellipse inscribed in its rect (the rect's corners are the surface it stands on).
+export const inEllipse = (c, r, w, h) => ((c + 0.5) / w * 2 - 1) ** 2 + ((r + 0.5) / h * 2 - 1) ** 2 <= 1;
+function disc(buf, { map, t = 2, rim = 'k', rimFrame, round }, U, V, Z, id) {
+  const h = map.length, w = map[0].length;
+  map.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] !== '.' && (!round || inEllipse(c, r, w, h))) for (let k = 0; k < t; k++) {
+    buf.put(U + c, V + k, Z + h - 1 - r, k === t - 1 ? row[c] : rimFrame?.[r]?.[c] ?? rim, id, k === t - 1 ? 1 : 2);
+  } });
 }
 function part(buf, p, u0, v0, id) {
   const U = u0 + p.u, V = v0 + p.v, Z = p.z;
