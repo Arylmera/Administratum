@@ -80,13 +80,7 @@ pub fn valid_token(t: &str) -> bool {
 
 /// The pairing cookie's value among every `Cookie` header.
 fn cookie_token<'a>(headers: &'a [(String, String)]) -> Option<&'a str> {
-    headers
-        .iter()
-        .filter(|(k, _)| k == "cookie")
-        .flat_map(|(_, v)| v.split(';'))
-        .filter_map(|kv| kv.trim().split_once('='))
-        .find(|(k, _)| *k == COOKIE)
-        .map(|(_, v)| v)
+    headers.iter().filter(|(k, _)| k == "cookie").flat_map(|(_, v)| v.split(';')).filter_map(|kv| kv.trim().split_once('=')).find(|(k, _)| *k == COOKIE).map(|(_, v)| v)
 }
 
 fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
@@ -182,8 +176,7 @@ fn route(req: &Req, token: &str, actions: bool) -> Route {
         ("GET", "/api/peek_petition") => with("handle", Call::PeekPetition),
         ("POST", "/api/answer_petition") => {
             let h = |n| header(req.headers, n);
-            let same_origin = h("origin").zip(h("host")).is_some_and(|(o, host)| o == format!("http://{host}"))
-                && h("sec-fetch-site").is_none_or(|s| s == "same-origin");
+            let same_origin = h("origin").zip(h("host")).is_some_and(|(o, host)| o == format!("http://{host}")) && h("sec-fetch-site").is_none_or(|s| s == "same-origin");
             if !actions || h("x-adm") != Some("1") || !same_origin {
                 Route::Status(403)
             } else if !h("content-type").is_some_and(|c| c.starts_with("application/json")) {
@@ -425,8 +418,7 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
                 handle: String,
                 choice: String,
             }
-            let parsed = read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY)
-                .and_then(|b| serde_json::from_slice::<Answer>(&b).map_err(|_| 400));
+            let parsed = read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY).and_then(|b| serde_json::from_slice::<Answer>(&b).map_err(|_| 400));
             match parsed {
                 Ok(a) => json(&mut w, (backend.call)(Call::AnswerPetition { handle: a.handle, choice: a.choice })),
                 Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
@@ -465,7 +457,7 @@ fn status_text(code: u16) -> &'static str {
 }
 
 const PAIRED: &str = "<!doctype html><meta charset=utf-8><meta http-equiv=refresh content=\"0;url=/\"><title>Administratum</title>Paired.";
-const REMOTE_JS: &str ="window.ADM_REMOTE = true;\n";
+const REMOTE_JS: &str = "window.ADM_REMOTE = true;\n";
 const UNAUTHORIZED: &str = "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width\"><title>Administratum</title>\
 <body style=\"font:16px system-ui;background:#111;color:#ddd;display:grid;place-items:center;height:90vh;text-align:center\">\
 <p>Not paired.<br>Scan the QR code in Administratum &rarr; Settings &rarr; Remote view.</p>";
@@ -492,9 +484,7 @@ pub fn lan_ipv4() -> Vec<Ipv4Addr> {
 
 /// An SVG QR code of `text` (dark on light, quiet zone included).
 pub fn qr_svg(text: &str) -> String {
-    qrcode::QrCode::new(text.as_bytes())
-        .map(|c| c.render::<qrcode::render::svg::Color>().min_dimensions(200, 200).build())
-        .unwrap_or_default()
+    qrcode::QrCode::new(text.as_bytes()).map(|c| c.render::<qrcode::render::svg::Color>().min_dimensions(200, 200).build()).unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -663,10 +653,8 @@ mod tests {
     fn serves_over_http() {
         set_token(TOK);
         set_actions(false);
-        let backend = || Backend {
-            call: Box::new(|c| Ok(serde_json::json!(format!("{c:?}")))),
-            asset: Box::new(|p| (p == "index.html").then(|| (b"<html><head></head></html>".to_vec(), "text/html".into()))),
-        };
+        let backend =
+            || Backend { call: Box::new(|c| Ok(serde_json::json!(format!("{c:?}")))), asset: Box::new(|p| (p == "index.html").then(|| (b"<html><head></head></html>".to_vec(), "text/html".into()))) };
         let port = start("127.0.0.1:0".parse().unwrap(), backend()).unwrap();
         let send = |raw: String| {
             let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();

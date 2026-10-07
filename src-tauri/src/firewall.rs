@@ -23,17 +23,23 @@ pub struct Status {
 }
 
 pub fn valid_port(port: u16) -> Result<u16, String> {
-    if port >= 1024 { Ok(port) } else { Err("port must be between 1024 and 65535".into()) }
+    if port >= 1024 {
+        Ok(port)
+    } else {
+        Err("port must be between 1024 and 65535".into())
+    }
 }
 
 /// The exe path goes inside a single-quoted PowerShell string: allow only letters, digits and
 /// plain path punctuation (no quotes of any kind, `$`, backtick, `;`, control characters...).
 pub fn valid_exe(path: &Path) -> Result<&str, String> {
     let s = path.to_str().ok_or("the program path is not valid Unicode")?;
-    let ok = path.is_absolute()
-        && s.to_ascii_lowercase().ends_with(".exe")
-        && s.chars().all(|c| c.is_alphanumeric() || " \\:._-()".contains(c));
-    if ok { Ok(s) } else { Err(format!("unsupported program path: {s}")) }
+    let ok = path.is_absolute() && s.to_ascii_lowercase().ends_with(".exe") && s.chars().all(|c| c.is_alphanumeric() || " \\:._-()".contains(c));
+    if ok {
+        Ok(s)
+    } else {
+        Err(format!("unsupported program path: {s}"))
+    }
 }
 
 pub fn allow_script(port: u16, exe: &str) -> String {
@@ -64,10 +70,7 @@ pub fn encode(script: &str) -> String {
 }
 
 pub fn powershell(script: &str) -> Result<std::process::Output, String> {
-    crate::no_window(Command::new("powershell.exe"))
-        .args(["-NoProfile", "-NonInteractive", "-EncodedCommand", &encode(script)])
-        .output()
-        .map_err(|e| format!("cannot run PowerShell: {e}"))
+    crate::no_window(Command::new("powershell.exe")).args(["-NoProfile", "-NonInteractive", "-EncodedCommand", &encode(script)]).output().map_err(|e| format!("cannot run PowerShell: {e}"))
 }
 
 /// Run `script` elevated and wait. A refused UAC prompt makes Start-Process throw: exit 1223.
@@ -154,7 +157,10 @@ pub fn parse(json: &str, port: u16, exe: Option<&str>) -> Result<Status, String>
     } else if on_port.is_empty() {
         ("other-port", format!("The firewall rule allows port {}, not {port}", raw.rules[0].port))
     } else if let Some(r) = on_port.iter().find(open) {
-        let applies = r.profile.split(',').any(|p| { let p = p.trim(); p.eq_ignore_ascii_case("any") || p.eq_ignore_ascii_case(category) });
+        let applies = r.profile.split(',').any(|p| {
+            let p = p.trim();
+            p.eq_ignore_ascii_case("any") || p.eq_ignore_ascii_case(category)
+        });
         let mut d = match (applies, network) {
             (_, "unknown") => format!("Allowed on port {port}"),
             (true, _) => format!("Allowed on port {port} ({network} network)"),
@@ -178,7 +184,9 @@ mod tests {
 
     const EXE: &str = r"C:\Users\guill\AppData\Local\Administratum\administratum.exe";
     fn rule(enabled: &str, profile: &str, port: &str) -> String {
-        format!(r#"{{"action":"Allow","direction":"Inbound","profile":"{profile}","program":"C:\\Users\\guill\\AppData\\Local\\Administratum\\administratum.exe","protocol":"TCP","port":"{port}","enabled":"{enabled}"}}"#)
+        format!(
+            r#"{{"action":"Allow","direction":"Inbound","profile":"{profile}","program":"C:\\Users\\guill\\AppData\\Local\\Administratum\\administratum.exe","protocol":"TCP","port":"{port}","enabled":"{enabled}"}}"#
+        )
     }
     fn st(net: &str, rules: &[String]) -> Status {
         parse(&format!(r#"{{"networks":[{net}],"rules":[{}]}}"#, rules.join(",")), 7770, Some(EXE)).unwrap()

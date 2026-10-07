@@ -88,10 +88,12 @@ pub fn parse_action(arg: &str) -> Option<(&str, i64, &str)> {
 
 /// Whether a petition toast gets Approve / Deny: a permission prompt in an Orca terminal (as the card's `answerable`).
 pub fn has_buttons(s: &Session) -> bool {
-    s.status == "waiting" && s.orca.is_some() && s.waiting_for.as_deref().is_some_and(|w| {
-        let w = w.to_ascii_lowercase();
-        w.contains("approve") || w.contains("permission")
-    })
+    s.status == "waiting"
+        && s.orca.is_some()
+        && s.waiting_for.as_deref().is_some_and(|w| {
+            let w = w.to_ascii_lowercase();
+            w.contains("approve") || w.contains("permission")
+        })
 }
 
 /// The Orca handle to answer through, only while the toast's petition is still open: same session, same episode,

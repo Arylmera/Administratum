@@ -15,7 +15,6 @@ const BRANCH_EVERY: Duration = Duration::from_secs(5);
 /// How long a session whose transcript is in no project folder waits before the folders are scanned again.
 const RESCAN_EVERY: Duration = Duration::from_secs(30);
 
-
 /// Transcript files per live session id: the main one (false) and its subagents' (true).
 pub type Files = HashMap<String, Vec<(FileStat, bool)>>;
 

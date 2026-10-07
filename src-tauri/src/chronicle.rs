@@ -791,7 +791,8 @@ mod tests {
     // Real-shape lines (trimmed): Claude Code 2.1.283 transcripts.
     fn bash_use(id: &str, cmd: &str, ts: i64) -> String {
         serde_json::json!({"type":"assistant","timestamp":iso(ts),"message":{"model":"claude-opus-5-5","id":format!("msg_{id}"),"type":"message","role":"assistant",
-            "content":[{"type":"tool_use","id":id,"name":"Bash","input":{"command":cmd,"description":"run"}}]}}).to_string()
+            "content":[{"type":"tool_use","id":id,"name":"Bash","input":{"command":cmd,"description":"run"}}]}})
+        .to_string()
     }
 
     fn result(id: &str, content: Value, is_error: Option<bool>, ts: i64) -> String {
@@ -958,7 +959,8 @@ mod tests {
         let mut cur = Cursor::default();
         let line = |id: &str, out: u64| {
             serde_json::json!({"type":"assistant","timestamp":iso(1_791_000_000_000),"message":{"model":"claude-opus-5-5","id":id,
-                "usage":{"input_tokens":2,"cache_creation_input_tokens":100,"cache_read_input_tokens":1000,"output_tokens":out}}}).to_string()
+                "usage":{"input_tokens":2,"cache_creation_input_tokens":100,"cache_read_input_tokens":1000,"output_tokens":out}}})
+            .to_string()
         };
         let (_, a, _) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
         let (_, b, _) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
@@ -1148,7 +1150,11 @@ mod tests {
         assert_eq!((t.tools, t.files.len(), t.started_ms), (0, 0, registry::iso_utc_ms("2026-10-06T11:00:00.000Z")), "a real prompt starts a new turn");
 
         for i in 0..(MAX_TURN_FILES + 3) {
-            track_turn(&mut t, &format!(r#"{{"type":"assistant","message":{{"content":[{{"type":"tool_use","id":"w{i}","name":"Write","input":{{"file_path":"C:\\git\\Terra\\f{i}.txt"}}}}]}}}}"#), cwd);
+            track_turn(
+                &mut t,
+                &format!(r#"{{"type":"assistant","message":{{"content":[{{"type":"tool_use","id":"w{i}","name":"Write","input":{{"file_path":"C:\\git\\Terra\\f{i}.txt"}}}}]}}}}"#),
+                cwd,
+            );
         }
         assert_eq!((t.files.len(), t.more_files), (MAX_TURN_FILES, 3));
 

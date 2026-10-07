@@ -50,9 +50,7 @@ fn orca<T>(args: &[&str], run: impl Fn(&mut Command) -> std::io::Result<T>) -> R
         run(&mut cmd)
     };
     with("orca".into()).or_else(|_| {
-        let fallback = std::env::var("LOCALAPPDATA")
-            .map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe"))
-            .map_err(|_| "orca not found".to_string())?;
+        let fallback = std::env::var("LOCALAPPDATA").map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe")).map_err(|_| "orca not found".to_string())?;
         with(fallback).map_err(|e| e.to_string())
     })
 }
@@ -141,8 +139,15 @@ type Live = Mutex<Vec<Session>>;
 /// registered by the installer), as tauri-plugin-notification does.
 #[cfg(windows)]
 fn toast_app_id(app: &AppHandle) -> String {
-    let dev = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.ends_with(std::path::Path::new("target").join("debug")) || d.ends_with(std::path::Path::new("target").join("release")))).unwrap_or(false);
-    if dev { tauri_winrt_notification::Toast::POWERSHELL_APP_ID.to_string() } else { app.config().identifier.clone() }
+    let dev = std::env::current_exe()
+        .ok()
+        .and_then(|e| e.parent().map(|d| d.ends_with(std::path::Path::new("target").join("debug")) || d.ends_with(std::path::Path::new("target").join("release"))))
+        .unwrap_or(false);
+    if dev {
+        tauri_winrt_notification::Toast::POWERSHELL_APP_ID.to_string()
+    } else {
+        app.config().identifier.clone()
+    }
 }
 
 /// A petition toast. A permission prompt in an Orca terminal gets Approve / Deny: a click answers through
@@ -252,7 +257,11 @@ $s = (New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFold
 $s.TargetPath = '{exe}'
 $s.Save()"
     ))?;
-    if out.status.success() { Ok(()) } else { Err(String::from_utf8_lossy(&out.stderr).trim().to_string()) }
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
 }
 
 /// "Start at login": `enable` = None reads it. Keeps the tray check item in step.
@@ -515,7 +524,31 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![open_session, open_folder, peek_petition, answer_petition, chronicle_day, tithe_day, chronicle_days, set_stale_minutes, set_question_prefs, set_quiet, set_toast_text, start_at_login, desktop_shortcut, settings_load, settings_save, remote_status, remote_set, remote_regenerate_token, firewall_status, firewall_allow, firewall_remove, check_update, install_update])
+        .invoke_handler(tauri::generate_handler![
+            open_session,
+            open_folder,
+            peek_petition,
+            answer_petition,
+            chronicle_day,
+            tithe_day,
+            chronicle_days,
+            set_stale_minutes,
+            set_question_prefs,
+            set_quiet,
+            set_toast_text,
+            start_at_login,
+            desktop_shortcut,
+            settings_load,
+            settings_save,
+            remote_status,
+            remote_set,
+            remote_regenerate_token,
+            firewall_status,
+            firewall_allow,
+            firewall_remove,
+            check_update,
+            install_update
+        ])
         .setup(move |app| {
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
@@ -782,10 +815,7 @@ mod tests {
     #[test]
     fn quiet_from_settings_defaults_and_parses() {
         assert_eq!(quiet_from_settings(&serde_json::json!({})), (false, 1320, 480), "missing keys: off, defaults");
-        assert_eq!(
-            quiet_from_settings(&serde_json::json!({"adm.quiet": "1", "adm.quietFrom": "60", "adm.quietTo": "120"})),
-            (true, 60, 120)
-        );
+        assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "1", "adm.quietFrom": "60", "adm.quietTo": "120"})), (true, 60, 120));
         assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "0", "adm.quietFrom": "oops"})), (false, 1320, 480), "unparsable falls back");
     }
 
