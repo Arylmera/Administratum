@@ -675,8 +675,8 @@ function staticLights(hall) {
     if (lightsBySize.size > 8) lightsBySize.clear();
     const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(l => ({ ...l, x: l.x + mx, y: l.y + my, color: T.light[l.color] }));
     const S = STATIC_LIGHTS, floor = [];
-    for (let j = 0; j < hall.rows; j++) for (let fx = (50 + hall.dx) % 100; fx < hall.sw - 10; fx += 100) floor.push({ x: fx, y: j ? 119 + 64 * j : 117, r: 14 });
-    for (const cx of channels) for (let j = 0; j < hall.rows - 1; j++) floor.push({ x: cx + 1, y: 150 + 64 * j, r: 14 });
+    for (let j = 0; j < hall.rows; j++) for (let fx = (50 + hall.dx) % 100; fx < hall.sw - 10; fx += 100) floor.push({ x: fx, y: j ? 119 + 64 * j : 117, r: 14, z: 0 });
+    for (const cx of channels) for (let j = 0; j < hall.rows - 1; j++) floor.push({ x: cx + 1, y: 150 + 64 * j, r: 14, z: 0 }); // z: on the floor (lighting.js)
     L = windows.map(wx => ({ x: wx + 8, y: 22, r: 22 })).concat(
       at(S.c, hall.dx, 0), at(S.e, hall.sw - 200, 0), at(S.r, hall.ox, 0), at(S.s, hall.ox, hall.sd), at(S.sb, hall.ox, hall.sb), floor,
       { x: x - 23, y: y - 11, r: 26, color: T.light.amber, flicker: true }, { x: x + 23, y: y - 11, r: 26, color: T.light.amber, flicker: true }, // gate braziers

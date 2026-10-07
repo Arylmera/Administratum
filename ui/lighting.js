@@ -1,5 +1,11 @@
 import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
+import { on } from './depth.js';
+
+// Depth (Full): a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
+// pool into an ellipse lying on the floor in perspective, the lower the flatter.
+const FLAT = [0.7, 0.85, 1];
+const flatOf = l => (on('height') ? FLAT[l.z ?? (l.y < 44 ? 2 : 1)] : 1);
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
 // radius with drawImage, the vignette a canvas per scene size and phase. No gradient is built per frame.
@@ -51,6 +57,13 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
     for (const bx of windows.map(x => x - 4)) {
       g.beginPath(); g.moveTo(bx + 9, 26); g.lineTo(bx + 21, 26); g.lineTo(bx + 30, 116); g.lineTo(bx, 116); g.closePath(); g.fill();
     }
+    if (on('height')) { // where each beam meets the floor: a brighter patch, flat as the floor
+      g.save();
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
+      const patch = glowOf(`rgba(${T.light.beam},1)`);
+      for (const x of windows) g.drawImage(patch, x - 4, 108, 30, 10); // the beam's foot spans x - 4 .. x + 26 at y 116
+      g.restore();
+    }
   }
   if (!layer || layer.width !== w * RES || layer.height !== h * RES) {
     layer = document.createElement('canvas');
@@ -65,8 +78,8 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   d.fillRect(0, 0, w, h);
   d.globalCompositeOperation = 'destination-out';
   for (const l of lights) {
-    const r = l.r * (l.flicker ? 0.94 + 0.06 * Math.sin(t * 9 + l.x) : 1);
-    if (r > 0) d.drawImage(hole, l.x - r, l.y - r, 2 * r, 2 * r);
+    const r = l.r * (l.flicker ? 0.94 + 0.06 * Math.sin(t * 9 + l.x) : 1), f = flatOf(l);
+    if (r > 0) d.drawImage(hole, l.x - r, l.y - r * f, 2 * r, 2 * r * f);
   }
   g.drawImage(layer, 0, 0, w, h);
 
@@ -76,8 +89,8 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   g.imageSmoothingEnabled = true; // the stamps scale smoothly (the scene itself is drawn pixelated)
   for (const l of lights) {
     if (!l.color) continue;
-    const r = l.r * (l.flicker ? 0.9 + 0.1 * Math.sin(t * 7 + l.y) : 1);
-    if (r > 0) g.drawImage(glowOf(l.color), l.x - r, l.y - r, 2 * r, 2 * r);
+    const r = l.r * (l.flicker ? 0.9 + 0.1 * Math.sin(t * 7 + l.y) : 1), f = flatOf(l);
+    if (r > 0) g.drawImage(glowOf(l.color), l.x - r, l.y - r * f, 2 * r, 2 * r * f);
   }
   g.restore();
 
