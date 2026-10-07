@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { depth, on, setDepth, onDepth, footOf, shadowOf, silhouette, aoBands, casterOf, EFFECTS } from './depth.js';
+import { footOf, shadowOf, silhouette, aoBands, casterOf } from './depth.js';
 import { hallOf } from './layout.js';
 
 // Footprint: the opaque span of the frame's bottom 3 art rows, in logical px (RES 2).
@@ -12,26 +12,6 @@ assert.equal(e.cy, 20 + 3); // the frame's bottom: 6 art rows = 3 logical px
 assert.equal(e.ry, e.rx / 3);
 assert.ok(e.rx >= 1.5, 'a floor shadow is a little wider than the footprint');
 assert.equal(shadowOf(['..'], 0, 0), null);
-
-// Settings: levels and which effect each turns on.
-setDepth('off', true);
-for (const k of EFFECTS) assert.equal(on(k), false, `off: ${k}`);
-setDepth('subtle', true);
-assert.deepEqual(EFFECTS.filter(on), ['contact', 'ao', 'motion']);
-setDepth('full', false);
-assert.deepEqual(EFFECTS.filter(on), ['contact', 'ao', 'motion', 'cast', 'height', 'parallax']);
-setDepth('full', true);
-assert.ok(on('dov'));
-setDepth('bogus', false);
-assert.equal(depth.level, 'subtle');
-let heard = 0;
-const stop = onDepth(() => heard++);
-setDepth('full', false);
-setDepth('full', false); // no change: no event
-stop();
-setDepth('off', false);
-assert.equal(heard, 1);
-setDepth('subtle', false);
 
 // Silhouettes are cached per source canvas (the maker is injectable for node).
 let made = 0;

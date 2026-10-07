@@ -1,6 +1,10 @@
 # Depth pass ("2.5D", option A): design
 
-Date: 2026-10-07. Status: spec, not started.
+Date: 2026-10-07. Status: built (PR #26).
+
+> **Update 2026-10-07:** depth is always on at its full level (everything below, depth of view included). The Off /
+> Subtle / Full setting and the Depth of view switch were removed after the first build: the operator wants depth as
+> the only look.
 
 ## Goal
 

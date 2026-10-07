@@ -53,9 +53,8 @@ Adepts stand behind their parent's lectern at half scale, at most 3 drawn per sc
 
 **Legibility on any wallpaper:** every sprite drawn in the strip gets a 1 art px dark outline (an alpha dilation of
 each frame, generated at load time) and the depth pass's contact shadow (`ui/depth.js`, already in the hall), so no
-art file changes. The Depth setting applies to the strip too: Subtle gives contact shadows and motion cues (walk
-bob, flying skull shadows), Full adds the shadows cast by the desk lamps and screens (`casterOf` with the strip's
-lights); the hall-only effects (AO, flat light pools, beams, parallax, depth of view) have nothing to act on there. A setting "Strip backdrop" adds an optional translucent bar behind the strip for
+art file changes. Depth is always on, in the strip too: contact shadows, motion cues (walk bob, flying skull
+shadows) and the shadows cast by the desk lamps and screens (`casterOf` with the strip's lights); the hall-only effects (AO, flat light pools, beams, parallax, depth of view) have nothing to act on there. A setting "Strip backdrop" adds an optional translucent bar behind the strip for
 busy wallpapers (off by default).
 
 ## Global constraints
@@ -132,7 +131,7 @@ busy wallpapers (off by default).
 - [ ] `drawScene(..., { strip: true })`: no static background, mats under department groups, the lectern variant of
   the furniture, the cogitator decor frame alone, the bench, the Magos; everything blitted outlined; under every
   actor and prop the depth pass's floor pass (`ui/depth.js`: `shadowOf` + `contactShadow`, `bobOf` for walkers,
-  `castShadow` + `casterOf` in Full), behind the same `on(effect)` checks as the hall.
+  `castShadow` + `casterOf`), as in the hall.
 - [ ] No `drawLighting` in strip mode. Desk lamps and screens still glow (a small additive glow only, no darkness
   layer).
 - [ ] `app.js`: in strip mode, `fit()` sizes the scene to the window (one row, no pan, no bays), and skips the

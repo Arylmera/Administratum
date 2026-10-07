@@ -1,7 +1,6 @@
 import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
-import { depth, onDepth, on as depthOn } from './depth.js';
 import { RES, rankOf } from './sprites.js';
 import { T, onTheme, setTheme, t } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
@@ -60,7 +59,7 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${depth.level}:${day ? 'day' : 'night'}${at}`;
+  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${at}`;
   if (!bg[k]) {
     for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
     const c = document.createElement('canvas');
@@ -73,7 +72,6 @@ function background(day) {
   }
   return bg[k];
 }
-onDepth(() => { for (const k in bg) delete bg[k]; });
 
 // Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
 let sun = null, sunDay = '';
@@ -124,13 +122,12 @@ function setPan(x, y) {
   world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
 }
 const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
-// Depth (Full): while the view pans, the back wall (y < 40) trails the floor a little (0.92 of its speed), then
+// Depth: while the view pans, the back wall (y < 40) trails the floor a little (0.92 of its speed), then
 // catches up: lag is that offset in logical px, 0 at rest so nothing is ever misaligned once the pan stops.
 const PARALLAX = 0.08, LAG_MAX = 1.5, lag = { x: 0, y: 0 };
 function panStep(x, y) { // a pan the user makes (drag, glide, coast), as opposed to a resize re-centring the view
   const { x: x0, y: y0 } = pan;
   setPan(x, y);
-  if (!depthOn('parallax')) return;
   const clampLag = v => Math.max(-LAG_MAX, Math.min(LAG_MAX, v));
   lag.x = clampLag(lag.x - PARALLAX * (pan.x - x0) / scale); lag.y = clampLag(lag.y - PARALLAX * (pan.y - y0) / scale);
 }

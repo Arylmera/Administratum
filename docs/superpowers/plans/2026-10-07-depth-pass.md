@@ -4,6 +4,10 @@
 
 Date: 2026-10-07. Spec: `docs/superpowers/specs/2026-10-07-depth-2-5d-design.md`.
 
+> **Update 2026-10-07:** depth is always on at its full level (everything below, depth of view included). The Off /
+> Subtle / Full setting and the Depth of view switch were removed after the first build: the operator wants depth as
+> the only look.
+
 **Goal:** Make the hall read as a volume (shadows, ambient occlusion, height-aware light, parallax) without any art
 change, behind a "Depth" setting (Off / Subtle / Full, default Subtle) whose Off is pixel-identical to today.
 

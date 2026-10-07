@@ -8,14 +8,13 @@ import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
-import { depth, setDepth } from './depth.js';
 
 const mem = {};
 let saved = null;
 try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
 const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err)), 300); };
-const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme', 'adm.depth', 'adm.depthDov']; // the remote view's own choices
+const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme']; // the remote view's own choices
 if (REMOTE) {
   if (saved && typeof saved === 'object') Object.assign(mem, saved);
   try { for (const k of LOCAL) { const v = localStorage.getItem(k); if (v != null) mem[k] = v; } } catch { /* storage blocked */ }
@@ -86,10 +85,6 @@ const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
 export const view = { scale: okScale(store.get('adm.scale')) };
 const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', view.scale); };
 
-// Depth (adm.depth: off | subtle | full, adm.depthDov): read live by the drawing code (depth.js).
-setDepth(store.get('adm.depth', 'subtle'), store.get('adm.depthDov', '0') === '1');
-const pickDepth = (level, dov) => { setDepth(level, dov); store.set('adm.depth', depth.level); store.set('adm.depthDov', depth.dov ? '1' : '0'); };
-
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
@@ -125,8 +120,6 @@ export function initSettings(hooks) {
     if (!auto) field('scale').value = view.scale;
     field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
     field('mode').value = hooks.mode();
-    field('depth').value = depth.level;
-    field('depthDov').checked = depth.dov; field('depthDov').disabled = depth.level !== 'full';
     const world = THEMES[T.id]?.world ?? 'w40k';
     field('world').value = world;
     field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
@@ -249,7 +242,6 @@ export function initSettings(hooks) {
     if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
     else if (k === 'scaleAuto') { setScale(el.checked ? 'auto' : field('scale').value); hooks.rescaled(); }
     else if (k === 'mode') hooks.setMode(el.value);
-    else if (k === 'depth' || k === 'depthDov') pickDepth(field('depth').value, field('depthDov').checked);
     else if (k === 'world') pickTheme(styles(el.value)[0].id);
     else if (k === 'theme') pickTheme(el.value);
     else if (k === 'chime') hooks.setMuted(!el.checked);
@@ -284,7 +276,6 @@ export function initSettings(hooks) {
     store.set('adm.openWith', 'explorer');
     store.set('adm.updateCheck', '1');
     setScale('auto'); hooks.rescaled();
-    pickDepth('subtle', false);
     save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
     hooks.setMode('auto'); hooks.setMuted(false);
     pickTheme('tier2');

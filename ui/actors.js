@@ -2,7 +2,6 @@ import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, MAPS, rankOf, blit } from './sprite
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
-import { on } from './depth.js';
 
 const SPEED = 80; // logical px per second
 // Thresholds come from the settings panel (settings.js), read live:
@@ -200,7 +199,7 @@ export function bodyOf(a) {
 }
 
 // A walker's body rises 1 art px on the passing frame (depth: motion cues); its shadow stays on the floor.
-export const bobOf = b => (b.step === 0 && on('motion') ? 0.5 : 0);
+export const bobOf = b => (b.step === 0 ? 0.5 : 0);
 
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {

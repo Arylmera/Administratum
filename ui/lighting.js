@@ -1,11 +1,10 @@
 import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
-import { on } from './depth.js';
 
-// Depth (Full): a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
+// Depth: a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
 // pool into an ellipse lying on the floor in perspective, the lower the flatter.
 const FLAT = [0.7, 0.85, 1];
-const flatOf = l => (on('height') ? FLAT[l.z ?? (l.y < 44 ? 2 : 1)] : 1);
+const flatOf = l => FLAT[l.z ?? (l.y < 44 ? 2 : 1)];
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
 // radius with drawImage, the vignette a canvas per scene size and phase. No gradient is built per frame.
@@ -22,9 +21,9 @@ function stamp(stops) {
 let hole = null;
 const glows = new Map(); // light colour -> its glow stamp (the colours are a fixed set of literals)
 const glowOf = color => glows.get(color) ?? glows.set(color, stamp([[0, color], [0.7, 'rgba(0,0,0,0)']])).get(color);
-const vignettes = new Map(); // `${w}x${h}:${beams}:${dov}` -> full-scene canvas
-function vignette(w, h, beams, dov) {
-  const k = `${w}x${h}:${beams}:${dov}`;
+const vignettes = new Map(); // `${w}x${h}:${beams}` -> full-scene canvas
+function vignette(w, h, beams) {
+  const k = `${w}x${h}:${beams}`;
   let c = vignettes.get(k);
   if (!c) {
     if (vignettes.size > 3) vignettes.clear(); // the hall changed size: drop the old ones
@@ -37,12 +36,12 @@ function vignette(w, h, beams, dov) {
     v.addColorStop(1, `rgba(0,0,0,${beams ? 0.35 : 0.7})`);
     x.fillStyle = v;
     x.fillRect(0, 0, w, h);
-    if (dov) x.fillStyle = farOf(x, h, '0,0,0'), x.fillRect(0, 0, w, h); // depth of view: the far end a little darker
+    x.fillStyle = farOf(x, h, '0,0,0'); x.fillRect(0, 0, w, h); // depth of view: the far end a little darker
     vignettes.set(k, c);
   }
   return c;
 }
-// Depth of view (Depth: Full + its switch): 8 % at the back wall (the top), 0 at the bottom aisle.
+// Depth of view: 8 % at the back wall (the top), 0 at the bottom aisle.
 const farOf = (x, h, rgb) => {
   const grad = x.createLinearGradient(0, 0, 0, h);
   grad.addColorStop(0, `rgba(${rgb},.08)`);
@@ -77,13 +76,12 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
     for (const bx of windows.map(x => x - 4)) {
       g.beginPath(); g.moveTo(bx + 9, 26); g.lineTo(bx + 21, 26); g.lineTo(bx + 30, 116); g.lineTo(bx, 116); g.closePath(); g.fill();
     }
-    if (on('height')) { // where each beam meets the floor: a brighter patch, flat as the floor
-      g.save();
-      g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
-      const patch = glowOf(`rgba(${T.light.beam},1)`);
-      for (const x of windows) g.drawImage(patch, x - 4, 108, 30, 10); // the beam's foot spans x - 4 .. x + 26 at y 116
-      g.restore();
-    }
+    // where each beam meets the floor: a brighter patch, flat as the floor
+    g.save();
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
+    const patch = glowOf(`rgba(${T.light.beam},1)`);
+    for (const x of windows) g.drawImage(patch, x - 4, 108, 30, 10); // the beam's foot spans x - 4 .. x + 26 at y 116
+    g.restore();
   }
   if (!layer || layer.width !== w * RES || layer.height !== h * RES) {
     layer = document.createElement('canvas');
@@ -114,7 +112,6 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   }
   g.restore();
 
-  const dov = on('dov');
-  if (dov) { g.save(); g.globalCompositeOperation = 'saturation'; g.drawImage(greyOf(w, h), 0, 0, w, h); g.restore(); }
-  g.drawImage(vignette(w, h, level.beams, dov), 0, 0, w, h);
+  g.save(); g.globalCompositeOperation = 'saturation'; g.drawImage(greyOf(w, h), 0, 0, w, h); g.restore();
+  g.drawImage(vignette(w, h, level.beams), 0, 0, w, h);
 }

@@ -1,23 +1,9 @@
 // Depth pass ("2.5D" without new art, docs/superpowers/specs/2026-10-07-depth-2-5d-design.md): shadows under and
-// cast by what stands on the floor, ambient occlusion where the floor meets a wall, and the Depth setting that
-// turns them on. Lighting's part (light height, beam patches, depth of view) is in lighting.js. Nothing here knows
+// cast by what stands on the floor, ambient occlusion where the floor meets a wall. Always on, no setting.
+// Lighting's part (light height, beam patches, depth of view) is in lighting.js. Nothing here knows
 // the hall's rooms beyond a hallOf() object, so the desktop strip draws the same shadows.
 import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
-
-// The setting (adm.depth, adm.depthDov; settings.js): off draws exactly what the hall drew before depth.
-const LEVELS = { off: [], subtle: ['contact', 'ao', 'motion'], full: ['contact', 'ao', 'motion', 'cast', 'height', 'parallax'] };
-export const EFFECTS = ['contact', 'ao', 'motion', 'cast', 'height', 'parallax', 'dov'];
-export const depth = { level: 'subtle', dov: false };
-export const on = effect => (effect === 'dov' ? depth.level === 'full' && depth.dov : LEVELS[depth.level].includes(effect));
-const listeners = new Set();
-export const onDepth = fn => { listeners.add(fn); return () => listeners.delete(fn); };
-export function setDepth(level, dov) {
-  level = level in LEVELS ? level : 'subtle';
-  if (level === depth.level && !!dov === depth.dov) return;
-  Object.assign(depth, { level, dov: !!dov });
-  for (const f of listeners) f(depth);
-}
 
 export const FLY_H = 12; // logical px between a flying servo-skull and its shadow on the floor
 

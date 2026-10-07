@@ -7,7 +7,7 @@ const I = T.ink; // every colour drawn here, by name (theme.js)
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { SCENE, hallOf } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
-import { on, on as depthOn, shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
+import { shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
@@ -130,8 +130,8 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   });
   tile(g, 'sanctum passage', 210 + ox, d0, 10, 36); tile(g, 'fitting wide', 210 + ox, d0 - 2); tile(g, 'fitting wide', 210 + ox, d1); // pillar opens onto the passage door
   rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
-  if (on('ao')) drawAO(g, hall);
-  if (on('contact')) for (const [name, x, y] of props) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
+  drawAO(g, hall);
+  for (const [name, x, y] of props) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
   for (const [name, x, y] of props) blit(g, MAPS[name], x, y);
   tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }
@@ -213,20 +213,18 @@ export function drawScene(g, layout, actors, fillOf, now) {
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now, floor);
   }
   for (const a of all) items.push({ y: a.y, draw: g2 => { drawActor(g2, a); if (a.burn) bundle(g2, a, fillOf(a.burn.old)); } });
-  if (on('contact')) {
-    const lit = on('cast') && staticLights(H).concat(lights); // the lights known so far: the room's and the desks'
-    for (const a of all) {
-      const b = bodyOf(a), e = shadowOf(b.map, b.x, b.y);
-      if (e && b.step > 0 && on('motion')) e.rx -= 0.5; // a stride: the feet apart, the body low, the shadow tighter
-      const c = lit && casterOf(a.x, a.y, lit, dark);
-      if (c) {
-        const cv = sprite(b.map, b.over);
-        floor.push(() => castShadow(g, cv, { x: b.x, y: b.y, w: cv.width / RES, h: cv.height / RES }, c.from, c.alpha));
-      }
-      floor.push(() => contactShadow(g, e, shade));
+  const lit = staticLights(H).concat(lights); // the lights known so far: the room's and the desks'
+  for (const a of all) {
+    const b = bodyOf(a), e = shadowOf(b.map, b.x, b.y);
+    if (e && b.step > 0) e.rx -= 0.5; // a stride: the feet apart, the body low, the shadow tighter
+    const c = casterOf(a.x, a.y, lit, dark);
+    if (c) {
+      const cv = sprite(b.map, b.over);
+      floor.push(() => castShadow(g, cv, { x: b.x, y: b.y, w: cv.width / RES, h: cv.height / RES }, c.from, c.alpha));
     }
-    floor.forEach(f => f(g));
+    floor.push(() => contactShadow(g, e, shade));
   }
+  floor.forEach(f => f(g));
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
   over.forEach(f => f(g));
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier sits south of the burner: its fire draws over the robe hem
@@ -440,7 +438,7 @@ function flare(g, f, k, heat, t) {
 // Papers vanishing off an unattended desk: a grey puff spreading and fading, a few embers at first. k: 0..1.
 function puff(g, x, y, k) {
   for (let i = 0; i < 8; i++) {
-    const ang = i * 0.785 + hash(i * 53) * 0.6, d = 2 + 9 * k * (0.6 + 0.4 * hash(i * 17)), r = (1 + 2.5 * k) * (on('motion') ? 1 + 0.3 * k : 1); // rising: closer to the eye
+    const ang = i * 0.785 + hash(i * 53) * 0.6, d = 2 + 9 * k * (0.6 + 0.4 * hash(i * 17)), r = (1 + 2.5 * k) * (1 + 0.3 * k); // rising: closer to the eye
     g.fillStyle = hexA(I.smoke, 0.75 * (1 - k));
     g.fillRect(half(x + Math.cos(ang) * d - r), half(y + Math.sin(ang) * d * 0.6 - r - 4 * k), 2 * r, 2 * r);
     if (k < 0.4) rect(g, half(x + Math.cos(ang) * d * 1.3), half(y + Math.sin(ang) * d - 2 * k), 0.5, 0.5, i % 2 ? I.flameCore : I.flame);
@@ -489,7 +487,7 @@ function reactions(a, at, AT, over, lights, now, floor) {
     }
     if (f.kind === 'push') {
       const [sx, sy] = AT.seals[a.h ? 0 : f.slot], p = courier(f.t, at.x + sx + 1.5, at.y + sy - 6, t);
-      if (on('motion')) floor.push(g => flyShadow(g, p.x, p.y));
+      floor.push(g => flyShadow(g, p.x, p.y));
       over.push(g => { const [cx, cy] = SK.centre, [kx, ky] = SK.carry; blit(g, MAPS.SKULL, half(p.x) - cx, half(p.y) - cy); if (f.t >= PICK_S) seal(g, half(p.x) - cx + kx, half(p.y) - cy + ky, 1); });
       lights.push({ x: p.x, y: p.y, r: 10, color: T.light.green });
     }
@@ -524,7 +522,7 @@ function stamp(g, x, y, t, small) {
   }
   if (!small && t > 1.5) glint(g, x + 1.5, y + 1.5, (t - 1.5) / 1.5);
 }
-// A servo-skull's shadow on the floor FLY_H below it (depth: motion cues), so it reads as flying, not sliding.
+// A servo-skull's shadow on the floor FLY_H below it (depth), so it reads as flying, not sliding.
 function flyShadow(g, x, y) {
   contactShadow(g, { cx: x, cy: y + FLY_H, rx: 3.5, ry: 1.25 }, 0.5);
 }
@@ -555,7 +553,7 @@ function spark(g, x, y, w, h, k, sc, t) {
     rect(g, half(px - Math.cos(ang) * 1.2), half(py - Math.sin(ang) * 1.2 + 0.5), 0.5, 0.5, I.flame);
   }
   if (k > 0.2) for (let i = 0; i < 7; i++) {
-    const p = (k - 0.2) / 0.8, r = (1 + 2 * p + hash(i * 7)) * sc * (on('motion') ? 1 + 0.3 * p : 1);
+    const p = (k - 0.2) / 0.8, r = (1 + 2 * p + hash(i * 7)) * sc * (1 + 0.3 * p);
     g.fillStyle = hexA(I.sparkSmoke, 0.8 * (1 - p) ** 1.5);
     g.fillRect(half(cx + (hash(i * 97) - 0.5) * 8 * sc + Math.sin(p * 6 + i) * p - r), half(y - 1 - 14 * sc * p * (0.5 + 0.5 * hash(i * 3)) - r), 2 * r, 2 * r);
   }
@@ -589,7 +587,7 @@ function deskLight(desk, busy) {
 // Drawn in the minimum scene's coordinates, moved with their room.
 function drawDecorFrame(g, t, cog = 0) {
   const sy = 50 + Math.round(2 * Math.sin(t * 4));
-  if (on('motion')) flyShadow(g, 244 + H.ox + SK.centre[0], 50 + SK.centre[1]);
+  flyShadow(g, 244 + H.ox + SK.centre[0], 50 + SK.centre[1]);
   blit(g, MAPS.SKULL, 244 + H.ox, sy);
   g.save(); g.translate(H.ox, H.sd); drawMagos(g, t); g.restore();
   g.save(); g.translate(H.dx, 0); drawCogitator(g, t, cog); g.restore();
@@ -738,7 +736,6 @@ const beaconOf = ({ ox, sd }) => ({ x: 226 + ox, y: 118 + sd });
 const perchOf = ({ ox, sd }) => ({ x: 297 + ox, y: 128 + sd }); // a resize moves it: the skull flies there
 const skull = { ...perchOf(hallOf(0)), last: 0 };
 const SKULL_SPEED = 60; // logical px per second
-const motion = () => depthOn('motion'); // drawAlarm's own `on` is the alarm
 const skullRed = themed(t => ({ o: t.ink.alarm, O: t.ink.alarmGlow }));
 // Something of the scene is mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate.
 export const sceneBusy = () => gateOpen !== gateTo || !!skull.flying;
@@ -767,7 +764,7 @@ function drawAlarm(g, actors, now) {
     g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
     g.restore();
   }
-  if (motion()) flyShadow(g, skull.x, skull.y);
+  flyShadow(g, skull.x, skull.y);
   blit(g, MAPS.SKULL, half(skull.x) - SK.centre[0], half(y) - SK.centre[1], on ? skullRed() : undefined);
   lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
   return lights;

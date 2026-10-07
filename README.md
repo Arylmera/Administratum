@@ -53,12 +53,11 @@ low sun count as dusk. The *Auto* button's tooltip then shows today's sunrise an
 *Candles* pin the day or night look. At night the hall is dark, apart from pools of light around the candles,
 braziers, screens and coolant channels.
 
-**Depth.** The hall is flat pixel art, but it can read as a volume. *Subtle* (the default) puts a soft shadow under
-everything that stands on the floor, darkens the floor along the wall feet, makes walkers bob and gives the flying
-servo-skulls a shadow below them. *Full* adds shadows cast by the nearest lamp at night (by the window light by day),
-light pools that lie flat on the floor, a bright patch where each window beam meets the floor and a back wall that
-trails a little behind a pan. *Depth of view* (Full only) makes the far end of the hall slightly darker and greyer.
-*Off* draws the hall exactly as before. No art changes: every effect is computed from the existing sprites.
+**Depth.** The hall is flat pixel art drawn to read as a volume: a soft shadow under everything that stands on the
+floor, the floor darkened along the wall feet, shadows cast by the nearest lamp at night (by the window light by day),
+light pools lying flat on the floor, a bright patch where each window beam meets the floor, walkers that bob,
+servo-skulls with a shadow below them, a back wall that trails a little behind a pan, and the far end of the hall
+slightly darker and greyer. No art changes: every effect is computed from the existing sprites.
 
 **Header.** From left to right: lighting switch, petition counter, Tithe plaque (`⛁ tokens · working time`
 today), Chronicon, Settings, a moon while quiet hours are on, mute chime, hide to tray. To move the window, drag the header.
@@ -163,8 +162,6 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Always on top | on | — | Keeps the window above others |
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
-| Depth | Subtle | Off / Subtle / Full | Shadows, light and depth on the flat hall (see *Depth* above; the remote view keeps its own) |
-| Depth of view | off | — | With Depth: Full, the far end of the hall a little darker and greyer |
 | Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower / Vault 111 | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station, Arcane Tower a wizards' tower and Vault 111 a Fallout vault, not 40k; the remote view keeps its own) |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
@@ -351,7 +348,7 @@ node ui/sprites.test.mjs                          # sprite sizes, palette chars,
 node ui/theme.test.mjs                            # themes: complete palettes, runtime switch
 node ui/art.test.mjs                              # art files: PNG decoder, key palette, sheets
 node ui/sun.test.mjs                              # sun times and Auto phases
-node ui/depth.test.mjs                            # depth: footprints, shadows, cast lights, AO bands, levels
+node ui/depth.test.mjs                            # depth: footprints, shadows, cast lights, AO bands
 ```
 
 The node self-checks are plain `assert` scripts with no test framework.
@@ -378,10 +375,10 @@ Cells are named like a spreadsheet so a sprite in a theme is one short reference
 (A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code, K Sunset Drive, L Arcane Tower, M Vault 111), the row is the sprite's number,
 so `F52` is the Neon Grid shelf. `#F52` in the URL jumps to it; `node tools/sprite_sheet.mjs --list` prints the key.
 Each family links to its discussion issue, each sprite to a prefilled new Sprite issue. The *depth* switch draws
-each sprite over the contact shadow the Depth setting gives it.
+each sprite over the contact shadow it gets in the hall.
 
 To look at the whole hall in a browser without the backend (a fixed roster of scribes, adepts and petitions), open
-`http://localhost:8123/tools/preview.html`; `?depth=off|subtle|full&dov=1&mode=auto|full|candles&theme=<id>&n=<scribes>`
+`http://localhost:8123/tools/preview.html`; `?mode=auto|full|candles&theme=<id>&n=<scribes>`
 pick what it shows. Design and roadmap:
 [`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
 
