@@ -1,4 +1,4 @@
-import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf, layoutDepartments } from './layout.js';
+import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf, layoutDepartments, breakoutOf } from './layout.js';
 import { STRIP_H, FLOOR, stripOf, layoutStrip } from './strip.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
@@ -427,6 +427,8 @@ function renderPlaques(blocks) {
   // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
   const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...(strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7)), b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch), undefined, strip()]]));
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
+  const Z = !strip() && breakoutOf(blocks, hall); // the break-out room's name under its fence (the strip has no room for it)
+  if (Z) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
   if (!roster.length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
     const y = 120 + WALL_DY + (hall.h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall.sw, y), [mx, my] = at(hall.sw / 2, y);
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);

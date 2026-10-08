@@ -6,9 +6,9 @@ import { WIN_Y, wallArt } from './wallart.js';
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
-import { hallOf, WALL, WALL_DY } from './layout.js';
+import { hallOf, WALL, WALL_DY, breakoutOf } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
-import { FLOOR } from './strip.js';
+import { FLOOR, breakoutOfStrip } from './strip.js';
 import { shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
@@ -215,9 +215,12 @@ export function beginFrame(layout, now) {
 export function drawScene(g, layout, actors, fillOf, now) {
   beginFrame(layout, now);
   const all = [...actors.values()];
+  const Z = H.strip ? breakoutOfStrip(layout.blocks) : breakoutOf(layout.blocks, H);
+  if (Z) breakoutFloor(g, Z);
   drawRugs(g, layout.blocks);
   if (!H.strip) drawDoors(g, all);
   const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
+  if (Z) (H.strip ? stripBreakout : breakoutFence)(Z, all, items);
   const dark = layout.level?.dark ?? 0.18, shade = H.strip ? STRIP_SHADE : 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
   const footShadow = (g2, e, a) => contactShadow(g2, H.strip ? stood(e) : e, a); // the strip's: wider and darker
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
@@ -268,6 +271,45 @@ export function drawScene(g, layout, actors, fillOf, now) {
   if (H.strip) return lights.concat(drawStripAlarm(g, H, all, now));
   drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
   return staticLights(H).concat(lights, drawAlarm(g, all, now));
+}
+
+// ---- the break-out room (layout.js breakoutOf, strip.js breakoutOfStrip) ------------------------------------------
+const clipped = (g, x, y, w, h, draw) => { g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); draw(g); g.restore(); };
+const artW = map => map[0].length / RES, artH = map => map.length / RES;
+// Its floor: the theme's tile over the rectangle, under the departments' rugs (they stay, one per temp folder).
+export function breakoutFloor(g, Z) {
+  const F = MAPS.BREAKOUT_FLOOR;
+  clipped(g, Z.x, Z.y, Z.w, Z.h, g2 => { for (let y = Z.y; y < Z.y + Z.h; y += artH(F)) for (let x = Z.x; x < Z.x + Z.w; x += artW(F)) blit(g2, F, x, y); });
+}
+// Its fence, depth sorted with everyone (items: { y, draw }): rails along the top and bottom, sides down the west and
+// east edges, the east one broken at each gate (a lane meets the corridor there), posts at the corners and either side
+// of each gate; a gate open while anyone is within 12 px (as the doors).
+function breakoutFence(Z, actors, items) {
+  const { BREAKOUT_RAIL: R, BREAKOUT_SIDE: SD, BREAKOUT_POST: P, BREAKOUT_GATE: G, BREAKOUT_GATE_OPEN: GO } = MAPS;
+  const x1 = Z.x + Z.w, y1 = Z.y + Z.h;
+  const rail = y => items.push({ y, draw: g2 => clipped(g2, Z.x, y - artH(R), Z.w, artH(R), g3 => { for (let x = Z.x; x < x1; x += artW(R)) blit(g3, R, x, y - artH(R)); }) });
+  const side = (x, ya, yb) => { for (let y = ya; y < yb; y += artH(SD)) { const h = Math.min(artH(SD), yb - y), top = y; items.push({ y: top + h, draw: g2 => clipped(g2, x - artW(SD) / 2, top, artW(SD), h, g3 => blit(g3, SD, x - artW(SD) / 2, top)) }); } };
+  const post = (x, y) => items.push({ y, draw: g2 => blit(g2, P, x - artW(P) / 2, y - artH(P)) });
+  rail(Z.y); rail(y1);
+  side(Z.x, Z.y, y1);
+  let y = Z.y;
+  for (const q of Z.gates) {
+    side(x1, y, q.y - 4);
+    const open = near(actors, x1 - 4, q.y - 4, x1 + 4, q.y + 4);
+    items.push({ y: q.y + 4, draw: g2 => (open ? blit(g2, GO, x1 - artW(GO), q.y - 4 - artH(GO)) : blit(g2, G, x1 - artW(G) / 2, q.y - 4)) });
+    post(x1, q.y - 4); post(x1, q.y + 4);
+    y = q.y + 4;
+  }
+  side(x1, y, y1);
+  for (const [px, py] of [[Z.x, Z.y], [x1, Z.y], [Z.x, y1], [x1, y1]]) post(px, py);
+}
+// The strip's bay: a gate leaf facing the viewer at each end (open while anyone is by it).
+function stripBreakout(Z, actors, items) {
+  const foot = FLOOR - 1;
+  for (const { x } of Z.gates) {
+    const map = near(actors, x - 4, FLOOR, x + 4, FLOOR) ? MAPS.BREAKOUT_GATE_FRONT_OPEN : MAPS.BREAKOUT_GATE_FRONT;
+    items.push({ y: foot, draw: g2 => blit(g2, map, x - artW(map) / 2, foot - artH(map)) });
+  }
 }
 
 export function drawRugs(g, blocks) {
