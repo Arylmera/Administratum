@@ -49,6 +49,25 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/tower/magos.png` | <img src="tower/MAGOS.png" height="160"> |
 | <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/tower/magos.png` | <img src="tower/MAGOS.arm.png" height="160"> |
 
+## 39° characters
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="scribe39-e"></a>`SCRIBE39.E` | 16×17 | SCRIBE39, 39° view, walking E, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.E.png" height="136"> |
+| <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.W.png" height="136"> |
+| <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.S.png" height="136"> |
+| <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.N.png" height="136"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.armL.png" height="64"> |
+| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.scroll.png" height="56"> |
+| <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.E.png" height="112"> |
+| <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.W.png" height="112"> |
+| <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.S.png" height="112"> |
+| <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.N.png" height="112"> |
+| <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/tower/magos39.png` | <img src="tower/MAGOS39.body.png" height="160"> |
+| <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/tower/magos39.png` | <img src="tower/MAGOS39.arm.png" height="160"> |
+| <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/tower/skull39.png` | <img src="tower/SKULL39.skull.png" height="80"> |
+
 ## Props and furniture
 
 | Sprite | Logical size | Notes | Image |
@@ -61,41 +80,41 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/tower/workstations.png` | <img src="tower/LECTERN.unlit.png" height="160"> |
 | <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/tower/workstations.png`, drawn by scene.js | <img src="tower/CONSOLE.png" height="80"> |
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/tower/workstations.png` | <img src="tower/CONSOLE.unlit.png" height="80"> |
-| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/tower/cogitator.png`, drawn by scene.js | <img src="tower/COGITATOR.png" height="160"> |
-| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/THRONE.png" height="160"> |
-| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/LORD_DESK.png" height="104"> |
-| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/COG_MECH.png" height="144"> |
+| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/tower/cogitator.png`, drawn by isohall.js, scene.js | <img src="tower/COGITATOR.png" height="160"> |
+| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/tower/sanctum.png`, drawn by isohall.js, scene.js | <img src="tower/THRONE.png" height="160"> |
+| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/tower/sanctum.png`, drawn by isohall.js, scene.js | <img src="tower/LORD_DESK.png" height="104"> |
+| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/tower/sanctum.png`, drawn by isohall.js, scene.js | <img src="tower/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/tower/sanctum.png`, drawn by scene.js | <img src="tower/SEAL.png" height="80"> |
-| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/tower/gate.png`, drawn by scene.js | <img src="tower/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/tower/gate.png`, drawn by scene.js | <img src="tower/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/tower/gate.png`, drawn by scene.js | <img src="tower/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/tower/gate.png`, drawn by scene.js | <img src="tower/GATE_VOID.png" height="160"> |
-| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/tower/refectorium.png`, drawn by scene.js | <img src="tower/RECAFF.png" height="144"> |
-| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/tower/refectorium.png`, drawn by scene.js | <img src="tower/TABLE.png" height="64"> |
-| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/tower/refectorium.png`, drawn by scene.js | <img src="tower/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/tower/walls.png`, drawn by scene.js, theme.js | <img src="tower/WINDOW.png" height="136"> |
+| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/tower/gate.png`, drawn by isohall.js, scene.js | <img src="tower/GATE.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/tower/gate.png`, drawn by isohall.js, scene.js | <img src="tower/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/tower/gate.png`, drawn by isohall.js, scene.js | <img src="tower/GATE_R.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/tower/gate.png`, drawn by isohall.js, scene.js | <img src="tower/GATE_VOID.png" height="160"> |
+| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/tower/refectorium.png`, drawn by isohall.js, scene.js | <img src="tower/RECAFF.png" height="144"> |
+| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/tower/refectorium.png`, drawn by isohall.js, scene.js | <img src="tower/TABLE.png" height="64"> |
+| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/tower/refectorium.png`, drawn by isohall.js, scene.js | <img src="tower/BENCH.png" height="32"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/tower/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="tower/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/tower/walls.png` | <img src="tower/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/tower/walls.png` | <img src="tower/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/tower/walls.png`, drawn by scene.js | <img src="tower/BANNER.png" height="120"> |
-| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/tower/walls.png`, drawn by scene.js | <img src="tower/SHELF.png" height="160"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/tower/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="tower/BANNER.png" height="120"> |
+| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/tower/walls.png`, drawn by isohall.js, scene.js | <img src="tower/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/tower/walls.png`, drawn by scene.js | <img src="tower/GAUGE.png" height="48"> |
-| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/tower/walls.png`, drawn by scene.js | <img src="tower/CENSER.png" height="80"> |
-| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tower/WINDOW_TALL.png" height="160"> |
-| <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="tower/WINDOW_TALL.day.png" height="160"> |
-| <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="tower/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tower/HANGING.png" height="160"> |
-| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/PAPER_STACK.png" height="96"> |
+| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/tower/walls.png`, drawn by isohall.js, scene.js | <img src="tower/CENSER.png" height="80"> |
+| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/tower/walls.png`, drawn by wallart.js | <img src="tower/WINDOW_TALL.png" height="160"> |
+| <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/tower/walls.png` | <img src="tower/WINDOW_TALL.day.png" height="160"> |
+| <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/tower/walls.png` | <img src="tower/WINDOW_TALL.night.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/tower/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="tower/HANGING.png" height="160"> |
+| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/tower/clutter.png`, drawn by isohall.js, scene.js | <img src="tower/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/SCROLL_PILE.png" height="56"> |
-| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/BOOKS.png" height="72"> |
+| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/tower/clutter.png`, drawn by isohall.js, scene.js | <img src="tower/BOOKS.png" height="72"> |
 | <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/LOOSE_A.png" height="32"> |
 | <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/LOOSE_B.png" height="40"> |
-| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/CRATE.png" height="96"> |
-| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/tower/skull.png`, drawn by scene.js | <img src="tower/SKULL.png" height="80"> |
+| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/tower/clutter.png`, drawn by isohall.js, scene.js | <img src="tower/CRATE.png" height="96"> |
+| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/tower/skull.png`, drawn by isohall.js, scene.js | <img src="tower/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/tower/skull.png` | <img src="tower/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/tower/petitions.png`, drawn by actors.js | <img src="tower/SCROLL.png" height="56"> |
 | <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/tower/petitions.png`, drawn by actors.js | <img src="tower/QSCROLL.png" height="56"> |
 | <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/tower/petitions.png`, drawn by actors.js | <img src="tower/SCROLL_HELD.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/tower/fire.png`, drawn by scene.js | <img src="tower/BRAZIER.png" height="104"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/tower/fire.png`, drawn by isohall.js, scene.js | <img src="tower/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/tower/fire.png`, drawn by scene.js | <img src="tower/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/tower/commits.png`, drawn by scene.js | <img src="tower/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/tower/commits.png`, drawn by scene.js | <img src="tower/COMMIT_TAG.png" height="60"> |
@@ -135,3 +154,29 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_refectory_closed.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_refectory_open.png" height="160"> |
+
+## Face sheets (39° side and top faces)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="faces-desk"></a>`FACES.DESK` | 5×12.5 | DESK, 39° view only: side, top, chest side, chest top, book side, book top, clasp side, clasp top, quill side, quill top, flask top, candle top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.DESK.png" height="100"> |
+| <a id="faces-lectern"></a>`FACES.LECTERN` | 4.5×2 | LECTERN, 39° view only: side, top, stem side, stem top, drawer side, drawer top, shelf side, shelf top, stand side, stand top, board end side, board end top, post side, post top, dish top, candle top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.LECTERN.png" height="80"> |
+| <a id="faces-console"></a>`FACES.CONSOLE` | 2.5×3 | CONSOLE, 39° view only: side, top, tray side, tray top, cup top, crystal rim. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.CONSOLE.png" height="40"> |
+| <a id="faces-shelf"></a>`FACES.SHELF` | 2.5×21 | SHELF, 39° view only: side, top, shelf 1 wall, shelf 1 floor, shelf 2 wall, shelf 2 floor, shelf 3 wall, shelf 3 floor. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.SHELF.png" height="160"> |
+| <a id="faces-cogitator"></a>`FACES.COGITATOR` | 5.5×2 | COGITATOR, 39° view only: side, top, wall side, wall top, wall arch wall, wall arch floor, wall arch L wall, wall arch L floor, wall arch R wall, wall arch R floor, shaft L side, shaft L top, shaft R side, shaft R top, cap L side, cap L top, cap R side, cap R top, counter side, counter top, rune 1 rim, rune 2 rim, rune 3 rim, rune 4 rim, base side, base top, A side, A top, B side, B top, C side, C top, base side, base top, A side, A top, B side, B top, C side, C top, foot top, stem top, body top, cap top, foot top, stem top, body top, cap top, stand side, stand top, armillary rim. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.COGITATOR.png" height="160"> |
+| <a id="faces-crate"></a>`FACES.CRATE` | 4×7.5 | CRATE, 39° view only: side, top, lid side, lid top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.CRATE.png" height="60"> |
+| <a id="faces-table"></a>`FACES.TABLE` | 5.5×2.5 | TABLE, 39° view only: side, top, bowl 1 top, basket top, bowl 2 top, candle top, bowl 3 top, apple 1 top, apple 2 top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.TABLE.png" height="44"> |
+| <a id="faces-bench"></a>`FACES.BENCH` | 2×2 | BENCH, 39° view only: side, top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.BENCH.png" height="16"> |
+| <a id="faces-recaff"></a>`FACES.RECAFF` | 3.5×9 | RECAFF, 39° view only: side, top, grate wall, grate floor, chimney top, kettle top, spout side, spout top, handle side, handle top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.RECAFF.png" height="72"> |
+| <a id="faces-lord_desk"></a>`FACES.LORD_DESK` | 5.5×7.5 | LORD_DESK, 39° view only: side, top, stand top, crystal rim, books side, books top, spellbook side, spellbook top, pot top, quill side, quill top, potion top, potion neck top, jar top, jar neck top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.LORD_DESK.png" height="60"> |
+| <a id="faces-throne"></a>`FACES.THRONE` | 5×6 | THRONE, 39° view only: side, top, cushion side, cushion top, arm L side, arm L top, arm R side, arm R top, back side, back top, crest side, crest top, post L top, post R top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.THRONE.png" height="80"> |
+| <a id="faces-cog_mech"></a>`FACES.COG_MECH` | 20×18 | COG_MECH, 39° view only: wheel rim. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.COG_MECH.png" height="144"> |
+| <a id="faces-seal"></a>`FACES.SEAL` | 0.5×2 | SEAL, 39° view only: hook side, hook top, orb rim, drop top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.SEAL.png" height="40"> |
+| <a id="faces-gauge"></a>`FACES.GAUGE` | 2×1.5 | GAUGE, 39° view only: cap side, cap top, glass top, foot side, foot top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.GAUGE.png" height="20"> |
+| <a id="faces-censer"></a>`FACES.CENSER` | 4×2 | CENSER, 39° view only: cap top, body top, bottom top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.CENSER.png" height="20"> |
+| <a id="faces-candles"></a>`FACES.CANDLES` | 12×5 | CANDLES, 39° view only: dish top, candle 1 top, candle 2 top, candle 3 top, candle 4 top, candle 5 top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.CANDLES.png" height="40"> |
+| <a id="faces-brazier"></a>`FACES.BRAZIER` | 3×3 | BRAZIER, 39° view only: logs side, logs top, cauldron top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.BRAZIER.png" height="32"> |
+| <a id="faces-gate"></a>`FACES.GATE` | 6.5×1.5 | GATE, 39° view only: base side, base top, step side, step top, pier L side, pier L top, pier R side, pier R top, haunch L rim, haunch R rim, crown rim, keystone rim, leaves side, leaves top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.GATE.png" height="160"> |
+| <a id="faces-books"></a>`FACES.BOOKS` | 2.5×3.5 | BOOKS, 39° view only: tome side, tome top, blue side, blue top, book 1 side, book 1 top, book 2 side, book 2 top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.BOOKS.png" height="28"> |
+| <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 2.5×3.5 | PAPER_STACK, 39° view only: base side, base top, middle side, middle top, book 1 side, book 1 top, book 2 side, book 2 top, casket side, casket top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.PAPER_STACK.png" height="28"> |
+| <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 2.5×3.5 | SCROLL_PILE, 39° view only: basket side, basket top, scroll 1 top, scroll 2 top, scroll 3 top, scroll 4 side, scroll 4 top, roll side, roll top, roll 2 side, roll 2 top. Source: `ui/art/tower/faces.png` | <img src="tower/FACES.SCROLL_PILE.png" height="28"> |
