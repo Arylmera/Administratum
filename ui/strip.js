@@ -58,8 +58,8 @@ export function layoutStrip(depts, { size } = {}) {
     const helpers = d.helpers ?? [], slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id }));
     const ncons = Math.max(d.cons ?? 0, helpers.length);
     const w = slotsOf.length * LEC_W + ncons * CON_W;
-    if (full || x + w > x1 + 1) { full = true; overflow += slotsOf.filter(k => k.id).length; continue; }
-    blocks.push({ name: d.name, color: d.color, x, y: FLOOR - 3, w, h: 5 });
+    if (full || x + w + (d.temp ? 12 : 0) > x1 + 1) { full = true; overflow += slotsOf.filter(k => k.id).length; continue; } // a temp block keeps room for the bay's east gate
+    blocks.push({ name: d.name, color: d.color, x, y: FLOOR - 3, w, h: 5, ...(d.temp && { temp: true }) });
     slotsOf.forEach((k, i) => {
       const desk = { ...k, dept: d.name, x: x + i * LEC_W + 2, y: FLOOR - 30, compact: true };
       desks.push(desk);
@@ -74,4 +74,13 @@ export function layoutStrip(depts, { size } = {}) {
     x += w + GAP;
   }
   return { blocks, desks, seats, consoles, consoleSeats, overflow };
+}
+
+// The break-out bay: the temp blocks' span (packed last by planLayout), 4 px either side, a gate at each end. The strip
+// is one walkway, so everyone heading east goes through it: a fenced bay, not a closed room (no routing change).
+export function breakoutOfStrip(blocks) {
+  const tb = blocks.filter(b => b.temp);
+  if (!tb.length) return null;
+  const x = Math.min(...tb.map(b => b.x)) - 4, x1 = Math.max(...tb.map(b => b.x + b.w)) + 4;
+  return { x, y: FLOOR - 3, w: x1 - x, h: 5, gates: [{ x }, { x: x1 }] };
 }

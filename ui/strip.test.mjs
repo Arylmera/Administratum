@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { STRIP_H, FLOOR, MARGIN_R, COG_AT, REF_AT, stripOf, layoutStrip, stripRoute } from './strip.js';
+import { STRIP_H, FLOOR, MARGIN_R, COG_AT, REF_AT, stripOf, layoutStrip, stripRoute, breakoutOfStrip } from './strip.js';
 import { planLayout } from './layout.js';
 import { Cast } from './actors.js';
 
@@ -93,4 +93,15 @@ assert.deepEqual(a.path, [{ x: P2.seats.get('s2').x, y: FLOOR }]);
 a.pose = 'desk';
 cast.compacted(a);
 assert.ok(a.puff > 0 && !a.burn);
+// the break-out bay: temp departments after the others, a floor band with a gate at each end, clear of the cogitator door
+{
+  const P = planLayout(null, [{ name: 'out', color: '#fff', ids: ['o1', 'o2'], temp: true }, { name: 'Terra', color: '#fff', ids: ['t1'] }], 0, {}, { w: 800, h: STRIP_H }, layoutStrip);
+  assert.deepEqual(P.blocks.map(b => [b.name, !!b.temp]), [['Terra', false], ['out', true]]);
+  const [terra, out] = P.blocks, Z = breakoutOfStrip(P.blocks), dCog = stripOf(800).doors[1];
+  assert.ok(Z.x < out.x && Z.x + Z.w > out.x + out.w && Z.x > terra.x + terra.w);
+  assert.deepEqual(Z.gates.map(g => g.x), [Z.x, Z.x + Z.w]);
+  assert.ok(Z.x + Z.w + 4 <= dCog.x); // the east gate (8 wide, centred on its x) stays off the door
+  assert.equal(breakoutOfStrip([terra]), null);
+}
+
 console.log('strip ok');
