@@ -920,9 +920,25 @@
     "h": 9
    }
   },
-  "GATE leaves side": {
+  "GATE camera side": {
    "frame": {
     "x": 144,
+    "y": 397,
+    "w": 2,
+    "h": 6
+   }
+  },
+  "GATE camera top": {
+   "frame": {
+    "x": 147,
+    "y": 397,
+    "w": 7,
+    "h": 2
+   }
+  },
+  "GATE leaves side": {
+   "frame": {
+    "x": 155,
     "y": 397,
     "w": 1,
     "h": 43
@@ -930,7 +946,7 @@
   },
   "GATE leaves top": {
    "frame": {
-    "x": 146,
+    "x": 157,
     "y": 397,
     "w": 32,
     "h": 1
@@ -938,7 +954,7 @@
   },
   "GATE header side": {
    "frame": {
-    "x": 179,
+    "x": 190,
     "y": 397,
     "w": 10,
     "h": 10
@@ -946,7 +962,7 @@
   },
   "GATE header top": {
    "frame": {
-    "x": 190,
+    "x": 201,
     "y": 397,
     "w": 64,
     "h": 10
@@ -2202,6 +2218,18 @@
       "kind": "box",
       "v": 4,
       "d": 20
+     },
+     {
+      "name": "camera",
+      "rect": [
+       52,
+       12,
+       7,
+       6
+      ],
+      "kind": "box",
+      "v": 24,
+      "d": 4
      },
      {
       "name": "leaves",
