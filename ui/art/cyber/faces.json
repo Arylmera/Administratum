@@ -1,131 +1,2271 @@
 {
- "frames": {},
+ "frames": {
+  "DESK side": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 10,
+    "h": 24
+   }
+  },
+  "DESK top": {
+   "frame": {
+    "x": 11,
+    "y": 0,
+    "w": 64,
+    "h": 10
+   }
+  },
+  "DESK monitor L side": {
+   "frame": {
+    "x": 76,
+    "y": 0,
+    "w": 2,
+    "h": 14
+   }
+  },
+  "DESK monitor L top": {
+   "frame": {
+    "x": 79,
+    "y": 0,
+    "w": 13,
+    "h": 2
+   }
+  },
+  "DESK monitor side": {
+   "frame": {
+    "x": 93,
+    "y": 0,
+    "w": 2,
+    "h": 15
+   }
+  },
+  "DESK monitor top": {
+   "frame": {
+    "x": 96,
+    "y": 0,
+    "w": 18,
+    "h": 2
+   }
+  },
+  "DESK tower side": {
+   "frame": {
+    "x": 115,
+    "y": 0,
+    "w": 5,
+    "h": 18
+   }
+  },
+  "DESK tower top": {
+   "frame": {
+    "x": 121,
+    "y": 0,
+    "w": 17,
+    "h": 5
+   }
+  },
+  "LECTERN side": {
+   "frame": {
+    "x": 0,
+    "y": 25,
+    "w": 10,
+    "h": 24
+   }
+  },
+  "LECTERN top": {
+   "frame": {
+    "x": 11,
+    "y": 25,
+    "w": 44,
+    "h": 10
+   }
+  },
+  "LECTERN monitor side": {
+   "frame": {
+    "x": 56,
+    "y": 25,
+    "w": 2,
+    "h": 15
+   }
+  },
+  "LECTERN monitor top": {
+   "frame": {
+    "x": 59,
+    "y": 25,
+    "w": 18,
+    "h": 2
+   }
+  },
+  "LECTERN router side": {
+   "frame": {
+    "x": 78,
+    "y": 25,
+    "w": 4,
+    "h": 10
+   }
+  },
+  "LECTERN router top": {
+   "frame": {
+    "x": 83,
+    "y": 25,
+    "w": 12,
+    "h": 4
+   }
+  },
+  "LECTERN antenna 1 top": {
+   "frame": {
+    "x": 96,
+    "y": 25,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "LECTERN antenna 2 top": {
+   "frame": {
+    "x": 98,
+    "y": 25,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "LECTERN antenna 3 top": {
+   "frame": {
+    "x": 100,
+    "y": 25,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "CONSOLE side": {
+   "frame": {
+    "x": 0,
+    "y": 50,
+    "w": 6,
+    "h": 9
+   }
+  },
+  "CONSOLE top": {
+   "frame": {
+    "x": 7,
+    "y": 50,
+    "w": 28,
+    "h": 6
+   }
+  },
+  "CONSOLE monitor side": {
+   "frame": {
+    "x": 36,
+    "y": 50,
+    "w": 2,
+    "h": 10
+   }
+  },
+  "CONSOLE monitor top": {
+   "frame": {
+    "x": 39,
+    "y": 50,
+    "w": 19,
+    "h": 2
+   }
+  },
+  "CONSOLE monitor screen wall": {
+   "frame": {
+    "x": 59,
+    "y": 50,
+    "w": 1,
+    "h": 7
+   }
+  },
+  "CONSOLE monitor screen floor": {
+   "frame": {
+    "x": 61,
+    "y": 50,
+    "w": 15,
+    "h": 1
+   }
+  },
+  "CONSOLE mast top": {
+   "frame": {
+    "x": 77,
+    "y": 50,
+    "w": 3,
+    "h": 2
+   }
+  },
+  "SHELF side": {
+   "frame": {
+    "x": 0,
+    "y": 61,
+    "w": 5,
+    "h": 42
+   }
+  },
+  "SHELF top": {
+   "frame": {
+    "x": 6,
+    "y": 61,
+    "w": 64,
+    "h": 5
+   }
+  },
+  "COGITATOR side": {
+   "frame": {
+    "x": 0,
+    "y": 104,
+    "w": 9,
+    "h": 84
+   }
+  },
+  "COGITATOR top": {
+   "frame": {
+    "x": 10,
+    "y": 104,
+    "w": 164,
+    "h": 9
+   }
+  },
+  "COGITATOR screen wall": {
+   "frame": {
+    "x": 175,
+    "y": 104,
+    "w": 2,
+    "h": 33
+   }
+  },
+  "COGITATOR screen floor": {
+   "frame": {
+    "x": 178,
+    "y": 104,
+    "w": 32,
+    "h": 2
+   }
+  },
+  "COGITATOR wave wall": {
+   "frame": {
+    "x": 211,
+    "y": 104,
+    "w": 2,
+    "h": 17
+   }
+  },
+  "COGITATOR wave floor": {
+   "frame": {
+    "x": 214,
+    "y": 104,
+    "w": 22,
+    "h": 2
+   }
+  },
+  "COGITATOR bars wall": {
+   "frame": {
+    "x": 237,
+    "y": 104,
+    "w": 2,
+    "h": 17
+   }
+  },
+  "COGITATOR bars floor": {
+   "frame": {
+    "x": 240,
+    "y": 104,
+    "w": 22,
+    "h": 2
+   }
+  },
+  "COGITATOR ticker wall": {
+   "frame": {
+    "x": 263,
+    "y": 104,
+    "w": 1,
+    "h": 7
+   }
+  },
+  "COGITATOR ticker floor": {
+   "frame": {
+    "x": 265,
+    "y": 104,
+    "w": 98,
+    "h": 1
+   }
+  },
+  "COGITATOR cap side": {
+   "frame": {
+    "x": 364,
+    "y": 104,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "COGITATOR cap top": {
+   "frame": {
+    "x": 0,
+    "y": 189,
+    "w": 156,
+    "h": 9
+   }
+  },
+  "COGITATOR vents L side": {
+   "frame": {
+    "x": 157,
+    "y": 189,
+    "w": 4,
+    "h": 8
+   }
+  },
+  "COGITATOR vents L top": {
+   "frame": {
+    "x": 162,
+    "y": 189,
+    "w": 13,
+    "h": 4
+   }
+  },
+  "COGITATOR vents R side": {
+   "frame": {
+    "x": 176,
+    "y": 189,
+    "w": 4,
+    "h": 8
+   }
+  },
+  "COGITATOR vents R top": {
+   "frame": {
+    "x": 181,
+    "y": 189,
+    "w": 13,
+    "h": 4
+   }
+  },
+  "COGITATOR keyboard side": {
+   "frame": {
+    "x": 195,
+    "y": 189,
+    "w": 4,
+    "h": 12
+   }
+  },
+  "COGITATOR keyboard top": {
+   "frame": {
+    "x": 200,
+    "y": 189,
+    "w": 106,
+    "h": 4
+   }
+  },
+  "COGITATOR fan 1 rim": {
+   "frame": {
+    "x": 307,
+    "y": 189,
+    "w": 17,
+    "h": 15
+   }
+  },
+  "COGITATOR fan 2 rim": {
+   "frame": {
+    "x": 325,
+    "y": 189,
+    "w": 17,
+    "h": 15
+   }
+  },
+  "COGITATOR fan 3 rim": {
+   "frame": {
+    "x": 343,
+    "y": 189,
+    "w": 17,
+    "h": 15
+   }
+  },
+  "COGITATOR fan 4 rim": {
+   "frame": {
+    "x": 361,
+    "y": 189,
+    "w": 17,
+    "h": 15
+   }
+  },
+  "CRATE side": {
+   "frame": {
+    "x": 0,
+    "y": 205,
+    "w": 10,
+    "h": 20
+   }
+  },
+  "CRATE top": {
+   "frame": {
+    "x": 11,
+    "y": 205,
+    "w": 28,
+    "h": 10
+   }
+  },
+  "CRATE tin 1 side": {
+   "frame": {
+    "x": 40,
+    "y": 205,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "CRATE tin 1 top": {
+   "frame": {
+    "x": 44,
+    "y": 205,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "CRATE tin 2 side": {
+   "frame": {
+    "x": 51,
+    "y": 205,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "CRATE tin 2 top": {
+   "frame": {
+    "x": 55,
+    "y": 205,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "CRATE tin 3 side": {
+   "frame": {
+    "x": 62,
+    "y": 205,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "CRATE tin 3 top": {
+   "frame": {
+    "x": 66,
+    "y": 205,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE side": {
+   "frame": {
+    "x": 0,
+    "y": 226,
+    "w": 11,
+    "h": 5
+   }
+  },
+  "TABLE top": {
+   "frame": {
+    "x": 12,
+    "y": 226,
+    "w": 92,
+    "h": 11
+   }
+  },
+  "TABLE box 1 side": {
+   "frame": {
+    "x": 105,
+    "y": 226,
+    "w": 3,
+    "h": 6
+   }
+  },
+  "TABLE box 1 top": {
+   "frame": {
+    "x": 109,
+    "y": 226,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE can 1 top": {
+   "frame": {
+    "x": 116,
+    "y": 226,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "TABLE box 2 side": {
+   "frame": {
+    "x": 121,
+    "y": 226,
+    "w": 3,
+    "h": 6
+   }
+  },
+  "TABLE box 2 top": {
+   "frame": {
+    "x": 125,
+    "y": 226,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE can 2 top": {
+   "frame": {
+    "x": 132,
+    "y": 226,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "TABLE box 3 side": {
+   "frame": {
+    "x": 137,
+    "y": 226,
+    "w": 3,
+    "h": 6
+   }
+  },
+  "TABLE box 3 top": {
+   "frame": {
+    "x": 141,
+    "y": 226,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "BENCH side": {
+   "frame": {
+    "x": 0,
+    "y": 238,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "BENCH top": {
+   "frame": {
+    "x": 5,
+    "y": 238,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "BENCH cushion side": {
+   "frame": {
+    "x": 98,
+    "y": 238,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "BENCH cushion top": {
+   "frame": {
+    "x": 103,
+    "y": 238,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "RECAFF side": {
+   "frame": {
+    "x": 0,
+    "y": 243,
+    "w": 7,
+    "h": 36
+   }
+  },
+  "RECAFF top": {
+   "frame": {
+    "x": 8,
+    "y": 243,
+    "w": 32,
+    "h": 7
+   }
+  },
+  "RECAFF window wall": {
+   "frame": {
+    "x": 41,
+    "y": 243,
+    "w": 2,
+    "h": 16
+   }
+  },
+  "RECAFF window floor": {
+   "frame": {
+    "x": 44,
+    "y": 243,
+    "w": 15,
+    "h": 2
+   }
+  },
+  "RECAFF alcove wall": {
+   "frame": {
+    "x": 60,
+    "y": 243,
+    "w": 3,
+    "h": 3
+   }
+  },
+  "RECAFF alcove floor": {
+   "frame": {
+    "x": 64,
+    "y": 243,
+    "w": 18,
+    "h": 3
+   }
+  },
+  "LORD_DESK side": {
+   "frame": {
+    "x": 0,
+    "y": 280,
+    "w": 11,
+    "h": 15
+   }
+  },
+  "LORD_DESK top": {
+   "frame": {
+    "x": 12,
+    "y": 280,
+    "w": 88,
+    "h": 11
+   }
+  },
+  "LORD_DESK projector side": {
+   "frame": {
+    "x": 101,
+    "y": 280,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "LORD_DESK projector top": {
+   "frame": {
+    "x": 105,
+    "y": 280,
+    "w": 9,
+    "h": 3
+   }
+  },
+  "LORD_DESK cup top": {
+   "frame": {
+    "x": 115,
+    "y": 280,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "THRONE side": {
+   "frame": {
+    "x": 0,
+    "y": 296,
+    "w": 10,
+    "h": 12
+   }
+  },
+  "THRONE top": {
+   "frame": {
+    "x": 11,
+    "y": 296,
+    "w": 36,
+    "h": 10
+   }
+  },
+  "THRONE back side": {
+   "frame": {
+    "x": 48,
+    "y": 296,
+    "w": 3,
+    "h": 20
+   }
+  },
+  "THRONE back top": {
+   "frame": {
+    "x": 52,
+    "y": 296,
+    "w": 24,
+    "h": 3
+   }
+  },
+  "THRONE arm L side": {
+   "frame": {
+    "x": 77,
+    "y": 296,
+    "w": 8,
+    "h": 6
+   }
+  },
+  "THRONE arm L top": {
+   "frame": {
+    "x": 86,
+    "y": 296,
+    "w": 6,
+    "h": 8
+   }
+  },
+  "THRONE arm R side": {
+   "frame": {
+    "x": 93,
+    "y": 296,
+    "w": 8,
+    "h": 6
+   }
+  },
+  "THRONE arm R top": {
+   "frame": {
+    "x": 102,
+    "y": 296,
+    "w": 6,
+    "h": 8
+   }
+  },
+  "THRONE visor side": {
+   "frame": {
+    "x": 109,
+    "y": 296,
+    "w": 2,
+    "h": 7
+   }
+  },
+  "THRONE visor top": {
+   "frame": {
+    "x": 112,
+    "y": 296,
+    "w": 14,
+    "h": 2
+   }
+  },
+  "COG_MECH chip rim": {
+   "frame": {
+    "x": 0,
+    "y": 317,
+    "w": 40,
+    "h": 36
+   }
+  },
+  "SEAL clip rim": {
+   "frame": {
+    "x": 0,
+    "y": 354,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "SEAL strap rim": {
+   "frame": {
+    "x": 5,
+    "y": 354,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "SEAL tag rim": {
+   "frame": {
+    "x": 8,
+    "y": 354,
+    "w": 10,
+    "h": 13
+   }
+  },
+  "GAUGE dial rim": {
+   "frame": {
+    "x": 0,
+    "y": 368,
+    "w": 12,
+    "h": 12
+   }
+  },
+  "CENSER cord top": {
+   "frame": {
+    "x": 0,
+    "y": 381,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "CENSER lamp top": {
+   "frame": {
+    "x": 3,
+    "y": 381,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "CANDLES tray side": {
+   "frame": {
+    "x": 0,
+    "y": 385,
+    "w": 5,
+    "h": 5
+   }
+  },
+  "CANDLES tray top": {
+   "frame": {
+    "x": 6,
+    "y": 385,
+    "w": 24,
+    "h": 5
+   }
+  },
+  "CANDLES socket 1 top": {
+   "frame": {
+    "x": 31,
+    "y": 385,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "CANDLES socket 2 top": {
+   "frame": {
+    "x": 38,
+    "y": 385,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "CANDLES socket 3 top": {
+   "frame": {
+    "x": 45,
+    "y": 385,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "CANDLES tube 1 top": {
+   "frame": {
+    "x": 52,
+    "y": 385,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "CANDLES tube 2 top": {
+   "frame": {
+    "x": 57,
+    "y": 385,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "CANDLES tube 3 top": {
+   "frame": {
+    "x": 62,
+    "y": 385,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "BRAZIER drum top": {
+   "frame": {
+    "x": 0,
+    "y": 391,
+    "w": 12,
+    "h": 5
+   }
+  },
+  "BOOKS book 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 397,
+    "w": 5,
+    "h": 4
+   }
+  },
+  "BOOKS book 1 top": {
+   "frame": {
+    "x": 6,
+    "y": 397,
+    "w": 14,
+    "h": 5
+   }
+  },
+  "BOOKS book 2 side": {
+   "frame": {
+    "x": 21,
+    "y": 397,
+    "w": 5,
+    "h": 5
+   }
+  },
+  "BOOKS book 2 top": {
+   "frame": {
+    "x": 27,
+    "y": 397,
+    "w": 18,
+    "h": 5
+   }
+  },
+  "BOOKS book 3 side": {
+   "frame": {
+    "x": 46,
+    "y": 397,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "BOOKS book 3 top": {
+   "frame": {
+    "x": 52,
+    "y": 397,
+    "w": 16,
+    "h": 5
+   }
+  },
+  "BOOKS book 4 side": {
+   "frame": {
+    "x": 69,
+    "y": 397,
+    "w": 6,
+    "h": 6
+   }
+  },
+  "BOOKS book 4 top": {
+   "frame": {
+    "x": 76,
+    "y": 397,
+    "w": 20,
+    "h": 6
+   }
+  },
+  "PAPER_STACK ream 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 404,
+    "w": 6,
+    "h": 9
+   }
+  },
+  "PAPER_STACK ream 1 top": {
+   "frame": {
+    "x": 7,
+    "y": 404,
+    "w": 16,
+    "h": 6
+   }
+  },
+  "PAPER_STACK ream 2 side": {
+   "frame": {
+    "x": 24,
+    "y": 404,
+    "w": 5,
+    "h": 5
+   }
+  },
+  "PAPER_STACK ream 2 top": {
+   "frame": {
+    "x": 30,
+    "y": 404,
+    "w": 14,
+    "h": 5
+   }
+  },
+  "PAPER_STACK ream 3 side": {
+   "frame": {
+    "x": 45,
+    "y": 404,
+    "w": 6,
+    "h": 10
+   }
+  },
+  "PAPER_STACK ream 3 top": {
+   "frame": {
+    "x": 52,
+    "y": 404,
+    "w": 16,
+    "h": 6
+   }
+  },
+  "SCROLL_PILE rod 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 415,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE rod 1 top": {
+   "frame": {
+    "x": 3,
+    "y": 415,
+    "w": 8,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE rod 2 side": {
+   "frame": {
+    "x": 12,
+    "y": 415,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE rod 2 top": {
+   "frame": {
+    "x": 15,
+    "y": 415,
+    "w": 8,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE rod 3 side": {
+   "frame": {
+    "x": 24,
+    "y": 415,
+    "w": 3,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE rod 3 top": {
+   "frame": {
+    "x": 28,
+    "y": 415,
+    "w": 10,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE rod 4 side": {
+   "frame": {
+    "x": 39,
+    "y": 415,
+    "w": 3,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE rod 4 top": {
+   "frame": {
+    "x": 43,
+    "y": 415,
+    "w": 10,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE rod 5 side": {
+   "frame": {
+    "x": 54,
+    "y": 415,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE rod 5 top": {
+   "frame": {
+    "x": 59,
+    "y": 415,
+    "w": 15,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE rod 6 side": {
+   "frame": {
+    "x": 75,
+    "y": 415,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE rod 6 top": {
+   "frame": {
+    "x": 80,
+    "y": 415,
+    "w": 16,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE rod 7 side": {
+   "frame": {
+    "x": 97,
+    "y": 415,
+    "w": 5,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE rod 7 top": {
+   "frame": {
+    "x": 103,
+    "y": 415,
+    "w": 34,
+    "h": 5
+   }
+  }
+ },
  "meta": {
-  "note": "cyber: hand-edited source (no generator). Rects cut to this world's frames (flat view exact). Provisional split: the main box's front as in the base, everything else one upright cutout, until this world's 39° art splits it into volumes and draws its side and top faces (faces.png).",
+  "app": "face sheets (ui/faces.js)",
+  "image": "faces.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 378,
+   "h": 422
+  },
+  "palette": "key.gpl",
+  "anchors": {},
+  "note": "Neon Grid face sheets: faces.png (key palette) and this file are hand-edited source. Format: ui/faces.js header. Rects cut to this world's frames (flat view exact).",
   "objects": {
    "DESK": {
-    "front": [0, 18, 64, 24],
+    "front": [
+     0,
+     18,
+     64,
+     24
+    ],
     "d": 24,
     "details": [
-     { "name": "above", "rect": [1, 0, 59, 18], "kind": "bill", "v": 12 }
+     {
+      "name": "monitor L",
+      "rect": [
+       1,
+       4,
+       13,
+       14
+      ],
+      "kind": "box",
+      "v": 5,
+      "d": 4,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         3,
+         6,
+         9,
+         9
+        ],
+        "depth": 1,
+        "wall": "k"
+       }
+      ]
+     },
+     {
+      "name": "monitor",
+      "rect": [
+       15,
+       3,
+       18,
+       15
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 4,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         17,
+         5,
+         14,
+         9
+        ],
+        "depth": 1,
+        "wall": "k"
+       }
+      ]
+     },
+     {
+      "name": "tower",
+      "rect": [
+       43,
+       0,
+       17,
+       18
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 12
+     }
     ]
    },
    "LECTERN": {
-    "front": [0, 18, 44, 24],
+    "front": [
+     0,
+     18,
+     44,
+     24
+    ],
     "d": 24,
     "details": [
-     { "name": "above", "rect": [3, 0, 38, 18], "kind": "bill", "v": 12 }
+     {
+      "name": "monitor",
+      "rect": [
+       3,
+       3,
+       18,
+       15
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 4,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         5,
+         5,
+         14,
+         9
+        ],
+        "depth": 1,
+        "wall": "k"
+       }
+      ]
+     },
+     {
+      "name": "router",
+      "rect": [
+       29,
+       8,
+       12,
+       10
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 8
+     },
+     {
+      "name": "antenna 1",
+      "rect": [
+       31,
+       0,
+       1,
+       8
+      ],
+      "kind": "cyl",
+      "v": 12
+     },
+     {
+      "name": "antenna 2",
+      "rect": [
+       35,
+       0,
+       1,
+       8
+      ],
+      "kind": "cyl",
+      "v": 10
+     },
+     {
+      "name": "antenna 3",
+      "rect": [
+       39,
+       0,
+       1,
+       8
+      ],
+      "kind": "cyl",
+      "v": 12
+     }
     ]
    },
    "CONSOLE": {
-    "front": [0, 12, 28, 8],
+    "front": [
+     0,
+     11,
+     28,
+     9
+    ],
     "d": 14,
     "details": [
-     { "name": "above", "rect": [2, 0, 24, 12], "kind": "bill", "v": 7 }
+     {
+      "name": "monitor",
+      "rect": [
+       4,
+       1,
+       19,
+       10
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 4,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         6,
+         3,
+         15,
+         7
+        ],
+        "depth": 2,
+        "wall": "k"
+       }
+      ]
+     },
+     {
+      "name": "mast",
+      "rect": [
+       23,
+       0,
+       3,
+       11
+      ],
+      "kind": "cyl",
+      "v": 5
+     }
     ]
    },
-   "SHELF": { "front": [0, 0, 64, 42], "d": 10 },
-   "COGITATOR": {
-    "front": [9, 15, 146, 82],
-    "d": 22,
-    "details": [
-     { "name": "above", "rect": [4, 4, 156, 11], "kind": "bill", "v": 11 },
-     { "name": "left", "rect": [0, 15, 9, 82], "kind": "bill", "v": 11 },
-     { "name": "right", "rect": [155, 15, 9, 82], "kind": "bill", "v": 11 }
+   "SHELF": {
+    "front": [
+     0,
+     0,
+     64,
+     42
     ],
-    "flatOnly": [
-     { "name": "painted shadow", "rect": [0, 97, 164, 3] }
+    "d": 10
+   },
+   "COGITATOR": {
+    "front": [
+     0,
+     16,
+     164,
+     84
+    ],
+    "d": 22,
+    "recess": [
+     {
+      "name": "screen",
+      "rect": [
+       66,
+       27,
+       32,
+       33
+      ],
+      "depth": 3,
+      "wall": "k"
+     },
+     {
+      "name": "wave",
+      "rect": [
+       34,
+       27,
+       22,
+       17
+      ],
+      "depth": 3,
+      "wall": "k"
+     },
+     {
+      "name": "bars",
+      "rect": [
+       108,
+       27,
+       22,
+       17
+      ],
+      "depth": 3,
+      "wall": "k"
+     },
+     {
+      "name": "ticker",
+      "rect": [
+       33,
+       16,
+       98,
+       7
+      ],
+      "depth": 2,
+      "wall": "k"
+     }
+    ],
+    "details": [
+     {
+      "name": "cap",
+      "rect": [
+       4,
+       12,
+       156,
+       4
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 20
+     },
+     {
+      "name": "vents L",
+      "rect": [
+       38,
+       4,
+       13,
+       8
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 8
+     },
+     {
+      "name": "vents R",
+      "rect": [
+       113,
+       4,
+       13,
+       8
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 8
+     },
+     {
+      "name": "keyboard",
+      "rect": [
+       29,
+       71,
+       106,
+       12
+      ],
+      "kind": "box",
+      "v": 21,
+      "d": 8
+     },
+     {
+      "name": "fan 1",
+      "rect": [
+       10,
+       25,
+       17,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "Z",
+      "round": true
+     },
+     {
+      "name": "fan 2",
+      "rect": [
+       10,
+       47,
+       17,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "Z",
+      "round": true
+     },
+     {
+      "name": "fan 3",
+      "rect": [
+       136,
+       25,
+       17,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "Z",
+      "round": true
+     },
+     {
+      "name": "fan 4",
+      "rect": [
+       136,
+       47,
+       17,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "Z",
+      "round": true
+     }
     ]
    },
    "CRATE": {
-    "front": [0, 4, 28, 20],
+    "front": [
+     0,
+     4,
+     28,
+     20
+    ],
     "d": 24,
     "details": [
-     { "name": "above", "rect": [1, 0, 22, 4], "kind": "bill", "v": 12 }
+     {
+      "name": "tin 1",
+      "rect": [
+       1,
+       0,
+       6,
+       4
+      ],
+      "kind": "box",
+      "v": 7,
+      "d": 6
+     },
+     {
+      "name": "tin 2",
+      "rect": [
+       9,
+       0,
+       6,
+       4
+      ],
+      "kind": "box",
+      "v": 10,
+      "d": 6
+     },
+     {
+      "name": "tin 3",
+      "rect": [
+       17,
+       0,
+       6,
+       4
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 6
+     }
     ]
    },
    "TABLE": {
-    "front": [0, 11, 92, 5],
+    "front": [
+     0,
+     11,
+     92,
+     5
+    ],
     "d": 26,
+    "details": [
+     {
+      "name": "box 1",
+      "rect": [
+       14,
+       3,
+       6,
+       6
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 6,
+      "z": 5
+     },
+     {
+      "name": "can 1",
+      "rect": [
+       26,
+       4,
+       4,
+       5
+      ],
+      "kind": "cyl",
+      "v": 13,
+      "z": 5
+     },
+     {
+      "name": "box 2",
+      "rect": [
+       42,
+       3,
+       6,
+       6
+      ],
+      "kind": "box",
+      "v": 9,
+      "d": 6,
+      "z": 5
+     },
+     {
+      "name": "can 2",
+      "rect": [
+       56,
+       4,
+       4,
+       5
+      ],
+      "kind": "cyl",
+      "v": 15,
+      "z": 5
+     },
+     {
+      "name": "box 3",
+      "rect": [
+       70,
+       3,
+       6,
+       6
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 6,
+      "z": 5
+     },
+     {
+      "name": "tablet",
+      "rect": [
+       82,
+       4,
+       7,
+       5
+      ],
+      "kind": "top",
+      "v": 8
+     }
+    ],
     "flatOnly": [
-     { "name": "table top", "rect": [0, 0, 92, 11] }
+     {
+      "name": "table top",
+      "rect": [
+       0,
+       0,
+       92,
+       11
+      ]
+     }
     ]
    },
    "BENCH": {
-    "front": [0, 4, 92, 4],
+    "front": [
+     0,
+     4,
+     92,
+     4
+    ],
     "d": 9,
+    "details": [
+     {
+      "name": "cushion",
+      "rect": [
+       0,
+       1,
+       92,
+       3
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 9
+     }
+    ],
     "flatOnly": [
-     { "name": "seat", "rect": [0, 0, 92, 4] }
+     {
+      "name": "seat",
+      "rect": [
+       0,
+       0,
+       92,
+       4
+      ]
+     }
     ]
    },
-   "RECAFF": { "front": [0, 0, 32, 36], "d": 16 },
+   "RECAFF": {
+    "front": [
+     0,
+     0,
+     32,
+     36
+    ],
+    "d": 16,
+    "recess": [
+     {
+      "name": "window",
+      "rect": [
+       5,
+       10,
+       15,
+       16
+      ],
+      "depth": 3,
+      "wall": "k"
+     },
+     {
+      "name": "screen",
+      "rect": [
+       23,
+       10,
+       5,
+       3
+      ],
+      "depth": 1,
+      "wall": "k"
+     },
+     {
+      "name": "alcove",
+      "rect": [
+       7,
+       29,
+       18,
+       3
+      ],
+      "depth": 4,
+      "wall": "n"
+     }
+    ]
+   },
    "LORD_DESK": {
-    "front": [0, 11, 88, 15],
+    "front": [
+     0,
+     11,
+     88,
+     15
+    ],
     "d": 26,
+    "details": [
+     {
+      "name": "terminal",
+      "rect": [
+       6,
+       3,
+       14,
+       7
+      ],
+      "kind": "top",
+      "v": 7
+     },
+     {
+      "name": "stylus",
+      "rect": [
+       22,
+       3,
+       1,
+       6
+      ],
+      "kind": "top",
+      "v": 7
+     },
+     {
+      "name": "projector",
+      "rect": [
+       38,
+       7,
+       9,
+       4
+      ],
+      "kind": "box",
+      "v": 10,
+      "d": 6
+     },
+     {
+      "name": "holo",
+      "rect": [
+       38,
+       2,
+       9,
+       5
+      ],
+      "kind": "bill",
+      "v": 13
+     },
+     {
+      "name": "cards",
+      "rect": [
+       56,
+       4,
+       11,
+       5
+      ],
+      "kind": "top",
+      "v": 9
+     },
+     {
+      "name": "cup",
+      "rect": [
+       70,
+       3,
+       4,
+       5
+      ],
+      "kind": "cyl",
+      "v": 14,
+      "z": 15
+     },
+     {
+      "name": "device",
+      "rect": [
+       77,
+       6,
+       6,
+       3
+      ],
+      "kind": "top",
+      "v": 12
+     }
+    ],
     "flatOnly": [
-     { "name": "desk top", "rect": [0, 0, 88, 11] }
+     {
+      "name": "desk top",
+      "rect": [
+       0,
+       0,
+       88,
+       11
+      ]
+     }
     ]
    },
    "THRONE": {
-    "front": [2, 28, 36, 12],
+    "front": [
+     2,
+     28,
+     36,
+     12
+    ],
     "d": 24,
     "details": [
-     { "name": "above", "rect": [2, 1, 36, 27], "kind": "bill", "v": 12 }
+     {
+      "name": "back",
+      "rect": [
+       8,
+       8,
+       24,
+       20
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 5
+     },
+     {
+      "name": "arm L",
+      "rect": [
+       2,
+       22,
+       6,
+       6
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 18
+     },
+     {
+      "name": "arm R",
+      "rect": [
+       32,
+       22,
+       6,
+       6
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 18
+     },
+     {
+      "name": "visor",
+      "rect": [
+       13,
+       1,
+       14,
+       7
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 3
+     }
     ]
    },
    "COG_MECH": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 40, 36], "kind": "bill", "v": 4 }
+     {
+      "name": "chip",
+      "rect": [
+       0,
+       0,
+       40,
+       36
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 3,
+      "rim": "G"
+     }
     ]
    },
    "SEAL": {
     "details": [
-     { "name": "cutout", "rect": [1, 0, 10, 20], "kind": "bill", "v": 4 }
+     {
+      "name": "clip",
+      "rect": [
+       4,
+       0,
+       4,
+       4
+      ],
+      "kind": "disc",
+      "v": 1,
+      "t": 1,
+      "rim": "M"
+     },
+     {
+      "name": "strap",
+      "rect": [
+       5,
+       4,
+       2,
+       3
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 1,
+      "rim": "Z"
+     },
+     {
+      "name": "tag",
+      "rect": [
+       1,
+       7,
+       10,
+       13
+      ],
+      "kind": "disc",
+      "v": 1,
+      "t": 2,
+      "rim": "V"
+     }
     ]
    },
    "GAUGE": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 12, 12], "kind": "bill", "v": 4 }
+     {
+      "name": "dial",
+      "rect": [
+       0,
+       0,
+       12,
+       12
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 2,
+      "rim": "M"
+     }
     ]
    },
    "CENSER": {
     "details": [
-     { "name": "cutout", "rect": [2, 0, 6, 14], "kind": "bill", "v": 4 }
+     {
+      "name": "cord",
+      "rect": [
+       4,
+       0,
+       2,
+       4
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "lamp",
+      "rect": [
+       2,
+       4,
+       6,
+       10
+      ],
+      "kind": "cyl",
+      "v": 5
+     }
     ]
    },
    "CANDLES": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 24, 18], "kind": "bill", "v": 4 }
+     {
+      "name": "tray",
+      "rect": [
+       0,
+       13,
+       24,
+       5
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 12
+     },
+     {
+      "name": "socket 1",
+      "rect": [
+       1,
+       11,
+       6,
+       2
+      ],
+      "kind": "cyl",
+      "v": 8
+     },
+     {
+      "name": "socket 2",
+      "rect": [
+       9,
+       11,
+       6,
+       2
+      ],
+      "kind": "cyl",
+      "v": 8
+     },
+     {
+      "name": "socket 3",
+      "rect": [
+       18,
+       11,
+       6,
+       2
+      ],
+      "kind": "cyl",
+      "v": 8
+     },
+     {
+      "name": "tube 1",
+      "rect": [
+       2,
+       0,
+       4,
+       11
+      ],
+      "kind": "cyl",
+      "v": 8
+     },
+     {
+      "name": "tube 2",
+      "rect": [
+       10,
+       0,
+       4,
+       11
+      ],
+      "kind": "cyl",
+      "v": 8
+     },
+     {
+      "name": "tube 3",
+      "rect": [
+       19,
+       1,
+       4,
+       10
+      ],
+      "kind": "cyl",
+      "v": 8
+     }
     ]
    },
    "BRAZIER": {
     "details": [
-     { "name": "cutout", "rect": [3, 0, 12, 26], "kind": "bill", "v": 4 }
+     {
+      "name": "drum",
+      "rect": [
+       3,
+       7,
+       12,
+       19
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "fire",
+      "rect": [
+       4,
+       0,
+       10,
+       7
+      ],
+      "kind": "bill",
+      "v": 7
+     }
     ]
    },
    "BOOKS": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 20, 18], "kind": "bill", "v": 4 }
+     {
+      "name": "book 1",
+      "rect": [
+       2,
+       0,
+       14,
+       4
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 10
+     },
+     {
+      "name": "book 2",
+      "rect": [
+       0,
+       4,
+       18,
+       5
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "book 3",
+      "rect": [
+       2,
+       9,
+       16,
+       3
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 11
+     },
+     {
+      "name": "book 4",
+      "rect": [
+       0,
+       12,
+       20,
+       6
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 14
+     }
     ]
    },
    "PAPER_STACK": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 16, 24], "kind": "bill", "v": 4 }
+     {
+      "name": "ream 1",
+      "rect": [
+       0,
+       0,
+       16,
+       9
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 14
+     },
+     {
+      "name": "ream 2",
+      "rect": [
+       2,
+       9,
+       14,
+       5
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "ream 3",
+      "rect": [
+       0,
+       14,
+       16,
+       10
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 14
+     }
     ]
    },
    "SCROLL_PILE": {
     "details": [
-     { "name": "cutout", "rect": [1, 0, 34, 14], "kind": "bill", "v": 4 }
+     {
+      "name": "rod 1",
+      "rect": [
+       8,
+       0,
+       8,
+       3
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 4
+     },
+     {
+      "name": "rod 2",
+      "rect": [
+       19,
+       0,
+       8,
+       3
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 4
+     },
+     {
+      "name": "rod 3",
+      "rect": [
+       6,
+       3,
+       10,
+       3
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 6
+     },
+     {
+      "name": "rod 4",
+      "rect": [
+       17,
+       3,
+       10,
+       3
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 6
+     },
+     {
+      "name": "rod 5",
+      "rect": [
+       2,
+       6,
+       15,
+       4
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 8
+     },
+     {
+      "name": "rod 6",
+      "rect": [
+       17,
+       6,
+       16,
+       4
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 8
+     },
+     {
+      "name": "rod 7",
+      "rect": [
+       1,
+       10,
+       34,
+       4
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 10
+     }
     ]
    },
    "LOOSE_A": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 10, 8], "kind": "bill", "v": 4 }
+     {
+      "name": "sheet",
+      "rect": [
+       0,
+       0,
+       10,
+       8
+      ],
+      "kind": "top",
+      "v": 0,
+      "z": 0
+     }
     ]
    },
    "LOOSE_B": {
     "details": [
-     { "name": "cutout", "rect": [0, 0, 8, 10], "kind": "bill", "v": 4 }
+     {
+      "name": "sheet",
+      "rect": [
+       0,
+       0,
+       8,
+       10
+      ],
+      "kind": "top",
+      "v": 0,
+      "z": 0
+     }
     ]
    }
   }
