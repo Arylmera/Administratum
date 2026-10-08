@@ -38,8 +38,8 @@ const flip = r => [...r].reverse().join('');
 for (const n of ['THRONE', 'LORD_DESK', 'COG_MECH']) MAPS[n].forEach((r, j) => assert.equal(r.replace(/[^.]/g, '#'), flip(r).replace(/[^.]/g, '#'), `${n}: silhouette row ${j}`));
 MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).replace(/[^.k]/g, '#'), `THRONE: outline row ${j}`));
 
-// 39° character families (wave 2, no art yet): no ui/art/*39.* file in this repo, so the app still loads and every
-// export is empty. At RUNTIME an incomplete file degrades instead of throwing (resolve39 below); completeness is
+// 39° character families (wave 2): each ui/art/*39.* file (base or a world's) is either absent (the app still loads,
+// that export stays empty) or complete. At RUNTIME an incomplete file degrades instead of throwing (resolve39 below); completeness is
 // enforced by THIS TEST instead, over every file actually committed, so an incomplete one can never land.
 assert.deepEqual(FAMILIES39, ['scribe39', 'adept39', 'magos39', 'skull39']);
 for (const f of FAMILIES39) if (Object.keys(ART.base[f].frames).length) assert.equal(checkComplete39(f, ART.base[f]), true, `ui/art/${f}.json: incomplete`);
