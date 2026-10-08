@@ -124,15 +124,21 @@ async function enterStrip() {
   const r = await invoke('place_strip', { height: grownTo });
   if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
   bootStrip = false;
+  if (!strip()) return; // a leave was queued behind this enter: let it undo the move instead
   setThrough(true);
   invoke('set_strip_menu', { on: true }).catch(() => {});
+  growStrip();
 }
 async function leaveStrip() {
   through = null; grownTo = 0;
   const r = store.get('adm.hallRect');
   await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
+  if (strip()) return; // a newer enter is queued behind this leave: let it redo the move instead
   invoke('set_strip_menu', { on: false }).catch(() => {});
 }
+// Enter/leave touch the OS window and a shared backend rect: serialised through one chain so a quick switch back
+// and forth can't let a leave read a stale/missing hallRect mid-enter, or land its set_strip_menu after a newer enter's.
+let switching = Promise.resolve();
 // The strip's window grows upward while a panel (card, Settings, Chronicon, the handle's menu) is open above it, and
 // shrinks back when they close; the stage stays pinned to the bottom (index.html). Also replays a Strip size change.
 function growStrip() {
@@ -168,7 +174,7 @@ addEventListener('click', e => { if (!e.target.closest('#strip-menu, #strip-hand
 onView((mode, prev) => {
   if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
     document.documentElement.classList.toggle('strip', mode === 'strip');
-    if (tauri()) (mode === 'strip' ? enterStrip : leaveStrip)().catch(err => console.warn('strip', err));
+    if (tauri()) switching = switching.then(() => (mode === 'strip' ? enterStrip() : leaveStrip())).catch(err => console.warn('strip switch', err));
     stripMenu.hidden = true;
     resetCast();
     for (const k in bg) delete bg[k];
@@ -919,7 +925,7 @@ if (tauri() || REMOTE) {
   listen('limit', () => quietNow() || chime([520, 390]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
   listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done' && !quietNow()) chime([1320, 1760]); });
-  listen('ui-command', e => ({ mute: toggleMute, light: cycleMode, strip: () => REMOTE || toggleStrip() })[e.payload]?.());
+  listen('ui-command', e => ({ mute: toggleMute, light: cycleMode, strip: () => { if (!REMOTE) toggleStrip(); } })[e.payload]?.());
   listen('visible', e => { visible = e.payload; wake(); }); // the app's window only
   refreshTithe = initChronicon(colorOf);
 }
