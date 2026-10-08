@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY } from './layout.js';
 import { propsOf, WIN_Y, wallArt } from './scene.js';
-import { MAPS, RES } from './sprites.js';
-import { setTheme } from './theme.js';
+import { MAPS, RES, ART } from './sprites.js';
+import { setTheme, THEMES } from './theme.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -382,13 +382,18 @@ for (const S of [SCENE, { w: MAX_W, h: 400 }]) {
   for (const [, , y] of hangs) assert.ok(y >= 4 && y + MAPS.HANGING.length / RES <= WALL - 4, `hanging at y ${y}`);
 }
 
-// wallArt(): tier2 (no art of its own) draws the tall gothic window and full-height hanging; a theme without its
-// own tall art (cyber redraws 'walls' but not WINDOW_TALL/HANGING) falls back to the short WINDOW/BANNER.
-assert.equal(wallArt().win, MAPS.WINDOW_TALL);
-assert.equal(wallArt().tallHang, true);
-setTheme('cyber');
-assert.equal(wallArt().win, MAPS.WINDOW);
-assert.equal(wallArt().tallHang, false);
+// wallArt(): for every theme, the tall gothic window and full-height hanging are drawn exactly when the theme's
+// own art (or base, for a theme without 'walls' art of its own) defines WINDOW_TALL/HANGING the same way it
+// defines the short WINDOW/BANNER; otherwise the short ones. tier2 (no art of its own) -> tall.
+for (const id of Object.keys(THEMES)) {
+  setTheme(id);
+  const own = ART.themed[ART.dirOf(id)]?.walls?.frames ?? {};
+  const tallWin = !!own.WINDOW_TALL === !!own.WINDOW, tallHang = !!own.HANGING === !!own.BANNER;
+  const a = wallArt();
+  assert.equal(a.win, MAPS[tallWin ? 'WINDOW_TALL' : 'WINDOW'], `${id}: win`);
+  assert.equal(a.tallHang, tallHang, `${id}: tallHang`);
+}
 setTheme('tier2');
+assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
 
 console.log('layout ok');
