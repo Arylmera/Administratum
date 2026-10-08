@@ -342,9 +342,9 @@ function gateItems(all, dt) {
 // screen scans, the optics pulse. Upright, its bottom centre where the hall's throne seats it.
 function magos(t, dt) {
   const own = MAGOS39.body, body = own ?? MAGOS.body, arm = own ? MAGOS39.arm : MAGOS.arm, A = own ? MAGOS39_AT : MAGOS_AT;
-  const MX = 264 + H.ox, MY = 120 + H.sd, fw = MAGOS.body[0].length, u = Math.round(2 * MX) + (fw >> 1), v = Math.round(2 * (MY + 24 - WALL)) - 18;
+  const MX = 264 + H.ox, MY = 120 + H.sd, fw = MAGOS.body[0].length, u = Math.round(2 * MX) + (fw >> 1), v = Math.round(2 * (MY + 24 - WALL)) - 12, SEAT = 4; // seated mid-seat, raised SEAT art px: his lap on the seat, his shins over its front
   const bx = MX + (fw - body[0].length) / (2 * RES), by = MY + (MAGOS.body.length - body.length) / RES; // the frame, bottom centre kept
-  return { foot: { u0: u - 8, u1: u + 8, v0: v - 4, v1: v + 2 }, draw: g => save(g, g2 => upright(g2, MX + fw / (2 * RES), MY + MAGOS.body.length / RES, cont(u, v, 0).map(half)), g2 => {
+  return { foot: { u0: u - 8, u1: u + 8, v0: v - 4, v1: v + 2 }, draw: g => save(g, g2 => upright(g2, MX + fw / (2 * RES), MY + MAGOS.body.length / RES, cont(u, v, SEAT).map(half)), g2 => {
     const sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
     blit(g2, body, bx, by); blit(g2, arm, bx + A.arm.x + sway, by + A.arm.y);
     rect(g2, bx + A.chest.x, by + A.chest.y + (fl(t * 5) % 3) / 2, 2, 0.5, Math.random() < 3 * dt ? T.ink.phosphorDark : T.ink.screenHot);
