@@ -1,0 +1,48 @@
+{
+  "frames": {
+    "body": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      }
+    },
+    "arm": {
+      "frame": {
+        "x": 49,
+        "y": 0,
+        "w": 10,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "cyber theme art",
+    "image": "magos39.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 59,
+      "h": 48
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "arm": [
+        11,
+        8
+      ],
+      "chest": [
+        31,
+        25
+      ],
+      "eyeL": [
+        24,
+        9
+      ],
+      "eyeR": [
+        29,
+        9
+      ]
+    }
+  }
+}
