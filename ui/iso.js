@@ -63,6 +63,7 @@ export class IsoBuf {
     this.id = new Int16Array(n).fill(-1);
     this.face = new Int8Array(n).fill(-1); // 0 top, 1 front (faces +v), 2 side (faces +u), 3 billboard
     this.world = new Int16Array(3 * n); // the (u, v, z) each pixel shows
+    this.gen = 0; this.mark = this.list = null; // box(): which pixels the current top face covers, in first-hit order
   }
   px(sx, sy, d, c, id, face, u = 0, v = 0, z = 0) {
     if (c == null || c === '.') return;
@@ -73,28 +74,37 @@ export class IsoBuf {
     this.dp[i] = d; this.ch[i] = c; this.id[i] = id; this.face[i] = face;
     this.world[3 * i] = u; this.world[3 * i + 1] = v; this.world[3 * i + 2] = z;
   }
-  put(u, v, z, c, id, face, dz = 0) { const [sx, sy] = this.P(u, v, z); this.px(sx, sy, u + v + z + dz, c, id, face, u, v, z); }
+  // P(u, v, z) without the array: P39 inlined (the hot path), any other projection called
+  sx(u, v) { return this.P === P39 ? u - fl(v * TAN39) : this.P(u, v, 0)[0]; }
+  sy(u, v, z) { return this.P === P39 ? fl(u / 3) + fl(fl(v * TAN39) / 2) - z : this.P(u, v, z)[1]; }
+  put(u, v, z, c, id, face, dz = 0) { this.px(this.sx(u, v), this.sy(u, v, z), u + v + z + dz, c, id, face, u, v, z); }
   // A box u0..u1, v0..v1, z0..z1 (half-open). Texture coords, pixel units (j is v / VS):
   // top(i, j, U, J) i along u, j along v from the back; front(i, r, U, Z) r down from the top;
   // side(j, r, J, Z) j from the front corner toward the back.
   box({ u0, u1, v0, v1, z0, z1, top, front, side, id = 0, tdz = 0 }) {
     const U = u1 - u0, J = Math.ceil((v1 - v0) / this.VS), Z = z1 - z0;
     if (top) {
-      const mine = new Set();
+      // the face's pixels: a stamp per pixel (this call's gen) and their first-hit order. Indices past the buffer's
+      // end (up to one row) are stamped too, as a neighbour test may read them; beyond that nothing can be filled.
+      const N = this.w * this.h, M = N + this.w + 1, gen = ++this.gen;
+      if (!this.mark) { this.mark = new Int32Array(M); this.list = new Int32Array(N); }
+      const { mark, list } = this;
+      let n = 0;
       for (let u = u0; u < u1; u++) for (let v = v0; v < v1; v++) {
-        const [sx, sy] = this.P(u, v, z1);
-        mine.add((sy + this.oy) * this.w + sx + this.ox);
-        this.put(u, v, z1, top(u - u0, fl((v - v0) / this.VS), U, J), id, 0, tdz);
+        const sx = this.sx(u, v), sy = this.sy(u, v, z1), k = (sy + this.oy) * this.w + sx + this.ox;
+        if (k >= 0 && k < M && mark[k] !== gen) { mark[k] = gen; if (k < N) list[n++] = k; }
+        this.px(sx, sy, u + v + z1 + tdz, top(u - u0, fl((v - v0) / this.VS), U, J), id, 0, u, v, z1); // put(), projected once
       }
       // the projection misses single pixels inside a top face (where both stairs step together): take them from
       // the face's neighbour, over whatever further back showed through
-      for (const i of mine) for (const s of [1, this.w]) {
-        const j = i + s;
-        if (!mine.has(j) && mine.has(j + s) && this.dp[j] < this.dp[i] && this.id[i] === id) {
+      const has = k => k < M && mark[k] === gen;
+      for (let q = 0; q < n; q++) { const i = list[q]; if (this.id[i] === id) for (let t = 0; t < 2; t++) {
+        const s = t ? this.w : 1, j = i + s;
+        if (!has(j) && has(j + s) && this.dp[j] < this.dp[i]) {
           this.ch[j] = this.ch[i]; this.dp[j] = this.dp[i]; this.id[j] = id; this.face[j] = 0;
           for (let k = 0; k < 3; k++) this.world[3 * j + k] = this.world[3 * i + k];
         }
-      }
+      } }
     }
     if (front) for (let u = u0; u < u1; u++) for (let z = z0; z < z1; z++) this.put(u, v1 - 1, z, front(u - u0, z1 - 1 - z, U, Z), id, 1);
     if (side) for (let v = v0; v < v1; v++) for (let z = z0; z < z1; z++) this.put(u1 - 1, v, z, side(fl((v1 - 1 - v) / this.VS), z1 - 1 - z, J, Z), id, 2);
@@ -118,25 +128,32 @@ export class IsoBuf {
     const { w, h } = this, mark = [];
     // the projection leaves single-pixel holes inside top faces (where the 3- and 2-stairs step together); fill
     // each from its left (or upper) neighbour on the same top face. Edges are unaffected.
+    const { ch, face } = this;
     for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
       const i = y * w + x;
-      if (this.ch[i] !== '.') continue;
-      for (let [a, b] of [[i - 1, i + 1], [i - w, i + w]]) {
-        if (this.ch[a] === '.' || this.ch[b] === '.' || (this.face[a] !== 0 && this.face[b] !== 0)) continue;
-        if (this.face[a] !== 0) a = b;
-        this.ch[i] = this.ch[a]; this.dp[i] = this.dp[a]; this.id[i] = this.id[a]; this.face[i] = 0;
+      if (ch[i] !== '.') continue;
+      for (let t = 0; t < 2; t++) {
+        const s = t ? w : 1;
+        let a = i - s;
+        const b = i + s;
+        if (ch[a] === '.' || ch[b] === '.' || (face[a] !== 0 && face[b] !== 0)) continue;
+        if (face[a] !== 0) a = b;
+        ch[i] = ch[a]; this.dp[i] = this.dp[a]; this.id[i] = this.id[a]; face[i] = 0;
         for (let k = 0; k < 3; k++) this.world[3 * i + k] = this.world[3 * a + k];
         break;
       }
     }
+    const { id, dp } = this, want = new Uint8Array(65536); // ids are Int16: index by their 16 bits
+    for (const k of ids) if (k === (k << 16) >> 16) want[k & 0xffff] = 1;
+    const edge = (i, X, Y) => {
+      if (X < 0 || Y < 0 || X >= w || Y >= h) return true;
+      const j = Y * w + X;
+      return ch[j] === '.' || (id[j] !== id[i] && dp[j] < dp[i] - gap);
+    };
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = y * w + x;
-      if (!ids.has(this.id[i])) continue;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const X = x + dx, Y = y + dy, j = Y * w + X;
-        const out = X < 0 || Y < 0 || X >= w || Y >= h || this.ch[j] === '.';
-        if (out || (this.id[j] !== this.id[i] && this.dp[j] < this.dp[i] - gap)) { mark.push(i); break; }
-      }
+      if (!want[id[i] & 0xffff]) continue;
+      if (edge(i, x + 1, y) || edge(i, x - 1, y) || edge(i, x, y + 1) || edge(i, x, y - 1)) mark.push(i);
     }
     for (const i of mark) this.ch[i] = 'k';
   }

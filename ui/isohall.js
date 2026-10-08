@@ -82,19 +82,20 @@ export function bounds(hall) {
   return { w: Math.ceil((maxX - minX) / 2), h: Math.ceil((maxY - minY) / 2), ox: -minX, oy: -minY };
 }
 
-// A room tile's texel at (i, r) of a W x H rect, by the tile's fill rule (room.js tile()).
+// A room tile's texel at (i, r) of a W x H rect, by the tile's fill rule (room.js tile()): texOf(name)(i, r, W, H),
+// the tile looked up once (called per pixel).
 const NO_RULE = {};
-function texel(name, i, r, W = 0, H = 0) {
+function texOf(name) {
   const t = ROOM.tiles[name] ?? NO_RULE, f = ROOM.frames[name], th = f.length, tw = f[0].length;
-  if (t.fill === 'repeat') return (t.top && r < th ? ROOM.frames[t.top] : f)[r % th][i % tw];
-  if (t.fill === 'repeat-x' || t.fill === 'repeat-y') return f[r % th][i % tw];
+  if (t.fill === 'repeat') { const top = t.top && ROOM.frames[t.top]; return (i, r) => (top && r < th ? top : f)[r % th][i % tw]; }
+  if (t.fill === 'repeat-x' || t.fill === 'repeat-y') return (i, r) => f[r % th][i % tw];
   if (t.fill === 'nine') {
     const E = t.edge, m = (k, K, n) => (k < E ? k : k >= K - E ? n - (K - k) : E + ((k - E) % (n - 2 * E)));
-    return f[m(r, H, th)]?.[m(i, W, tw)] ?? '.';
+    return (i, r, W = 0, H = 0) => f[m(r, H, th)]?.[m(i, W, tw)] ?? '.';
   }
-  return f[r]?.[i] ?? '.';
+  return (i, r) => f[r]?.[i] ?? '.';
 }
-const wallTex = (tex, foot, Z) => (i, r) => (foot && r >= Z - FOOT ? texel('wall foot', i, r - Z + FOOT) : texel(tex, i, r));
+const wallTex = (tex, foot, Z) => { const a = foot && texOf('wall foot'), b = texOf(tex); return (i, r) => (foot && r >= Z - FOOT ? a(i, r - Z + FOOT) : b(i, r)); };
 
 // Props that stand on the floor and get a contact shadow (scene.js STANDING, not exported there).
 const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
@@ -158,14 +159,14 @@ export function renderHall39(hall, day = true) {
   const { w, h, ox: bx, oy: by } = bounds(hall);
   const buf = new IsoBuf(2 * w, 2 * h, bx, by, P39, { VS: VS39, asym: true }), plan = roomPlan(hall), Z = plan.Z;
   for (const s of plan.surfaces) {
-    const box = { u0: s.u0, u1: s.u1, v0: s.v0, v1: s.v1, z0: s.z0, z1: s.z1, id: ID[s.kind] };
-    if (s.kind === 'floor' || s.kind === 'strip') buf.box({ ...box, z0: -1, top: (i, j, W, J) => texel(s.tex, i, j, W, J), tdz: s.kind === 'floor' ? -3 : -2.5 });
+    if (s.kind === 'door') continue; // the dynamic layer's
+    const box = { u0: s.u0, u1: s.u1, v0: s.v0, v1: s.v1, z0: s.z0, z1: s.z1, id: ID[s.kind] }, tx = s.kind === 'wall' ? null : texOf(s.tex);
+    if (s.kind === 'floor' || s.kind === 'strip') buf.box({ ...box, z0: -1, top: (i, j, W, J) => tx(i, j, W, J), tdz: s.kind === 'floor' ? -3 : -2.5 });
     else if (s.kind === 'wall') buf.box({ ...box, top: () => CAP, // one face each: a 1-unit wall's other face would overdraw its edge
       ...(s.name === 'west' ? { side: ((tex) => (j, r, J) => tex(J - 1 - j, r))(wallTex(s.tex, s.foot, Z)) } : { front: wallTex(s.tex, s.foot, Z) }) });
-    else if (s.kind === 'slab') buf.box({ ...box, top: cut, front: (i, r) => texel(s.tex, i, r + 20), side: (j, r) => texel(s.tex, j, r + 20) }); // plates below their seam row
-    else if (s.kind === 'door') continue; // the dynamic layer's
-    else if (s.name === 'jamb' || s.name === 'lintel') buf.box({ ...box, top: cut, front: (i, r) => texel(s.tex, i, r), side: (j, r) => texel(s.tex, j, r) });
-    else buf.box({ ...box, front: (i, r) => texel(s.tex, i, r), top: i => texel(s.tex, i, 0), side: (j, r) => texel(s.tex, s.u1 - s.u0 - 1, r) });
+    else if (s.kind === 'slab') buf.box({ ...box, top: cut, front: (i, r) => tx(i, r + 20), side: (j, r) => tx(j, r + 20) }); // plates below their seam row
+    else if (s.name === 'jamb' || s.name === 'lintel') buf.box({ ...box, top: cut, front: (i, r) => tx(i, r), side: (j, r) => tx(j, r) });
+    else buf.box({ ...box, front: (i, r) => tx(i, r), top: i => tx(i, 0), side: (j, r) => tx(s.u1 - s.u0 - 1, r) });
   }
   // what hangs on the north wall: the windows (glass recoloured by day/night when painted); then every prop where
   // placeProps puts it: decals or face sheets on a wall plane, face sheets built in 3D or upright frames on the floor

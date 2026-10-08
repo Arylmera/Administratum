@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { setTheme } from './theme.js';
+import './themes.js';
 import { roomPlan, bounds, renderHall39, placeProps } from './isohall.js';
 import { hallOf, WALL, WALL_DY, SCENE, MAX_W } from './layout.js';
 import { P39 } from './iso.js';
@@ -98,6 +101,21 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
   assert.ok(shade.some(a => a > 0.3), 'shading baked');
   console.log(`renderHall39 ${hall.w}x${hall.h} bays ${hall.bays}: ${buf.w}x${buf.h} art px, ${ms.toFixed(0)} ms`);
 }
+// Speed-ups of the render must not move a pixel: the char grid and the shading of the default hall and a big 2-bay
+// hall, in Tier II and the vault, against hashes recorded before the T12 optimisation (iso.js box/outline, texOf).
+// An art or layout change on purpose changes them: re-record (print the hash below) once the new look is checked.
+const GRID = {
+  'tier2 346x248 day': '40ae11d62389', 'tier2 554x728 night': '2ea4868b8649', 'vault 346x248 day': '892563b855f3', 'vault 554x728 night': '0cb6d397fd77',
+};
+for (const id of ['tier2', 'vault']) {
+  setTheme(id);
+  for (const [hall, day] of [[hallOf(0), true], [hallOf(2, { w: MAX_W, h: 600 }), false]]) {
+    const { buf, shade } = renderHall39(hall, day), k = `${id} ${hall.w}x${hall.h} ${day ? 'day' : 'night'}`;
+    const hash = createHash('sha1').update(buf.ch.join('')).update(new Uint8Array(shade.buffer)).digest('hex').slice(0, 12);
+    assert.equal(hash, GRID[k], `${k}: the 39° background changed`);
+  }
+}
+setTheme('tier2');
 setView('flat');
 assert.equal(SCENE.w, hallOf(0).w);
 console.log('isohall ok');
