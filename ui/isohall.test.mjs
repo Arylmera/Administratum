@@ -30,21 +30,19 @@ for (const hall of halls) {
   const slabs = surfaces.filter(s => s.kind === 'slab');
   assert.ok(slabs.length >= 6, tag);
   assert.ok(slabs.every(s => s.z1 < Z), tag);
-  const [back] = named('slab', 'refectorium/sanctum'); // the sanctum's back wall, as tall as its flat wall band
-  assert.equal(back.z1, 60, tag);
-  assert.ok(slabs.every(s => s === back || s.z1 === 32), tag);
+  assert.ok(slabs.every(s => s.z1 === 8), `${tag}: walls down, every inner wall 4 logical px`);
+  const [back] = named('slab', 'refectorium/sanctum'); // the wall between refectorium and sanctum
   assert.equal(named('slab', 'bays').length, hall.bays ? 1 : 0, tag);
   // the east wall's door openings at the flat doors' y: the doorways (hall.refOut, doorOut) stand in gaps
   const east = named('slab', 'east wall');
   for (const door of [hall.refOut, hall.doorOut]) {
     const v = 2 * (door.y - WALL);
     assert.ok(!east.some(s => v >= s.v0 && v < s.v1), `${tag}: a door at y ${door.y} is open`);
-    // a real doorway: a lintel across it above the cutaway wall, the leaves' place in it (the dynamic layer's)
-    const over = (s, k) => s.kind === k && v >= s.v0 && v < s.v1 && s.u0 <= 2 * hall.sw && s.u1 >= 2 * hall.rx;
-    assert.ok(surfaces.some(s => over(s, 'box') && s.name === 'lintel' && s.z0 === 32), `${tag}: a lintel over y ${door.y}`);
-    assert.ok(surfaces.some(s => s.kind === 'door' && v >= s.v0 && v < s.v1 && s.u0 >= 2 * hall.sw && s.u1 <= 2 * hall.rx), `${tag}: leaves at y ${door.y}`);
   }
+  // walls down: an open gap between two low posts, no lintel, no door leaves
+  assert.ok(!surfaces.some(s => s.kind === 'door' || s.name === 'lintel'), tag);
   assert.equal(named('box', 'jamb').length, 4, tag);
+  assert.ok(named('box', 'jamb').every(s => s.z1 === 12), tag);
   assert.equal(east.length, 3, `${tag}: two openings`);
   assert.ok(east.every(s => s.u0 === 2 * hall.sw && s.u1 === 2 * hall.rx), tag);
   // props: hung ones on a wall plane within its height, standing ones on their room's floor, never on a wall band
@@ -63,9 +61,8 @@ for (const hall of halls) {
       assert.equal(p.z1, 2 * (WALL - p.y), `${at}: at its flat height`);
     }
     if (p.on === 'wall') {
-      const north = p.v0 <= 4, plane = north ? { u0: 0, u1: U, z1: Z } : back;
-      assert.ok(north || p.v0 === band[0] || p.v0 === band[0] - 1, `${at}: on a wall plane`);
-      assert.ok(u0 >= plane.u0 && u1 <= plane.u1 && p.z0 >= 0 && p.z1 <= plane.z1, `${at}: within its wall`);
+      assert.ok(p.v0 <= 4, `${at}: only the north wall carries hangings (the sanctum's is low)`);
+      assert.ok(u0 >= 0 && u1 <= U && p.z0 >= 0 && p.z1 <= Z, `${at}: within its wall`);
       continue;
     }
     if (p.z0) { // resting on a shelf's top, against the north wall
@@ -106,7 +103,7 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // hall, in Tier II and the vault, against hashes recorded before the T12 optimisation (iso.js box/outline, texOf).
 // An art or layout change on purpose changes them: re-record (print the hash below) once the new look is checked.
 const GRID = {
-  'tier2 346x248 day': '40ae11d62389', 'tier2 554x728 night': '2ea4868b8649', 'vault 346x248 day': '892563b855f3', 'vault 554x728 night': '0cb6d397fd77',
+  'tier2 346x248 day': '7c59b58676e1', 'tier2 554x728 night': '1e511c8ef6dc', 'vault 346x248 day': 'b3f75bc3043f', 'vault 554x728 night': '52791b0ee72b',
 };
 for (const id of ['tier2', 'vault']) {
   setTheme(id);

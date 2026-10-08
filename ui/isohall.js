@@ -11,7 +11,7 @@ import { sheetOf, build39 } from './faces.js';
 import { aoBands } from './depth.js';
 import { T } from './theme.js';
 
-const SLAB_Z = 32; // a cutaway inner wall: 16 logical px high
+const SLAB_Z = 8; // a cutaway inner wall: 4 logical px, walls down (the rooms behind stay in view)
 const FOOT = 8; // the wall foot, art rows (flat: 4 logical px)
 const STRIP = Math.ceil(4 * VS39); // a 4-row floor strip (channel, sill) across v: 4 screen rows
 const WALL_V0 = 4; // props against the back wall stand in front of the pipe run (v 1..4)
@@ -41,17 +41,14 @@ export function roomPlan(hall) {
   const slab = (name, x0, x1, y0, y1, tex = 'wall') => { if (y1 > y0) add('slab', name, tex, fx(x0), fx(x1), fy(y0), fy(y1), 0, SLAB_Z); };
   const r0 = 78 + D, r1 = 98 + D, d0 = 150 + sd, d1 = 186 + sd;
   slab('east wall', sw, rx, WALL, r0); slab('east wall', sw, rx, r1, d0); slab('east wall', sw, rx, d1, h);
-  // each doorway: a post at either end and a lintel across (brass-capped iron, standing proud of the wall); the door
-  // leaves' place (kind door: not drawn here, the dynamic layer slides them; tex: their room tile, the flat frame)
-  for (const [name, y0, y1] of [['refectory', r0, r1], ['sanctum', d0, d1]]) {
+  // each doorway: an open gap, a post at either end (brass-capped iron, a little proud of the low wall); walls down,
+  // no lintel and no door leaves
+  for (const [y0, y1] of [[r0, r1], [d0, d1]]) {
     const u0 = fx(sw) - 2, u1 = fx(rx) + 2, v0 = fy(y0), v1 = fy(y1);
-    add('box', 'jamb', 'pillar', u0, u1, v0 - 4, v0, 0, SLAB_Z + 8);
-    add('box', 'jamb', 'pillar', u0, u1, v1, v1 + 4, 0, SLAB_Z + 8);
-    add('box', 'lintel', 'pillar', u0, u1, v0, v1, SLAB_Z, SLAB_Z + 8);
-    add('door', name, `door ${name} closed`, fx(sw) + 6, fx(sw) + 10, v0, v1, 0, SLAB_Z);
+    add('box', 'jamb', 'pillar', u0, u1, v0 - 4, v0, 0, SLAB_Z + 4);
+    add('box', 'jamb', 'pillar', u0, u1, v1, v1 + 4, 0, SLAB_Z + 4);
   }
-  // the sanctum's back wall carries its hangings (placeProps): as tall as the flat hall's sanctum wall band (30 px)
-  add('slab', 'refectorium/sanctum', 'wall', fx(rx), U, fy(split - 10), fy(split), 0, 2 * 30);
+  add('slab', 'refectorium/sanctum', 'wall', fx(rx), U, fy(split - 10), fy(split), 0, SLAB_Z); // its hangings go with it (placeProps)
   slab('sanctum west', rx + 2, rx + 12, split - 2, d0); slab('sanctum west', rx + 2, rx + 12, d1, baseH); // the pillars
   slab('sanctum east', rx + 126, rx + 136, split - 2, baseH);
   if (dy) slab('bays', rx, w, baseH, h, 'wall');
@@ -103,7 +100,7 @@ const onWall = (name, y) => name === 'HANGING' || hung(name, y);
 const depthOf = s => s.d || Math.max(1, ...s.details.map(p => p.v + (p.kind === 'box' ? p.d : p.kind === 'cyl' ? p.map[0].length >> 1 : p.kind === 'disc' ? p.t ?? 2 : 1)));
 
 // The sanctum's back wall band in the flat hall (scene.js drawStatic: 'wall sanctum' split..split + 30, its foot the
-// last 4 px): in the 39° view the wall between refectorium and sanctum, tall enough to carry what hangs there.
+// last 4 px): what hangs in it in the flat hall is left out of the 39° view (its wall there is a low cutaway).
 const sanctumBand = ({ split }) => ({ y0: split, y1: split + 30 });
 // A z-buffer seen SHIFTED up by Z (a face sheet resting on something, or hung on a wall): build39 builds from z = 0.
 const lift = (buf, Z) => ({
@@ -113,8 +110,8 @@ const lift = (buf, Z) => ({
 });
 
 // Where each prop of propsOf(hall) goes, from its flat frame's bottom row yb = y + height (its floor contact):
-//   on 'wall'  hung in the flat hall: the north wall's hung() set (plane v 0), or inside the sanctum's wall band
-//              (plane: that wall's face); z from how far above the wall's foot it sits in the flat frame
+//   on 'wall'  hung in the flat hall on the north wall (hung(), plane v 0); z from how far above the wall's foot it
+//              sits in the flat frame. What hangs in the sanctum's wall band is left out (a low wall in this view)
 //   on 'floor' everything else, its frame's bottom row on the floor line yb; when yb is above the wall foot (books
 //              and stacks on a shelf's top), resting at that height (z0) against the north wall
 // -> [{ name, map, sheet (face sheet or null: an upright frame), on, u0 (frame column 0), v0 (its back), z0, z1,
@@ -128,7 +125,7 @@ export function placeProps(hall) {
     const foot = (v0, dd = d) => (sheet?.front ? { u0: u0 + sheet.x0, u1: u0 + sheet.x0 + sheet.w, v0, v1: v0 + dd } : { u0, u1: u0 + fw, v0, v1: v0 + dd });
     const hang = (v0, top) => out.push({ name, x, y, yb, map, sheet, on: 'wall', u0, v0, z0: top - fh, z1: top, foot: foot(v0) });
     if (onWall(name, y)) hang(sheet ? WALL_V0 : 0, 2 * (WALL - y));
-    else if (x >= hall.rx && y >= band.y0 && yb <= band.y1) hang(fy(band.y0) - (sheet ? 0 : 1), 2 * (band.y1 - y));
+    else if (x >= hall.rx && y >= band.y0 && yb <= band.y1) continue; // hung on the sanctum's wall: the low wall has none
     else {
       const z0 = yb < WALL ? 2 * (WALL - yb) : 0, v0 = z0 ? WALL_V0 : Math.max(WALL_V0, fy(yb) - d);
       out.push({ name, x, y, yb, map, sheet, on: 'floor', u0, v0, z0, z1: z0 + fh, foot: foot(v0) });
