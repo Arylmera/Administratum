@@ -49,6 +49,25 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/magos.png` | <img src="tier2/MAGOS.png" height="160"> |
 | <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png` | <img src="tier2/MAGOS.arm.png" height="160"> |
 
+## 39° characters
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="scribe39-e"></a>`SCRIBE39.E` | 16×17 | SCRIBE39, 39° view, walking E, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.E.png" height="136"> |
+| <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.W.png" height="136"> |
+| <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.S.png" height="136"> |
+| <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.N.png" height="136"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.armL.png" height="64"> |
+| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.scroll.png" height="56"> |
+| <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.E.png" height="112"> |
+| <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.W.png" height="112"> |
+| <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.S.png" height="112"> |
+| <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.N.png" height="112"> |
+| <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/magos39.png` | <img src="tier2/MAGOS39.body.png" height="160"> |
+| <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/magos39.png` | <img src="tier2/MAGOS39.arm.png" height="160"> |
+| <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/skull39.png` | <img src="tier2/SKULL39.skull.png" height="80"> |
+
 ## Props and furniture
 
 | Sprite | Logical size | Notes | Image |
@@ -73,17 +92,17 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="tier2/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="tier2/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="tier2/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js, theme.js | <img src="tier2/WINDOW.png" height="136"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="tier2/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/walls.png` | <img src="tier2/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/walls.png` | <img src="tier2/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/walls.png`, drawn by scene.js | <img src="tier2/BANNER.png" height="120"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/walls.png`, drawn by scene.js, wallart.js | <img src="tier2/BANNER.png" height="120"> |
 | <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tier2/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tier2/GAUGE.png" height="48"> |
 | <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tier2/CENSER.png" height="80"> |
-| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tier2/WINDOW_TALL.png" height="160"> |
+| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="tier2/WINDOW_TALL.png" height="160"> |
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="tier2/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="tier2/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by scene.js | <img src="tier2/HANGING.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by scene.js, wallart.js | <img src="tier2/HANGING.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="tier2/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="tier2/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="tier2/BOOKS.png" height="72"> |
@@ -135,3 +154,27 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_refectory_closed.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_refectory_open.png" height="160"> |
+
+## Face sheets (39° side and top faces)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="faces-desk"></a>`FACES.DESK` | 5×12 | DESK, 39° view only: side, top, slate side, slate top, paper side, paper top, dish top, candle top, candle 2 top. Source: `ui/art/faces.png` | <img src="tier2/FACES.DESK.png" height="96"> |
+| <a id="faces-lectern"></a>`FACES.LECTERN` | 5×12 | LECTERN, 39° view only: side, top, slate side, slate top, dish top, candle top, candle 2 top. Source: `ui/art/faces.png` | <img src="tier2/FACES.LECTERN.png" height="96"> |
+| <a id="faces-console"></a>`FACES.CONSOLE` | 3×4 | CONSOLE, 39° view only: side, top, monitor side, monitor top, monitor screen wall, monitor screen floor. Source: `ui/art/faces.png` | <img src="tier2/FACES.CONSOLE.png" height="48"> |
+| <a id="faces-shelf"></a>`FACES.SHELF` | 2.5×21 | SHELF, 39° view only: side, top. Source: `ui/art/faces.png` | <img src="tier2/FACES.SHELF.png" height="160"> |
+| <a id="faces-cogitator"></a>`FACES.COGITATOR` | 4.5×41 | COGITATOR, 39° view only: side, top, screen wall, screen floor, wave wall, wave floor, bars wall, bars floor, vents L side, vents L top, vents R side, vents R top, cog rim, knob top, gauge 1 rim, gauge 2 rim, gauge 3 rim, gauge 4 rim, dial 1 rim, dial 2 rim, dial 3 rim, dial 4 rim. Source: `ui/art/faces.png` | <img src="tier2/FACES.COGITATOR.png" height="160"> |
+| <a id="faces-crate"></a>`FACES.CRATE` | 5×10 | CRATE, 39° view only: side, top, tins side, tins top. Source: `ui/art/faces.png` | <img src="tier2/FACES.CRATE.png" height="80"> |
+| <a id="faces-table"></a>`FACES.TABLE` | 5.5×2.5 | TABLE, 39° view only: side, top, mug 1 top, cup top, mug 2 top. Source: `ui/art/faces.png` | <img src="tier2/FACES.TABLE.png" height="44"> |
+| <a id="faces-bench"></a>`FACES.BENCH` | 2×2 | BENCH, 39° view only: side, top. Source: `ui/art/faces.png` | <img src="tier2/FACES.BENCH.png" height="16"> |
+| <a id="faces-recaff"></a>`FACES.RECAFF` | 3.5×18 | RECAFF, 39° view only: side, top, screen wall, screen floor, alcove wall, alcove floor. Source: `ui/art/faces.png` | <img src="tier2/FACES.RECAFF.png" height="144"> |
+| <a id="faces-lord_desk"></a>`FACES.LORD_DESK` | 5.5×7.5 | LORD_DESK, 39° view only: side, top, inkwell top. Source: `ui/art/faces.png` | <img src="tier2/FACES.LORD_DESK.png" height="60"> |
+| <a id="faces-throne"></a>`FACES.THRONE` | 5×6 | THRONE, 39° view only: side, top, back side, back top, arm L side, arm L top, arm R side, arm R top, crest rim. Source: `ui/art/faces.png` | <img src="tier2/FACES.THRONE.png" height="80"> |
+| <a id="faces-cog_mech"></a>`FACES.COG_MECH` | 18×18 | COG_MECH, 39° view only: cog rim. Source: `ui/art/faces.png` | <img src="tier2/FACES.COG_MECH.png" height="144"> |
+| <a id="faces-seal"></a>`FACES.SEAL` | 5×4 | SEAL, 39° view only: wax rim. Source: `ui/art/faces.png` | <img src="tier2/FACES.SEAL.png" height="32"> |
+| <a id="faces-gauge"></a>`FACES.GAUGE` | 6×6 | GAUGE, 39° view only: dial rim. Source: `ui/art/faces.png` | <img src="tier2/FACES.GAUGE.png" height="48"> |
+| <a id="faces-censer"></a>`FACES.CENSER` | 5×2.5 | CENSER, 39° view only: bowl top. Source: `ui/art/faces.png` | <img src="tier2/FACES.CENSER.png" height="20"> |
+| <a id="faces-candles"></a>`FACES.CANDLES` | 12×5 | CANDLES, 39° view only: dish top, candle 1 top, candle 2 top, candle 3 top. Source: `ui/art/faces.png` | <img src="tier2/FACES.CANDLES.png" height="40"> |
+| <a id="faces-brazier"></a>`FACES.BRAZIER` | 7×3 | BRAZIER, 39° view only: foot top, bowl top. Source: `ui/art/faces.png` | <img src="tier2/FACES.BRAZIER.png" height="24"> |
+| <a id="faces-books"></a>`FACES.BOOKS` | 2.5×2.5 | BOOKS, 39° view only: book 1 side, book 1 top, book 2 side, book 2 top, book 3 side, book 3 top, book 4 side, book 4 top. Source: `ui/art/faces.png` | <img src="tier2/FACES.BOOKS.png" height="24"> |
+| <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 3×4.5 | PAPER_STACK, 39° view only: ream 1 side, ream 1 top, ream 2 side, ream 2 top, ream 3 side, ream 3 top. Source: `ui/art/faces.png` | <img src="tier2/FACES.PAPER_STACK.png" height="40"> |
