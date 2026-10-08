@@ -38,16 +38,18 @@ const flip = r => [...r].reverse().join('');
 for (const n of ['THRONE', 'LORD_DESK', 'COG_MECH']) MAPS[n].forEach((r, j) => assert.equal(r.replace(/[^.]/g, '#'), flip(r).replace(/[^.]/g, '#'), `${n}: silhouette row ${j}`));
 MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).replace(/[^.k]/g, '#'), `THRONE: outline row ${j}`));
 
-// 39° character families (wave 2, no art yet): no ui/art/*39.* file in this repo, so the app still loads and every
-// export is empty. At RUNTIME an incomplete file degrades instead of throwing (resolve39 below); completeness is
+// 39° character families (wave 2): each ui/art/*39.* file (base or a world's) is either absent (the app still loads,
+// that export stays empty) or complete. At RUNTIME an incomplete file degrades instead of throwing (resolve39 below); completeness is
 // enforced by THIS TEST instead, over every file actually committed, so an incomplete one can never land.
 assert.deepEqual(FAMILIES39, ['scribe39', 'adept39', 'magos39', 'skull39']);
 for (const f of FAMILIES39) if (Object.keys(ART.base[f].frames).length) assert.equal(checkComplete39(f, ART.base[f]), true, `ui/art/${f}.json: incomplete`);
 for (const [themeId, families] of Object.entries(ART.themed)) {
   for (const f of FAMILIES39) if (families[f] && Object.keys(families[f].frames).length) assert.equal(checkComplete39(f, families[f]), true, `ui/art/${themeId}/${f}.json: incomplete`);
 }
-for (const [obj, at] of [[SCRIBE39, SCRIBE39_AT], [ADEPT39, ADEPT39_AT], [MAGOS39, MAGOS39_AT], [SKULL39, SKULL39_AT]]) {
-  assert.deepEqual(obj, {}); assert.deepEqual(at, {});
+// the exports (default theme) are filled exactly when the base file has frames, anchors with them
+for (const [f, obj, at] of [['scribe39', SCRIBE39, SCRIBE39_AT], ['adept39', ADEPT39, ADEPT39_AT], ['magos39', MAGOS39, MAGOS39_AT], ['skull39', SKULL39, SKULL39_AT]]) {
+  const has = Object.keys(ART.base[f].frames).length > 0;
+  assert.equal(Object.keys(obj).length > 0, has, `${f}: exports vs file`); assert.equal(Object.keys(at).length > 0, has, `${f}: anchors vs file`);
 }
 // Any 39 family that does land (e.g. once an art agent has run) must be complete: every row still a key-palette char.
 const dirRows = (obj, name) => ['E', 'W', 'S', 'N'].flatMap(d => (obj[d] ?? []).map((rows, i) => [`${name}.${d}[${i}]`, rows]));

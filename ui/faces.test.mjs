@@ -5,6 +5,7 @@ import { MAPS } from './sprites.js';
 import { THEMES, setTheme } from './theme.js';
 import './themes.js';
 import { sheetOf, composeFlat, build39, cols, VS, inEllipse, FACES, FACE_OBJECTS } from './faces.js';
+import { ART } from './sprites.js';
 
 const diff = (a, b) => { let n = 0; a.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== b[y]?.[x]) n++; }); return n; };
 
@@ -57,12 +58,16 @@ for (const [name, o] of Object.entries(FACES.base.objects)) {
     if (p.kind === 'box') { sizes[`${name} ${key} side`] = [cols(p.d), h]; sizes[`${name} ${key} top`] = [w, cols(p.d)]; recessSizes(`${name} ${key}`, p.recess); }
     if (p.kind === 'cyl') sizes[`${name} ${key} top`] = [w, cols(w)];
     if (p.kind === 'disc') sizes[`${name} ${key} rim`] = [w, h];
+    sizes[`${name} ${key} front`] = [w, h]; // a drawn front for a detail its frame shows only top-down (under a flat-only retouch)
   }
 }
 for (const [k, f] of Object.entries(FACES.base.frames)) {
   assert.ok(sizes[k], `faces.png: frame '${k}' belongs to no box, cylinder, disc or recess`);
   assert.deepEqual([f[0].length, f.length], sizes[k], `faces.png: '${k}' size`);
 }
+// a drawn front replaces the crop (the TABLE's mugs: top-down in the flat frame, seen from the side in 39°)
+setTheme('tier2');
+assert.deepEqual(sheetOf('TABLE').details.find(d => d.name === 'mug 1').map, FACES.base.frames['TABLE mug 1 front'], 'detail front frame used');
 for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'TABLE', 'BENCH', 'RECAFF', 'LORD_DESK', 'THRONE'])
   for (const f of ['side', 'top']) assert.ok(FACES.base.frames[`${n} ${f}`], `faces.png: no base '${n} ${f}'`);
 
@@ -135,10 +140,22 @@ for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'T
     assert.ok(side.length && side.every(p => sl.side.some(r => r.includes(p.c))), 'box: side from its frame');
     assert.ok(puts.some(p => p.v === sl.v + sl.d - 1 - sl.recess[0].depth && p.face === 1 && /[cC]/.test(p.c)), 'box: screen glass set back');
   }
+  // every theme's side/top: a frame present in a world's own faces.png is used, one missing falls back to null,
+  // proven per object against the raw faces data (not the sheetOf formula itself)
+  for (const id of Object.keys(THEMES)) {
+    const W = FACES.worlds[ART.dirOf(id)];
+    setTheme(id);
+    for (const name of FACE_OBJECTS) {
+      const own = W?.objects?.[name], F = own ? W.frames : FACES.base.frames;
+      const s = sheetOf(name);
+      assert.equal(s.side, F[`${name} side`] ?? null, `${id} ${name}: side fallback/override`);
+      assert.equal(s.top, F[`${name} top`] ?? null, `${id} ${name}: top fallback/override`);
+    }
+  }
   // a world without its own side/top art still builds (faces derived from the front's edge colours)
   setTheme('cyber');
   const w = sheetOf('DESK');
-  assert.equal(w.side, null);
+  assert.equal(w.side, null, 'cyber DESK: no side frame yet');
   const r = recorder();
   build39(r, w);
   assert.ok(r.puts.some(p => p.face === 2) && r.puts.some(p => p.face === 0), 'world desk: side and top derived');

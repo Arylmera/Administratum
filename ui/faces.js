@@ -28,7 +28,9 @@
 // faces.png frames, named '<NAME> side' / '<NAME> top' (main box), '<NAME> <detail> side|top' (a box or cylinder
 // detail), '<NAME> <spire>/<part> side|top': a side frame is h rows x cols(d) columns (column 0 at the front corner),
 // a top frame cols(d) rows x w columns (row 0 at the back). Missing frames are allowed (a world without its 39° art
-// yet): the builder then derives the face from the front's edge colours. A box detail's recess frames are
+// yet): the builder then derives the face from the front's edge colours. '<NAME> <detail> front' (the rect's size)
+// replaces a detail's crop when its frame shows it only top-down (a mug on a table): keep it under a flat-only rect so
+// the flat frame is unchanged. A box detail's recess frames are
 // '<NAME> <detail> <recess> wall|floor'. faces.png and faces.json are hand-edited source (no generator).
 import { T, THEMES } from './theme.js';
 import { MAPS, ART } from './sprites.js';
@@ -68,7 +70,7 @@ export function sheetOf(name, map = MAPS[name], id = T.id) {
   const recess = (list = [], pre) => list.map(r => ({ ...r, wallFrame: frame(`${pre}${r.name} wall`), floorFrame: frame(`${pre}${r.name} floor`) }));
   const part = (p, key) => {
     const [x, y, pw, ph] = p.rect, mid = p.kind === 'cyl' || p.kind === 'bill';
-    return { ...p, map: crop(map, p.rect), at: [x, y], u: p.u ?? x + (mid ? pw >> 1 : 0), v: p.v ?? (p.kind === 'disc' ? o.d ?? 0 : 0),
+    return { ...p, map: frame(`${key} front`) ?? crop(map, p.rect), at: [x, y], u: p.u ?? x + (mid ? pw >> 1 : 0), v: p.v ?? (p.kind === 'disc' ? o.d ?? 0 : 0),
       z: p.z ?? (p.kind === 'top' ? bh : B - (y + ph)), side: frame(`${key} side`), top: frame(`${key} top`), rimFrame: frame(`${key} rim`),
       ...(p.recess && { recess: recess(p.recess, `${key} `) }),
       ...(p.parts && { parts: p.parts.map(q => part({ v: p.v, ...q }, `${key}/${q.name}`)) }) };
