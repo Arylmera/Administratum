@@ -135,8 +135,8 @@ const MAX_LEVEL = 1 + MAX_BAYS;
 // state to pass back next tick. grace: { desk, dept, shrink } ms overrides. size: the scene's {w, h} (hallOf).
 // Space: past capacity the hall goes compact, then grows bays (result `level`, `compact`, `bays`); it steps back
 // one level at a time once the level below would still fit with one more department, for SHRINK_MS.
-// The "+N in the stacks" overflow only remains past MAX_BAYS.
-export function planLayout(prev, depts, now, grace = {}, size = SCENE) {
+// The "+N in the stacks" overflow only remains past MAX_BAYS. lay: the layout function (layoutStrip in the desktop strip).
+export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = layoutDepartments) {
   const deskG = grace.desk ?? DESK_GRACE_MS, deptG = grace.dept ?? DEPT_GRACE_MS, shrinkG = grace.shrink ?? SHRINK_MS;
   const live = new Map(depts.map(d => [d.name, d]));
   let seq = prev?.seq ?? 0;
@@ -162,18 +162,18 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE) {
   }
   plan = plan.filter(p => p.emptySince == null || now - p.emptySince < deptG);
   let level = prev?.level ?? 0, shrinkSince = prev?.shrinkSince ?? null;
-  let L = layoutDepartments(plan, { ...levelOpt(level), size });
+  let L = lay(plan, { ...levelOpt(level), size });
   if (L.overflow) { // capacity forces it: drop the waiting empties now
     plan = plan.filter(p => p.emptySince == null);
     for (const p of plan) { p.desks = p.desks.filter(k => k.id); p.cons = Math.ceil(p.helpers.length / 4); p.consFreeSince = null; }
-    L = layoutDepartments(plan, { ...levelOpt(level), size });
+    L = lay(plan, { ...levelOpt(level), size });
   }
   if (L.overflow) shrinkSince = null;
-  while (L.overflow && level < MAX_LEVEL) L = layoutDepartments(plan, { ...levelOpt(++level), size }); // still full: compact, then grow
+  while (L.overflow && level < MAX_LEVEL) L = lay(plan, { ...levelOpt(++level), size }); // still full: compact, then grow
   if (level > 0 && !L.overflow) { // hysteresis: the level below must still hold a newcomer's department, for a while
-    const roomy = !layoutDepartments(plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }), { ...levelOpt(level - 1), size }).overflow;
+    const roomy = !lay(plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }), { ...levelOpt(level - 1), size }).overflow;
     if (!roomy) shrinkSince = null;
-    else if (now - (shrinkSince ??= now) >= shrinkG) { L = layoutDepartments(plan, { ...levelOpt(--level), size }); shrinkSince = null; }
+    else if (now - (shrinkSince ??= now) >= shrinkG) { L = lay(plan, { ...levelOpt(--level), size }); shrinkSince = null; }
   }
   return { ...L, plan, seq, level, shrinkSince, ...levelOpt(level) };
 }

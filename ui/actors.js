@@ -87,8 +87,8 @@ export class Cast {
     a.wait = 0;
     a.pose = 'walk';
     if (a.x === d.x && a.y === d.y) { a.path = []; return; } // already there (a resize re-routing everyone)
-    const H = this.hall;
-    a.path = d.pose === 'nap' ? route(from, H.recaff, blocks, H).concat({ x: d.x, y: d.y }) : route(from, d, blocks, H);
+    const H = this.hall, R = H.route ?? route;
+    a.path = d.pose === 'nap' ? R(from, H.recaff, blocks, H).concat({ x: d.x, y: d.y }) : R(from, d, blocks, H);
     if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
   }
 
@@ -108,7 +108,7 @@ export class Cast {
   // The session compacted its context: a seated scribe carries its old pile to the nearest brazier and burns it;
   // anywhere else (cogitator, queue, refectory, on the way) the desk pile just goes up in a puff.
   compacted(a) {
-    if (a.pose !== 'desk') { a.puff = PUFF_S; return; }
+    if (a.pose !== 'desk' || this.hall.strip) { a.puff = PUFF_S; return; } // no brazier in the strip
     const fire = braziers(this.hall.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
     a.burn = { fire, old: a.s.context, left: BURN_S };
   }
