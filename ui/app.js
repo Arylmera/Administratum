@@ -732,8 +732,9 @@ function renderLinks(card, s) {
   orca.hidden = REMOTE || !s?.orca; web.hidden = !s?.web;
   card.querySelector('.links .note').hidden = !REMOTE || !s?.orca; // the terminal is on the PC's screen
   card.querySelector('.links').hidden = !s?.orca && web.hidden;
-  orca.onclick = () => openTarget(`orca:${s.orca}`);
-  web.onclick = () => openTarget(`web:${s.web}`);
+  // the card has done its job once the terminal or the web session is open: close it (closeCard)
+  orca.onclick = () => { openTarget(`orca:${s.orca}`); closeCard(); };
+  web.onclick = () => { openTarget(`web:${s.web}`); closeCard(); };
 }
 
 function select(id) {
