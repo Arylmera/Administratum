@@ -81,6 +81,9 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   depth sorted by its floor footprint, with contact shadows, cast shadows at night and lights lifted off the floor
   (every desk-level glow sits at one shared desk height, its pool on the floor under it). At Auto scale the whole
   turned hall fits the window (smaller pixels); an explicit Scale pans, as in the flat view.
+
+  ![The 2.5D view: the same hall turned 39°, with real volumes, cutaway walls and a petition in the Sanctum](docs/img/hall39.png)
+
 - **Desktop strip**: a thin, transparent, click-through bar pinned to the Windows taskbar, outlined pixel art
   over whatever is behind it. Left to right: a handle with its own small menu (Hall view, Settings, Chronicon,
   Hide), each department's lecterns and its adepts' consoles on a coloured mat with a name plaque, the cogitator,
