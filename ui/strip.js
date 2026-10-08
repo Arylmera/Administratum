@@ -24,9 +24,9 @@ export function stripOf(w) {
   const door = (x, kind, dw = DOOR_W) => ({ x, w: dw, kind });
   const dSan = door(R - 104 - 12 - DOOR_W, 'sanctum'); // 12 clear of the last petitioner
   const bench = { x: dSan.x - 50, y: FLOOR }, refectory = [11, 23, 35].map(d => at(bench.x + d)), recaff = at(bench.x - 5);
-  const dRef = door(recaff.x - 18 - 4 - DOOR_W, 'refectory'); // the recaff is drawn 18 px left of its spot
+  const dRef = door(recaff.x - 18 - 4 - DOOR_W, 'sanctum'); // the recaff is drawn 18 px left of its spot
   const cog = { x: dRef.x - 4 - 82, y: FLOOR }, cogSpots = [20, 41, 62].map(d => at(cog.x + d)); // in front of the bank
-  const dCog = door(cog.x - 4 - DOOR_W, 'refectory');
+  const dCog = door(cog.x - 4 - DOOR_W, 'sanctum'); // all three the sanctum's door: one height, the tallest
   S = {
     strip: true, route: stripRoute, w, h: STRIP_H, baseH: STRIP_H, bays: 0, dy: 0, rows: 1,
     sw: w, rx: w, ox: 0, dx: 0, split: STRIP_H, sd: 0, sb: 0, hy: 0, // roomOf(): everything is 'hall'

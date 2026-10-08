@@ -21,7 +21,7 @@ assert.deepEqual(H.lanes, [FLOOR]);
 assert.ok(800 - (H.magos.x + 10) >= MARGIN_R);
 // doors, left to right: the gate (clear of the handle, 6..18), then departments | cogitator | refectory | sanctum
 const [gate, dCog, dRef, dSan] = H.doors;
-assert.deepEqual(H.doors.map(d => d.kind), ['gate', 'refectory', 'refectory', 'sanctum']);
+assert.deepEqual(H.doors.map(d => d.kind), ['gate', 'sanctum', 'sanctum', 'sanctum']);
 for (let i = 1; i < H.doors.length; i++) assert.ok(H.doors[i - 1].x + H.doors[i - 1].w <= H.doors[i].x);
 assert.ok(gate.x >= 18 && gate.x + gate.w <= H.x0);
 assert.ok(H.x1 <= dCog.x && dCog.x + dCog.w <= H.cog.x);
