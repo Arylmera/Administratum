@@ -46,8 +46,10 @@ for (const f of FAMILIES39) if (Object.keys(ART.base[f].frames).length) assert.e
 for (const [themeId, families] of Object.entries(ART.themed)) {
   for (const f of FAMILIES39) if (families[f] && Object.keys(families[f].frames).length) assert.equal(checkComplete39(f, families[f]), true, `ui/art/${themeId}/${f}.json: incomplete`);
 }
-for (const [obj, at] of [[SCRIBE39, SCRIBE39_AT], [ADEPT39, ADEPT39_AT], [MAGOS39, MAGOS39_AT], [SKULL39, SKULL39_AT]]) {
-  assert.deepEqual(obj, {}); assert.deepEqual(at, {});
+// the exports (default theme) are filled exactly when the base file has frames, anchors with them
+for (const [f, obj, at] of [['scribe39', SCRIBE39, SCRIBE39_AT], ['adept39', ADEPT39, ADEPT39_AT], ['magos39', MAGOS39, MAGOS39_AT], ['skull39', SKULL39, SKULL39_AT]]) {
+  const has = Object.keys(ART.base[f].frames).length > 0;
+  assert.equal(Object.keys(obj).length > 0, has, `${f}: exports vs file`); assert.equal(Object.keys(at).length > 0, has, `${f}: anchors vs file`);
 }
 // Any 39 family that does land (e.g. once an art agent has run) must be complete: every row still a key-palette char.
 const dirRows = (obj, name) => ['E', 'W', 'S', 'N'].flatMap(d => (obj[d] ?? []).map((rows, i) => [`${name}.${d}[${i}]`, rows]));
