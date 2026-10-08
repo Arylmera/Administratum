@@ -57,9 +57,9 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.W.png" height="136"> |
 | <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.S.png" height="136"> |
 | <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.N.png" height="136"> |
-| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 4×8 | SCRIBE39, arm. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.arm.png" height="64"> |
 | <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.armL.png" height="64"> |
-| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 6×7 | SCRIBE39, scroll. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.scroll.png" height="56"> |
+| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/cyber/scribe39.png` | <img src="cyber/SCRIBE39.scroll.png" height="56"> |
 | <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="cyber/ADEPT39.E.png" height="112"> |
 | <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="cyber/ADEPT39.W.png" height="112"> |
 | <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="cyber/ADEPT39.S.png" height="112"> |
@@ -80,41 +80,41 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/cyber/workstations.png` | <img src="cyber/LECTERN.unlit.png" height="160"> |
 | <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="cyber/CONSOLE.png" height="80"> |
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/cyber/workstations.png` | <img src="cyber/CONSOLE.unlit.png" height="80"> |
-| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cyber/cogitator.png`, drawn by scene.js | <img src="cyber/COGITATOR.png" height="160"> |
-| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/THRONE.png" height="160"> |
-| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/LORD_DESK.png" height="104"> |
-| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/COG_MECH.png" height="144"> |
+| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cyber/cogitator.png`, drawn by isohall.js, scene.js | <img src="cyber/COGITATOR.png" height="160"> |
+| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/cyber/sanctum.png`, drawn by isohall.js, scene.js | <img src="cyber/THRONE.png" height="160"> |
+| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/cyber/sanctum.png`, drawn by isohall.js, scene.js | <img src="cyber/LORD_DESK.png" height="104"> |
+| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/cyber/sanctum.png`, drawn by isohall.js, scene.js | <img src="cyber/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/cyber/sanctum.png`, drawn by scene.js | <img src="cyber/SEAL.png" height="80"> |
-| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/cyber/gate.png`, drawn by scene.js | <img src="cyber/GATE_VOID.png" height="160"> |
-| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="cyber/RECAFF.png" height="144"> |
-| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="cyber/TABLE.png" height="64"> |
-| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="cyber/BENCH.png" height="32"> |
+| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/cyber/gate.png`, drawn by isohall.js, scene.js | <img src="cyber/GATE.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by isohall.js, scene.js | <img src="cyber/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/cyber/gate.png`, drawn by isohall.js, scene.js | <img src="cyber/GATE_R.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/cyber/gate.png`, drawn by isohall.js, scene.js | <img src="cyber/GATE_VOID.png" height="160"> |
+| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/cyber/refectorium.png`, drawn by isohall.js, scene.js | <img src="cyber/RECAFF.png" height="144"> |
+| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/cyber/refectorium.png`, drawn by isohall.js, scene.js | <img src="cyber/TABLE.png" height="64"> |
+| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/cyber/refectorium.png`, drawn by isohall.js, scene.js | <img src="cyber/BENCH.png" height="32"> |
 | <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/cyber/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="cyber/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/cyber/walls.png`, drawn by scene.js, wallart.js | <img src="cyber/BANNER.png" height="120"> |
-| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/SHELF.png" height="160"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/cyber/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="cyber/BANNER.png" height="120"> |
+| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/cyber/walls.png`, drawn by isohall.js, scene.js | <img src="cyber/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/GAUGE.png" height="48"> |
-| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/cyber/walls.png`, drawn by scene.js | <img src="cyber/CENSER.png" height="80"> |
+| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/cyber/walls.png`, drawn by isohall.js, scene.js | <img src="cyber/CENSER.png" height="80"> |
 | <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/cyber/walls.png`, drawn by wallart.js | <img src="cyber/WINDOW_TALL.png" height="160"> |
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/cyber/walls.png` | <img src="cyber/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/cyber/walls.png`, drawn by scene.js, wallart.js | <img src="cyber/HANGING.png" height="160"> |
-| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/PAPER_STACK.png" height="96"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/cyber/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="cyber/HANGING.png" height="160"> |
+| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/cyber/clutter.png`, drawn by isohall.js, scene.js | <img src="cyber/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/SCROLL_PILE.png" height="56"> |
-| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/BOOKS.png" height="72"> |
+| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/cyber/clutter.png`, drawn by isohall.js, scene.js | <img src="cyber/BOOKS.png" height="72"> |
 | <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/LOOSE_A.png" height="32"> |
 | <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/LOOSE_B.png" height="40"> |
-| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/cyber/clutter.png`, drawn by scene.js | <img src="cyber/CRATE.png" height="96"> |
-| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/cyber/skull.png`, drawn by scene.js | <img src="cyber/SKULL.png" height="80"> |
+| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/cyber/clutter.png`, drawn by isohall.js, scene.js | <img src="cyber/CRATE.png" height="96"> |
+| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/cyber/skull.png`, drawn by isohall.js, scene.js | <img src="cyber/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/cyber/skull.png` | <img src="cyber/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL.png" height="56"> |
 | <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/QSCROLL.png" height="56"> |
 | <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL_HELD.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/BRAZIER.png" height="104"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/cyber/fire.png`, drawn by isohall.js, scene.js | <img src="cyber/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_TAG.png" height="60"> |
@@ -176,6 +176,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="faces-censer"></a>`FACES.CENSER` | 1×0.5 | CENSER, 39° view only: cord top, lamp top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.CENSER.png" height="12"> |
 | <a id="faces-candles"></a>`FACES.CANDLES` | 2.5×2.5 | CANDLES, 39° view only: tray side, tray top, socket 1 top, socket 2 top, socket 3 top, tube 1 top, tube 2 top, tube 3 top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.CANDLES.png" height="20"> |
 | <a id="faces-brazier"></a>`FACES.BRAZIER` | 6×2.5 | BRAZIER, 39° view only: drum top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.BRAZIER.png" height="20"> |
+| <a id="faces-gate"></a>`FACES.GATE` | 6.5×3.5 | GATE, 39° view only: sill side, sill top, pier L side, pier L top, pier L sign wall, pier L sign floor, pier R side, pier R top, leaves side, leaves top, header side, header top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.GATE.png" height="160"> |
 | <a id="faces-books"></a>`FACES.BOOKS` | 2.5×2 | BOOKS, 39° view only: book 1 side, book 1 top, book 2 side, book 2 top, book 3 side, book 3 top, book 4 side, book 4 top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.BOOKS.png" height="24"> |
 | <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 3×4.5 | PAPER_STACK, 39° view only: ream 1 side, ream 1 top, ream 2 side, ream 2 top, ream 3 side, ream 3 top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.PAPER_STACK.png" height="40"> |
 | <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 1×1.5 | SCROLL_PILE, 39° view only: rod 1 side, rod 1 top, rod 2 side, rod 2 top, rod 3 side, rod 3 top, rod 4 side, rod 4 top, rod 5 side, rod 5 top, rod 6 side, rod 6 top, rod 7 side, rod 7 top. Source: `ui/art/cyber/faces.png` | <img src="cyber/FACES.SCROLL_PILE.png" height="20"> |

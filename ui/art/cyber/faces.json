@@ -856,10 +856,106 @@
     "h": 5
    }
   },
-  "BOOKS book 1 side": {
+  "GATE sill side": {
    "frame": {
     "x": 0,
     "y": 397,
+    "w": 13,
+    "h": 7
+   }
+  },
+  "GATE sill top": {
+   "frame": {
+    "x": 14,
+    "y": 397,
+    "w": 64,
+    "h": 13
+   }
+  },
+  "GATE pier L side": {
+   "frame": {
+    "x": 79,
+    "y": 397,
+    "w": 9,
+    "h": 43
+   }
+  },
+  "GATE pier L top": {
+   "frame": {
+    "x": 89,
+    "y": 397,
+    "w": 16,
+    "h": 9
+   }
+  },
+  "GATE pier L sign wall": {
+   "frame": {
+    "x": 106,
+    "y": 397,
+    "w": 1,
+    "h": 28
+   }
+  },
+  "GATE pier L sign floor": {
+   "frame": {
+    "x": 108,
+    "y": 397,
+    "w": 8,
+    "h": 1
+   }
+  },
+  "GATE pier R side": {
+   "frame": {
+    "x": 117,
+    "y": 397,
+    "w": 9,
+    "h": 43
+   }
+  },
+  "GATE pier R top": {
+   "frame": {
+    "x": 127,
+    "y": 397,
+    "w": 16,
+    "h": 9
+   }
+  },
+  "GATE leaves side": {
+   "frame": {
+    "x": 144,
+    "y": 397,
+    "w": 1,
+    "h": 43
+   }
+  },
+  "GATE leaves top": {
+   "frame": {
+    "x": 146,
+    "y": 397,
+    "w": 32,
+    "h": 1
+   }
+  },
+  "GATE header side": {
+   "frame": {
+    "x": 179,
+    "y": 397,
+    "w": 10,
+    "h": 10
+   }
+  },
+  "GATE header top": {
+   "frame": {
+    "x": 190,
+    "y": 397,
+    "w": 64,
+    "h": 10
+   }
+  },
+  "BOOKS book 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 441,
     "w": 5,
     "h": 4
    }
@@ -867,7 +963,7 @@
   "BOOKS book 1 top": {
    "frame": {
     "x": 6,
-    "y": 397,
+    "y": 441,
     "w": 14,
     "h": 5
    }
@@ -875,7 +971,7 @@
   "BOOKS book 2 side": {
    "frame": {
     "x": 21,
-    "y": 397,
+    "y": 441,
     "w": 5,
     "h": 5
    }
@@ -883,7 +979,7 @@
   "BOOKS book 2 top": {
    "frame": {
     "x": 27,
-    "y": 397,
+    "y": 441,
     "w": 18,
     "h": 5
    }
@@ -891,7 +987,7 @@
   "BOOKS book 3 side": {
    "frame": {
     "x": 46,
-    "y": 397,
+    "y": 441,
     "w": 5,
     "h": 3
    }
@@ -899,7 +995,7 @@
   "BOOKS book 3 top": {
    "frame": {
     "x": 52,
-    "y": 397,
+    "y": 441,
     "w": 16,
     "h": 5
    }
@@ -907,7 +1003,7 @@
   "BOOKS book 4 side": {
    "frame": {
     "x": 69,
-    "y": 397,
+    "y": 441,
     "w": 6,
     "h": 6
    }
@@ -915,7 +1011,7 @@
   "BOOKS book 4 top": {
    "frame": {
     "x": 76,
-    "y": 397,
+    "y": 441,
     "w": 20,
     "h": 6
    }
@@ -923,7 +1019,7 @@
   "PAPER_STACK ream 1 side": {
    "frame": {
     "x": 0,
-    "y": 404,
+    "y": 448,
     "w": 6,
     "h": 9
    }
@@ -931,7 +1027,7 @@
   "PAPER_STACK ream 1 top": {
    "frame": {
     "x": 7,
-    "y": 404,
+    "y": 448,
     "w": 16,
     "h": 6
    }
@@ -939,7 +1035,7 @@
   "PAPER_STACK ream 2 side": {
    "frame": {
     "x": 24,
-    "y": 404,
+    "y": 448,
     "w": 5,
     "h": 5
    }
@@ -947,7 +1043,7 @@
   "PAPER_STACK ream 2 top": {
    "frame": {
     "x": 30,
-    "y": 404,
+    "y": 448,
     "w": 14,
     "h": 5
    }
@@ -955,7 +1051,7 @@
   "PAPER_STACK ream 3 side": {
    "frame": {
     "x": 45,
-    "y": 404,
+    "y": 448,
     "w": 6,
     "h": 10
    }
@@ -963,7 +1059,7 @@
   "PAPER_STACK ream 3 top": {
    "frame": {
     "x": 52,
-    "y": 404,
+    "y": 448,
     "w": 16,
     "h": 6
    }
@@ -971,7 +1067,7 @@
   "SCROLL_PILE rod 1 side": {
    "frame": {
     "x": 0,
-    "y": 415,
+    "y": 459,
     "w": 2,
     "h": 3
    }
@@ -979,7 +1075,7 @@
   "SCROLL_PILE rod 1 top": {
    "frame": {
     "x": 3,
-    "y": 415,
+    "y": 459,
     "w": 8,
     "h": 2
    }
@@ -987,7 +1083,7 @@
   "SCROLL_PILE rod 2 side": {
    "frame": {
     "x": 12,
-    "y": 415,
+    "y": 459,
     "w": 2,
     "h": 3
    }
@@ -995,7 +1091,7 @@
   "SCROLL_PILE rod 2 top": {
    "frame": {
     "x": 15,
-    "y": 415,
+    "y": 459,
     "w": 8,
     "h": 2
    }
@@ -1003,7 +1099,7 @@
   "SCROLL_PILE rod 3 side": {
    "frame": {
     "x": 24,
-    "y": 415,
+    "y": 459,
     "w": 3,
     "h": 3
    }
@@ -1011,7 +1107,7 @@
   "SCROLL_PILE rod 3 top": {
    "frame": {
     "x": 28,
-    "y": 415,
+    "y": 459,
     "w": 10,
     "h": 3
    }
@@ -1019,7 +1115,7 @@
   "SCROLL_PILE rod 4 side": {
    "frame": {
     "x": 39,
-    "y": 415,
+    "y": 459,
     "w": 3,
     "h": 3
    }
@@ -1027,7 +1123,7 @@
   "SCROLL_PILE rod 4 top": {
    "frame": {
     "x": 43,
-    "y": 415,
+    "y": 459,
     "w": 10,
     "h": 3
    }
@@ -1035,7 +1131,7 @@
   "SCROLL_PILE rod 5 side": {
    "frame": {
     "x": 54,
-    "y": 415,
+    "y": 459,
     "w": 4,
     "h": 4
    }
@@ -1043,7 +1139,7 @@
   "SCROLL_PILE rod 5 top": {
    "frame": {
     "x": 59,
-    "y": 415,
+    "y": 459,
     "w": 15,
     "h": 4
    }
@@ -1051,7 +1147,7 @@
   "SCROLL_PILE rod 6 side": {
    "frame": {
     "x": 75,
-    "y": 415,
+    "y": 459,
     "w": 4,
     "h": 4
    }
@@ -1059,7 +1155,7 @@
   "SCROLL_PILE rod 6 top": {
    "frame": {
     "x": 80,
-    "y": 415,
+    "y": 459,
     "w": 16,
     "h": 4
    }
@@ -1067,7 +1163,7 @@
   "SCROLL_PILE rod 7 side": {
    "frame": {
     "x": 97,
-    "y": 415,
+    "y": 459,
     "w": 5,
     "h": 4
    }
@@ -1075,7 +1171,7 @@
   "SCROLL_PILE rod 7 top": {
    "frame": {
     "x": 103,
-    "y": 415,
+    "y": 459,
     "w": 34,
     "h": 5
    }
@@ -1087,7 +1183,7 @@
   "format": "RGBA8888",
   "size": {
    "w": 378,
-   "h": 422
+   "h": 466
   },
   "palette": "key.gpl",
   "anchors": {},
@@ -2053,6 +2149,83 @@
       ],
       "kind": "bill",
       "v": 7
+     }
+    ]
+   },
+   "GATE": {
+    "details": [
+     {
+      "name": "sill",
+      "rect": [
+       0,
+       53,
+       64,
+       7
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 30
+     },
+     {
+      "name": "pier L",
+      "rect": [
+       0,
+       10,
+       16,
+       43
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 20,
+      "recess": [
+       {
+        "name": "sign",
+        "rect": [
+         4,
+         13,
+         8,
+         28
+        ],
+        "depth": 2,
+        "wall": "M"
+       }
+      ]
+     },
+     {
+      "name": "pier R",
+      "rect": [
+       48,
+       10,
+       16,
+       43
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 20
+     },
+     {
+      "name": "leaves",
+      "rect": [
+       16,
+       10,
+       32,
+       43
+      ],
+      "kind": "box",
+      "v": 12,
+      "d": 2
+     },
+     {
+      "name": "header",
+      "rect": [
+       0,
+       0,
+       64,
+       10
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 24
      }
     ]
    },
