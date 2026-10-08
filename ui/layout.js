@@ -77,9 +77,10 @@ const GRID = {
 // d.helpers (optional): helper actor ids, null for a freed console so the others keep their place.
 // d.desks (optional, from planLayout): desk slots { key, id, was, freeSince }, id null for an empty desk; else d.ids.
 // d.cons (optional): console slots to reserve, at least what the helpers need.
-export function layoutDepartments(depts, { compact = false, bays = 0, size = SCENE } = {}) {
+// clearCog: the 39° view keeps the floor before the cogitator bank (x 116..198 + dx) free of desks in the first row.
+export function layoutDepartments(depts, { compact = false, bays = 0, size = SCENE, clearCog = false } = {}) {
   const G = compact ? GRID.compact : GRID.normal, COLS = G.cols, SLOT_W = G.w, CONSOLE_CELL = G.cell;
-  const { x0, x1, y0, y1, corridorX } = hallOf(bays, size);
+  const { x0, x1, y0, y1, corridorX, dx } = hallOf(bays, size);
   const blocks = [];
   const desks = [];
   const seats = new Map();
@@ -94,8 +95,9 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
     const rows = Math.ceil(slots / COLS);
     const w = cols * SLOT_W + 2;
     const h = rows * SLOT_H - 8;
+    if (clearCog && y === y0 && x < 200 + dx && x + w > 114 + dx) x = 200 + dx; // past the bank (wraps below if it no longer fits)
     // a block wraps past the hall's east edge, or when its last lectern would stand in the corridor (a 6-wide row never does)
-    if (!full && x > x0 && (x + w > x1 + 1 || (compact && x + w - 6 > corridorX - 5))) { x = x0; y += rowH + 8; rowH = 0; }
+    if (!full && x > x0 && (x + w > x1 + 1 || (compact && x + w - 6 > corridorX - 5))) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // rowH 0: the first block skipped the cogitator
     if (full || y + h > y1) { full = true; overflow += live; continue; }
     blocks.push({ name: d.name, color: d.color, x, y, w, h });
     const slot = i => ({ x: x + (i % COLS) * SLOT_W, y: y + Math.floor(i / COLS) * SLOT_H });

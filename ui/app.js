@@ -22,6 +22,7 @@ setTheme(store.get('adm.theme', 'tier2'));
 // the backend's yes (strip_supported); the hall view draws meanwhile.
 const saved = store.get('adm.view', 'flat');
 setView(hallView(saved === 'strip' ? store.get('adm.hallView', 'flat') : saved));
+document.documentElement.classList.toggle('iso', viewMode.mode === '39'); // the 39° view: no frame round the stage (index.html)
 if (saved === 'strip' && !REMOTE) invoke('strip_supported').then(ok => ok && setView('strip'), () => {});
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
@@ -88,8 +89,8 @@ function background(day) {
     const c = document.createElement('canvas'), S = scene();
     c.width = S.w * RES; c.height = S.h * RES;
     const cg = c.getContext('2d');
-    if (iso()) { // the 39° hall (isohall.js) on the backdrop colour: the canvas is opaque, its corners outside the hall too
-      cg.fillStyle = T.ink.backdrop; cg.fillRect(0, 0, c.width, c.height);
+    if (iso()) { // the 39° hall (isohall.js), transparent outside it: the page's backdrop shows in its corners (the
+      // frame's lighting is cut to the hall's shape too, see frame())
       const h39 = buildHall39(hall, day);
       cg.drawImage(h39.canvas, 0, 0);
       c.anchors = h39.anchors; // where the dynamic layer slides the gate's leaves and the doors
@@ -198,8 +199,9 @@ onView((mode, prev) => {
     return;
   }
   const c = centreFloor(prev);
+  document.documentElement.classList.toggle('iso', mode === '39');
   for (const k in bg) delete bg[k];
-  fit(c);
+  fit(c); relayout(); // the 39° view keeps the cogitator's front clear (layIso)
 });
 
 // Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
@@ -435,7 +437,7 @@ function frame(now) {
     g.clearRect(0, 0, S.w, S.h);
     if (strip() && settings.stripBackdrop) { g.fillStyle = hexA(T.ink.backdrop, 0.6); g.fillRect(0, 0, S.w, S.h); }
   }
-  else g.drawImage(back, 0, 0, S.w, S.h);
+  else { if (iso()) g.clearRect(0, 0, S.w, S.h); g.drawImage(back, 0, 0, S.w, S.h); }
   if (back && !iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(now);
   view.hall = hall;
@@ -446,6 +448,7 @@ function frame(now) {
   outline.on = strip(); // outlined sprites in the strip only: the hall and the sprite viewer draw without
   try { lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now); } finally { outline.on = false; }
   if (back) drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
+  if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
@@ -486,6 +489,7 @@ const ago = ms => {
   return m < 1 ? '<1m' : m < 60 ? `${m}m` : `${Math.floor(m / 60)}h`;
 };
 
+const layIso = (plan, o) => layoutDepartments(plan, { ...o, clearCog: true });
 function onRoster(next) {
   if (paused()) { pending = next; return; } // ponytail: the newest roster wins; wake() applies it
   roster = next;
@@ -494,7 +498,7 @@ function onRoster(next) {
   const depts = deptOrder
     .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
-  layout = planLayout(layout, depts, Date.now(), GRACE, size, strip() ? layoutStrip : layoutDepartments);
+  layout = planLayout(layout, depts, Date.now(), GRACE, size, strip() ? layoutStrip : iso() ? layIso : layoutDepartments);
   hall = strip() ? stripOf(size.w) : hallOf(layout.bays, size);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);

@@ -154,14 +154,15 @@ export function drawScene39(g, layout, actors, fillOf, now) {
 
   const furniture = (kind, at, pile, lit, fill, a, bgShell, block) => {
     const p = placeOf(kind, at), AT = S.KIND[kind].at, front = g2 => onFace(g2, p.v0 + p.k.d - 1, p.yb), slate = g2 => onFace(g2, p.v0 + 4, p.yb);
-    // the desk's top: flat rows from 9 px under the frame's top spread back to front over it; a console's pile lies beside it
-    const top = kind === 'console' ? onFloor : g2 => plane(g2, [0, p.v0 - 2.6 * (at.y + 9), p.k.top], [2, 0, 0], [0, 2.6, 0]);
+    // the desk's top: flat rows from 9 px under the frame's top spread back to front over it; a console's pile lies beside it, on the floor (floor pass)
+    const top = g2 => plane(g2, [0, p.v0 - 2.6 * (at.y + 9), p.k.top], [2, 0, 0], [0, 2.6, 0]);
     floor.push(g2 => S.paperFloor(g2, pile, kind, fill, at, block, now));
+    if (kind === 'console') floor.push(g2 => S.paperTop(g2, pile, kind, fill, at)); // flat on the floor, under its adept
     floor.push(g2 => { const e = shadowOf(MAPS[p.k.name], at.x, at.y); if (e) e.cy -= p.k.d / 4; contactShadow(g2, e, shade); });
     items.push({ foot: p.foot, draw(g2) {
       const k = art(p.k);
       drawBuf(g2, k.buf, lit ? k.lit : k.dim, p.u0, p.v0);
-      save(g2, top, g3 => S.paperTop(g3, pile, kind, fill, at));
+      if (kind !== 'console') save(g2, top, g3 => S.paperTop(g3, pile, kind, fill, at));
       if (bgShell) save(g2, front, g3 => S.spinCog(g3, at.x + AT.cog[0], at.y + AT.cog[1], t));
       if (!a) return;
       if (!a.h) save(g2, front, g3 => { const n = (a.seals ?? 0) - (S.stamping(a) ? 1 : 0); for (let i = 0; i < n; i++) S.seal(g3, at.x + AT.seals[i][0], at.y + AT.seals[i][1], 1); });

@@ -396,4 +396,16 @@ for (const id of Object.keys(THEMES)) {
 setTheme('tier2');
 assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
 
+// clearCog (the 39° view): no first-row desk before the cogitator bank (x 116..198 + dx); every block stays on the
+// slot-row grid (y0 + 64k), the lanes' gaps; without it the layout is unchanged.
+{
+  const four = n => Array.from({ length: n }, (_, i) => ({ name: 'D' + i, color: '#fff', ids: ['a' + i, 'b' + i, 'c' + i, 'd' + i] }));
+  for (const size of [SCENE, { w: MAX_W, h: SCENE.h }]) {
+    const H = hallOf(0, size), plain = layoutDepartments(four(3), { size }), clear = layoutDepartments(four(3), { size, clearCog: true });
+    assert.ok(plain.desks.some(d => d.y < H.y0 + 64 && d.x + 32 > 114 + H.dx && d.x < 200 + H.dx), 'the plain layout puts a desk there');
+    for (const d of clear.desks) assert.ok(!(d.y < H.y0 + 64 && d.x + 32 > 114 + H.dx && d.x < 200 + H.dx), `desk at ${d.x},${d.y} before the cogitator`);
+    for (const b of clear.blocks) assert.equal((b.y - H.y0) % 64, 0, `block ${b.name} off the slot grid`);
+  }
+}
+
 console.log('layout ok');
