@@ -6,14 +6,14 @@
 // (rugs, fallen sheets, shadows) through the floor plane's affine map, what sits on a face (seals, lamps, screens,
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
-import { P39, IsoBuf, VS39 } from './iso.js';
+import { P39, IsoBuf, VS39, depthSort } from './iso.js';
 import { WALL, WALL_DY } from './layout.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
 import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, SCRIBE39, SCRIBE39_AT, blit, sprite } from './sprites.js';
 import { T, onTheme, hexA } from './theme.js';
-import { drawActor, bodyOf, bodyOf39, bobOf, dozing, isStale, isQuestion, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
+import { drawActor, bodyOf, bodyOf39, bobOf, dozing, isQuestion, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
 
@@ -126,14 +126,20 @@ function doorKit(list) {
 }
 
 // ---- the frame ----------------------------------------------------------------------------------------------------
-const PILE_FADE_MS = 4000;
-const lastFill = new Map(); // desk key -> its occupant's last paper fill (scene.js: the empty desk's pile fades)
-const rugInk = new Map();
-const rugOf = c => rugInk.get(c) ?? rugInk.set(c, [hexA(c, 0.07), hexA(c, 0.3)]).get(c);
-const gate = { open: 0, to: 0 };
-const skull = { x: null, y: null, last: 0, flying: false };
-// Something mid-move (the gate's leaves, the servo-skull's flight): the app keeps its full frame rate (scene.js sceneBusy).
-export const busy39 = () => gate.open !== gate.to || skull.flying;
+// Seated 39° scribes: how far (logical floor px) each is drawn north of its seat, so its hands rest on the desk top
+// (layout.js seats a scribe 9 px south of its desk's front; the 39° view shows the desk's real height). Set each frame
+// by the desks, read by spriteOf (drawing, shadows, hit test).
+const seated = new Map();
+const handRow = new WeakMap(); // arm frame -> its first opaque row (the hands), logical px
+const handOf = m => handRow.get(m) ?? handRow.set(m, Math.max(0, m.findIndex(r => /[^.]/.test(r))) / RES).get(m);
+// The shift that puts the hands on the middle of the desk top's depth: between 0 and the gap to the desk's front.
+export function seatShift(p, a) {
+  if (!SCRIBE39.arm) return 0;
+  const A = SCRIBE39_AT, x = Math.round(a.x), y = Math.round(a.y), u = 2 * (x - A.feet.x + A.arm.x);
+  const hands = cont(2 * x, 2 * (y - WALL))[1] - A.feet.y + A.arm.y + handOf(SCRIBE39.arm);
+  const mid = cont(u, p.v0 + p.k.d / 2, p.k.top)[1];
+  return half(Math.max(0, Math.min(y - p.yb - 1, (hands - mid) / (K / 2))));
+}
 
 // One frame over the 39° background: layout (app.js glide(): blocks, desks, consoles; hall, level, anchors: the
 // background's isohall anchors), actors: Cast.actors, fillOf: context -> paper fill. Returns the frame's lights (flat
@@ -144,7 +150,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   const all = [...actors.values()], items = [], over = [], floor = [], lights = [];
   const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18);
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
-  floor.push(g2 => { for (const b of layout.blocks) { const [fill, line] = rugOf(b.color); rect(g2, b.x, b.y, b.w, b.h, fill); g2.strokeStyle = line; g2.lineWidth = 1; g2.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1); } });
+  floor.push(g2 => S.drawRugs(g2, layout.blocks));
 
   const furniture = (kind, at, pile, lit, fill, a, bgShell, block) => {
     const p = placeOf(kind, at), AT = S.KIND[kind].at, front = g2 => onFace(g2, p.v0 + p.k.d - 1, p.yb), slate = g2 => onFace(g2, p.v0 + 4, p.yb);
@@ -159,21 +165,17 @@ export function drawScene39(g, layout, actors, fillOf, now) {
       if (bgShell) save(g2, front, g3 => S.spinCog(g3, at.x + AT.cog[0], at.y + AT.cog[1], t));
       if (!a) return;
       if (!a.h) save(g2, front, g3 => { const n = (a.seals ?? 0) - (S.stamping(a) ? 1 : 0); for (let i = 0; i < n; i++) S.seal(g3, at.x + AT.seals[i][0], at.y + AT.seals[i][1], 1); });
-      if (a.lamp) save(g2, slate, g3 => {
-        const [body, shine] = T.ink.lamp[S.lampColor(a.lamp)], x = at.x + AT.lamp[0], y = at.y + AT.lamp[1];
-        rect(g3, x - 0.5, y - 0.5, 3.5, 3.5, T.ink.outline); rect(g3, x, y, 2.5, 2.5, body); rect(g3, x + 0.5, y + 0.5, 0.5, 0.5, shine);
-        rect(g3, x - 0.5, y + 2.5, 3.5, 0.5, T.ink.brass);
-      });
+      if (a.lamp) save(g2, slate, g3 => S.drawLamp(g3, a, at, AT));
     } });
     if (a) reactions(a, at, AT, front, slate, over, lights, floor, now);
     return p;
   };
+  seated.clear();
   for (const d of layout.desks) {
-    const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, kind = S.kindOf(d);
-    const fill = !d.id ? (lastFill.get(d.key) ?? 0) * Math.max(0, 1 - (Date.now() - d.freeSince) / PILE_FADE_MS) : a?.burn ? 0 : fillOf(a?.s.context);
-    if (d.id) lastFill.set(d.key, fill);
+    const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, kind = S.kindOf(d), fill = S.deskFill(d, a, fillOf);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     const p = furniture(kind, d, pile, busy, fill, d.id && a, !!a?.s.background, blockOf(d.dept));
+    if (a?.pose === 'desk') seated.set(a.id, seatShift(p, a));
     if (d.id) lights.push(S.deskLight(d, busy));
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S, [px, py] = S.KIND[kind].at.puff;
@@ -181,7 +183,6 @@ export function drawScene39(g, layout, actors, fillOf, now) {
       lights.push({ x: d.x + px, y: d.y + py - 1, r: 18 * (1 - k), color: T.light.amber });
     }
   }
-  if (lastFill.size > layout.desks.length + 32) for (const k of lastFill.keys()) if (!layout.desks.some(d => d.key === k)) lastFill.delete(k);
   for (const c of layout.consoles) {
     const a = actors.get(c.id), lit = !!a && a.pose === 'console';
     furniture('console', c, c.id, lit, fillOf(a?.h?.context), a, false, blockOf(c.dept));
@@ -189,7 +190,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   }
 
   // actors, their contact and cast shadows
-  const known = S.staticLights(H).concat(lights);
+  const room = S.staticLights(H), known = room.concat(lights);
   for (const a of all) {
     const r = spriteOf(a), x = Math.round(a.x), y = Math.round(a.y);
     items.push({ foot: actorFoot(a), draw: g2 => drawActor39(g2, a, r, fillOf) });
@@ -209,7 +210,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
       if (s && k) items.push({ foot: s, draw: g2 => drawBuf(g2, k.buf, k.cv, 0, 0) });
     }
   }
-  items.push(gateItem(all, dt), magos(t, dt));
+  items.push(...gateItems(all, dt), magos(t, dt));
 
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
   cogitator(g, t, all.filter(a => a.pose === 'cog').length);
@@ -222,12 +223,13 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   }
   const sk = PROP_AT.SKULL.centre, sy = Math.round(2 * Math.sin(t * 4)) / 2; // the refectorium's skull (scene.js drawDecorFrame)
   skullAt(g, 244 + H.ox + sk[0], 50 + WALL_DY + sk[1], sy);
-  return S.staticLights(H).concat(lights, alarm(g, all, t, dt));
+  return room.concat(lights, alarm(g, all, now));
 }
 
 // The frame an actor shows (39° art, else the flat frame upright), its top-left relative to its feet.
 function spriteOf(a) {
-  const b = bodyOf39(a);
+  const b = bodyOf39(a), s = b && seated.get(a.id);
+  if (s) return { ...b, dx: half(b.dx + K * s), dy: half(b.dy - K * s / 2) }; // drawn north of its seat, at the desk
   if (b) return b;
   const f = bodyOf(a);
   return { map: f.map, over: f.over, dx: f.x - Math.round(a.x), dy: f.y - Math.round(a.y), step: f.step, flat: true };
@@ -262,33 +264,24 @@ function drawActor39(g, a, r, fillOf) {
 // screen, the courier skull flying in, the task-done glint over the scribe.
 function reactions(a, at, AT, front, slate, over, lights, floor, now) {
   const t = now / 1000;
-  if (a.lamp) {
-    const c = S.lampColor(a.lamp), x = at.x + AT.lamp[0] + 1.25, y = at.y + AT.lamp[1] + 1.25;
-    if (c === 'on') lights.push({ x, y, r: 16, color: T.light.lampOn });
-    if (c === 'red') lights.push({ x, y, r: 18, color: T.light.lampRed });
-    if (c === 'dim') lights.push({ x, y, r: 6, color: T.light.lampDim });
-  }
+  lights.push(...S.reactionLights(a, at, AT, now));
   for (const f of a.fx ?? []) {
     const k = f.t / FX_S[f.kind];
     if (f.kind === 'commit') {
       const [sx, sy] = AT.seals[a.h ? 0 : S.newest(a)], x = at.x + sx, y = at.y + sy;
       over.push(g => save(g, front, g2 => S.stamp(g2, x, y, f.t, a.h)));
-      if (f.t > S.STAMP_HIT && f.t < S.STAMP_HIT + 0.6) lights.push({ x: x + 1.5, y: y + 1.5, r: 18 * (1 - (f.t - S.STAMP_HIT) / 0.6), color: T.light.stamp });
     }
     if (f.kind === 'push') {
-      const [sx, sy] = AT.seals[a.h ? 0 : f.slot], p = S.courier(f.t, at.x + sx + 1.5, at.y + sy - 6, t);
+      const p = S.courierOf(a, f, at, AT, t);
       over.push(g => skullAt(g, p.x, p.y, 0, undefined, f.t >= PICK_S));
-      lights.push({ x: p.x, y: p.y, r: 10, color: T.light.green });
     }
     if (f.kind === 'tool-error') {
       const [sx, sy, sw, sh] = AT.screen, x = at.x + sx, y = at.y + sy;
       over.push(g => save(g, slate, g2 => S.spark(g2, x, y, sw, sh, k, AT.scale, t)));
-      lights.push({ x: x + sw / 2, y: y + sh / 2, r: 34 * AT.scale * (1 - k), color: T.light.spark });
     }
     if (f.kind === 'task-done') {
-      const x = a.h || a.pose !== 'desk' ? a.x : a.x + 6, y = a.h ? a.y - 17 : a.pose === 'desk' ? a.y - 25 : a.y - 20, fx = Math.round(a.x), fy = Math.round(a.y);
+      const [x, y] = S.glintAt(a), fx = Math.round(a.x), fy = Math.round(a.y);
       over.push(g => save(g, g2 => upright(g2, fx, fy, pin(fx, fy)), g2 => S.glint(g2, x, y, k)));
-      lights.push({ x, y, r: 16 * Math.sin(Math.PI * k), color: T.light.glint });
     }
   }
 }
@@ -305,27 +298,27 @@ function skullAt(g, x, y, bob = 0, over, carry = false) {
   });
 }
 
-// The grand gate (isohall gateOf): the void in its opening, the iron leaves sliding apart in front of it while anyone
-// is near (scene.js drawGate), clipped to the opening, then its frame (built once per theme) over them.
+// The grand gate (isohall gateOf) as two items: at the back, the void in its opening and the iron leaves sliding apart
+// in front of it while anyone is near (scene.js stepGate: one state for both views), clipped to the opening; in front,
+// its frame (built once per theme), its footprint reaching to its standing parts' front (piers, arch: not the flat
+// base and step), so an actor on the step at the entry is drawn over it and one walking through behind it.
 let gateKit = null;
-function gateItem(all, dt) {
+function gateItems(all, dt) {
   const A = PROP_AT.GATE, GX = H.entry.x - A.entry[0], GY = H.entry.y - A.entry[1], [ow, oh] = A.opening.slice(2), ox = GX + A.opening[0], oy = GY + A.opening[1];
-  gate.to = S.near(all, ox, oy, ox + ow, oy + oh) ? 1 : 0;
-  gate.open += (gate.to - gate.open) * (1 - 0.82 ** (dt * 30));
-  if (Math.abs(gate.to - gate.open) < 0.01) gate.open = gate.to;
+  const s = S.stepGate(all, dt);
   if (gateKit?.key !== key) {
     const G = gateOf(H), sh = G.sheet, buf = bake(box(0, sh.fw, 0, 2 * (H.h - WALL) - G.v0, 0, sh.fh + 4), b => build39(b, sh, 0, 0, 1));
-    gateKit = { key, G, buf, cv: paint(buf) };
+    const front = Math.max(G.leaves.v + G.leaves.d, ...sh.details.filter(p => p.rect[3] > 8).map(p => p.v + (p.d ?? p.t ?? 2)));
+    gateKit = { key, G, buf, cv: paint(buf), front };
   }
-  const { G } = gateKit, sh = G.sheet, s = half(gate.open * A.slide[0]), yb = GY + sh.fh / RES, vl = G.v0 + G.leaves.v;
-  return { foot: { u0: G.u0, u1: G.u0 + sh.fw, v0: G.v0, v1: 2 * (H.h - WALL) }, draw(g) {
+  const { G, front } = gateKit, sh = G.sheet, yb = GY + sh.fh / RES, vl = G.v0 + G.leaves.v, u0 = G.u0 + 2 * A.opening[0];
+  return [{ foot: { u0, u1: u0 + 2 * ow, v0: vl, v1: vl + G.leaves.d }, draw(g) {
     save(g, g2 => onFace(g2, vl, yb), g2 => blit(g2, MAPS.GATE_VOID, ox, oy));
     save(g, g2 => onFace(g2, vl + G.leaves.d - 1, yb), g2 => {
       g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
       blit(g2, MAPS.GATE_L, GX + A.leafL[0] - s, GY + A.leafL[1]); blit(g2, MAPS.GATE_R, GX + A.leafR[0] + s, GY + A.leafR[1]);
     });
-    drawBuf(g, gateKit.buf, gateKit.cv, G.u0, G.v0);
-  } };
+  } }, { foot: { u0: G.u0, u1: G.u0 + sh.fw, v0: G.v0, v1: G.v0 + front }, draw: g => drawBuf(g, gateKit.buf, gateKit.cv, G.u0, G.v0) }];
 }
 
 // The Magos on the throne (scene.js drawMagos), its 39° art if the theme has one: the drill arm swings, the chest
@@ -357,64 +350,22 @@ function brazierFoot(f) {
   return best ? best.yb : f.y + 8;
 }
 
-// Escalation (scene.js drawAlarm): the beacon on the sanctum's back wall turns; the servo-skull leaves its perch to
-// hover by the oldest stale petitioner, a red searchlight onto it. Returns its lights.
-function alarm(g, all, t, dt) {
-  const lights = [], stale = all.filter(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s)).sort((p, q) => p.s.sinceMs - q.s.sinceMs);
-  const on = stale.length > 0, BEACON = S.beaconOf(H), PERCH = S.perchOf(H);
+// Escalation (scene.js stepAlarm: one state for both views): the beacon on the sanctum's back wall turns; the
+// servo-skull leaves its perch to hover by the oldest stale petitioner, a red searchlight onto it. Returns its lights.
+function alarm(g, all, now) {
+  const t = now / 1000, { on, who, BEACON, x, y0, y, hover, lights } = S.stepAlarm(all, now), bob = y - y0;
   save(g, g2 => onFace(g2, 2 * (H.split - WALL) - 1, H.split + 30), g2 => S.drawBeacon(g2, t, on, BEACON));
-  if (on) {
-    const sweep = Math.sin(t * 5);
-    lights.push({ x: BEACON.x, y: BEACON.y, r: 14, color: T.light.beacon },
-      { x: BEACON.x + 20 * sweep, y: BEACON.y + 16, r: 30 + 8 * Math.abs(Math.cos(t * 5)), color: T.light.beaconSweep });
-  }
-  if (skull.x == null) Object.assign(skull, PERCH);
-  const who = stale[0], tgt = on ? { x: who.x + 34, y: who.y - 20 } : PERCH;
-  const dx = tgt.x - skull.x, dy = tgt.y - skull.y, d = Math.hypot(dx, dy), step = S.SKULL_SPEED * dt;
-  skull.flying = d > step;
-  if (d <= step) { skull.x = tgt.x; skull.y = tgt.y; } else { skull.x += (dx / d) * step; skull.y += (dy / d) * step; }
-  const bob = Math.round(2 * Math.sin(t * 4)) / 2;
-  if (on && d <= step) { // hovering: the searchlight from its eye down onto the petitioner's feet
+  if (hover) { // hovering: the searchlight from its eye down onto the petitioner's feet
     const own = SKULL39.skull, c = own ? [SKULL39_AT.centre.x, SKULL39_AT.centre.y] : PROP_AT.SKULL.centre, b = own ? [SKULL39_AT.beam.x, SKULL39_AT.beam.y] : PROP_AT.SKULL.beam;
-    const [hx, hy] = pin(skull.x, skull.y + FLY_H), bx = hx - c[0] + b[0], by = hy - FLY_H + bob - c[1] + b[1], [fx, fy] = pin(who.x, who.y);
+    const [hx, hy] = pin(x, y0 + FLY_H), bx = hx - c[0] + b[0], by = hy - FLY_H + bob - c[1] + b[1], [fx, fy] = pin(who.x, who.y);
     g.save();
     g.globalCompositeOperation = 'lighter';
     g.fillStyle = hexA(T.ink.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
     g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(fx + 8, fy + 1); g.lineTo(fx - 8, fy + 1); g.closePath(); g.fill();
     g.restore();
   }
-  skullAt(g, skull.x, skull.y, bob, on ? S.skullRed() : undefined);
-  lights.push({ x: skull.x, y: skull.y + bob, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
+  skullAt(g, x, y0, bob, on ? S.skullRed() : undefined);
   return lights;
-}
-
-// ---- depth order ----------------------------------------------------------------------------------------------------
-// The frame's items (each with a floor footprint foot { u0, u1, v0, v1 }) in drawing order. iso.js order is right for
-// one pair but not transitive over a whole hall (two footprints apart on both axes, one left and one behind, are each
-// 'behind' the other), so a plain sort scrambles a full hall. Here an item is drawn after each one behind it along an
-// axis where they overlap on the other (or behind it on both axes); otherwise, and to break a cycle, the footprint whose
-// centre's u + v is smaller (further back) goes first.
-// ponytail: O(n^2) in the items (~150 in a full hall: well under a millisecond); bucket by screen column if it grows.
-const across = (a0, a1, b0, b1) => a0 < b1 && b0 < a1;
-export function depthSort(items) {
-  const n = items.length, F = items.map(i => i.foot), indeg = new Int32Array(n), next = items.map(() => []);
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-    const a = F[i], b = F[j];
-    let d = 0;
-    if (across(a.u0, a.u1, b.u0, b.u1)) d = a.v1 <= b.v0 ? -1 : b.v1 <= a.v0 ? 1 : 0;
-    else if (across(a.v0, a.v1, b.v0, b.v1)) d = a.u1 <= b.u0 ? -1 : b.u1 <= a.u0 ? 1 : 0;
-    else if ((a.u1 <= b.u0) === (a.v1 <= b.v0)) d = a.u1 <= b.u0 ? -1 : 1;
-    if (d < 0) { next[i].push(j); indeg[j]++; } else if (d > 0) { next[j].push(i); indeg[i]++; }
-  }
-  const key = F.map(f => f.u0 + f.u1 + f.v0 + f.v1), done = new Uint8Array(n), out = [];
-  for (let k = 0; k < n; k++) {
-    let best = -1;
-    for (let i = 0; i < n; i++) if (!done[i] && !indeg[i] && (best < 0 || key[i] < key[best])) best = i;
-    if (best < 0) for (let i = 0; i < n; i++) if (!done[i] && (best < 0 || key[i] < key[best])) best = i;
-    done[best] = 1; out.push(items[best]);
-    for (const j of next[best]) indeg[j]--;
-  }
-  return out;
 }
 
 // ---- hit testing ----------------------------------------------------------------------------------------------------

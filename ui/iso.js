@@ -18,9 +18,37 @@ export function floorToWorld(x, y, WALL) {
   return y >= WALL ? { u: 2 * x, v: 2 * (y - WALL), z: 0 } : { u: 2 * x, v: 0, z: 2 * (WALL - y) };
 }
 
-// Footprint depth sort: a drawn before b when a is wholly behind b along u or v; otherwise by the centre's u + v.
+// Footprint order of two items: a before b when a is wholly behind b along u or v; otherwise by the centre's u + v.
+// Right for one pair, but not transitive over many (two footprints apart on both axes, one left and one behind, are
+// each 'behind' the other), so a plain sort with it scrambles a crowded scene: sort a whole frame with depthSort.
 const behind = (a, b) => a.u1 <= b.u0 || a.v1 <= b.v0;
 export const order = (a, b) => (behind(a, b) ? -1 : behind(b, a) ? 1 : (a.u0 + a.u1 + a.v0 + a.v1) - (b.u0 + b.u1 + b.v0 + b.v1));
+
+// Items with a floor footprint (foot { u0, u1, v0, v1 }) in drawing order, back to front: each is drawn after every
+// item behind it along an axis where the two overlap on the other (or behind it on both axes); otherwise, and to
+// break a cycle, the footprint whose centre's u + v is smaller (further back) goes first.
+// ponytail: O(n^2) in the items (~150 in a full hall: well under a millisecond); bucket by screen column if it grows.
+const across = (a0, a1, b0, b1) => a0 < b1 && b0 < a1;
+export function depthSort(items) {
+  const n = items.length, F = items.map(i => i.foot), indeg = new Int32Array(n), next = items.map(() => []);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const a = F[i], b = F[j];
+    let d = 0;
+    if (across(a.u0, a.u1, b.u0, b.u1)) d = a.v1 <= b.v0 ? -1 : b.v1 <= a.v0 ? 1 : 0;
+    else if (across(a.v0, a.v1, b.v0, b.v1)) d = a.u1 <= b.u0 ? -1 : b.u1 <= a.u0 ? 1 : 0;
+    else if ((a.u1 <= b.u0) === (a.v1 <= b.v0)) d = a.u1 <= b.u0 ? -1 : 1;
+    if (d < 0) { next[i].push(j); indeg[j]++; } else if (d > 0) { next[j].push(i); indeg[i]++; }
+  }
+  const key = F.map(f => f.u0 + f.u1 + f.v0 + f.v1), done = new Uint8Array(n), out = [];
+  for (let k = 0; k < n; k++) {
+    let best = -1;
+    for (let i = 0; i < n; i++) if (!done[i] && !indeg[i] && (best < 0 || key[i] < key[best])) best = i;
+    if (best < 0) for (let i = 0; i < n; i++) if (!done[i] && (best < 0 || key[i] < key[best])) best = i;
+    done[best] = 1; out.push(items[best]);
+    for (const j of next[best]) indeg[j]--;
+  }
+  return out;
+}
 
 export class IsoBuf {
   // w, h, ox, oy: the canvas size and world-to-screen offset, in screen px. P: the projection (u, v, z) -> [x, y].

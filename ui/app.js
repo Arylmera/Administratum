@@ -9,7 +9,7 @@ import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen } from './view.js';
 import { buildHall39 } from './isohall.js';
-import { drawScene39, actorAt39, busy39 } from './scene39.js';
+import { drawScene39, actorAt39 } from './scene39.js';
 import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
@@ -71,9 +71,9 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${at}`;
+  const tag = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${tag}`;
   if (!bg[k]) {
-    for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
+    for (const o in bg) if (!o.endsWith(tag)) delete bg[o]; // the hall changed size: drop the old sizes
     const c = document.createElement('canvas'), S = scene();
     c.width = S.w * RES; c.height = S.h * RES;
     const cg = c.getContext('2d');
@@ -261,7 +261,7 @@ onTheme(backdrop);
 // time-based (steps capped at 0.25 s, above a 6 fps frame), so only smoothness changes.
 const FPS = 30;
 function busy(now) {
-  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || (iso() ? busy39() : sceneBusy())) return true;
+  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || sceneBusy()) return true;
   for (const a of cast.actors.values()) {
     if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || (!a.h && a.s.status === 'waiting')) return true;
   }
@@ -674,8 +674,8 @@ function syncEdges() {
     const o = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p)); // not t: that is the wording (theme.js)
     const flat = dir === 'up' || dir === 'down', inset = 16;
     const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? o.x : o.y)))}px`;
-    const at = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
-    setStyle(b, flat ? { left: along, top: at } : { left: at, top: along });
+    const edge = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
+    setStyle(b, flat ? { left: along, top: edge } : { left: edge, top: along });
     b.classList.toggle('alarm', pets.length > 0);
     if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
     const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${t('petitioning', { n: pets.length })}` : ''}`;

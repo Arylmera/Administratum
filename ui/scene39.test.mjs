@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
-import { order } from './iso.js';
+import { order, depthSort } from './iso.js';
 import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39 } from './actors.js';
-import { use, pin, placeOf, actorFoot, actorAt39, depthSort } from './scene39.js';
+import { use, pin, placeOf, actorFoot, actorAt39, seatShift } from './scene39.js';
+import { setTheme } from './theme.js';
+import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND } from './scene.js';
+import { SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
 const cast = new Cast();
@@ -36,7 +39,8 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
   const items = [...L.desks.map(d => ({ k: `d:${d.id}`, foot: placeOf(d.compact ? 'lectern' : 'desk', d).foot })), ...L.consoles.map(c => ({ k: `c:${c.id}`, foot: placeOf('console', c).foot })),
     ...L.desks.map(d => ({ k: `p:${d.id}`, foot: actorFoot({ x: d.x + (d.compact ? 20 : 30), y: d.y + 8 }) })), // right behind its back, at its east end
     ...[...L.seats].map(([id, s]) => ({ k: `a:${id}`, foot: actorFoot(s) })), ...[...L.consoleSeats].map(([id, s]) => ({ k: `a:${id}`, foot: actorFoot(s) }))];
-  for (const shuffle of [x => x, x => x.reverse(), x => x.sort((p, q) => (p.k * 7919 % 13) - (q.k * 7919 % 13) || p.k.localeCompare(q.k))]) {
+  const perm = x => x.map((it, i) => [(i * 7919) % 104729, it]).sort((p, q) => p[0] - q[0]).map(([, it]) => it); // a fixed scramble by index
+  for (const shuffle of [x => x, x => x.reverse(), perm]) {
     const at = new Map(depthSort(shuffle(items.slice())).map((it, i) => [it.k, i]));
     for (const [id] of L.seats) assert.ok(at.get(`d:${id}`) < at.get(`a:${id}`), `${tag}: desk ${id} before its scribe`);
     for (const [id] of L.seats) assert.ok(at.get(`p:${id}`) < at.get(`d:${id}`), `${tag}: the scribe behind desk ${id} before it`);
@@ -59,5 +63,40 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
   const [ex, ey] = pin(90, 200);
   assert.equal(actorAt39(ex, ey, [a, b]), null, `${tag}: empty floor`);
   assert.equal(actorAt39(...pin(a.x, a.y + 1), [{ ...a, leaving: true }]), null, `${tag}: a leaving actor is not picked`);
+}
+// seated 39° scribes, every world: drawn north of the seat (never into the desk) so the hands (the arm frame's first
+// opaque row) land on the desk top, between its back and front edges at the hands' column
+{
+  const hall = hallOf(0); sceneSize(hall);
+  for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault']) {
+    setTheme(id); use(hall);
+    if (!SCRIBE39.arm) continue; // a world without 39° scribes yet: flat frames, no shift
+    for (const kind of ['desk', 'lectern']) {
+      const desk = { x: 40, y: 90, compact: kind === 'lectern' }, p = placeOf(kind, desk), a = { id: 's', x: desk.x + 11, y: desk.y + 30 };
+      const s = seatShift(p, a), A = SCRIBE39_AT, hand = SCRIBE39.arm.findIndex(r => /[^.]/.test(r)) / RES;
+      assert.ok(s >= 0 && a.y - s > p.yb, `${id} ${kind}: shift ${s} keeps the scribe in front of the desk`);
+      const hx = a.x - A.feet.x + A.arm.x, hands = pin(a.x, a.y - s)[1] - A.feet.y + A.arm.y + hand;
+      const back = pin(hx, p.yb - p.k.d / 2, p.k.top / 2)[1], front = pin(hx, p.yb, p.k.top / 2)[1];
+      if (p.k.top < 12) { assert.equal(s, 0, `${id} ${kind}: a pedestal (its surface a detail): the scribe stays at the seat`); continue; }
+      assert.ok(hands >= back - 0.5 && hands <= front - 1, `${id} ${kind}: hands at ${hands} on the top ${back}..${front}`);
+    }
+  }
+  setTheme('tier2');
+}
+// the per-frame state both views share (scene.js): one gate, one alarm skull, one desk-pile fade, the same lights
+{
+  const hall = hallOf(0);
+  beginFrame({ hall, desks: [] }, 1000);
+  const near = [{ x: hall.entry.x, y: hall.entry.y - 4 }];
+  assert.ok(stepGate(near, 0.1) > 0 && sceneBusy(), 'the gate opens for someone at it, and the app keeps its frame rate');
+  for (let i = 0; i < 100; i++) stepGate([], 0.25);
+  assert.equal(stepGate([], 0.25), 0, 'and closes behind them');
+  const al = stepAlarm([], 2000);
+  assert.ok(!al.on && !al.hover && al.lights.length === 1 && al.who === null, 'no stale petition: the skull on its perch, its eye the only light');
+  const d = { key: 'k', id: 'x' }, fill = deskFill(d, { s: { context: { tokens: 1 } } }, () => 0.4);
+  assert.equal(fill, 0.4);
+  assert.ok(Math.abs(deskFill({ key: 'k', id: null, freeSince: Date.now() - 2000 }, undefined, () => 1) - 0.2) < 0.01, 'an emptied desk fades from its last fill');
+  const at = { x: 10, y: 100 }, AT = KIND.desk.at;
+  assert.deepEqual(reactionLights({ lamp: { ok: true, t: 0 } }, at, AT, 0).map(l => l.r), [16], 'a passed test lamp lights');
 }
 console.log('scene39 ok');
