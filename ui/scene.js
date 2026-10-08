@@ -78,8 +78,11 @@ export function propsOf(hall) {
   for (let i = 0; 200 * i < sw - 30; i++) for (let j = 0; j < hall.rows - 1; j++) {
     for (const [name, x, y] of PROPS.f) if ((j === 0 || y >= 120) && (i === 0 || x + 200 * i < sw - 24)) props.push([name, x + 200 * i, y + D + 64 * j]);
   }
-  // Refectory tables, a bench south of each (hallOf().refectory sits on the benches, three a bench).
-  for (let k = 0; k < hall.refectory.length / 3; k++) props.push(['TABLE', 262 + ox, 46 + D + 24 * k], ['BENCH', 262 + ox, 58 + D + 24 * k]);
+  // Refectory canteen rows: a bench either side of each table (hallOf().refectory sits on the south ones, three a bench).
+  for (let k = 0; k < hall.refectory.length / 3; k++) {
+    const y = 50 + D + 26 * k;
+    props.push(['BENCH', 262 + ox, y - 6], ['TABLE', 262 + ox, y], ['BENCH', 262 + ox, y + 12]);
+  }
   const windows = [78 + dx, 292 + ox];
   for (const a of [...alcoves(76, 76 + dx), ...alcoves(200 + dx, sw - 2)]) {
     if (a.win) { windows.push(a.x + 6); props.push(asHanging(a.x + 26)); }

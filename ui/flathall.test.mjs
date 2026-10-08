@@ -27,8 +27,8 @@ const { drawStatic } = await import('./scene.js');
 const { hallOf } = await import('./layout.js');
 
 const FLAT = {
-  'tier2 0 day': 'efa9db7ae56a', 'tier2 0 night': 'cef46a912e53', 'tier2 2 day': 'e40df352536f', 'tier2 2 night': '67423d9742d0',
-  'vault 0 day': '46f090af1531', 'vault 0 night': 'b6d76be2428b', 'vault 2 day': 'e59048be8c47', 'vault 2 night': '72837dfb0a3e',
+  'tier2 0 day': '12cee292fca7', 'tier2 0 night': 'e4bd321f6d85', 'tier2 2 day': 'b9acdc9c7480', 'tier2 2 night': 'c637729aeaf8',
+  'vault 0 day': '34ffc876c6d3', 'vault 0 night': '5a28fddf3cb2', 'vault 2 day': 'b0254fd981a8', 'vault 2 night': '0ad1656d3b74',
 };
 const got = {};
 for (const id of ['tier2', 'vault']) {

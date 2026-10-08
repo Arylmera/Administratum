@@ -32,9 +32,10 @@ export function hallOf(bays = 0, size = SCENE) {
   const x0 = 3, x1 = sw - 3, y0 = WALL + 18, y1 = h - 30, aisleY = h - 20, corridorX = sw - 10;
   const entry = { x: x0 + Math.floor((x1 - x0) / 2), y: h - 2 }, dx = entry.x - 100, hy = h - SCENE.h + D;
   const rows = Math.floor((y1 - y0 + 8) / SLOT_H); // slot rows the hall holds
-  // Refectorium: a table + bench pair every 24 px down the room; spots row by row (a napper keeps its index).
-  const pairs = Math.floor((split - D - 76) / 24) + 1;
-  const refectory = Array.from({ length: pairs }, (_, k) => [271, 285, 299].map(x => ({ x: x + ox, y: 66 + D + 24 * k }))).flat();
+  // Refectorium: a canteen row (bench, table, bench) every 26 px down the room; nappers on the south bench, spots row
+  // by row (a napper keeps its index). The last row's nappers stay clear of the sanctum wall (split - 10).
+  const pairs = Math.floor((split - D - 84) / 26) + 1;
+  const refectory = Array.from({ length: pairs }, (_, k) => [271, 285, 299].map(x => ({ x: x + ox, y: 70 + D + 26 * k }))).flat();
   // The petition line: before the Magos's desk, then rows snaking down the sanctum, then the hall's bottom aisle
   // (round the gate) when the sanctum is full.
   const queue = [{ x: 276, y: 187 }, { x: 248, y: 189 }, { x: 220, y: 189 }].map(q => ({ x: q.x + ox, y: q.y + sd }));

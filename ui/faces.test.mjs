@@ -68,8 +68,15 @@ for (const [k, f] of Object.entries(FACES.base.frames)) {
 // a drawn front replaces the crop (the TABLE's mugs: top-down in the flat frame, seen from the side in 39°)
 setTheme('tier2');
 assert.deepEqual(sheetOf('TABLE').details.find(d => d.name === 'mug 1').map, FACES.base.frames['TABLE mug 1 front'], 'detail front frame used');
-for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'TABLE', 'BENCH', 'RECAFF', 'LORD_DESK', 'THRONE'])
+for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'RECAFF', 'LORD_DESK', 'THRONE', 'TABLE board', 'BENCH seat'])
   for (const f of ['side', 'top']) assert.ok(FACES.base.frames[`${n} ${f}`], `faces.png: no base '${n} ${f}'`);
+// the canteen in 39°: a board and a seat up on legs (TABLE top at z 16, BENCH seat at z 9, art px)
+{
+  const top = s => Math.max(...s.details.map(p => p.z + p.rect[3]));
+  assert.equal(top({ details: sheetOf('TABLE').details.filter(p => p.name === 'board') }), 16, 'table board on its legs');
+  assert.equal(top({ details: sheetOf('BENCH').details.filter(p => p.name === 'seat') }), 9, 'bench seat on its legs');
+  assert.equal(sheetOf('TABLE').details.filter(p => p.name.startsWith('leg')).length, 6, 'six table legs');
+}
 
 // the builder, one real check per kind (each detail built alone, u0 = v0 = 0)
 {
@@ -130,7 +137,7 @@ for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'T
     assert.ok(puts.length && puts.every(p => p.face === 3 && p.u === f.u && p.v === f.v && p.z >= f.z && p.z < f.z + f.rect[3]), 'bill: upright on its anchor');
     setTheme('tier2');
     const t = sheetOf('TABLE'), plate = t.details.find(x => x.name === 'plate 1'), tp = alone(t, plate);
-    assert.ok(tp.length && tp.every(p => p.face === 0 && p.z === t.h && p.u >= plate.u && p.u < plate.u + plate.rect[2] && p.v >= plate.v), 'top: laid on the table top');
+    assert.ok(tp.length && tp.every(p => p.face === 0 && p.z === 16 && p.u >= plate.u && p.u < plate.u + plate.rect[2] && p.v >= plate.v), 'top: laid on the table top');
     for (const n of ['mug 1', 'mug 2', 'cup']) assert.equal(t.details.find(x => x.name === n).kind, 'cyl', `TABLE ${n} stands up`);
   }
   // box: the slate's side face (face 2, at its right end) from its side frame, its screen glass back by its depth
