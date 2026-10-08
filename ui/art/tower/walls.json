@@ -39,15 +39,31 @@
         "w": 10,
         "h": 20
       }
+    },
+    "WINDOW_TALL": {
+      "frame": {
+        "x": 0,
+        "y": 43,
+        "w": 36,
+        "h": 84
+      }
+    },
+    "HANGING": {
+      "frame": {
+        "x": 37,
+        "y": 43,
+        "w": 26,
+        "h": 100
+      }
     }
   },
   "meta": {
-    "app": "tower theme art",
+    "app": "tools/sheet_writer.mjs",
     "image": "walls.png",
     "format": "RGBA8888",
     "size": {
       "w": 146,
-      "h": 42
+      "h": 143
     },
     "palette": "key.gpl",
     "anchors": {}

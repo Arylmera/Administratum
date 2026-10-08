@@ -152,12 +152,12 @@ for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'T
       assert.equal(s.top, F[`${name} top`] ?? null, `${id} ${name}: top fallback/override`);
     }
   }
-  // a world without its own side/top art still builds (faces derived from the front's edge colours)
-  setTheme('cyber');
-  const w = sheetOf('DESK');
-  assert.equal(w.side, null, 'cyber DESK: no side frame yet');
-  const r = recorder();
+  // a sheet without side/top frames still builds them, from the front's edge colours
+  setTheme('tier2');
+  const w = { ...sheetOf('DESK'), side: null, top: null, details: [] }, r = recorder();
   build39(r, w);
-  assert.ok(r.puts.some(p => p.face === 2) && r.puts.some(p => p.face === 0), 'world desk: side and top derived');
+  const edges = new Set(w.front.flatMap(row => [...row].filter(c => c !== '.')));
+  assert.ok(r.puts.some(p => p.face === 2) && r.puts.some(p => p.face === 0), 'no frames: side and top derived');
+  assert.ok(r.puts.filter(p => p.face === 2 && p.u === w.x0 + w.w - 1).every(p => edges.has(p.c)), 'no frames: derived from the front');
 }
 console.log('faces ok');
