@@ -88,10 +88,11 @@ pub fn strip_supported() -> bool {
 }
 
 /// Re-place the strip on the window's current monitor, `height_css` tall. Returns the rect it set.
-/// Holds the `RECT` lock across the compare-and-set *and* a re-check of `ON`, so a concurrent
-/// `place_hall` (which clears `ON` and `RECT` under the same lock) can never interleave: either
-/// this call finishes first and `place_hall` then reclaims the window, or `place_hall` finishes
-/// first and this call sees the strip off and leaves the window alone.
+/// Safe against a concurrent `place_hall`: every caller that can race with it (the watcher) only
+/// ever calls this from the main thread (`run_on_main_thread`), the same thread tauri's own
+/// `set_size`/`set_position` apply on, so the two can never interleave their window writes.
+/// `current_monitor()` below is a blocking round-trip to the main thread; it runs before the
+/// `RECT` lock is taken so a main-thread caller can never deadlock waiting on itself through this lock.
 pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String> {
     let m = w.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     let (p, s, wa) = (m.position(), m.size(), m.work_area());
@@ -99,15 +100,10 @@ pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String
     let work = Rect { left: wa.position.x, top: wa.position.y, right: wa.position.x + wa.size.width as i32, bottom: wa.position.y + wa.size.height as i32 };
     let bottom_bar = edge_of(mon, work).or_else(edge_fallback) == Some(Edge::Bottom);
     let r = strip_rect(mon, work, autohide() && bottom_bar, (height_css * m.scale_factor()).round() as i32);
-    let mut rect = RECT.lock().unwrap_or_else(|e| e.into_inner());
-    if !ON.load(Ordering::SeqCst) {
-        // Lost the race with place_hall: the hall now owns the window, don't touch it.
-        return Ok(rect.unwrap_or(r));
-    }
-    if *rect != Some(r) {
+    if *RECT.lock().unwrap_or_else(|e| e.into_inner()) != Some(r) {
         w.set_size(tauri::PhysicalSize::new((r.right - r.left) as u32, (r.bottom - r.top) as u32)).map_err(|e| e.to_string())?;
         w.set_position(tauri::PhysicalPosition::new(r.left, r.top)).map_err(|e| e.to_string())?;
-        *rect = Some(r);
+        *RECT.lock().unwrap_or_else(|e| e.into_inner()) = Some(r);
     }
     Ok(r)
 }
@@ -130,13 +126,11 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
 
 #[tauri::command]
 pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Result<(), String> {
-    {
-        // Same lock as replace()'s compare-and-set: a watcher call either finishes first (and this
-        // then reclaims the window below) or sees ON already false and bails before touching it.
-        let mut rect_guard = RECT.lock().unwrap_or_else(|e| e.into_inner());
-        ON.store(false, Ordering::SeqCst);
-        *rect_guard = None;
-    }
+    // Safe against the watcher re-placing the strip over this: it only touches the window from
+    // the main thread (run_on_main_thread), same as the set_size/set_position below, so whichever
+    // of the two runs first on that single thread finishes before the other can start.
+    ON.store(false, Ordering::SeqCst);
+    *RECT.lock().unwrap_or_else(|e| e.into_inner()) = None;
     let _ = window.set_ignore_cursor_events(false);
     window.set_resizable(true).map_err(|e| e.to_string())?;
     window.set_min_size(Some(tauri::LogicalSize::new(360.0, 280.0))).map_err(|e| e.to_string())?; // tauri.conf.json
@@ -176,26 +170,36 @@ pub fn act(fullscreen: bool, visible: bool, hidden_by_us: bool) -> Act {
     }
 }
 
-/// Prints `msg` unless it is the same text as last time (a stuck monitor/taskbar query would
-/// otherwise spam the console every tick); a success elsewhere resets `last` so the next failure,
-/// even a repeat of an earlier one, logs again.
-fn log_once(last: &mut Option<String>, msg: String) {
+/// Prints `msg` through `slot` unless it is the same text as last time through that same slot (a
+/// stuck monitor/taskbar query would otherwise spam the console every tick); a success elsewhere
+/// resets `slot` so the next failure, even a repeat of an earlier one, logs again. One slot per
+/// call site (replace vs set_always_on_top) so one succeeding never suppresses the other's own repeat.
+fn log_once(slot: &Mutex<Option<String>>, msg: String) {
+    let mut last = slot.lock().unwrap_or_else(|e| e.into_inner());
     if last.as_deref() != Some(msg.as_str()) {
         eprintln!("{msg}");
     }
     *last = Some(msg);
 }
 
+fn clear_log(slot: &Mutex<Option<String>>) {
+    *slot.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
 /// Watches (1 s, only while `ON`) for a fullscreen app covering the taskbar, and for monitor /
 /// work area / DPI / taskbar changes: hides the strip for the former (and shows it again without
 /// stealing focus), re-places and re-asserts topmost for the latter (Windows drops topmost after
-/// some fullscreen transitions and Explorer restarts).
+/// some fullscreen transitions and Explorer restarts). The window-touching part (re-place,
+/// set_always_on_top) runs on the main thread via `run_on_main_thread`, so it can never land out
+/// of order with `place_hall`'s own window calls (see `replace`'s doc comment).
 #[cfg(windows)]
 pub fn start_watcher(app: tauri::AppHandle) {
     use tauri::{Emitter, Manager};
+    static REPLACE_ERR: Mutex<Option<String>> = Mutex::new(None);
+    static TOP_ERR: Mutex<Option<String>> = Mutex::new(None);
     std::thread::spawn(move || {
         let mut hidden_by_us = false;
-        let mut last_err: Option<String> = None;
+        let mut hide_err: Option<String> = None;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(1));
             if !ON.load(Ordering::SeqCst) {
@@ -212,9 +216,16 @@ pub fn start_watcher(app: tauri::AppHandle) {
                     Ok(()) => {
                         let _ = app.emit("strip-hide", ());
                         hidden_by_us = true;
-                        last_err = None;
+                        hide_err = None;
                     }
-                    Err(e) => log_once(&mut last_err, format!("strip watcher hide: {e}")), // not hidden: hidden_by_us stays false
+                    Err(e) => {
+                        let msg = format!("strip watcher hide: {e}");
+                        if hide_err.as_deref() != Some(msg.as_str()) {
+                            eprintln!("{msg}");
+                        }
+                        hide_err = Some(msg);
+                        // not hidden: hidden_by_us stays false (already cleared above since visible)
+                    }
                 },
                 Act::Show => {
                     os::show_no_activate(&w);
@@ -223,17 +234,24 @@ pub fn start_watcher(app: tauri::AppHandle) {
                 }
                 Act::Stay => {}
             }
-            if w.is_visible().unwrap_or(false) {
+            let w2 = w.clone();
+            let _ = app.run_on_main_thread(move || {
+                // Re-checked here, on the main thread, right before touching the window: the only
+                // place this (and place_hall) ever move it, so this check and the moves below can't
+                // be interleaved by place_hall running in between.
+                if !ON.load(Ordering::SeqCst) || !w2.is_visible().unwrap_or(false) {
+                    return;
+                }
                 let height = *HEIGHT.lock().unwrap_or_else(|e| e.into_inner());
-                match replace(&w, height) {
-                    Ok(_) => last_err = None,
-                    Err(e) => log_once(&mut last_err, format!("strip watcher replace: {e}")),
+                match replace(&w2, height) {
+                    Ok(_) => clear_log(&REPLACE_ERR),
+                    Err(e) => log_once(&REPLACE_ERR, format!("strip watcher replace: {e}")),
                 }
-                match w.set_always_on_top(true) {
-                    Ok(()) => last_err = None,
-                    Err(e) => log_once(&mut last_err, format!("strip watcher topmost: {e}")),
+                match w2.set_always_on_top(true) {
+                    Ok(()) => clear_log(&TOP_ERR),
+                    Err(e) => log_once(&TOP_ERR, format!("strip watcher topmost: {e}")),
                 }
-            }
+            });
         }
     });
 }
