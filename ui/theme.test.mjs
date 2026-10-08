@@ -100,10 +100,10 @@ for (const id of Object.keys(THEMES)) {
   }
 }
 const asked = new Set([...html.matchAll(/data-t(?:-title|-aria)?="([^"]+)"/g)].map(m => m[1]));
-for (const f of ['app.js', 'chrome.js', 'chronicon.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
+for (const f of ['app.js', 'chrome.js', 'card.js', 'chronicon.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
 assert.ok(asked.size > 25, 'found the texts asked for');
 for (const k of asked) assert.ok(all.has(k), `text key '${k}' is asked for but not in TEXT`);
-for (const k of ['busy', 'shell', 'idle', 'waiting']) assert.ok(all.has(`status.${k}`), `status.${k}`); // app.js: status.${s.status}
+for (const k of ['busy', 'shell', 'idle', 'waiting']) assert.ok(all.has(`status.${k}`), `status.${k}`); // card.js: status.${s.status}
 for (const k of ['high', 'standard', 'novice']) assert.ok(all.has(`rank.${k}`), `rank.${k}`);
 // t(): placeholders, plurals, nested keys, a theme's wording, unknown keys
 assert.equal(t('petitions', { n: 1 }), '1 petition');

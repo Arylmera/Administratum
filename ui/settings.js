@@ -51,7 +51,7 @@ function load() {
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
 }
-// Shared, read live by actors.js (thresholds) and app.js (context windows).
+// Shared, read live by actors.js (thresholds) and card.js (context windows).
 export const settings = load();
 // 2.5D, Backdrop off: no plates round the hall, the transparent window shows the desktop (index.html html.bare).
 const applyBackdrop = () => globalThis.document?.documentElement?.classList.toggle('bare', !settings.isoBackdrop);
