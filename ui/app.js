@@ -119,11 +119,16 @@ function setThrough(on) {
 // way back in adm.hallRect). Out: the hall's rect back (place_hall turns click-through off). The tray check follows.
 let grownTo = 0; // the window's last asked CSS height in the strip (growStrip)
 let bootStrip = saved === 'strip'; // started in the strip: the window's rect is the last session's strip, not a hall
-async function enterStrip() {
-  grownTo = stripCss();
-  const r = await invoke('place_strip', { height: grownTo });
+// Every move onto the taskbar goes through here: the first one out of the hall returns the hall's rect, whoever calls.
+async function placeStrip(height) {
+  const r = await invoke('place_strip', { height });
   if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
   bootStrip = false;
+  return r;
+}
+async function enterStrip() {
+  grownTo = stripCss();
+  await placeStrip(grownTo);
   if (!strip()) return; // a leave was queued behind this enter: let it undo the move instead
   setThrough(true);
   invoke('set_strip_menu', { on: true }).catch(() => {});
@@ -145,7 +150,7 @@ function growStrip() {
   if (!strip() || !tauri()) return;
   const open = [...document.querySelectorAll('#card, #prefs, #chron, #strip-menu')].filter(el => el.offsetParent);
   const h = stripCss() + Math.max(0, ...open.map(el => el.offsetHeight + 8));
-  if (h !== grownTo) { grownTo = h; invoke('place_strip', { height: h }).catch(() => {}); }
+  if (h !== grownTo) { grownTo = h; placeStrip(h).catch(() => {}); }
 }
 {
   const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
