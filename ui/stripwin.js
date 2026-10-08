@@ -74,11 +74,9 @@ export const showMenu = on => { stripMenu.hidden = !on; stripHandle.setAttribute
 export function initStripWin({ actorAt: hit, fromStrip }) {
   actorAt = hit;
   bootStrip = fromStrip;
-  {
-    const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
-    const ro = new ResizeObserver(growStrip), mo = new MutationObserver(growStrip);
-    for (const el of panels) { ro.observe(el); mo.observe(el, { attributes: true, attributeFilter: ['hidden', 'class'] }); }
-  }
+  const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
+  const ro = new ResizeObserver(growStrip), mo = new MutationObserver(growStrip);
+  for (const el of panels) { ro.observe(el); mo.observe(el, { attributes: true, attributeFilter: ['hidden', 'class'] }); }
   stripMenu = document.getElementById('strip-menu'); stripHandle = document.getElementById('strip-handle');
   stripHandle.onclick = () => showMenu(stripMenu.hidden);
   stripMenu.onclick = e => {

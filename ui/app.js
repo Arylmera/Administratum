@@ -400,7 +400,7 @@ function onRoster(next) {
   count.classList.toggle('ask', !n && nq > 0);
   count.classList.toggle('alarm', roster.some(isStale));
   renderCard();
-  if (answerable && roster.some(answerable)) probeActions();
+  if (roster.some(answerable)) probeActions();
 }
 
 function consolesOf(dept) {

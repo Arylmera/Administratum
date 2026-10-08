@@ -5,7 +5,7 @@ import { isQuestion } from './actors.js';
 import { settings } from './settings.js';
 import { invoke, REMOTE, remoteActions } from './bridge.js';
 
-let cast, rosterOf; // app.js's cast and a getter for its roster, reassigned on each roster tick (initCard)
+let cast, rosterOf; // app.js's cast, and a getter for its roster (reassigned on each roster tick) (initCard)
 export function initCard(o) { ({ cast, roster: rosterOf } = o); }
 // Context window by model family, in tokens (settings panel). Fill = context.tokens / window.
 const windowOf = model => 1000 * (/haiku/i.test(model ?? '') ? settings.ctxHaiku : settings.ctxOther);

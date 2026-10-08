@@ -1,4 +1,3 @@
-// Reflows glide: rugs, desks and consoles ease to their new place over GLIDE_MS.
 // Reflows glide: rugs, desks and consoles ease from where they are drawn to their new place over GLIDE_MS;
 // the scribes and adepts walk to their new seats on their own (Cast.sync re-routes them).
 const GLIDE_MS = 800;
