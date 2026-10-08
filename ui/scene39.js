@@ -134,31 +134,33 @@ onTheme(() => { fences = new Map(); });
 function fenceBox(axis, len, frame) {
   const key = `${axis}:${len}:${frame}`;
   if (fences.has(key)) return fences.get(key);
-  const f = MAPS[frame], R = f.length, C = f[0].length, [u1, v1] = axis === 'u' ? [len, 2] : [2, len];
-  const tex = (i, r) => f[Math.min(R - 1, r)][i % C];
+  const f = MAPS[frame], R = f.length, C = f[0].length, gate = frame !== 'BREAKOUT_RAIL', [u1, v1] = axis === 'u' ? [len, 2] : [2, len];
+  // rails tile the frame along the face; a gate (one leaf) scales its whole frame across the face instead, as doorKit does.
+  const tile = (i, r) => f[Math.min(R - 1, r)][i % C];
+  const scale = (i, r, N) => f[Math.min(R - 1, r)][Math.min(C - 1, fl(i * C / N))];
   const buf = bake(box(0, u1, 0, v1, 0, R), b => b.box({ u0: 0, u1, v0: 0, v1, z0: 0, z1: R, id: 1,
-    front: (i, r) => tex(i, r), side: (j, r) => tex(j, r), top: i => f[0][i % C] }));
+    front: (i, r, U) => (gate ? scale(i, r, U) : tile(i, r)), side: (j, r, J) => (gate ? scale(j, r, J) : tile(j, r)), top: i => f[0][i % C] }));
   const k = { buf, cv: paint(buf) };
   fences.set(key, k);
   return k;
 }
 function fenceItems(Z, actors) {
   const out = [], U = x => Math.round(2 * x), V = y => Math.round(2 * (y - WALL));
-  const add = (axis, x, y, len, frame = 'BREAKOUT_RAIL') => {
+  const add = (axis, x, y, len, frame = 'BREAKOUT_RAIL', u0 = U(x)) => {
     if (len <= 0) return;
-    const k = fenceBox(axis, len, frame), u0 = U(x), v0 = axis === 'u' ? V(y) - 2 : V(y);
+    const k = fenceBox(axis, len, frame), v0 = axis === 'u' ? V(y) - 2 : V(y);
     out.push({ foot: axis === 'u' ? { u0, u1: u0 + len, v0, v1: v0 + 2 } : { u0, u1: u0 + 2, v0, v1: v0 + len }, draw: g2 => drawBuf(g2, k.buf, k.cv, u0, v0) });
   };
-  const x1 = Z.x + Z.w, y1 = Z.y + Z.h, L = U(x1) - U(Z.x);
+  const x1 = Z.x + Z.w, y1 = Z.y + Z.h, L = U(x1) - U(Z.x), uE = U(x1) - 2; // the east rail sits inside the pen, flush with north/south's ends, like the west rail
   add('u', Z.x, Z.y, L); add('u', Z.x, y1, L);
   add('v', Z.x, Z.y, V(y1) - V(Z.y));
   let y = Z.y;
   for (const q of Z.gates) {
-    add('v', x1, y, V(q.y - 4) - V(y));
-    if (!S.near(actors, x1 - 4, q.y - 4, x1 + 4, q.y + 4)) add('v', x1, q.y - 4, V(q.y + 4) - V(q.y - 4), 'BREAKOUT_GATE_FRONT');
+    add('v', x1, y, V(q.y - 4) - V(y), 'BREAKOUT_RAIL', uE);
+    if (!S.near(actors, x1 - 4, q.y - 4, x1 + 4, q.y + 4)) add('v', x1, q.y - 4, V(q.y + 4) - V(q.y - 4), 'BREAKOUT_GATE_FRONT', uE);
     y = q.y + 4;
   }
-  add('v', x1, y, V(y1) - V(y));
+  add('v', x1, y, V(y1) - V(y), 'BREAKOUT_RAIL', uE);
   return out;
 }
 
