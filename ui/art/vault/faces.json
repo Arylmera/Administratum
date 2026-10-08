@@ -51,6 +51,9 @@
   "DESK lamp shade top": {
    "frame": { "x": 229, "y": 0, "w": 10, "h": 5 }
   },
+  "DESK lamp shade front": {
+   "frame": { "x": 240, "y": 0, "w": 10, "h": 5 }
+  },
   "LECTERN side": {
    "frame": { "x": 0, "y": 25, "w": 10, "h": 24 }
   },
@@ -84,11 +87,17 @@
   "LECTERN lamp post top": {
    "frame": { "x": 158, "y": 25, "w": 7, "h": 3 }
   },
+  "LECTERN lamp post front": {
+   "frame": { "x": 166, "y": 25, "w": 7, "h": 4 }
+  },
+  "LECTERN lamp cage front": {
+   "frame": { "x": 174, "y": 25, "w": 9, "h": 5 }
+  },
   "LECTERN lamp cage side": {
-   "frame": { "x": 166, "y": 25, "w": 3, "h": 5 }
+   "frame": { "x": 184, "y": 25, "w": 3, "h": 5 }
   },
   "LECTERN lamp cage top": {
-   "frame": { "x": 170, "y": 25, "w": 9, "h": 3 }
+   "frame": { "x": 188, "y": 25, "w": 9, "h": 3 }
   },
   "CONSOLE side": {
    "frame": { "x": 0, "y": 50, "w": 6, "h": 8 }
@@ -223,22 +232,40 @@
    "frame": { "x": 10, "y": 189, "w": 28, "h": 9 }
   },
   "CRATE bottle 1 top": {
-   "frame": { "x": 39, "y": 189, "w": 2, "h": 1 }
+   "frame": { "x": 39, "y": 189, "w": 4, "h": 2 }
+  },
+  "CRATE bottle 1 front": {
+   "frame": { "x": 44, "y": 189, "w": 4, "h": 7 }
   },
   "CRATE bottle 2 top": {
-   "frame": { "x": 42, "y": 189, "w": 2, "h": 1 }
+   "frame": { "x": 49, "y": 189, "w": 4, "h": 2 }
+  },
+  "CRATE bottle 2 front": {
+   "frame": { "x": 54, "y": 189, "w": 4, "h": 7 }
   },
   "CRATE bottle 3 top": {
-   "frame": { "x": 45, "y": 189, "w": 2, "h": 1 }
+   "frame": { "x": 59, "y": 189, "w": 4, "h": 2 }
+  },
+  "CRATE bottle 3 front": {
+   "frame": { "x": 64, "y": 189, "w": 4, "h": 7 }
   },
   "CRATE bottle 4 top": {
-   "frame": { "x": 48, "y": 189, "w": 2, "h": 1 }
+   "frame": { "x": 69, "y": 189, "w": 4, "h": 2 }
+  },
+  "CRATE bottle 4 front": {
+   "frame": { "x": 74, "y": 189, "w": 4, "h": 7 }
   },
   "CRATE bottle 5 top": {
-   "frame": { "x": 51, "y": 189, "w": 2, "h": 1 }
+   "frame": { "x": 79, "y": 189, "w": 4, "h": 2 }
+  },
+  "CRATE bottle 5 front": {
+   "frame": { "x": 84, "y": 189, "w": 4, "h": 7 }
   },
   "CRATE bottle 6 top": {
-   "frame": { "x": 54, "y": 189, "w": 2, "h": 1 }
+   "frame": { "x": 89, "y": 189, "w": 4, "h": 2 }
+  },
+  "CRATE bottle 6 front": {
+   "frame": { "x": 94, "y": 189, "w": 4, "h": 7 }
   },
   "TABLE side": {
    "frame": { "x": 0, "y": 207, "w": 11, "h": 5 }
@@ -361,82 +388,97 @@
    "frame": { "x": 0, "y": 351, "w": 12, "h": 12 }
   },
   "CENSER shade top": {
-   "frame": { "x": 0, "y": 364, "w": 10, "h": 5 }
+   "frame": { "x": 0, "y": 364, "w": 6, "h": 3 }
   },
-  "CENSER cage side": {
-   "frame": { "x": 11, "y": 364, "w": 3, "h": 8 }
+  "CENSER shade front": {
+   "frame": { "x": 7, "y": 364, "w": 6, "h": 3 }
+  },
+  "CENSER shade rim front": {
+   "frame": { "x": 14, "y": 364, "w": 10, "h": 1 }
+  },
+  "CENSER shade rim top": {
+   "frame": { "x": 25, "y": 364, "w": 10, "h": 5 }
+  },
+  "CENSER cage front": {
+   "frame": { "x": 36, "y": 364, "w": 8, "h": 8 }
   },
   "CENSER cage top": {
-   "frame": { "x": 15, "y": 364, "w": 8, "h": 3 }
+   "frame": { "x": 45, "y": 364, "w": 8, "h": 4 }
   },
   "CANDLES lantern side": {
-   "frame": { "x": 0, "y": 373, "w": 4, "h": 13 }
+   "frame": { "x": 0, "y": 373, "w": 3, "h": 13 }
   },
   "CANDLES lantern top": {
-   "frame": { "x": 5, "y": 373, "w": 10, "h": 4 }
+   "frame": { "x": 4, "y": 373, "w": 10, "h": 3 }
   },
   "CANDLES flare box side": {
-   "frame": { "x": 16, "y": 373, "w": 4, "h": 8 }
+   "frame": { "x": 15, "y": 373, "w": 3, "h": 8 }
   },
   "CANDLES flare box top": {
-   "frame": { "x": 21, "y": 373, "w": 9, "h": 4 }
+   "frame": { "x": 19, "y": 373, "w": 9, "h": 3 }
   },
   "CANDLES flares side": {
-   "frame": { "x": 31, "y": 373, "w": 1, "h": 5 }
+   "frame": { "x": 29, "y": 373, "w": 1, "h": 5 }
   },
   "CANDLES flares top": {
-   "frame": { "x": 33, "y": 373, "w": 8, "h": 1 }
+   "frame": { "x": 31, "y": 373, "w": 8, "h": 1 }
   },
   "BRAZIER barrel top": {
    "frame": { "x": 0, "y": 387, "w": 19, "h": 8 }
   },
+  "GATE pier L front": {
+   "frame": { "x": 0, "y": 396, "w": 15, "h": 51 }
+  },
+  "GATE pier R front": {
+   "frame": { "x": 16, "y": 396, "w": 15, "h": 51 }
+  },
   "GATE sill side": {
-   "frame": { "x": 0, "y": 396, "w": 13, "h": 3 }
+   "frame": { "x": 32, "y": 396, "w": 13, "h": 3 }
   },
   "GATE sill top": {
-   "frame": { "x": 14, "y": 396, "w": 64, "h": 13 }
+   "frame": { "x": 46, "y": 396, "w": 64, "h": 13 }
   },
   "GATE step side": {
-   "frame": { "x": 79, "y": 396, "w": 11, "h": 3 }
+   "frame": { "x": 111, "y": 396, "w": 11, "h": 3 }
   },
   "GATE step top": {
-   "frame": { "x": 91, "y": 396, "w": 54, "h": 11 }
+   "frame": { "x": 123, "y": 396, "w": 54, "h": 11 }
   },
   "GATE pier L side": {
-   "frame": { "x": 146, "y": 396, "w": 7, "h": 51 }
+   "frame": { "x": 178, "y": 396, "w": 7, "h": 51 }
   },
   "GATE pier L top": {
-   "frame": { "x": 154, "y": 396, "w": 15, "h": 7 }
+   "frame": { "x": 186, "y": 396, "w": 15, "h": 7 }
   },
   "GATE pier R side": {
-   "frame": { "x": 170, "y": 396, "w": 7, "h": 51 }
+   "frame": { "x": 202, "y": 396, "w": 7, "h": 51 }
   },
   "GATE pier R top": {
-   "frame": { "x": 178, "y": 396, "w": 15, "h": 7 }
+   "frame": { "x": 210, "y": 396, "w": 15, "h": 7 }
   },
   "GATE threshold side": {
-   "frame": { "x": 194, "y": 396, "w": 7, "h": 4 }
+   "frame": { "x": 226, "y": 396, "w": 7, "h": 4 }
   },
   "GATE threshold top": {
-   "frame": { "x": 202, "y": 396, "w": 56, "h": 7 }
+   "frame": { "x": 234, "y": 396, "w": 56, "h": 7 }
   },
   "GATE lintel side": {
-   "frame": { "x": 259, "y": 396, "w": 7, "h": 10 }
+   "frame": { "x": 291, "y": 396, "w": 7, "h": 10 }
   },
   "GATE lintel top": {
-   "frame": { "x": 267, "y": 396, "w": 60, "h": 7 }
+   "frame": { "x": 299, "y": 396, "w": 60, "h": 7 }
   },
   "GATE leaves side": {
-   "frame": { "x": 328, "y": 396, "w": 1, "h": 44 }
+   "frame": { "x": 360, "y": 396, "w": 1, "h": 44 }
   },
   "GATE leaves top": {
-   "frame": { "x": 330, "y": 396, "w": 32, "h": 1 }
+   "frame": { "x": 362, "y": 396, "w": 32, "h": 1 }
   },
   "GATE panel side": {
-   "frame": { "x": 363, "y": 396, "w": 1, "h": 11 }
+   "frame": { "x": 395, "y": 396, "w": 1, "h": 11 }
   },
   "GATE panel top": {
-   "frame": { "x": 365, "y": 396, "w": 10, "h": 1 }
+   "frame": { "x": 397, "y": 396, "w": 10, "h": 1 }
   },
   "BOOKS holotape side": {
    "frame": { "x": 0, "y": 448, "w": 3, "h": 3 }
@@ -563,6 +605,9 @@
      { "name": "lamp arm", "rect": [54, 0, 6, 13], "kind": "box", "v": 9, "d": 2, "z": 28 },
      { "name": "lamp shade", "rect": [45, 0, 10, 5], "kind": "cyl", "v": 10 },
      { "name": "lamp glow", "rect": [47, 5, 5, 1], "kind": "bill", "v": 10 }
+    ],
+    "flatOnly": [
+     { "name": "lamp outlines", "rect": [45, 0, 10, 5] }
     ]
    },
    "LECTERN": {
@@ -584,6 +629,9 @@
      { "name": "radio", "rect": [25, 9, 19, 9], "kind": "box", "v": 4, "d": 12 },
      { "name": "lamp post", "rect": [32, 5, 7, 4], "kind": "cyl", "v": 10 },
      { "name": "lamp cage", "rect": [31, 0, 9, 5], "kind": "box", "v": 7, "d": 6 }
+    ],
+    "flatOnly": [
+     { "name": "lamp outlines", "rect": [31, 0, 9, 9] }
     ]
    },
    "CONSOLE": {
@@ -645,12 +693,12 @@
     "front": [0, 7, 28, 17],
     "d": 20,
     "details": [
-     { "name": "bottle 1", "rect": [2, 0, 2, 7], "kind": "cyl", "v": 6 },
-     { "name": "bottle 2", "rect": [6, 0, 2, 7], "kind": "cyl", "v": 12 },
-     { "name": "bottle 3", "rect": [10, 0, 2, 7], "kind": "cyl", "v": 6 },
-     { "name": "bottle 4", "rect": [15, 0, 2, 7], "kind": "cyl", "v": 12 },
-     { "name": "bottle 5", "rect": [19, 0, 2, 7], "kind": "cyl", "v": 6 },
-     { "name": "bottle 6", "rect": [23, 0, 2, 7], "kind": "cyl", "v": 12 }
+     { "name": "bottle 1", "rect": [1, 0, 4, 7], "kind": "cyl", "v": 10 },
+     { "name": "bottle 2", "rect": [5, 0, 4, 7], "kind": "cyl", "v": 10 },
+     { "name": "bottle 3", "rect": [9, 0, 4, 7], "kind": "cyl", "v": 10 },
+     { "name": "bottle 4", "rect": [14, 0, 4, 7], "kind": "cyl", "v": 10 },
+     { "name": "bottle 5", "rect": [18, 0, 4, 7], "kind": "cyl", "v": 10 },
+     { "name": "bottle 6", "rect": [22, 0, 4, 7], "kind": "cyl", "v": 10 }
     ],
     "flatOnly": [
      { "name": "bottle outlines", "rect": [1, 0, 25, 7] }
@@ -741,18 +789,22 @@
    "CENSER": {
     "details": [
      { "name": "chain", "rect": [4, 0, 2, 5], "kind": "bill", "v": 5 },
-     { "name": "shade", "rect": [0, 5, 10, 4], "kind": "cyl", "v": 5 },
-     { "name": "cage", "rect": [1, 9, 8, 8], "kind": "box", "v": 2, "d": 6 }
+     { "name": "shade", "rect": [2, 5, 6, 3], "kind": "cyl", "v": 5 },
+     { "name": "shade rim", "rect": [0, 8, 10, 1], "kind": "cyl", "v": 5 },
+     { "name": "cage", "rect": [1, 9, 8, 8], "kind": "cyl", "v": 5 }
+    ],
+    "flatOnly": [
+     { "name": "lamp outlines", "rect": [0, 5, 10, 12] }
     ]
    },
    "CANDLES": {
     "details": [
-     { "name": "lantern", "rect": [2, 4, 10, 13], "kind": "box", "v": 4, "d": 8, "z": 0 },
-     { "name": "handle", "rect": [4, 1, 6, 3], "kind": "disc", "v": 7, "t": 1, "rim": "M", "z": 13 },
-     { "name": "flare box", "rect": [14, 9, 9, 8], "kind": "box", "v": 6, "d": 8, "z": 0 },
-     { "name": "flares", "rect": [15, 4, 8, 5], "kind": "box", "v": 9, "d": 2, "z": 8 },
-     { "name": "flame 1", "rect": [16, 0, 3, 4], "kind": "bill", "v": 10, "z": 13 },
-     { "name": "flame 2", "rect": [20, 1, 3, 4], "kind": "bill", "v": 10, "z": 12 }
+     { "name": "lantern", "rect": [2, 4, 10, 13], "kind": "box", "v": 8, "d": 6, "z": 0 },
+     { "name": "handle", "rect": [4, 1, 6, 3], "kind": "disc", "v": 11, "t": 1, "rim": "M", "z": 13 },
+     { "name": "flare box", "rect": [14, 9, 9, 8], "kind": "box", "v": 0, "d": 6, "z": 0 },
+     { "name": "flares", "rect": [15, 4, 8, 5], "kind": "box", "v": 2, "d": 2, "z": 8 },
+     { "name": "flame 1", "rect": [16, 0, 3, 4], "kind": "bill", "v": 3, "z": 13 },
+     { "name": "flame 2", "rect": [20, 1, 3, 4], "kind": "bill", "v": 3, "z": 12 }
     ],
     "flatOnly": [
      { "name": "painted shadow", "rect": [2, 17, 22, 1] }
@@ -777,6 +829,10 @@
      { "name": "lintel", "rect": [2, 0, 60, 10], "kind": "box", "v": 4, "d": 16 },
      { "name": "leaves", "rect": [16, 10, 32, 44], "kind": "box", "v": 8, "d": 2 },
      { "name": "panel", "rect": [52, 22, 10, 11], "kind": "box", "v": 20, "d": 2 }
+    ],
+    "flatOnly": [
+     { "name": "ring", "rect": [12, 10, 4, 40] },
+     { "name": "ring R", "rect": [48, 10, 4, 40] }
     ]
    },
    "BOOKS": {
