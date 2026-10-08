@@ -484,7 +484,8 @@ fn fmt_duration(ms: u64) -> String {
     }
 }
 
-/// Lifecycle events between two rosters: arrived, left, petition, petition-answered, compaction.
+/// Lifecycle events between two rosters: arrived, left, petition, petition-answered, compaction
+/// (none of arrived, left, compaction for the break-out room's temp sessions).
 pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
     let ev = |s: &Session, kind: &str, detail: String| Event { ts: now_ms, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail };
     let ask = |s: &Session| s.waiting_for.clone().unwrap_or_else(|| "input needed".into());
@@ -493,7 +494,9 @@ pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
         let waiting = s.status == "waiting";
         match prev.iter().find(|p| p.id == s.id) {
             None => {
-                out.push(ev(s, "arrived", s.cwd.clone()));
+                if !s.temp {
+                    out.push(ev(s, "arrived", s.cwd.clone()));
+                }
                 if waiting {
                     out.push(ev(s, "petition", ask(s)));
                 }
@@ -505,13 +508,13 @@ pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
                 if p.status == "waiting" && !waiting {
                     out.push(ev(s, "petition-answered", s.status.clone()));
                 }
-                if s.compacted_at.is_some() && s.compacted_at != p.compacted_at {
+                if !s.temp && s.compacted_at.is_some() && s.compacted_at != p.compacted_at {
                     out.push(ev(s, "compaction", String::new()));
                 }
             }
         }
     }
-    out.extend(prev.iter().filter(|p| !now.iter().any(|s| s.id == p.id)).map(|p| ev(p, "left", String::new())));
+    out.extend(prev.iter().filter(|p| !p.temp && !now.iter().any(|s| s.id == p.id)).map(|p| ev(p, "left", String::new())));
     out
 }
 
@@ -1114,6 +1117,15 @@ mod tests {
         assert_eq!(got, [("a", "petition"), ("b", "petition-answered"), ("new", "arrived"), ("c", "compaction"), ("gone", "left")]);
         assert!(ev.iter().all(|e| e.ts == 42));
         assert!(lifecycle(&now, &now, 0).is_empty(), "steady roster is quiet");
+    }
+
+    #[test]
+    fn lifecycle_is_quiet_for_the_break_out_room() {
+        let s = |id: &str, status: &str, comp: Option<i64>| Session { status: status.into(), compacted_at: comp, temp: true, ..crate::registry::tests_session(id) };
+        let prev = [s("old", "idle", None), s("c", "busy", Some(1))];
+        let now = [s("c", "busy", Some(2)), s("new", "waiting", None)];
+        let got: Vec<(String, String)> = lifecycle(&prev, &now, 1).into_iter().map(|e| (e.session_id, e.kind)).collect();
+        assert_eq!(got, [("new".to_string(), "petition".to_string())], "a temp petition still logs; arrivals, departures, compactions don't");
     }
 
     #[test]

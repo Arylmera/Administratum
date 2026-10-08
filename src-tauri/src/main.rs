@@ -642,6 +642,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
             // ponytail: the tracker compares against registry::STALE_MS; shifting "now" applies the user's mark.
             let shift = registry::STALE_MS - STALE_MS.load(Ordering::Relaxed);
             for s in tracker.stale_petitions(&roster, now_ms + shift) {
+                if s.temp {
+                    continue; // the break-out room is quiet: a temp petition toasts once, never as stale
+                }
                 let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
                 petition_toast(&app, &s, toast::fill(&words.stale, &s.name), body);
                 emit(&app, "petition-stale", &s);
@@ -655,12 +658,15 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 for wave in tracker.new_limits(&roster) {
                     let reset = wave[0].limit.as_ref().and_then(|l| l.reset_ms);
                     let time = reset.map_or_else(|| "later".to_string(), toast::hhmm);
-                    if !quiet {
-                        let names: Vec<&str> = wave.iter().map(|s| s.name.as_str()).collect();
-                        let body = if wave.len() == 1 { format!("{} · {}", wave[0].dept, wave[0].limit.as_ref().map_or("", |l| l.text.as_str())) } else { names.join(", ") };
+                    let loud: Vec<&Session> = wave.iter().filter(|s| !s.temp).collect(); // the break-out room seals in silence
+                    if !quiet && !loud.is_empty() {
+                        let names: Vec<&str> = loud.iter().map(|s| s.name.as_str()).collect();
+                        let body = if loud.len() == 1 { format!("{} · {}", loud[0].dept, loud[0].limit.as_ref().map_or("", |l| l.text.as_str())) } else { names.join(", ") };
                         let _ = app.notification().builder().title(toast::limit_title(&words, &names, &time)).body(body).show();
                     }
-                    emit(&app, "limit", wave.len());
+                    if !loud.is_empty() {
+                        emit(&app, "limit", loud.len());
+                    }
                     for s in &wave {
                         limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
                     }
