@@ -1,0 +1,36 @@
+{
+  "frames": {
+    "skull": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 20,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital 39° characters (hand-drawn, key palette)",
+    "image": "skull39.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 20,
+      "h": 20
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "centre": [
+        8,
+        11
+      ],
+      "carry": [
+        6,
+        19
+      ],
+      "beam": [
+        8,
+        17
+      ]
+    }
+  }
+}
