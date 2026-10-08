@@ -59,7 +59,7 @@ light pools lying flat on the floor, a bright patch where each window beam meets
 servo-skulls with a shadow below them, a back wall that trails a little behind a pan, and the far end of the hall
 slightly darker and greyer. No art changes: every effect is computed from the existing sprites.
 
-**Views.** Settings > View switches the hall between two views, live:
+**Views.** Settings > View switches the hall between three views, live:
 
 - **Flat** (the default): the 3/4 pixel-art hall described above.
 - **39°**: the same hall turned 39° and seen from above, the back wall receding 3:1 and the west wall 2:1. Walls,
@@ -70,6 +70,17 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   depth sorted by its floor footprint, with contact shadows, cast shadows at night and lights lifted off the floor
   (every desk-level glow sits at one shared desk height, its pool on the floor under it). At Auto scale the whole
   turned hall fits the window (smaller pixels); an explicit Scale pans, as in the flat view.
+- **Desktop strip**: a thin, transparent, click-through bar pinned to the Windows taskbar, outlined pixel art
+  over whatever is behind it. Left to right: a handle (the same menu as the tray — Hall view, Settings, Chronicon,
+  Hide), each department's lecterns and its adepts' consoles on a coloured mat with a name plaque, the cogitator,
+  the recaff and bench where idle scribes nap, the petition line and the Magos at the right end. It is click-through
+  everywhere except over a character, a label, a plaque or an open panel; a panel (card, Settings, Chronicon) opens
+  by growing the window upward, above the strip. The strip hides itself while a fullscreen app has focus, and
+  re-places itself when the taskbar, its monitor or its DPI changes. Strip size (S/M/L) and an optional backdrop
+  are in Settings. Windows only for now, and only with a taskbar docked at the bottom of the screen (macOS, above
+  the Dock, is not done yet).
+
+![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
 Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111)
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
@@ -179,7 +190,9 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
 | Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower / Vault 111 | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station, Arcane Tower a wizards' tower and Vault 111 a Fallout vault, not 40k; the remote view keeps its own) |
-| View | Flat | Flat / 39° | How the hall is drawn: today's flat 3/4 pixel art, or turned 39° with real volumes (see *Views*; the remote view keeps its own) |
+| View | Flat | Flat / 39° / Desktop strip | How the hall is drawn: today's flat 3/4 pixel art, turned 39° with real volumes, or the Windows taskbar strip (see *Views*; the remote view keeps its own). Desktop strip is offered only where the backend can place it (Windows) |
+| Strip size *(strip only)* | M | S / M / L | Pixel size of the desktop strip |
+| Strip backdrop *(strip only)* | off | — | A translucent band behind the strip, for readability over a busy wallpaper |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
 | Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
 | Quiet hours | off, 22:00–08:00 | any times | Inside the window no toast and no chime for a new petition, question, long task or usage limit. A petition turning stale still toasts and chimes. A moon in the header shows while it is quiet |

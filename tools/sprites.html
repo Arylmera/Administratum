@@ -37,6 +37,8 @@
   .bg-dark .stage { background: #0a0a0b; }
   .bg-light .stage { background: #e9e4da; }
   .bg-check .stage { background: repeating-conic-gradient(#3a3a3e 0 25%, #26262a 0 50%) 0 0 / 16px 16px; }
+  .strip-mode .stage.cell-light { background: #e8e8e8; }
+  .strip-mode .stage.cell-dark { background: #202020; }
   .grid .stage canvas + i { position: absolute; inset: var(--z); pointer-events: none;
     background: linear-gradient(to right, #fff2 1px, transparent 1px) 0 0 / var(--z) var(--z),
                 linear-gradient(to bottom, #fff2 1px, transparent 1px) 0 0 / var(--z) var(--z); }
@@ -55,6 +57,7 @@
   <label><input type="checkbox" id="grid"> pixel grid</label>
   <label><input type="checkbox" id="diff"> dim same-as-default art</label>
   <label title="Each sprite over the contact shadow the Depth setting draws (ui/depth.js)"><input type="checkbox" id="depth"> depth</label>
+  <label title="Outline every sprite (as the Desktop strip draws it) over alternating light/dark cells"><input type="checkbox" id="strip"> strip</label>
   <input type="search" id="q" placeholder="Filter: id, family, note">
   <button class="chip" id="reload" title="Reload the art (R)">Reload</button>
 </header>
@@ -65,6 +68,7 @@ import { THEMES, T, setTheme } from '../ui/theme.js';
 import '../ui/themes.js';
 import { catalog } from './sprite_catalog.mjs';
 import { contactShadow } from '../ui/depth.js';
+import { outline, outlined } from '../ui/outline.js';
 
 const REPO = 'https://github.com/Arylmera/Administratum';
 // Art family -> its discussion issue (the "Sprite board", #3). A family without one opens a new Sprite issue.
@@ -136,6 +140,10 @@ function render() {
   document.documentElement.style.setProperty('--z', `${z}px`);
   $('zv').textContent = `${z}×`;
   animated.length = 0;
+  const stripOn = $('strip').checked;
+  outline.on = stripOn;
+  document.body.classList.toggle('strip-mode', stripOn);
+  let cellN = 0;
   const out = document.createDocumentFragment(), sections = new Map();
   order.forEach((base, i) => {
     const n = i + 1; // row number over the whole list, so a filter never renumbers
@@ -156,7 +164,8 @@ function render() {
       if (!shown.has(id)) continue;
       const e = byTheme[id].get(base.id);
       if (!e) continue;
-      const frames = e.anim ? e.cells.map(c => canvasOf([c])) : [canvasOf(e.cells)];
+      let frames = e.anim ? e.cells.map(c => canvasOf([c])) : [canvasOf(e.cells)];
+      if (stripOn) { setTheme(id); frames = frames.map(outlined); }
       const fig = document.createElement('figure'), cv = document.createElement('canvas');
       cv.width = frames[0].width; cv.height = frames[0].height;
       cv.style.width = `${cv.width * z}px`;
@@ -165,6 +174,7 @@ function render() {
       const theirs = e.src.includes('/');
       fig.id = `${col(id)}${n}`;
       fig.innerHTML = `<div class="stage"></div><figcaption><span class="ref">${fig.id}</span>${names[id]}${theirs ? ' · own art' : ''}</figcaption>`;
+      fig.firstChild.classList.add(cellN++ % 2 ? 'cell-dark' : 'cell-light');
       fig.firstChild.append(cv, document.createElement('i'));
       if ($('diff').checked && id !== ids[0] && !theirs && same(e, base)) fig.classList.add('same');
       strip.append(fig);
@@ -192,12 +202,13 @@ for (const id of ids) {
 }
 const setBg = () => { document.body.className = `bg-${$('bg').value}${$('grid').checked ? ' grid' : ''}`; };
 for (const [k, d] of [['zoom', '4'], ['bg', 'dark']]) $(k).value = pref(k, d);
-for (const k of ['grid', 'diff', 'depth']) $(k).checked = pref(k, '') === '1';
+for (const k of ['grid', 'diff', 'depth', 'strip']) $(k).checked = pref(k, '') === '1';
 $('zoom').oninput = () => { save('zoom', $('zoom').value); render(); };
 $('bg').onchange = () => { save('bg', $('bg').value); setBg(); };
 $('grid').onchange = () => { save('grid', $('grid').checked ? '1' : ''); setBg(); };
 $('diff').onchange = () => { save('diff', $('diff').checked ? '1' : ''); render(); };
 $('depth').onchange = () => { save('depth', $('depth').checked ? '1' : ''); render(); };
+$('strip').onchange = () => { save('strip', $('strip').checked ? '1' : ''); render(); };
 $('q').oninput = render;
 $('reload').onclick = () => location.reload();
 addEventListener('hashchange', () => document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'center' }));

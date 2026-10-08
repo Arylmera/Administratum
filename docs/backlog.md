@@ -1,6 +1,13 @@
 # Backlog
 
-Done recently: answer petitions, stale escalation, model ranks, compaction ritual, stable desks, Chronicon + Tithe + scene reactions, space for many agents (compact lecterns, growing hall, pan, edge arrows) (spec: docs/superpowers/specs/2026-10-05-chronicon-design.md); quiet hours, plaque click + branch, usage limits, toast actions, turn summary; Chronicon fixes (push detail from git's output or the branch, offsets saved with the events, a moved session's transcript found once it exists); Depth pass, "2.5D" without new art (shadows, AO, height-aware lights, cast shadows, parallax, depth of view; plan docs/superpowers/plans/2026-10-07-depth-pass.md); Two views, Flat 3/4 and 39° (Settings > View, live), every world's 39° art, tall windows and full-height hangings, 39° background built 2.5x faster, lights at their height in 39° (plan docs/superpowers/plans/2026-10-07-view-39.md).
+Done recently: answer petitions, stale escalation, model ranks, compaction ritual, stable desks, Chronicon + Tithe + scene reactions, space for many agents (compact lecterns, growing hall, pan, edge arrows) (spec: docs/superpowers/specs/2026-10-05-chronicon-design.md); quiet hours, plaque click + branch, usage limits, toast actions, turn summary; Chronicon fixes (push detail from git's output or the branch, offsets saved with the events, a moved session's transcript found once it exists); Depth pass, "2.5D" without new art (shadows, AO, height-aware lights, cast shadows, parallax, depth of view; plan docs/superpowers/plans/2026-10-07-depth-pass.md); Two views, Flat 3/4 and 39° (Settings > View, live), every world's 39° art, tall windows and full-height hangings, 39° background built 2.5x faster, lights at their height in 39° (plan docs/superpowers/plans/2026-10-07-view-39.md); Desktop strip, a third view: a thin click-through bar pinned to the Windows taskbar, re-placed on taskbar/monitor/DPI changes, hidden behind fullscreen apps, stale-petition beacon and servo-skull, Strip size and backdrop settings (plan docs/superpowers/plans/2026-10-08-desktop-strip.md).
+
+## Known limits (strip)
+- Bottom taskbar only: a side or top taskbar puts the strip at the bottom of the work area instead
+- No macOS yet (planned: above the Dock)
+- No desk glows or lighting pass in the strip (the hall's lighting is skipped there)
+- The cogitator (82×50) nearly fills the strip's height and leaves less room for lecterns on narrow screens
+- A click on a character needs the cursor to rest there about 50 ms first (the strip polls the cursor to decide click-through)
 
 ## Known limits (39° view)
 - Effects drawn on a slanted plane (paper on a desk top, stamps and seals on a desk front, the cogitator's screens) are resampled through a transform and look softer than the pixel-exact background
@@ -19,7 +26,6 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
   - Context window per model (200k / 1M)
 
 ## Ideas not scheduled
-- Desktop strip mode (Desktop Goose style, on the Windows taskbar): plan docs/superpowers/plans/2026-10-07-desktop-strip.md
 - Global hotkey to show/hide; petition count badge on the tray icon
 - Binharic sound pack per event
 - Day/night from real sunrise/sunset
