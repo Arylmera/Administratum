@@ -1,4 +1,6 @@
-import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf } from './layout.js';
+import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf, layoutDepartments } from './layout.js';
+import { STRIP_H, stripOf, layoutStrip } from './strip.js';
+import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES, rankOf } from './sprites.js';
@@ -58,6 +60,10 @@ let hall = hallOf(0); // hallOf(bays, size): the scene's logical height also gro
 // The canvas's logical size: the hall's own in the flat view, the projected hall's in the 39° view (view.js).
 const scene = () => sceneSize(hall);
 const iso = () => viewMode.mode === '39';
+// The desktop strip (view.js): a transparent bar on the taskbar, its pixel size by the Strip size setting (Task 6).
+const strip = () => viewMode.strip;
+const stripScale = () => ({ S: 1.5, M: 2, L: 2.5 })[settings.stripSize] ?? 2;
+const stripCss = () => Math.round(STRIP_H * stripScale()); // the strip's CSS height
 // Where a floor point (x, y), up logical px above the floor, is drawn: itself in the flat view (up: straight up the
 // screen), projected in the 39° view (view.js). Overlays and hit tests place themselves through it.
 const at = (x, y, up = 0) => (iso() ? toScreen(x, y, up) : [x, y - up]);
@@ -97,6 +103,13 @@ function background(day) {
 // The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
 // view's canvas is the projected hall's size: the next frame resizes it) on the floor point the old view centred.
 onView((mode, prev) => {
+  if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
+    document.documentElement.classList.toggle('strip', mode === 'strip');
+    resetCast();
+    for (const k in bg) delete bg[k];
+    fit(); relayout();
+    return;
+  }
   const c = viewW ? toFloor((viewW / 2 - pan.x) / scale, (viewH / 2 - pan.y) / scale, WALL, prev) : null;
   for (const k in bg) delete bg[k];
   fit(c);
@@ -168,6 +181,16 @@ function settleLag(ms) {
 const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
 let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
 function fit(floor) { // floor: a floor point to centre on (a view switch), else the view keeps its logical centre
+  if (strip()) { // the window's whole width, one strip high; nothing to pan
+    scale = stripScale();
+    const next = { w: Math.floor(innerWidth / scale), h: STRIP_H };
+    if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
+    viewCentre = null;
+    const S = scene();
+    applySize(S.w * scale, S.h * scale);
+    setPan(0, 0);
+    return;
+  }
   // The laid-out viewport, floored: on a fractional display (125 %) innerWidth/innerHeight are rounded and can
   // be half a px larger than the page, enough to overflow it.
   const vp = document.documentElement.getBoundingClientRect(), head = document.querySelector('header').getBoundingClientRect().bottom;
@@ -201,7 +224,7 @@ addEventListener('resize', () => { clearTimeout(resizing); resizing = setTimeout
 addEventListener('scroll', () => scrollTo(0, 0)); // the page never scrolls, only the stage's pan (index.html: overflow clip)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {
-  hall = hallOf(layout.bays ?? 0, size);
+  hall = strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size);
   onRoster(pending ?? roster);
 }
 // Each animation frame (ms since the last): glide to a target, else coast on the drag's inertia.
@@ -313,16 +336,19 @@ function frame(now) {
   cast.update(dt);
   const S = scene();
   if (canvas.width !== S.w * RES || canvas.height !== S.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize, the view
-  const back = background(level.beams);
-  g.drawImage(back, 0, 0, S.w, S.h);
-  if (!iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
+  const back = strip() ? null : background(level.beams);
+  if (!back) g.clearRect(0, 0, S.w, S.h);
+  else g.drawImage(back, 0, 0, S.w, S.h);
+  if (back && !iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(now);
   view.hall = hall;
   view.level = level;
   view.mode = viewMode.mode;
-  view.anchors = back.anchors;
-  const lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now);
-  drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
+  view.anchors = back?.anchors;
+  let lights;
+  outline.on = strip(); // outlined sprites in the strip only: the hall and the sprite viewer draw without
+  try { lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now); } finally { outline.on = false; }
+  if (back) drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
@@ -344,7 +370,13 @@ const rankLine = model => `${modelName(model)} · ${t(`rank.${rankOf(model)}`)}`
 
 const cast = new Cast();
 const deptOrder = [];
-let layout = { blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0, plan: [] };
+const emptyLayout = () => ({ blocks: [], desks: [], seats: new Map(), consoles: [], consoleSeats: new Map(), overflow: 0, plan: [] });
+let layout = emptyLayout();
+// A switch into or out of the strip: nobody walks between worlds. The plan (desk keys) is geometry-free and stays.
+function resetCast() {
+  cast.actors.clear(); cast.naps.clear(); tweens.clear();
+  layout = { ...emptyLayout(), plan: layout.plan };
+}
 // Harness only: ?grace=<s> shortens the empty-desk grace (blocks get 5/3 of it). The app's URL has no query.
 const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3, shrink: s * 1000 } : {}))(+new URLSearchParams(location.search).get('grace'));
 const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
@@ -361,12 +393,12 @@ function onRoster(next) {
   if (paused()) { pending = next; return; } // ponytail: the newest roster wins; wake() applies it
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
-  const napping = cast.napping(roster, hallOf(0, size).refectory);
+  const napping = cast.napping(roster, (strip() ? stripOf(size.w) : hallOf(0, size)).refectory);
   const depts = deptOrder
     .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
-  layout = planLayout(layout, depts, Date.now(), GRACE, size);
-  hall = hallOf(layout.bays, size);
+  layout = planLayout(layout, depts, Date.now(), GRACE, size, strip() ? layoutStrip : layoutDepartments);
+  hall = strip() ? stripOf(size.w) : hallOf(layout.bays, size);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
   const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;

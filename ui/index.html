@@ -65,7 +65,7 @@
      through; the stage (and its canvas) stays, Task 4 draws into it. html/body otherwise keep their opaque --bg. */
   html.strip, html.strip body { background: transparent !important; }
   html.strip header { display: none; }
-  html.strip #stage { box-shadow: none; }
+  html.strip #stage { box-shadow: none; position: fixed; left: 0; bottom: 0; margin: 0; max-width: none; max-height: none; }
   #world { position: absolute; left: 0; top: 0; }
   #scene { display: block; image-rendering: pixelated; touch-action: none; }
   #world { touch-action: none; -webkit-touch-callout: none; }

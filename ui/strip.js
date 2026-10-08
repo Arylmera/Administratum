@@ -5,7 +5,7 @@
 export const STRIP_H = 56; // lectern (30) + the scribe's label above it
 export const FLOOR = STRIP_H - 3; // feet
 const GATE_W = 24, LEC_W = 26, CON_W = 16, GAP = 6;
-const RIGHT_W = 220; // cogitator to Magos
+const RIGHT_W = 276; // cogitator (82 wide) to Magos
 
 export const stripRoute = (a, b) => (a.x === b.x && a.y === b.y ? [] : [{ x: b.x, y: b.y }]); // every point is on the floor
 
@@ -18,13 +18,13 @@ export function stripOf(w) {
   const at = x => ({ x, y: FLOOR });
   const magos = at(w - 16), queue = Array.from({ length: 6 }, (_, i) => at(w - 40 - 14 * i));
   const refectory = [w - 150, w - 138, w - 126].map(at), recaff = at(w - 166);
-  const cogSpots = [w - 206, w - 194, w - 182].map(at);
+  const cogSpots = [w - 250, w - 229, w - 208].map(at); // in front of the cogitator bank
   S = {
     strip: true, route: stripRoute, w, h: STRIP_H, baseH: STRIP_H, bays: 0, dy: 0, rows: 1,
     sw: w, rx: w, ox: 0, dx: 0, split: STRIP_H, sd: 0, sb: 0, hy: 0, // roomOf(): everything is 'hall'
     x0: GATE_W, x1: w - RIGHT_W, y0: FLOOR, y1: FLOOR, aisleY: FLOOR, corridorX: w, lanes: [FLOOR],
     entry: at(-10), magos, queue, refectory, recaff, cogSpots,
-    cog: { x: w - 210, y: FLOOR - 30 }, bench: { x: w - 156, y: FLOOR - 12 }, // props' top-left, placed in Task 4
+    cog: { x: w - 270, y: FLOOR }, bench: { x: w - 161, y: FLOOR }, // props' left end on the floor (scene.js drawStripProps)
   };
   strips.set(w, S);
   return S;

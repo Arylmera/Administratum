@@ -8,6 +8,7 @@ const I = T.ink; // every colour drawn here, by name (theme.js)
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { hallOf, WALL, WALL_DY } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
+import { FLOOR } from './strip.js';
 import { shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
@@ -212,8 +213,8 @@ export function drawScene(g, layout, actors, fillOf, now) {
   beginFrame(layout, now);
   const all = [...actors.values()];
   drawRugs(g, layout.blocks);
-  drawDoors(g, all);
-  const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
+  if (!H.strip) drawDoors(g, all);
+  const items = H.strip ? [] : [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
   const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
@@ -251,6 +252,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     }
     floor.push(() => contactShadow(g, e, shade));
   }
+  if (H.strip) drawStripProps(g, H, all, now, items); // its contact shadows go down now, with the floor's
   floor.forEach(f => f(g));
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
   over.forEach(f => f(g));
@@ -259,6 +261,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     flare(g, f, k, heat, now / 1000);
     lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: T.light.burn, flicker: true });
   }
+  if (H.strip) return lights;
   drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
   return staticLights(H).concat(lights, drawAlarm(g, all, now));
 }
@@ -636,7 +639,7 @@ function drawDecorFrame(g, t, cog = 0) {
   const sy = 50 + WALL_DY + Math.round(2 * Math.sin(t * 4));
   flyShadow(g, 244 + H.ox + SK.centre[0], 50 + WALL_DY + SK.centre[1]);
   blit(g, MAPS.SKULL, 244 + H.ox, sy);
-  g.save(); g.translate(H.ox, H.sd); drawMagos(g, t); g.restore();
+  g.save(); g.translate(H.ox, H.sd); drawMagos(g, MAG.x, MAG.y, t); g.restore();
   g.save(); g.translate(H.dx, WALL_DY); drawCogitator(g, t, cog); g.restore();
 }
 
@@ -697,12 +700,32 @@ function drawCogitator(g, t, cog) {
 
 // The Magos on the throne: the hanging drill forearm swings 1 art px, chest screen scans, optics pulse (anchors: MAGOS_AT).
 const MAG = { x: 264, y: 120 };
-function drawMagos(g, t) {
+// (x, y): the body's top-left (the throne, drawn by drawStatic in the hall, sits 4 px right and down of it).
+function drawMagos(g, x, y, t) {
   const A = MAGOS_AT, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
-  blit(g, MAGOS.body, MAG.x, MAG.y);
-  blit(g, MAGOS.arm, MAG.x + A.arm.x + sway, MAG.y + A.arm.y);
-  rect(g, MAG.x + A.chest.x, MAG.y + A.chest.y + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
-  if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, MAG.x + e.x, MAG.y + e.y, 0.5, 0.5, I.glint);
+  blit(g, MAGOS.body, x, y);
+  blit(g, MAGOS.arm, x + A.arm.x + sway, y + A.arm.y);
+  rect(g, x + A.chest.x, y + A.chest.y + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
+  if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, x + e.x, y + e.y, 0.5, 0.5, I.glint);
+}
+
+// The strip's props (stripOf): the cogitator, the recaff left of its spot, the bench under the nappers, the Magos on
+// his throne at the right end. Each stands 1 px behind the walk line (foot FLOOR - 1), so the scribes pass in front.
+function drawStripProps(g, H, actors, now, items) {
+  const t = now / 1000, cog = actors.filter(a => a.pose === 'cog').length, foot = FLOOR - 1;
+  const top = map => foot - map.length / RES;
+  const prop = (map, x, draw) => {
+    contactShadow(g, shadowOf(map, x, top(map)), 0.5);
+    items.push({ y: foot, draw: draw ?? (g2 => blit(g2, map, x, top(map))) });
+  };
+  prop(MAPS.COGITATOR, H.cog.x, g2 => {
+    blit(g2, MAPS.COGITATOR, H.cog.x, top(MAPS.COGITATOR));
+    g2.save(); g2.translate(H.cog.x - COG_X, top(MAPS.COGITATOR) - COG_Y); drawCogitator(g2, t, cog); g2.restore();
+  });
+  prop(MAPS.RECAFF, H.recaff.x - 18);
+  prop(MAPS.BENCH, H.bench.x);
+  const tx = H.magos.x - 10; // the throne centred on the Magos' spot, the body 4 px up-left of it (as in the hall)
+  prop(MAPS.THRONE, tx, g2 => { blit(g2, MAPS.THRONE, tx, top(MAPS.THRONE)); drawMagos(g2, tx - 4, top(MAPS.THRONE) - 4, t); });
 }
 
 // The room's own lights, by what they move with (see PROPS; c, e, r also + WALL_DY unless hung), plus the floor's coolant crossings on every slot
@@ -720,6 +743,7 @@ const STATIC_LIGHTS = {
 const lightsBySize = new Map();
 onTheme(() => lightsBySize.clear());
 function staticLights(hall) {
+  if (hall.strip) return []; // the strip has no room, no lighting pass
   const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
   let L = lightsBySize.get(key);
   if (!L) {

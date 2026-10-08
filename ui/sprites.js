@@ -4,6 +4,7 @@
 import { BASE, T, THEMES, onTheme } from './theme.js';
 import './themes.js'; // the themes, and the art they bring (ui/art/<theme>/)
 import { loadSheet } from './art.js';
+import { outline, outlined } from './outline.js';
 export { BASE };
 
 // Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
@@ -47,6 +48,7 @@ export function sprite(map, over = NONE) {
 // Draws sprite(map, over) at logical (x, y); the HD sprite canvas is downscaled back to logical size.
 export function blit(g, map, x, y, over) {
   const cv = sprite(map, over);
+  if (outline.on) { const o = outlined(cv); g.drawImage(o, x - 1 / RES, y - 1 / RES, o.width / RES, o.height / RES); return; }
   g.drawImage(cv, x, y, cv.width / RES, cv.height / RES);
 }
 
