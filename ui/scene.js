@@ -731,6 +731,7 @@ function drawStripProps(g, H, actors, now, items) {
 // The strip's escalation: no wall bracket to hang a beacon on and no room to light, so while any queued petition
 // is stale a small red beacon blinks over the Magos (hall's colours and sweep period) and the servo-skull sits
 // over the nearest petitioner (H.queue[0]) with its flying shadow (reuse the hall's sprite and flyShadow).
+// ponytail: the lights it returns feed nothing yet (the strip has no lighting pass); kept for when it gets one.
 function drawStripAlarm(g, H, actors, now) {
   const on = actors.some(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s));
   if (!on) return [];

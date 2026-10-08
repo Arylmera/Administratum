@@ -8,7 +8,7 @@ import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
-import { view as viewMode, viewName, setView } from './view.js';
+import { view as viewMode, viewName, setView, onView } from './view.js';
 
 const mem = {};
 let saved = null;
@@ -122,7 +122,7 @@ export function initSettings(hooks) {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
     pushStale(); pushQuestions(); pushQuiet();
     // Desktop strip: offered only where the backend can place it (Windows).
-    invoke('strip_supported').then(ok => { if (ok) for (const e of form.querySelectorAll('[value="strip"], .strip-only')) e.hidden = false; }, () => {});
+    invoke('strip_supported').then(ok => { if (ok) form.querySelector('[value="strip"]').hidden = false; }, () => {});
   }
 
   sync = () => {
@@ -137,6 +137,7 @@ export function initSettings(hooks) {
     field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
     field('theme').value = T.id;
     field('view').value = viewName();
+    for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
     field('stripSize').value = settings.stripSize;
     field('stripBackdrop').checked = settings.stripBackdrop;
     field('chime').checked = !hooks.muted();
@@ -302,5 +303,6 @@ export function initSettings(hooks) {
     hooks.quieted?.();
   };
 
+  onView(() => sync()); // the tray or the handle switched the view under an open panel
   panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); } sync(); } }); // readLogin: the tray may have changed it
 }

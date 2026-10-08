@@ -21,7 +21,7 @@ setTheme(store.get('adm.theme', 'tier2'));
 // The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). The strip waits for
 // the backend's yes (strip_supported); the hall view draws meanwhile.
 const saved = store.get('adm.view', 'flat');
-setView(hallView(saved));
+setView(hallView(saved === 'strip' ? store.get('adm.hallView', 'flat') : saved));
 if (saved === 'strip' && !REMOTE) invoke('strip_supported').then(ok => ok && setView('strip'), () => {});
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
@@ -165,29 +165,39 @@ function toggleStrip() {
   store.set('adm.view', to); setView(to);
 }
 // The handle: a cog at the strip's left end (over the gate) opening a small menu above it.
-const stripMenu = document.getElementById('strip-menu');
-document.getElementById('strip-handle').onclick = () => { stripMenu.hidden = !stripMenu.hidden; };
+const stripMenu = document.getElementById('strip-menu'), stripHandle = document.getElementById('strip-handle');
+const showMenu = on => { stripMenu.hidden = !on; stripHandle.setAttribute('aria-expanded', String(on)); };
+stripHandle.onclick = () => showMenu(stripMenu.hidden);
 stripMenu.onclick = e => {
   const act = e.target.closest('button')?.dataset.act;
   if (!act) return;
-  stripMenu.hidden = true;
+  showMenu(false);
   if (act === 'hall') toggleStrip();
   else document.getElementById(act).click(); // the header's own buttons (hidden in the strip): prefs-open, chron-open, hide
 };
-addEventListener('click', e => { if (!e.target.closest('#strip-menu, #strip-handle')) stripMenu.hidden = true; });
+addEventListener('click', e => { if (!e.target.closest('#strip-menu, #strip-handle')) showMenu(false); });
+addEventListener('keydown', e => { if (e.key === 'Escape') showMenu(false); });
+// The hall's floor point at its view centre, kept through a stay in the strip (the strip's view says nothing of it).
+// Leaving, the window is still strip-sized until place_hall lands: the first hall resize after (refloor) centres
+// on it again, the strip-sized fit in between having clamped it.
+let hallFloor = null, refloor = false;
+const centreFloor = prev => (viewW ? toFloor((viewW / 2 - pan.x) / scale, (viewH / 2 - pan.y) / scale, WALL, prev) : null);
 // The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
 // view's canvas is the projected hall's size: the next frame resizes it) on the floor point the old view centred.
 onView((mode, prev) => {
   if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
+    if (mode === 'strip') { hallFloor = centreFloor(prev); refloor = false; }
     document.documentElement.classList.toggle('strip', mode === 'strip');
     if (tauri()) switching = switching.then(() => (mode === 'strip' ? enterStrip() : leaveStrip())).catch(err => console.warn('strip switch', err));
-    stripMenu.hidden = true;
+    showMenu(false);
+    mouse = null; // the strip's cursor is backend-fed, the hall's a pointer event: neither means anything in the other
     resetCast();
     for (const k in bg) delete bg[k];
-    fit(); relayout();
+    if (prev === 'strip') { viewW = 0; refloor = tauri(); } // the strip's stage: no hall centre to keep (hallFloor, else the scene's centre)
+    fit(prev === 'strip' ? hallFloor : undefined); relayout();
     return;
   }
-  const c = viewW ? toFloor((viewW / 2 - pan.x) / scale, (viewH / 2 - pan.y) / scale, WALL, prev) : null;
+  const c = centreFloor(prev);
   for (const k in bg) delete bg[k];
   fit(c);
 });
@@ -298,7 +308,13 @@ function applySize(W, H) {
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
 let resizing;
-addEventListener('resize', () => { clearTimeout(resizing); resizing = setTimeout(fit, 150); });
+addEventListener('resize', () => {
+  clearTimeout(resizing);
+  resizing = setTimeout(() => {
+    if (!refloor || strip()) return fit();
+    refloor = false; viewW = 0; fit(hallFloor);
+  }, 150);
+});
 addEventListener('scroll', () => scrollTo(0, 0)); // the page never scrolls, only the stage's pan (index.html: overflow clip)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {

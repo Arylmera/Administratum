@@ -110,7 +110,9 @@ pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String
 
 #[tauri::command]
 pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<HallRect>, String> {
-    let hall = if ON.swap(true, Ordering::SeqCst) {
+    // ON only once the strip is placed: a failure below leaves the hall's state (and its rect, captured
+    // again on the next try) as it was.
+    let hall = if ON.load(Ordering::SeqCst) {
         None
     } else {
         // inner: set_size restores the inner size; the outer one carries Windows' invisible frame
@@ -121,6 +123,7 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
     };
     *HEIGHT.lock().unwrap_or_else(|e| e.into_inner()) = height;
     replace(&window, height)?;
+    ON.store(true, Ordering::SeqCst);
     Ok(hall)
 }
 
@@ -154,6 +157,7 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), S
     window.set_ignore_cursor_events(on).map_err(|e| e.to_string())
 }
 
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 #[derive(Debug, PartialEq, Eq)]
 pub enum Act {
     Hide,
@@ -162,6 +166,7 @@ pub enum Act {
 }
 
 /// hidden_by_us: the watcher hid the strip for a fullscreen app (a user's own Hide is left alone).
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 pub fn act(fullscreen: bool, visible: bool, hidden_by_us: bool) -> Act {
     match (fullscreen, visible, hidden_by_us) {
         (true, true, _) => Act::Hide,
@@ -173,7 +178,8 @@ pub fn act(fullscreen: bool, visible: bool, hidden_by_us: bool) -> Act {
 /// Prints `msg` through `slot` unless it is the same text as last time through that same slot (a
 /// stuck monitor/taskbar query would otherwise spam the console every tick); a success elsewhere
 /// resets `slot` so the next failure, even a repeat of an earlier one, logs again. One slot per
-/// call site (replace vs set_always_on_top) so one succeeding never suppresses the other's own repeat.
+/// call site (hide, replace, set_always_on_top) so one succeeding never suppresses the other's own repeat.
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 fn log_once(slot: &Mutex<Option<String>>, msg: String) {
     let mut last = slot.lock().unwrap_or_else(|e| e.into_inner());
     if last.as_deref() != Some(msg.as_str()) {
@@ -182,6 +188,7 @@ fn log_once(slot: &Mutex<Option<String>>, msg: String) {
     *last = Some(msg);
 }
 
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 fn clear_log(slot: &Mutex<Option<String>>) {
     *slot.lock().unwrap_or_else(|e| e.into_inner()) = None;
 }
@@ -197,9 +204,9 @@ pub fn start_watcher(app: tauri::AppHandle) {
     use tauri::{Emitter, Manager};
     static REPLACE_ERR: Mutex<Option<String>> = Mutex::new(None);
     static TOP_ERR: Mutex<Option<String>> = Mutex::new(None);
+    static HIDE_ERR: Mutex<Option<String>> = Mutex::new(None);
     std::thread::spawn(move || {
         let mut hidden_by_us = false;
-        let mut hide_err: Option<String> = None;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(1));
             if !ON.load(Ordering::SeqCst) {
@@ -216,16 +223,10 @@ pub fn start_watcher(app: tauri::AppHandle) {
                     Ok(()) => {
                         let _ = app.emit("strip-hide", ());
                         hidden_by_us = true;
-                        hide_err = None;
+                        clear_log(&HIDE_ERR);
                     }
-                    Err(e) => {
-                        let msg = format!("strip watcher hide: {e}");
-                        if hide_err.as_deref() != Some(msg.as_str()) {
-                            eprintln!("{msg}");
-                        }
-                        hide_err = Some(msg);
-                        // not hidden: hidden_by_us stays false (already cleared above since visible)
-                    }
+                    // not hidden: hidden_by_us stays false (already cleared above since visible)
+                    Err(e) => log_once(&HIDE_ERR, format!("strip watcher hide: {e}")),
                 },
                 Act::Show => {
                     os::show_no_activate(&w);
@@ -258,15 +259,18 @@ pub fn start_watcher(app: tauri::AppHandle) {
 #[cfg(not(windows))]
 pub fn start_watcher(_app: tauri::AppHandle) {}
 
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 pub fn last_rect() -> Option<Rect> {
     *RECT.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 /// The cursor in window CSS px, if it is inside the strip's rect.
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 pub fn inside(r: Rect, (x, y): (i32, i32), scale: f64) -> Option<(f64, f64)> {
     (x >= r.left && x < r.right && y >= r.top && y < r.bottom).then(|| (f64::from(x - r.left) / scale, f64::from(y - r.top) / scale))
 }
 
+#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 #[derive(serde::Serialize, Clone, Copy, PartialEq)]
 struct CursorPos {
     x: f64,
