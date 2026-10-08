@@ -16,6 +16,7 @@ import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
+import { glide, gliding, clearGlides } from './glide.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
@@ -415,7 +416,7 @@ function frame(now) {
   }
   else { if (iso()) g.clearRect(0, 0, S.w, S.h); g.drawImage(back, 0, 0, S.w, S.h); }
   if (back && !iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
-  const view = glide(now);
+  const view = glide(layout, now);
   view.hall = hall;
   view.level = level;
   view.mode = viewMode.mode;
@@ -450,7 +451,7 @@ const emptyLayout = () => ({ blocks: [], desks: [], seats: new Map(), consoles: 
 let layout = emptyLayout();
 // A switch into or out of the strip: nobody walks between worlds. The plan (desk keys) is geometry-free and stays.
 function resetCast() {
-  cast.actors.clear(); cast.naps.clear(); tweens.clear();
+  cast.actors.clear(); cast.naps.clear(); clearGlides();
   layout = { ...emptyLayout(), plan: layout.plan };
 }
 // Harness only: ?grace=<s> shortens the empty-desk grace (blocks get 5/3 of it). The app's URL has no query.
@@ -487,36 +488,6 @@ function onRoster(next) {
   count.classList.toggle('alarm', roster.some(isStale));
   renderCard();
   if (answerable && roster.some(answerable)) probeActions();
-}
-
-// Reflows glide: rugs, desks and consoles ease from where they are drawn to their new place over GLIDE_MS;
-// the scribes and adepts walk to their new seats on their own (Cast.sync re-routes them).
-const GLIDE_MS = 800;
-const tweens = new Map(); // key -> { from, to, t0 }, each {x, y, w, h}
-const ease = t => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-const XYWH = ['x', 'y', 'w', 'h'];
-const same = (p, q) => p.x === q.x && p.y === q.y && p.w === q.w && p.h === q.h;
-function tween(key, to, now) {
-  let tw = tweens.get(key);
-  if (!tw || !same(tw.to, to)) tweens.set(key, tw = { from: tw ? pose(tw, now) : to, to, t0: now });
-  tw.to = to; // a fresh layout object with the same place
-  tw.seen = now;
-  return now - tw.t0 >= GLIDE_MS ? to : { ...to, ...pose(tw, now) }; // settled: no garbage
-}
-function pose({ from, to, t0 }, now) {
-  const k = ease(Math.min(1, (now - t0) / GLIDE_MS)), r = {};
-  for (const p of XYWH) if (to[p] != null) r[p] = from[p] + (to[p] - from[p]) * k;
-  return r;
-}
-const gliding = now => { for (const tw of tweens.values()) if (now - tw.t0 < GLIDE_MS) return true; return false; };
-function glide(now) {
-  const view = {
-    blocks: layout.blocks.map(b => tween(`b:${b.name}`, b, now)),
-    desks: layout.desks.map(d => tween(`d:${d.key}`, d, now)),
-    consoles: layout.consoles.map(c => tween(`c:${c.id}`, c, now)),
-  };
-  for (const [k, tw] of tweens) if (tw.seen !== now) tweens.delete(k); // gone from the layout
-  return view;
 }
 
 function consolesOf(dept) {
