@@ -61,6 +61,11 @@
   button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
   /* clip: the world moves by its pan transform only; max-*: never past the window, even before app.js's debounced fit (42 px: the header) */
   #stage { position: relative; margin: auto; overflow: clip; min-width: 0; min-height: 0; max-width: calc(100% - 24px); max-height: calc(100% - 66px); box-shadow: 0 0 0 2px var(--outline), 0 0 0 4px var(--copper), 0 0 0 5px var(--leather), 0 0 0 7px var(--outline), 0 10px 30px 6px rgba(0,0,0,.8); }
+  /* strip mode: no header, no brass frame around the stage, the window itself transparent so the desktop shows
+     through; the stage (and its canvas) stays, Task 4 draws into it. html/body otherwise keep their opaque --bg. */
+  html.strip, html.strip body { background: transparent !important; }
+  html.strip header { display: none; }
+  html.strip #stage { box-shadow: none; }
   #world { position: absolute; left: 0; top: 0; }
   #scene { display: block; image-rendering: pixelated; touch-action: none; }
   #world { touch-action: none; -webkit-touch-callout: none; }

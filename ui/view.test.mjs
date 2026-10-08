@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { P39, floorToWorld, WALL_DEFAULT, view, setView, onView, toScreen, toFloor, sceneSize } from './view.js';
+import { P39, floorToWorld, WALL_DEFAULT, view, setView, onView, toScreen, toFloor, sceneSize, viewName, hallView } from './view.js';
 import { WALL as LAYOUT_WALL } from './layout.js';
 
 // P39: the exact formula from the trial.
@@ -61,5 +61,26 @@ for (let x = 0; x <= hall.w; x += 7) {
 }
 assert.ok(worst <= 1, `toFloor(toScreen(.)) off by ${worst} logical px, want <= 1`);
 setView('flat');
+
+// strip: a window mode drawn with the flat projection; viewName()/hallView() give the view name vs. the hall view.
+{
+  const seen = [];
+  const off = onView((next, prev) => seen.push([next, prev]));
+  setView('flat');
+  setView('strip');
+  assert.equal(view.strip, true);
+  assert.equal(view.mode, 'flat'); // the strip draws flat
+  assert.equal(viewName(), 'strip');
+  setView('39');
+  assert.equal(view.strip, false);
+  assert.equal(view.mode, '39');
+  setView('39'); // no change: no event
+  assert.deepEqual(seen.slice(-2), [['strip', 'flat'], ['39', 'strip']]);
+  assert.equal(hallView('39'), '39');
+  assert.equal(hallView('strip'), 'flat');
+  assert.equal(hallView('flat'), 'flat');
+  off();
+  setView('flat');
+}
 
 console.log('view.test.mjs OK');

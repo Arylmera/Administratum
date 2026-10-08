@@ -7,7 +7,7 @@ import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
-import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor } from './view.js';
+import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
 import { buildHall39 } from './isohall.js';
 import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
 import { quietAt, hhmmOf } from './quiet.js';
@@ -16,8 +16,9 @@ import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
-// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change).
-setView(store.get('adm.view', 'flat'));
+// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). Strip is mapped away
+// for now; Task 6 wires it back in.
+setView(hallView(store.get('adm.view', 'flat')));
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
 let chromeSet = [];
@@ -49,7 +50,7 @@ function renderQuiet() {
 }
 
 const canvas = document.getElementById('scene');
-const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
+const g = canvas.getContext('2d'); // the strip needs a transparent canvas; the hall's background blit still covers every pixel
 const overlay = document.getElementById('overlay');
 let scale = 2;
 let size = { ...SCENE }; // the scene's logical size, from the window and the Scale setting (fit)

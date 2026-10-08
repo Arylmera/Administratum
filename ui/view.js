@@ -17,13 +17,17 @@ export function floorToWorld(x, y, WALL = WALL_DEFAULT) {
 import { P39, TAN39 as K } from './iso.js'; // K: the continuous inverse of P39 for floor points (z = 0), toFloor
 export { P39 };
 
-export const view = { mode: 'flat' };
+export const view = { mode: 'flat', strip: false };
+export const viewName = () => (view.strip ? 'strip' : view.mode);
+export const hallView = name => (name === '39' ? '39' : 'flat');
 const listeners = new Set();
 export const onView = fn => { listeners.add(fn); return () => listeners.delete(fn); };
+// mode: 'flat' | '39' | 'strip' (adm.view). The strip is a window mode drawn with the flat projection.
 export function setView(mode) {
-  const next = mode === '39' ? '39' : 'flat', prev = view.mode;
+  const next = mode === 'strip' ? 'strip' : hallView(mode), prev = viewName();
   if (next === prev) return;
-  view.mode = next;
+  view.strip = next === 'strip';
+  view.mode = hallView(next);
   for (const f of listeners) f(next, prev);
 }
 
