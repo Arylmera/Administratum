@@ -50,7 +50,7 @@ function alcoves(from, to) {
 }
 // On the back wall: a banner, a censer, by their measured y, above the old wall (WALL - WALL_DY: the pre-shift
 // height PROPS was measured against, layout.js). A new wall prop hung here must be added to this name list too.
-const hung = (name, y) => (name === 'BANNER' || name === 'CENSER') && y < WALL - WALL_DY;
+export const hung = (name, y) => (name === 'BANNER' || name === 'CENSER') && y < WALL - WALL_DY;
 // The back walls' window and hangings: the tall gothic window and the full-height hanging, unless the theme redraws
 // the short ones (WINDOW, BANNER) without tall ones of its own; then the short ones, as before, at their old place.
 // win: the window's frame, drawn at (x + winDx, WIN_Y) for a 16 px window slot x (propsOf windows), its glass ending
@@ -92,7 +92,7 @@ export function propsOf(hall) {
 }
 
 // Props that stand on the floor and get a contact shadow (depth.js); the rest hangs on a wall or lies flat.
-const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
+export const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
 // The scriptorium is 0..sw, its east wall sw..rx, the right column rx..w (refectorium 0..split - 10, a wall, the
 // sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
 export function drawStatic(g, daylight, hall = hallOf(0)) {

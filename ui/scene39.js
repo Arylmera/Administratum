@@ -6,7 +6,7 @@
 // (rugs, fallen sheets, shadows) through the floor plane's affine map, what sits on a face (seals, lamps, screens,
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
-import { P39, IsoBuf, VS39, depthSort } from './iso.js';
+import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
 import { WALL, WALL_DY } from './layout.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf } from './isohall.js';
@@ -17,7 +17,7 @@ import { drawActor, bodyOf, bodyOf39, bobOf, dozing, isQuestion, BURN_S, PUFF_S,
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
 
-const K = Math.sqrt(2 / 3), fl = Math.floor;
+const fl = Math.floor;
 const half = v => Math.round(v * 2) / 2;
 const rect = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
 
@@ -389,6 +389,7 @@ function alarm(g, all, now) {
 // px, the frontmost (largest y) winning; else the actor whose feet are by the floor point under it (view.js toFloor).
 // use(hall) must have run (drawScene39 does); toFloor needs view.js's sceneSize for the hall (app.js scene()).
 export function actorAt39(px, py, actors, pad = 1) {
+  actors = [...actors]; // app.js passes a one-shot iterator (cast.actors.values()): two passes below
   let best = null;
   const P = Math.round(pad * RES);
   for (const a of actors) {

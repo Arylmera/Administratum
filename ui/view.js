@@ -1,6 +1,6 @@
 // The hall's view: today's Flat 3/4 (identity projection) or the 39° projection, switched live (Settings, adm.view).
-// Floor model stays in logical px (x, y); a view only maps a floor/wall point to screen logical px. Until the 39°
-// hall is drawn (a later task) this module is inert plumbing: the math is exact, nothing draws through it yet.
+// Floor model stays in logical px (x, y); a view only maps a floor/wall point to screen logical px (app.js places
+// overlays and hit tests through it, scene39.js and isohall.js draw the 39° hall on the same projection).
 //
 // Mapping to the 3D world (art px, the trial's units): a floor point (x, y >= WALL) -> u = 2x, v = 2(y - WALL),
 // z = 0; a point on the back wall band (x, y < WALL) -> u = 2x, v = 0, z = 2(WALL - y). WALL (logical px, the back
@@ -14,18 +14,17 @@ export function floorToWorld(x, y, WALL = WALL_DEFAULT) {
 }
 
 // The 39° projection (exact, from the trial): horizontal rotation 39°, back wall receding 3:1, side wall 2:1 (iso.js).
-import { P39 } from './iso.js';
+import { P39, TAN39 as K } from './iso.js'; // K: the continuous inverse of P39 for floor points (z = 0), toFloor
 export { P39 };
-const K = Math.sqrt(2 / 3); // continuous inverse of P39 for floor points (z = 0), used by toFloor
 
 export const view = { mode: 'flat' };
 const listeners = new Set();
 export const onView = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 export function setView(mode) {
-  const next = mode === '39' ? '39' : 'flat';
-  if (next === view.mode) return;
+  const next = mode === '39' ? '39' : 'flat', prev = view.mode;
+  if (next === prev) return;
   view.mode = next;
-  for (const f of listeners) f(view.mode);
+  for (const f of listeners) f(next, prev);
 }
 
 // 39 mode only: the logical-px offset so the hall's whole projected bounding box starts at (0, 0) (sceneSize sets
@@ -61,9 +60,10 @@ export function toScreen(x, y, z = 0, WALL = WALL_DEFAULT) {
 }
 
 // Inverse of toScreen for a floor point (z = 0): flat is identity; 39 solves P39's continuous form (its floors
-// round to the nearest art px, so this lands within one logical px of the true floor point).
-export function toFloor(sx, sy, WALL = WALL_DEFAULT) {
-  if (view.mode !== '39') return [sx, sy];
+// round to the nearest art px, so this lands within one logical px of the true floor point). mode: the view to
+// invert, by default the current one (a view switch inverts the one it leaves; the 39 offset is still its own).
+export function toFloor(sx, sy, WALL = WALL_DEFAULT, mode = view.mode) {
+  if (mode !== '39') return [sx, sy];
   const X = 2 * (sx - off.x), Y = 2 * (sy - off.y);
   const v = (Y - X / 3) * 6 / (5 * K), u = X + K * v;
   return [Math.round(u / 2), Math.round(v / 2 + WALL)];

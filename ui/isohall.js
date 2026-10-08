@@ -5,7 +5,7 @@
 // z 0..2 WALL, so the projected scene fits view.js sceneSize(hall).
 import { IsoBuf, P39, VS39 } from './iso.js';
 import { WALL, WALL_DY } from './layout.js';
-import { propsOf, wallArt, WIN_Y } from './scene.js';
+import { propsOf, wallArt, WIN_Y, STANDING, hung } from './scene.js';
 import { MAPS, PROP_AT, ROOM, RES } from './sprites.js';
 import { sheetOf, build39 } from './faces.js';
 import { aoBands } from './depth.js';
@@ -97,9 +97,8 @@ function texOf(name) {
 }
 const wallTex = (tex, foot, Z) => { const a = foot && texOf('wall foot'), b = texOf(tex); return (i, r) => (foot && r >= Z - FOOT ? a(i, r - Z + FOOT) : b(i, r)); };
 
-// Props that stand on the floor and get a contact shadow (scene.js STANDING, not exported there).
-const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
-const onWall = (name, y) => name === 'HANGING' || ((name === 'BANNER' || name === 'CENSER') && y < WALL - WALL_DY); // scene.js hung()
+// Props that stand on the floor and get a contact shadow: scene.js STANDING. On the north wall: hung(), the tall banner.
+const onWall = (name, y) => name === 'HANGING' || hung(name, y);
 // How far a details-only face sheet reaches toward the viewer from its back (v).
 const depthOf = s => s.d || Math.max(1, ...s.details.map(p => p.v + (p.kind === 'box' ? p.d : p.kind === 'cyl' ? p.map[0].length >> 1 : p.kind === 'disc' ? p.t ?? 2 : 1)));
 

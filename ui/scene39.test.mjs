@@ -62,6 +62,9 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
   assert.equal(actorAt39(...head(c), [a, b, c])?.id, 'c', `${tag}: the frontmost of two`);
   const [ex, ey] = pin(90, 200);
   assert.equal(actorAt39(ex, ey, [a, b]), null, `${tag}: empty floor`);
+  // a click on the shadow (no sprite pixel there) picks by the feet; actors come as app.js passes them, an iterator
+  const [fx, fy] = pin(...feetOf(a, spriteOf(a)));
+  assert.equal(actorAt39(fx, fy + 1.5, new Map([['a', a], ['b', b]]).values())?.id, 'a', `${tag}: a's shadow, from an iterator`);
   assert.equal(actorAt39(...pin(a.x, a.y + 1), [{ ...a, leaving: true }]), null, `${tag}: a leaving actor is not picked`);
 }
 // seated 39° scribes, every world: drawn north of the seat (never into the desk) so the hands (the arm frame's first

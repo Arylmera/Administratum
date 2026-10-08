@@ -33,10 +33,11 @@
 // the flat frame is unchanged. A box detail's recess frames are
 // '<NAME> <detail> <recess> wall|floor'. faces.png and faces.json are hand-edited source (no generator).
 import { T, THEMES } from './theme.js';
+import { VS39 } from './iso.js';
 import { MAPS, ART } from './sprites.js';
 import { loadSheet } from './art.js';
 
-export const VS = 2 / Math.sqrt(2 / 3); // v units per texel of a top face's rows and a side face's columns (39°)
+export const VS = VS39; // v units per texel of a top face's rows and a side face's columns (39°)
 export const cols = d => Math.ceil(d / VS); // texels across a depth d
 
 const missing = e => e.code === 'ENOENT' || /HTTP 404/.test(e.message);

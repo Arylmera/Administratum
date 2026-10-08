@@ -67,8 +67,9 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   are cylinders, gauges and cog wheels are discs standing proud of their surface, screens sit recessed in a bezel.
   The inner walls are cut away to a low height so every room stays in view; the doorways keep their posts and lintel.
   Scribes and adepts walk in four diagonal facings and sit at their desks; everything is
-  depth sorted by its floor footprint, with contact shadows, cast shadows at night and lights lifted to their height
-  (a candle glows at its flame, its pool lies on the floor under it).
+  depth sorted by its floor footprint, with contact shadows, cast shadows at night and lights lifted off the floor
+  (every desk-level glow sits at one shared desk height, its pool on the floor under it). At Auto scale the whole
+  turned hall fits the window (smaller pixels); an explicit Scale pans, as in the flat view.
 
 Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111)
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
@@ -368,6 +369,7 @@ node ui/depth.test.mjs                            # depth: footprints, shadows, 
 node ui/view.test.mjs                             # views: flat identity, 39° projection, scene size, inverse
 node ui/iso.test.mjs                              # 39° z-buffer: projection, boxes, decals, outline, depth sort
 node ui/faces.test.mjs                            # face sheets: flat frames rebuilt exactly, 39° volumes
+node ui/flathall.test.mjs                         # flat hall: the static background's draw calls (hashes)
 node ui/isohall.test.mjs                          # 39° hall: room plan, prop placement, render (pixel hashes)
 node ui/scene39.test.mjs                          # 39° dynamic layer: depth order, seats, hit tests, gate
 node ui/lighting.test.mjs                         # lighting: flat unchanged, 39° light heights

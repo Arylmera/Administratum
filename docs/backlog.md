@@ -6,6 +6,8 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
 - Effects drawn on a slanted plane (paper on a desk top, stamps and seals on a desk front, the cogitator's screens) are resampled through a transform and look softer than the pixel-exact background
 - A scribe eases into its seat (0.3 s) but stands up at once, no eased stand-up
 - Every desk-level light shares one height and offset (lighting.js lift39): a candle flame and a slate screen sit a few px either side of it; per-light heights need the light lists (scene.js) to carry them
+- At Auto scale the whole projected hall fits the window, bays included: a hall with bays shrinks its pixels rather than panning
+- Switching views keeps the floor point at the view's centre; a centre on the back wall band lands near it, not on it
 - Small art polish left: the adept39 west turn is weak in the Warhammer and vault art, the magos39 is modest, the gate spire is a ridge, a few small props read as blobs (tower table bowls, vault censer shade, cyber antennas)
 
 ## Next

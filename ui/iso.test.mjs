@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { IsoBuf, P39, VS39, floorToWorld, order } from './iso.js';
+import { IsoBuf, P39, VS39, order } from './iso.js';
 
 const fl = Math.floor;
 const TAN39 = Math.sqrt(2 / 3);
@@ -21,10 +21,6 @@ for (let w = 0; w < 8; w++) {
   assert.equal(x, -w || 0);
   assert.equal(y, fl(w / 2));
 }
-
-// floorToWorld: on the floor, and on the back wall band.
-assert.deepEqual(floorToWorld(5, 50, 40), { u: 10, v: 20, z: 0 });
-assert.deepEqual(floorToWorld(5, 10, 40), { u: 10, v: 0, z: 60 });
 
 // A box renders its 3 faces (top, front, side) with no holes inside its silhouette: the projection's single-pixel
 // gaps (where the 3- and 2-stairs step together) must be filled from a neighbour on the same top face, not left

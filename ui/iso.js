@@ -6,17 +6,11 @@
 const fl = Math.floor;
 
 // 39 deg projection (exact, from the trial): the back wall recedes 3:1, the side wall 2:1.
-const TAN39 = Math.sqrt(2 / 3);
+export const TAN39 = Math.sqrt(2 / 3); // the one sqrt(2/3): faces.js, scene39.js and view.js use it (and VS39)
 export const P39 = (u, v, z = 0) => { const w = fl(v * TAN39); return [u - w, fl(u / 3) + fl(w / 2) - z]; };
 // v units per screen row along v (VS); VX = VS / 2 is the per-column step for a decal on the 'u' plane, needed
 // because u and v are foreshortened by different amounts (asymmetric: the back wall is 1:1, the side wall is not).
 export const VS39 = 2 / TAN39;
-
-// A floor point (x, y) in the hall's logical px maps into this world: on the floor (y >= WALL) u = 2x,
-// v = 2(y - WALL), z = 0; on the back wall band (y < WALL) u = 2x, v = 0, z = 2(WALL - y).
-export function floorToWorld(x, y, WALL) {
-  return y >= WALL ? { u: 2 * x, v: 2 * (y - WALL), z: 0 } : { u: 2 * x, v: 0, z: 2 * (WALL - y) };
-}
 
 // Footprint order of two items: a before b when a is wholly behind b along u or v; otherwise by the centre's u + v.
 // Right for one pair, but not transitive over many (two footprints apart on both axes, one left and one behind, are

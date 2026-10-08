@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { setTheme } from './theme.js';
+import { setTheme, T } from './theme.js';
 import './themes.js';
-import { roomPlan, bounds, renderHall39, placeProps } from './isohall.js';
-import { hallOf, WALL, WALL_DY, SCENE, MAX_W } from './layout.js';
+import { roomPlan, bounds, renderHall39, buildHall39, placeProps } from './isohall.js';
+import { hung as hungOn } from './scene.js';
+import { hallOf, WALL, SCENE, MAX_W } from './layout.js';
 import { P39 } from './iso.js';
 import { setView, sceneSize, toScreen } from './view.js';
 
@@ -49,7 +50,7 @@ for (const hall of halls) {
   // props: hung ones on a wall plane within its height, standing ones on their room's floor, never on a wall band
   const fy = y => 2 * (y - WALL), band = [fy(hall.split), fy(hall.split + 30)], placed = placeProps(hall);
   assert.ok(placed.length > 40, tag);
-  const hung = p => p.name === 'HANGING' || ((p.name === 'BANNER' || p.name === 'CENSER') && p.y < WALL - WALL_DY); // scene.js hung()
+  const hung = p => p.name === 'HANGING' || hungOn(p.name, p.y);
   const shelves = placed.filter(q => q.name === 'SHELF');
   const roomOf = p => (p.x + p.map[0].length / 4 <= hall.sw ? 'scriptorium' : p.yb < hall.split - 6 ? 'refectorium' : 'sanctum');
   const TOL = 2; // art px: a flat frame may overlap its room's wall by a pixel (the censer by the east wall)
@@ -114,6 +115,19 @@ for (const id of ['tier2', 'vault']) {
     const hash = createHash('sha1').update(buf.ch.join('')).update(new Uint8Array(shade.buffer)).digest('hex').slice(0, 12);
     assert.equal(hash, GRID[k], `${k}: the 39° background changed`);
   }
+}
+// The paint (buildHall39): the windows' glass takes the night colours at night (T.ink.windowNight), not its px colour.
+{
+  let D = null;
+  globalThis.document = { createElement: () => ({ getContext: () => ({ createImageData: (w, h) => ({ data: new Uint8ClampedArray(4 * w * h) }), putImageData: img => { D = img.data; } }) }) };
+  setTheme('tier2');
+  const hall = hallOf(0), { buf, shade } = renderHall39(hall, false);
+  buildHall39(hall, false);
+  const night = T.ink.windowNight, i = buf.id.findIndex((k, j) => k === 6 && night[buf.ch[j]] && night[buf.ch[j]] !== T.px[buf.ch[j]] && !shade[j]);
+  assert.ok(i >= 0, 'an unshaded glass pixel');
+  const hex = night[buf.ch[i]], want = [1, 3, 5].map(k => parseInt(hex.slice(k, k + 2), 16));
+  assert.deepEqual([...D.slice(4 * i, 4 * i + 3)], want, `glass '${buf.ch[i]}' in the night colour`);
+  delete globalThis.document;
 }
 setTheme('tier2');
 setView('flat');
