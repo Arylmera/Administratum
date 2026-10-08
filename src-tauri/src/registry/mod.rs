@@ -1,11 +1,19 @@
 use chrono::{Local, TimeZone};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
+
+mod prompt;
+#[cfg(test)]
+mod testutil;
+mod tracker;
+
+pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_orca_handle, Prompt};
+pub use tracker::{Tracker, STALE_MS};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -772,17 +780,6 @@ pub fn file_tail(path: &Path, tail_bytes: u64) -> Option<String> {
     Some(if len > tail_bytes { text.split_once('\n').map(|(_, rest)| rest.to_string()).unwrap_or_default() } else { text })
 }
 
-/// Only a well-formed Orca terminal handle may be passed to `orca terminal switch`.
-pub fn valid_orca_handle(handle: &str) -> bool {
-    handle.strip_prefix("term_").is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '-'))
-}
-
-/// Only a claude.ai code-session URL may be opened via the shell.
-pub fn valid_claude_web_url(url: &str) -> bool {
-    // The id is passed through `cmd /c start`, so only allow characters cmd can't interpret (& | ^ < > etc.).
-    url.strip_prefix("https://claude.ai/code/").is_some_and(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
-}
-
 pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
     let mut out = scan.sessions;
     for pid in scan.unreadable_pids {
@@ -794,134 +791,6 @@ pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
     out
 }
 
-/// Remembers open petition episodes (`id:since`) so each one notifies exactly once, and once more
-/// when it goes stale.
-#[derive(Default)]
-pub struct Tracker {
-    open: HashSet<String>,
-    stale: HashSet<String>,
-    asked: HashSet<String>,
-    limits: HashSet<String>,
-}
-
-impl Tracker {
-    pub fn new_petitions(&mut self, roster: &[Session]) -> Vec<Session> {
-        let mut now = HashSet::new();
-        let mut fresh = vec![];
-        for s in roster.iter().filter(|s| s.status == "waiting") {
-            let key = format!("{}:{}", s.id, s.since_ms);
-            if !self.open.contains(&key) {
-                fresh.push(s.clone());
-            }
-            now.insert(key);
-        }
-        self.open = now;
-        fresh
-    }
-
-    /// Question episodes (`id:since` of a session with a `question`) seen for the first time.
-    pub fn new_questions(&mut self, roster: &[Session]) -> Vec<Session> {
-        let mut now = HashSet::new();
-        let mut fresh = vec![];
-        for s in roster.iter().filter(|s| s.question.is_some()) {
-            let key = format!("{}:{}", s.id, s.since_ms);
-            if !self.asked.contains(&key) {
-                fresh.push(s.clone());
-            }
-            now.insert(key);
-        }
-        self.asked = now;
-        fresh
-    }
-
-    /// Petitions that have just crossed `STALE_MS` of waiting, once per episode (`id:since`).
-    /// A petition with no known start (`since_ms == 0`) never escalates.
-    pub fn stale_petitions(&mut self, roster: &[Session], now_ms: i64) -> Vec<Session> {
-        let waiting: Vec<_> = roster.iter().filter(|s| s.status == "waiting" && s.since_ms > 0).collect();
-        let keys: HashSet<String> = waiting.iter().map(|s| format!("{}:{}", s.id, s.since_ms)).collect();
-        self.stale.retain(|k| keys.contains(k));
-        let mut out = vec![];
-        for s in waiting {
-            if now_ms - s.since_ms > STALE_MS && self.stale.insert(format!("{}:{}", s.id, s.since_ms)) {
-                out.push(s.clone());
-            }
-        }
-        out
-    }
-
-    /// Usage-limit waves seen for the first time, each the sessions sealed until the same reset (the message text when
-    /// it names no hour): one toast per wave; a session joining a wave already toasted adds none.
-    pub fn new_limits(&mut self, roster: &[Session]) -> Vec<Vec<Session>> {
-        let mut waves: BTreeMap<String, Vec<Session>> = BTreeMap::new();
-        for s in roster {
-            if let Some(l) = &s.limit {
-                waves.entry(l.reset_ms.map_or_else(|| l.text.clone(), |r| r.to_string())).or_default().push(s.clone());
-            }
-        }
-        let fresh = waves.iter().filter(|(k, _)| !self.limits.contains(*k)).map(|(_, v)| v.clone()).collect();
-        self.limits = waves.into_keys().collect();
-        fresh
-    }
-}
-
-pub const STALE_MS: i64 = 5 * 60 * 1000;
-
-/// A Claude Code permission dialog: its question line, every numbered option with its label, and
-/// the option numbers of plain "Yes", the first "Yes, ..." (don't ask again / allow all edits) if
-/// offered (never "switch to auto mode"), and the "No" option.
-#[derive(Debug, PartialEq)]
-pub struct Prompt {
-    pub question: String,
-    pub options: Vec<(u8, String)>,
-    pub yes: u8,
-    pub always: Option<u8>,
-    pub no: u8,
-}
-
-/// The permission dialog at the bottom of a rendered terminal screen, if that's what it shows.
-/// The screen is untrusted: only the question and option labels/numbers come out of it (labels are
-/// for display only), and only when the last "Do you want" line is followed (within 3 lines) by options numbered 1, 2, ... starting with a plain
-/// "Yes" and including a "No", with nothing but a short footer under them (no input box, no rule):
-/// a dialog that scrolled up under later output doesn't count.
-pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
-    // Box borders and the selection cursor are decoration.
-    let lines: Vec<&str> = screen.lines().map(|l| l.trim().trim_matches('│').trim()).collect();
-    let q = lines.iter().rposition(|l| l.starts_with("Do you want"))?;
-    let option = |l: &str| -> Option<(u8, String)> {
-        let (n, label) = l.trim_start_matches('❯').trim_start().split_once(". ")?;
-        let n: u8 = n.parse().ok().filter(|n| (1..=9).contains(n))?;
-        Some((n, label.trim().to_string()))
-    };
-    let first = (q + 1..lines.len().min(q + 4)).find(|&i| option(lines[i]).is_some())?;
-    let mut opts: Vec<(u8, String)> = vec![];
-    let mut end = first;
-    while end < lines.len() && !lines[end].is_empty() {
-        match option(lines[end]) {
-            Some((n, label)) if n as usize == opts.len() + 1 => opts.push((n, label)),
-            Some(_) => return None, // out of sequence
-            None if opts.is_empty() => return None,
-            // A footer or box border right under the last option ends the list.
-            None if lines[end].starts_with("Esc to") || !lines[end].chars().any(char::is_alphanumeric) => break,
-            None => {
-                // a wrapped option label
-                let last = &mut opts.last_mut()?.1;
-                last.push(' ');
-                last.push_str(lines[end]);
-            }
-        }
-        end += 1;
-    }
-    let footer: Vec<&str> = lines[end..].iter().copied().filter(|l| !l.is_empty()).collect();
-    // The input box (a "─" rule, a "❯" line) under the options means the dialog is gone.
-    if footer.len() > 3 || footer.iter().any(|l| l.starts_with('❯') || l.chars().all(|c| c == '─')) {
-        return None;
-    }
-    let find = |pred: &dyn Fn(&str) -> bool| opts.iter().find(|(_, l)| pred(l)).map(|(n, _)| *n);
-    let yes = find(&|l| l == "Yes").filter(|&n| n == 1)?;
-    let (always, no) = (find(&|l| l.starts_with("Yes,") && !l.contains("auto mode")), find(&|l| l.starts_with("No"))?);
-    Some(Prompt { question: lines[q].to_string(), options: opts, yes, always, no })
-}
-
 /// A plain idle session for other modules' tests.
 #[cfg(test)]
 pub fn tests_session(id: &str) -> Session {
@@ -931,6 +800,7 @@ pub fn tests_session(id: &str) -> Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::testutil::*;
 
     const LIVE: &str = r#"{"pid":43976,"sessionId":"63d0cfff","cwd":"C:\\Users\\guill\\Documents\\git\\Geneseed","name":"geneseed-51","status":"waiting","waitingFor":"approve Bash","statusUpdatedAt":1791186419659,"kind":"interactive"}"#;
 
@@ -995,10 +865,6 @@ mod tests {
         assert!(line.ends_with('…'));
         assert_eq!(task_line(""), "—");
         assert_eq!(task_line("not json\n{"), "—");
-    }
-
-    fn tool(name: &str, id: &str, input: &str) -> String {
-        format!(r#"{{"type":"assistant","message":{{"model":"claude-opus-5-5","content":[{{"type":"tool_use","id":"{id}","name":"{name}","input":{input}}}]}}}}"#)
     }
 
     #[test]
@@ -1136,31 +1002,15 @@ mod tests {
     use std::{
         fs,
         io::Write,
-        path::PathBuf,
         time::{Duration, SystemTime},
     };
-
-    fn tail_of(s: &str) -> Option<Tail> {
-        read_tail(|_| Some(s.to_string()))
-    }
 
     fn helpers_in(d: &Path, now: SystemTime, completed: &HashMap<String, i64>) -> Vec<Helper> {
         active_helpers(&list_subagents(d), now.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64, completed, read_helper)
     }
 
-    fn temp_dir(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("adm-test-{}-{name}", std::process::id()));
-        let _ = fs::remove_dir_all(&d);
-        fs::create_dir_all(&d).unwrap();
-        d
-    }
-
     fn record(pid: u32, id: &str, name: &str, status: &str) -> String {
         format!(r#"{{"pid":{pid},"sessionId":"{id}","cwd":"C:\\git\\Terra","name":"{name}","status":"{status}","waitingFor":"input needed","statusUpdatedAt":{pid}000}}"#)
-    }
-
-    fn session(id: &str, pid: u32, status: &str, since: i64) -> Session {
-        Session { id: id.into(), pid, name: id.into(), dept: "Terra".into(), cwd: "C:\\git\\Terra".into(), status: status.into(), since_ms: since, task: "—".into(), ..Default::default() }
     }
 
     #[test]
@@ -1381,30 +1231,6 @@ mod tests {
         assert!(c.scan("s2", &stat(&p).unwrap()).is_empty(), "offset is per path, not per session: s1 already consumed the file, so s2's own map stays empty");
     }
 
-    const REAL_SHELL_TAIL: &str = concat!(
-        r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#,
-        "\n",
-        r#"{"type":"user","message":{"content":[{"type":"tool_result","content":"done"}]}}"#,
-        "\n",
-        r#"{"type":"assistant","message":{"content":[{"type":"text","text":"all set"}]}}"#,
-        "\n",
-        r#"{"type":"system","subtype":"stop_hook_summary","hookCount":2}"#,
-        "\n",
-        r#"{"type":"system","subtype":"turn_duration","durationMs":19925}"#,
-        "\n",
-        r#"{"type":"last-prompt","lastPrompt":"go quand tu les as"}"#,
-        "\n",
-        r#"{"type":"ai-title","aiTitle":"Public APIs repo integration"}"#,
-        "\n",
-        r#"{"type":"mode","mode":"normal"}"#,
-        "\n",
-        r#"{"type":"permission-mode","permissionMode":"bypassPermissions"}"#,
-        "\n",
-        r#"{"type":"bridge-session","bridgeSessionId":"cse_018oaCXrud1SYhmpzjVcGZDY"}"#,
-        "\n",
-        r#"{"type":"system","subtype":"away_summary","content":"on nettoie GyroidVault"}"#,
-    );
-
     #[test]
     fn turn_done_true_on_real_shaped_tail_with_trailing_noise() {
         assert!(turn_done(REAL_SHELL_TAIL), "turn_duration precedes trailing away_summary noise");
@@ -1415,22 +1241,6 @@ mod tests {
         let tail = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"go"}}]}}"#;
         assert!(!turn_done(tail));
         assert!(!turn_done(""), "unknown -> false");
-    }
-
-    /// A finished turn whose closing assistant entries say `texts` (one text block each, as Claude Code writes them).
-    fn turn_ending(texts: &[&str]) -> String {
-        let mut lines = vec![
-            r#"{"type":"user","message":{"role":"user","content":"rename the playlists"}}"#.to_string(),
-            r#"{"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"tool_use","id":"toolu_1","name":"Read","input":{"file_path":"rooms.md"}}]}}"#.to_string(),
-            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"..."}]}}"#.to_string(),
-        ];
-        for t in texts {
-            lines.push(serde_json::json!({"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"text","text":t}]}}).to_string());
-        }
-        lines.push(r#"{"type":"system","subtype":"stop_hook_summary","hookCount":1}"#.into());
-        lines.push(r#"{"type":"system","subtype":"turn_duration","durationMs":8123}"#.into());
-        lines.push(r#"{"type":"last-prompt","lastPrompt":"rename the playlists"}"#.into());
-        lines.join("\n")
     }
 
     #[test]
@@ -1488,17 +1298,6 @@ mod tests {
     }
 
     #[test]
-    fn tracker_asks_once_per_question_episode() {
-        let mut t = Tracker::default();
-        let q = |since| Session { question: Some("ok?".into()), ..session("a", 1, "idle", since) };
-        assert_eq!(t.new_questions(&[q(100)]).len(), 1);
-        assert_eq!(t.new_questions(&[q(100)]).len(), 0, "same episode");
-        assert_eq!(t.new_questions(&[session("a", 1, "busy", 200)]).len(), 0);
-        assert_eq!(t.new_questions(&[q(300)]).len(), 1, "new episode");
-        assert!(t.new_petitions(&[q(300)]).is_empty(), "a question is not a petition");
-    }
-
-    #[test]
     fn scan_turns_finished_shell_into_idle_background() {
         let d = temp_dir("scan-shell-background");
         fs::write(d.join("10.json"), record(10, "a", "terra-b", "shell")).unwrap();
@@ -1517,147 +1316,6 @@ mod tests {
     }
 
     #[test]
-    fn orca_handle_validator() {
-        assert!(valid_orca_handle("term_52bf64c5-bacc-4925-bec7-04935a104ae1"));
-        assert!(!valid_orca_handle("term_"));
-        assert!(!valid_orca_handle("not_a_handle"));
-        assert!(!valid_orca_handle("term_abc; rm -rf /"));
-    }
-
-    #[test]
-    fn claude_web_url_validator() {
-        assert!(valid_claude_web_url("https://claude.ai/code/session_01abc"));
-        assert!(!valid_claude_web_url("https://claude.ai/code/"));
-        assert!(!valid_claude_web_url("https://evil.example.com/code/x"));
-        assert!(!valid_claude_web_url("javascript:alert(1)"));
-        assert!(!valid_claude_web_url("https://claude.ai/code/x&calc"));
-        assert!(!valid_claude_web_url("https://claude.ai/code/x|whoami"));
-    }
-
-    // Claude Code permission dialogs as `orca terminal read --screen` renders them (trailing spaces trimmed).
-    const BASH_PROMPT: &str = "● Bash(cargo test)\n\
-  ⎿  Running…\n\
-\n\
-────────────────────────────────────────────────────────────────────\n\
- Bash command\n\
-\n\
-   cargo test --manifest-path src-tauri/Cargo.toml\n\
-   Run the Rust tests\n\
-\n\
- Do you want to proceed?\n\
- ❯ 1. Yes\n\
-   2. Yes, and don't ask again for cargo test commands in\n\
-   C:\\Users\\guill\\Documents\\git\\Administratum\n\
-   3. No, and tell Claude what to do differently (esc)\n\
-\n";
-
-    const EDIT_PROMPT: &str = "────────────────────────────────────────────────\n\
- Edit file\n\
-╭──────────────────────────────────────────────╮\n\
-│ ui/app.js                                    │\n\
-│  12 - const a = 1;                           │\n\
-│  12 + const a = 2;                           │\n\
-╰──────────────────────────────────────────────╯\n\
- Do you want to make this edit to app.js?\n\
- ❯ 1. Yes\n\
-   2. Yes, allow all edits during this session (shift+tab)\n\
-   3. No, and tell Claude what to do differently (esc)\n\
-\n\
- Esc to cancel";
-
-    const WRITE_PROMPT: &str = "│ Create file                              │\n\
-│ notes.md                                 │\n\
-│ Do you want to create notes.md?          │\n\
-│ ❯ 1. Yes                                 │\n\
-│   2. No, and tell Claude what to do differently (esc) │\n\
-╰──────────────────────────────────────────╯";
-
-    const NO_PROMPT: &str = "● Done.\n\
-✻ Churned for 23s\n\
-────────────────────────────────────────\n\
-❯\n\
-────────────────────────────────────────\n\
-  ⏵⏵ auto mode on (shift+tab to cycle)";
-
-    #[test]
-    fn prompt_bash_maps_yes_always_no() {
-        let p = parse_permission_prompt(BASH_PROMPT).expect("prompt");
-        assert_eq!((p.yes, p.always, p.no), (1, Some(2), 3));
-        assert_eq!(p.question, "Do you want to proceed?");
-        assert_eq!(p.options[1], (2, "Yes, and don't ask again for cargo test commands in C:\\Users\\guill\\Documents\\git\\Administratum".into()), "wrapped label joined");
-        assert_eq!(p.options[2], (3, "No, and tell Claude what to do differently (esc)".into()));
-    }
-
-    #[test]
-    fn prompt_edit_inside_box_and_footer() {
-        let p = parse_permission_prompt(EDIT_PROMPT).expect("prompt");
-        assert_eq!((p.yes, p.always, p.no), (1, Some(2), 3));
-        assert_eq!(p.question, "Do you want to make this edit to app.js?");
-        assert_eq!(p.options[1].1, "Yes, allow all edits during this session (shift+tab)");
-    }
-
-    #[test]
-    fn prompt_write_without_always_option() {
-        let p = parse_permission_prompt(WRITE_PROMPT).expect("prompt");
-        assert_eq!((p.yes, p.always, p.no), (1, None, 2));
-        assert_eq!(p.question, "Do you want to create notes.md?");
-        assert_eq!(p.options, [(1, "Yes".into()), (2, "No, and tell Claude what to do differently (esc)".into())]);
-    }
-
-    #[test]
-    fn prompt_absent_is_none() {
-        assert_eq!(parse_permission_prompt(NO_PROMPT), None);
-        assert_eq!(parse_permission_prompt(""), None);
-    }
-
-    #[test]
-    fn prompt_in_scrollback_is_none() {
-        let screen = format!("{BASH_PROMPT}● Bash(cargo test)\n  ⎿  ok\n{NO_PROMPT}");
-        assert_eq!(parse_permission_prompt(&screen), None);
-        // A few lines of output under it and the input box frame: still scrollback.
-        let screen = format!("{BASH_PROMPT}● ok\n────────");
-        assert_eq!(parse_permission_prompt(&screen), None);
-    }
-
-    #[test]
-    fn prompt_rejects_odd_option_lists() {
-        // Must start at 1 with plain "Yes", count up, and offer a "No".
-        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and don't ask again\n"), None, "no No option");
-        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n ❯ 1. Sure\n   2. No\n"), None, "no plain Yes");
-        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n ❯ 1. Yes\n   3. No\n"), None, "gap in numbering");
-        assert_eq!(parse_permission_prompt(" Do you want to proceed?\n\n\n\n\n ❯ 1. Yes\n   2. No\n"), None, "options too far from question");
-    }
-
-    #[test]
-    fn prompt_uses_the_last_question_on_screen() {
-        // Untrusted text above (e.g. a printed file) mimicking a dialog does not win over the real one below.
-        let fake = " Do you want to proceed?\n ❯ 1. Yes\n   2. No\n";
-        let screen = format!("{fake}{EDIT_PROMPT}");
-        assert_eq!(parse_permission_prompt(&screen), parse_permission_prompt(EDIT_PROMPT));
-    }
-
-    #[test]
-    fn stale_petition_fires_once_after_five_minutes_per_episode() {
-        let mut t = Tracker::default();
-        let w = |since| [session("a", 1, "waiting", since)];
-        assert!(t.stale_petitions(&w(1_000), 1_000 + 299_000).is_empty(), "not yet");
-        assert_eq!(t.stale_petitions(&w(1_000), 1_000 + 301_000).len(), 1, "crossed 5 min");
-        assert!(t.stale_petitions(&w(1_000), 1_000 + 900_000).is_empty(), "same episode");
-        assert!(t.stale_petitions(&[session("a", 1, "busy", 2_000)], 2_000_000).is_empty());
-        assert_eq!(t.stale_petitions(&w(3_000), 3_000 + 400_000).len(), 1, "new episode");
-        assert!(t.stale_petitions(&w(0), 9_999_999).is_empty(), "unknown since never escalates");
-    }
-
-    // Shape of a real Claude Code compaction marker (trimmed), followed by the summary turn.
-    const COMPACT_TAIL: &str = concat!(
-        r#"{"type":"assistant","message":{"model":"claude-opus-5-5","usage":{"input_tokens":900000}}}"#,
-        "\n",
-        r#"{"parentUuid":null,"isSidechain":false,"type":"system","subtype":"compact_boundary","content":"Conversation compacted","isMeta":false,"timestamp":"2026-04-10T18:08:48.679Z","level":"info","compactMetadata":{"trigger":"auto","preTokens":178595}}"#,
-        "\n",
-        r#"{"type":"user","message":{"role":"user","content":"This session is being continued from a previous conversation"}}"#,
-    );
-
-    #[test]
     fn compacted_at_reads_newest_boundary_timestamp_as_ms() {
         assert_eq!(compacted_at(COMPACT_TAIL), Some(1775844528679));
         let two = format!("{COMPACT_TAIL}\n{}", COMPACT_TAIL.replace("2026-04-10T18:08:48.679Z", "2026-04-10T19:00:00Z"));
@@ -1673,10 +1331,6 @@ mod tests {
         fs::write(d.join("10.json"), record(10, "a", "terra-b", "busy")).unwrap();
         let out = scan(&d, |_, _| true, |_, _| (tail_of(COMPACT_TAIL), vec![]), |_| None);
         assert_eq!(out.sessions[0].compacted_at, Some(1775844528679));
-    }
-
-    fn with_ctx(id: &str, tokens: u64, compacted_at: Option<i64>) -> Session {
-        Session { context: Some(Context { tokens, model: "m".into() }), compacted_at, ..session(id, 1, "busy", 0) }
     }
 
     #[test]
@@ -1710,15 +1364,6 @@ mod tests {
     }
 
     #[test]
-    fn tracker_fires_once_per_episode_and_again_on_a_new_one() {
-        let mut t = Tracker::default();
-        assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 100)]).len(), 1);
-        assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 100)]).len(), 0, "same episode");
-        assert_eq!(t.new_petitions(&[session("a", 1, "busy", 200)]).len(), 0);
-        assert_eq!(t.new_petitions(&[session("a", 1, "waiting", 300)]).len(), 1, "new episode");
-    }
-
-    #[test]
     fn usage_limit_lines() {
         use chrono::{Local, TimeZone};
         let at = |h, m| Local.with_ymd_and_hms(2026, 10, 6, h, m, 0).unwrap().timestamp_millis();
@@ -1749,30 +1394,4 @@ mod tests {
         assert_eq!(reset_after("no reset here", at(10, 0)), None);
     }
 
-    #[test]
-    fn limit_waves_toast_once() {
-        let lim = |id: &str, reset: Option<i64>| Session { limit: Some(Limit { reset_ms: reset, text: "x".into() }), ..session(id, 1, "idle", 0) };
-        let mut t = Tracker::default();
-        let first = t.new_limits(&[lim("a", Some(5)), lim("b", Some(5)), session("c", 3, "busy", 0)]);
-        assert_eq!(first.len(), 1, "one wave");
-        assert_eq!(first[0].iter().map(|s| s.id.as_str()).collect::<Vec<_>>(), ["a", "b"]);
-        assert!(t.new_limits(&[lim("a", Some(5)), lim("b", Some(5)), lim("c", Some(5))]).is_empty(), "joining a toasted wave: no toast");
-        assert_eq!(t.new_limits(&[lim("a", Some(9))]).len(), 1, "a new reset time: a new wave");
-        assert!(t.new_limits(&[]).is_empty());
-        assert_eq!(t.new_limits(&[lim("a", Some(9))]).len(), 1, "after it ended, the same reset is new again");
-    }
-
-    #[test]
-    fn permission_prompt_real_bash_screen_2_1_283() {
-        // Captured from a live Claude Code v2.1.283 Bash prompt (4 options, auto-mode upsell).
-        let screen = "❯ Run this exact Bash command\n  ⎿  $ echo hello > x.txt\n────────────\n Bash command\n Tip: auto mode handles these prompts for you\n   echo hello > x.txt\n Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and always allow access to C:\\x from this project\n   3. Yes, and switch to auto mode · auto mode handles these prompts for you\n   4. No\n Esc to cancel · Tab to amend\n";
-        let p = parse_permission_prompt(screen).expect("prompt");
-        assert_eq!((p.yes, p.always, p.no), (1, Some(2), 4));
-        assert_eq!(p.question, "Do you want to proceed?");
-        assert_eq!(p.options[1].1, "Yes, and always allow access to C:\\x from this project");
-        assert!(p.options[2].1.starts_with("Yes, and switch to auto mode"));
-        assert_eq!(p.options[3], (4, "No".into()));
-        let auto_only = " Do you want to proceed?\n ❯ 1. Yes\n   2. Yes, and switch to auto mode\n   3. No\n";
-        assert_eq!(parse_permission_prompt(auto_only).expect("prompt").always, None, "auto mode is never 'always'");
-    }
 }
