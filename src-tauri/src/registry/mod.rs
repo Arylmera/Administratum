@@ -10,15 +10,15 @@ mod tail;
 mod testutil;
 mod tracker;
 
-pub use files::{direct_transcript, file_tail, find_transcript, list_subagents, stat, FileStat};
 #[cfg(test)]
 pub(crate) use files::slug; // only chronicle.rs's tests reach it from outside
-pub use helpers::{active_helpers, read_helper, Completions};
+pub use files::{direct_transcript, file_tail, find_transcript, list_subagents, stat, FileStat};
 pub(crate) use helpers::helper_meta;
+pub use helpers::{active_helpers, read_helper, Completions};
 pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_orca_handle, Prompt};
 pub use sessions::{merge, scan, track_compaction};
-pub use tail::{read_tail, Tail};
 pub(crate) use tail::{clip, iso_utc_ms};
+pub use tail::{read_tail, Tail};
 pub use tracker::{Tracker, STALE_MS};
 
 #[derive(Serialize, Clone, Debug, PartialEq, Default)]
@@ -100,8 +100,8 @@ pub fn tests_session(id: &str) -> Session {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::testutil::*;
+    use super::*;
 
     #[test]
     fn session_serializes_context_as_camel_case() {
