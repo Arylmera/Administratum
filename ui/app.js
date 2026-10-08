@@ -4,7 +4,7 @@ import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES, rankOf } from './sprites.js';
-import { T, onTheme, setTheme, t } from './theme.js';
+import { T, onTheme, setTheme, t, hexA } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
@@ -415,7 +415,10 @@ function frame(now) {
   const S = scene();
   if (canvas.width !== S.w * RES || canvas.height !== S.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize, the view
   const back = strip() ? null : background(level.beams);
-  if (!back) g.clearRect(0, 0, S.w, S.h);
+  if (!back) {
+    g.clearRect(0, 0, S.w, S.h);
+    if (strip() && settings.stripBackdrop) { g.fillStyle = hexA(T.ink.backdrop, 0.6); g.fillRect(0, 0, S.w, S.h); }
+  }
   else g.drawImage(back, 0, 0, S.w, S.h);
   if (back && !iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(now);

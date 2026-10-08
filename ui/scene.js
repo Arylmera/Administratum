@@ -261,7 +261,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     flare(g, f, k, heat, now / 1000);
     lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: T.light.burn, flicker: true });
   }
-  if (H.strip) return lights;
+  if (H.strip) return lights.concat(drawStripAlarm(g, H, all, now));
   drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
   return staticLights(H).concat(lights, drawAlarm(g, all, now));
 }
@@ -726,6 +726,21 @@ function drawStripProps(g, H, actors, now, items) {
   prop(MAPS.BENCH, H.bench.x);
   const tx = H.magos.x - 10; // the throne centred on the Magos' spot, the body 4 px up-left of it (as in the hall)
   prop(MAPS.THRONE, tx, g2 => { blit(g2, MAPS.THRONE, tx, top(MAPS.THRONE)); drawMagos(g2, tx - 4, top(MAPS.THRONE) - 4, t); });
+}
+
+// The strip's escalation: no wall bracket to hang a beacon on and no room to light, so while any queued petition
+// is stale a small red beacon blinks over the Magos (hall's colours and sweep period) and the servo-skull sits
+// over the nearest petitioner (H.queue[0]) with its flying shadow (reuse the hall's sprite and flyShadow).
+function drawStripAlarm(g, H, actors, now) {
+  const on = actors.some(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s));
+  if (!on) return [];
+  const t = now / 1000, blink = Math.sin(t * 5) > 0; // the hall beacon's sweep period (stepAlarm)
+  const bx = H.magos.x - 10, by = FLOOR - 1 - MAPS.THRONE.length / RES - 12;
+  rect(g, bx - 1, by - 1, 3, 3, blink ? I.alarm : I.alarmGlow);
+  const { x: sx, y: sy } = H.queue[0], hx = sx + 10, hy = sy - 30; // clear of the petition label (app.js syncLabels)
+  flyShadow(g, hx, hy);
+  blit(g, MAPS.SKULL, half(hx) - SK.centre[0], half(hy) - SK.centre[1], skullRed());
+  return [{ x: bx, y: by, r: 14, color: T.light.beacon }, { x: hx, y: hy, r: 14, color: T.light.skullAlarm }];
 }
 
 // The room's own lights, by what they move with (see PROPS; c, e, r also + WALL_DY unless hung), plus the floor's coolant crossings on every slot
