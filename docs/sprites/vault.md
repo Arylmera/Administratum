@@ -73,17 +73,17 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/vault/refectorium.png`, drawn by scene.js | <img src="vault/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/vault/refectorium.png`, drawn by scene.js | <img src="vault/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/vault/refectorium.png`, drawn by scene.js | <img src="vault/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/vault/walls.png`, drawn by scene.js, theme.js | <img src="vault/WINDOW.png" height="136"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/vault/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="vault/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/vault/walls.png` | <img src="vault/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/vault/walls.png` | <img src="vault/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/vault/walls.png`, drawn by scene.js | <img src="vault/BANNER.png" height="120"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/vault/walls.png`, drawn by scene.js, wallart.js | <img src="vault/BANNER.png" height="120"> |
 | <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/vault/walls.png`, drawn by scene.js | <img src="vault/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/vault/walls.png`, drawn by scene.js | <img src="vault/GAUGE.png" height="48"> |
 | <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/vault/walls.png`, drawn by scene.js | <img src="vault/CENSER.png" height="80"> |
-| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js | <img src="vault/WINDOW_TALL.png" height="160"> |
+| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="vault/WINDOW_TALL.png" height="160"> |
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="vault/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="vault/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by scene.js | <img src="vault/HANGING.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by scene.js, wallart.js | <img src="vault/HANGING.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/vault/clutter.png`, drawn by scene.js | <img src="vault/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/vault/clutter.png`, drawn by scene.js | <img src="vault/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/vault/clutter.png`, drawn by scene.js | <img src="vault/BOOKS.png" height="72"> |
@@ -135,3 +135,28 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_refectory_closed.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/vault/room-doors.png` | <img src="vault/ROOM.door_refectory_open.png" height="160"> |
+
+## Face sheets (39° side and top faces)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="faces-desk"></a>`FACES.DESK` | 5×12 | DESK, 39° view only: side, top, kneehole wall, kneehole floor, terminal side, terminal top, terminal screen wall, terminal screen floor, keyboard side, keyboard top, tray side, tray top, nuka top, lamp base top, lamp arm side, lamp arm top, lamp shade top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.DESK.png" height="96"> |
+| <a id="faces-lectern"></a>`FACES.LECTERN` | 5×12 | LECTERN, 39° view only: side, top, terminal side, terminal top, terminal screen wall, terminal screen floor, keyboard side, keyboard top, radio side, radio top, lamp post top, lamp cage side, lamp cage top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.LECTERN.png" height="96"> |
+| <a id="faces-console"></a>`FACES.CONSOLE` | 3×4 | CONSOLE, 39° view only: side, top, monitor side, monitor top, monitor screen wall, monitor screen floor, side unit side, side unit top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.CONSOLE.png" height="48"> |
+| <a id="faces-shelf"></a>`FACES.SHELF` | 2.5×21 | SHELF, 39° view only: side, top, bay 1 wall, bay 1 floor, bay 2 wall, bay 2 floor, bay 3 wall, bay 3 floor. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.SHELF.png" height="160"> |
+| <a id="faces-cogitator"></a>`FACES.COGITATOR` | 4.5×41 | COGITATOR, 39° view only: side, top, screen wall, screen floor, wave wall, wave floor, bars wall, bars floor, sign side, sign top, beacon side, beacon top, stack L top, cap L top, stack R top, cap R top, reel 1 rim, reel 2 rim, reel 3 rim, reel 4 rim, gauge 1 rim, gauge 2 rim, keyboard side, keyboard top, pipe L top, pipe R top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.COGITATOR.png" height="160"> |
+| <a id="faces-crate"></a>`FACES.CRATE` | 4.5×8.5 | CRATE, 39° view only: side, top, bottle 1 top, bottle 2 top, bottle 3 top, bottle 4 top, bottle 5 top, bottle 6 top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.CRATE.png" height="68"> |
+| <a id="faces-table"></a>`FACES.TABLE` | 5.5×2.5 | TABLE, 39° view only: side, top, cup 1 top, cup 2 top, mug top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.TABLE.png" height="44"> |
+| <a id="faces-bench"></a>`FACES.BENCH` | 2×2 | BENCH, 39° view only: side, top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.BENCH.png" height="16"> |
+| <a id="faces-recaff"></a>`FACES.RECAFF` | 3.5×18 | RECAFF, 39° view only: side, top, window wall, window floor, slot wall, slot floor. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.RECAFF.png" height="144"> |
+| <a id="faces-lord_desk"></a>`FACES.LORD_DESK` | 5.5×7.5 | LORD_DESK, 39° view only: side, top, in-tray side, in-tray top, stamp side, stamp top, terminal side, terminal top, terminal screen wall, terminal screen floor, nuka top, folders side, folders top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.LORD_DESK.png" height="60"> |
+| <a id="faces-throne"></a>`FACES.THRONE` | 5×3 | THRONE, 39° view only: side, top, stem top, seat side, seat top, back side, back top, arm L side, arm L top, arm R side, arm R top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.THRONE.png" height="96"> |
+| <a id="faces-cog_mech"></a>`FACES.COG_MECH` | 18×18 | COG_MECH, 39° view only: gear rim. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.COG_MECH.png" height="144"> |
+| <a id="faces-seal"></a>`FACES.SEAL` | 6×5.5 | SEAL, 39° view only: badge rim. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.SEAL.png" height="44"> |
+| <a id="faces-gauge"></a>`FACES.GAUGE` | 6×6 | GAUGE, 39° view only: dial rim. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.GAUGE.png" height="48"> |
+| <a id="faces-censer"></a>`FACES.CENSER` | 5×2.5 | CENSER, 39° view only: shade top, cage side, cage top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.CENSER.png" height="32"> |
+| <a id="faces-candles"></a>`FACES.CANDLES` | 2×6.5 | CANDLES, 39° view only: lantern side, lantern top, flare box side, flare box top, flares side, flares top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.CANDLES.png" height="52"> |
+| <a id="faces-brazier"></a>`FACES.BRAZIER` | 9.5×4 | BRAZIER, 39° view only: barrel top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.BRAZIER.png" height="32"> |
+| <a id="faces-books"></a>`FACES.BOOKS` | 1.5×1.5 | BOOKS, 39° view only: holotape side, holotape top, case side, case top, sheets side, sheets top, manual side, manual top, binder side, binder top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.BOOKS.png" height="24"> |
+| <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 2.5×2.5 | PAPER_STACK, 39° view only: forms 1 side, forms 1 top, forms 2 side, forms 2 top, folder side, folder top, forms 3 side, forms 3 top, tray side, tray top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.PAPER_STACK.png" height="24"> |
+| <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 2.5×2 | SCROLL_PILE, 39° view only: tapes side, tapes top, tapes 2 side, tapes 2 top, tape top side, tape top top, tape up 1 side, tape up 1 top, tape up 2 side, tape up 2 top. Source: `ui/art/vault/faces.png` | <img src="vault/FACES.SCROLL_PILE.png" height="32"> |
