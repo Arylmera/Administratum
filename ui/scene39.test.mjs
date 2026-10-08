@@ -3,7 +3,7 @@ import { order, depthSort } from './iso.js';
 import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39 } from './actors.js';
-import { use, pin, placeOf, actorFoot, actorAt39, seatShift } from './scene39.js';
+import { use, pin, placeOf, actorFoot, actorAt39, seatShift, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND } from './scene.js';
 import { SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
@@ -77,6 +77,12 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
       assert.ok(s >= 0 && a.y - s > p.yb, `${id} ${kind}: shift ${s} keeps the scribe in front of the desk`);
       const hx = a.x - A.feet.x + A.arm.x, hands = pin(a.x, a.y - s)[1] - A.feet.y + A.arm.y + hand;
       const back = pin(hx, p.yb - p.k.d / 2, p.k.top / 2)[1], front = pin(hx, p.yb, p.k.top / 2)[1];
+      // its contact shadow lies under the drawn feet (the floor point the body stands on), not the seat
+      const r = spriteOf({ ...a, pose: 'desk', dir: 'up', t: 0, wait: 0, path: [], s: { status: 'busy', context: null }, sash: '#ff0000' }, s);
+      const e = actorShadow(a, r), [fx, fy] = feetOf(a, r);
+      assert.equal(fy, a.y - s, `${id} ${kind}: the drawn feet are the shifted floor point`);
+      // cx: the frame's foot span (its bottom rows), a px or two off the feet anchor; cy: exactly the feet's floor line
+      assert.ok(Math.abs(e.cy - fy) <= 0.5 && Math.abs(e.cx - fx) <= 3, `${id} ${kind}: shadow at (${e.cx}, ${e.cy}) under the feet (${fx}, ${fy})`);
       if (p.k.top < 12) { assert.equal(s, 0, `${id} ${kind}: a pedestal (its surface a detail): the scribe stays at the seat`); continue; }
       assert.ok(hands >= back - 0.5 && hands <= front - 1, `${id} ${kind}: hands at ${hands} on the top ${back}..${front}`);
     }
@@ -99,4 +105,16 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
   const at = { x: 10, y: 100 }, AT = KIND.desk.at;
   assert.deepEqual(reactionLights({ lamp: { ok: true, t: 0 } }, at, AT, 0).map(l => l.r), [16], 'a passed test lamp lights');
 }
+// the gate: its back (void, leaves) always before its frame, in either input order, in every world; an actor on the
+// step at the entry after the frame, one north of the gate before both
+for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault']) {
+  setTheme(id);
+  const hall = hallOf(0), { back, frame } = gateFeet(hall), at = { x: hall.entry.x, y: hall.entry.y }, north = { x: hall.entry.x, y: hall.h - 22 };
+  assert.ok(back.v1 <= frame.v0, `${id}: the gate's back wholly behind its frame (a constraint, not a centre tie)`);
+  for (const list of [[{ k: 'f', foot: frame }, { k: 'b', foot: back }], [{ k: 'b', foot: back }, { k: 'f', foot: frame }]]) {
+    const ks = depthSort([...list, { k: 'e', foot: actorFoot(at) }, { k: 'n', foot: actorFoot(north) }]).map(i => i.k).join('');
+    assert.equal(ks, 'nbfe', `${id}: gate order ${ks}`);
+  }
+}
+setTheme('tier2');
 console.log('scene39 ok');

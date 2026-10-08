@@ -128,8 +128,8 @@ function doorKit(list) {
 // ---- the frame ----------------------------------------------------------------------------------------------------
 // Seated 39° scribes: how far (logical floor px) each is drawn north of its seat, so its hands rest on the desk top
 // (layout.js seats a scribe 9 px south of its desk's front; the 39° view shows the desk's real height). Set each frame
-// by the desks, read by spriteOf (drawing, shadows, hit test).
-const seated = new Map();
+// by the desks, read by spriteOf (drawing, shadows, hit test); eased in over SIT_MS of the desk pose (sitSince).
+const seated = new Map(), sitSince = new Map(), SIT_MS = 300;
 const handRow = new WeakMap(); // arm frame -> its first opaque row (the hands), logical px
 const handOf = m => handRow.get(m) ?? handRow.set(m, Math.max(0, m.findIndex(r => /[^.]/.test(r))) / RES).get(m);
 // The shift that puts the hands on the middle of the desk top's depth: between 0 and the gap to the desk's front.
@@ -171,11 +171,15 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     return p;
   };
   seated.clear();
+  for (const id of sitSince.keys()) if (actors.get(id)?.pose !== 'desk') sitSince.delete(id);
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, kind = S.kindOf(d), fill = S.deskFill(d, a, fillOf);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     const p = furniture(kind, d, pile, busy, fill, d.id && a, !!a?.s.background, blockOf(d.dept));
-    if (a?.pose === 'desk') seated.set(a.id, seatShift(p, a));
+    if (a?.pose === 'desk') {
+      if (!sitSince.has(a.id)) sitSince.set(a.id, now);
+      seated.set(a.id, seatShift(p, a) * Math.min(1, (now - sitSince.get(a.id)) / SIT_MS));
+    }
     if (d.id) lights.push(S.deskLight(d, busy));
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S, [px, py] = S.KIND[kind].at.puff;
@@ -192,12 +196,10 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   // actors, their contact and cast shadows
   const room = S.staticLights(H), known = room.concat(lights);
   for (const a of all) {
-    const r = spriteOf(a), x = Math.round(a.x), y = Math.round(a.y);
+    const r = spriteOf(a), [x, y] = feetOf(a, r);
     items.push({ foot: actorFoot(a), draw: g2 => drawActor39(g2, a, r, fillOf) });
-    const fx0 = x + r.dx, fy0 = y + r.dy, e = shadowOf(r.map, fx0, fy0);
-    if (e && r.step > 0) e.rx -= 0.5;
-    const c = casterOf(a.x, a.y, known, dark);
-    if (c) { const cv = sprite(r.map, r.over); floor.push(g2 => castShadow(g2, cv, { x: fx0, y: fy0, w: cv.width / RES, h: cv.height / RES }, c.from, c.alpha)); }
+    const e = actorShadow(a, r), c = casterOf(x, y, known, dark);
+    if (c) { const cv = sprite(r.map, r.over); floor.push(g2 => castShadow(g2, cv, { x: x + r.dx, y: y + r.dy, w: cv.width / RES, h: cv.height / RES }, c.from, c.alpha)); }
     floor.push(g2 => contactShadow(g2, e, shade));
   }
 
@@ -226,18 +228,26 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   return room.concat(lights, alarm(g, all, now));
 }
 
-// The frame an actor shows (39° art, else the flat frame upright), its top-left relative to its feet.
-function spriteOf(a) {
-  const b = bodyOf39(a), s = b && seated.get(a.id);
-  if (s) return { ...b, dx: half(b.dx + K * s), dy: half(b.dy - K * s / 2) }; // drawn north of its seat, at the desk
-  if (b) return b;
+// The frame an actor shows (39° art, else the flat frame upright), its top-left relative to its feet, and seat: how
+// far north of its seat (floor px) a seated 39° scribe is drawn (0 otherwise). seat: a test's override.
+export function spriteOf(a, seat = seated.get(a.id) ?? 0) {
+  const b = bodyOf39(a);
+  if (b) return { ...b, seat };
   const f = bodyOf(a);
-  return { map: f.map, over: f.over, dx: f.x - Math.round(a.x), dy: f.y - Math.round(a.y), step: f.step, flat: true };
+  return { map: f.map, over: f.over, dx: f.x - Math.round(a.x), dy: f.y - Math.round(a.y), step: f.step, flat: true, seat: 0 };
+}
+// Where the actor's feet are drawn, on the floor (logical px): its position, a seated scribe north of its seat.
+export const feetOf = (a, r) => [Math.round(a.x), Math.round(a.y) - r.seat];
+// Its contact shadow on the floor (depth.js), under the drawn feet.
+export function actorShadow(a, r) {
+  const [x, y] = feetOf(a, r), e = shadowOf(r.map, x + r.dx, y + r.dy);
+  if (e && r.step > 0) e.rx -= 0.5; // a stride: the feet apart, the shadow tighter
+  return e;
 }
 function drawActor39(g, a, r, fillOf) {
-  const x = Math.round(a.x), y = Math.round(a.y);
+  const [fx0, fy0] = feetOf(a, r), x = Math.round(a.x), y = Math.round(a.y);
   g.save();
-  upright(g, x, y, pin(x, y));
+  upright(g, x, y, pin(fx0, fy0)); // flat coords around (x, y) stand on the drawn feet
   if (r.flat) drawActor(g, a); // the flat frames, arms, scroll and Zs, standing on the projected feet
   else {
     const fx = x + r.dx, fy = y + r.dy - bobOf(r);
@@ -303,22 +313,28 @@ function skullAt(g, x, y, bob = 0, over, carry = false) {
 // its frame (built once per theme), its footprint reaching to its standing parts' front (piers, arch: not the flat
 // base and step), so an actor on the step at the entry is drawn over it and one walking through behind it.
 let gateKit = null;
+// The two items' footprints: they meet at the leaves' face (back: up to it, frame: from it), so the back is wholly
+// behind the frame along v and depthSort draws the frame after it whatever the input order (a constraint, not a tie).
+export function gateFeet(hall) {
+  const G = gateOf(hall), sh = G.sheet, vf = G.v0 + G.leaves.v + G.leaves.d - 1, u0 = G.u0 + 2 * PROP_AT.GATE.opening[0];
+  const front = Math.max(G.leaves.v + G.leaves.d, ...sh.details.filter(p => p.rect[3] > 8).map(p => p.v + (p.d ?? p.t ?? 2)));
+  return { G, back: { u0, u1: u0 + 2 * PROP_AT.GATE.opening[2], v0: G.v0, v1: vf }, frame: { u0: G.u0, u1: G.u0 + sh.fw, v0: vf, v1: G.v0 + front } };
+}
 function gateItems(all, dt) {
   const A = PROP_AT.GATE, GX = H.entry.x - A.entry[0], GY = H.entry.y - A.entry[1], [ow, oh] = A.opening.slice(2), ox = GX + A.opening[0], oy = GY + A.opening[1];
   const s = S.stepGate(all, dt);
   if (gateKit?.key !== key) {
-    const G = gateOf(H), sh = G.sheet, buf = bake(box(0, sh.fw, 0, 2 * (H.h - WALL) - G.v0, 0, sh.fh + 4), b => build39(b, sh, 0, 0, 1));
-    const front = Math.max(G.leaves.v + G.leaves.d, ...sh.details.filter(p => p.rect[3] > 8).map(p => p.v + (p.d ?? p.t ?? 2)));
-    gateKit = { key, G, buf, cv: paint(buf), front };
+    const F = gateFeet(H), sh = F.G.sheet, buf = bake(box(0, sh.fw, 0, 2 * (H.h - WALL) - F.G.v0, 0, sh.fh + 4), b => build39(b, sh, 0, 0, 1));
+    gateKit = { key, ...F, buf, cv: paint(buf) };
   }
-  const { G, front } = gateKit, sh = G.sheet, yb = GY + sh.fh / RES, vl = G.v0 + G.leaves.v, u0 = G.u0 + 2 * A.opening[0];
-  return [{ foot: { u0, u1: u0 + 2 * ow, v0: vl, v1: vl + G.leaves.d }, draw(g) {
+  const { G, back, frame } = gateKit, sh = G.sheet, yb = GY + sh.fh / RES, vl = G.v0 + G.leaves.v;
+  return [{ foot: back, draw(g) {
     save(g, g2 => onFace(g2, vl, yb), g2 => blit(g2, MAPS.GATE_VOID, ox, oy));
     save(g, g2 => onFace(g2, vl + G.leaves.d - 1, yb), g2 => {
       g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
       blit(g2, MAPS.GATE_L, GX + A.leafL[0] - s, GY + A.leafL[1]); blit(g2, MAPS.GATE_R, GX + A.leafR[0] + s, GY + A.leafR[1]);
     });
-  } }, { foot: { u0: G.u0, u1: G.u0 + sh.fw, v0: G.v0, v1: G.v0 + front }, draw: g => drawBuf(g, gateKit.buf, gateKit.cv, G.u0, G.v0) }];
+  } }, { foot: frame, draw: g => drawBuf(g, gateKit.buf, gateKit.cv, G.u0, G.v0) }];
 }
 
 // The Magos on the throne (scene.js drawMagos), its 39° art if the theme has one: the drill arm swings, the chest
@@ -377,7 +393,7 @@ export function actorAt39(px, py, actors, pad = 1) {
   const P = Math.round(pad * RES);
   for (const a of actors) {
     if (a.leaving) continue;
-    const r = spriteOf(a), [sx, sy] = pin(Math.round(a.x), Math.round(a.y));
+    const r = spriteOf(a), [sx, sy] = pin(...feetOf(a, r));
     const c = fl((px - sx - r.dx) * RES), row = fl((py - sy - r.dy) * RES);
     let hit = false;
     for (let j = -P; j <= P && !hit; j++) for (let i = -P; i <= P && !hit; i++) { const ch = r.map[row + j]?.[c + i]; hit = ch !== undefined && ch !== '.'; }
@@ -387,6 +403,6 @@ export function actorAt39(px, py, actors, pad = 1) {
   // nothing drawn there: the feet nearest the floor point under it, within pad + 2 px (a click on the shadow)
   const [fx, fy] = toFloor(px, py);
   let bd = pad + 2;
-  for (const a of actors) { const d = Math.hypot(a.x - fx, a.y - fy); if (!a.leaving && d <= bd) { best = a; bd = d; } }
+  for (const a of actors) { const [ax, ay] = feetOf(a, spriteOf(a)), d = Math.hypot(ax - fx, ay - fy); if (!a.leaving && d <= bd) { best = a; bd = d; } }
   return best;
 }
