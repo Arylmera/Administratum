@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Administratum preview</title>
+<script>
+// The real ui/ in a browser, without the backend: a fake window.__TAURI__ (settings from localStorage, every other
+// command refused) and a fixed roster sent every second, for screenshots of the hall.
+// Serve the repo root (python -m http.server 8123) and open /tools/preview.html?mode=candles&theme=vault
+// (mode: auto|full|candles, theme: a theme id, n: scribes, 1..40, view: flat|39).
+const q = new URLSearchParams(location.search);
+for (const [k, key] of [['mode', 'adm.mode'], ['theme', 'adm.theme'], ['scale', 'adm.scale'], ['view', 'adm.view']]) {
+  if (q.has(k)) localStorage.setItem(key, q.get(k));
+}
+localStorage.setItem('adm.pauseHidden', '0'); // a background tab still draws (when the browser runs its frames)
+const n = Math.max(1, Math.min(40, +(q.get('n') ?? 9)));
+const fake = `
+  window.__ROSTER_N = ${n};
+  const H = {};
+  // A tab in the background gets no animation frames: drive the loop with timers (throttled, but it moves).
+  window.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 16);
+  window.__TAURI__ = {
+    core: { invoke: name => (name === 'settings_load' ? Promise.resolve({}) : Promise.reject('preview: no backend')) },
+    event: { listen: (name, cb) => { (H[name] ??= []).push(cb); return Promise.resolve(() => {}); } },
+    window: { getCurrentWindow: () => ({ setAlwaysOnTop: async () => {} }) },
+    app: { getVersion: async () => 'preview' },
+  };
+  const t0 = Date.now() - 60_000, DEPTS = ['Terra', 'Geneseed', 'Hololith', 'Noosphere'], MODELS = ['claude-opus-5-5', 'claude-sonnet-5', 'claude-haiku-4-5-20251001'];
+  const STATUS = ['busy', 'busy', 'shell', 'idle', 'waiting', 'busy', 'busy', 'idle', 'busy'];
+  const roster = () => Array.from({ length: window.__ROSTER_N }, (_, i) => ({
+    id: 's' + i, pid: 0, name: DEPTS[i % 4].toLowerCase() + '-' + (10 + i), dept: DEPTS[i % 4], cwd: 'C:/git/' + DEPTS[i % 4],
+    status: STATUS[i % STATUS.length], waitingFor: 'approve Bash', sinceMs: t0 + i * 1000, task: 'Edit · app.js', title: null, asks: null,
+    helpers: i % 3 === 0 ? [{ id: 'h' + i, kind: 'Explore', task: 'grep', model: 'haiku', context: { tokens: 20000, model: MODELS[2] } }] : [],
+    context: { tokens: 60000 + 90000 * i, model: MODELS[i % 3] }, orca: null, web: null, background: false, compactedAt: null,
+    question: null, branch: 'main', limit: null, turn: null,
+  }));
+  setInterval(() => (H.roster ?? []).forEach(cb => cb({ payload: roster() })), 1000);
+`;
+fetch('/ui/index.html').then(r => r.text()).then(html => {
+  html = html.replace(/<head>/i, () => `<head><base href="/ui/"><script>${fake}<\/script>`);
+  document.open(); document.write(html); document.close();
+});
+</script>

@@ -1,6 +1,10 @@
 # Depth pass ("2.5D", option A): design
 
-Date: 2026-10-07. Status: spec, not started.
+Date: 2026-10-07. Status: built (PR #26).
+
+> **Update 2026-10-07:** depth is always on at its full level (everything below, depth of view included). The Off /
+> Subtle / Full setting and the Depth of view switch were removed after the first build: the operator wants depth as
+> the only look.
 
 ## Goal
 
@@ -77,6 +81,8 @@ back wall canvas, floor and everything on it, the frame. The static background i
 (wall band, floor) to allow it.
 
 - Only during pan; at rest everything is aligned exactly as today (offset 0), so no seam can show.
+- As built (2026-10-07): only the back wall trails (a lag of at most 1.5 logical px that eases back to 0). The brass
+  frame is the window's edge, not a layer of the scene, so it stays put.
 - Cost: one extra `drawImage` of a cached canvas.
 
 ### 6. Depth of view (Full, off by default even in Full)

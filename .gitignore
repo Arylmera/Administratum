@@ -3,3 +3,4 @@ src-tauri/gen/
 icon-src.png
 src-tauri/target-*/
 .claude/
+.superpowers/

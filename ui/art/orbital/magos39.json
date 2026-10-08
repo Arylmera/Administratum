@@ -1,0 +1,48 @@
+{
+  "frames": {
+    "body": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      }
+    },
+    "arm": {
+      "frame": {
+        "x": 49,
+        "y": 0,
+        "w": 10,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "orbital 39° characters (hand-drawn, key palette)",
+    "image": "magos39.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 59,
+      "h": 48
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "arm": [
+        0,
+        0
+      ],
+      "chest": [
+        25,
+        29
+      ],
+      "eyeL": [
+        22,
+        16
+      ],
+      "eyeR": [
+        32,
+        16
+      ]
+    }
+  }
+}

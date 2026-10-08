@@ -1,4 +1,4 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, MAPS, rankOf, blit } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAPS, rankOf, blit } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -185,23 +185,51 @@ const robeOf = (rank, sash) => {
   return by.get(sash) ?? by.set(sash, { ...T.rank[rank].robe, y: sash }).get(sash);
 };
 
+// The body frame an actor is drawn with and its top-left (feet at a.x, a.y), for drawActor and its floor shadow
+// (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing.
+export function bodyOf(a) {
+  const walk = a.pose === 'walk';
+  if (a.h) { // adept: 12x14
+    const i = Math.floor(a.t * 16) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
+    return { map: walk ? ADEPT[a.dir][i] : ADEPT[a.target.dir][0], over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
+  }
+  const i = a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
+  const map = a.pose === 'burn' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
+  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !(a.wait > 0) ? i : -1 };
+}
+
+// The 39° view's facing, from the walk direction in floor space: E = +x, W = -x, S = +y (toward the viewer), N = -y.
+const FACE39 = { right: 'E', left: 'W', down: 'S', up: 'N' };
+export const face39 = dir => FACE39[dir] ?? 'N';
+// bodyOf for the 39° view: the 39° frame (walking: the walk direction's; seated, queued, at the cogitator or a console:
+// facing N, its back to the viewer, as the flat view's 'up'; burning: facing S), its top-left relative to the feet
+// (dx, dy, logical px), the palette and walk step of bodyOf. null while the theme has no 39° art for this actor (the
+// caller draws the flat frame upright).
+export function bodyOf39(a) {
+  const F = a.h ? ADEPT39 : SCRIBE39, A = a.h ? ADEPT39_AT : SCRIBE39_AT;
+  if (!F.E) return null;
+  const b = bodyOf(a), walk = a.pose === 'walk', i = Math.max(0, b.step);
+  const face = walk ? face39(a.dir) : a.pose === 'burn' ? 'S' : a.h ? face39(a.target?.dir) : 'N';
+  return { map: F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+}
+
+// A walker's body rises 1 art px on the passing frame (depth: motion cues); its shadow stays on the floor.
+export const bobOf = b => (b.step === 0 ? 0.5 : 0);
+
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
-  if (a.h) { // adept: 12x14, feet at (x, y)
-    const fx = Math.round(a.x) - ADEPT_AT.feet.x, fy = Math.round(a.y) - ADEPT_AT.feet.y, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
-    if (a.pose === 'walk') blit(g, ADEPT[a.dir][Math.floor(a.t * 16) % 3], fx, fy, over);
-    else blit(g, ADEPT[a.target.dir][0], fx, fy + (Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), over); // typing bob, 1 art px
+  const b = bodyOf(a);
+  if (a.h) { // adept: typing bob of 1 art px at its console
+    blit(g, b.map, b.x, b.y - bobOf(b) + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;
   }
-  const over = robeOf(rankOf(a.s.context?.model), a.sash);
-  const A = SCRIBE_AT, fx = Math.round(a.x) - A.feet.x, fy = Math.round(a.y) - A.feet.y;
-  if (a.pose === 'burn') { blit(g, SCRIBE.down[0], fx, fy, over); return; } // standing over the brazier (bundle + flare: scene.js)
+  const A = SCRIBE_AT, fx = b.x, fy = b.y - bobOf(b);
+  blit(g, b.map, fx, fy, b.over);
+  if (a.pose === 'burn') return; // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
-    blit(g, SCRIBE[a.dir][a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3], fx, fy, over);
     if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
     return;
   }
-  blit(g, SCRIBE.up[0], fx, fy, over);
   const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
   const lift = done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0; // eased up, held, back down
   blit(g, MAPS.ARM, fx + A.arm.x, fy + A.arm.y - lift);
@@ -232,7 +260,7 @@ function zSprite() {
   }
   return zCv;
 }
-function dozing(g, x, y, t) {
+export function dozing(g, x, y, t) {
   const z = zSprite(), a0 = g.globalAlpha;
   for (const k of [0, 0.5]) {
     const p = (t / 2.4 + k) % 1, zx = x + Math.round(p * 4) / 2, zy = y - Math.round(p * 12) / 2;

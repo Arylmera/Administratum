@@ -3,8 +3,12 @@
 // -> [{ id, group, family, src, cells: [{ rows, over }], anim, note, size }]
 //    family: the art family ('walls'), as the sprite issues group them; src: its art file for this theme ('cyber/walls').
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
-import { MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART } from '../ui/sprites.js';
+import {
+  MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
+  SCRIBE39, ADEPT39, MAGOS39, SKULL39, REQ39,
+} from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
+import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
@@ -18,7 +22,8 @@ const ABOUT = {
   LORD_DESK: 'The Magos\'s desk, petitions queue before it', BRAZIER: 'Brazier at the gate and in the Sanctum; compaction burns here',
   RECAFF: 'Recaff dispenser (Refectorium), first stop of an idle scribe', CONSOLE: 'Adept console, one per subagent',
   COGITATOR: 'Cogitator bank on the back wall: where shell commands run', WINDOW: 'Window: day or night glass, casts a beam by day',
-  BANNER: 'Wall banner', CRATE: 'Supply crate', PAPER_STACK: 'Paper tower (decor)', SCROLL_PILE: 'Scroll pile (decor)', BOOKS: 'Book pile (decor)',
+  WINDOW_TALL: 'Tall gothic window on the back walls: day or night glass, casts a beam by day', HANGING: 'Full-height hanging on the back walls',
+  BANNER: 'Wall banner (the Sanctum wall; the back walls of a world without its own hangings)', CRATE: 'Supply crate', PAPER_STACK: 'Paper tower (decor)', SCROLL_PILE: 'Scroll pile (decor)', BOOKS: 'Book pile (decor)',
   LOOSE_A: 'Loose sheet on the floor (decor)', LOOSE_B: 'Loose sheet on the floor (decor)', GAUGE: 'Pressure gauge on the Sanctum pillars',
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',
   GATE_R: 'Grand gate, right leaf (slides open)', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
@@ -47,8 +52,26 @@ export function catalog() {
   add('MAGOS', 'Magos (on the throne)', srcOf('magos'), [{ rows: seated, over: {} }], false, 'Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames)');
   add('MAGOS.arm', 'Magos (on the throne)', srcOf('magos'), [{ rows: MAGOS.arm, over: {} }], false, 'The drill forearm, its own frame so it can swing');
 
+  // 39° characters (wave 2): one generic section, listing every frame present for the active theme. Empty until an
+  // art agent's PNG exists (sprites.js checkComplete39), so the viewer shows a world's frames the moment they land.
+  // The frame names come from REQ39 (sprites.js), not repeated here: a walk frame is '<dir> <n>', everything else
+  // ('arm', 'armL', 'scroll', 'body', 'skull'...) is a static extra.
+  const CH39 = [
+    { name: 'SCRIBE39', family: 'scribe39', obj: SCRIBE39 },
+    { name: 'ADEPT39', family: 'adept39', obj: ADEPT39 },
+    { name: 'MAGOS39', family: 'magos39', obj: MAGOS39 },
+    { name: 'SKULL39', family: 'skull39', obj: SKULL39 },
+  ];
+  for (const { name, family, obj } of CH39) {
+    if (!Object.keys(obj).length) continue;
+    const src = srcOf(family), extra = REQ39[family].frames.filter(n => !/^[EWSN] \d$/.test(n));
+    for (const d of ['E', 'W', 'S', 'N']) if (obj[d]) add(`${name}.${d}`, '39° characters', src, obj[d].map(rows => ({ rows, over: {} })), true, `${name}, 39° view, walking ${d}, 3 frames`);
+    for (const n of extra) add(`${name}.${n}`, '39° characters', src, [{ rows: obj[n], over: {} }], false, `${name}, ${n}`);
+  }
+
   const VARIANTS = { // extra renders of maps that are drawn with overrides
     WINDOW: [['day', theme.ink.windowDay], ['night', theme.ink.windowNight]],
+    WINDOW_TALL: [['day', theme.ink.windowDay], ['night', theme.ink.windowNight]],
     DESK: [['unlit', { f: null, F: null, c: theme.ink.screenOff }]],
     LECTERN: [['unlit', { f: null, F: null, c: theme.ink.screenOff }]],
     CONSOLE: [['unlit', { c: theme.ink.screenOff }]],
@@ -66,6 +89,17 @@ export function catalog() {
     const n = t.fill === 'repeat' ? 3 : 1, nx = t.fill === 'repeat-x' ? 6 : n, ny = t.fill === 'repeat-y' ? 6 : n;
     const sample = Array.from({ length: rows.length * ny }, (_, j) => rows[j % rows.length].repeat(nx));
     add(`ROOM.${name.replace(/ /g, '_')}`, 'Room tiles', ROOM_SHEET_OF[name], [{ rows: sample, over: {} }], false, `\`${name}\`: ${how}${nx * ny > 1 ? ' (shown repeated)' : ''}`);
+  }
+
+  // Face sheets (ui/faces.js): the faces only the 39° view draws, side by side per object (main box side and top, its
+  // screens' bezel sides and floors, then its details' sides, tops and disc rims). A world without its 39° art lists none.
+  for (const name of FACE_OBJECTS) {
+    const s = sheetOf(name), src = FACES.worlds[dir]?.objects[name] ? `${dir}/faces` : 'faces';
+    const bezel = (pre, list = []) => list.flatMap(r => [[`${pre}${r.name} wall`, r.wallFrame], [`${pre}${r.name} floor`, r.floorFrame]]);
+    const F = (FACES.worlds[dir]?.objects[name] ? FACES.worlds[dir] : FACES.base).frames; // a detail's drawn front, if any
+    const faces = [['side', s.side], ['top', s.top], ...bezel('', s.recess), ...s.details.flatMap(d => (d.parts ?? [d]).flatMap(p =>
+      [[`${p.name} front`, F[`${name} ${p.name} front`]], [`${p.name} side`, p.side], [`${p.name} top`, p.top], [`${p.name} rim`, p.rimFrame], ...bezel(`${p.name} `, p.recess)]))].filter(([, f]) => f);
+    if (faces.length) add(`FACES.${name}`, 'Face sheets (39° side and top faces)', src, faces.map(([, rows]) => ({ rows, over: {} })), false, `${name}, 39° view only: ${faces.map(([k]) => k).join(', ')}`);
   }
   return out;
 }

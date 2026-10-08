@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf } from './layout.js';
-import { propsOf } from './scene.js';
-import { MAPS, RES } from './sprites.js';
+import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY } from './layout.js';
+import { propsOf, WIN_Y, wallArt } from './scene.js';
+import { MAPS, RES, ART } from './sprites.js';
+import { setTheme, THEMES } from './theme.js';
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -161,7 +162,7 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
   assert.equal(P.bays, 1);
   assert.equal(P.overflow, 0);
   const H1 = hallOf(1);
-  assert.equal(H1.h, 226 + BAY_H);
+  assert.equal(H1.h, SCENE.h + BAY_H);
   assert.ok(P.blocks.every(b => b.y + b.h <= H1.y1), 'blocks inside the grown hall');
   assert.ok(P.blocks.some(b => b.y + b.h > HALL.y1), 'the third row stands in the bay');
   assert.deepEqual(H1.entry, { x: ENTRY.x, y: ENTRY.y + BAY_H });
@@ -209,36 +210,37 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
   }
 }
 
+const desk = { x: 24, y: 96 + WALL_DY }; // a first-row seat
 // desk to queue goes through both door points; queue to queue inside the office goes straight
-const r = route({ x: 24, y: 96 }, QUEUE_SLOTS[0]);
+const r = route(desk, QUEUE_SLOTS[0]);
 assert.deepEqual(r.at(-1), QUEUE_SLOTS[0]);
 assert.ok(r.some(p => p.x === DOOR_OUT.x && p.y === DOOR_OUT.y));
 assert.ok(r.some(p => p.x === DOOR_IN.x && p.y === DOOR_IN.y));
 assert.equal(route(QUEUE_SLOTS[1], QUEUE_SLOTS[0]).length, 1);
-assert.deepEqual(route({ x: 24, y: 96 }, { x: 72, y: 96 }), [{ x: 24, y: 118 }, { x: 72, y: 118 }, { x: 72, y: 96 }]); // the gap under the row
+assert.deepEqual(route(desk, { x: 72, y: desk.y }), [{ x: 24, y: HALL.y0 + 60 }, { x: 72, y: HALL.y0 + 60 }, { x: 72, y: desk.y }]); // the gap under the row
 
 // the gate is centred in the scriptorium's bottom wall, below the aisle; newcomers walk up to the aisle first
 assert.equal(ENTRY.x, (HALL.x0 + HALL.x1) / 2);
-assert.ok(ENTRY.y > AISLE_Y && ENTRY.y <= 226);
-const inGate = route(ENTRY, { x: 24, y: 96 });
+assert.ok(ENTRY.y > AISLE_Y && ENTRY.y <= SCENE.h);
+const inGate = route(ENTRY, desk);
 assert.equal(inGate[0].x, ENTRY.x);
-assert.deepEqual(inGate.at(-1), { x: 24, y: 96 });
+assert.deepEqual(inGate.at(-1), desk);
 for (const q of QUEUE_SLOTS.slice(3)) assert.ok(Math.abs(q.x - ENTRY.x) >= 36, `queue slot ${q.x} clear of the gate`);
 
 // desk to the refectorium goes through its door; inside the refectorium it walks straight
 const has = (rt, p) => rt.some(q => q.x === p.x && q.y === p.y);
-const toRef = route({ x: 24, y: 96 }, RECAFF_SPOT);
+const toRef = route(desk, RECAFF_SPOT);
 assert.ok(has(toRef, REF_OUT) && has(toRef, REF_IN) && !has(toRef, DOOR_IN));
 assert.ok(toRef.indexOf(toRef.find(p => p.x === REF_OUT.x && p.y === REF_OUT.y)) < toRef.findIndex(p => p.x === REF_IN.x && p.y === REF_IN.y));
 assert.deepEqual(toRef.at(-1), RECAFF_SPOT);
 assert.equal(route(RECAFF_SPOT, REFECTORY_SPOTS[3]).length, 1);
-const back = route(REFECTORY_SPOTS[0], { x: 24, y: 96 });
+const back = route(REFECTORY_SPOTS[0], desk);
 assert.deepEqual(back.slice(0, 2), [REF_IN, REF_OUT]);
 const refToQueue = route(REFECTORY_SPOTS[0], QUEUE_SLOTS[0]);
 assert.ok(has(refToQueue, REF_IN) && has(refToQueue, DOOR_IN));
 assert.equal(REFECTORY_SPOTS.length, 6);
 assert.equal(new Set(REFECTORY_SPOTS.map(p => `${p.x},${p.y}`)).size, 6);
-for (const p of REFECTORY_SPOTS.concat(RECAFF_SPOT)) assert.ok(p.x > 208 && p.y > 40 && p.y < 100, 'refectory spot inside the room');
+for (const p of REFECTORY_SPOTS.concat(RECAFF_SPOT)) assert.ok(p.x > 208 && p.y > WALL && p.y < 100 + WALL_DY, 'refectory spot inside the room');
 
 // lanes: with several departments, every route is axis-aligned and only the legs into a seat touch its own block
 L = layoutDepartments([{ name: 'A', color: '#fff', ids: ids('a', 2) }, { name: 'B', color: '#fff', ids: ids('b', 1) }, { name: 'C', color: '#fff', ids: ids('c', 3) }]);
@@ -277,9 +279,9 @@ assert.equal(lightLevel('auto', 12, 'night').phase, 'night'); // the sun overrid
 assert.equal(lightLevel('full', 2, 'night').phase, 'day');
 assert.ok(lightLevel('full', 12).dark > 0, 'Tier II keeps a darkness floor in full light');
 
-// cogitator stations: on the floor in front of the bank (its desk ends at y 51), above the department blocks, reachable
+// cogitator stations: on the floor in front of the bank (its desk ends 11 px below the wall foot), above the department blocks, reachable
 for (const p of COG_SPOTS) {
-  assert.ok(p.y > 51 && p.y < HALL.y0 && p.x - 8 >= HALL.x0 && p.x + 8 <= HALL.x1, `cog spot ${p.x}`);
+  assert.ok(p.y > WALL + 11 && p.y < HALL.y0 && p.x - 8 >= HALL.x0 && p.x + 8 <= HALL.x1, `cog spot ${p.x}`);
   assert.deepEqual(route(ENTRY, p).at(-1), p);
 }
 
@@ -310,12 +312,12 @@ for (const [name, x, y] of propsOf(hallOf(0)).props) {
     assert.ok(sanct.length >= 3 && H.queue.length >= QUEUE_SLOTS.length, `${tag}: queue capacity`);
     if (S.h >= 300) assert.ok(sanct.length > 3, `${tag}: the taller sanctum holds more`);
     // refectory: spots in the room, more as it grows; the recaff in it
-    for (const p of H.refectory.concat(H.recaff)) assert.ok(roomOf(p, H) === 'ref' && p.x > H.rx + 8 && p.y > 40 && p.y <= H.split - 10, `${tag}: refectory spot ${p.x},${p.y}`);
+    for (const p of H.refectory.concat(H.recaff)) assert.ok(roomOf(p, H) === 'ref' && p.x > H.rx + 8 && p.y > WALL && p.y <= H.split - 10, `${tag}: refectory spot ${p.x},${p.y}`);
     assert.ok(H.refectory.length >= REFECTORY_SPOTS.length && H.refectory.length % 3 === 0);
     assert.equal(new Set(H.refectory.map(p => `${p.x},${p.y}`)).size, H.refectory.length);
     if (S.h >= 400) assert.ok(H.refectory.length > REFECTORY_SPOTS.length, `${tag}: the taller refectorium seats more`);
     assert.equal(roomOf(H.doorIn, H), 'sanct'); assert.equal(roomOf(H.refIn, H), 'ref');
-    for (const p of H.cogSpots) assert.ok(p.y > 51 && p.y < H.y0 && p.x - 8 >= H.x0 && p.x + 8 <= H.x1, `${tag}: cog spot`);
+    for (const p of H.cogSpots) assert.ok(p.y > WALL + 11 && p.y < H.y0 && p.x - 8 >= H.x0 && p.x + 8 <= H.x1, `${tag}: cog spot`);
     // props inside the scene, none under a queued petitioner
     for (const [name, x, y] of propsOf(H).props) {
       const w = MAPS[name][0].length / RES, h = MAPS[name].length / RES;
@@ -351,14 +353,14 @@ for (const [name, x, y] of propsOf(hallOf(0)).props) {
   const fits = S => { let k = 1; while (!planLayout(null, many(k + 1), 0, {}, S).level) k++; return k; };
   const atBase = fits(SCENE);
   assert.ok(fits({ w: MAX_W, h: 297 }) > atBase && fits({ w: 346, h: 680 }) > atBase && fits({ w: 960, h: 520 }) > fits({ w: MAX_W, h: 297 }));
-  const rowOf = S => layoutDepartments(many(12), { size: S }).blocks.filter(b => b.y === 58).length;
+  const rowOf = S => layoutDepartments(many(12), { size: S }).blocks.filter(b => b.y === HALL.y0).length;
   assert.ok(rowOf({ w: MAX_W, h: SCENE.h }) > rowOf(SCENE));
   // a resize that doesn't force a reflow moves no desk: taller, or wider while every block already fits its row
   const D = [dept('A', 2), dept('B', 1)];
   const at = P => P.desks.map(d => `${d.key}:${d.x},${d.y}`).join(' ');
   let P = planLayout(null, D, 0);
   const before = at(P);
-  for (const S of [{ w: 346, h: 600 }, { w: MAX_W, h: 300 }, { w: 450, h: 226 }]) assert.equal(at(planLayout(P, D, 1000, {}, S)), before, `stable at ${S.w}x${S.h}`);
+  for (const S of [{ w: 346, h: 600 }, { w: MAX_W, h: 300 }, { w: 450, h: SCENE.h }]) assert.equal(at(planLayout(P, D, 1000, {}, S)), before, `stable at ${S.w}x${S.h}`);
   // ...and one that does reflows: the second block joins the first row once wide enough, its desks keep their keys
   const R = [dept('A', 4), dept('B', 4), dept('C', 1)];
   P = planLayout(null, R, 0);
@@ -368,6 +370,30 @@ for (const [name, x, y] of propsOf(hallOf(0)).props) {
   // the minimum is the original hall
   assert.equal(hallOf(0, { w: 100, h: 100 }), hallOf(0));
   assert.deepEqual(propsOf(hallOf(0)).windows, [78, 292]);
+  // ...its floor the original hall's (two slot rows, 138 px of desks), under a back wall WALL_DY taller
+  assert.equal(hallOf(0).rows, 2);
+  assert.deepEqual([HALL.y0 - WALL, HALL.y1 - HALL.y0, SCENE.h - WALL], [18, 138, 186]);
 }
+// The tall back wall holds the gothic window and the full-height hangings above its foot (WALL - 4), in every hall.
+assert.ok(WIN_Y + MAPS.WINDOW_TALL.length / RES <= WALL - 4, 'the tall window above the wall foot');
+for (const S of [SCENE, { w: MAX_W, h: 400 }]) {
+  const hangs = propsOf(hallOf(0, S)).props.filter(([name]) => name === 'HANGING');
+  assert.ok(hangs.length >= 2, 'hangings on the scriptorium and refectorium walls');
+  for (const [, , y] of hangs) assert.ok(y >= 4 && y + MAPS.HANGING.length / RES <= WALL - 4, `hanging at y ${y}`);
+}
+
+// wallArt(): for every theme, the tall gothic window and full-height hanging are drawn exactly when the theme's
+// own art (or base, for a theme without 'walls' art of its own) defines WINDOW_TALL/HANGING the same way it
+// defines the short WINDOW/BANNER; otherwise the short ones. tier2 (no art of its own) -> tall.
+for (const id of Object.keys(THEMES)) {
+  setTheme(id);
+  const own = ART.themed[ART.dirOf(id)]?.walls?.frames ?? {};
+  const tallWin = !!own.WINDOW_TALL === !!own.WINDOW, tallHang = !!own.HANGING === !!own.BANNER;
+  const a = wallArt();
+  assert.equal(a.win, MAPS[tallWin ? 'WINDOW_TALL' : 'WINDOW'], `${id}: win`);
+  assert.equal(a.tallHang, tallHang, `${id}: tallHang`);
+}
+setTheme('tier2');
+assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
 
 console.log('layout ok');

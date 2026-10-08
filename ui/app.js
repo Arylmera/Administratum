@@ -1,4 +1,4 @@
-import { SCENE, MAX_W, lightLevel, planLayout, hallOf } from './layout.js';
+import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf } from './layout.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES, rankOf } from './sprites.js';
@@ -7,12 +7,17 @@ import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
+import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor } from './view.js';
+import { buildHall39 } from './isohall.js';
+import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
 import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
+// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change).
+setView(store.get('adm.view', 'flat'));
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
 let chromeSet = [];
@@ -49,9 +54,18 @@ const overlay = document.getElementById('overlay');
 let scale = 2;
 let size = { ...SCENE }; // the scene's logical size, from the window and the Scale setting (fit)
 let hall = hallOf(0); // hallOf(bays, size): the scene's logical height also grows with the layout's bays
+// The canvas's logical size: the hall's own in the flat view, the projected hall's in the 39° view (view.js).
+const scene = () => sceneSize(hall);
+const iso = () => viewMode.mode === '39';
+// Where a floor point (x, y), up logical px above the floor, is drawn: itself in the flat view (up: straight up the
+// screen), projected in the 39° view (view.js). Overlays and hit tests place themselves through it.
+const at = (x, y, up = 0) => (iso() ? toScreen(x, y, up) : [x, y - up]);
+// Where a character's feet are drawn on the floor: its position, a seated 39° scribe's shifted north (scene39.js).
+const feet = a => (iso() ? feetOf(a, spriteOf(a)) : [a.x, a.y]);
 function sizeCanvas() {
-  canvas.width = hall.w * RES;
-  canvas.height = hall.h * RES;
+  const S = scene();
+  canvas.width = S.w * RES;
+  canvas.height = S.h * RES;
   g.setTransform(RES, 0, 0, RES, 0, 0);
   g.imageSmoothingEnabled = false;
 }
@@ -59,19 +73,33 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${at}`;
+  const tag = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${tag}`;
   if (!bg[k]) {
-    for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
-    const c = document.createElement('canvas');
-    c.width = hall.w * RES; c.height = hall.h * RES;
+    for (const o in bg) if (!o.endsWith(tag) || !o.startsWith(`${T.id}:`)) delete bg[o]; // only this size and theme's day and night
+    const c = document.createElement('canvas'), S = scene();
+    c.width = S.w * RES; c.height = S.h * RES;
     const cg = c.getContext('2d');
-    cg.setTransform(RES, 0, 0, RES, 0, 0);
-    cg.imageSmoothingEnabled = false;
-    drawStatic(cg, day, hall);
+    if (iso()) { // the 39° hall (isohall.js) on the backdrop colour: the canvas is opaque, its corners outside the hall too
+      cg.fillStyle = T.ink.backdrop; cg.fillRect(0, 0, c.width, c.height);
+      const h39 = buildHall39(hall, day);
+      cg.drawImage(h39.canvas, 0, 0);
+      c.anchors = h39.anchors; // where the dynamic layer slides the gate's leaves and the doors
+    } else {
+      cg.setTransform(RES, 0, 0, RES, 0, 0);
+      cg.imageSmoothingEnabled = false;
+      drawStatic(cg, day, hall);
+    }
     bg[k] = c;
   }
   return bg[k];
 }
+// The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
+// view's canvas is the projected hall's size: the next frame resizes it) on the floor point the old view centred.
+onView((mode, prev) => {
+  const c = viewW ? toFloor((viewW / 2 - pan.x) / scale, (viewH / 2 - pan.y) / scale, WALL, prev) : null;
+  for (const k in bg) delete bg[k];
+  fit(c);
+});
 
 // Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
 let sun = null, sunDay = '';
@@ -110,26 +138,40 @@ const FREE_W = 1920; // ponytail: an explicit Scale's widest scene (canvas cost)
 // 700x500 window (~1.93), kept while the window resizes, and never wider than MAX_W: an ultra-wide window gets
 // bigger pixels instead. An explicit Scale is honoured exactly (up to FREE_W wide). Smaller than the minimum, or
 // with bays below the window, the stage shows a view of the scene that pans (drag, arrow keys, edge arrows;
-// double-click recentres).
+// double-click recentres). The 39° view at Auto: the scale shrinks until the whole projected hall fits the window
+// (the same logical hall, smaller pixels), so nothing is off-screen; an explicit Scale pans there as in the flat view.
 let autoScale = 0;
 const stage = document.getElementById('stage'), world = document.getElementById('world');
 const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
 let viewW = 0, viewH = 0; // the stage, CSS px
-const pannable = () => viewW < hall.w * scale - 1 || viewH < hall.h * scale - 1;
-const clampPan = (x, y) => ({ x: Math.min(0, Math.max(viewW - hall.w * scale, x)), y: Math.min(0, Math.max(viewH - hall.h * scale, y)) });
+const pannable = () => { const S = scene(); return viewW < S.w * scale - 1 || viewH < S.h * scale - 1; };
+const clampPan = (x, y) => { const S = scene(); return { x: Math.min(0, Math.max(viewW - S.w * scale, x)), y: Math.min(0, Math.max(viewH - S.h * scale, y)) }; };
 function setPan(x, y) {
   Object.assign(pan, clampPan(x, y));
   world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
 }
 const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
+// Depth: while the view pans, the back wall (y < WALL) trails the floor a little (0.92 of its speed), then
+// catches up: lag is that offset in logical px, 0 at rest so nothing is ever misaligned once the pan stops.
+const PARALLAX = 0.08, LAG_MAX = 1.5, lag = { x: 0, y: 0 };
+function panStep(x, y) { // a pan the user makes (drag, glide, coast), as opposed to a resize re-centring the view
+  const { x: x0, y: y0 } = pan;
+  setPan(x, y);
+  const clampLag = v => Math.max(-LAG_MAX, Math.min(LAG_MAX, v));
+  lag.x = clampLag(lag.x - PARALLAX * (pan.x - x0) / scale); lag.y = clampLag(lag.y - PARALLAX * (pan.y - y0) / scale);
+}
+function settleLag(ms) {
+  const k = 0.85 ** (ms / 16);
+  lag.x = Math.abs(lag.x * k) < 0.05 ? 0 : lag.x * k; lag.y = Math.abs(lag.y * k) < 0.05 ? 0 : lag.y * k;
+}
 const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
 let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
-function fit() {
+function fit(floor) { // floor: a floor point to centre on (a view switch), else the view keeps its logical centre
   // The laid-out viewport, floored: on a fractional display (125 %) innerWidth/innerHeight are rounded and can
   // be half a px larger than the page, enough to overflow it.
   const vp = document.documentElement.getBoundingClientRect(), head = document.querySelector('header').getBoundingClientRect().bottom;
   const W = Math.max(1, Math.floor(vp.width) - 2 * FRAME), H = Math.max(1, Math.floor(vp.height - head) - 2 * FRAME);
-  if (viewW) viewCentre = { x: (viewW / 2 - pan.x) / scale, y: (viewH / 2 - pan.y) / scale };
+  if (viewW && !floor) viewCentre = { x: (viewW / 2 - pan.x) / scale, y: (viewH / 2 - pan.y) / scale };
   // ponytail: fractional scale; pixelated rendering keeps it crisp enough at any size.
   autoScale ||= Math.min((700 - 2 * FRAME) / SCENE.w, (500 - head - 2 * FRAME) / SCENE.h);
   const auto = scaleSetting.scale === 'auto', maxW = auto ? MAX_W : FREE_W;
@@ -137,14 +179,16 @@ function fit() {
   if (auto && W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
   const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
   if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
+  if (auto && iso()) { const S = scene(); scale = Math.min(scale, W / S.w, H / S.h); }
+  if (floor) { scene(); const [x, y] = at(...floor); viewCentre = { x, y }; } // scene(): the 39° offset, fresh
   applySize(W, H);
 }
 // The stage and the scene's CSS size for the window's W x H (CSS px), the view kept on its logical centre.
 function applySize(W, H) {
-  const cx = viewCentre?.x ?? hall.w / 2, cy = viewCentre?.y ?? hall.h / 2;
-  viewW = Math.floor(Math.min(hall.w * scale, W)); viewH = Math.floor(Math.min(hall.h * scale, H));
+  const S = scene(), cx = viewCentre?.x ?? S.w / 2, cy = viewCentre?.y ?? S.h / 2;
+  viewW = Math.floor(Math.min(S.w * scale, W)); viewH = Math.floor(Math.min(S.h * scale, H));
   stage.style.width = `${viewW}px`; stage.style.height = `${viewH}px`;
-  for (const el of [canvas, overlay]) { el.style.width = `${hall.w * scale}px`; el.style.height = `${hall.h * scale}px`; }
+  for (const el of [canvas, overlay]) { el.style.width = `${S.w * scale}px`; el.style.height = `${S.h * scale}px`; }
   pan.to = null;
   setPan(viewW / 2 - cx * scale, viewH / 2 - cy * scale);
   const root = document.documentElement.style;
@@ -163,11 +207,11 @@ function relayout() {
 function stepPan(ms) {
   if (pan.to) {
     const { x, y } = pan.to, k = Math.min(1, ms / 90);
-    setPan(pan.x + (x - pan.x) * k, pan.y + (y - pan.y) * k);
-    if (Math.abs(x - pan.x) < 0.5 && Math.abs(y - pan.y) < 0.5) { setPan(x, y); pan.to = null; }
+    panStep(pan.x + (x - pan.x) * k, pan.y + (y - pan.y) * k);
+    if (Math.abs(x - pan.x) < 0.5 && Math.abs(y - pan.y) < 0.5) { panStep(x, y); pan.to = null; }
   } else if (!drag?.on && Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02) {
     const { x, y } = pan;
-    setPan(x + pan.vx * ms, y + pan.vy * ms);
+    panStep(x + pan.vx * ms, y + pan.vy * ms);
     const f = 0.88 ** (ms / 16);
     pan.vx = pan.x === x ? 0 : pan.vx * f; pan.vy = pan.y === y ? 0 : pan.vy * f; // stops at the scene's edge
   }
@@ -192,7 +236,7 @@ canvas.addEventListener('pointermove', e => {
   const t = performance.now(), dt = Math.max(1, t - drag.t);
   pan.vx = (e.clientX - drag.lx) / dt; pan.vy = (e.clientY - drag.ly) / dt;
   Object.assign(drag, { lx: e.clientX, ly: e.clientY, t });
-  setPan(drag.px + dx, drag.py + dy);
+  panStep(drag.px + dx, drag.py + dy);
 });
 const endDrag = () => {
   if (drag?.on) { dragged = true; if (performance.now() - drag.t > 80) pan.vx = pan.vy = 0; } // held still before letting go: no coast
@@ -200,7 +244,7 @@ const endDrag = () => {
 };
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { endDrag(); dragged = false; });
-canvas.ondblclick = () => { if (pannable()) centreOn(hall.w / 2, hall.h / 2); };
+canvas.ondblclick = () => { if (pannable()) { const S = scene(); centreOn(S.w / 2, S.h / 2); } };
 addEventListener('keydown', e => {
   const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
   if (!d || !pannable() || e.target.closest?.('input, select, textarea, #chron, #prefs')) return;
@@ -226,7 +270,7 @@ onTheme(backdrop);
 // time-based (steps capped at 0.25 s, above a 6 fps frame), so only smoothness changes.
 const FPS = 30;
 function busy(now) {
-  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || gliding(now) || sceneBusy()) return true;
+  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || sceneBusy()) return true;
   for (const a of cast.actors.values()) {
     if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || (!a.h && a.s.status === 'waiting')) return true;
   }
@@ -258,6 +302,7 @@ function frame(now) {
   acc += ms / 1000;
   last = now;
   stepPan(ms);
+  settleLag(ms);
   const step = 1 / (busy(now) ? FPS : perf.idleFps);
   // Keep the remainder (a 60 Hz pair of 16.6 ms vsyncs counts as one 1/30 step, not three), backlog capped at a step.
   if (acc < step - 0.004) return;
@@ -265,11 +310,18 @@ function frame(now) {
   const dt = Math.min(0.25, (now - drawn) / 1000);
   drawn = now;
   cast.update(dt);
-  if (canvas.width !== hall.w * RES || canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize
-  g.drawImage(background(level.beams), 0, 0, hall.w, hall.h);
+  const S = scene();
+  if (canvas.width !== S.w * RES || canvas.height !== S.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize, the view
+  const back = background(level.beams);
+  g.drawImage(back, 0, 0, S.w, S.h);
+  if (!iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(now);
   view.hall = hall;
-  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
+  view.level = level;
+  view.mode = viewMode.mode;
+  view.anchors = back.anchors;
+  const lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now);
+  drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
@@ -382,18 +434,21 @@ function openDept(name) {
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
 function renderPlaques(blocks) {
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
-  if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
-  if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + (hall.h - SCENE.h) / 2]);
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...at(b.x + 2, b.y + b.h - 7), b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
+  if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
+  if (!roster.length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
+    const y = 120 + WALL_DY + (hall.h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall.sw, y), [mx, my] = at(hall.sw / 2, y);
+    want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
+  }
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
-  for (const [k, [cls, text, x, y, color, maxWidth, branch = '']] of want) {
+  for (const [k, [cls, text, x, y, color, maxWidth, branch = '', width]] of want) {
     let el = plaques.get(k);
     if (!el) {
       el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
       if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
     }
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: cls === 'empty' ? `${hall.sw * scale}px` : '' }; // the empty hall's notice, centred on the scriptorium
+      width: width ? `${width * scale}px` : '' };
     if (el.dataset.text !== `${text}|${branch}`) {
       el.dataset.text = `${text}|${branch}`;
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;
@@ -597,7 +652,8 @@ function syncLabels() {
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.
     const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
-    setStyle(el, { left: `${a.x * scale}px`, top: `${(a.y - qOff) * scale}px` });
+    const [lx, ly] = at(...feet(a), qOff);
+    setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
 }
 
@@ -608,7 +664,7 @@ const edges = Object.fromEntries(Object.entries({ up: '▲', down: '▼', left: 
   b.type = 'button'; b.className = `edge ${dir}`; b.hidden = true;
   g.textContent = glyph; g.setAttribute('aria-hidden', 'true');
   b.append(g, n);
-  b.onclick = () => centreOn(b.to.x, b.to.y - 8);
+  b.onclick = () => centreOn(...at(b.to.x, b.to.y, 8));
   stage.appendChild(b);
   return [dir, b];
 }));
@@ -617,7 +673,7 @@ function syncEdges() {
   const beyond = { up: [], down: [], left: [], right: [] };
   if (pannable()) for (const a of cast.actors.values()) {
     if (a.leaving) continue;
-    const x = a.x * scale + pan.x, y = (a.y - 8) * scale + pan.y; // the sprite's middle, in the view
+    const [mx, my] = at(a.x, a.y, 8), x = mx * scale + pan.x, y = my * scale + pan.y; // the sprite's middle, in the view
     const off = { left: -x, right: x - viewW, up: -y, down: y - viewH };
     const dir = Object.keys(off).reduce((p, q) => (off[q] > off[p] ? q : p));
     if (off[dir] > 0) beyond[dir].push({ a, x, y, d: off[dir] });
@@ -627,16 +683,16 @@ function syncEdges() {
     if (b.hidden !== !list.length) b.hidden = !list.length; // an unchanged write still dirties the DOM
     if (b.hidden) continue;
     const pets = list.filter(o => !o.a.h && o.a.s.status === 'waiting');
-    const t = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p));
+    const o = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p)); // not t: that is the wording (theme.js)
     const flat = dir === 'up' || dir === 'down', inset = 16;
-    const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? t.x : t.y)))}px`;
-    const at = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
-    setStyle(b, flat ? { left: along, top: at } : { left: at, top: along });
+    const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? o.x : o.y)))}px`;
+    const edge = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
+    setStyle(b, flat ? { left: along, top: edge } : { left: edge, top: along });
     b.classList.toggle('alarm', pets.length > 0);
     if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
     const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${t('petitioning', { n: pets.length })}` : ''}`;
     if (b.title !== label) { b.title = label; b.setAttribute('aria-label', label); }
-    b.to = t.a; // read by the click handler set once below
+    b.to = o.a; // read by the click handler set once below
   }
 }
 
@@ -650,7 +706,8 @@ function syncTags(tags, cls, textOf, dx, dy) {
     let el = tags.get(a.id);
     if (!el) { el = document.createElement('div'); el.className = `lbl tag ${cls}`; overlay.appendChild(el); tags.set(a.id, el); }
     if (el.textContent !== text) el.textContent = text;
-    setStyle(el, { left: `${(a.x + dx) * scale}px`, top: `${(a.y + dy) * scale}px` });
+    const [fx, fy] = feet(a), [lx, ly] = at(fx + dx, fy, -dy);
+    setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
 }
 // A scribe stopped on a usage limit (backend `limit`): sealed until the reset hour.
@@ -672,12 +729,15 @@ function syncHover() {
   if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
   tip.textContent = h.h ? h.h.kind : h.s.name;
-  setStyle(tip, { left: `${h.x * scale}px`, top: `${(h.y - (h.h ? 15 : 18)) * scale}px` });
+  const [tx, ty] = at(...feet(h), h.h ? 15 : 18);
+  setStyle(tip, { left: `${tx * scale}px`, top: `${ty * scale}px` });
 }
 
-// Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins.
+// Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins. The 39°
+// view tests the drawn frame's pixels at its projected place (scene39.js).
 function actorAt(e) {
   const r = canvas.getBoundingClientRect(), px = (e.clientX - r.left) / scale, py = (e.clientY - r.top) / scale;
+  if (iso()) return actorAt39(px, py, cast.actors.values(), coarse.matches ? 4 : 1);
   let best = null;
   for (const a of cast.actors.values()) {
     const pad = coarse.matches ? 5 : 1, hw = (a.h ? 6 : 8) + pad, ht = (a.h ? 14 : 17) + pad;

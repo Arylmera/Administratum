@@ -342,6 +342,7 @@
             <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full" data-t="modes.full">Full light</option><option value="candles" data-t="modes.candles">Candles</option></select></label>
             <label><span data-t="prefs.theme">Theme</span><select name="world"></select></label>
             <label><span>Style</span><select name="theme"></select></label>
+            <label><span>View</span><select name="view"><option value="flat">Flat</option><option value="39">39°</option></select></label>
           </fieldset>
           <fieldset><legend>Switches</legend>
             <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
@@ -446,8 +447,7 @@
     if (shown && !msg) return; shown = true;
     var d = document.getElementById('bootfail') || document.body.appendChild(Object.assign(document.createElement('pre'), { id: 'bootfail' }));
     d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99;margin:0;padding:8px;background:#1e0a08;color:#ff7a66;border:1px solid #a0221a;font:12px monospace;white-space:pre-wrap';
-    d.textContent += (msg || 'Administratum did not start.') + '
-';
+    d.textContent += (msg || 'Administratum did not start.') + '\n';
   }
   addEventListener('error', function (e) { show('Error: ' + e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')'); });
   addEventListener('unhandledrejection', function (e) { show('Rejected: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); });

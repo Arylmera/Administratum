@@ -51,9 +51,10 @@ light), pan and bays (the strip is one row; past capacity the `+N in the stacks`
 
 Adepts stand behind their parent's lectern at half scale, at most 3 drawn per scribe, then `+N`.
 
-**Legibility on any wallpaper:** every sprite drawn in the strip gets a 1 art px dark outline and a soft contact
-shadow (an ellipse under the feet). Both are generated at load time from the existing art (an alpha dilation of each
-frame), so no art file changes. A setting "Strip backdrop" adds an optional translucent bar behind the strip for
+**Legibility on any wallpaper:** every sprite drawn in the strip gets a 1 art px dark outline (an alpha dilation of
+each frame, generated at load time) and the depth pass's contact shadow (`ui/depth.js`, already in the hall), so no
+art file changes. Depth is always on, in the strip too: contact shadows, motion cues (walk bob, flying skull
+shadows) and the shadows cast by the desk lamps and screens (`casterOf` with the strip's lights); the hall-only effects (AO, flat light pools, beams, parallax, depth of view) have nothing to act on there. A setting "Strip backdrop" adds an optional translucent bar behind the strip for
 busy wallpapers (off by default).
 
 ## Global constraints
@@ -79,7 +80,7 @@ busy wallpapers (off by default).
 | `src-tauri/Cargo.toml` | `windows-sys` features `Win32_UI_Shell` |
 | `ui/strip.js` (new) | `stripOf(width, roster)`: pure strip geometry (desk slots, cogitator, bench, queue points, gate), the strip's `route()` (a 1D walk along the floor line) |
 | `ui/strip.test.mjs` (new) | Geometry tests: no overlap, queue order, capacity and `+N`, department grouping, stable slots when a session leaves (same grace rules as the hall) |
-| `ui/outline.js` (new) | `outlined(canvas)`: the frame with a 1 art px dark outline, cached per sprite canvas like `sprite()`; `contactShadow(g, x, y, w)` |
+| `ui/outline.js` (new) | `outlined(canvas)`: the frame with a 1 art px dark outline, cached per sprite canvas like `sprite()` (shadows come from `ui/depth.js`) |
 | `ui/app.js` | `adm.view` switch: picks hall or strip geometry, background and pointer handling; a transparent body and no header in strip mode; the click-through hit test |
 | `ui/actors.js` | `Cast.sync` takes the geometry object (hall or strip) instead of assuming `hallOf`; poses unchanged |
 | `ui/scene.js` | `drawScene` gets a `strip` flag: no rugs/doors/gate/decor frame, mats and lectern-only furniture, outlined blits |
@@ -128,8 +129,9 @@ busy wallpapers (off by default).
 - [ ] `ui/outline.js`: dilate each frame's alpha by 1 art px into a dark colour (`T.ink.outline`, which every theme
   already has: `px.k`), draw the frame on top; cache by source canvas (WeakMap).
 - [ ] `drawScene(..., { strip: true })`: no static background, mats under department groups, the lectern variant of
-  the furniture, the cogitator decor frame alone, the bench, the Magos; everything blitted outlined; a contact
-  shadow under every actor and prop.
+  the furniture, the cogitator decor frame alone, the bench, the Magos; everything blitted outlined; under every
+  actor and prop the depth pass's floor pass (`ui/depth.js`: `shadowOf` + `contactShadow`, `bobOf` for walkers,
+  `castShadow` + `casterOf`), as in the hall.
 - [ ] No `drawLighting` in strip mode. Desk lamps and screens still glow (a small additive glow only, no darkness
   layer).
 - [ ] `app.js`: in strip mode, `fit()` sizes the scene to the window (one row, no pan, no bays), and skips the

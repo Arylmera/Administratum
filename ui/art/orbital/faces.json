@@ -1,0 +1,4037 @@
+{
+ "frames": {
+  "DESK side": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 10,
+    "h": 24
+   }
+  },
+  "DESK top": {
+   "frame": {
+    "x": 11,
+    "y": 0,
+    "w": 64,
+    "h": 10
+   }
+  },
+  "DESK keys wall": {
+   "frame": {
+    "x": 76,
+    "y": 0,
+    "w": 2,
+    "h": 2
+   }
+  },
+  "DESK keys floor": {
+   "frame": {
+    "x": 79,
+    "y": 0,
+    "w": 16,
+    "h": 2
+   }
+  },
+  "DESK rack side": {
+   "frame": {
+    "x": 96,
+    "y": 0,
+    "w": 5,
+    "h": 12
+   }
+  },
+  "DESK rack top": {
+   "frame": {
+    "x": 102,
+    "y": 0,
+    "w": 13,
+    "h": 5
+   }
+  },
+  "DESK monitor side": {
+   "frame": {
+    "x": 116,
+    "y": 0,
+    "w": 2,
+    "h": 17
+   }
+  },
+  "DESK monitor top": {
+   "frame": {
+    "x": 119,
+    "y": 0,
+    "w": 36,
+    "h": 2
+   }
+  },
+  "DESK monitor screen wall": {
+   "frame": {
+    "x": 156,
+    "y": 0,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "DESK monitor screen floor": {
+   "frame": {
+    "x": 158,
+    "y": 0,
+    "w": 14,
+    "h": 1
+   }
+  },
+  "DESK monitor screen 2 wall": {
+   "frame": {
+    "x": 173,
+    "y": 0,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "DESK monitor screen 2 floor": {
+   "frame": {
+    "x": 175,
+    "y": 0,
+    "w": 12,
+    "h": 1
+   }
+  },
+  "DESK lamp top": {
+   "frame": {
+    "x": 188,
+    "y": 0,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "DESK arm top": {
+   "frame": {
+    "x": 195,
+    "y": 0,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "DESK stick base side": {
+   "frame": {
+    "x": 200,
+    "y": 0,
+    "w": 5,
+    "h": 5
+   }
+  },
+  "DESK stick base top": {
+   "frame": {
+    "x": 206,
+    "y": 0,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "DESK stick top": {
+   "frame": {
+    "x": 217,
+    "y": 0,
+    "w": 8,
+    "h": 4
+   }
+  },
+  "LECTERN side": {
+   "frame": {
+    "x": 0,
+    "y": 25,
+    "w": 10,
+    "h": 25
+   }
+  },
+  "LECTERN top": {
+   "frame": {
+    "x": 11,
+    "y": 25,
+    "w": 44,
+    "h": 10
+   }
+  },
+  "LECTERN board side": {
+   "frame": {
+    "x": 56,
+    "y": 25,
+    "w": 2,
+    "h": 12
+   }
+  },
+  "LECTERN board top": {
+   "frame": {
+    "x": 59,
+    "y": 25,
+    "w": 44,
+    "h": 2
+   }
+  },
+  "LECTERN monitor side": {
+   "frame": {
+    "x": 104,
+    "y": 25,
+    "w": 2,
+    "h": 16
+   }
+  },
+  "LECTERN monitor top": {
+   "frame": {
+    "x": 107,
+    "y": 25,
+    "w": 20,
+    "h": 2
+   }
+  },
+  "LECTERN monitor screen wall": {
+   "frame": {
+    "x": 128,
+    "y": 25,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "LECTERN monitor screen floor": {
+   "frame": {
+    "x": 130,
+    "y": 25,
+    "w": 14,
+    "h": 1
+   }
+  },
+  "LECTERN box side": {
+   "frame": {
+    "x": 145,
+    "y": 25,
+    "w": 4,
+    "h": 10
+   }
+  },
+  "LECTERN box top": {
+   "frame": {
+    "x": 150,
+    "y": 25,
+    "w": 16,
+    "h": 4
+   }
+  },
+  "LECTERN box slot wall": {
+   "frame": {
+    "x": 167,
+    "y": 25,
+    "w": 2,
+    "h": 2
+   }
+  },
+  "LECTERN box slot floor": {
+   "frame": {
+    "x": 170,
+    "y": 25,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "LECTERN lamp top": {
+   "frame": {
+    "x": 175,
+    "y": 25,
+    "w": 8,
+    "h": 4
+   }
+  },
+  "LECTERN stem top": {
+   "frame": {
+    "x": 184,
+    "y": 25,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "CONSOLE side": {
+   "frame": {
+    "x": 0,
+    "y": 51,
+    "w": 5,
+    "h": 1
+   }
+  },
+  "CONSOLE top": {
+   "frame": {
+    "x": 6,
+    "y": 51,
+    "w": 16,
+    "h": 5
+   }
+  },
+  "CONSOLE stalk top": {
+   "frame": {
+    "x": 23,
+    "y": 51,
+    "w": 8,
+    "h": 4
+   }
+  },
+  "CONSOLE deck side": {
+   "frame": {
+    "x": 32,
+    "y": 51,
+    "w": 3,
+    "h": 5
+   }
+  },
+  "CONSOLE deck top": {
+   "frame": {
+    "x": 36,
+    "y": 51,
+    "w": 26,
+    "h": 3
+   }
+  },
+  "CONSOLE monitor side": {
+   "frame": {
+    "x": 63,
+    "y": 51,
+    "w": 2,
+    "h": 11
+   }
+  },
+  "CONSOLE monitor top": {
+   "frame": {
+    "x": 66,
+    "y": 51,
+    "w": 19,
+    "h": 2
+   }
+  },
+  "CONSOLE monitor screen wall": {
+   "frame": {
+    "x": 86,
+    "y": 51,
+    "w": 1,
+    "h": 7
+   }
+  },
+  "CONSOLE monitor screen floor": {
+   "frame": {
+    "x": 88,
+    "y": 51,
+    "w": 15,
+    "h": 1
+   }
+  },
+  "SHELF side": {
+   "frame": {
+    "x": 0,
+    "y": 63,
+    "w": 5,
+    "h": 42
+   }
+  },
+  "SHELF top": {
+   "frame": {
+    "x": 6,
+    "y": 63,
+    "w": 64,
+    "h": 5
+   }
+  },
+  "SHELF bay wall": {
+   "frame": {
+    "x": 71,
+    "y": 63,
+    "w": 3,
+    "h": 16
+   }
+  },
+  "SHELF bay floor": {
+   "frame": {
+    "x": 75,
+    "y": 63,
+    "w": 58,
+    "h": 3
+   }
+  },
+  "SHELF bay 2 wall": {
+   "frame": {
+    "x": 134,
+    "y": 63,
+    "w": 3,
+    "h": 15
+   }
+  },
+  "SHELF bay 2 floor": {
+   "frame": {
+    "x": 138,
+    "y": 63,
+    "w": 58,
+    "h": 3
+   }
+  },
+  "COGITATOR side": {
+   "frame": {
+    "x": 0,
+    "y": 106,
+    "w": 8,
+    "h": 87
+   }
+  },
+  "COGITATOR top": {
+   "frame": {
+    "x": 9,
+    "y": 106,
+    "w": 108,
+    "h": 8
+   }
+  },
+  "COGITATOR map wall": {
+   "frame": {
+    "x": 118,
+    "y": 106,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "COGITATOR map floor": {
+   "frame": {
+    "x": 120,
+    "y": 106,
+    "w": 102,
+    "h": 1
+   }
+  },
+  "COGITATOR wave wall": {
+   "frame": {
+    "x": 223,
+    "y": 106,
+    "w": 2,
+    "h": 17
+   }
+  },
+  "COGITATOR wave floor": {
+   "frame": {
+    "x": 226,
+    "y": 106,
+    "w": 22,
+    "h": 2
+   }
+  },
+  "COGITATOR planet wall": {
+   "frame": {
+    "x": 249,
+    "y": 106,
+    "w": 2,
+    "h": 15
+   }
+  },
+  "COGITATOR planet floor": {
+   "frame": {
+    "x": 252,
+    "y": 106,
+    "w": 22,
+    "h": 2
+   }
+  },
+  "COGITATOR screen wall": {
+   "frame": {
+    "x": 275,
+    "y": 106,
+    "w": 2,
+    "h": 33
+   }
+  },
+  "COGITATOR screen floor": {
+   "frame": {
+    "x": 278,
+    "y": 106,
+    "w": 32,
+    "h": 2
+   }
+  },
+  "COGITATOR bars wall": {
+   "frame": {
+    "x": 311,
+    "y": 106,
+    "w": 2,
+    "h": 17
+   }
+  },
+  "COGITATOR bars floor": {
+   "frame": {
+    "x": 314,
+    "y": 106,
+    "w": 22,
+    "h": 2
+   }
+  },
+  "COGITATOR scope wall": {
+   "frame": {
+    "x": 337,
+    "y": 106,
+    "w": 2,
+    "h": 15
+   }
+  },
+  "COGITATOR scope floor": {
+   "frame": {
+    "x": 340,
+    "y": 106,
+    "w": 22,
+    "h": 2
+   }
+  },
+  "COGITATOR shoulder L side": {
+   "frame": {
+    "x": 363,
+    "y": 106,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "COGITATOR shoulder L top": {
+   "frame": {
+    "x": 370,
+    "y": 106,
+    "w": 35,
+    "h": 6
+   }
+  },
+  "COGITATOR cap L side": {
+   "frame": {
+    "x": 406,
+    "y": 106,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "COGITATOR cap L top": {
+   "frame": {
+    "x": 409,
+    "y": 106,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COGITATOR vents L side": {
+   "frame": {
+    "x": 414,
+    "y": 106,
+    "w": 4,
+    "h": 5
+   }
+  },
+  "COGITATOR vents L top": {
+   "frame": {
+    "x": 419,
+    "y": 106,
+    "w": 13,
+    "h": 4
+   }
+  },
+  "COGITATOR rack L side": {
+   "frame": {
+    "x": 433,
+    "y": 106,
+    "w": 9,
+    "h": 76
+   }
+  },
+  "COGITATOR rack L top": {
+   "frame": {
+    "x": 443,
+    "y": 106,
+    "w": 28,
+    "h": 9
+   }
+  },
+  "COGITATOR rack L screen wall": {
+   "frame": {
+    "x": 472,
+    "y": 106,
+    "w": 2,
+    "h": 16
+   }
+  },
+  "COGITATOR rack L screen floor": {
+   "frame": {
+    "x": 475,
+    "y": 106,
+    "w": 20,
+    "h": 2
+   }
+  },
+  "COGITATOR shoulder R side": {
+   "frame": {
+    "x": 496,
+    "y": 106,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "COGITATOR shoulder R top": {
+   "frame": {
+    "x": 0,
+    "y": 194,
+    "w": 35,
+    "h": 6
+   }
+  },
+  "COGITATOR cap R side": {
+   "frame": {
+    "x": 36,
+    "y": 194,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "COGITATOR cap R top": {
+   "frame": {
+    "x": 39,
+    "y": 194,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COGITATOR vents R side": {
+   "frame": {
+    "x": 44,
+    "y": 194,
+    "w": 4,
+    "h": 5
+   }
+  },
+  "COGITATOR vents R top": {
+   "frame": {
+    "x": 49,
+    "y": 194,
+    "w": 13,
+    "h": 4
+   }
+  },
+  "COGITATOR rack R side": {
+   "frame": {
+    "x": 63,
+    "y": 194,
+    "w": 9,
+    "h": 76
+   }
+  },
+  "COGITATOR rack R top": {
+   "frame": {
+    "x": 73,
+    "y": 194,
+    "w": 28,
+    "h": 9
+   }
+  },
+  "COGITATOR rack R screen wall": {
+   "frame": {
+    "x": 102,
+    "y": 194,
+    "w": 2,
+    "h": 16
+   }
+  },
+  "COGITATOR rack R screen floor": {
+   "frame": {
+    "x": 105,
+    "y": 194,
+    "w": 20,
+    "h": 2
+   }
+  },
+  "COGITATOR fan 1 rim": {
+   "frame": {
+    "x": 126,
+    "y": 194,
+    "w": 15,
+    "h": 15
+   }
+  },
+  "COGITATOR fan 2 rim": {
+   "frame": {
+    "x": 142,
+    "y": 194,
+    "w": 15,
+    "h": 15
+   }
+  },
+  "COGITATOR fan 3 rim": {
+   "frame": {
+    "x": 158,
+    "y": 194,
+    "w": 15,
+    "h": 15
+   }
+  },
+  "COGITATOR fan 4 rim": {
+   "frame": {
+    "x": 174,
+    "y": 194,
+    "w": 15,
+    "h": 15
+   }
+  },
+  "COGITATOR ledge side": {
+   "frame": {
+    "x": 190,
+    "y": 194,
+    "w": 6,
+    "h": 19
+   }
+  },
+  "COGITATOR ledge top": {
+   "frame": {
+    "x": 197,
+    "y": 194,
+    "w": 114,
+    "h": 6
+   }
+  },
+  "CRATE side": {
+   "frame": {
+    "x": 0,
+    "y": 271,
+    "w": 9,
+    "h": 21
+   }
+  },
+  "CRATE top": {
+   "frame": {
+    "x": 10,
+    "y": 271,
+    "w": 28,
+    "h": 9
+   }
+  },
+  "CRATE handle side": {
+   "frame": {
+    "x": 39,
+    "y": 271,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "CRATE handle top": {
+   "frame": {
+    "x": 42,
+    "y": 271,
+    "w": 10,
+    "h": 2
+   }
+  },
+  "TABLE slab side": {
+   "frame": {
+    "x": 0,
+    "y": 293,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "TABLE slab top": {
+   "frame": {
+    "x": 12,
+    "y": 293,
+    "w": 92,
+    "h": 11
+   }
+  },
+  "TABLE leg 1 top": {
+   "frame": {
+    "x": 105,
+    "y": 293,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE leg 2 top": {
+   "frame": {
+    "x": 112,
+    "y": 293,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE foot 1 side": {
+   "frame": {
+    "x": 119,
+    "y": 293,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "TABLE foot 1 top": {
+   "frame": {
+    "x": 124,
+    "y": 293,
+    "w": 10,
+    "h": 4
+   }
+  },
+  "TABLE foot 2 side": {
+   "frame": {
+    "x": 135,
+    "y": 293,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "TABLE foot 2 top": {
+   "frame": {
+    "x": 140,
+    "y": 293,
+    "w": 10,
+    "h": 4
+   }
+  },
+  "BENCH side": {
+   "frame": {
+    "x": 0,
+    "y": 305,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "BENCH top": {
+   "frame": {
+    "x": 5,
+    "y": 305,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "BENCH leg 1 side": {
+   "frame": {
+    "x": 98,
+    "y": 305,
+    "w": 3,
+    "h": 2
+   }
+  },
+  "BENCH leg 1 top": {
+   "frame": {
+    "x": 102,
+    "y": 305,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "BENCH leg 2 side": {
+   "frame": {
+    "x": 107,
+    "y": 305,
+    "w": 3,
+    "h": 2
+   }
+  },
+  "BENCH leg 2 top": {
+   "frame": {
+    "x": 111,
+    "y": 305,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "BENCH leg 3 side": {
+   "frame": {
+    "x": 116,
+    "y": 305,
+    "w": 3,
+    "h": 2
+   }
+  },
+  "BENCH leg 3 top": {
+   "frame": {
+    "x": 120,
+    "y": 305,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "BENCH cushion side": {
+   "frame": {
+    "x": 125,
+    "y": 305,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "BENCH cushion top": {
+   "frame": {
+    "x": 130,
+    "y": 305,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "RECAFF side": {
+   "frame": {
+    "x": 0,
+    "y": 310,
+    "w": 7,
+    "h": 3
+   }
+  },
+  "RECAFF top": {
+   "frame": {
+    "x": 8,
+    "y": 310,
+    "w": 32,
+    "h": 7
+   }
+  },
+  "RECAFF foot 1 side": {
+   "frame": {
+    "x": 41,
+    "y": 310,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "RECAFF foot 1 top": {
+   "frame": {
+    "x": 44,
+    "y": 310,
+    "w": 2,
+    "h": 2
+   }
+  },
+  "RECAFF foot 2 side": {
+   "frame": {
+    "x": 47,
+    "y": 310,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "RECAFF foot 2 top": {
+   "frame": {
+    "x": 50,
+    "y": 310,
+    "w": 2,
+    "h": 2
+   }
+  },
+  "RECAFF dispenser side": {
+   "frame": {
+    "x": 53,
+    "y": 310,
+    "w": 5,
+    "h": 17
+   }
+  },
+  "RECAFF dispenser top": {
+   "frame": {
+    "x": 59,
+    "y": 310,
+    "w": 18,
+    "h": 5
+   }
+  },
+  "RECAFF dispenser screen wall": {
+   "frame": {
+    "x": 78,
+    "y": 310,
+    "w": 1,
+    "h": 2
+   }
+  },
+  "RECAFF dispenser screen floor": {
+   "frame": {
+    "x": 80,
+    "y": 310,
+    "w": 6,
+    "h": 1
+   }
+  },
+  "RECAFF dispenser alcove wall": {
+   "frame": {
+    "x": 87,
+    "y": 310,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "RECAFF dispenser alcove floor": {
+   "frame": {
+    "x": 91,
+    "y": 310,
+    "w": 10,
+    "h": 3
+   }
+  },
+  "RECAFF cup top": {
+   "frame": {
+    "x": 102,
+    "y": 310,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "RECAFF neck side": {
+   "frame": {
+    "x": 109,
+    "y": 310,
+    "w": 3,
+    "h": 1
+   }
+  },
+  "RECAFF neck top": {
+   "frame": {
+    "x": 113,
+    "y": 310,
+    "w": 14,
+    "h": 3
+   }
+  },
+  "RECAFF warmer side": {
+   "frame": {
+    "x": 128,
+    "y": 310,
+    "w": 7,
+    "h": 14
+   }
+  },
+  "RECAFF warmer top": {
+   "frame": {
+    "x": 136,
+    "y": 310,
+    "w": 26,
+    "h": 7
+   }
+  },
+  "RECAFF warmer window wall": {
+   "frame": {
+    "x": 163,
+    "y": 310,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "RECAFF warmer window floor": {
+   "frame": {
+    "x": 165,
+    "y": 310,
+    "w": 8,
+    "h": 1
+   }
+  },
+  "RECAFF can 1 top": {
+   "frame": {
+    "x": 174,
+    "y": 310,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "RECAFF can 2 top": {
+   "frame": {
+    "x": 181,
+    "y": 310,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "RECAFF can 3 top": {
+   "frame": {
+    "x": 187,
+    "y": 310,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "RECAFF can 4 top": {
+   "frame": {
+    "x": 194,
+    "y": 310,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "LORD_DESK side": {
+   "frame": {
+    "x": 0,
+    "y": 328,
+    "w": 11,
+    "h": 15
+   }
+  },
+  "LORD_DESK top": {
+   "frame": {
+    "x": 12,
+    "y": 328,
+    "w": 88,
+    "h": 11
+   }
+  },
+  "LORD_DESK lever base side": {
+   "frame": {
+    "x": 101,
+    "y": 328,
+    "w": 3,
+    "h": 3
+   }
+  },
+  "LORD_DESK lever base top": {
+   "frame": {
+    "x": 105,
+    "y": 328,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "LORD_DESK lever top": {
+   "frame": {
+    "x": 112,
+    "y": 328,
+    "w": 3,
+    "h": 2
+   }
+  },
+  "LORD_DESK knob top": {
+   "frame": {
+    "x": 116,
+    "y": 328,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "LORD_DESK radar wall side": {
+   "frame": {
+    "x": 122,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK radar wall top": {
+   "frame": {
+    "x": 132,
+    "y": 328,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "LORD_DESK radar back side": {
+   "frame": {
+    "x": 134,
+    "y": 328,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "LORD_DESK radar glass side": {
+   "frame": {
+    "x": 136,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK radar glass top": {
+   "frame": {
+    "x": 146,
+    "y": 328,
+    "w": 18,
+    "h": 9
+   }
+  },
+  "LORD_DESK radar back top": {
+   "frame": {
+    "x": 165,
+    "y": 328,
+    "w": 18,
+    "h": 1
+   }
+  },
+  "LORD_DESK keys wall side": {
+   "frame": {
+    "x": 184,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK keys wall top": {
+   "frame": {
+    "x": 194,
+    "y": 328,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "LORD_DESK keys back side": {
+   "frame": {
+    "x": 196,
+    "y": 328,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "LORD_DESK keys glass side": {
+   "frame": {
+    "x": 198,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK keys glass top": {
+   "frame": {
+    "x": 208,
+    "y": 328,
+    "w": 12,
+    "h": 9
+   }
+  },
+  "LORD_DESK keys back top": {
+   "frame": {
+    "x": 221,
+    "y": 328,
+    "w": 12,
+    "h": 1
+   }
+  },
+  "LORD_DESK map wall side": {
+   "frame": {
+    "x": 234,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK map wall top": {
+   "frame": {
+    "x": 244,
+    "y": 328,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "LORD_DESK map back side": {
+   "frame": {
+    "x": 246,
+    "y": 328,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "LORD_DESK map glass side": {
+   "frame": {
+    "x": 248,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK map glass top": {
+   "frame": {
+    "x": 258,
+    "y": 328,
+    "w": 20,
+    "h": 9
+   }
+  },
+  "LORD_DESK map back top": {
+   "frame": {
+    "x": 279,
+    "y": 328,
+    "w": 20,
+    "h": 1
+   }
+  },
+  "LORD_DESK scope wall side": {
+   "frame": {
+    "x": 300,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK scope wall top": {
+   "frame": {
+    "x": 310,
+    "y": 328,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "LORD_DESK scope back side": {
+   "frame": {
+    "x": 312,
+    "y": 328,
+    "w": 1,
+    "h": 1
+   }
+  },
+  "LORD_DESK scope glass side": {
+   "frame": {
+    "x": 314,
+    "y": 328,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "LORD_DESK scope glass top": {
+   "frame": {
+    "x": 324,
+    "y": 328,
+    "w": 14,
+    "h": 9
+   }
+  },
+  "LORD_DESK scope back top": {
+   "frame": {
+    "x": 339,
+    "y": 328,
+    "w": 14,
+    "h": 1
+   }
+  },
+  "THRONE side": {
+   "frame": {
+    "x": 0,
+    "y": 344,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "THRONE top": {
+   "frame": {
+    "x": 10,
+    "y": 344,
+    "w": 28,
+    "h": 9
+   }
+  },
+  "THRONE post top": {
+   "frame": {
+    "x": 39,
+    "y": 344,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "THRONE seat side": {
+   "frame": {
+    "x": 46,
+    "y": 344,
+    "w": 8,
+    "h": 5
+   }
+  },
+  "THRONE seat top": {
+   "frame": {
+    "x": 55,
+    "y": 344,
+    "w": 34,
+    "h": 8
+   }
+  },
+  "THRONE back side": {
+   "frame": {
+    "x": 90,
+    "y": 344,
+    "w": 3,
+    "h": 19
+   }
+  },
+  "THRONE back top": {
+   "frame": {
+    "x": 94,
+    "y": 344,
+    "w": 24,
+    "h": 3
+   }
+  },
+  "THRONE arm L side": {
+   "frame": {
+    "x": 119,
+    "y": 344,
+    "w": 7,
+    "h": 6
+   }
+  },
+  "THRONE arm L top": {
+   "frame": {
+    "x": 127,
+    "y": 344,
+    "w": 10,
+    "h": 7
+   }
+  },
+  "THRONE arm R side": {
+   "frame": {
+    "x": 138,
+    "y": 344,
+    "w": 7,
+    "h": 6
+   }
+  },
+  "THRONE arm R top": {
+   "frame": {
+    "x": 146,
+    "y": 344,
+    "w": 10,
+    "h": 7
+   }
+  },
+  "THRONE headrest side": {
+   "frame": {
+    "x": 157,
+    "y": 344,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "THRONE headrest top": {
+   "frame": {
+    "x": 161,
+    "y": 344,
+    "w": 20,
+    "h": 3
+   }
+  },
+  "COG_MECH patch rim": {
+   "frame": {
+    "x": 0,
+    "y": 364,
+    "w": 36,
+    "h": 34
+   }
+  },
+  "SEAL tag rim": {
+   "frame": {
+    "x": 0,
+    "y": 399,
+    "w": 12,
+    "h": 15
+   }
+  },
+  "GAUGE dial rim": {
+   "frame": {
+    "x": 0,
+    "y": 415,
+    "w": 12,
+    "h": 12
+   }
+  },
+  "CENSER canopy side": {
+   "frame": {
+    "x": 0,
+    "y": 428,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "CENSER canopy top": {
+   "frame": {
+    "x": 3,
+    "y": 428,
+    "w": 8,
+    "h": 2
+   }
+  },
+  "CENSER cord top": {
+   "frame": {
+    "x": 12,
+    "y": 428,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "CENSER neck top": {
+   "frame": {
+    "x": 15,
+    "y": 428,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "CENSER shade top": {
+   "frame": {
+    "x": 20,
+    "y": 428,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "CANDLES base side": {
+   "frame": {
+    "x": 0,
+    "y": 434,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "CANDLES base top": {
+   "frame": {
+    "x": 5,
+    "y": 434,
+    "w": 16,
+    "h": 4
+   }
+  },
+  "CANDLES rod top": {
+   "frame": {
+    "x": 22,
+    "y": 434,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "CANDLES bracket L side": {
+   "frame": {
+    "x": 25,
+    "y": 434,
+    "w": 3,
+    "h": 1
+   }
+  },
+  "CANDLES bracket L top": {
+   "frame": {
+    "x": 29,
+    "y": 434,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "CANDLES bracket R side": {
+   "frame": {
+    "x": 32,
+    "y": 434,
+    "w": 3,
+    "h": 1
+   }
+  },
+  "CANDLES bracket R top": {
+   "frame": {
+    "x": 36,
+    "y": 434,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "CANDLES bar side": {
+   "frame": {
+    "x": 39,
+    "y": 434,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "CANDLES bar top": {
+   "frame": {
+    "x": 43,
+    "y": 434,
+    "w": 24,
+    "h": 3
+   }
+  },
+  "CANDLES knob top": {
+   "frame": {
+    "x": 68,
+    "y": 434,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "BOOKS binder 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 442,
+    "w": 5,
+    "h": 15
+   }
+  },
+  "BOOKS binder 1 top": {
+   "frame": {
+    "x": 6,
+    "y": 442,
+    "w": 5,
+    "h": 5
+   }
+  },
+  "BOOKS binder 2 side": {
+   "frame": {
+    "x": 12,
+    "y": 442,
+    "w": 6,
+    "h": 18
+   }
+  },
+  "BOOKS binder 2 top": {
+   "frame": {
+    "x": 19,
+    "y": 442,
+    "w": 6,
+    "h": 6
+   }
+  },
+  "BOOKS binder 3 side": {
+   "frame": {
+    "x": 26,
+    "y": 442,
+    "w": 5,
+    "h": 14
+   }
+  },
+  "BOOKS binder 3 top": {
+   "frame": {
+    "x": 32,
+    "y": 442,
+    "w": 6,
+    "h": 5
+   }
+  },
+  "BOOKS binder 4 side": {
+   "frame": {
+    "x": 39,
+    "y": 442,
+    "w": 5,
+    "h": 16
+   }
+  },
+  "BOOKS binder 4 top": {
+   "frame": {
+    "x": 45,
+    "y": 442,
+    "w": 6,
+    "h": 5
+   }
+  },
+  "BOOKS strap side": {
+   "frame": {
+    "x": 52,
+    "y": 442,
+    "w": 7,
+    "h": 2
+   }
+  },
+  "BOOKS strap top": {
+   "frame": {
+    "x": 60,
+    "y": 442,
+    "w": 20,
+    "h": 7
+   }
+  },
+  "PAPER_STACK board side": {
+   "frame": {
+    "x": 0,
+    "y": 461,
+    "w": 2,
+    "h": 24
+   }
+  },
+  "PAPER_STACK board top": {
+   "frame": {
+    "x": 3,
+    "y": 461,
+    "w": 16,
+    "h": 2
+   }
+  },
+  "PAPER_STACK card 1 side": {
+   "frame": {
+    "x": 20,
+    "y": 461,
+    "w": 1,
+    "h": 8
+   }
+  },
+  "PAPER_STACK card 1 top": {
+   "frame": {
+    "x": 22,
+    "y": 461,
+    "w": 8,
+    "h": 1
+   }
+  },
+  "PAPER_STACK card 2 side": {
+   "frame": {
+    "x": 31,
+    "y": 461,
+    "w": 1,
+    "h": 6
+   }
+  },
+  "PAPER_STACK card 2 top": {
+   "frame": {
+    "x": 33,
+    "y": 461,
+    "w": 7,
+    "h": 1
+   }
+  },
+  "PAPER_STACK card 3 side": {
+   "frame": {
+    "x": 41,
+    "y": 461,
+    "w": 1,
+    "h": 7
+   }
+  },
+  "PAPER_STACK card 3 top": {
+   "frame": {
+    "x": 43,
+    "y": 461,
+    "w": 8,
+    "h": 1
+   }
+  },
+  "SCROLL_PILE bag L side": {
+   "frame": {
+    "x": 0,
+    "y": 486,
+    "w": 5,
+    "h": 9
+   }
+  },
+  "SCROLL_PILE bag L top": {
+   "frame": {
+    "x": 6,
+    "y": 486,
+    "w": 9,
+    "h": 5
+   }
+  },
+  "SCROLL_PILE bag M side": {
+   "frame": {
+    "x": 16,
+    "y": 486,
+    "w": 5,
+    "h": 6
+   }
+  },
+  "SCROLL_PILE bag M top": {
+   "frame": {
+    "x": 22,
+    "y": 486,
+    "w": 9,
+    "h": 5
+   }
+  },
+  "SCROLL_PILE bag R2 side": {
+   "frame": {
+    "x": 32,
+    "y": 486,
+    "w": 6,
+    "h": 6
+   }
+  },
+  "SCROLL_PILE bag R2 top": {
+   "frame": {
+    "x": 39,
+    "y": 486,
+    "w": 7,
+    "h": 6
+   }
+  },
+  "SCROLL_PILE bag R side": {
+   "frame": {
+    "x": 47,
+    "y": 486,
+    "w": 6,
+    "h": 10
+   }
+  },
+  "SCROLL_PILE bag R top": {
+   "frame": {
+    "x": 54,
+    "y": 486,
+    "w": 12,
+    "h": 6
+   }
+  },
+  "SCROLL_PILE bag top side": {
+   "frame": {
+    "x": 67,
+    "y": 486,
+    "w": 5,
+    "h": 6
+   }
+  },
+  "SCROLL_PILE bag top top": {
+   "frame": {
+    "x": 73,
+    "y": 486,
+    "w": 16,
+    "h": 5
+   }
+  },
+  "SCROLL_PILE handle side": {
+   "frame": {
+    "x": 90,
+    "y": 486,
+    "w": 1,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE handle top": {
+   "frame": {
+    "x": 92,
+    "y": 486,
+    "w": 3,
+    "h": 1
+   }
+  },
+  "SCROLL_PILE handle 2 side": {
+   "frame": {
+    "x": 96,
+    "y": 486,
+    "w": 1,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE handle 2 top": {
+   "frame": {
+    "x": 98,
+    "y": 486,
+    "w": 3,
+    "h": 1
+   }
+  },
+  "GATE base side": {
+   "frame": {
+    "x": 0,
+    "y": 497,
+    "w": 13,
+    "h": 3
+   }
+  },
+  "GATE base top": {
+   "frame": {
+    "x": 14,
+    "y": 497,
+    "w": 64,
+    "h": 13
+   }
+  },
+  "GATE sill side": {
+   "frame": {
+    "x": 79,
+    "y": 497,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "GATE sill top": {
+   "frame": {
+    "x": 91,
+    "y": 497,
+    "w": 58,
+    "h": 11
+   }
+  },
+  "GATE head rim": {
+   "frame": {
+    "x": 150,
+    "y": 497,
+    "w": 58,
+    "h": 21
+   }
+  },
+  "GATE jamb L rim": {
+   "frame": {
+    "x": 209,
+    "y": 497,
+    "w": 15,
+    "h": 44
+   }
+  },
+  "GATE jamb R rim": {
+   "frame": {
+    "x": 225,
+    "y": 497,
+    "w": 15,
+    "h": 44
+   }
+  },
+  "GATE panel L side": {
+   "frame": {
+    "x": 241,
+    "y": 497,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "GATE panel L top": {
+   "frame": {
+    "x": 243,
+    "y": 497,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "GATE panel R side": {
+   "frame": {
+    "x": 253,
+    "y": 497,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "GATE panel R top": {
+   "frame": {
+    "x": 255,
+    "y": 497,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "GATE lamps L side": {
+   "frame": {
+    "x": 265,
+    "y": 497,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "GATE lamps L top": {
+   "frame": {
+    "x": 267,
+    "y": 497,
+    "w": 5,
+    "h": 1
+   }
+  },
+  "GATE lamps R side": {
+   "frame": {
+    "x": 273,
+    "y": 497,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "GATE lamps R top": {
+   "frame": {
+    "x": 275,
+    "y": 497,
+    "w": 6,
+    "h": 1
+   }
+  },
+  "GATE leaves side": {
+   "frame": {
+    "x": 282,
+    "y": 497,
+    "w": 1,
+    "h": 44
+   }
+  },
+  "GATE leaves top": {
+   "frame": {
+    "x": 284,
+    "y": 497,
+    "w": 32,
+    "h": 1
+   }
+  },
+  "BRAZIER foot 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 542,
+    "w": 4,
+    "h": 1
+   }
+  },
+  "BRAZIER foot 1 top": {
+   "frame": {
+    "x": 5,
+    "y": 542,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "BRAZIER foot 2 side": {
+   "frame": {
+    "x": 9,
+    "y": 542,
+    "w": 4,
+    "h": 1
+   }
+  },
+  "BRAZIER foot 2 top": {
+   "frame": {
+    "x": 14,
+    "y": 542,
+    "w": 3,
+    "h": 4
+   }
+  },
+  "BRAZIER base side": {
+   "frame": {
+    "x": 18,
+    "y": 542,
+    "w": 6,
+    "h": 2
+   }
+  },
+  "BRAZIER base top": {
+   "frame": {
+    "x": 25,
+    "y": 542,
+    "w": 18,
+    "h": 6
+   }
+  },
+  "BRAZIER unit side": {
+   "frame": {
+    "x": 44,
+    "y": 542,
+    "w": 5,
+    "h": 17
+   }
+  },
+  "BRAZIER unit top": {
+   "frame": {
+    "x": 50,
+    "y": 542,
+    "w": 16,
+    "h": 5
+   }
+  },
+  "BRAZIER unit fan wall": {
+   "frame": {
+    "x": 67,
+    "y": 542,
+    "w": 2,
+    "h": 4
+   }
+  },
+  "BRAZIER unit fan floor": {
+   "frame": {
+    "x": 70,
+    "y": 542,
+    "w": 6,
+    "h": 2
+   }
+  },
+  "BRAZIER pipe top": {
+   "frame": {
+    "x": 77,
+    "y": 542,
+    "w": 4,
+    "h": 2
+   }
+  }
+ },
+ "meta": {
+  "app": "orbital face sheets (hand-drawn, key palette)",
+  "image": "faces.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 502,
+   "h": 559
+  },
+  "palette": "key.gpl",
+  "note": "orbital: hand-edited source. The Orbital Station's face sheets: rects cut to this world's frames (flat view exact), its own split into volumes, its side, top, rim and bezel frames in faces.png. Format: ui/faces.js header.",
+  "objects": {
+   "DESK": {
+    "front": [
+     0,
+     18,
+     64,
+     24
+    ],
+    "d": 24,
+    "recess": [
+     {
+      "name": "keys",
+      "rect": [
+       24,
+       25,
+       16,
+       2
+      ],
+      "depth": 3,
+      "wall": "M"
+     }
+    ],
+    "details": [
+     {
+      "name": "rack",
+      "rect": [
+       1,
+       6,
+       13,
+       12
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 10
+     },
+     {
+      "name": "monitor",
+      "rect": [
+       13,
+       1,
+       36,
+       17
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 4,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         17,
+         5,
+         14,
+         9
+        ],
+        "depth": 2,
+        "wall": "M"
+       },
+       {
+        "name": "screen 2",
+        "rect": [
+         33,
+         5,
+         12,
+         9
+        ],
+        "depth": 2,
+        "wall": "M"
+       }
+      ]
+     },
+     {
+      "name": "lamp",
+      "rect": [
+       49,
+       0,
+       6,
+       4
+      ],
+      "kind": "cyl",
+      "v": 3
+     },
+     {
+      "name": "arm",
+      "rect": [
+       49,
+       4,
+       4,
+       4
+      ],
+      "kind": "cyl",
+      "v": 3
+     },
+     {
+      "name": "stick base",
+      "rect": [
+       53,
+       13,
+       10,
+       5
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 10
+     },
+     {
+      "name": "stick",
+      "rect": [
+       55,
+       3,
+       8,
+       10
+      ],
+      "kind": "cyl",
+      "v": 13
+     }
+    ]
+   },
+   "LECTERN": {
+    "front": [
+     0,
+     17,
+     44,
+     25
+    ],
+    "d": 24,
+    "details": [
+     {
+      "name": "board",
+      "rect": [
+       0,
+       5,
+       44,
+       12
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 3
+     },
+     {
+      "name": "monitor",
+      "rect": [
+       2,
+       1,
+       20,
+       16
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 4,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         5,
+         5,
+         14,
+         9
+        ],
+        "depth": 2,
+        "wall": "M"
+       }
+      ]
+     },
+     {
+      "name": "box",
+      "rect": [
+       25,
+       7,
+       16,
+       10
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 9,
+      "recess": [
+       {
+        "name": "slot",
+        "rect": [
+         35,
+         12,
+         4,
+         2
+        ],
+        "depth": 3,
+        "wall": "V"
+       }
+      ]
+     },
+     {
+      "name": "lamp",
+      "rect": [
+       31,
+       0,
+       8,
+       3
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "stem",
+      "rect": [
+       33,
+       3,
+       4,
+       4
+      ],
+      "kind": "cyl",
+      "v": 7
+     }
+    ]
+   },
+   "CONSOLE": {
+    "front": [
+     6,
+     19,
+     16,
+     1
+    ],
+    "d": 12,
+    "details": [
+     {
+      "name": "stalk",
+      "rect": [
+       10,
+       16,
+       8,
+       3
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "deck",
+      "rect": [
+       1,
+       11,
+       26,
+       5
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 6
+     },
+     {
+      "name": "monitor",
+      "rect": [
+       4,
+       0,
+       19,
+       11
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 3,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         6,
+         3,
+         15,
+         7
+        ],
+        "depth": 2,
+        "wall": "M"
+       }
+      ]
+     }
+    ]
+   },
+   "SHELF": {
+    "front": [
+     0,
+     0,
+     64,
+     42
+    ],
+    "d": 10,
+    "recess": [
+     {
+      "name": "bay",
+      "rect": [
+       3,
+       4,
+       58,
+       16
+      ],
+      "depth": 4,
+      "wall": "M"
+     },
+     {
+      "name": "bay 2",
+      "rect": [
+       3,
+       24,
+       58,
+       15
+      ],
+      "depth": 4,
+      "wall": "M"
+     }
+    ]
+   },
+   "COGITATOR": {
+    "front": [
+     28,
+     9,
+     108,
+     87
+    ],
+    "d": 18,
+    "recess": [
+     {
+      "name": "map",
+      "rect": [
+       31,
+       14,
+       102,
+       9
+      ],
+      "depth": 2,
+      "wall": "k"
+     },
+     {
+      "name": "wave",
+      "rect": [
+       34,
+       27,
+       22,
+       17
+      ],
+      "depth": 3,
+      "wall": "M"
+     },
+     {
+      "name": "planet",
+      "rect": [
+       34,
+       47,
+       22,
+       15
+      ],
+      "depth": 3,
+      "wall": "M"
+     },
+     {
+      "name": "screen",
+      "rect": [
+       66,
+       27,
+       32,
+       33
+      ],
+      "depth": 3,
+      "wall": "M"
+     },
+     {
+      "name": "bars",
+      "rect": [
+       108,
+       27,
+       22,
+       17
+      ],
+      "depth": 3,
+      "wall": "M"
+     },
+     {
+      "name": "scope",
+      "rect": [
+       108,
+       47,
+       22,
+       15
+      ],
+      "depth": 3,
+      "wall": "M"
+     }
+    ],
+    "details": [
+     {
+      "name": "shoulder L",
+      "rect": [
+       28,
+       6,
+       35,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 14
+     },
+     {
+      "name": "shoulder R",
+      "rect": [
+       101,
+       6,
+       35,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 14
+     },
+     {
+      "name": "cap L",
+      "rect": [
+       28,
+       5,
+       4,
+       1
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 4,
+      "z": 90
+     },
+     {
+      "name": "cap R",
+      "rect": [
+       132,
+       5,
+       4,
+       1
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 4,
+      "z": 90
+     },
+     {
+      "name": "vents L",
+      "rect": [
+       38,
+       1,
+       13,
+       5
+      ],
+      "kind": "box",
+      "v": 5,
+      "d": 8
+     },
+     {
+      "name": "vents R",
+      "rect": [
+       113,
+       1,
+       13,
+       5
+      ],
+      "kind": "box",
+      "v": 5,
+      "d": 8
+     },
+     {
+      "name": "rack L",
+      "rect": [
+       0,
+       20,
+       28,
+       76
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 22,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         4,
+         67,
+         20,
+         16
+        ],
+        "depth": 3,
+        "wall": "M"
+       }
+      ]
+     },
+     {
+      "name": "rack R",
+      "rect": [
+       136,
+       20,
+       28,
+       76
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 22,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         140,
+         67,
+         20,
+         16
+        ],
+        "depth": 3,
+        "wall": "M"
+       }
+      ]
+     },
+     {
+      "name": "fan 1",
+      "rect": [
+       11,
+       25,
+       15,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "M",
+      "round": true
+     },
+     {
+      "name": "fan 2",
+      "rect": [
+       11,
+       47,
+       15,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "M",
+      "round": true
+     },
+     {
+      "name": "fan 3",
+      "rect": [
+       137,
+       25,
+       15,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "M",
+      "round": true
+     },
+     {
+      "name": "fan 4",
+      "rect": [
+       137,
+       47,
+       15,
+       15
+      ],
+      "kind": "disc",
+      "v": 22,
+      "t": 2,
+      "rim": "M",
+      "round": true
+     },
+     {
+      "name": "ledge",
+      "rect": [
+       25,
+       69,
+       114,
+       19
+      ],
+      "kind": "box",
+      "v": 12,
+      "d": 14
+     }
+    ]
+   },
+   "CRATE": {
+    "front": [
+     0,
+     3,
+     28,
+     21
+    ],
+    "d": 22,
+    "details": [
+     {
+      "name": "handle",
+      "rect": [
+       9,
+       0,
+       10,
+       3
+      ],
+      "kind": "box",
+      "v": 9,
+      "d": 4
+     },
+     {
+      "name": "label",
+      "rect": [
+       9,
+       11,
+       10,
+       7
+      ],
+      "kind": "disc",
+      "t": 1,
+      "rim": "k"
+     }
+    ]
+   },
+   "TABLE": {
+    "details": [
+     {
+      "name": "slab",
+      "rect": [
+       0,
+       9,
+       92,
+       3
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 26
+     },
+     {
+      "name": "leg 1",
+      "rect": [
+       10,
+       12,
+       6,
+       2
+      ],
+      "kind": "cyl",
+      "v": 21
+     },
+     {
+      "name": "leg 2",
+      "rect": [
+       76,
+       12,
+       6,
+       2
+      ],
+      "kind": "cyl",
+      "v": 21
+     },
+     {
+      "name": "foot 1",
+      "rect": [
+       8,
+       14,
+       10,
+       2
+      ],
+      "kind": "box",
+      "v": 17,
+      "d": 9
+     },
+     {
+      "name": "foot 2",
+      "rect": [
+       74,
+       14,
+       10,
+       2
+      ],
+      "kind": "box",
+      "v": 17,
+      "d": 9
+     },
+     {
+      "name": "tray 1",
+      "rect": [
+       11,
+       2,
+       14,
+       7
+      ],
+      "kind": "top",
+      "v": 4,
+      "z": 7
+     },
+     {
+      "name": "pouch 1",
+      "rect": [
+       25,
+       2,
+       5,
+       7
+      ],
+      "kind": "top",
+      "v": 4,
+      "z": 7
+     },
+     {
+      "name": "tray 2",
+      "rect": [
+       39,
+       2,
+       14,
+       7
+      ],
+      "kind": "top",
+      "v": 4,
+      "z": 7
+     },
+     {
+      "name": "pouch 2",
+      "rect": [
+       53,
+       2,
+       5,
+       7
+      ],
+      "kind": "top",
+      "v": 4,
+      "z": 7
+     },
+     {
+      "name": "tray 3",
+      "rect": [
+       67,
+       2,
+       14,
+       7
+      ],
+      "kind": "top",
+      "v": 4,
+      "z": 7
+     },
+     {
+      "name": "pouch 3",
+      "rect": [
+       81,
+       2,
+       5,
+       7
+      ],
+      "kind": "top",
+      "v": 4,
+      "z": 7
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "table top",
+      "rect": [
+       0,
+       0,
+       92,
+       9
+      ]
+     }
+    ]
+   },
+   "BENCH": {
+    "front": [
+     0,
+     6,
+     92,
+     2
+    ],
+    "d": 9,
+    "details": [
+     {
+      "name": "leg 1",
+      "rect": [
+       3,
+       4,
+       4,
+       2
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 5
+     },
+     {
+      "name": "leg 2",
+      "rect": [
+       44,
+       4,
+       4,
+       2
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 5
+     },
+     {
+      "name": "leg 3",
+      "rect": [
+       85,
+       4,
+       4,
+       2
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 5
+     },
+     {
+      "name": "cushion",
+      "rect": [
+       0,
+       0,
+       92,
+       4
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 9
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "loop 1",
+      "rect": [
+       10,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "loop 2",
+      "rect": [
+       22,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "loop 3",
+      "rect": [
+       34,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "loop 4",
+      "rect": [
+       58,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "loop 5",
+      "rect": [
+       70,
+       4,
+       4,
+       2
+      ]
+     }
+    ]
+   },
+   "RECAFF": {
+    "front": [
+     0,
+     33,
+     32,
+     3
+    ],
+    "d": 16,
+    "details": [
+     {
+      "name": "foot 1",
+      "rect": [
+       3,
+       32,
+       2,
+       1
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 4
+     },
+     {
+      "name": "foot 2",
+      "rect": [
+       27,
+       32,
+       2,
+       1
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 4
+     },
+     {
+      "name": "dispenser",
+      "rect": [
+       7,
+       16,
+       18,
+       17
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 12,
+      "recess": [
+       {
+        "name": "screen",
+        "rect": [
+         10,
+         19,
+         6,
+         2
+        ],
+        "depth": 2,
+        "wall": "k"
+       },
+       {
+        "name": "alcove",
+        "rect": [
+         11,
+         25,
+         10,
+         4
+        ],
+        "depth": 4,
+        "wall": "V"
+       }
+      ]
+     },
+     {
+      "name": "cup",
+      "rect": [
+       13,
+       27,
+       6,
+       5
+      ],
+      "kind": "cyl",
+      "v": 11
+     },
+     {
+      "name": "neck",
+      "rect": [
+       9,
+       15,
+       14,
+       1
+      ],
+      "kind": "box",
+      "v": 5,
+      "d": 6
+     },
+     {
+      "name": "warmer",
+      "rect": [
+       3,
+       1,
+       26,
+       14
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 16,
+      "recess": [
+       {
+        "name": "window",
+        "rect": [
+         17,
+         8,
+         8,
+         3
+        ],
+        "depth": 2,
+        "wall": "k"
+       }
+      ]
+     },
+     {
+      "name": "can 1",
+      "rect": [
+       0,
+       18,
+       6,
+       7
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "can 2",
+      "rect": [
+       1,
+       24,
+       5,
+       7
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "can 3",
+      "rect": [
+       26,
+       17,
+       6,
+       6
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "can 4",
+      "rect": [
+       26,
+       23,
+       5,
+       8
+      ],
+      "kind": "cyl",
+      "v": 7
+     }
+    ]
+   },
+   "LORD_DESK": {
+    "front": [
+     0,
+     11,
+     88,
+     15
+    ],
+    "d": 26,
+    "details": [
+     {
+      "name": "radar glass",
+      "rect": [
+       2,
+       1,
+       18,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 13
+     },
+     {
+      "name": "radar",
+      "rect": [
+       2,
+       2,
+       18,
+       9
+      ],
+      "kind": "top",
+      "v": 2,
+      "z": 14
+     },
+     {
+      "name": "radar wall",
+      "rect": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 14
+     },
+     {
+      "name": "radar back",
+      "rect": [
+       2,
+       1,
+       18,
+       1
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 1,
+      "z": 14
+     },
+     {
+      "name": "keys glass",
+      "rect": [
+       21,
+       1,
+       12,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 13
+     },
+     {
+      "name": "keys",
+      "rect": [
+       21,
+       2,
+       12,
+       9
+      ],
+      "kind": "top",
+      "v": 2,
+      "z": 14
+     },
+     {
+      "name": "keys wall",
+      "rect": [
+       20,
+       1,
+       1,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 14
+     },
+     {
+      "name": "keys back",
+      "rect": [
+       21,
+       1,
+       12,
+       1
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 1,
+      "z": 14
+     },
+     {
+      "name": "map glass",
+      "rect": [
+       34,
+       1,
+       20,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 13
+     },
+     {
+      "name": "map",
+      "rect": [
+       34,
+       2,
+       20,
+       9
+      ],
+      "kind": "top",
+      "v": 2,
+      "z": 14
+     },
+     {
+      "name": "map wall",
+      "rect": [
+       33,
+       1,
+       1,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 14
+     },
+     {
+      "name": "map back",
+      "rect": [
+       34,
+       1,
+       20,
+       1
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 1,
+      "z": 14
+     },
+     {
+      "name": "scope glass",
+      "rect": [
+       72,
+       1,
+       14,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 13
+     },
+     {
+      "name": "scope",
+      "rect": [
+       72,
+       2,
+       14,
+       9
+      ],
+      "kind": "top",
+      "v": 2,
+      "z": 14
+     },
+     {
+      "name": "scope wall",
+      "rect": [
+       71,
+       1,
+       1,
+       1
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22,
+      "z": 14
+     },
+     {
+      "name": "scope back",
+      "rect": [
+       72,
+       1,
+       14,
+       1
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 1,
+      "z": 14
+     },
+     {
+      "name": "keypad",
+      "rect": [
+       61,
+       2,
+       10,
+       9
+      ],
+      "kind": "top",
+      "v": 2,
+      "z": 15
+     },
+     {
+      "name": "lever base",
+      "rect": [
+       55,
+       8,
+       6,
+       3
+      ],
+      "kind": "box",
+      "v": 10,
+      "d": 6,
+      "z": 15
+     },
+     {
+      "name": "lever",
+      "rect": [
+       56,
+       6,
+       3,
+       2
+      ],
+      "kind": "cyl",
+      "v": 13,
+      "z": 18
+     },
+     {
+      "name": "knob",
+      "rect": [
+       55,
+       2,
+       5,
+       4
+      ],
+      "kind": "cyl",
+      "v": 13,
+      "z": 20
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "desk top",
+      "rect": [
+       0,
+       0,
+       88,
+       11
+      ]
+     }
+    ]
+   },
+   "THRONE": {
+    "front": [
+     6,
+     35,
+     28,
+     4
+    ],
+    "d": 20,
+    "details": [
+     {
+      "name": "post",
+      "rect": [
+       17,
+       31,
+       6,
+       4
+      ],
+      "kind": "cyl",
+      "v": 10
+     },
+     {
+      "name": "seat",
+      "rect": [
+       3,
+       26,
+       34,
+       5
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 18
+     },
+     {
+      "name": "back",
+      "rect": [
+       8,
+       7,
+       24,
+       19
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 5
+     },
+     {
+      "name": "arm L",
+      "rect": [
+       0,
+       20,
+       10,
+       6
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 15
+     },
+     {
+      "name": "arm R",
+      "rect": [
+       30,
+       20,
+       10,
+       6
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 15
+     },
+     {
+      "name": "headrest",
+      "rect": [
+       10,
+       0,
+       20,
+       7
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 5
+     }
+    ]
+   },
+   "COG_MECH": {
+    "details": [
+     {
+      "name": "patch",
+      "rect": [
+       2,
+       1,
+       36,
+       34
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 3,
+      "round": true
+     }
+    ]
+   },
+   "SEAL": {
+    "details": [
+     {
+      "name": "clip",
+      "rect": [
+       4,
+       0,
+       4,
+       4
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 1,
+      "rim": "M"
+     },
+     {
+      "name": "tag",
+      "rect": [
+       0,
+       4,
+       12,
+       15
+      ],
+      "kind": "disc",
+      "v": 1,
+      "t": 2
+     }
+    ]
+   },
+   "GAUGE": {
+    "details": [
+     {
+      "name": "dial",
+      "rect": [
+       0,
+       0,
+       12,
+       12
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 2
+     }
+    ]
+   },
+   "CENSER": {
+    "details": [
+     {
+      "name": "canopy",
+      "rect": [
+       1,
+       0,
+       8,
+       3
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 4
+     },
+     {
+      "name": "cord",
+      "rect": [
+       4,
+       3,
+       2,
+       5
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "neck",
+      "rect": [
+       3,
+       8,
+       4,
+       2
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "shade",
+      "rect": [
+       0,
+       10,
+       10,
+       7
+      ],
+      "kind": "cyl",
+      "v": 5
+     }
+    ]
+   },
+   "CANDLES": {
+    "details": [
+     {
+      "name": "base",
+      "rect": [
+       4,
+       14,
+       16,
+       4
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 8
+     },
+     {
+      "name": "rod",
+      "rect": [
+       11,
+       11,
+       2,
+       3
+      ],
+      "kind": "cyl",
+      "v": 6
+     },
+     {
+      "name": "bracket L",
+      "rect": [
+       0,
+       11,
+       2,
+       1
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 6
+     },
+     {
+      "name": "bracket R",
+      "rect": [
+       22,
+       11,
+       2,
+       1
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 6
+     },
+     {
+      "name": "bar",
+      "rect": [
+       0,
+       4,
+       24,
+       7
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 6
+     },
+     {
+      "name": "knob",
+      "rect": [
+       10,
+       2,
+       5,
+       2
+      ],
+      "kind": "cyl",
+      "v": 6
+     }
+    ]
+   },
+   "BOOKS": {
+    "details": [
+     {
+      "name": "binder 1",
+      "rect": [
+       0,
+       3,
+       5,
+       15
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "binder 2",
+      "rect": [
+       4,
+       0,
+       6,
+       18
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 13
+     },
+     {
+      "name": "binder 3",
+      "rect": [
+       9,
+       4,
+       6,
+       14
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "binder 4",
+      "rect": [
+       14,
+       2,
+       6,
+       16
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "strap",
+      "rect": [
+       0,
+       10,
+       20,
+       2
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 15
+     }
+    ]
+   },
+   "PAPER_STACK": {
+    "details": [
+     {
+      "name": "board",
+      "rect": [
+       0,
+       0,
+       16,
+       24
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 3
+     },
+     {
+      "name": "card 1",
+      "rect": [
+       2,
+       3,
+       8,
+       8
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 1
+     },
+     {
+      "name": "card 2",
+      "rect": [
+       7,
+       10,
+       7,
+       6
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 1
+     },
+     {
+      "name": "card 3",
+      "rect": [
+       2,
+       15,
+       8,
+       7
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 1
+     }
+    ]
+   },
+   "SCROLL_PILE": {
+    "details": [
+     {
+      "name": "bag L",
+      "rect": [
+       0,
+       5,
+       9,
+       9
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "bag M",
+      "rect": [
+       9,
+       8,
+       9,
+       6
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 12
+     },
+     {
+      "name": "bag R2",
+      "rect": [
+       17,
+       8,
+       7,
+       6
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 14
+     },
+     {
+      "name": "bag R",
+      "rect": [
+       24,
+       4,
+       12,
+       10
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 14
+     },
+     {
+      "name": "bag top",
+      "rect": [
+       8,
+       2,
+       16,
+       6
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 10,
+      "z": 6
+     },
+     {
+      "name": "handle",
+      "rect": [
+       3,
+       3,
+       3,
+       2
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 1
+     },
+     {
+      "name": "handle 2",
+      "rect": [
+       11,
+       0,
+       3,
+       2
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 1,
+      "z": 12
+     }
+    ]
+   },
+   "LOOSE_A": {
+    "details": [
+     {
+      "name": "sheet",
+      "rect": [
+       0,
+       0,
+       10,
+       8
+      ],
+      "kind": "top",
+      "v": 0,
+      "z": 0
+     }
+    ]
+   },
+   "LOOSE_B": {
+    "details": [
+     {
+      "name": "sheet",
+      "rect": [
+       0,
+       0,
+       8,
+       10
+      ],
+      "kind": "top",
+      "v": 0,
+      "z": 0
+     }
+    ]
+   },
+   "GATE": {
+    "details": [
+     {
+      "name": "base",
+      "rect": [
+       0,
+       57,
+       64,
+       3
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 30
+     },
+     {
+      "name": "sill",
+      "rect": [
+       3,
+       54,
+       58,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 26
+     },
+     {
+      "name": "head",
+      "rect": [
+       3,
+       0,
+       58,
+       21
+      ],
+      "kind": "disc",
+      "v": 4,
+      "t": 12
+     },
+     {
+      "name": "jamb L",
+      "rect": [
+       3,
+       10,
+       15,
+       44
+      ],
+      "kind": "disc",
+      "v": 4,
+      "t": 12
+     },
+     {
+      "name": "jamb R",
+      "rect": [
+       46,
+       10,
+       15,
+       44
+      ],
+      "kind": "disc",
+      "v": 4,
+      "t": 12
+     },
+     {
+      "name": "panel L",
+      "rect": [
+       3,
+       15,
+       9,
+       9
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 2
+     },
+     {
+      "name": "panel R",
+      "rect": [
+       52,
+       15,
+       9,
+       9
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 2
+     },
+     {
+      "name": "lamps L",
+      "rect": [
+       6,
+       9,
+       5,
+       3
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 1
+     },
+     {
+      "name": "lamps R",
+      "rect": [
+       52,
+       9,
+       6,
+       3
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 1
+     },
+     {
+      "name": "leaves",
+      "rect": [
+       16,
+       10,
+       32,
+       44
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 2
+     }
+    ]
+   },
+   "BRAZIER": {
+    "details": [
+     {
+      "name": "foot 1",
+      "rect": [
+       2,
+       25,
+       3,
+       1
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 8
+     },
+     {
+      "name": "foot 2",
+      "rect": [
+       15,
+       25,
+       3,
+       1
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 8
+     },
+     {
+      "name": "base",
+      "rect": [
+       1,
+       23,
+       18,
+       2
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 14
+     },
+     {
+      "name": "unit",
+      "rect": [
+       2,
+       6,
+       16,
+       17
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 12,
+      "recess": [
+       {
+        "name": "fan",
+        "rect": [
+         6,
+         13,
+         6,
+         4
+        ],
+        "depth": 3,
+        "wall": "V"
+       }
+      ]
+     },
+     {
+      "name": "pipe",
+      "rect": [
+       13,
+       0,
+       4,
+       6
+      ],
+      "kind": "cyl",
+      "v": 6
+     }
+    ]
+   }
+  }
+ }
+}

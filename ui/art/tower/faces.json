@@ -1,0 +1,3905 @@
+{
+ "frames": {
+  "DESK side": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 10,
+    "h": 17
+   }
+  },
+  "DESK top": {
+   "frame": {
+    "x": 11,
+    "y": 0,
+    "w": 64,
+    "h": 10
+   }
+  },
+  "DESK band side": {
+   "frame": {
+    "x": 76,
+    "y": 0,
+    "w": 10,
+    "h": 8
+   }
+  },
+  "DESK band top": {
+   "frame": {
+    "x": 87,
+    "y": 0,
+    "w": 38,
+    "h": 10
+   }
+  },
+  "DESK band 2 side": {
+   "frame": {
+    "x": 126,
+    "y": 0,
+    "w": 10,
+    "h": 8
+   }
+  },
+  "DESK band 2 top": {
+   "frame": {
+    "x": 137,
+    "y": 0,
+    "w": 13,
+    "h": 10
+   }
+  },
+  "DESK band 3 side": {
+   "frame": {
+    "x": 151,
+    "y": 0,
+    "w": 10,
+    "h": 8
+   }
+  },
+  "DESK band 3 top": {
+   "frame": {
+    "x": 162,
+    "y": 0,
+    "w": 13,
+    "h": 10
+   }
+  },
+  "DESK chest side": {
+   "frame": {
+    "x": 176,
+    "y": 0,
+    "w": 3,
+    "h": 6
+   }
+  },
+  "DESK chest top": {
+   "frame": {
+    "x": 180,
+    "y": 0,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "DESK book side": {
+   "frame": {
+    "x": 187,
+    "y": 0,
+    "w": 3,
+    "h": 14
+   }
+  },
+  "DESK book top": {
+   "frame": {
+    "x": 191,
+    "y": 0,
+    "w": 31,
+    "h": 3
+   }
+  },
+  "DESK clasp side": {
+   "frame": {
+    "x": 223,
+    "y": 0,
+    "w": 2,
+    "h": 2
+   }
+  },
+  "DESK clasp top": {
+   "frame": {
+    "x": 226,
+    "y": 0,
+    "w": 9,
+    "h": 2
+   }
+  },
+  "DESK inkpot top": {
+   "frame": {
+    "x": 236,
+    "y": 0,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "DESK quill side": {
+   "frame": {
+    "x": 243,
+    "y": 0,
+    "w": 1,
+    "h": 8
+   }
+  },
+  "DESK quill top": {
+   "frame": {
+    "x": 245,
+    "y": 0,
+    "w": 7,
+    "h": 1
+   }
+  },
+  "DESK flask top": {
+   "frame": {
+    "x": 253,
+    "y": 0,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "DESK dish top": {
+   "frame": {
+    "x": 259,
+    "y": 0,
+    "w": 11,
+    "h": 5
+   }
+  },
+  "DESK candle base top": {
+   "frame": {
+    "x": 271,
+    "y": 0,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "DESK candle top": {
+   "frame": {
+    "x": 278,
+    "y": 0,
+    "w": 7,
+    "h": 3
+   }
+  },
+  "LECTERN side": {
+   "frame": {
+    "x": 0,
+    "y": 18,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "LECTERN top": {
+   "frame": {
+    "x": 10,
+    "y": 18,
+    "w": 36,
+    "h": 9
+   }
+  },
+  "LECTERN stem side": {
+   "frame": {
+    "x": 47,
+    "y": 18,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "LECTERN stem top": {
+   "frame": {
+    "x": 52,
+    "y": 18,
+    "w": 10,
+    "h": 4
+   }
+  },
+  "LECTERN drawer side": {
+   "frame": {
+    "x": 63,
+    "y": 18,
+    "w": 7,
+    "h": 6
+   }
+  },
+  "LECTERN drawer top": {
+   "frame": {
+    "x": 71,
+    "y": 18,
+    "w": 36,
+    "h": 7
+   }
+  },
+  "LECTERN shelf side": {
+   "frame": {
+    "x": 108,
+    "y": 18,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "LECTERN shelf top": {
+   "frame": {
+    "x": 118,
+    "y": 18,
+    "w": 42,
+    "h": 9
+   }
+  },
+  "LECTERN stand side": {
+   "frame": {
+    "x": 161,
+    "y": 18,
+    "w": 3,
+    "h": 20
+   }
+  },
+  "LECTERN stand top": {
+   "frame": {
+    "x": 165,
+    "y": 18,
+    "w": 30,
+    "h": 3
+   }
+  },
+  "LECTERN board end side": {
+   "frame": {
+    "x": 196,
+    "y": 18,
+    "w": 3,
+    "h": 5
+   }
+  },
+  "LECTERN board end top": {
+   "frame": {
+    "x": 200,
+    "y": 18,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "LECTERN post side": {
+   "frame": {
+    "x": 205,
+    "y": 18,
+    "w": 4,
+    "h": 12
+   }
+  },
+  "LECTERN post top": {
+   "frame": {
+    "x": 210,
+    "y": 18,
+    "w": 10,
+    "h": 4
+   }
+  },
+  "LECTERN dish top": {
+   "frame": {
+    "x": 221,
+    "y": 18,
+    "w": 12,
+    "h": 5
+   }
+  },
+  "LECTERN candle top": {
+   "frame": {
+    "x": 234,
+    "y": 18,
+    "w": 7,
+    "h": 3
+   }
+  },
+  "CONSOLE side": {
+   "frame": {
+    "x": 0,
+    "y": 39,
+    "w": 5,
+    "h": 6
+   }
+  },
+  "CONSOLE top": {
+   "frame": {
+    "x": 6,
+    "y": 39,
+    "w": 12,
+    "h": 5
+   }
+  },
+  "CONSOLE tray side": {
+   "frame": {
+    "x": 19,
+    "y": 39,
+    "w": 3,
+    "h": 3
+   }
+  },
+  "CONSOLE tray top": {
+   "frame": {
+    "x": 23,
+    "y": 39,
+    "w": 9,
+    "h": 3
+   }
+  },
+  "CONSOLE cup top": {
+   "frame": {
+    "x": 33,
+    "y": 39,
+    "w": 14,
+    "h": 6
+   }
+  },
+  "CONSOLE crystal top": {
+   "frame": {
+    "x": 48,
+    "y": 39,
+    "w": 15,
+    "h": 7
+   }
+  },
+  "CONSOLE crystal cap top": {
+   "frame": {
+    "x": 64,
+    "y": 39,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "SHELF side": {
+   "frame": {
+    "x": 0,
+    "y": 47,
+    "w": 5,
+    "h": 42
+   }
+  },
+  "SHELF top": {
+   "frame": {
+    "x": 6,
+    "y": 47,
+    "w": 64,
+    "h": 5
+   }
+  },
+  "SHELF shelf 1 wall": {
+   "frame": {
+    "x": 71,
+    "y": 47,
+    "w": 3,
+    "h": 10
+   }
+  },
+  "SHELF shelf 1 floor": {
+   "frame": {
+    "x": 75,
+    "y": 47,
+    "w": 56,
+    "h": 3
+   }
+  },
+  "SHELF shelf 2 wall": {
+   "frame": {
+    "x": 132,
+    "y": 47,
+    "w": 3,
+    "h": 11
+   }
+  },
+  "SHELF shelf 2 floor": {
+   "frame": {
+    "x": 136,
+    "y": 47,
+    "w": 56,
+    "h": 3
+   }
+  },
+  "SHELF shelf 3 wall": {
+   "frame": {
+    "x": 193,
+    "y": 47,
+    "w": 3,
+    "h": 9
+   }
+  },
+  "SHELF shelf 3 floor": {
+   "frame": {
+    "x": 197,
+    "y": 47,
+    "w": 56,
+    "h": 3
+   }
+  },
+  "COGITATOR side": {
+   "frame": {
+    "x": 0,
+    "y": 90,
+    "w": 11,
+    "h": 4
+   }
+  },
+  "COGITATOR top": {
+   "frame": {
+    "x": 12,
+    "y": 90,
+    "w": 156,
+    "h": 11
+   }
+  },
+  "COGITATOR wall side": {
+   "frame": {
+    "x": 169,
+    "y": 90,
+    "w": 6,
+    "h": 78
+   }
+  },
+  "COGITATOR wall top": {
+   "frame": {
+    "x": 176,
+    "y": 90,
+    "w": 107,
+    "h": 6
+   }
+  },
+  "COGITATOR wall arch wall": {
+   "frame": {
+    "x": 284,
+    "y": 90,
+    "w": 2,
+    "h": 32
+   }
+  },
+  "COGITATOR wall arch floor": {
+   "frame": {
+    "x": 287,
+    "y": 90,
+    "w": 33,
+    "h": 2
+   }
+  },
+  "COGITATOR wall arch L wall": {
+   "frame": {
+    "x": 321,
+    "y": 90,
+    "w": 2,
+    "h": 18
+   }
+  },
+  "COGITATOR wall arch L floor": {
+   "frame": {
+    "x": 324,
+    "y": 90,
+    "w": 24,
+    "h": 2
+   }
+  },
+  "COGITATOR wall arch R wall": {
+   "frame": {
+    "x": 349,
+    "y": 90,
+    "w": 2,
+    "h": 18
+   }
+  },
+  "COGITATOR wall arch R floor": {
+   "frame": {
+    "x": 352,
+    "y": 90,
+    "w": 24,
+    "h": 2
+   }
+  },
+  "COGITATOR shaft L side": {
+   "frame": {
+    "x": 377,
+    "y": 90,
+    "w": 9,
+    "h": 70
+   }
+  },
+  "COGITATOR shaft L top": {
+   "frame": {
+    "x": 387,
+    "y": 90,
+    "w": 22,
+    "h": 9
+   }
+  },
+  "COGITATOR shaft R side": {
+   "frame": {
+    "x": 410,
+    "y": 90,
+    "w": 9,
+    "h": 70
+   }
+  },
+  "COGITATOR shaft R top": {
+   "frame": {
+    "x": 420,
+    "y": 90,
+    "w": 21,
+    "h": 9
+   }
+  },
+  "COGITATOR cap L side": {
+   "frame": {
+    "x": 442,
+    "y": 90,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "COGITATOR cap L top": {
+   "frame": {
+    "x": 452,
+    "y": 90,
+    "w": 23,
+    "h": 9
+   }
+  },
+  "COGITATOR cap R side": {
+   "frame": {
+    "x": 476,
+    "y": 90,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "COGITATOR cap R top": {
+   "frame": {
+    "x": 486,
+    "y": 90,
+    "w": 22,
+    "h": 9
+   }
+  },
+  "COGITATOR counter side": {
+   "frame": {
+    "x": 0,
+    "y": 169,
+    "w": 9,
+    "h": 25
+   }
+  },
+  "COGITATOR counter top": {
+   "frame": {
+    "x": 10,
+    "y": 169,
+    "w": 120,
+    "h": 9
+   }
+  },
+  "COGITATOR rune 1 rim": {
+   "frame": {
+    "x": 131,
+    "y": 169,
+    "w": 17,
+    "h": 17
+   }
+  },
+  "COGITATOR rune 2 rim": {
+   "frame": {
+    "x": 149,
+    "y": 169,
+    "w": 17,
+    "h": 17
+   }
+  },
+  "COGITATOR rune 3 rim": {
+   "frame": {
+    "x": 167,
+    "y": 169,
+    "w": 17,
+    "h": 17
+   }
+  },
+  "COGITATOR rune 4 rim": {
+   "frame": {
+    "x": 185,
+    "y": 169,
+    "w": 17,
+    "h": 17
+   }
+  },
+  "COGITATOR crystals L/base side": {
+   "frame": {
+    "x": 203,
+    "y": 169,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "COGITATOR crystals L/base top": {
+   "frame": {
+    "x": 208,
+    "y": 169,
+    "w": 11,
+    "h": 4
+   }
+  },
+  "COGITATOR crystals L/A side": {
+   "frame": {
+    "x": 220,
+    "y": 169,
+    "w": 2,
+    "h": 7
+   }
+  },
+  "COGITATOR crystals L/A top": {
+   "frame": {
+    "x": 223,
+    "y": 169,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COGITATOR crystals L/B side": {
+   "frame": {
+    "x": 228,
+    "y": 169,
+    "w": 2,
+    "h": 11
+   }
+  },
+  "COGITATOR crystals L/B top": {
+   "frame": {
+    "x": 231,
+    "y": 169,
+    "w": 5,
+    "h": 2
+   }
+  },
+  "COGITATOR crystals L/C side": {
+   "frame": {
+    "x": 237,
+    "y": 169,
+    "w": 2,
+    "h": 6
+   }
+  },
+  "COGITATOR crystals L/C top": {
+   "frame": {
+    "x": 240,
+    "y": 169,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COGITATOR crystals R/base side": {
+   "frame": {
+    "x": 245,
+    "y": 169,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "COGITATOR crystals R/base top": {
+   "frame": {
+    "x": 250,
+    "y": 169,
+    "w": 11,
+    "h": 4
+   }
+  },
+  "COGITATOR crystals R/A side": {
+   "frame": {
+    "x": 262,
+    "y": 169,
+    "w": 2,
+    "h": 6
+   }
+  },
+  "COGITATOR crystals R/A top": {
+   "frame": {
+    "x": 265,
+    "y": 169,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COGITATOR crystals R/B side": {
+   "frame": {
+    "x": 270,
+    "y": 169,
+    "w": 2,
+    "h": 11
+   }
+  },
+  "COGITATOR crystals R/B top": {
+   "frame": {
+    "x": 273,
+    "y": 169,
+    "w": 5,
+    "h": 2
+   }
+  },
+  "COGITATOR crystals R/C side": {
+   "frame": {
+    "x": 279,
+    "y": 169,
+    "w": 2,
+    "h": 7
+   }
+  },
+  "COGITATOR crystals R/C top": {
+   "frame": {
+    "x": 282,
+    "y": 169,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COGITATOR lantern L/foot side": {
+   "frame": {
+    "x": 287,
+    "y": 169,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "COGITATOR lantern L/foot top": {
+   "frame": {
+    "x": 290,
+    "y": 169,
+    "w": 8,
+    "h": 2
+   }
+  },
+  "COGITATOR lantern L/stem side": {
+   "frame": {
+    "x": 299,
+    "y": 169,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "COGITATOR lantern L/stem top": {
+   "frame": {
+    "x": 301,
+    "y": 169,
+    "w": 5,
+    "h": 1
+   }
+  },
+  "COGITATOR lantern L/body side": {
+   "frame": {
+    "x": 307,
+    "y": 169,
+    "w": 3,
+    "h": 6
+   }
+  },
+  "COGITATOR lantern L/body top": {
+   "frame": {
+    "x": 311,
+    "y": 169,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "COGITATOR lantern L/cap side": {
+   "frame": {
+    "x": 323,
+    "y": 169,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "COGITATOR lantern L/cap top": {
+   "frame": {
+    "x": 326,
+    "y": 169,
+    "w": 7,
+    "h": 2
+   }
+  },
+  "COGITATOR lantern R/foot side": {
+   "frame": {
+    "x": 334,
+    "y": 169,
+    "w": 2,
+    "h": 1
+   }
+  },
+  "COGITATOR lantern R/foot top": {
+   "frame": {
+    "x": 337,
+    "y": 169,
+    "w": 8,
+    "h": 2
+   }
+  },
+  "COGITATOR lantern R/stem side": {
+   "frame": {
+    "x": 346,
+    "y": 169,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "COGITATOR lantern R/stem top": {
+   "frame": {
+    "x": 348,
+    "y": 169,
+    "w": 5,
+    "h": 1
+   }
+  },
+  "COGITATOR lantern R/body side": {
+   "frame": {
+    "x": 354,
+    "y": 169,
+    "w": 3,
+    "h": 6
+   }
+  },
+  "COGITATOR lantern R/body top": {
+   "frame": {
+    "x": 358,
+    "y": 169,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "COGITATOR lantern R/cap side": {
+   "frame": {
+    "x": 370,
+    "y": 169,
+    "w": 2,
+    "h": 3
+   }
+  },
+  "COGITATOR lantern R/cap top": {
+   "frame": {
+    "x": 373,
+    "y": 169,
+    "w": 7,
+    "h": 2
+   }
+  },
+  "COGITATOR stand side": {
+   "frame": {
+    "x": 381,
+    "y": 169,
+    "w": 3,
+    "h": 1
+   }
+  },
+  "COGITATOR stand top": {
+   "frame": {
+    "x": 385,
+    "y": 169,
+    "w": 20,
+    "h": 3
+   }
+  },
+  "COGITATOR armillary rim": {
+   "frame": {
+    "x": 406,
+    "y": 169,
+    "w": 18,
+    "h": 15
+   }
+  },
+  "CRATE side": {
+   "frame": {
+    "x": 0,
+    "y": 195,
+    "w": 8,
+    "h": 15
+   }
+  },
+  "CRATE top": {
+   "frame": {
+    "x": 9,
+    "y": 195,
+    "w": 28,
+    "h": 8
+   }
+  },
+  "CRATE lid side": {
+   "frame": {
+    "x": 38,
+    "y": 195,
+    "w": 8,
+    "h": 8
+   }
+  },
+  "CRATE lid top": {
+   "frame": {
+    "x": 47,
+    "y": 195,
+    "w": 28,
+    "h": 8
+   }
+  },
+  "TABLE side": {
+   "frame": {
+    "x": 0,
+    "y": 211,
+    "w": 11,
+    "h": 5
+   }
+  },
+  "TABLE top": {
+   "frame": {
+    "x": 12,
+    "y": 211,
+    "w": 92,
+    "h": 11
+   }
+  },
+  "TABLE bowl 1 top": {
+   "frame": {
+    "x": 105,
+    "y": 211,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE basket top": {
+   "frame": {
+    "x": 112,
+    "y": 211,
+    "w": 7,
+    "h": 3
+   }
+  },
+  "TABLE bowl 2 top": {
+   "frame": {
+    "x": 120,
+    "y": 211,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE holder top": {
+   "frame": {
+    "x": 127,
+    "y": 211,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "TABLE candle top": {
+   "frame": {
+    "x": 133,
+    "y": 211,
+    "w": 3,
+    "h": 2
+   }
+  },
+  "TABLE bowl 3 top": {
+   "frame": {
+    "x": 137,
+    "y": 211,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "TABLE apple 1 top": {
+   "frame": {
+    "x": 144,
+    "y": 211,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "TABLE apple 2 top": {
+   "frame": {
+    "x": 149,
+    "y": 211,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "BENCH side": {
+   "frame": {
+    "x": 0,
+    "y": 223,
+    "w": 4,
+    "h": 4
+   }
+  },
+  "BENCH top": {
+   "frame": {
+    "x": 5,
+    "y": 223,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "RECAFF side": {
+   "frame": {
+    "x": 0,
+    "y": 228,
+    "w": 7,
+    "h": 18
+   }
+  },
+  "RECAFF top": {
+   "frame": {
+    "x": 8,
+    "y": 228,
+    "w": 28,
+    "h": 7
+   }
+  },
+  "RECAFF grate wall": {
+   "frame": {
+    "x": 37,
+    "y": 228,
+    "w": 2,
+    "h": 5
+   }
+  },
+  "RECAFF grate floor": {
+   "frame": {
+    "x": 40,
+    "y": 228,
+    "w": 19,
+    "h": 2
+   }
+  },
+  "RECAFF chimney top": {
+   "frame": {
+    "x": 60,
+    "y": 228,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "RECAFF kettle top": {
+   "frame": {
+    "x": 67,
+    "y": 228,
+    "w": 13,
+    "h": 6
+   }
+  },
+  "RECAFF spout side": {
+   "frame": {
+    "x": 81,
+    "y": 228,
+    "w": 1,
+    "h": 6
+   }
+  },
+  "RECAFF spout top": {
+   "frame": {
+    "x": 83,
+    "y": 228,
+    "w": 5,
+    "h": 1
+   }
+  },
+  "RECAFF handle side": {
+   "frame": {
+    "x": 89,
+    "y": 228,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "RECAFF handle top": {
+   "frame": {
+    "x": 91,
+    "y": 228,
+    "w": 8,
+    "h": 1
+   }
+  },
+  "LORD_DESK side": {
+   "frame": {
+    "x": 0,
+    "y": 247,
+    "w": 11,
+    "h": 15
+   }
+  },
+  "LORD_DESK top": {
+   "frame": {
+    "x": 12,
+    "y": 247,
+    "w": 88,
+    "h": 11
+   }
+  },
+  "LORD_DESK stand top": {
+   "frame": {
+    "x": 101,
+    "y": 247,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "LORD_DESK crystal rim": {
+   "frame": {
+    "x": 111,
+    "y": 247,
+    "w": 9,
+    "h": 6
+   }
+  },
+  "LORD_DESK books side": {
+   "frame": {
+    "x": 121,
+    "y": 247,
+    "w": 5,
+    "h": 7
+   }
+  },
+  "LORD_DESK books top": {
+   "frame": {
+    "x": 127,
+    "y": 247,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "LORD_DESK spellbook side": {
+   "frame": {
+    "x": 138,
+    "y": 247,
+    "w": 2,
+    "h": 10
+   }
+  },
+  "LORD_DESK spellbook top": {
+   "frame": {
+    "x": 141,
+    "y": 247,
+    "w": 31,
+    "h": 2
+   }
+  },
+  "LORD_DESK pot top": {
+   "frame": {
+    "x": 173,
+    "y": 247,
+    "w": 7,
+    "h": 3
+   }
+  },
+  "LORD_DESK quill side": {
+   "frame": {
+    "x": 181,
+    "y": 247,
+    "w": 1,
+    "h": 6
+   }
+  },
+  "LORD_DESK quill top": {
+   "frame": {
+    "x": 183,
+    "y": 247,
+    "w": 7,
+    "h": 1
+   }
+  },
+  "LORD_DESK potion top": {
+   "frame": {
+    "x": 191,
+    "y": 247,
+    "w": 8,
+    "h": 4
+   }
+  },
+  "LORD_DESK potion neck top": {
+   "frame": {
+    "x": 200,
+    "y": 247,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "LORD_DESK jar top": {
+   "frame": {
+    "x": 205,
+    "y": 247,
+    "w": 6,
+    "h": 3
+   }
+  },
+  "LORD_DESK jar neck top": {
+   "frame": {
+    "x": 212,
+    "y": 247,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "THRONE side": {
+   "frame": {
+    "x": 0,
+    "y": 263,
+    "w": 10,
+    "h": 12
+   }
+  },
+  "THRONE top": {
+   "frame": {
+    "x": 11,
+    "y": 263,
+    "w": 36,
+    "h": 10
+   }
+  },
+  "THRONE cushion side": {
+   "frame": {
+    "x": 48,
+    "y": 263,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "THRONE cushion top": {
+   "frame": {
+    "x": 58,
+    "y": 263,
+    "w": 40,
+    "h": 9
+   }
+  },
+  "THRONE arm L side": {
+   "frame": {
+    "x": 99,
+    "y": 263,
+    "w": 7,
+    "h": 6
+   }
+  },
+  "THRONE arm L top": {
+   "frame": {
+    "x": 107,
+    "y": 263,
+    "w": 9,
+    "h": 7
+   }
+  },
+  "THRONE arm R side": {
+   "frame": {
+    "x": 117,
+    "y": 263,
+    "w": 7,
+    "h": 6
+   }
+  },
+  "THRONE arm R top": {
+   "frame": {
+    "x": 125,
+    "y": 263,
+    "w": 9,
+    "h": 7
+   }
+  },
+  "THRONE back side": {
+   "frame": {
+    "x": 135,
+    "y": 263,
+    "w": 2,
+    "h": 20
+   }
+  },
+  "THRONE back top": {
+   "frame": {
+    "x": 138,
+    "y": 263,
+    "w": 24,
+    "h": 2
+   }
+  },
+  "THRONE crest side": {
+   "frame": {
+    "x": 163,
+    "y": 263,
+    "w": 2,
+    "h": 4
+   }
+  },
+  "THRONE crest top": {
+   "frame": {
+    "x": 166,
+    "y": 263,
+    "w": 18,
+    "h": 2
+   }
+  },
+  "THRONE post L top": {
+   "frame": {
+    "x": 185,
+    "y": 263,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "THRONE post R top": {
+   "frame": {
+    "x": 190,
+    "y": 263,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "COG_MECH wheel rim": {
+   "frame": {
+    "x": 0,
+    "y": 284,
+    "w": 40,
+    "h": 36
+   }
+  },
+  "SEAL hook side": {
+   "frame": {
+    "x": 0,
+    "y": 321,
+    "w": 1,
+    "h": 4
+   }
+  },
+  "SEAL hook top": {
+   "frame": {
+    "x": 2,
+    "y": 321,
+    "w": 4,
+    "h": 1
+   }
+  },
+  "SEAL orb rim": {
+   "frame": {
+    "x": 7,
+    "y": 321,
+    "w": 12,
+    "h": 10
+   }
+  },
+  "SEAL drop top": {
+   "frame": {
+    "x": 20,
+    "y": 321,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "GAUGE cap side": {
+   "frame": {
+    "x": 0,
+    "y": 332,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "GAUGE cap top": {
+   "frame": {
+    "x": 5,
+    "y": 332,
+    "w": 12,
+    "h": 4
+   }
+  },
+  "GAUGE glass top": {
+   "frame": {
+    "x": 18,
+    "y": 332,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "GAUGE foot side": {
+   "frame": {
+    "x": 29,
+    "y": 332,
+    "w": 4,
+    "h": 3
+   }
+  },
+  "GAUGE foot top": {
+   "frame": {
+    "x": 34,
+    "y": 332,
+    "w": 12,
+    "h": 4
+   }
+  },
+  "CENSER cap top": {
+   "frame": {
+    "x": 0,
+    "y": 338,
+    "w": 8,
+    "h": 4
+   }
+  },
+  "CENSER body top": {
+   "frame": {
+    "x": 9,
+    "y": 338,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "CENSER bottom top": {
+   "frame": {
+    "x": 20,
+    "y": 338,
+    "w": 10,
+    "h": 5
+   }
+  },
+  "CANDLES dish top": {
+   "frame": {
+    "x": 0,
+    "y": 344,
+    "w": 24,
+    "h": 10
+   }
+  },
+  "CANDLES candle 1 top": {
+   "frame": {
+    "x": 25,
+    "y": 344,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "CANDLES candle 2 top": {
+   "frame": {
+    "x": 31,
+    "y": 344,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "CANDLES candle 3 top": {
+   "frame": {
+    "x": 36,
+    "y": 344,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "CANDLES candle 4 top": {
+   "frame": {
+    "x": 42,
+    "y": 344,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "CANDLES candle 5 top": {
+   "frame": {
+    "x": 47,
+    "y": 344,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "BRAZIER logs side": {
+   "frame": {
+    "x": 0,
+    "y": 355,
+    "w": 6,
+    "h": 6
+   }
+  },
+  "BRAZIER logs top": {
+   "frame": {
+    "x": 7,
+    "y": 355,
+    "w": 20,
+    "h": 6
+   }
+  },
+  "BRAZIER cauldron top": {
+   "frame": {
+    "x": 28,
+    "y": 355,
+    "w": 18,
+    "h": 8
+   }
+  },
+  "BOOKS tome side": {
+   "frame": {
+    "x": 0,
+    "y": 364,
+    "w": 5,
+    "h": 7
+   }
+  },
+  "BOOKS tome top": {
+   "frame": {
+    "x": 6,
+    "y": 364,
+    "w": 20,
+    "h": 5
+   }
+  },
+  "BOOKS blue side": {
+   "frame": {
+    "x": 27,
+    "y": 364,
+    "w": 5,
+    "h": 3
+   }
+  },
+  "BOOKS blue top": {
+   "frame": {
+    "x": 33,
+    "y": 364,
+    "w": 19,
+    "h": 5
+   }
+  },
+  "BOOKS book 1 side": {
+   "frame": {
+    "x": 53,
+    "y": 364,
+    "w": 2,
+    "h": 7
+   }
+  },
+  "BOOKS book 1 top": {
+   "frame": {
+    "x": 56,
+    "y": 364,
+    "w": 9,
+    "h": 2
+   }
+  },
+  "BOOKS book 2 side": {
+   "frame": {
+    "x": 66,
+    "y": 364,
+    "w": 2,
+    "h": 7
+   }
+  },
+  "BOOKS book 2 top": {
+   "frame": {
+    "x": 69,
+    "y": 364,
+    "w": 9,
+    "h": 2
+   }
+  },
+  "PAPER_STACK base side": {
+   "frame": {
+    "x": 0,
+    "y": 372,
+    "w": 5,
+    "h": 7
+   }
+  },
+  "PAPER_STACK base top": {
+   "frame": {
+    "x": 6,
+    "y": 372,
+    "w": 16,
+    "h": 5
+   }
+  },
+  "PAPER_STACK middle side": {
+   "frame": {
+    "x": 23,
+    "y": 372,
+    "w": 5,
+    "h": 6
+   }
+  },
+  "PAPER_STACK middle top": {
+   "frame": {
+    "x": 29,
+    "y": 372,
+    "w": 15,
+    "h": 5
+   }
+  },
+  "PAPER_STACK book 1 side": {
+   "frame": {
+    "x": 45,
+    "y": 372,
+    "w": 4,
+    "h": 6
+   }
+  },
+  "PAPER_STACK book 1 top": {
+   "frame": {
+    "x": 50,
+    "y": 372,
+    "w": 7,
+    "h": 4
+   }
+  },
+  "PAPER_STACK book 2 side": {
+   "frame": {
+    "x": 58,
+    "y": 372,
+    "w": 4,
+    "h": 6
+   }
+  },
+  "PAPER_STACK book 2 top": {
+   "frame": {
+    "x": 63,
+    "y": 372,
+    "w": 7,
+    "h": 4
+   }
+  },
+  "PAPER_STACK casket side": {
+   "frame": {
+    "x": 71,
+    "y": 372,
+    "w": 3,
+    "h": 5
+   }
+  },
+  "PAPER_STACK casket top": {
+   "frame": {
+    "x": 75,
+    "y": 372,
+    "w": 10,
+    "h": 3
+   }
+  },
+  "SCROLL_PILE basket side": {
+   "frame": {
+    "x": 0,
+    "y": 380,
+    "w": 5,
+    "h": 7
+   }
+  },
+  "SCROLL_PILE basket top": {
+   "frame": {
+    "x": 6,
+    "y": 380,
+    "w": 18,
+    "h": 5
+   }
+  },
+  "SCROLL_PILE scroll 1 top": {
+   "frame": {
+    "x": 25,
+    "y": 380,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE scroll 2 top": {
+   "frame": {
+    "x": 30,
+    "y": 380,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE scroll 3 top": {
+   "frame": {
+    "x": 35,
+    "y": 380,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE scroll 4 side": {
+   "frame": {
+    "x": 40,
+    "y": 380,
+    "w": 2,
+    "h": 5
+   }
+  },
+  "SCROLL_PILE scroll 4 top": {
+   "frame": {
+    "x": 43,
+    "y": 380,
+    "w": 6,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE roll side": {
+   "frame": {
+    "x": 50,
+    "y": 380,
+    "w": 2,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE roll top": {
+   "frame": {
+    "x": 53,
+    "y": 380,
+    "w": 17,
+    "h": 2
+   }
+  },
+  "SCROLL_PILE roll 2 side": {
+   "frame": {
+    "x": 71,
+    "y": 380,
+    "w": 2,
+    "h": 4
+   }
+  },
+  "SCROLL_PILE roll 2 top": {
+   "frame": {
+    "x": 74,
+    "y": 380,
+    "w": 15,
+    "h": 2
+   }
+  },
+  "GATE base side": {
+   "frame": {
+    "x": 0,
+    "y": 388,
+    "w": 13,
+    "h": 3
+   }
+  },
+  "GATE base top": {
+   "frame": {
+    "x": 14,
+    "y": 388,
+    "w": 64,
+    "h": 13
+   }
+  },
+  "GATE step side": {
+   "frame": {
+    "x": 79,
+    "y": 388,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "GATE step top": {
+   "frame": {
+    "x": 91,
+    "y": 388,
+    "w": 60,
+    "h": 11
+   }
+  },
+  "GATE pier L side": {
+   "frame": {
+    "x": 152,
+    "y": 388,
+    "w": 7,
+    "h": 29
+   }
+  },
+  "GATE pier L top": {
+   "frame": {
+    "x": 160,
+    "y": 388,
+    "w": 13,
+    "h": 7
+   }
+  },
+  "GATE pier R side": {
+   "frame": {
+    "x": 174,
+    "y": 388,
+    "w": 7,
+    "h": 29
+   }
+  },
+  "GATE pier R top": {
+   "frame": {
+    "x": 182,
+    "y": 388,
+    "w": 13,
+    "h": 7
+   }
+  },
+  "GATE haunch L rim": {
+   "frame": {
+    "x": 196,
+    "y": 388,
+    "w": 10,
+    "h": 15
+   }
+  },
+  "GATE haunch R rim": {
+   "frame": {
+    "x": 207,
+    "y": 388,
+    "w": 10,
+    "h": 15
+   }
+  },
+  "GATE crown rim": {
+   "frame": {
+    "x": 218,
+    "y": 388,
+    "w": 42,
+    "h": 10
+   }
+  },
+  "GATE keystone rim": {
+   "frame": {
+    "x": 261,
+    "y": 388,
+    "w": 12,
+    "h": 11
+   }
+  },
+  "GATE leaves side": {
+   "frame": {
+    "x": 274,
+    "y": 388,
+    "w": 1,
+    "h": 44
+   }
+  },
+  "GATE leaves top": {
+   "frame": {
+    "x": 276,
+    "y": 388,
+    "w": 32,
+    "h": 1
+   }
+  }
+ },
+ "meta": {
+  "app": "face sheets (ui/faces.js)",
+  "image": "faces.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 508,
+   "h": 432
+  },
+  "palette": "key.gpl",
+  "anchors": {},
+  "note": "Arcane Tower: hand-edited source (faces.png in the key palette and this file), no generator. Format: ui/faces.js header. Rects cut to this world's frames (flat view exact); a new frame goes into faces.png and its rect into frames here.",
+  "objects": {
+   "DESK": {
+    "front": [
+     0,
+     25,
+     64,
+     17
+    ],
+    "d": 24,
+    "details": [
+     {
+      "name": "band",
+      "rect": [
+       0,
+       17,
+       38,
+       8
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 24
+     },
+     {
+      "name": "band 2",
+      "rect": [
+       23,
+       17,
+       13,
+       8
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 24,
+      "u": 38
+     },
+     {
+      "name": "band 3",
+      "rect": [
+       23,
+       17,
+       13,
+       8
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 24,
+      "u": 51
+     },
+     {
+      "name": "chest",
+      "rect": [
+       0,
+       11,
+       6,
+       6
+      ],
+      "kind": "box",
+      "v": 15,
+      "d": 6
+     },
+     {
+      "name": "book",
+      "rect": [
+       6,
+       3,
+       31,
+       14
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 5
+     },
+     {
+      "name": "clasp",
+      "rect": [
+       18,
+       1,
+       9,
+       2
+      ],
+      "kind": "box",
+      "v": 9,
+      "d": 3
+     },
+     {
+      "name": "inkpot",
+      "rect": [
+       38,
+       20,
+       6,
+       5
+      ],
+      "kind": "cyl",
+      "v": 20,
+      "z": 25
+     },
+     {
+      "name": "quill",
+      "rect": [
+       40,
+       9,
+       7,
+       8
+      ],
+      "kind": "box",
+      "v": 19,
+      "d": 2,
+      "z": 29
+     },
+     {
+      "name": "flask",
+      "rect": [
+       46,
+       12,
+       5,
+       9
+      ],
+      "kind": "cyl",
+      "v": 21,
+      "z": 25
+     },
+     {
+      "name": "dish",
+      "rect": [
+       53,
+       20,
+       11,
+       4
+      ],
+      "kind": "cyl",
+      "v": 19,
+      "z": 25
+     },
+     {
+      "name": "candle base",
+      "rect": [
+       55,
+       17,
+       6,
+       3
+      ],
+      "kind": "cyl",
+      "v": 19,
+      "z": 29
+     },
+     {
+      "name": "candle",
+      "rect": [
+       55,
+       12,
+       7,
+       5
+      ],
+      "kind": "cyl",
+      "v": 19,
+      "z": 32
+     },
+     {
+      "name": "flame",
+      "rect": [
+       56,
+       6,
+       4,
+       6
+      ],
+      "kind": "bill",
+      "v": 19,
+      "z": 37
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "items over the front edge",
+      "rect": [
+       38,
+       17,
+       26,
+       8
+      ]
+     }
+    ]
+   },
+   "LECTERN": {
+    "front": [
+     4,
+     38,
+     36,
+     4
+    ],
+    "d": 20,
+    "details": [
+     {
+      "name": "stem",
+      "rect": [
+       17,
+       34,
+       10,
+       4
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 8
+     },
+     {
+      "name": "drawer",
+      "rect": [
+       4,
+       28,
+       36,
+       6
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 16
+     },
+     {
+      "name": "shelf",
+      "rect": [
+       1,
+       24,
+       42,
+       4
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 20
+     },
+     {
+      "name": "stand",
+      "rect": [
+       2,
+       4,
+       30,
+       20
+      ],
+      "kind": "box",
+      "v": 7,
+      "d": 6
+     },
+     {
+      "name": "board end",
+      "rect": [
+       32,
+       4,
+       4,
+       5
+      ],
+      "kind": "box",
+      "v": 7,
+      "d": 6
+     },
+     {
+      "name": "post",
+      "rect": [
+       32,
+       12,
+       10,
+       12
+      ],
+      "kind": "box",
+      "v": 9,
+      "d": 8
+     },
+     {
+      "name": "dish",
+      "rect": [
+       32,
+       9,
+       12,
+       3
+      ],
+      "kind": "cyl",
+      "v": 13
+     },
+     {
+      "name": "candle",
+      "rect": [
+       35,
+       5,
+       7,
+       4
+      ],
+      "kind": "cyl",
+      "v": 13
+     },
+     {
+      "name": "flame",
+      "rect": [
+       36,
+       0,
+       4,
+       5
+      ],
+      "kind": "bill",
+      "v": 13
+     }
+    ]
+   },
+   "CONSOLE": {
+    "front": [
+     8,
+     14,
+     12,
+     6
+    ],
+    "d": 10,
+    "details": [
+     {
+      "name": "tray",
+      "rect": [
+       18,
+       15,
+       9,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 6
+     },
+     {
+      "name": "cup",
+      "rect": [
+       6,
+       12,
+       14,
+       2
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "crystal",
+      "rect": [
+       6,
+       3,
+       15,
+       9
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "crystal cap",
+      "rect": [
+       9,
+       0,
+       10,
+       3
+      ],
+      "kind": "cyl",
+      "v": 5
+     }
+    ]
+   },
+   "SHELF": {
+    "front": [
+     0,
+     0,
+     64,
+     42
+    ],
+    "d": 10,
+    "recess": [
+     {
+      "name": "shelf 1",
+      "rect": [
+       4,
+       5,
+       56,
+       10
+      ],
+      "depth": 4,
+      "wall": "W"
+     },
+     {
+      "name": "shelf 2",
+      "rect": [
+       4,
+       17,
+       56,
+       11
+      ],
+      "depth": 4,
+      "wall": "W"
+     },
+     {
+      "name": "shelf 3",
+      "rect": [
+       4,
+       30,
+       56,
+       9
+      ],
+      "depth": 4,
+      "wall": "W"
+     }
+    ]
+   },
+   "COGITATOR": {
+    "front": [
+     4,
+     94,
+     156,
+     4
+    ],
+    "d": 26,
+    "details": [
+     {
+      "name": "wall",
+      "rect": [
+       28,
+       16,
+       107,
+       78
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 14,
+      "recess": [
+       {
+        "name": "arch",
+        "rect": [
+         65,
+         29,
+         33,
+         32
+        ],
+        "depth": 3,
+        "wall": "k"
+       },
+       {
+        "name": "arch L",
+        "rect": [
+         33,
+         28,
+         24,
+         18
+        ],
+        "depth": 3,
+        "wall": "k"
+       },
+       {
+        "name": "arch R",
+        "rect": [
+         107,
+         28,
+         24,
+         18
+        ],
+        "depth": 3,
+        "wall": "k"
+       }
+      ]
+     },
+     {
+      "name": "shaft L",
+      "rect": [
+       8,
+       24,
+       22,
+       70
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 20
+     },
+     {
+      "name": "shaft R",
+      "rect": [
+       134,
+       24,
+       21,
+       70
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 20
+     },
+     {
+      "name": "cap L",
+      "rect": [
+       7,
+       20,
+       23,
+       4
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 22
+     },
+     {
+      "name": "cap R",
+      "rect": [
+       134,
+       20,
+       22,
+       4
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 22
+     },
+     {
+      "name": "counter",
+      "rect": [
+       22,
+       69,
+       120,
+       25
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 22
+     },
+     {
+      "name": "rune 1",
+      "rect": [
+       10,
+       24,
+       17,
+       17
+      ],
+      "kind": "disc",
+      "v": 21,
+      "t": 2,
+      "round": true
+     },
+     {
+      "name": "rune 2",
+      "rect": [
+       10,
+       46,
+       17,
+       17
+      ],
+      "kind": "disc",
+      "v": 21,
+      "t": 2,
+      "round": true
+     },
+     {
+      "name": "rune 3",
+      "rect": [
+       136,
+       24,
+       17,
+       17
+      ],
+      "kind": "disc",
+      "v": 21,
+      "t": 2,
+      "round": true
+     },
+     {
+      "name": "rune 4",
+      "rect": [
+       136,
+       46,
+       17,
+       17
+      ],
+      "kind": "disc",
+      "v": 21,
+      "t": 2,
+      "round": true
+     },
+     {
+      "name": "crystals L",
+      "rect": [
+       13,
+       6,
+       12,
+       14
+      ],
+      "kind": "spire",
+      "v": 8,
+      "parts": [
+       {
+        "name": "base",
+        "rect": [
+         14,
+         17,
+         11,
+         3
+        ],
+        "kind": "box",
+        "v": 7,
+        "d": 9
+       },
+       {
+        "name": "A",
+        "rect": [
+         13,
+         10,
+         4,
+         7
+        ],
+        "kind": "box",
+        "v": 8,
+        "d": 3
+       },
+       {
+        "name": "B",
+        "rect": [
+         16,
+         6,
+         5,
+         11
+        ],
+        "kind": "box",
+        "v": 9,
+        "d": 3
+       },
+       {
+        "name": "C",
+        "rect": [
+         21,
+         11,
+         4,
+         6
+        ],
+        "kind": "box",
+        "v": 10,
+        "d": 3
+       }
+      ]
+     },
+     {
+      "name": "crystals R",
+      "rect": [
+       138,
+       6,
+       12,
+       14
+      ],
+      "kind": "spire",
+      "v": 8,
+      "parts": [
+       {
+        "name": "base",
+        "rect": [
+         138,
+         17,
+         11,
+         3
+        ],
+        "kind": "box",
+        "v": 7,
+        "d": 9
+       },
+       {
+        "name": "A",
+        "rect": [
+         138,
+         11,
+         4,
+         6
+        ],
+        "kind": "box",
+        "v": 8,
+        "d": 3
+       },
+       {
+        "name": "B",
+        "rect": [
+         142,
+         6,
+         5,
+         11
+        ],
+        "kind": "box",
+        "v": 9,
+        "d": 3
+       },
+       {
+        "name": "C",
+        "rect": [
+         146,
+         10,
+         4,
+         7
+        ],
+        "kind": "box",
+        "v": 10,
+        "d": 3
+       }
+      ]
+     },
+     {
+      "name": "lantern L",
+      "rect": [
+       39,
+       3,
+       11,
+       13
+      ],
+      "kind": "spire",
+      "v": 8,
+      "parts": [
+       {
+        "name": "foot",
+        "rect": [
+         41,
+         15,
+         8,
+         1
+        ],
+        "kind": "box",
+        "v": 9,
+        "d": 4
+       },
+       {
+        "name": "stem",
+        "rect": [
+         42,
+         12,
+         5,
+         3
+        ],
+        "kind": "box",
+        "v": 10,
+        "d": 2
+       },
+       {
+        "name": "body",
+        "rect": [
+         39,
+         6,
+         11,
+         6
+        ],
+        "kind": "box",
+        "v": 8,
+        "d": 6
+       },
+       {
+        "name": "cap",
+        "rect": [
+         41,
+         3,
+         7,
+         3
+        ],
+        "kind": "box",
+        "v": 9,
+        "d": 4
+       }
+      ]
+     },
+     {
+      "name": "lantern R",
+      "rect": [
+       114,
+       3,
+       11,
+       13
+      ],
+      "kind": "spire",
+      "v": 8,
+      "parts": [
+       {
+        "name": "foot",
+        "rect": [
+         115,
+         15,
+         8,
+         1
+        ],
+        "kind": "box",
+        "v": 9,
+        "d": 4
+       },
+       {
+        "name": "stem",
+        "rect": [
+         117,
+         12,
+         5,
+         3
+        ],
+        "kind": "box",
+        "v": 10,
+        "d": 2
+       },
+       {
+        "name": "body",
+        "rect": [
+         114,
+         6,
+         11,
+         6
+        ],
+        "kind": "box",
+        "v": 8,
+        "d": 6
+       },
+       {
+        "name": "cap",
+        "rect": [
+         116,
+         3,
+         7,
+         3
+        ],
+        "kind": "box",
+        "v": 9,
+        "d": 4
+       }
+      ]
+     },
+     {
+      "name": "stand",
+      "rect": [
+       71,
+       15,
+       20,
+       1
+      ],
+      "kind": "box",
+      "v": 5,
+      "d": 6
+     },
+     {
+      "name": "armillary",
+      "rect": [
+       73,
+       0,
+       18,
+       15
+      ],
+      "kind": "disc",
+      "v": 7,
+      "t": 2
+     }
+    ]
+   },
+   "CRATE": {
+    "front": [
+     0,
+     9,
+     28,
+     15
+    ],
+    "d": 18,
+    "details": [
+     {
+      "name": "lid",
+      "rect": [
+       0,
+       1,
+       28,
+       8
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 18
+     }
+    ]
+   },
+   "TABLE": {
+    "front": [
+     0,
+     11,
+     92,
+     5
+    ],
+    "d": 26,
+    "details": [
+     {
+      "name": "bowl 1",
+      "rect": [
+       15,
+       3,
+       6,
+       4
+      ],
+      "kind": "cyl",
+      "v": 11,
+      "z": 5
+     },
+     {
+      "name": "basket",
+      "rect": [
+       27,
+       3,
+       7,
+       3
+      ],
+      "kind": "cyl",
+      "v": 9,
+      "z": 5
+     },
+     {
+      "name": "bowl 2",
+      "rect": [
+       43,
+       3,
+       6,
+       4
+      ],
+      "kind": "cyl",
+      "v": 11,
+      "z": 5
+     },
+     {
+      "name": "holder",
+      "rect": [
+       55,
+       3,
+       5,
+       2
+      ],
+      "kind": "cyl",
+      "v": 7,
+      "z": 5
+     },
+     {
+      "name": "candle",
+      "rect": [
+       56,
+       1,
+       3,
+       2
+      ],
+      "kind": "cyl",
+      "v": 7,
+      "z": 7
+     },
+     {
+      "name": "flame",
+      "rect": [
+       57,
+       0,
+       1,
+       1
+      ],
+      "kind": "bill",
+      "v": 7,
+      "z": 9
+     },
+     {
+      "name": "bowl 3",
+      "rect": [
+       71,
+       3,
+       6,
+       4
+      ],
+      "kind": "cyl",
+      "v": 11,
+      "z": 5
+     },
+     {
+      "name": "apple 1",
+      "rect": [
+       82,
+       4,
+       4,
+       3
+      ],
+      "kind": "cyl",
+      "v": 9,
+      "z": 5
+     },
+     {
+      "name": "apple 2",
+      "rect": [
+       86,
+       5,
+       4,
+       3
+      ],
+      "kind": "cyl",
+      "v": 13,
+      "z": 5
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "table top",
+      "rect": [
+       0,
+       0,
+       92,
+       11
+      ]
+     }
+    ]
+   },
+   "BENCH": {
+    "front": [
+     0,
+     4,
+     92,
+     4
+    ],
+    "d": 9,
+    "flatOnly": [
+     {
+      "name": "seat",
+      "rect": [
+       0,
+       0,
+       92,
+       4
+      ]
+     }
+    ]
+   },
+   "RECAFF": {
+    "front": [
+     2,
+     18,
+     28,
+     18
+    ],
+    "d": 16,
+    "recess": [
+     {
+      "name": "grate",
+      "rect": [
+       6,
+       23,
+       19,
+       5
+      ],
+      "depth": 3,
+      "wall": "k",
+      "floorColour": "n"
+     }
+    ],
+    "details": [
+     {
+      "name": "chimney",
+      "rect": [
+       21,
+       0,
+       6,
+       18
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "kettle",
+      "rect": [
+       7,
+       12,
+       13,
+       6
+      ],
+      "kind": "cyl",
+      "v": 9
+     },
+     {
+      "name": "spout",
+      "rect": [
+       3,
+       12,
+       5,
+       6
+      ],
+      "kind": "box",
+      "v": 11,
+      "d": 2
+     },
+     {
+      "name": "handle",
+      "rect": [
+       9,
+       9,
+       8,
+       3
+      ],
+      "kind": "box",
+      "v": 9,
+      "d": 1
+     }
+    ]
+   },
+   "LORD_DESK": {
+    "front": [
+     0,
+     11,
+     88,
+     15
+    ],
+    "d": 26,
+    "details": [
+     {
+      "name": "stand",
+      "rect": [
+       5,
+       6,
+       9,
+       4
+      ],
+      "kind": "cyl",
+      "v": 9,
+      "z": 15
+     },
+     {
+      "name": "crystal",
+      "rect": [
+       5,
+       0,
+       9,
+       6
+      ],
+      "kind": "disc",
+      "v": 7,
+      "t": 3,
+      "z": 19,
+      "round": true
+     },
+     {
+      "name": "books",
+      "rect": [
+       16,
+       3,
+       10,
+       7
+      ],
+      "kind": "box",
+      "v": 7,
+      "d": 10,
+      "z": 15
+     },
+     {
+      "name": "spellbook",
+      "rect": [
+       29,
+       0,
+       31,
+       10
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 4,
+      "z": 15
+     },
+     {
+      "name": "pot",
+      "rect": [
+       63,
+       6,
+       7,
+       4
+      ],
+      "kind": "cyl",
+      "v": 11,
+      "z": 15
+     },
+     {
+      "name": "quill",
+      "rect": [
+       64,
+       0,
+       7,
+       6
+      ],
+      "kind": "box",
+      "v": 10,
+      "d": 1,
+      "z": 19
+     },
+     {
+      "name": "potion",
+      "rect": [
+       72,
+       4,
+       8,
+       6
+      ],
+      "kind": "cyl",
+      "v": 12,
+      "z": 15
+     },
+     {
+      "name": "potion neck",
+      "rect": [
+       74,
+       0,
+       4,
+       4
+      ],
+      "kind": "cyl",
+      "v": 12,
+      "z": 21
+     },
+     {
+      "name": "jar",
+      "rect": [
+       81,
+       4,
+       6,
+       6
+      ],
+      "kind": "cyl",
+      "v": 14,
+      "z": 15
+     },
+     {
+      "name": "jar neck",
+      "rect": [
+       82,
+       1,
+       4,
+       3
+      ],
+      "kind": "cyl",
+      "v": 14,
+      "z": 21
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "desk top edge",
+      "rect": [
+       0,
+       10,
+       88,
+       1
+      ]
+     }
+    ]
+   },
+   "THRONE": {
+    "front": [
+     2,
+     28,
+     36,
+     12
+    ],
+    "d": 24,
+    "details": [
+     {
+      "name": "cushion",
+      "rect": [
+       0,
+       24,
+       40,
+       4
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 20
+     },
+     {
+      "name": "arm L",
+      "rect": [
+       0,
+       18,
+       9,
+       6
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 16
+     },
+     {
+      "name": "arm R",
+      "rect": [
+       31,
+       18,
+       9,
+       6
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 16
+     },
+     {
+      "name": "back",
+      "rect": [
+       8,
+       4,
+       24,
+       20
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 4
+     },
+     {
+      "name": "crest",
+      "rect": [
+       11,
+       0,
+       18,
+       4
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 4
+     },
+     {
+      "name": "post L",
+      "rect": [
+       4,
+       0,
+       4,
+       18
+      ],
+      "kind": "cyl",
+      "v": 12
+     },
+     {
+      "name": "post R",
+      "rect": [
+       33,
+       0,
+       4,
+       18
+      ],
+      "kind": "cyl",
+      "v": 12
+     }
+    ]
+   },
+   "COG_MECH": {
+    "details": [
+     {
+      "name": "wheel",
+      "rect": [
+       0,
+       0,
+       40,
+       36
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 3
+     }
+    ]
+   },
+   "SEAL": {
+    "details": [
+     {
+      "name": "hook",
+      "rect": [
+       4,
+       0,
+       4,
+       4
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 2
+     },
+     {
+      "name": "orb",
+      "rect": [
+       0,
+       4,
+       12,
+       10
+      ],
+      "kind": "disc",
+      "v": 0,
+      "t": 3
+     },
+     {
+      "name": "drop",
+      "rect": [
+       4,
+       14,
+       5,
+       6
+      ],
+      "kind": "cyl",
+      "v": 1
+     }
+    ]
+   },
+   "GAUGE": {
+    "details": [
+     {
+      "name": "cap",
+      "rect": [
+       0,
+       0,
+       12,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 8
+     },
+     {
+      "name": "glass",
+      "rect": [
+       1,
+       3,
+       10,
+       6
+      ],
+      "kind": "cyl",
+      "v": 6
+     },
+     {
+      "name": "foot",
+      "rect": [
+       0,
+       9,
+       12,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 8
+     }
+    ]
+   },
+   "CENSER": {
+    "details": [
+     {
+      "name": "chain",
+      "rect": [
+       4,
+       0,
+       2,
+       5
+      ],
+      "kind": "bill",
+      "v": 5
+     },
+     {
+      "name": "cap",
+      "rect": [
+       1,
+       5,
+       8,
+       4
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "body",
+      "rect": [
+       0,
+       9,
+       10,
+       7
+      ],
+      "kind": "cyl",
+      "v": 5
+     },
+     {
+      "name": "bottom",
+      "rect": [
+       0,
+       16,
+       10,
+       4
+      ],
+      "kind": "cyl",
+      "v": 5
+     }
+    ]
+   },
+   "CANDLES": {
+    "details": [
+     {
+      "name": "dish",
+      "rect": [
+       0,
+       14,
+       24,
+       4
+      ],
+      "kind": "cyl",
+      "v": 10
+     },
+     {
+      "name": "candle 1",
+      "rect": [
+       5,
+       6,
+       5,
+       8
+      ],
+      "kind": "cyl",
+      "v": 9
+     },
+     {
+      "name": "candle 2",
+      "rect": [
+       10,
+       5,
+       4,
+       9
+      ],
+      "kind": "cyl",
+      "v": 7
+     },
+     {
+      "name": "candle 3",
+      "rect": [
+       14,
+       8,
+       5,
+       6
+      ],
+      "kind": "cyl",
+      "v": 10
+     },
+     {
+      "name": "candle 4",
+      "rect": [
+       1,
+       10,
+       4,
+       4
+      ],
+      "kind": "cyl",
+      "v": 13
+     },
+     {
+      "name": "candle 5",
+      "rect": [
+       19,
+       12,
+       4,
+       2
+      ],
+      "kind": "cyl",
+      "v": 14
+     },
+     {
+      "name": "flame 1",
+      "rect": [
+       6,
+       1,
+       3,
+       4
+      ],
+      "kind": "bill",
+      "v": 9,
+      "z": 12
+     },
+     {
+      "name": "flame 2",
+      "rect": [
+       11,
+       0,
+       3,
+       4
+      ],
+      "kind": "bill",
+      "v": 7,
+      "z": 13
+     },
+     {
+      "name": "flame 3",
+      "rect": [
+       15,
+       3,
+       3,
+       4
+      ],
+      "kind": "bill",
+      "v": 10,
+      "z": 10
+     },
+     {
+      "name": "flame 4",
+      "rect": [
+       3,
+       5,
+       2,
+       4
+      ],
+      "kind": "bill",
+      "v": 13,
+      "z": 8
+     },
+     {
+      "name": "flame 5",
+      "rect": [
+       20,
+       7,
+       3,
+       4
+      ],
+      "kind": "bill",
+      "v": 14,
+      "z": 6
+     }
+    ],
+    "flatOnly": [
+     {
+      "name": "candle 1 rim",
+      "rect": [
+       5,
+       5,
+       5,
+       1
+      ]
+     },
+     {
+      "name": "candle 2 rim",
+      "rect": [
+       10,
+       4,
+       4,
+       1
+      ]
+     },
+     {
+      "name": "candle 3 rim",
+      "rect": [
+       14,
+       7,
+       5,
+       1
+      ]
+     },
+     {
+      "name": "candle 4 rim",
+      "rect": [
+       2,
+       9,
+       4,
+       1
+      ]
+     },
+     {
+      "name": "candle 5 rim",
+      "rect": [
+       19,
+       11,
+       4,
+       1
+      ]
+     }
+    ]
+   },
+   "BRAZIER": {
+    "details": [
+     {
+      "name": "logs",
+      "rect": [
+       0,
+       20,
+       20,
+       6
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 14
+     },
+     {
+      "name": "fire",
+      "rect": [
+       0,
+       15,
+       20,
+       5
+      ],
+      "kind": "bill",
+      "v": 9
+     },
+     {
+      "name": "cauldron",
+      "rect": [
+       1,
+       4,
+       18,
+       13
+      ],
+      "kind": "cyl",
+      "v": 9
+     },
+     {
+      "name": "bubbles",
+      "rect": [
+       5,
+       1,
+       9,
+       3
+      ],
+      "kind": "bill",
+      "v": 9
+     }
+    ]
+   },
+   "BOOKS": {
+    "details": [
+     {
+      "name": "tome",
+      "rect": [
+       0,
+       11,
+       20,
+       7
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 12
+     },
+     {
+      "name": "blue",
+      "rect": [
+       0,
+       8,
+       19,
+       3
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 10
+     },
+     {
+      "name": "book 1",
+      "rect": [
+       0,
+       1,
+       9,
+       7
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 4
+     },
+     {
+      "name": "book 2",
+      "rect": [
+       9,
+       1,
+       9,
+       7
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 4
+     }
+    ]
+   },
+   "PAPER_STACK": {
+    "details": [
+     {
+      "name": "base",
+      "rect": [
+       0,
+       17,
+       16,
+       7
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 12
+     },
+     {
+      "name": "middle",
+      "rect": [
+       1,
+       11,
+       15,
+       6
+      ],
+      "kind": "box",
+      "v": 1,
+      "d": 10
+     },
+     {
+      "name": "book 1",
+      "rect": [
+       1,
+       5,
+       7,
+       6
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 8
+     },
+     {
+      "name": "book 2",
+      "rect": [
+       8,
+       5,
+       7,
+       6
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 8
+     },
+     {
+      "name": "casket",
+      "rect": [
+       3,
+       0,
+       10,
+       5
+      ],
+      "kind": "box",
+      "v": 3,
+      "d": 6
+     }
+    ]
+   },
+   "SCROLL_PILE": {
+    "details": [
+     {
+      "name": "basket",
+      "rect": [
+       2,
+       6,
+       18,
+       7
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 12,
+      "z": 0
+     },
+     {
+      "name": "scroll 1",
+      "rect": [
+       4,
+       1,
+       4,
+       5
+      ],
+      "kind": "cyl",
+      "v": 6,
+      "z": 7
+     },
+     {
+      "name": "scroll 2",
+      "rect": [
+       8,
+       0,
+       4,
+       6
+      ],
+      "kind": "cyl",
+      "v": 7,
+      "z": 7
+     },
+     {
+      "name": "scroll 3",
+      "rect": [
+       12,
+       2,
+       4,
+       4
+      ],
+      "kind": "cyl",
+      "v": 6,
+      "z": 7
+     },
+     {
+      "name": "scroll 4",
+      "rect": [
+       16,
+       1,
+       6,
+       5
+      ],
+      "kind": "box",
+      "v": 6,
+      "d": 3,
+      "z": 7
+     },
+     {
+      "name": "roll",
+      "rect": [
+       19,
+       10,
+       17,
+       4
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 4,
+      "z": 0
+     },
+     {
+      "name": "roll 2",
+      "rect": [
+       21,
+       6,
+       15,
+       4
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 4,
+      "z": 4
+     }
+    ]
+   },
+   "GATE": {
+    "details": [
+     {
+      "name": "base",
+      "rect": [
+       0,
+       57,
+       64,
+       3
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 30
+     },
+     {
+      "name": "step",
+      "rect": [
+       2,
+       54,
+       60,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 26
+     },
+     {
+      "name": "pier L",
+      "rect": [
+       3,
+       25,
+       13,
+       29
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 16
+     },
+     {
+      "name": "pier R",
+      "rect": [
+       48,
+       25,
+       13,
+       29
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 16
+     },
+     {
+      "name": "haunch L",
+      "rect": [
+       6,
+       10,
+       10,
+       15
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 10
+     },
+     {
+      "name": "haunch R",
+      "rect": [
+       48,
+       10,
+       10,
+       15
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 10
+     },
+     {
+      "name": "crown",
+      "rect": [
+       11,
+       0,
+       42,
+       10
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 10
+     },
+     {
+      "name": "keystone",
+      "rect": [
+       26,
+       0,
+       12,
+       11
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 12
+     },
+     {
+      "name": "leaves",
+      "rect": [
+       16,
+       10,
+       32,
+       44
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 2
+     }
+    ]
+   },
+   "LOOSE_A": {
+    "details": [
+     {
+      "name": "sheet",
+      "rect": [
+       0,
+       0,
+       10,
+       8
+      ],
+      "kind": "top",
+      "v": 0,
+      "z": 0
+     }
+    ]
+   },
+   "LOOSE_B": {
+    "details": [
+     {
+      "name": "sheet",
+      "rect": [
+       0,
+       0,
+       8,
+       10
+      ],
+      "kind": "top",
+      "v": 0,
+      "z": 0
+     }
+    ]
+   }
+  }
+ }
+}

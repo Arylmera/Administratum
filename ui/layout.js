@@ -1,8 +1,13 @@
 // Pure scene geometry, in logical pixels. Every {x, y} point is a scribe's feet.
 // The window sizes the scene (app.js): the scriptorium (west) grows both ways, the right column (refectorium
 // over sanctum) keeps its width, anchored east, and grows down. SCENE is the smallest scene, the original
-// 346x226 hall: every position below is measured on it and moved by hallOf().
-export const SCENE = { w: 346, h: 226 };
+// hall: every position below is measured on it and moved by hallOf().
+// WALL: the back wall's height (scriptorium and refectorium): the wall band 0..WALL, its foot WALL - 4..WALL, the floor
+// from WALL down. The positions here and in scene.js were measured on the original 346x226 hall with a 40 px wall:
+// whatever stands below that wall moves down by WALL_DY, and the minimum scene is WALL_DY taller.
+export const WALL = 62;
+export const WALL_DY = WALL - 40;
+export const SCENE = { w: 346, h: 226 + WALL_DY };
 export const MAX_W = 554; // ~1.6x: wider windows get bigger pixels instead of wider aisles (app.js)
 const RIGHT_W = 138; // the refectorium/sanctum column, east of the scriptorium's 8 px east wall
 const SLOT_H = 64;
@@ -13,7 +18,8 @@ export const MAX_BAYS = 6; // up to 6 more slot rows; past that, the plaque
 
 // The scene's geometry for a size {w, h} (the window's) and a number of bays (below the window, panned to).
 // dx: the scriptorium's centre (gate, cogitator bank) vs the minimum; ox: the right column; sd: the sanctum's
-// top wall (the refectorium takes ~40 % of the column); sb: the sanctum's floor items by its bottom wall.
+// top wall (the refectorium takes ~40 % of the column's floor); sb: the sanctum's floor items by its bottom wall;
+// hy: the scriptorium's by its bottom wall. sd, sb and hy are moves from the measured hall (WALL_DY included).
 const halls = new Map();
 export function hallOf(bays = 0, size = SCENE) {
   const w = Math.max(SCENE.w, Math.round(size.w)), baseH = Math.max(SCENE.h, Math.round(size.h)), key = `${w}x${baseH}:${bays}`;
@@ -22,13 +28,13 @@ export function hallOf(bays = 0, size = SCENE) {
   if (halls.size > 64) halls.clear();
   const dy = bays * BAY_H, h = baseH + dy;
   const sw = w - RIGHT_W - 8, rx = w - RIGHT_W, ox = rx - 208; // the scriptorium is 0..sw, its east wall sw..rx
-  const split = Math.max(110, Math.round(0.4 * baseH)), sd = split - 110, sb = baseH - SCENE.h;
-  const x0 = 3, x1 = sw - 3, y0 = 58, y1 = h - 30, aisleY = h - 20, corridorX = sw - 10;
-  const entry = { x: x0 + Math.floor((x1 - x0) / 2), y: h - 2 }, dx = entry.x - 100, hy = h - SCENE.h;
+  const D = WALL_DY, split = Math.max(110, Math.round(0.4 * (baseH - D))) + D, sd = split - 110, sb = baseH - SCENE.h + D;
+  const x0 = 3, x1 = sw - 3, y0 = WALL + 18, y1 = h - 30, aisleY = h - 20, corridorX = sw - 10;
+  const entry = { x: x0 + Math.floor((x1 - x0) / 2), y: h - 2 }, dx = entry.x - 100, hy = h - SCENE.h + D;
   const rows = Math.floor((y1 - y0 + 8) / SLOT_H); // slot rows the hall holds
   // Refectorium: a table + bench pair every 24 px down the room; spots row by row (a napper keeps its index).
-  const pairs = Math.floor((split - 76) / 24) + 1;
-  const refectory = Array.from({ length: pairs }, (_, k) => [271, 285, 299].map(x => ({ x: x + ox, y: 66 + 24 * k }))).flat();
+  const pairs = Math.floor((split - D - 76) / 24) + 1;
+  const refectory = Array.from({ length: pairs }, (_, k) => [271, 285, 299].map(x => ({ x: x + ox, y: 66 + D + 24 * k }))).flat();
   // The petition line: before the Magos's desk, then rows snaking down the sanctum, then the hall's bottom aisle
   // (round the gate) when the sanctum is full.
   const queue = [{ x: 276, y: 187 }, { x: 248, y: 189 }, { x: 220, y: 189 }].map(q => ({ x: q.x + ox, y: q.y + sd }));
@@ -40,16 +46,16 @@ export function hallOf(bays = 0, size = SCENE) {
   for (let x = corridorX - 28; x - entry.x >= 36; x -= 22) queue.push({ x, y: 217 + hy });
   for (let x = entry.x - 40; x >= 38; x -= 22) queue.push({ x, y: 217 + hy });
   H = {
-    bays, dy, w, h, baseH, sw, rx, ox, dx, split, sd, sb, rows,
+    bays, dy, w, h, baseH, sw, rx, ox, dx, split, sd, sb, hy, rows,
     x0, x1, y0, y1, aisleY, corridorX, entry,
     // Walk lanes: horizontal ones above the desks, in the gap under each slot row (desk-free in every layout,
     // see layoutDepartments: slot rows start at y0 + 64k) and the bottom aisle; one vertical corridor east of
     // every desk, which also holds both doorways' hall side.
     lanes: [y0, ...Array.from({ length: rows }, (_, k) => y0 + 60 + k * SLOT_H), aisleY],
     doorOut: { x: corridorX, y: 172 + sd }, doorIn: { x: 214 + ox, y: 172 + sd }, // scriptorium <-> sanctum
-    refOut: { x: corridorX, y: 92 }, refIn: { x: 216 + ox, y: 92 }, // scriptorium <-> refectorium
-    recaff: { x: 222 + ox, y: 48 }, refectory, // idle scribes stop at the recaff, then doze on a bench
-    cogSpots: [127, 142, 157, 172, 187].map(x => ({ x: x + dx, y: 57 })), // along the cogitator bank's front desk (y 40..51)
+    refOut: { x: corridorX, y: 92 + D }, refIn: { x: 216 + ox, y: 92 + D }, // scriptorium <-> refectorium
+    recaff: { x: 222 + ox, y: 48 + D }, refectory, // idle scribes stop at the recaff, then doze on a bench
+    cogSpots: [127, 142, 157, 172, 187].map(x => ({ x: x + dx, y: WALL + 17 })), // along the cogitator bank's front desk (y WALL..WALL + 11)
     queue,
   };
   halls.set(key, H);
@@ -58,7 +64,7 @@ export function hallOf(bays = 0, size = SCENE) {
 // The minimum scene's points, by their old names.
 export const { entry: ENTRY, aisleY: AISLE_Y, doorOut: DOOR_OUT, doorIn: DOOR_IN, refOut: REF_OUT, refIn: REF_IN, recaff: RECAFF_SPOT,
   refectory: REFECTORY_SPOTS, cogSpots: COG_SPOTS, queue: QUEUE_SLOTS } = hallOf(0);
-export const HALL = { x0: 3, x1: 197, y0: 58, y1: 196 };
+export const HALL = { x0: 3, x1: 197, y0: WALL + 18, y1: SCENE.h - 30 };
 
 // Slot grids: normal desks 4 per row; compact lecterns (22 wide) 6 per row, same row height so the lanes hold.
 // Console grid inside an adept slot: 2x2 cells; console (14x10) top-left of its cell, adept feet below it.

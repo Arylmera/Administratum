@@ -49,6 +49,25 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/orbital/magos.png` | <img src="orbital/MAGOS.png" height="160"> |
 | <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/orbital/magos.png` | <img src="orbital/MAGOS.arm.png" height="160"> |
 
+## 39° characters
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="scribe39-e"></a>`SCRIBE39.E` | 16×17 | SCRIBE39, 39° view, walking E, 3 frames. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.E.png" height="136"> |
+| <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.W.png" height="136"> |
+| <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.S.png" height="136"> |
+| <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.N.png" height="136"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.armL.png" height="64"> |
+| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/orbital/scribe39.png` | <img src="orbital/SCRIBE39.scroll.png" height="56"> |
+| <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/orbital/adept39.png` | <img src="orbital/ADEPT39.E.png" height="112"> |
+| <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/orbital/adept39.png` | <img src="orbital/ADEPT39.W.png" height="112"> |
+| <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/orbital/adept39.png` | <img src="orbital/ADEPT39.S.png" height="112"> |
+| <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/orbital/adept39.png` | <img src="orbital/ADEPT39.N.png" height="112"> |
+| <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/orbital/magos39.png` | <img src="orbital/MAGOS39.body.png" height="160"> |
+| <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/orbital/magos39.png` | <img src="orbital/MAGOS39.arm.png" height="160"> |
+| <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/orbital/skull39.png` | <img src="orbital/SKULL39.skull.png" height="80"> |
+
 ## Props and furniture
 
 | Sprite | Logical size | Notes | Image |
@@ -61,37 +80,41 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/orbital/workstations.png` | <img src="orbital/LECTERN.unlit.png" height="160"> |
 | <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/orbital/workstations.png`, drawn by scene.js | <img src="orbital/CONSOLE.png" height="80"> |
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/orbital/workstations.png` | <img src="orbital/CONSOLE.unlit.png" height="80"> |
-| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/orbital/cogitator.png`, drawn by scene.js | <img src="orbital/COGITATOR.png" height="160"> |
-| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/THRONE.png" height="160"> |
-| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/LORD_DESK.png" height="104"> |
-| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/COG_MECH.png" height="144"> |
+| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/orbital/cogitator.png`, drawn by isohall.js, scene.js, scene39.js | <img src="orbital/COGITATOR.png" height="160"> |
+| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/orbital/sanctum.png`, drawn by isohall.js, scene.js | <img src="orbital/THRONE.png" height="160"> |
+| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/orbital/sanctum.png`, drawn by isohall.js, scene.js | <img src="orbital/LORD_DESK.png" height="104"> |
+| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/orbital/sanctum.png`, drawn by isohall.js, scene.js | <img src="orbital/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/orbital/sanctum.png`, drawn by scene.js | <img src="orbital/SEAL.png" height="80"> |
-| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/orbital/gate.png`, drawn by scene.js | <img src="orbital/GATE_VOID.png" height="160"> |
-| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/orbital/refectorium.png`, drawn by scene.js | <img src="orbital/RECAFF.png" height="144"> |
-| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/orbital/refectorium.png`, drawn by scene.js | <img src="orbital/TABLE.png" height="64"> |
-| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/orbital/refectorium.png`, drawn by scene.js | <img src="orbital/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/orbital/walls.png`, drawn by scene.js, theme.js | <img src="orbital/WINDOW.png" height="136"> |
+| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/orbital/gate.png`, drawn by isohall.js, scene.js | <img src="orbital/GATE.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/orbital/gate.png`, drawn by scene.js, scene39.js | <img src="orbital/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/orbital/gate.png`, drawn by scene.js, scene39.js | <img src="orbital/GATE_R.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/orbital/gate.png`, drawn by scene.js, scene39.js | <img src="orbital/GATE_VOID.png" height="160"> |
+| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/orbital/refectorium.png`, drawn by isohall.js, scene.js | <img src="orbital/RECAFF.png" height="144"> |
+| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/orbital/refectorium.png`, drawn by isohall.js, scene.js | <img src="orbital/TABLE.png" height="64"> |
+| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/orbital/refectorium.png`, drawn by isohall.js, scene.js | <img src="orbital/BENCH.png" height="32"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/orbital/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="orbital/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/orbital/walls.png` | <img src="orbital/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/orbital/walls.png` | <img src="orbital/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/BANNER.png" height="120"> |
-| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/SHELF.png" height="160"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/orbital/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="orbital/BANNER.png" height="120"> |
+| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/orbital/walls.png`, drawn by isohall.js, scene.js | <img src="orbital/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/GAUGE.png" height="48"> |
-| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/orbital/walls.png`, drawn by scene.js | <img src="orbital/CENSER.png" height="80"> |
-| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/orbital/clutter.png`, drawn by scene.js | <img src="orbital/PAPER_STACK.png" height="96"> |
+| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/orbital/walls.png`, drawn by isohall.js, scene.js | <img src="orbital/CENSER.png" height="80"> |
+| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/orbital/walls.png`, drawn by wallart.js | <img src="orbital/WINDOW_TALL.png" height="160"> |
+| <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/orbital/walls.png` | <img src="orbital/WINDOW_TALL.day.png" height="160"> |
+| <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/orbital/walls.png` | <img src="orbital/WINDOW_TALL.night.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/orbital/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="orbital/HANGING.png" height="160"> |
+| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/orbital/clutter.png`, drawn by isohall.js, scene.js | <img src="orbital/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/orbital/clutter.png`, drawn by scene.js | <img src="orbital/SCROLL_PILE.png" height="56"> |
-| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/orbital/clutter.png`, drawn by scene.js | <img src="orbital/BOOKS.png" height="72"> |
+| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/orbital/clutter.png`, drawn by isohall.js, scene.js | <img src="orbital/BOOKS.png" height="72"> |
 | <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/orbital/clutter.png`, drawn by scene.js | <img src="orbital/LOOSE_A.png" height="32"> |
 | <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/orbital/clutter.png`, drawn by scene.js | <img src="orbital/LOOSE_B.png" height="40"> |
-| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/orbital/clutter.png`, drawn by scene.js | <img src="orbital/CRATE.png" height="96"> |
-| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/orbital/skull.png`, drawn by scene.js | <img src="orbital/SKULL.png" height="80"> |
+| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/orbital/clutter.png`, drawn by isohall.js, scene.js | <img src="orbital/CRATE.png" height="96"> |
+| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/orbital/skull.png`, drawn by scene.js, scene39.js | <img src="orbital/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/orbital/skull.png` | <img src="orbital/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/orbital/petitions.png`, drawn by actors.js | <img src="orbital/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/orbital/petitions.png`, drawn by actors.js | <img src="orbital/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/orbital/petitions.png`, drawn by actors.js | <img src="orbital/SCROLL_HELD.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/orbital/fire.png`, drawn by scene.js | <img src="orbital/BRAZIER.png" height="104"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/orbital/petitions.png`, drawn by actors.js, scene39.js | <img src="orbital/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/orbital/petitions.png`, drawn by actors.js, scene39.js | <img src="orbital/SCROLL_HELD.png" height="56"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/orbital/fire.png`, drawn by isohall.js, scene.js, scene39.js | <img src="orbital/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/orbital/fire.png`, drawn by scene.js | <img src="orbital/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/orbital/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/orbital/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_TAG.png" height="60"> |
@@ -131,3 +154,29 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/orbital/room-doors.png` | <img src="orbital/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/orbital/room-doors.png` | <img src="orbital/ROOM.door_refectory_closed.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/orbital/room-doors.png` | <img src="orbital/ROOM.door_refectory_open.png" height="160"> |
+
+## Face sheets (39° side and top faces)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="faces-desk"></a>`FACES.DESK` | 5×12 | DESK, 39° view only: side, top, keys wall, keys floor, rack side, rack top, monitor side, monitor top, monitor screen wall, monitor screen floor, monitor screen 2 wall, monitor screen 2 floor, lamp top, arm top, stick base side, stick base top, stick top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.DESK.png" height="96"> |
+| <a id="faces-lectern"></a>`FACES.LECTERN` | 5×12.5 | LECTERN, 39° view only: side, top, board side, board top, monitor side, monitor top, monitor screen wall, monitor screen floor, box side, box top, box slot wall, box slot floor, lamp top, stem top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.LECTERN.png" height="100"> |
+| <a id="faces-console"></a>`FACES.CONSOLE` | 2.5×0.5 | CONSOLE, 39° view only: side, top, stalk top, deck side, deck top, monitor side, monitor top, monitor screen wall, monitor screen floor. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.CONSOLE.png" height="44"> |
+| <a id="faces-shelf"></a>`FACES.SHELF` | 2.5×21 | SHELF, 39° view only: side, top, bay wall, bay floor, bay 2 wall, bay 2 floor. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.SHELF.png" height="160"> |
+| <a id="faces-cogitator"></a>`FACES.COGITATOR` | 4×43.5 | COGITATOR, 39° view only: side, top, map wall, map floor, wave wall, wave floor, planet wall, planet floor, screen wall, screen floor, bars wall, bars floor, scope wall, scope floor, shoulder L side, shoulder L top, shoulder R side, shoulder R top, cap L side, cap L top, cap R side, cap R top, vents L side, vents L top, vents R side, vents R top, rack L side, rack L top, rack L screen wall, rack L screen floor, rack R side, rack R top, rack R screen wall, rack R screen floor, fan 1 rim, fan 2 rim, fan 3 rim, fan 4 rim, ledge side, ledge top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.COGITATOR.png" height="160"> |
+| <a id="faces-crate"></a>`FACES.CRATE` | 4.5×10.5 | CRATE, 39° view only: side, top, handle side, handle top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.CRATE.png" height="84"> |
+| <a id="faces-table"></a>`FACES.TABLE` | 5.5×1.5 | TABLE, 39° view only: slab side, slab top, leg 1 top, leg 2 top, foot 1 side, foot 1 top, foot 2 side, foot 2 top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.TABLE.png" height="44"> |
+| <a id="faces-bench"></a>`FACES.BENCH` | 2×1 | BENCH, 39° view only: side, top, leg 1 side, leg 1 top, leg 2 side, leg 2 top, leg 3 side, leg 3 top, cushion side, cushion top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.BENCH.png" height="16"> |
+| <a id="faces-recaff"></a>`FACES.RECAFF` | 3.5×1.5 | RECAFF, 39° view only: side, top, foot 1 side, foot 1 top, foot 2 side, foot 2 top, dispenser side, dispenser top, dispenser screen wall, dispenser screen floor, dispenser alcove wall, dispenser alcove floor, cup top, neck side, neck top, warmer side, warmer top, warmer window wall, warmer window floor, can 1 top, can 2 top, can 3 top, can 4 top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.RECAFF.png" height="68"> |
+| <a id="faces-lord_desk"></a>`FACES.LORD_DESK` | 5.5×7.5 | LORD_DESK, 39° view only: side, top, radar glass side, radar glass top, radar wall side, radar wall top, radar back side, radar back top, keys glass side, keys glass top, keys wall side, keys wall top, keys back side, keys back top, map glass side, map glass top, map wall side, map wall top, map back side, map back top, scope glass side, scope glass top, scope wall side, scope wall top, scope back side, scope back top, lever base side, lever base top, lever top, knob top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.LORD_DESK.png" height="60"> |
+| <a id="faces-throne"></a>`FACES.THRONE` | 4.5×2 | THRONE, 39° view only: side, top, post top, seat side, seat top, back side, back top, arm L side, arm L top, arm R side, arm R top, headrest side, headrest top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.THRONE.png" height="76"> |
+| <a id="faces-cog_mech"></a>`FACES.COG_MECH` | 18×17 | COG_MECH, 39° view only: patch rim. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.COG_MECH.png" height="136"> |
+| <a id="faces-seal"></a>`FACES.SEAL` | 6×7.5 | SEAL, 39° view only: tag rim. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.SEAL.png" height="60"> |
+| <a id="faces-gauge"></a>`FACES.GAUGE` | 6×6 | GAUGE, 39° view only: dial rim. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.GAUGE.png" height="48"> |
+| <a id="faces-censer"></a>`FACES.CENSER` | 1×1.5 | CENSER, 39° view only: canopy side, canopy top, cord top, neck top, shade top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.CENSER.png" height="20"> |
+| <a id="faces-candles"></a>`FACES.CANDLES` | 2×2 | CANDLES, 39° view only: base side, base top, rod top, bracket L side, bracket L top, bracket R side, bracket R top, bar side, bar top, knob top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.CANDLES.png" height="28"> |
+| <a id="faces-brazier"></a>`FACES.BRAZIER` | 2×0.5 | BRAZIER, 39° view only: foot 1 side, foot 1 top, foot 2 side, foot 2 top, base side, base top, unit side, unit top, unit fan wall, unit fan floor, pipe top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.BRAZIER.png" height="68"> |
+| <a id="faces-gate"></a>`FACES.GATE` | 6.5×1.5 | GATE, 39° view only: base side, base top, sill side, sill top, head rim, jamb L rim, jamb R rim, panel L side, panel L top, panel R side, panel R top, lamps L side, lamps L top, lamps R side, lamps R top, leaves side, leaves top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.GATE.png" height="160"> |
+| <a id="faces-books"></a>`FACES.BOOKS` | 2.5×7.5 | BOOKS, 39° view only: binder 1 side, binder 1 top, binder 2 side, binder 2 top, binder 3 side, binder 3 top, binder 4 side, binder 4 top, strap side, strap top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.BOOKS.png" height="72"> |
+| <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 1×12 | PAPER_STACK, 39° view only: board side, board top, card 1 side, card 1 top, card 2 side, card 2 top, card 3 side, card 3 top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.PAPER_STACK.png" height="96"> |
+| <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 2.5×4.5 | SCROLL_PILE, 39° view only: bag L side, bag L top, bag M side, bag M top, bag R2 side, bag R2 top, bag R side, bag R top, bag top side, bag top top, handle side, handle top, handle 2 side, handle 2 top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.SCROLL_PILE.png" height="40"> |

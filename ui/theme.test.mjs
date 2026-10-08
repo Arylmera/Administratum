@@ -43,7 +43,7 @@ for (const id of Object.keys(THEMES)) {
   assert.deepEqual(Object.keys(t.ink).sort(), Object.keys(tier.ink).sort(), `${id}: ink keys`);
   assert.deepEqual(Object.keys(t.light).sort(), Object.keys(tier.light).sort(), `${id}: light keys`);
   for (const [k, v] of flat(t.ink)) assert.match(v, COLOR, `${id}: ink.${k}`);
-  for (const [k, v] of Object.entries(t.light)) assert.match(v, k === 'night' || k === 'beam' ? RGB : COLOR, `${id}: light.${k}`);
+  for (const [k, v] of Object.entries(t.light)) assert.match(v, k === 'night' || k === 'beam' || k === 'shadow' ? RGB : COLOR, `${id}: light.${k}`);
   assert.ok(t.sash.length >= 1 && t.sash.every(c => COLOR.test(c)), `${id}: sash`);
   for (const r of ['high', 'standard', 'novice']) for (const [k, v] of [...flat(t.rank[r].robe), ...flat(t.rank[r].adept)]) assert.match(v, COLOR, `${id}: rank ${r} ${k}`);
 }

@@ -72,9 +72,10 @@ const inkOf = px => ({
   lamp: { on: [px.c, px.O], off: [px.C, '#2a8a50'], red: [px.a, '#ffd0b0'], dim: [px.x, '#c8281a'], dark: ['#3a0d09', '#5e1710'] },
   // the alarm beacon's sweep, the servo-skull's red eye and searchlight
   alarmGlow: '#ffd0b0', beaconSweep: '#ff6a4a', searchlight: '#ff321e',
-  // windows by day and night (px overrides of MAPS.WINDOW)
-  windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a' },
-  windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28' },
+  // windows by day and night (px overrides of MAPS.WINDOW and, for the tall gothic window, WINDOW_TALL's extra
+  // lattice-gem red 'a')
+  windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a', a: '#ff3a20' },
+  windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28', x: '#3a0d09', a: '#3a0d09' },
   // the riveted iron tile behind the scene (app.js)
   backdrop: '#17181b', backdropLit: '#24262a', backdropEdge: '#202226', backdropDark: '#0b0b0c',
   backdropSeam: '#101113', backdropSeamLit: '#1f2124', backdropRivet: '#3a3d42', backdropRivetLit: px.m,
@@ -87,6 +88,7 @@ const LIGHT = {
   stamp: 'rgba(255,58,32,.7)', spark: 'rgba(255,230,160,.8)', glint: 'rgba(232,180,90,.6)',
   beacon: 'rgba(255,58,32,.6)', beaconSweep: 'rgba(255,40,20,.4)', skullAlarm: 'rgba(255,58,32,.45)',
   night: '6,4,3', beam: '235,220,180', // rgb: the darkness over the hall, the daylight shafts (alpha set by lighting.js)
+  shadow: '6,4,3', // rgb: shadows on the floor and ambient occlusion (depth.js)
 };
 
 // Tier II's wording, by key. {name} placeholders are filled by t(); [one, other] pairs pick by {n}. A setting that is
