@@ -5,7 +5,7 @@
 // The real ui/ in a browser, without the backend: a fake window.__TAURI__ (settings from localStorage, every other
 // command refused) and a fixed roster sent every second, for screenshots of the hall.
 // Serve the repo root (python -m http.server 8123) and open /tools/preview.html?mode=candles&theme=vault
-// (mode: auto|full|candles, theme: a theme id, n: scribes, 1..40, view: flat|39).
+// (mode: auto|full|candles, theme: a theme id, n: scribes, 1..40, view: flat|39, 39 being 2.5D).
 const q = new URLSearchParams(location.search);
 for (const [k, key] of [['mode', 'adm.mode'], ['theme', 'adm.theme'], ['scale', 'adm.scale'], ['view', 'adm.view']]) {
   if (q.has(k)) localStorage.setItem(key, q.get(k));
@@ -34,8 +34,54 @@ const fake = `
   }));
   setInterval(() => (H.roster ?? []).forEach(cb => cb({ payload: roster() })), 1000);
 `;
+// Review notes: the ✎ button (or N) toggles note mode; a click drops a numbered pin with a comment (Enter saves, Esc
+// cancels), shift+click on a pin deletes it. Kept in localStorage 'adm.notes' (viewport %, view and theme), which
+// Claude reads from its own tab of the same origin.
+const notes = `
+addEventListener('DOMContentLoaded', () => {
+  const KEY = 'adm.notes', load = () => JSON.parse(localStorage.getItem(KEY) || '[]');
+  const css = 'position:fixed;z-index:99999;font:12px sans-serif;';
+  const layer = document.createElement('div'); layer.style.cssText = css + 'inset:0;pointer-events:none';
+  const btn = document.createElement('button'); btn.textContent = '✎ Notes';
+  btn.style.cssText = css + 'left:8px;bottom:8px;padding:4px 10px;background:#222;color:#fc6;border:1px solid #fc6;cursor:pointer';
+  document.body.append(layer, btn);
+  let on = false;
+  const toggle = () => { on = !on; layer.style.pointerEvents = on ? 'auto' : 'none'; layer.style.cursor = on ? 'crosshair' : '';
+    layer.style.background = on ? 'rgba(255,200,100,.06)' : ''; btn.style.background = on ? '#fc6' : '#222'; btn.style.color = on ? '#222' : '#fc6'; };
+  const draw = () => {
+    layer.querySelectorAll('.pin').forEach(p => p.remove());
+    load().forEach((nt, i) => {
+      const p = document.createElement('div'); p.className = 'pin'; p.title = nt.text;
+      p.style.cssText = css + 'pointer-events:auto;left:' + nt.x + '%;top:' + nt.y + '%;transform:translate(-11px,-11px);display:flex;gap:4px;align-items:center';
+      p.innerHTML = '<b style="width:22px;height:22px;border-radius:50%;background:#e33;color:#fff;display:grid;place-items:center;border:2px solid #fff">' + (i + 1) + '</b>'
+        + '<span style="background:rgba(0,0,0,.8);color:#fff;padding:2px 6px;max-width:260px">' + nt.text.replace(/</g, '&lt;') + '</span>';
+      p.onclick = e => { e.stopPropagation(); if (e.shiftKey) { const a = load(); a.splice(i, 1); localStorage.setItem(KEY, JSON.stringify(a)); draw(); } };
+      layer.append(p);
+    });
+  };
+  layer.addEventListener('click', e => {
+    if (e.target !== layer) return;
+    const x = e.clientX / innerWidth * 100, y = e.clientY / innerHeight * 100;
+    const inp = document.createElement('input'); inp.placeholder = 'comment, Enter';
+    inp.style.cssText = css + 'left:' + e.clientX + 'px;top:' + e.clientY + 'px;width:260px;padding:3px';
+    document.body.append(inp); inp.focus();
+    inp.onkeydown = k => {
+      if (k.key === 'Enter' && inp.value.trim()) {
+        const a = load(); a.push({ x, y, text: inp.value.trim(), view: localStorage.getItem('adm.view'), theme: localStorage.getItem('adm.theme'), w: innerWidth, h: innerHeight });
+        localStorage.setItem(KEY, JSON.stringify(a)); draw();
+      }
+      if (k.key === 'Enter' || k.key === 'Escape') inp.remove();
+      k.stopPropagation();
+    };
+  });
+  btn.onclick = toggle;
+  addEventListener('keydown', e => { if (e.key === 'n' && e.target === document.body) toggle(); });
+  addEventListener('storage', draw);
+  draw();
+});
+`;
 fetch('/ui/index.html').then(r => r.text()).then(html => {
-  html = html.replace(/<head>/i, () => `<head><base href="/ui/"><script>${fake}<\/script>`);
+  html = html.replace(/<head>/i, () => `<head><base href="/ui/"><script>${fake}${notes}<\/script>`);
   document.open(); document.write(html); document.close();
 });
 </script>
