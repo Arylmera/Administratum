@@ -11,7 +11,7 @@ defineTheme({
     cant: 'rgba(255,170,80,.38)' },
   light: { green: 'rgba(255,170,80,.16)', lampOn: 'rgba(255,190,110,.55)' },
   ui: { '--green': '#ffb347', '--yes': '#7a4a20', '--yes-deep': '#3a2008' },
-  text: { subtitle: 'Ordo Machinum · Forge-archive of the Inquisition', motto: 'Trust not the thinking machine' },
+  text: { subtitle: 'Ordo Machinum · Forge-archive of the Inquisition', motto: 'Trust not the thinking machine', breakout: 'Servitor Pen' },
 });
 
 // Cold and clinical: black-green robes, silver instead of brass, teal screens and coolant, cold candlelight.
@@ -30,7 +30,7 @@ defineTheme({
     '--red': '#1f7a6a', '--pink': '#6fe0c8', '--blood': '#0f2e28', '--glow': '#2fb89a', '--wax': '#1f5a4e', '--wax-deep': '#0a1612',
     '--label': '#0a1612', '--label-sel': '#123028', '--label-btn': '#0d201b', '--plaque': '#0a1210', '--leather': '#3e4a4c', '--leather-deep': '#1c2224',
     '--rod-hi': '#c8d4d6', '--rod': '#7a8688', '--rod-lo': '#3a4446', '--rod-edge': '#161c1d', '--rod-cap': '#e6f0f0' },
-  text: { subtitle: 'Ordo Xenos · Archive of the Inquisition', motto: 'Suffer not the alien to live' },
+  text: { subtitle: 'Ordo Xenos · Archive of the Inquisition', motto: 'Suffer not the alien to live', breakout: 'Containment Cell' },
 });
 
 // Ordo Malleus, the vigil against the daemon: Grey Knight silver for brass, slate-blue robes, warded blue screens and
@@ -54,7 +54,7 @@ defineTheme({
     '--label-btn': '#121628', '--plaque': '#0a0c14', '--leather': '#454c5a', '--leather-deep': '#1e222a', '--yes': '#2e3e6a',
     '--yes-deep': '#16203a', '--card': '#a8a28c', '--paper': '#b0aa92', '--paper-edge': '#989078', '--paper-hi': '#bcb69e',
     '--paper-q': '#b0b4c0', '--rod-hi': '#c8d0dc', '--rod': '#7a8494', '--rod-lo': '#3a404a', '--rod-edge': '#161a20', '--rod-cap': '#e6ecf4' },
-  text: { subtitle: 'Ordo Malleus · Night vigil of the Inquisition', motto: 'The hammer falls in the dark' },
+  text: { subtitle: 'Ordo Malleus · Night vigil of the Inquisition', motto: 'The hammer falls in the dark', breakout: 'Warded Circle' },
 });
 
 // Ordo Hereticus, whose witch-light leaves no shadow: black, bone and blood red, the screens and coolant burning like
@@ -73,7 +73,7 @@ defineTheme({
   ui: { '--bg': '#000000', '--bar': '#000000', '--ink': '#f4ead0', '--dim': '#c8b890', '--edge': '#8a7a5c', '--red': '#ff3a20', '--pink': '#ffb0a0',
     '--green': '#ffc040', '--copper': '#e0b040', '--blood': '#6a0e08', '--glow': '#ff3a20', '--yes': '#7a3a10', '--yes-deep': '#3a1a00',
     '--label': '#000000', '--paper-ink': '#000000', '--paper-ink-2': '#2a1a08', '--paper-ink-3': '#1a1006' },
-  text: { subtitle: 'Ordo Hereticus · Witch-light of the Inquisition', motto: 'Innocence proves nothing' },
+  text: { subtitle: 'Ordo Hereticus · Witch-light of the Inquisition', motto: 'Innocence proves nothing', breakout: 'Penitent Cage' },
 });
 
 // Not the 40k scriptorium: a neon netrunner den. Hooded robes read as hoodies, optics as visors; brass turns to chrome
@@ -129,7 +129,7 @@ const NEON = defineTheme({
     '--display': "'VT323', monospace", '--paper-accent': '#ff2e88',
   },
   text: {
-    subtitle: 'Sector 7 · Netrunner Den', motto: 'Jack in, stay frosty',
+    subtitle: 'Sector 7 · Netrunner Den', motto: 'Jack in, stay frosty', breakout: 'Sandbox',
     rank: { high: 'Netrunner', standard: 'Hacker', novice: 'Script kiddie' },
     status: { busy: 'Coding', shell: 'At the server rack', idle: 'Turn done, awaiting input', waiting: 'Request pinged',
       background: 'Idle · daemon running', napping: 'Idle · crashed in the lounge' },
@@ -202,7 +202,7 @@ defineTheme({
     '--display': "'VT323', monospace", '--paper-accent': '#2a5ab8',
   },
   text: {
-    subtitle: 'Low Earth Orbit · Station Deck', motto: 'Ad astra',
+    subtitle: 'Low Earth Orbit · Station Deck', motto: 'Ad astra', breakout: 'Quarantine Bay',
     rank: { high: 'Commander', standard: 'Astronaut', novice: 'Cadet' },
     status: { busy: 'Working', shell: 'At the airlock', idle: 'Turn done, awaiting input', waiting: 'Calling the Commander',
       background: 'Idle · bot on task', napping: 'Idle · asleep in the bunk' },
@@ -252,28 +252,28 @@ function accent(base, { bands, text, ...t }) {
 accent(NEON, {
   id: 'corpo', name: 'Corpo Tower',
   bands: { pink: [356, 1, -0.04], violet: [352, 0.9, -0.06], night: [0, 0.12], cyan: [210, 0.1, 0.2] },
-  text: { subtitle: 'Tower 42 · Corporate netsec floor', motto: 'The company owns the night' },
+  text: { subtitle: 'Tower 42 · Corporate netsec floor', motto: 'The company owns the night', breakout: 'Temp Pool' },
 });
 
 // Rain City: the lower levels in the rain. Sodium-amber neon, teal screens, burnt-orange coolant, blue-green smog.
 accent(NEON, {
   id: 'rain', name: 'Rain City',
   bands: { pink: [30, 1, 0.02], violet: [18, 0.8, -0.04], night: [196, 0.7], cyan: [174, 0.75, -0.04] },
-  text: { subtitle: 'Lower Levels · Night market den', motto: 'It never stops raining down here' },
+  text: { subtitle: 'Lower Levels · Night market den', motto: 'It never stops raining down here', breakout: 'Back Alley' },
 });
 
 // Green Code: the mainframe seen from inside. Every neon, screen and wall turned phosphor green on black.
 accent(NEON, {
   id: 'matrix', name: 'Green Code',
   bands: { pink: [128, 1, 0], violet: [150, 0.8, -0.06], night: [140, 0.5, -0.02], cyan: [105, 0.9, 0.04] },
-  text: { subtitle: 'Mainframe · Green-code terminal', motto: 'Follow the white rabbit' },
+  text: { subtitle: 'Mainframe · Green-code terminal', motto: 'Follow the white rabbit', breakout: 'The Construct' },
 });
 
 // Sunset Drive: synthwave. A purple dusk, magenta neon, the chrome and screens a sunset orange.
 accent(NEON, {
   id: 'synth', name: 'Sunset Drive',
   bands: { pink: [318, 1, 0.02], violet: [285, 1, 0.02], night: [272, 1.4, 0.01], cyan: [28, 1, 0.02] },
-  text: { subtitle: 'Outrun Strip · Midnight arcade', motto: 'Drive into the sunset' },
+  text: { subtitle: 'Outrun Strip · Midnight arcade', motto: 'Drive into the sunset', breakout: 'Arcade Corner' },
 });
 
 // A wizards' tower, not 40k: night-blue stone, warm wood, gold trim, violet and teal arcane glow, candles,
@@ -330,7 +330,7 @@ defineTheme({
     '--display': "'Pirata One', serif", '--paper-accent': '#5a3a9a',
   },
   text: {
-    subtitle: 'The Tower · Hall of Apprentices', motto: 'Knowledge is power',
+    subtitle: 'The Tower · Hall of Apprentices', motto: 'Knowledge is power', breakout: 'Summoning Circle',
     rank: { high: 'Archmage', standard: 'Wizard', novice: 'Apprentice' },
     status: { busy: 'Scribing spells', shell: 'At the scrying orb', idle: 'Turn done, awaiting input', waiting: 'Pleading to the Archmage',
       background: 'Idle · familiar at work', napping: 'Idle · dozing by the fire' },
@@ -403,7 +403,7 @@ defineTheme({
     '--display': "'VT323', monospace", '--paper-accent': '#1e4a8a',
   },
   text: {
-    subtitle: "Vault 111 · Overseer's Office", motto: 'Prepare for the future',
+    subtitle: "Vault 111 · Overseer's Office", motto: 'Prepare for the future', breakout: 'Test Chamber',
     rank: { high: 'Overseer', standard: 'Dweller', novice: 'Newcomer' },
     status: { busy: 'On shift', shell: 'At the mainframe', idle: 'Turn done, awaiting input', waiting: 'Requisition filed',
       background: 'Idle · robot on duty', napping: 'Idle · in the bunk' },

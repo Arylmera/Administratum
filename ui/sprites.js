@@ -55,7 +55,7 @@ export function blit(g, map, x, y, over) {
 const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
-const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits'];
+const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits', 'breakout'];
 // The room's structure: tiles with fill rules (room.js).
 const ROOM_SHEETS = ['room-floor', 'room-walls', 'room-pipes', 'room-doors'];
 // The 39° character families (wave 2): optional, drawn by separate art agents one world at a time. A missing base
@@ -84,9 +84,10 @@ await Promise.all(Object.values(THEMES).flatMap(th => (th.art ?? []).map(async f
     throw e;
   }
 })));
-// The sheet of a family as the theme sees it: the default with the theme's frames, anchors and tiles laid over.
+// The sheet of a family as the theme sees it: the default with the theme's frames, anchors and tiles laid over (its
+// own folder's first, else the folder it borrows, artOf).
 function sheetOf(id, f) {
-  const o = themed[dirOf(id)]?.[f], d = base[f];
+  const o = themed[id]?.[f] ?? themed[dirOf(id)]?.[f], d = base[f];
   if (!o) return d;
   const anchors = { ...d.anchors };
   for (const [k, v] of Object.entries(o.anchors)) anchors[k] = v && typeof v === 'object' && !Array.isArray(v) && anchors[k] && !Array.isArray(anchors[k]) ? { ...anchors[k], ...v } : v;
@@ -176,7 +177,7 @@ const EXPORT39 = { scribe39: [SCRIBE39, SCRIBE39_AT], adept39: [ADEPT39, ADEPT39
 
 function useArt(id) {
   const S = Object.fromEntries(FAMILIES.map(f => [f, sheetOf(id, f)]));
-  const dir = dirOf(id), src = (f, n) => (themed[dir]?.[f]?.frames[n] ? `${dir}/${f}` : f);
+  const dir = dirOf(id), src = (f, n) => (themed[id]?.[f]?.frames[n] ? `${id}/${f}` : themed[dir]?.[f]?.frames[n] ? `${dir}/${f}` : f);
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
   refill(ADEPT, walker(S.adept)); refill(ADEPT_AT, anchorsOf(S.adept));
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm }); refill(MAGOS_AT, anchorsOf(S.magos));

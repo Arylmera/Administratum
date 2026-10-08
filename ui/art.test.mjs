@@ -5,7 +5,8 @@ import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
 import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
-import { THEMES, setTheme } from './theme.js';
+import { THEMES, setTheme, t } from './theme.js';
+import { BREAKOUT_SIZES } from './layout.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -127,4 +128,15 @@ assert.equal(SHEET_OF.BANNER, 'walls');
 setTheme('tier2');
 assert.equal(MAPS.BANNER, plain.banner);
 assert.equal(SHEET_OF.BANNER, 'walls');
+
+// the break-out room: every theme draws all of its frames, at the contract's sizes, and names its room
+for (const id of Object.keys(THEMES)) {
+  setTheme(id);
+  for (const [n, [w, h]] of Object.entries(BREAKOUT_SIZES)) {
+    assert.ok(MAPS[n], `${id}: ${n}`);
+    assert.deepEqual([Math.max(...MAPS[n].map(r => r.length)), MAPS[n].length], [w, h], `${id}: ${n} size`);
+  }
+  assert.ok(t('breakout') && t('breakout') !== 'breakout', `${id}: room name`);
+}
+setTheme('tier2');
 console.log('art ok');

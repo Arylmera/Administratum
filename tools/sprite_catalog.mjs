@@ -27,12 +27,16 @@ const ABOUT = {
   LOOSE_A: 'Loose sheet on the floor (decor)', LOOSE_B: 'Loose sheet on the floor (decor)', GAUGE: 'Pressure gauge on the Sanctum pillars',
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',
   GATE_R: 'Grand gate, right leaf (slides open)', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
+  BREAKOUT_FLOOR: 'Break-out room floor tile (temp-folder sessions)', BREAKOUT_RAIL: 'Break-out room rail, front and back edges',
+  BREAKOUT_SIDE: 'Break-out room side rail, seen from above', BREAKOUT_POST: 'Break-out room post: corners and beside each gate',
+  BREAKOUT_GATE: 'Break-out room gate, closed, in the side', BREAKOUT_GATE_OPEN: 'Break-out room gate leaf, swung open',
+  BREAKOUT_GATE_FRONT: 'Break-out room gate facing the viewer (strip, 39° view)', BREAKOUT_GATE_FRONT_OPEN: 'Break-out room gate facing the viewer, open',
 };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
 
 export function catalog() {
   const out = [], theme = T;
-  const dir = ART.dirOf(theme.id), srcOf = f => (ART.themed[dir]?.[f] ? `${dir}/${f}` : f);
+  const dir = ART.dirOf(theme.id), srcOf = f => (ART.themed[theme.id]?.[f] ? `${theme.id}/${f}` : ART.themed[dir]?.[f] ? `${dir}/${f}` : f);
   const add = (id, group, src, cells, anim, note) => {
     const r0 = cells[0].rows;
     out.push({ id, group, family: src.split('/').pop(), src, cells, anim, note, size: `${Math.max(...r0.map(r => r.length)) / RES}×${r0.length / RES}` });

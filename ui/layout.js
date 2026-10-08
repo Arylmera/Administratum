@@ -185,6 +185,15 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
   return { ...L, plan, seq, level, shrinkSince, ...levelOpt(level) };
 }
 
+// The break-out room's art contract (ui/art/breakout.*, ui/art/<theme>/breakout.*), art px: the floor tile; the rail,
+// front-facing, tiled along the top and bottom edges (every rail face in 39°); the side, the east and west edges seen
+// from above; the post (corners, beside each gate); a closed gate in the east side seen from above and its leaf swung
+// open; the front-facing gate, closed and open (the strip's, and the 39° closed leaf).
+export const BREAKOUT_SIZES = {
+  BREAKOUT_FLOOR: [16, 16], BREAKOUT_RAIL: [16, 10], BREAKOUT_SIDE: [4, 16], BREAKOUT_POST: [6, 14],
+  BREAKOUT_GATE: [4, 16], BREAKOUT_GATE_OPEN: [16, 10], BREAKOUT_GATE_FRONT: [16, 20], BREAKOUT_GATE_FRONT_OPEN: [16, 20],
+};
+
 // The break-out room: the rectangle fencing the temp blocks (packed last, from a fresh row) and its gates, null without
 // any. West and top 2 px inside the blocks (the lane above stays outside), east 2 px out but west of the corridor,
 // bottom 6 px under the last row so its lane is inside. A gate where each lane inside it meets the east (corridor) side.

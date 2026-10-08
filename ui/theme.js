@@ -101,7 +101,7 @@ export const TEXT = {
     background: 'Idle · background shell running', napping: 'Idle · dozing in the Refectorium' },
   petitions: ['{n} petition', '{n} petitions'], questions: ['{n} question', '{n} questions'], petitioning: '{n} petitioning',
   petitionLabel: '{name}, petition: {want}', adeptOf: '{kind} · adept of {owner}',
-  overflow: '+{n} in the stacks', empty: 'No scribes on duty',
+  overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen',
   limitLabel: 'sealed · resets {time}', limitSealed: 'sealed',
   modes: { full: 'Full light', candles: 'Candles' },
   log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.' },
