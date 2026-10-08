@@ -100,6 +100,19 @@ function background(day) {
   }
   return bg[k];
 }
+// Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
+// is over the strip (it gets no pointer events while ignoring them).
+let through = null;
+const HIT = '.lbl, .plaque, #card, #prefs, #chron, #strip-handle, #strip-menu';
+function stripHit(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return !!el?.closest(HIT) || !!actorAt({ clientX: x, clientY: y });
+}
+function setThrough(on) {
+  if (on === through) return;
+  through = on;
+  invoke('set_click_through', { on }).catch(() => { through = null; });
+}
 // The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
 // view's canvas is the projected hall's size: the next frame resizes it) on the floor point the old view centred.
 onView((mode, prev) => {
@@ -753,19 +766,6 @@ const sealText = a => (!a.h && !a.leaving && a.s.limit && !labels.has(a.id)
 const sheetTags = new Map();
 const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.status === 'busy' || a.s.status === 'shell') && filesOf(a.s.turn) ? `✎${filesOf(a.s.turn)}` : '');
 
-// Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
-// is over the strip (it gets no pointer events while ignoring them).
-let through = null;
-const HIT = '.lbl, .plaque, #card, #prefs, #chron, #strip-handle, #strip-menu';
-function stripHit(x, y) {
-  const el = document.elementFromPoint(x, y);
-  return !!el?.closest(HIT) || !!actorAt({ clientX: x, clientY: y });
-}
-function setThrough(on) {
-  if (on === through) return;
-  through = on;
-  invoke('set_click_through', { on }).catch(() => {});
-}
 listen('strip-cursor', ({ payload: p }) => {
   if (!strip()) return;
   if (!p) { mouse = null; setThrough(true); return; }
@@ -777,6 +777,7 @@ listen('strip-cursor', ({ payload: p }) => {
 const tip = document.getElementById('tip');
 let mouse = null;
 function syncHover() {
+  if (strip() && mouse) setThrough(!stripHit(mouse.clientX, mouse.clientY)); // re-decided every frame: a still cursor, a walking scribe
   const h = mouse ? actorAt(mouse) : coarse.matches && sel ? cast.actors.get(sel) : null;
   setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '' });
   const hide = !h || labels.has(h.id);
