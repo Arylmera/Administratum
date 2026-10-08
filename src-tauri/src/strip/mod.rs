@@ -122,11 +122,16 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
         Some(HallRect { x: p.x, y: p.y, w: s.width, h: s.height })
     };
     *HEIGHT.lock().unwrap_or_else(|e| e.into_inner()) = height;
-    replace(&window, height)?;
-    ON.store(true, Ordering::SeqCst);
     // Windows 11 draws a 1 px border + shadow around undecorated windows while the shadow is on;
-    // off in the strip, where the bar must sit flush against the taskbar.
+    // off in the strip, where the bar must sit flush against the taskbar. Off before replace(): with the
+    // shadow on, the window keeps an invisible resize frame round the size set, which becomes drawn
+    // client area once the shadow goes (the strip came out 16 px wider, 9 px taller, over the taskbar).
     let _ = window.set_shadow(false);
+    if let Err(e) = replace(&window, height) {
+        let _ = window.set_shadow(true); // still the hall
+        return Err(e);
+    }
+    ON.store(true, Ordering::SeqCst);
     Ok(hall)
 }
 
