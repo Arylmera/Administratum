@@ -65,7 +65,17 @@
      through; the stage (and its canvas) stays, Task 4 draws into it. html/body otherwise keep their opaque --bg. */
   html.strip, html.strip body { background: transparent !important; }
   html.strip header { display: none; }
-  html.strip #stage { box-shadow: none; position: fixed; left: 0; bottom: 0; margin: 0; max-width: none; max-height: none; }
+  html.strip #stage { box-shadow: none; position: fixed; left: 0; bottom: 0; margin: 0; max-width: none; max-height: none; overflow: visible; }
+  /* The panels open above the strip (app.js growStrip makes the window taller while one is open). */
+  html.strip :is(#card, #prefs, #chron, #strip-menu) { top: auto; bottom: calc(100% + 4px); left: 4px; transform: none; max-height: none; }
+  html.strip #chron { height: 30em; }
+  /* The handle: a 12 logical px cog over the gate, at the strip's left end, and its menu. */
+  #strip-handle, #strip-menu { display: none; }
+  html.strip #strip-handle { display: flex; position: absolute; z-index: 4; left: calc(6 * var(--px)); bottom: calc(4 * var(--px)); width: calc(12 * var(--px)); height: calc(12 * var(--px)); padding: 0; align-items: center; justify-content: center; background: color-mix(in srgb, var(--bar) 70%, transparent); border: 1px solid var(--copper); border-radius: 2px; color: var(--copper); cursor: pointer; }
+  html.strip #strip-handle svg { width: 75%; height: 75%; }
+  html.strip #strip-menu:not([hidden]) { display: flex; flex-direction: column; position: absolute; z-index: 7; padding: 3px; background: var(--card); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 4px 0 var(--outline); font-size: calc(12px * var(--k, 1)); }
+  #strip-menu button { padding: .3em .9em; background: none; border: none; color: var(--paper-ink); font: inherit; text-align: left; cursor: pointer; }
+  #strip-menu button:hover { background: var(--leather); color: var(--light); }
   #world { position: absolute; left: 0; top: 0; }
   #scene { display: block; image-rendering: pixelated; touch-action: none; }
   #world { touch-action: none; -webkit-touch-callout: none; }
@@ -302,6 +312,13 @@
     <canvas id="scene"></canvas>
     <div id="overlay"><div id="tip" class="tip" hidden></div></div>
   </div>
+  <button id="strip-handle" type="button" aria-label="Strip menu" aria-controls="strip-menu"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h3v1h-3zM1 1h1v1h-1zM3 1h3v1h-3zM7 1h1v1h-1zM2 2h5v1h-5zM0 3h3v1h-3zM6 3h3v1h-3zM0 4h3v1h-3zM6 4h3v1h-3zM0 5h3v1h-3zM6 5h3v1h-3zM2 6h5v1h-5zM1 7h1v1h-1zM3 7h3v1h-3zM7 7h1v1h-1zM3 8h3v1h-3z"></path></svg></button>
+  <div id="strip-menu" hidden>
+    <button type="button" data-act="hall">Hall view</button>
+    <button type="button" data-act="prefs-open">Settings</button>
+    <button type="button" data-act="chron-open">Chronicon</button>
+    <button type="button" data-act="hide">Hide</button>
+  </div>
   <div id="card" hidden>
     <div class="name"></div>
     <div class="title" hidden></div>
@@ -347,7 +364,8 @@
             <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full" data-t="modes.full">Full light</option><option value="candles" data-t="modes.candles">Candles</option></select></label>
             <label><span data-t="prefs.theme">Theme</span><select name="world"></select></label>
             <label><span>Style</span><select name="theme"></select></label>
-            <label><span>View</span><select name="view"><option value="flat">Flat</option><option value="39">39°</option></select></label>
+            <label><span>View</span><select name="view"><option value="flat">Flat</option><option value="39">39°</option><option value="strip" class="host-only" hidden>Desktop strip</option></select></label>
+            <label class="strip-only" hidden><span>Strip size</span><select name="stripSize"><option value="S">Small</option><option value="M">Medium</option><option value="L">Large</option></select></label>
           </fieldset>
           <fieldset><legend>Switches</legend>
             <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>

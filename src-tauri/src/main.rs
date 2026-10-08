@@ -552,7 +552,8 @@ fn main() {
             strip::strip_supported,
             strip::place_strip,
             strip::place_hall,
-            strip::set_click_through
+            strip::set_click_through,
+            strip::set_strip_menu
         ])
         .setup(move |app| {
             build_tray(app)?;
@@ -775,11 +776,13 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show / hide", true, None::<&str>)?;
     let mute = MenuItem::with_id(app, "mute", "Toggle chime", true, None::<&str>)?;
     let light = MenuItem::with_id(app, "light", "Cycle lighting", true, None::<&str>)?;
+    let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", cfg!(windows), false, None::<&str>)?;
     let login_on = app.autolaunch().is_enabled().unwrap_or(false);
     let login = CheckMenuItem::with_id(app, "login", "Start at login", true, login_on, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &mute, &light, &login, &quit])?;
+    let menu = Menu::with_items(app, &[&show, &mute, &light, &strip, &login, &quit])?;
     app.manage(login);
+    app.manage(strip::StripItem(strip));
     TrayIconBuilder::new()
         .icon(app.default_window_icon().expect("bundle icon").clone())
         .tooltip("Administratum")
@@ -791,6 +794,9 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
             }
             "light" => {
                 emit(app, "ui-command", "light");
+            }
+            "strip" => {
+                emit(app, "ui-command", "strip");
             }
             "login" => {
                 let al = app.autolaunch();

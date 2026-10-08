@@ -18,9 +18,11 @@ import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
-// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). Strip is mapped away
-// for now; Task 6 wires it back in.
-setView(hallView(store.get('adm.view', 'flat')));
+// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). The strip waits for
+// the backend's yes (strip_supported); the hall view draws meanwhile.
+const saved = store.get('adm.view', 'flat');
+setView(hallView(saved));
+if (saved === 'strip' && !REMOTE) invoke('strip_supported').then(ok => ok && setView('strip'), () => {});
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
 let chromeSet = [];
@@ -113,12 +115,61 @@ function setThrough(on) {
   through = on;
   invoke('set_click_through', { on }).catch(() => { through = null; });
 }
+// Into the strip: the window moves onto the taskbar (place_strip returns the hall's rect the first time, kept for the
+// way back in adm.hallRect). Out: the hall's rect back (place_hall turns click-through off). The tray check follows.
+let grownTo = 0; // the window's last asked CSS height in the strip (growStrip)
+let bootStrip = saved === 'strip'; // started in the strip: the window's rect is the last session's strip, not a hall
+async function enterStrip() {
+  grownTo = stripCss();
+  const r = await invoke('place_strip', { height: grownTo });
+  if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
+  bootStrip = false;
+  setThrough(true);
+  invoke('set_strip_menu', { on: true }).catch(() => {});
+}
+async function leaveStrip() {
+  through = null; grownTo = 0;
+  const r = store.get('adm.hallRect');
+  await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
+  invoke('set_strip_menu', { on: false }).catch(() => {});
+}
+// The strip's window grows upward while a panel (card, Settings, Chronicon, the handle's menu) is open above it, and
+// shrinks back when they close; the stage stays pinned to the bottom (index.html). Also replays a Strip size change.
+function growStrip() {
+  if (!strip() || !tauri()) return;
+  const open = [...document.querySelectorAll('#card, #prefs, #chron, #strip-menu')].filter(el => el.offsetParent);
+  const h = stripCss() + Math.max(0, ...open.map(el => el.offsetHeight + 8));
+  if (h !== grownTo) { grownTo = h; invoke('place_strip', { height: h }).catch(() => {}); }
+}
+{
+  const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
+  const ro = new ResizeObserver(growStrip), mo = new MutationObserver(growStrip);
+  for (const el of panels) { ro.observe(el); mo.observe(el, { attributes: true, attributeFilter: ['hidden', 'class'] }); }
+}
+// Strip <-> hall (the tray's check item, the handle's Hall view): back to the hall view it left (adm.hallView).
+function toggleStrip() {
+  const to = viewMode.strip ? store.get('adm.hallView', 'flat') : 'strip';
+  if (to === 'strip') store.set('adm.hallView', viewMode.mode);
+  store.set('adm.view', to); setView(to);
+}
+// The handle: a cog at the strip's left end (over the gate) opening a small menu above it.
+const stripMenu = document.getElementById('strip-menu');
+document.getElementById('strip-handle').onclick = () => { stripMenu.hidden = !stripMenu.hidden; };
+stripMenu.onclick = e => {
+  const act = e.target.closest('button')?.dataset.act;
+  if (!act) return;
+  stripMenu.hidden = true;
+  if (act === 'hall') toggleStrip();
+  else document.getElementById(act).click(); // the header's own buttons (hidden in the strip): prefs-open, chron-open, hide
+};
+addEventListener('click', e => { if (!e.target.closest('#strip-menu, #strip-handle')) stripMenu.hidden = true; });
 // The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
 // view's canvas is the projected hall's size: the next frame resizes it) on the floor point the old view centred.
 onView((mode, prev) => {
   if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
     document.documentElement.classList.toggle('strip', mode === 'strip');
-    if (mode === 'strip') setThrough(true); else through = null; // Rust's place_hall already turns click-through off
+    if (tauri()) (mode === 'strip' ? enterStrip : leaveStrip)().catch(err => console.warn('strip', err));
+    stripMenu.hidden = true;
     resetCast();
     for (const k in bg) delete bg[k];
     fit(); relayout();
@@ -231,6 +282,7 @@ function applySize(W, H) {
   setPan(viewW / 2 - cx * scale, viewH / 2 - cy * scale);
   const root = document.documentElement.style;
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
+  root.setProperty('--px', `${scale}px`); // one logical px (the strip's handle)
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
 let resizing;
@@ -855,7 +907,7 @@ muteBtn.onclick = toggleMute;
 renderMute();
 
 let refreshTithe = null;
-initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: fit, quieted: renderQuiet });
+initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet });
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;
@@ -867,10 +919,10 @@ if (tauri() || REMOTE) {
   listen('limit', () => quietNow() || chime([520, 390]));
   // Paused: no reaction is queued (it would replay stale on resume); a fresh long task still chimes.
   listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done' && !quietNow()) chime([1320, 1760]); });
-  listen('ui-command', e => (e.payload === 'mute' ? toggleMute() : cycleMode()));
+  listen('ui-command', e => ({ mute: toggleMute, light: cycleMode, strip: () => REMOTE || toggleStrip() })[e.payload]?.());
   listen('visible', e => { visible = e.payload; wake(); }); // the app's window only
   refreshTithe = initChronicon(colorOf);
 }
 const hideBtn = document.getElementById('hide');
 if (tauri()) hideBtn.onclick = () => { visible = false; wake(); tauri().window.getCurrentWindow().hide(); };
-else hideBtn.remove(); // no window to hide in a browser
+else { hideBtn.remove(); stripMenu.querySelector('[data-act="hide"]').remove(); } // no window to hide in a browser

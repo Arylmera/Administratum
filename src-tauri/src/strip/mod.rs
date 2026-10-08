@@ -128,6 +128,16 @@ pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Resul
     window.set_position(tauri::PhysicalPosition::new(r.x, r.y)).map_err(|e| e.to_string())
 }
 
+/// The tray's "Desktop strip" check item (main.rs build_tray); a newtype since the login item is the
+/// managed `CheckMenuItem`.
+pub struct StripItem(pub tauri::menu::CheckMenuItem<tauri::Wry>);
+
+/// Keeps the tray check in step with the UI's view.
+#[tauri::command]
+pub fn set_strip_menu(item: tauri::State<StripItem>, on: bool) -> Result<(), String> {
+    item.0.set_checked(on).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), String> {
     window.set_ignore_cursor_events(on).map_err(|e| e.to_string())

@@ -8,7 +8,7 @@ import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
-import { view as viewMode, setView } from './view.js';
+import { view as viewMode, viewName, setView } from './view.js';
 
 const mem = {};
 let saved = null;
@@ -37,13 +37,15 @@ export const store = {
 
 // Numbers: [default, min, max]. Context windows are in k tokens.
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
-const DEFAULTS = { onTop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (app.js stripScale)
+const DEFAULTS = { onTop: true, stripSize: 'M', ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
   try { saved = JSON.parse(store.get('adm.settings', '{}')) ?? {}; } catch { /* corrupt: defaults */ }
   const s = { ...DEFAULTS };
   if (typeof saved.onTop === 'boolean') s.onTop = saved.onTop;
+  if (STRIP_SIZES.includes(saved.stripSize)) s.stripSize = saved.stripSize;
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
 }
@@ -97,7 +99,10 @@ export function initSettings(hooks) {
   field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
   const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
   const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
-  const pickView = mode => { store.set('adm.view', mode); setView(mode); };
+  const pickView = mode => {
+    if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (app.js toggleStrip)
+    store.set('adm.view', mode); setView(mode);
+  };
   let login = null;
 
   const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
@@ -113,6 +118,8 @@ export function initSettings(hooks) {
   } else {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
     pushStale(); pushQuestions(); pushQuiet();
+    // Desktop strip: offered only where the backend can place it (Windows).
+    invoke('strip_supported').then(ok => { if (ok) for (const e of form.querySelectorAll('[value="strip"], .strip-only')) e.hidden = false; }, () => {});
   }
 
   sync = () => {
@@ -126,7 +133,8 @@ export function initSettings(hooks) {
     field('world').value = world;
     field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
     field('theme').value = T.id;
-    field('view').value = viewMode.mode;
+    field('view').value = viewName();
+    field('stripSize').value = settings.stripSize;
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
@@ -248,6 +256,7 @@ export function initSettings(hooks) {
     else if (k === 'world') pickTheme(styles(el.value)[0].id);
     else if (k === 'theme') pickTheme(el.value);
     else if (k === 'view') pickView(el.value);
+    else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
