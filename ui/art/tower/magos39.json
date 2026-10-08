@@ -1,0 +1,48 @@
+{
+  "frames": {
+    "body": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      }
+    },
+    "arm": {
+      "frame": {
+        "x": 49,
+        "y": 0,
+        "w": 10,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "magos39.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 59,
+      "h": 48
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "arm": [
+        11,
+        0
+      ],
+      "chest": [
+        26,
+        30
+      ],
+      "eyeL": [
+        24,
+        13
+      ],
+      "eyeR": [
+        30,
+        13
+      ]
+    }
+  }
+}
