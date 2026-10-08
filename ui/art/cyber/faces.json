@@ -448,22 +448,6 @@
     "h": 3
    }
   },
-  "TABLE side": {
-   "frame": {
-    "x": 0,
-    "y": 226,
-    "w": 11,
-    "h": 5
-   }
-  },
-  "TABLE top": {
-   "frame": {
-    "x": 12,
-    "y": 226,
-    "w": 92,
-    "h": 11
-   }
-  },
   "TABLE box 1 side": {
    "frame": {
     "x": 105,
@@ -526,22 +510,6 @@
     "y": 226,
     "w": 6,
     "h": 3
-   }
-  },
-  "BENCH side": {
-   "frame": {
-    "x": 0,
-    "y": 238,
-    "w": 4,
-    "h": 4
-   }
-  },
-  "BENCH top": {
-   "frame": {
-    "x": 5,
-    "y": 238,
-    "w": 92,
-    "h": 4
    }
   },
   "BENCH cushion side": {
@@ -1191,6 +1159,150 @@
     "w": 34,
     "h": 5
    }
+  },
+  "TABLE board front": {
+   "frame": {
+    "x": 0,
+    "y": 467,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "TABLE board side": {
+   "frame": {
+    "x": 93,
+    "y": 467,
+    "w": 9,
+    "h": 4
+   }
+  },
+  "TABLE board top": {
+   "frame": {
+    "x": 103,
+    "y": 467,
+    "w": 92,
+    "h": 9
+   }
+  },
+  "BENCH seat front": {
+   "frame": {
+    "x": 196,
+    "y": 467,
+    "w": 92,
+    "h": 2
+   }
+  },
+  "BENCH seat side": {
+   "frame": {
+    "x": 289,
+    "y": 467,
+    "w": 4,
+    "h": 2
+   }
+  },
+  "BENCH seat top": {
+   "frame": {
+    "x": 0,
+    "y": 477,
+    "w": 92,
+    "h": 4
+   }
+  },
+  "TABLE leg 1 front": {
+   "frame": {
+    "x": 93,
+    "y": 477,
+    "w": 3,
+    "h": 12
+   }
+  },
+  "BENCH leg 1 front": {
+   "frame": {
+    "x": 97,
+    "y": 477,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "TABLE leg 2 front": {
+   "frame": {
+    "x": 101,
+    "y": 477,
+    "w": 3,
+    "h": 12
+   }
+  },
+  "BENCH leg 2 front": {
+   "frame": {
+    "x": 105,
+    "y": 477,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "TABLE leg 3 front": {
+   "frame": {
+    "x": 109,
+    "y": 477,
+    "w": 3,
+    "h": 12
+   }
+  },
+  "BENCH leg 3 front": {
+   "frame": {
+    "x": 113,
+    "y": 477,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "TABLE leg 4 front": {
+   "frame": {
+    "x": 117,
+    "y": 477,
+    "w": 3,
+    "h": 12
+   }
+  },
+  "BENCH leg 4 front": {
+   "frame": {
+    "x": 121,
+    "y": 477,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "TABLE leg 5 front": {
+   "frame": {
+    "x": 125,
+    "y": 477,
+    "w": 3,
+    "h": 12
+   }
+  },
+  "BENCH leg 5 front": {
+   "frame": {
+    "x": 129,
+    "y": 477,
+    "w": 3,
+    "h": 7
+   }
+  },
+  "TABLE leg 6 front": {
+   "frame": {
+    "x": 133,
+    "y": 477,
+    "w": 3,
+    "h": 12
+   }
+  },
+  "BENCH leg 6 front": {
+   "frame": {
+    "x": 137,
+    "y": 477,
+    "w": 3,
+    "h": 7
+   }
   }
  },
  "meta": {
@@ -1199,7 +1311,7 @@
   "format": "RGBA8888",
   "size": {
    "w": 378,
-   "h": 466
+   "h": 489
   },
   "palette": "key.gpl",
   "anchors": {},
@@ -1624,14 +1736,113 @@
     ]
    },
    "TABLE": {
-    "front": [
-     0,
-     11,
-     92,
-     5
-    ],
-    "d": 26,
+    "d": 20,
     "details": [
+     {
+      "name": "leg 1",
+      "rect": [
+       1,
+       0,
+       3,
+       12
+      ],
+      "kind": "box",
+      "u": 1,
+      "v": 1,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 2",
+      "rect": [
+       1,
+       0,
+       3,
+       12
+      ],
+      "kind": "box",
+      "u": 1,
+      "v": 16,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 3",
+      "rect": [
+       44,
+       0,
+       3,
+       12
+      ],
+      "kind": "box",
+      "u": 44,
+      "v": 1,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 4",
+      "rect": [
+       44,
+       0,
+       3,
+       12
+      ],
+      "kind": "box",
+      "u": 44,
+      "v": 16,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 5",
+      "rect": [
+       87,
+       0,
+       3,
+       12
+      ],
+      "kind": "box",
+      "u": 87,
+      "v": 1,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 6",
+      "rect": [
+       87,
+       0,
+       3,
+       12
+      ],
+      "kind": "box",
+      "u": 87,
+      "v": 16,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "board",
+      "rect": [
+       0,
+       12,
+       92,
+       4
+      ],
+      "kind": "box",
+      "u": 0,
+      "v": 0,
+      "z": 12,
+      "d": 20,
+      "only39": true
+     },
      {
       "name": "box 1",
       "rect": [
@@ -1643,7 +1854,7 @@
       "kind": "box",
       "v": 8,
       "d": 6,
-      "z": 5
+      "z": 16
      },
      {
       "name": "can 1",
@@ -1655,7 +1866,7 @@
       ],
       "kind": "cyl",
       "v": 13,
-      "z": 5
+      "z": 16
      },
      {
       "name": "box 2",
@@ -1668,7 +1879,7 @@
       "kind": "box",
       "v": 9,
       "d": 6,
-      "z": 5
+      "z": 16
      },
      {
       "name": "can 2",
@@ -1680,7 +1891,7 @@
       ],
       "kind": "cyl",
       "v": 15,
-      "z": 5
+      "z": 16
      },
      {
       "name": "box 3",
@@ -1693,7 +1904,7 @@
       "kind": "box",
       "v": 8,
       "d": 6,
-      "z": 5
+      "z": 16
      },
      {
       "name": "tablet",
@@ -1704,30 +1915,130 @@
        5
       ],
       "kind": "top",
-      "v": 8
+      "v": 8,
+      "z": 16
      }
     ],
     "flatOnly": [
      {
-      "name": "table top",
+      "name": "table",
       "rect": [
        0,
        0,
        92,
-       11
+       16
       ]
      }
     ]
    },
    "BENCH": {
-    "front": [
-     0,
-     4,
-     92,
-     4
-    ],
     "d": 9,
     "details": [
+     {
+      "name": "leg 1",
+      "rect": [
+       1,
+       0,
+       3,
+       7
+      ],
+      "kind": "box",
+      "u": 1,
+      "v": 1,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 2",
+      "rect": [
+       1,
+       0,
+       3,
+       7
+      ],
+      "kind": "box",
+      "u": 1,
+      "v": 5,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 3",
+      "rect": [
+       44,
+       0,
+       3,
+       7
+      ],
+      "kind": "box",
+      "u": 44,
+      "v": 1,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 4",
+      "rect": [
+       44,
+       0,
+       3,
+       7
+      ],
+      "kind": "box",
+      "u": 44,
+      "v": 5,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 5",
+      "rect": [
+       87,
+       0,
+       3,
+       7
+      ],
+      "kind": "box",
+      "u": 87,
+      "v": 1,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "leg 6",
+      "rect": [
+       87,
+       0,
+       3,
+       7
+      ],
+      "kind": "box",
+      "u": 87,
+      "v": 5,
+      "z": 0,
+      "d": 3,
+      "only39": true
+     },
+     {
+      "name": "seat",
+      "rect": [
+       0,
+       0,
+       92,
+       2
+      ],
+      "kind": "box",
+      "u": 0,
+      "v": 0,
+      "z": 7,
+      "d": 9,
+      "only39": true
+     },
      {
       "name": "cushion",
       "rect": [
@@ -1738,17 +2049,19 @@
       ],
       "kind": "box",
       "v": 0,
-      "d": 9
+      "d": 9,
+      "z": 9,
+      "only39": true
      }
     ],
     "flatOnly": [
      {
-      "name": "seat",
+      "name": "bench",
       "rect": [
        0,
        0,
        92,
-       4
+       8
       ]
      }
     ]

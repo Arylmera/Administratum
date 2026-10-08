@@ -2015,6 +2015,46 @@
     "w": 4,
     "h": 2
    }
+  },
+  "TABLE leg 1 front": {
+   "frame": {
+    "x": 0,
+    "y": 560,
+    "w": 6,
+    "h": 10
+   }
+  },
+  "TABLE leg 2 front": {
+   "frame": {
+    "x": 7,
+    "y": 560,
+    "w": 6,
+    "h": 10
+   }
+  },
+  "BENCH leg 1 front": {
+   "frame": {
+    "x": 14,
+    "y": 560,
+    "w": 4,
+    "h": 5
+   }
+  },
+  "BENCH leg 2 front": {
+   "frame": {
+    "x": 19,
+    "y": 560,
+    "w": 4,
+    "h": 5
+   }
+  },
+  "BENCH leg 3 front": {
+   "frame": {
+    "x": 24,
+    "y": 560,
+    "w": 4,
+    "h": 5
+   }
   }
  },
  "meta": {
@@ -2023,7 +2063,7 @@
   "format": "RGBA8888",
   "size": {
    "w": 502,
-   "h": 559
+   "h": 570
   },
   "palette": "key.gpl",
   "note": "orbital: hand-edited source. The Orbital Station's face sheets: rects cut to this world's frames (flat view exact), its own split into volumes, its side, top, rim and bezel frames in faces.png. Format: ui/faces.js header.",
@@ -2650,7 +2690,8 @@
       ],
       "kind": "box",
       "v": 0,
-      "d": 26
+      "d": 20,
+      "z": 12
      },
      {
       "name": "leg 1",
@@ -2661,7 +2702,9 @@
        2
       ],
       "kind": "cyl",
-      "v": 21
+      "v": 10,
+      "z": 2,
+      "only39": true
      },
      {
       "name": "leg 2",
@@ -2672,7 +2715,9 @@
        2
       ],
       "kind": "cyl",
-      "v": 21
+      "v": 10,
+      "z": 2,
+      "only39": true
      },
      {
       "name": "foot 1",
@@ -2683,7 +2728,7 @@
        2
       ],
       "kind": "box",
-      "v": 17,
+      "v": 6,
       "d": 9
      },
      {
@@ -2695,7 +2740,7 @@
        2
       ],
       "kind": "box",
-      "v": 17,
+      "v": 6,
       "d": 9
      },
      {
@@ -2708,7 +2753,7 @@
       ],
       "kind": "top",
       "v": 4,
-      "z": 7
+      "z": 15
      },
      {
       "name": "pouch 1",
@@ -2720,7 +2765,7 @@
       ],
       "kind": "top",
       "v": 4,
-      "z": 7
+      "z": 15
      },
      {
       "name": "tray 2",
@@ -2732,7 +2777,7 @@
       ],
       "kind": "top",
       "v": 4,
-      "z": 7
+      "z": 15
      },
      {
       "name": "pouch 2",
@@ -2744,7 +2789,7 @@
       ],
       "kind": "top",
       "v": 4,
-      "z": 7
+      "z": 15
      },
      {
       "name": "tray 3",
@@ -2756,7 +2801,7 @@
       ],
       "kind": "top",
       "v": 4,
-      "z": 7
+      "z": 15
      },
      {
       "name": "pouch 3",
@@ -2768,7 +2813,7 @@
       ],
       "kind": "top",
       "v": 4,
-      "z": 7
+      "z": 15
      }
     ],
     "flatOnly": [
@@ -2780,8 +2825,27 @@
        92,
        9
       ]
+     },
+     {
+      "name": "leg 1",
+      "rect": [
+       10,
+       12,
+       6,
+       2
+      ]
+     },
+     {
+      "name": "leg 2",
+      "rect": [
+       76,
+       12,
+       6,
+       2
+      ]
      }
-    ]
+    ],
+    "d": 20
    },
    "BENCH": {
     "front": [
@@ -2796,37 +2860,43 @@
       "name": "leg 1",
       "rect": [
        3,
+       0,
        4,
-       4,
-       2
+       5
       ],
       "kind": "box",
       "v": 2,
-      "d": 5
+      "d": 5,
+      "z": 2,
+      "only39": true
      },
      {
       "name": "leg 2",
       "rect": [
        44,
+       0,
        4,
-       4,
-       2
+       5
       ],
       "kind": "box",
       "v": 2,
-      "d": 5
+      "d": 5,
+      "z": 2,
+      "only39": true
      },
      {
       "name": "leg 3",
       "rect": [
        85,
+       0,
        4,
-       4,
-       2
+       5
       ],
       "kind": "box",
       "v": 2,
-      "d": 5
+      "d": 5,
+      "z": 2,
+      "only39": true
      },
      {
       "name": "cushion",
@@ -2838,7 +2908,8 @@
       ],
       "kind": "box",
       "v": 0,
-      "d": 9
+      "d": 9,
+      "z": 7
      }
     ],
     "flatOnly": [
@@ -2882,6 +2953,33 @@
       "name": "loop 5",
       "rect": [
        70,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "leg 1",
+      "rect": [
+       3,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "leg 2",
+      "rect": [
+       44,
+       4,
+       4,
+       2
+      ]
+     },
+     {
+      "name": "leg 3",
+      "rect": [
+       85,
        4,
        4,
        2

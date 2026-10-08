@@ -267,12 +267,6 @@
   "CRATE bottle 6 front": {
    "frame": { "x": 94, "y": 189, "w": 4, "h": 7 }
   },
-  "TABLE side": {
-   "frame": { "x": 0, "y": 207, "w": 11, "h": 5 }
-  },
-  "TABLE top": {
-   "frame": { "x": 12, "y": 207, "w": 92, "h": 11 }
-  },
   "TABLE cup 1 top": {
    "frame": { "x": 105, "y": 207, "w": 4, "h": 2 }
   },
@@ -281,12 +275,6 @@
   },
   "TABLE mug top": {
    "frame": { "x": 115, "y": 207, "w": 6, "h": 3 }
-  },
-  "BENCH side": {
-   "frame": { "x": 0, "y": 219, "w": 4, "h": 4 }
-  },
-  "BENCH top": {
-   "frame": { "x": 5, "y": 219, "w": 92, "h": 4 }
   },
   "RECAFF side": {
    "frame": { "x": 0, "y": 224, "w": 7, "h": 36 }
@@ -569,13 +557,67 @@
   },
   "SCROLL_PILE tape up 2 top": {
    "frame": { "x": 100, "y": 462, "w": 5, "h": 2 }
+  },
+  "TABLE board front": {
+   "frame": { "x": 0, "y": 471, "w": 92, "h": 4 }
+  },
+  "TABLE board side": {
+   "frame": { "x": 93, "y": 471, "w": 9, "h": 4 }
+  },
+  "TABLE board top": {
+   "frame": { "x": 103, "y": 471, "w": 92, "h": 9 }
+  },
+  "BENCH seat front": {
+   "frame": { "x": 196, "y": 471, "w": 92, "h": 2 }
+  },
+  "BENCH seat side": {
+   "frame": { "x": 289, "y": 471, "w": 4, "h": 2 }
+  },
+  "BENCH seat top": {
+   "frame": { "x": 294, "y": 471, "w": 92, "h": 4 }
+  },
+  "TABLE leg 1 front": {
+   "frame": { "x": 387, "y": 471, "w": 3, "h": 12 }
+  },
+  "BENCH leg 1 front": {
+   "frame": { "x": 391, "y": 471, "w": 3, "h": 7 }
+  },
+  "TABLE leg 2 front": {
+   "frame": { "x": 395, "y": 471, "w": 3, "h": 12 }
+  },
+  "BENCH leg 2 front": {
+   "frame": { "x": 399, "y": 471, "w": 3, "h": 7 }
+  },
+  "TABLE leg 3 front": {
+   "frame": { "x": 403, "y": 471, "w": 3, "h": 12 }
+  },
+  "BENCH leg 3 front": {
+   "frame": { "x": 407, "y": 471, "w": 3, "h": 7 }
+  },
+  "TABLE leg 4 front": {
+   "frame": { "x": 411, "y": 471, "w": 3, "h": 12 }
+  },
+  "BENCH leg 4 front": {
+   "frame": { "x": 415, "y": 471, "w": 3, "h": 7 }
+  },
+  "TABLE leg 5 front": {
+   "frame": { "x": 419, "y": 471, "w": 3, "h": 12 }
+  },
+  "BENCH leg 5 front": {
+   "frame": { "x": 423, "y": 471, "w": 3, "h": 7 }
+  },
+  "TABLE leg 6 front": {
+   "frame": { "x": 427, "y": 471, "w": 3, "h": 12 }
+  },
+  "BENCH leg 6 front": {
+   "frame": { "x": 431, "y": 471, "w": 3, "h": 7 }
   }
  },
  "meta": {
   "app": "face sheets (ui/faces.js)",
   "image": "faces.png",
   "format": "RGBA8888",
-  "size": { "w": 509, "h": 470 },
+  "size": { "w": 509, "h": 483 },
   "palette": "key.gpl",
   "anchors": {},
   "note": "vault: hand-edited source (no generator). Vault 111's own volumes: its objects split into boxes, cylinders, discs and recessed screens, with this world's side, top, rim and bezel faces in faces.png (key palette, the vault colours). Format: ui/faces.js header.",
@@ -705,25 +747,39 @@
     ]
    },
    "TABLE": {
-    "front": [0, 11, 92, 5],
-    "d": 26,
+    "d": 20,
     "details": [
-     { "name": "tray 1", "rect": [8, 3, 12, 6], "kind": "top", "v": 6 },
-     { "name": "tray 2", "rect": [34, 3, 12, 6], "kind": "top", "v": 6 },
-     { "name": "tray 3", "rect": [62, 3, 12, 6], "kind": "top", "v": 6 },
-     { "name": "cup 1", "rect": [23, 1, 4, 7], "kind": "cyl", "v": 12, "z": 5 },
-     { "name": "cup 2", "rect": [77, 1, 4, 7], "kind": "cyl", "v": 12, "z": 5 },
-     { "name": "mug", "rect": [50, 4, 6, 4], "kind": "cyl", "v": 13, "z": 5 }
+     { "name": "leg 1", "rect": [1, 0, 3, 12], "kind": "box", "u": 1, "v": 1, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 2", "rect": [1, 0, 3, 12], "kind": "box", "u": 1, "v": 16, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 3", "rect": [44, 0, 3, 12], "kind": "box", "u": 44, "v": 1, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 4", "rect": [44, 0, 3, 12], "kind": "box", "u": 44, "v": 16, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 5", "rect": [87, 0, 3, 12], "kind": "box", "u": 87, "v": 1, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 6", "rect": [87, 0, 3, 12], "kind": "box", "u": 87, "v": 16, "z": 0, "d": 3, "only39": true },
+     { "name": "board", "rect": [0, 12, 92, 4], "kind": "box", "u": 0, "v": 0, "z": 12, "d": 20, "only39": true },
+     { "name": "tray 1", "rect": [8, 3, 12, 6], "kind": "top", "v": 6, "z": 16 },
+     { "name": "tray 2", "rect": [34, 3, 12, 6], "kind": "top", "v": 6, "z": 16 },
+     { "name": "tray 3", "rect": [62, 3, 12, 6], "kind": "top", "v": 6, "z": 16 },
+     { "name": "cup 1", "rect": [23, 1, 4, 7], "kind": "cyl", "v": 12, "z": 16 },
+     { "name": "cup 2", "rect": [77, 1, 4, 7], "kind": "cyl", "v": 12, "z": 16 },
+     { "name": "mug", "rect": [50, 4, 6, 4], "kind": "cyl", "v": 13, "z": 16 }
     ],
     "flatOnly": [
-     { "name": "table top", "rect": [0, 0, 92, 11] }
+     { "name": "table", "rect": [0, 0, 92, 16] }
     ]
    },
    "BENCH": {
-    "front": [0, 4, 92, 4],
     "d": 9,
+    "details": [
+     { "name": "leg 1", "rect": [1, 0, 3, 7], "kind": "box", "u": 1, "v": 1, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 2", "rect": [1, 0, 3, 7], "kind": "box", "u": 1, "v": 5, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 3", "rect": [44, 0, 3, 7], "kind": "box", "u": 44, "v": 1, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 4", "rect": [44, 0, 3, 7], "kind": "box", "u": 44, "v": 5, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 5", "rect": [87, 0, 3, 7], "kind": "box", "u": 87, "v": 1, "z": 0, "d": 3, "only39": true },
+     { "name": "leg 6", "rect": [87, 0, 3, 7], "kind": "box", "u": 87, "v": 5, "z": 0, "d": 3, "only39": true },
+     { "name": "seat", "rect": [0, 0, 92, 2], "kind": "box", "u": 0, "v": 0, "z": 7, "d": 9, "only39": true }
+    ],
     "flatOnly": [
-     { "name": "seat", "rect": [0, 0, 92, 4] }
+     { "name": "bench", "rect": [0, 0, 92, 8] }
     ]
    },
    "RECAFF": {

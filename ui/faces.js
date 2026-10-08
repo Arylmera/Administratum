@@ -23,6 +23,7 @@
 //              spire parts: [detail...] stacked shapes (boxes, cylinders, discs) sharing the spire's v
 //            u defaults to rect.x (the centre for cyl and bill), z to where the flat frame puts it (its bottom row's
 //            height above the main box's bottom; for top, the main box's top), v of a disc to the main front (d).
+//            only39: true for a part the flat frame does not show (a table's legs drawn taller than its flat art)
 //   flatOnly [{ name, rect }]: what only the flat frame paints (shadows painted into the art, top faces drawn
 //            top-down), pasted last
 // faces.png frames, named '<NAME> side' / '<NAME> top' (main box), '<NAME> <detail> side|top' (a box or cylinder
@@ -89,7 +90,7 @@ export function composeFlat(s, { retouch = true } = {}) {
   const g = Array.from({ length: s.fh }, () => Array(s.fw).fill('.'));
   const paste = ({ map, at: [x, y] }) => map.forEach((row, r) => { for (let i = 0; i < row.length; i++) if (row[i] !== '.') g[y + r][x + i] = row[i]; });
   if (s.front) paste({ map: s.front, at: [s.x0, s.above] });
-  for (const d of s.details) for (const p of d.parts ?? [d]) paste(p);
+  for (const d of s.details) if (!d.only39) for (const p of d.parts ?? [d]) paste(p);
   if (retouch) s.flatOnly.forEach(paste);
   return g.map(r => r.join(''));
 }

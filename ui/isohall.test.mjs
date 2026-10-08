@@ -103,7 +103,7 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // hall, in Tier II and the vault, against hashes recorded before the T12 optimisation (iso.js box/outline, texOf).
 // An art or layout change on purpose changes them: re-record (print the hash below) once the new look is checked.
 const GRID = {
-  'tier2 346x248 day': '4d0048435058', 'tier2 554x728 night': 'e16f0a0031da', 'vault 346x248 day': '12d4cdde896c', 'vault 554x728 night': '9197386492ff',
+  'tier2 346x248 day': '4d0048435058', 'tier2 554x728 night': 'e16f0a0031da', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'e75a00c15e4d',
 };
 for (const id of ['tier2', 'vault']) {
   setTheme(id);
