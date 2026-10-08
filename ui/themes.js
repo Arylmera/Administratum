@@ -18,6 +18,7 @@ defineTheme({
 // Cold and clinical: black-green robes, silver instead of brass, teal screens and coolant, cold candlelight.
 defineTheme({
   id: 'xenos', world: 'w40k', name: 'Ordo Xenos',
+  art: ['breakout'], // ui/art/xenos/: the Containment Cell (glowing floor grid, stasis-field pylons, field rails)
   px: { r: '#1c2a24', R: '#2e4438', d: '#0e1612', t: '#2e4438', T: '#0e1612', z: '#1c2a24', j: '#1c2a24',
     g: '#9aa6a8', G: '#5a6466', h: '#d6e2e2', U: '#2a3233', w: '#2a2e30', W: '#181b1c', L: '#3c4244',
     4: '#1e2426', 5: '#202628', 6: '#101416', 1: '#1f2527', 2: '#0d1112', 3: '#2f3a3c', D: '#13261f', E: '#0a1612', N: '#0f2019', S: '#151a1c',
