@@ -7,7 +7,7 @@
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
-import { WALL, WALL_DY } from './layout.js';
+import { WALL, WALL_DY, breakoutOf } from './layout.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
@@ -125,6 +125,43 @@ function doorKit(list) {
   return doors;
 }
 
+// The break-out room's fence (layout.js breakoutOf): every rail a thin box (2 art px) standing on the floor, every face
+// textured from the flat BREAKOUT_RAIL frame tiled along it (r down from the top, as IsoBuf.box); the east side broken
+// at each gate, a closed gate a box textured from BREAKOUT_GATE_FRONT, an open one the gap. Baked per axis, length
+// and frame, once per theme.
+let fences = new Map();
+onTheme(() => { fences = new Map(); });
+function fenceBox(axis, len, frame) {
+  const key = `${axis}:${len}:${frame}`;
+  if (fences.has(key)) return fences.get(key);
+  const f = MAPS[frame], R = f.length, C = f[0].length, [u1, v1] = axis === 'u' ? [len, 2] : [2, len];
+  const tex = (i, r) => f[Math.min(R - 1, r)][i % C];
+  const buf = bake(box(0, u1, 0, v1, 0, R), b => b.box({ u0: 0, u1, v0: 0, v1, z0: 0, z1: R, id: 1,
+    front: (i, r) => tex(i, r), side: (j, r) => tex(j, r), top: i => f[0][i % C] }));
+  const k = { buf, cv: paint(buf) };
+  fences.set(key, k);
+  return k;
+}
+function fenceItems(Z, actors) {
+  const out = [], U = x => Math.round(2 * x), V = y => Math.round(2 * (y - WALL));
+  const add = (axis, x, y, len, frame = 'BREAKOUT_RAIL') => {
+    if (len <= 0) return;
+    const k = fenceBox(axis, len, frame), u0 = U(x), v0 = axis === 'u' ? V(y) - 2 : V(y);
+    out.push({ foot: axis === 'u' ? { u0, u1: u0 + len, v0, v1: v0 + 2 } : { u0, u1: u0 + 2, v0, v1: v0 + len }, draw: g2 => drawBuf(g2, k.buf, k.cv, u0, v0) });
+  };
+  const x1 = Z.x + Z.w, y1 = Z.y + Z.h, L = U(x1) - U(Z.x);
+  add('u', Z.x, Z.y, L); add('u', Z.x, y1, L);
+  add('v', Z.x, Z.y, V(y1) - V(Z.y));
+  let y = Z.y;
+  for (const q of Z.gates) {
+    add('v', x1, y, V(q.y - 4) - V(y));
+    if (!S.near(actors, x1 - 4, q.y - 4, x1 + 4, q.y + 4)) add('v', x1, q.y - 4, V(q.y + 4) - V(q.y - 4), 'BREAKOUT_GATE_FRONT');
+    y = q.y + 4;
+  }
+  add('v', x1, y, V(y1) - V(y));
+  return out;
+}
+
 // ---- the frame ----------------------------------------------------------------------------------------------------
 // Seated 39° scribes: how far (logical floor px) each is drawn north of its seat, so its hands rest on the desk top
 // (layout.js seats a scribe 9 px south of its desk's front; the 39° view shows the desk's real height). Set each frame
@@ -158,6 +195,8 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   const all = [...actors.values()], items = [], over = [], floor = [], lights = [];
   const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18);
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
+  const Z = breakoutOf(layout.blocks, H);
+  if (Z) floor.push(g2 => S.breakoutFloor(g2, Z)); // under the rugs, as in the flat view
   floor.push(g2 => S.drawRugs(g2, layout.blocks));
 
   const furniture = (kind, at, pile, lit, fill, a, bgShell, block) => {
@@ -224,6 +263,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
       if (s && k) items.push({ foot: s, draw: g2 => drawBuf(g2, k.buf, k.cv, 0, 0) });
     }
   }
+  if (Z) items.push(...fenceItems(Z, all));
   items.push(...gateItems(all, dt), magos(t, dt));
 
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
