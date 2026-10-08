@@ -35,8 +35,6 @@ pub fn autohide() -> bool {
 
 /// Whether something is showing full-screen (a game, a presentation): the strip should not be
 /// fighting for the taskbar's spot when the taskbar itself is suppressed.
-// ponytail: not called yet, Task 7's monitor-change watcher hides the strip during full-screen.
-#[allow(dead_code)]
 pub fn fullscreen() -> bool {
     let mut state = 0;
     // SAFETY: a single out-parameter write of a plain enum value.
@@ -56,8 +54,6 @@ pub fn cursor() -> Option<(i32, i32)> {
 
 /// Shows `window` without giving it focus: Tauri's own `show()` activates, which would steal
 /// focus from whatever the user is doing while the strip appears.
-// ponytail: not called yet, Task 7 shows the strip after a monitor change without stealing focus.
-#[allow(dead_code)]
 pub fn show_no_activate(window: &tauri::WebviewWindow) {
     if let Ok(h) = window.hwnd() {
         // SAFETY: hwnd came from Tauri's own window; ShowWindow on it is a plain Win32 call.

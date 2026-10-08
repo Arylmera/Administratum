@@ -146,6 +146,68 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), S
     window.set_ignore_cursor_events(on).map_err(|e| e.to_string())
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum Act {
+    Hide,
+    Show,
+    Stay,
+}
+
+/// hidden_by_us: the watcher hid the strip for a fullscreen app (a user's own Hide is left alone).
+pub fn act(fullscreen: bool, visible: bool, hidden_by_us: bool) -> Act {
+    match (fullscreen, visible, hidden_by_us) {
+        (true, true, _) => Act::Hide,
+        (false, false, true) => Act::Show,
+        _ => Act::Stay,
+    }
+}
+
+/// Watches (1 s, only while `ON`) for a fullscreen app covering the taskbar, and for monitor /
+/// work area / DPI / taskbar changes: hides the strip for the former (and shows it again without
+/// stealing focus), re-places and re-asserts topmost for the latter (Windows drops topmost after
+/// some fullscreen transitions and Explorer restarts).
+#[cfg(windows)]
+pub fn start_watcher(app: tauri::AppHandle) {
+    use tauri::{Emitter, Manager};
+    std::thread::spawn(move || {
+        let mut hidden_by_us = false;
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            if !ON.load(Ordering::SeqCst) {
+                continue;
+            }
+            let Some(w) = app.get_webview_window("main") else { continue };
+            let visible = w.is_visible().unwrap_or(true);
+            match act(os::fullscreen(), visible, hidden_by_us) {
+                Act::Hide => {
+                    if let Err(e) = w.hide() {
+                        eprintln!("strip watcher hide: {e}");
+                    }
+                    let _ = app.emit("strip-hide", ());
+                    hidden_by_us = true;
+                }
+                Act::Show => {
+                    os::show_no_activate(&w);
+                    let _ = app.emit("strip-show", ());
+                    hidden_by_us = false;
+                }
+                Act::Stay => {}
+            }
+            if w.is_visible().unwrap_or(false) {
+                let height = *HEIGHT.lock().unwrap_or_else(|e| e.into_inner());
+                if let Err(e) = replace(&w, height) {
+                    eprintln!("strip watcher replace: {e}");
+                }
+                if let Err(e) = w.set_always_on_top(true) {
+                    eprintln!("strip watcher topmost: {e}");
+                }
+            }
+        }
+    });
+}
+#[cfg(not(windows))]
+pub fn start_watcher(_app: tauri::AppHandle) {}
+
 pub fn last_rect() -> Option<Rect> {
     *RECT.lock().unwrap_or_else(|e| e.into_inner())
 }
@@ -219,6 +281,14 @@ mod tests {
         let mon = Rect { left: 1920, top: -200, right: 4480, bottom: 1240 };
         let work = Rect { bottom: 1180, ..mon };
         assert_eq!(strip_rect(mon, work, false, 150), Rect { left: 1920, top: 1030, right: 4480, bottom: 1180 });
+    }
+    #[test]
+    fn fullscreen_hides_and_restores_only_its_own_hide() {
+        assert_eq!(act(true, true, false), Act::Hide);
+        assert_eq!(act(false, false, true), Act::Show);
+        assert_eq!(act(false, false, false), Act::Stay); // the user hid it
+        assert_eq!(act(true, false, true), Act::Stay);
+        assert_eq!(act(false, true, false), Act::Stay);
     }
     #[test]
     fn cursor_inside() {

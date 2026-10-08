@@ -583,6 +583,7 @@ fn main() {
                 thread::spawn(move || watch_visibility(handle));
             }
             strip::start_cursor_poll(app.handle().clone());
+            strip::start_watcher(app.handle().clone());
             Ok(())
         })
         .build(tauri::generate_context!())
