@@ -5,6 +5,7 @@ import { defineTheme } from './theme.js';
 // Ordo Machinum, hunters of the thinking machine. Molten industry: rust-dark plates, orange plasma in the floor channels, amber screens and cant.
 defineTheme({
   id: 'forge', world: 'w40k', name: 'Ordo Machinum',
+  art: ['breakout'], // ui/art/forge/: the Servitor Pen (hazard-chevron deck plates, cable fence, cog-sigil barrier gate)
   px: { 4: '#2e2622', 5: '#302824', 6: '#1a1410', 1: '#2c2622', 2: '#15110e', 3: '#4e3422', D: '#3a1a10', E: '#22100a', N: '#2a0e08',
     '!': '#8a3a12', '+': '#ffb05a', c: '#ffb347', C: '#3a2008', o: '#ffb347', O: '#fff2d8', X: '#d0702a', Y: '#ffa860', Z: '#8a3e14', i: '#5a240a' },
   ink: { coolant: '#ff8a2a', screenHot: '#ffe0a8', screenDim: '#c87a2a', screenMark: '#8a4a18', screenFlicker: 'rgba(58,32,8,.55)', screenOff: '#7a4a20',
