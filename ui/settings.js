@@ -37,7 +37,7 @@ export const store = {
 
 // Numbers: [default, min, max]. Context windows are in k tokens.
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
-const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (app.js stripScale)
+const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (stripwin.js stripScale)
 const DEFAULTS = { onTop: true, stripSize: 'M', stripBackdrop: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
@@ -57,7 +57,7 @@ export const settings = load();
 const applyBackdrop = () => globalThis.document?.documentElement?.classList.toggle('bare', !settings.isoBackdrop);
 applyBackdrop();
 
-// Re-applies the saved always-on-top choice to the current window; app.js calls this leaving the
+// Re-applies the saved always-on-top choice to the current window; stripwin.js calls this leaving the
 // strip, whose watcher re-asserts topmost every tick regardless of this setting.
 export const applyTop = () => tauri()?.window?.getCurrentWindow()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
 
@@ -108,7 +108,7 @@ export function initSettings(hooks) {
   const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
   const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
   const pickView = mode => {
-    if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (app.js toggleStrip)
+    if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
     store.set('adm.view', mode); setView(mode);
   };
   let login = null;

@@ -8,7 +8,7 @@ import { T, onTheme, setTheme, t, hexA } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings, applyTop } from './settings.js';
+import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
 import { buildHall39 } from './isohall.js';
 import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
@@ -17,6 +17,7 @@ import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
 import { glide, gliding, clearGlides } from './glide.js';
+import { initStripWin, switchStrip, stripScale, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
@@ -51,8 +52,6 @@ const scene = () => sceneSize(hall);
 const iso = () => viewMode.mode === '39';
 // The desktop strip (view.js): a transparent bar on the taskbar, its pixel size by the Strip size setting (Task 6).
 const strip = () => viewMode.strip;
-const stripScale = () => ({ S: 1.5, M: 2, L: 2.5 })[settings.stripSize] ?? 2;
-const stripCss = () => Math.round(STRIP_H * stripScale()); // the strip's CSS height
 // Where a floor point (x, y), up logical px above the floor, is drawn: itself in the flat view (up: straight up the
 // screen), projected in the 39° view (view.js). Overlays and hit tests place themselves through it.
 const at = (x, y, up = 0) => (iso() ? toScreen(x, y, up) : [x, y - up]);
@@ -89,81 +88,7 @@ function background(day) {
   }
   return bg[k];
 }
-// Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
-// is over the strip (it gets no pointer events while ignoring them).
-let through = null;
-const HIT = '.lbl, .plaque, #card, #prefs, #chron, #strip-handle, #strip-menu';
-function stripHit(x, y) {
-  const el = document.elementFromPoint(x, y);
-  return !!el?.closest(HIT) || !!actorAt({ clientX: x, clientY: y });
-}
-function setThrough(on) {
-  if (on === through) return;
-  through = on;
-  invoke('set_click_through', { on }).catch(() => { through = null; });
-}
-// Into the strip: the window moves onto the taskbar (place_strip returns the hall's rect the first time, kept for the
-// way back in adm.hallRect). Out: the hall's rect back (place_hall turns click-through off). The tray check follows.
-let grownTo = 0; // the window's last asked CSS height in the strip (growStrip)
-let bootStrip = saved === 'strip'; // started in the strip: the window's rect is the last session's strip, not a hall
-// Every move onto the taskbar goes through here: the first one out of the hall returns the hall's rect, whoever calls.
-async function placeStrip(height) {
-  const r = await invoke('place_strip', { height });
-  if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
-  bootStrip = false;
-  return r;
-}
-async function enterStrip() {
-  grownTo = stripCss();
-  await placeStrip(grownTo);
-  if (!strip()) return; // a leave was queued behind this enter: let it undo the move instead
-  setThrough(true);
-  invoke('set_strip_menu', { on: true }).catch(() => {});
-  growStrip();
-}
-async function leaveStrip() {
-  through = null; grownTo = 0;
-  const r = store.get('adm.hallRect');
-  await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
-  applyTop(); // the strip's watcher re-asserts topmost every tick regardless of the user's setting
-  if (strip()) return; // a newer enter is queued behind this leave: let it redo the move instead
-  invoke('set_strip_menu', { on: false }).catch(() => {});
-}
-// Enter/leave touch the OS window and a shared backend rect: serialised through one chain so a quick switch back
-// and forth can't let a leave read a stale/missing hallRect mid-enter, or land its set_strip_menu after a newer enter's.
-let switching = Promise.resolve();
-// The strip's window grows upward while a panel (card, Settings, Chronicon, the handle's menu) is open above it, and
-// shrinks back when they close; the stage stays pinned to the bottom (index.html). Also replays a Strip size change.
-function growStrip() {
-  if (!strip() || !tauri()) return;
-  const open = [...document.querySelectorAll('#card, #prefs, #chron, #strip-menu')].filter(el => el.offsetParent);
-  const h = stripCss() + Math.max(0, ...open.map(el => el.offsetHeight + 8));
-  if (h !== grownTo) { grownTo = h; placeStrip(h).catch(() => {}); }
-}
-{
-  const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
-  const ro = new ResizeObserver(growStrip), mo = new MutationObserver(growStrip);
-  for (const el of panels) { ro.observe(el); mo.observe(el, { attributes: true, attributeFilter: ['hidden', 'class'] }); }
-}
-// Strip <-> hall (the tray's check item, the handle's Hall view): back to the hall view it left (adm.hallView).
-function toggleStrip() {
-  const to = viewMode.strip ? store.get('adm.hallView', 'flat') : 'strip';
-  if (to === 'strip') store.set('adm.hallView', viewMode.mode);
-  store.set('adm.view', to); setView(to);
-}
-// The handle: a cog at the strip's left end (over the gate) opening a small menu above it.
-const stripMenu = document.getElementById('strip-menu'), stripHandle = document.getElementById('strip-handle');
-const showMenu = on => { stripMenu.hidden = !on; stripHandle.setAttribute('aria-expanded', String(on)); };
-stripHandle.onclick = () => showMenu(stripMenu.hidden);
-stripMenu.onclick = e => {
-  const act = e.target.closest('button')?.dataset.act;
-  if (!act) return;
-  showMenu(false);
-  if (act === 'hall') toggleStrip();
-  else document.getElementById(act).click(); // the header's own buttons (hidden in the strip): prefs-open, chron-open, hide
-};
-addEventListener('click', e => { if (!e.target.closest('#strip-menu, #strip-handle')) showMenu(false); });
-addEventListener('keydown', e => { if (e.key === 'Escape') showMenu(false); });
+initStripWin({ actorAt, fromStrip: saved === 'strip' });
 // The hall's floor point at its view centre, kept through a stay in the strip (the strip's view says nothing of it).
 // Leaving, the window is still strip-sized until place_hall lands: the first hall resize after (refloor) centres
 // on it again, the strip-sized fit in between having clamped it.
@@ -175,7 +100,7 @@ onView((mode, prev) => {
   if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
     if (mode === 'strip') { hallFloor = centreFloor(prev); refloor = false; }
     document.documentElement.classList.toggle('strip', mode === 'strip');
-    if (tauri()) switching = switching.then(() => (mode === 'strip' ? enterStrip() : leaveStrip())).catch(err => console.warn('strip switch', err));
+    if (tauri()) switchStrip(mode === 'strip');
     showMenu(false);
     mouse = null; // the strip's cursor is backend-fed, the hall's a pointer event: neither means anything in the other
     resetCast();
@@ -912,4 +837,4 @@ if (tauri() || REMOTE) {
 }
 const hideBtn = document.getElementById('hide');
 if (tauri()) hideBtn.onclick = () => { visible = false; wake(); tauri().window.getCurrentWindow().hide(); };
-else { hideBtn.remove(); stripMenu.querySelector('[data-act="hide"]').remove(); } // no window to hide in a browser
+else hideBtn.remove();

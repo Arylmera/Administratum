@@ -68,7 +68,7 @@
   html.iso.bare, html.iso.bare body { background: transparent !important; } /* 2.5D, Backdrop off: the desktop shows round the hall */
   html.iso #stage { box-shadow: none; } /* the 39° hall floats on the backdrop, its corners transparent */
   html.strip #stage { box-shadow: none; position: fixed; left: 0; bottom: 0; margin: 0; max-width: none; max-height: none; overflow: visible; }
-  /* The panels open above the strip (app.js growStrip makes the window taller while one is open). */
+  /* The panels open above the strip (stripwin.js growStrip makes the window taller while one is open). */
   html.strip :is(#card, #prefs, #chron, #strip-menu) { top: auto; bottom: calc(100% + 4px); left: 4px; transform: none; max-height: none; }
   html.strip #chron { height: 30em; }
   /* The handle: a 12 logical px cog over the gate, at the strip's left end, and its menu. */
