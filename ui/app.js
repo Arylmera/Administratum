@@ -671,16 +671,16 @@ function syncEdges() {
     if (b.hidden !== !list.length) b.hidden = !list.length; // an unchanged write still dirties the DOM
     if (b.hidden) continue;
     const pets = list.filter(o => !o.a.h && o.a.s.status === 'waiting');
-    const t = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p));
+    const o = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p)); // not t: that is the wording (theme.js)
     const flat = dir === 'up' || dir === 'down', inset = 16;
-    const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? t.x : t.y)))}px`;
+    const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? o.x : o.y)))}px`;
     const at = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
     setStyle(b, flat ? { left: along, top: at } : { left: at, top: along });
     b.classList.toggle('alarm', pets.length > 0);
     if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
     const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${t('petitioning', { n: pets.length })}` : ''}`;
     if (b.title !== label) { b.title = label; b.setAttribute('aria-label', label); }
-    b.to = t.a; // read by the click handler set once below
+    b.to = o.a; // read by the click handler set once below
   }
 }
 
