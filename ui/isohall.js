@@ -6,9 +6,9 @@
 import { IsoBuf, P39, VS39 } from './iso.js';
 import { WALL, WALL_DY } from './layout.js';
 import { propsOf, wallArt, WIN_Y } from './scene.js';
-import { MAPS, MAGOS, MAGOS_AT, PROP_AT, ROOM, RES } from './sprites.js';
+import { MAPS, PROP_AT, ROOM, RES } from './sprites.js';
 import { sheetOf, build39 } from './faces.js';
-import { aoBands, FLY_H } from './depth.js';
+import { aoBands } from './depth.js';
 import { T } from './theme.js';
 
 const SLAB_Z = 32; // a cutaway inner wall: 16 logical px high
@@ -99,8 +99,6 @@ const wallTex = (tex, foot, Z) => (i, r) => (foot && r >= Z - FOOT ? texel('wall
 // Props that stand on the floor and get a contact shadow (scene.js STANDING, not exported there).
 const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
 const onWall = (name, y) => name === 'HANGING' || ((name === 'BANNER' || name === 'CENSER') && y < WALL - WALL_DY); // scene.js hung()
-const paste = (g, map, x, y) => map.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] !== '.' && g[y + r]?.[x + c] !== undefined) g[y + r][x + c] = row[c]; });
-const grid = (w, h) => Array.from({ length: h }, () => Array(w).fill('.'));
 // How far a details-only face sheet reaches toward the viewer from its back (v).
 const depthOf = s => s.d || Math.max(1, ...s.details.map(p => p.v + (p.kind === 'box' ? p.d : p.kind === 'cyl' ? p.map[0].length >> 1 : p.kind === 'disc' ? p.t ?? 2 : 1)));
 
@@ -146,6 +144,15 @@ export function placeProps(hall) {
 
 const ID = { floor: 1, strip: 2, wall: 3, slab: 4, box: 5, window: 6, decal: 7, prop: 10 };
 
+// The grand gate at the scriptorium's bottom edge, from its face sheet (piers, spires, arch, keystone, emblem), its frame
+// column 0 at u0, its back at v0, the flat frame's bottom row on the floor: the dynamic layer (scene39.js) builds it,
+// lays the void (GATE_VOID) in its opening on the plane v0 + leaves.v and slides the iron leaves (GATE_L / GATE_R) on
+// the plane in front of it (leaves: its 'leaves' part, v and d from the gate's back).
+export function gateOf(hall) {
+  const sheet = sheetOf('GATE');
+  return { sheet, u0: fx(hall.entry.x - PROP_AT.GATE.entry[0]), v0: fy(hall.h) - depthOf(sheet), leaves: sheet.details.find(p => p.name === 'leaves') };
+}
+
 // The z-buffer of the hall (pure: no DOM) and its shading per pixel (0..0.8, the shadow colour's alpha).
 export function renderHall39(hall, day = true) {
   const { w, h, ox: bx, oy: by } = bounds(hall);
@@ -173,34 +180,9 @@ export function renderHall39(hall, day = true) {
     else { b.bill(p.map, p.u0 + (p.map[0].length >> 1), p.v0, 0, id); ids.add(id++); }
     if (p.on === 'floor' && !p.z0 && STANDING.has(p.name)) feet.push(p.foot);
   }
-  const bill = (map, x, yb, z = 0, dz = 0) => { // a flat frame upright, its bottom centre on the floor line yb
-    const u = fx(x) + (map[0].length >> 1), v = Math.max(WALL_V0, fy(yb) - 1);
-    buf.bill(map, u, v, z, id, dz); ids.add(id++);
-    return { u0: u - (map[0].length >> 1), u1: u + (map[0].length >> 1), v0: v - 6, v1: v + 1 };
-  };
-  // the grand gate at the scriptorium's bottom edge, from its face sheet (piers, spires, arch, keystone, emblem): the
-  // iron leaves closed (GATE_L / GATE_R, over the void) set back in the opening as its 'leaves' part, cut from the frame
-  // with them pasted in; the dynamic layer slides them at anchors.gate (the leaves' plane and the opening)
-  const A = PROP_AT.GATE, gate = grid(MAPS.GATE[0].length, MAPS.GATE.length), [ow, oh] = A.opening.slice(2).map(n => n * RES);
-  paste(gate, MAPS.GATE_VOID, A.opening[0] * RES, A.opening[1] * RES);
-  paste(gate, MAPS.GATE_L, A.leafL[0] * RES, A.leafL[1] * RES); paste(gate, MAPS.GATE_R, A.leafR[0] * RES, A.leafR[1] * RES); // closed
-  paste(gate, MAPS.GATE, 0, 0);
-  const gs = sheetOf('GATE', gate.map(r => r.join(''))), gu = fx(hall.entry.x - A.entry[0]), gv = fy(hall.h) - depthOf(gs);
-  build39(buf, gs, gu, gv, id); ids.add(id).add(id + 1); id += 2;
-  const back = gs.details.find(p => p.name === 'leaves');
-  const anchors = {
-    gate: { u0: gu + A.opening[0] * RES, u1: gu + A.opening[0] * RES + ow, v: gv + back.v + back.d, z0: gs.fh - A.opening[1] * RES - oh, z1: gs.fh - A.opening[1] * RES },
-    doors: plan.surfaces.filter(s => s.kind === 'door'),
-  };
-  // ponytail: the Magos and the servo-skulls from today's flat frames, upright; their 39° art (magos39, skull39) comes later
-  const mag = grid(MAGOS.body[0].length, MAGOS.body.length), MX = 264 + hall.ox, MY = 120 + hall.sd;
-  paste(mag, MAGOS.body, 0, 0); paste(mag, MAGOS.arm, MAGOS_AT.arm.x * RES, MAGOS_AT.arm.y * RES);
-  // seated in the throne (scene.js PROPS.s: 268, 124 + sd, its face sheet 24 deep): in front of its back, drawn over the
-  // seat and arms as the flat frame is drawn over the throne
-  buf.bill(mag.map(r => r.join('')), fx(MX) + (MAGOS.body[0].length >> 1), fy(MY + 24) - 24 + 6, 0, id, 30); ids.add(id++);
-  const SK = PROP_AT.SKULL, skullAt = (cx, cy) => bill(MAPS.SKULL, cx - SK.centre[0], cy + FLY_H, 2 * (FLY_H - MAPS.SKULL.length / RES + SK.centre[1]));
-  skullAt(244 + hall.ox + SK.centre[0], 50 + WALL_DY + SK.centre[1]); // the refectorium's (scene.js drawDecorFrame)
-  skullAt(297 + hall.ox, 128 + hall.sd); // on its perch by the Magos (scene.js perchOf)
+  // the grand gate moves (its leaves slide between its arch and the void): the dynamic layer draws it (gateOf)
+  const anchors = { doors: plan.surfaces.filter(s => s.kind === 'door') };
+  // the Magos and the servo-skulls move: the dynamic layer (scene39.js) draws them
 
   buf.outline(ids);
   buf.outline(new Set([ID.floor, ID.wall, ID.slab, ID.box]));
@@ -237,8 +219,8 @@ export function renderHall39(hall, day = true) {
 }
 
 // The 39° hall as a canvas (art px, RES per logical px), the art-px offset of the world origin on it, and the anchors
-// of what the dynamic layer draws into it (world coords): gate { u0, u1, v (the leaves' plane), z0, z1 } (the opening),
-// doors [{ name, tex, u0, u1, v0, v1, z0, z1 }] (each doorway's leaves). Painted in
+// of what the dynamic layer draws into it (world coords): doors [{ name, tex, u0, u1, v0, v1, z0, z1 }] (each
+// doorway's leaves). Painted in
 // the theme's px colours, the shading blended in; the windows' glass in the day or night colours (T.ink.window*).
 const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 export function buildHall39(hall, day = true) {

@@ -7,8 +7,9 @@ import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
-import { view as viewMode, setView, onView, sceneSize } from './view.js';
+import { view as viewMode, setView, onView, sceneSize, toScreen } from './view.js';
 import { buildHall39 } from './isohall.js';
+import { drawScene39, actorAt39, busy39 } from './scene39.js';
 import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
@@ -50,13 +51,15 @@ function renderQuiet() {
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
 const overlay = document.getElementById('overlay');
-const scratch = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d'); // 39°: drawScene's lights only
 let scale = 2;
 let size = { ...SCENE }; // the scene's logical size, from the window and the Scale setting (fit)
 let hall = hallOf(0); // hallOf(bays, size): the scene's logical height also grows with the layout's bays
 // The canvas's logical size: the hall's own in the flat view, the projected hall's in the 39° view (view.js).
 const scene = () => sceneSize(hall);
 const iso = () => viewMode.mode === '39';
+// Where a floor point (x, y), up logical px above the floor, is drawn: itself in the flat view (up: straight up the
+// screen), projected in the 39° view (view.js). Overlays and hit tests place themselves through it.
+const at = (x, y, up = 0) => (iso() ? toScreen(x, y, up) : [x, y - up]);
 function sizeCanvas() {
   const S = scene();
   canvas.width = S.w * RES;
@@ -76,7 +79,9 @@ function background(day) {
     const cg = c.getContext('2d');
     if (iso()) { // the 39° hall (isohall.js) on the backdrop colour: the canvas is opaque, its corners outside the hall too
       cg.fillStyle = T.ink.backdrop; cg.fillRect(0, 0, c.width, c.height);
-      cg.drawImage(buildHall39(hall, day).canvas, 0, 0);
+      const h39 = buildHall39(hall, day);
+      cg.drawImage(h39.canvas, 0, 0);
+      c.anchors = h39.anchors; // where the dynamic layer slides the gate's leaves and the doors
     } else {
       cg.setTransform(RES, 0, 0, RES, 0, 0);
       cg.imageSmoothingEnabled = false;
@@ -256,7 +261,7 @@ onTheme(backdrop);
 // time-based (steps capped at 0.25 s, above a 6 fps frame), so only smoothness changes.
 const FPS = 30;
 function busy(now) {
-  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || sceneBusy()) return true;
+  if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || (iso() ? busy39() : sceneBusy())) return true;
   for (const a of cast.actors.values()) {
     if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || (!a.h && a.s.status === 'waiting')) return true;
   }
@@ -305,16 +310,9 @@ function frame(now) {
   view.hall = hall;
   view.level = level;
   view.mode = viewMode.mode;
-  if (iso()) {
-    // ponytail: until the 39° dynamic layer exists (desks, actors, labels), drawScene runs on a 1x1 scratch canvas only
-    // for this frame's lights (and its gate/skull state); the DOM overlays stay hidden rather than at flat positions.
-    drawLighting(g, drawScene(scratch, view, cast.actors, fillOf, now), level, now / 1000, S.w, S.h, propsOf(hall).windows);
-    if (!overlay.hidden) { overlay.hidden = true; for (const b of Object.values(edges)) b.hidden = true; }
-    syncHover();
-    return;
-  }
-  if (overlay.hidden) overlay.hidden = false;
-  drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
+  view.anchors = back.anchors;
+  const lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now);
+  drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
@@ -427,9 +425,9 @@ function openDept(name) {
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
 function renderPlaques(blocks) {
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, b.x + 2, b.y + b.h - 7, b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
-  if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), 120 + hall.dx, hall.y1 - 10, T.ink.overflowPlaque]);
-  if (!roster.length) want.set('empty', ['empty', t('empty'), 0, 120 + WALL_DY + (hall.h - SCENE.h) / 2]);
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...at(b.x + 2, b.y + b.h - 7), b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
+  if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
+  if (!roster.length) want.set('empty', ['empty', t('empty'), ...at(0, 120 + WALL_DY + (hall.h - SCENE.h) / 2)]);
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
   for (const [k, [cls, text, x, y, color, maxWidth, branch = '']] of want) {
     let el = plaques.get(k);
@@ -642,7 +640,8 @@ function syncLabels() {
     }
     // Adjacent queue labels alternate height so their text doesn't overlap.
     const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
-    setStyle(el, { left: `${a.x * scale}px`, top: `${(a.y - qOff) * scale}px` });
+    const [lx, ly] = at(a.x, a.y, qOff);
+    setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
 }
 
@@ -653,7 +652,7 @@ const edges = Object.fromEntries(Object.entries({ up: '▲', down: '▼', left: 
   b.type = 'button'; b.className = `edge ${dir}`; b.hidden = true;
   g.textContent = glyph; g.setAttribute('aria-hidden', 'true');
   b.append(g, n);
-  b.onclick = () => centreOn(b.to.x, b.to.y - 8);
+  b.onclick = () => centreOn(...at(b.to.x, b.to.y, 8));
   stage.appendChild(b);
   return [dir, b];
 }));
@@ -662,7 +661,7 @@ function syncEdges() {
   const beyond = { up: [], down: [], left: [], right: [] };
   if (pannable()) for (const a of cast.actors.values()) {
     if (a.leaving) continue;
-    const x = a.x * scale + pan.x, y = (a.y - 8) * scale + pan.y; // the sprite's middle, in the view
+    const [mx, my] = at(a.x, a.y, 8), x = mx * scale + pan.x, y = my * scale + pan.y; // the sprite's middle, in the view
     const off = { left: -x, right: x - viewW, up: -y, down: y - viewH };
     const dir = Object.keys(off).reduce((p, q) => (off[q] > off[p] ? q : p));
     if (off[dir] > 0) beyond[dir].push({ a, x, y, d: off[dir] });
@@ -695,7 +694,8 @@ function syncTags(tags, cls, textOf, dx, dy) {
     let el = tags.get(a.id);
     if (!el) { el = document.createElement('div'); el.className = `lbl tag ${cls}`; overlay.appendChild(el); tags.set(a.id, el); }
     if (el.textContent !== text) el.textContent = text;
-    setStyle(el, { left: `${(a.x + dx) * scale}px`, top: `${(a.y + dy) * scale}px` });
+    const [lx, ly] = at(a.x + dx, a.y, -dy);
+    setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
 }
 // A scribe stopped on a usage limit (backend `limit`): sealed until the reset hour.
@@ -717,13 +717,15 @@ function syncHover() {
   if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
   tip.textContent = h.h ? h.h.kind : h.s.name;
-  setStyle(tip, { left: `${h.x * scale}px`, top: `${(h.y - (h.h ? 15 : 18)) * scale}px` });
+  const [tx, ty] = at(h.x, h.y, h.h ? 15 : 18);
+  setStyle(tip, { left: `${tx * scale}px`, top: `${ty * scale}px` });
 }
 
-// Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins.
+// Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins. The 39°
+// view tests the drawn frame's pixels at its projected place (scene39.js).
 function actorAt(e) {
-  if (iso()) return null; // ponytail: no 39° hit test until the 39° dynamic layer draws the characters
   const r = canvas.getBoundingClientRect(), px = (e.clientX - r.left) / scale, py = (e.clientY - r.top) / scale;
+  if (iso()) return actorAt39(px, py, cast.actors.values(), coarse.matches ? 4 : 1);
   let best = null;
   for (const a of cast.actors.values()) {
     const pad = coarse.matches ? 5 : 1, hw = (a.h ? 6 : 8) + pad, ht = (a.h ? 14 : 17) + pad;

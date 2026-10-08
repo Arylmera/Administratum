@@ -1,4 +1,4 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, MAPS, rankOf, blit } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAPS, rankOf, blit } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -198,6 +198,21 @@ export function bodyOf(a) {
   return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !(a.wait > 0) ? i : -1 };
 }
 
+// The 39° view's facing, from the walk direction in floor space: E = +x, W = -x, S = +y (toward the viewer), N = -y.
+const FACE39 = { right: 'E', left: 'W', down: 'S', up: 'N' };
+export const face39 = dir => FACE39[dir] ?? 'N';
+// bodyOf for the 39° view: the 39° frame (walking: the walk direction's; seated, queued, at the cogitator or a console:
+// facing N, its back to the viewer, as the flat view's 'up'; burning: facing S), its top-left relative to the feet
+// (dx, dy, logical px), the palette and walk step of bodyOf. null while the theme has no 39° art for this actor (the
+// caller draws the flat frame upright).
+export function bodyOf39(a) {
+  const F = a.h ? ADEPT39 : SCRIBE39, A = a.h ? ADEPT39_AT : SCRIBE39_AT;
+  if (!F.E) return null;
+  const b = bodyOf(a), walk = a.pose === 'walk', i = Math.max(0, b.step);
+  const face = walk ? face39(a.dir) : a.pose === 'burn' ? 'S' : a.h ? face39(a.target?.dir) : 'N';
+  return { map: F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+}
+
 // A walker's body rises 1 art px on the passing frame (depth: motion cues); its shadow stays on the floor.
 export const bobOf = b => (b.step === 0 ? 0.5 : 0);
 
@@ -245,7 +260,7 @@ function zSprite() {
   }
   return zCv;
 }
-function dozing(g, x, y, t) {
+export function dozing(g, x, y, t) {
   const z = zSprite(), a0 = g.globalAlpha;
   for (const k of [0, 0.5]) {
     const p = (t / 2.4 + k) % 1, zx = x + Math.round(p * 4) / 2, zy = y - Math.round(p * 12) / 2;

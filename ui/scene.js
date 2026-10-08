@@ -191,11 +191,17 @@ const lastFill = new Map(); // desk key -> its occupant's last paper fill, for t
 // One frame of everything that moves or depends on the roster, over the static background.
 // actors: Cast.actors; fillOf: context -> paper fill. Returns every light of the frame for drawLighting.
 // layout.hall: hallOf() of the current bays; layout.level: lightLevel() (shadows soften at night).
-export function drawScene(g, layout, actors, fillOf, now) {
+// The frame's shared state (the hall, the step since the last frame, the paper piles' pruning): also the 39° layer's
+// (scene39.js), which draws with this module's helpers in place of drawScene.
+export function beginFrame(layout, now) {
   H = layout.hall ?? hallOf(0);
   frameDt = lastNow ? Math.min(0.25, (now - lastNow) / 1000) : 0; // 0.25: above a 6 fps idle frame
   lastNow = now;
   prunePiles(now, layout);
+  return frameDt;
+}
+export function drawScene(g, layout, actors, fillOf, now) {
+  beginFrame(layout, now);
   const all = [...actors.values()];
   drawRugs(g, layout.blocks);
   drawDoors(g, all);
@@ -811,3 +817,7 @@ function fromArt() {
 }
 fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
+// What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
+export { KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, courier, flyShadow, spinCog,
+  lampColor, newest, stamping, STAMP_HIT, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight,
+  doorsOf, near, beaconOf, perchOf, skullRed, SKULL_SPEED };
