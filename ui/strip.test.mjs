@@ -104,4 +104,15 @@ assert.ok(a.puff > 0 && !a.burn);
   assert.equal(breakoutOfStrip([terra]), null);
 }
 
+// break-out room scribes stay in: no refectory nap, no cogitator, a compaction is a puff (no brazier walk)
+{
+  const c = new Cast(), now = 10 ** 13, s = (id, temp) => ({ id, status: 'idle', sinceMs: 1, ...(temp && { temp }) });
+  assert.deepEqual([...c.napping([s('t', true), s('n')], [{ x: 0, y: 0 }, { x: 1, y: 0 }], now)], ['n']);
+  const a = { id: 't', s: { id: 't', status: 'shell', temp: true } };
+  assert.equal(c.destination(a, new Map([['t', { x: 50, y: 60 }]]), [], ['t']).pose, 'desk');
+  const b = { id: 'b', pose: 'desk', x: 50, y: 60, s: { id: 'b', temp: true } };
+  c.compacted(b);
+  assert.ok(b.puff > 0 && !b.burn);
+}
+
 console.log('strip ok');

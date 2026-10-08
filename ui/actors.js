@@ -72,7 +72,7 @@ export class Cast {
   // spots: the refectory's (hallOf().refectory); a sleeper whose bench went with a smaller room takes another.
   napping(roster, spots = this.hall.refectory, now = Date.now()) {
     for (const [id, i] of this.naps) if (i >= spots.length) this.naps.delete(id);
-    const sleepy = roster.filter(s => s.status === 'idle' && !s.background && !s.limit && !isQuestion(s) && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs);
+    const sleepy = roster.filter(s => s.status === 'idle' && !s.temp && !s.background && !s.limit && !isQuestion(s) && s.sinceMs && now - s.sinceMs > NAP_MS()).sort((p, q) => p.sinceMs - q.sinceMs); // the break-out room dozes at its desks
     for (const id of this.naps.keys()) if (!sleepy.some(s => s.id === id)) this.naps.delete(id);
     for (const s of sleepy) {
       if (this.naps.has(s.id)) continue;
@@ -112,7 +112,7 @@ export class Cast {
   // The session compacted its context: a seated scribe carries its old pile to the nearest brazier and burns it;
   // anywhere else (cogitator, queue, refectory, on the way) the desk pile just goes up in a puff.
   compacted(a) {
-    if (a.pose !== 'desk' || this.hall.strip) { a.puff = PUFF_S; return; } // no brazier in the strip
+    if (a.pose !== 'desk' || this.hall.strip || a.s.temp) { a.puff = PUFF_S; return; } // no brazier in the strip, none for the break-out room
     const fire = braziers(this.hall.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
     a.burn = { fire, old: a.s.context, left: BURN_S };
   }
@@ -139,7 +139,7 @@ export class Cast {
       return { ...QUEUE_SLOTS[queueIdx], pose: 'queue', queueIdx };
     }
     if (a.burn) return { x: a.burn.fire.x, y: AISLE_Y, pose: 'burn' };
-    if (shell.includes(a.id)) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' };
+    if (shell.includes(a.id) && !a.s.temp) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' }; // the break-out room runs its shells at its desks
     if (refectory[this.naps.get(a.id)]) return { ...refectory[this.naps.get(a.id)], pose: 'nap' };
     const seat = seats.get(a.id);
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
