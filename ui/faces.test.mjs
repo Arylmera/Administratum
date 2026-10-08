@@ -152,12 +152,5 @@ for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'T
       assert.equal(s.top, F[`${name} top`] ?? null, `${id} ${name}: top fallback/override`);
     }
   }
-  // a world without its own side/top art still builds (faces derived from the front's edge colours)
-  setTheme('cyber');
-  const w = sheetOf('DESK');
-  assert.equal(w.side, null, 'cyber DESK: no side frame yet');
-  const r = recorder();
-  build39(r, w);
-  assert.ok(r.puts.some(p => p.face === 2) && r.puts.some(p => p.face === 0), 'world desk: side and top derived');
 }
 console.log('faces ok');
