@@ -49,6 +49,25 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/vault/magos.png` | <img src="vault/MAGOS.png" height="160"> |
 | <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/vault/magos.png` | <img src="vault/MAGOS.arm.png" height="160"> |
 
+## 39° characters
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="scribe39-e"></a>`SCRIBE39.E` | 16×17 | SCRIBE39, 39° view, walking E, 3 frames. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.E.png" height="136"> |
+| <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.W.png" height="136"> |
+| <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.S.png" height="136"> |
+| <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.N.png" height="136"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 4×8 | SCRIBE39, arm. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.armL.png" height="64"> |
+| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 6×7 | SCRIBE39, scroll. Source: `ui/art/vault/scribe39.png` | <img src="vault/SCRIBE39.scroll.png" height="56"> |
+| <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/vault/adept39.png` | <img src="vault/ADEPT39.E.png" height="112"> |
+| <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/vault/adept39.png` | <img src="vault/ADEPT39.W.png" height="112"> |
+| <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/vault/adept39.png` | <img src="vault/ADEPT39.S.png" height="112"> |
+| <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/vault/adept39.png` | <img src="vault/ADEPT39.N.png" height="112"> |
+| <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/vault/magos39.png` | <img src="vault/MAGOS39.body.png" height="160"> |
+| <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/vault/magos39.png` | <img src="vault/MAGOS39.arm.png" height="160"> |
+| <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/vault/skull39.png` | <img src="vault/SKULL39.skull.png" height="80"> |
+
 ## Props and furniture
 
 | Sprite | Logical size | Notes | Image |
