@@ -148,7 +148,10 @@ function part(buf, p, u0, v0, id) {
   if (p.kind === 'box') box(buf, p, p.rect, U, V, Z, p.d, id);
   else if (p.kind === 'cyl') cyl(buf, p, U, V, Z, id);
   else if (p.kind === 'disc') disc(buf, p, U, V, Z, id);
-  else if (p.kind === 'top') p.map.forEach((row, r) => { for (let c = 0; c < row.length; c++) for (let k = 0; k < VS; k++) buf.put(U + c, V + r * VS + k, Z, row[c], id, 0, 1); });
+  else if (p.kind === 'top') { // a top face only (box() fills it without holes: VS is not a whole number)
+    const w = p.map[0].length, h = p.map.length;
+    buf.box({ u0: U, u1: U + w, v0: V, v1: V + Math.ceil(h * VS), z0: Z, z1: Z, top: (i, j) => p.map[j]?.[i], id, tdz: 1 });
+  }
   else if (p.kind === 'bill') buf.bill(p.map, U, V, Z, id, 100);
   else if (p.kind === 'spire') p.parts.forEach(q => part(buf, q, u0, v0, id));
   else throw new Error(`faces: ${p.name}: unknown kind '${p.kind}'`);
