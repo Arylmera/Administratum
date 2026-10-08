@@ -265,6 +265,12 @@ $s.Save()"
     }
 }
 
+/// The header's close button: quits like the tray's Quit.
+#[tauri::command]
+fn quit(app: AppHandle) {
+    app.exit(0);
+}
+
 /// "Start at login": `enable` = None reads it. Keeps the tray check item in step.
 #[tauri::command]
 fn start_at_login(enable: Option<bool>, app: AppHandle, login: State<CheckMenuItem<tauri::Wry>>) -> Result<bool, String> {
@@ -538,6 +544,7 @@ fn main() {
             set_quiet,
             set_toast_text,
             start_at_login,
+            quit,
             desktop_shortcut,
             settings_load,
             settings_save,

@@ -132,19 +132,14 @@ let level = null;
 function renderModes() {
   const now = new Date(), hour = now.getHours(), s = sunToday(now);
   level = lightLevel(state.mode, hour, autoPhase(now));
-  for (const b of document.querySelectorAll('#modes button')) {
-    b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode));
-    if (b.dataset.mode === 'auto') {
-      b.textContent = `Auto · ${String(hour).padStart(2, '0')}h ${lightLevel('auto', hour, autoPhase(now)).phase}`;
-      b.title = s ? sunLine(s) : '';
-    }
-  }
+  const auto = document.querySelector('#prefs select[name="mode"] option[value="auto"]'); // the lighting choice lives in Settings
+  auto.textContent = `Auto · ${String(hour).padStart(2, '0')}h ${lightLevel('auto', hour, autoPhase(now)).phase}`;
+  auto.title = s ? sunLine(s) : '';
   renderQuiet();
   renderSettings();
 }
 function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
 function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]); }
-for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.mode);
 
 const FRAME = 12; // CSS px kept around the scene for the brass frame
 const FREE_W = 1920; // ponytail: an explicit Scale's widest scene (canvas cost); past it the stage is centred, scale kept
@@ -662,5 +657,9 @@ if (tauri() || REMOTE) {
   refreshTithe = initChronicon(colorOf);
 }
 const hideBtn = document.getElementById('hide');
-if (tauri()) hideBtn.onclick = () => { visible = false; wake(); tauri().window.getCurrentWindow().hide(); };
-else hideBtn.remove();
+const maxBtn = document.getElementById('maximize'), quitBtn = document.getElementById('quit');
+if (tauri()) {
+  hideBtn.onclick = () => { visible = false; wake(); tauri().window.getCurrentWindow().hide(); };
+  maxBtn.onclick = () => tauri().window.getCurrentWindow().toggleMaximize();
+  quitBtn.onclick = () => invoke('quit');
+} else for (const b of [hideBtn, maxBtn, quitBtn]) b.remove();

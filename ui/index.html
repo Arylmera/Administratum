@@ -42,9 +42,6 @@
   .tier { min-width: 0; } .tier span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tier .motto { color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
   .grow { flex: 1; align-self: stretch; }
-  #modes { display: flex; border: 1px solid var(--edge); border-radius: 3px; overflow: hidden; }
-  #modes button { padding: 5px 8px; background: var(--btn); color: var(--dim); border: none; font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap; }
-  #modes button[aria-pressed="true"] { background: var(--blood); color: var(--light); }
   .count { padding: 3px 8px; border: 1px solid var(--edge); border-radius: 3px; font-size: 11px; color: var(--dim); white-space: nowrap; }
   .count.on { position: relative; border-color: var(--red); color: var(--pink); font-weight: 600; }
   /* Petition glow: a fixed shadow on ::after whose opacity pulses (compositor-only, no repaint per frame). */
@@ -55,7 +52,7 @@
   .icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: var(--copper); cursor: pointer; padding: 0; }
   #prefs-open.update { position: relative; }
   #prefs-open.update::after { content: ''; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--paper-accent); }
-  .icon:hover, #modes button:hover { filter: brightness(1.3); }
+  .icon:hover { filter: brightness(1.3); }
   #mute .off { display: none; } #mute.muted .on { display: none; } #mute.muted .off { display: block; }
   #quiet { color: var(--light); font-size: 16px; cursor: default; } #quiet[hidden] { display: none; }
   button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
@@ -267,7 +264,7 @@
     #prefs fieldset { grid-template-columns: minmax(0, 1fr); }
   }
   @media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
-  @media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } #modes button { padding: 5px 6px; } } /* room for the gear at 700 px */
+  @media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } } /* room for the gear at 700 px */
   @keyframes alarm { 50% { background: var(--wax-deep); box-shadow: 0 0 14px 3px color-mix(in srgb, var(--alarm) 90%, transparent); } }
   @keyframes pulse { 50% { opacity: 1; } }
   html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; } /* hidden or covered: app.js */
@@ -287,11 +284,6 @@
   <h1 data-tauri-drag-region data-t="title">Administratum</h1>
   <div class="tier" data-tauri-drag-region><span data-t="subtitle">II · Data-Shrine of the Cult Mechanicus</span><span class="motto" data-t="motto">Knowledge is power, guard it well</span></div>
   <div class="grow" data-tauri-drag-region></div>
-  <div id="modes" role="group" aria-label="Lighting">
-    <button data-mode="auto" aria-pressed="false">Auto</button>
-    <button data-mode="full" aria-pressed="false" data-t="modes.full">Full light</button>
-    <button data-mode="candles" aria-pressed="false" data-t="modes.candles">Candles</button>
-  </div>
   <div id="count" class="count">0 petitions</div>
   <button id="tithe" class="count tithe" type="button" title="Tithe today: tokens and working time" data-t-title="tithe.hint">⛁ — · —</button>
   <button id="chron-open" class="icon" type="button" aria-label="Open the Chronicon" data-t-aria="log.open">
@@ -307,6 +299,12 @@
   </button>
   <button id="hide" class="icon" aria-label="Hide to tray">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  </button>
+  <button id="maximize" class="icon" aria-label="Maximize">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="5" width="14" height="14"></rect></svg>
+  </button>
+  <button id="quit" class="icon" aria-label="Quit">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
   </button>
 </header>
 <main id="stage">
