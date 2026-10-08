@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { roomPlan, bounds, renderHall39, placeProps } from './isohall.js';
-import { hallOf, WALL, SCENE, MAX_W } from './layout.js';
+import { hallOf, WALL, WALL_DY, SCENE, MAX_W } from './layout.js';
 import { P39 } from './iso.js';
 import { setView, sceneSize, toScreen } from './view.js';
 
@@ -46,16 +46,32 @@ for (const hall of halls) {
   // props: hung ones on a wall plane within its height, standing ones on their room's floor, never on a wall band
   const fy = y => 2 * (y - WALL), band = [fy(hall.split), fy(hall.split + 30)], placed = placeProps(hall);
   assert.ok(placed.length > 40, tag);
+  const hung = p => p.name === 'HANGING' || ((p.name === 'BANNER' || p.name === 'CENSER') && p.y < WALL - WALL_DY); // scene.js hung()
+  const shelves = placed.filter(q => q.name === 'SHELF');
+  const roomOf = p => (p.x + p.map[0].length / 4 <= hall.sw ? 'scriptorium' : p.yb < hall.split - 6 ? 'refectorium' : 'sanctum');
+  const TOL = 2; // art px: a flat frame may overlap its room's wall by a pixel (the censer by the east wall)
+  assert.ok(placed.some(hung), tag);
   for (const p of placed) {
-    const { u0, u1, v0, v1 } = p.foot, cu = (u0 + u1) / 2, cv = (v0 + v1) / 2, at = `${tag}: ${p.name} at (${u0}, ${v0}, ${p.z0})`;
+    const { u0, u1, v0, v1 } = p.foot, at = `${tag}: ${p.name} at (${u0}, ${v0}, ${p.z0})`;
+    if (hung(p)) { // the north wall's hangings: on its plane, at their flat height
+      assert.equal(p.on, 'wall', `${at}: hung on the north wall`);
+      assert.ok(p.v0 <= 4, `${at}: on the north wall's plane`);
+      assert.equal(p.z1, 2 * (WALL - p.y), `${at}: at its flat height`);
+    }
     if (p.on === 'wall') {
       const north = p.v0 <= 4, plane = north ? { u0: 0, u1: U, z1: Z } : back;
       assert.ok(north || p.v0 === band[0] || p.v0 === band[0] - 1, `${at}: on a wall plane`);
       assert.ok(u0 >= plane.u0 && u1 <= plane.u1 && p.z0 >= 0 && p.z1 <= plane.z1, `${at}: within its wall`);
       continue;
     }
-    if (p.z0) { assert.equal(p.v0, 4, `${at}: resting against the north wall`); continue; }
-    assert.ok(surfaces.some(s => s.kind === 'floor' && cu >= s.u0 && cu < s.u1 && cv >= s.v0 && cv < s.v1), `${at}: on a floor`);
+    if (p.z0) { // resting on a shelf's top, against the north wall
+      assert.equal(p.v0, 4, `${at}: against the north wall`);
+      assert.ok(shelves.some(q => q.foot.u0 <= (u0 + u1) / 2 && (u0 + u1) / 2 < q.foot.u1 && q.z1 === p.z0), `${at}: on a shelf's top`);
+      continue;
+    }
+    const [floor] = named('floor', roomOf(p));
+    assert.ok(u0 >= floor.u0 - TOL && u1 <= floor.u1 + TOL && v0 >= floor.v0 - TOL && v1 <= floor.v1 + TOL, `${at}: on the ${floor.name}'s floor`);
+    const cu = (u0 + u1) / 2, cv = (v0 + v1) / 2;
     assert.ok(!slabs.some(s => cu >= s.u0 && cu < s.u1 && cv >= s.v0 && cv < s.v1), `${at}: inside a wall`);
     assert.ok(!(cu >= back.u0 && v1 > band[0] && v1 <= band[1]), `${at}: standing on the sanctum's wall band`);
   }
@@ -66,6 +82,10 @@ for (const hall of halls) {
   for (const s of surfaces) for (const u of [s.u0, s.u1]) for (const v of [s.v0, s.v1]) for (const z of [s.z0, s.z1]) {
     const [X, Y] = P39(u, v, z);
     assert.ok(X + b.ox >= 0 && X + b.ox <= 2 * b.w && Y + b.oy >= 0 && Y + b.oy <= 2 * b.h, `${tag}: ${s.kind} ${s.name} (${u}, ${v}, ${z}) outside`);
+  }
+  for (const p of placed) for (const u of [p.foot.u0, p.foot.u1]) for (const v of [p.foot.v0, p.foot.v1]) for (const z of [p.z0, p.z1]) {
+    const [X, Y] = P39(u, v, z);
+    assert.ok(X + b.ox >= 0 && X + b.ox <= 2 * b.w && Y + b.oy >= 0 && Y + b.oy <= 2 * b.h, `${tag}: ${p.name} (${u}, ${v}, ${z}) outside`);
   }
 }
 

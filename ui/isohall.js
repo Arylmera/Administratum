@@ -83,8 +83,9 @@ export function bounds(hall) {
 }
 
 // A room tile's texel at (i, r) of a W x H rect, by the tile's fill rule (room.js tile()).
+const NO_RULE = {};
 function texel(name, i, r, W = 0, H = 0) {
-  const t = ROOM.tiles[name] ?? {}, f = ROOM.frames[name], th = f.length, tw = f[0].length;
+  const t = ROOM.tiles[name] ?? NO_RULE, f = ROOM.frames[name], th = f.length, tw = f[0].length;
   if (t.fill === 'repeat') return (t.top && r < th ? ROOM.frames[t.top] : f)[r % th][i % tw];
   if (t.fill === 'repeat-x' || t.fill === 'repeat-y') return f[r % th][i % tw];
   if (t.fill === 'nine') {
@@ -108,9 +109,9 @@ const depthOf = s => s.d || Math.max(1, ...s.details.map(p => p.v + (p.kind === 
 const sanctumBand = ({ split }) => ({ y0: split, y1: split + 30 });
 // A z-buffer seen SHIFTED up by Z (a face sheet resting on something, or hung on a wall): build39 builds from z = 0.
 const lift = (buf, Z) => ({
-  put: (u, v, z, ...a) => buf.put(u, v, z + Z, ...a),
+  put: (u, v, z, c, id, face, dz) => buf.put(u, v, z + Z, c, id, face, dz),
   box: o => buf.box({ ...o, z0: o.z0 + Z, z1: o.z1 + Z }),
-  bill: (m, u, v, z, ...a) => buf.bill(m, u, v, z + Z, ...a),
+  bill: (m, u, v, z, id, dz) => buf.bill(m, u, v, z + Z, id, dz),
 });
 
 // Where each prop of propsOf(hall) goes, from its flat frame's bottom row yb = y + height (its floor contact):
@@ -127,13 +128,18 @@ export function placeProps(hall) {
     const map = MAPS[name], fw = map[0].length, fh = map.length, yb = y + fh / RES, u0 = fx(x);
     const s = sheetOf(name), sheet = s && (s.front || s.details.length) ? s : null, d = sheet ? depthOf(sheet) : 1;
     const foot = (v0, dd = d) => (sheet?.front ? { u0: u0 + sheet.x0, u1: u0 + sheet.x0 + sheet.w, v0, v1: v0 + dd } : { u0, u1: u0 + fw, v0, v1: v0 + dd });
-    const hang = (v0, top) => out.push({ name, map, sheet, on: 'wall', u0, v0, z0: top - fh, z1: top, foot: foot(v0) });
+    const hang = (v0, top) => out.push({ name, x, y, yb, map, sheet, on: 'wall', u0, v0, z0: top - fh, z1: top, foot: foot(v0) });
     if (onWall(name, y)) hang(sheet ? WALL_V0 : 0, 2 * (WALL - y));
     else if (x >= hall.rx && y >= band.y0 && yb <= band.y1) hang(fy(band.y0) - (sheet ? 0 : 1), 2 * (band.y1 - y));
     else {
       const z0 = yb < WALL ? 2 * (WALL - yb) : 0, v0 = z0 ? WALL_V0 : Math.max(WALL_V0, fy(yb) - d);
-      out.push({ name, map, sheet, on: 'floor', u0, v0, z0, z1: z0 + fh, foot: foot(v0) });
+      out.push({ name, x, y, yb, map, sheet, on: 'floor', u0, v0, z0, z1: z0 + fh, foot: foot(v0) });
     }
+  }
+  // what rests on a shelf (the flat art overlaps its top by a few px) stands exactly on that shelf's top
+  for (const p of out) if (p.on === 'floor' && p.z0) {
+    const q = out.find(s => s.name === 'SHELF' && !s.z0 && s.foot.u0 <= (p.foot.u0 + p.foot.u1) / 2 && (p.foot.u0 + p.foot.u1) / 2 < s.foot.u1);
+    if (q) { p.z1 += q.z1 - p.z0; p.z0 = q.z1; }
   }
   return out;
 }
@@ -148,7 +154,7 @@ export function renderHall39(hall, day = true) {
     const box = { u0: s.u0, u1: s.u1, v0: s.v0, v1: s.v1, z0: s.z0, z1: s.z1, id: ID[s.kind] };
     if (s.kind === 'floor' || s.kind === 'strip') buf.box({ ...box, z0: -1, top: (i, j, W, J) => texel(s.tex, i, j, W, J), tdz: s.kind === 'floor' ? -3 : -2.5 });
     else if (s.kind === 'wall') buf.box({ ...box, top: () => CAP, // one face each: a 1-unit wall's other face would overdraw its edge
-      ...(s.name === 'west' ? { side: (j, r, J) => wallTex(s.tex, s.foot, Z)(J - 1 - j, r) } : { front: wallTex(s.tex, s.foot, Z) }) });
+      ...(s.name === 'west' ? { side: ((tex) => (j, r, J) => tex(J - 1 - j, r))(wallTex(s.tex, s.foot, Z)) } : { front: wallTex(s.tex, s.foot, Z) }) });
     else if (s.kind === 'slab') buf.box({ ...box, top: cut, front: (i, r) => texel(s.tex, i, r + 20), side: (j, r) => texel(s.tex, j, r + 20) }); // plates below their seam row
     else if (s.kind === 'door') continue; // the dynamic layer's
     else if (s.name === 'jamb' || s.name === 'lintel') buf.box({ ...box, top: cut, front: (i, r) => texel(s.tex, i, r), side: (j, r) => texel(s.tex, j, r) });
@@ -173,10 +179,12 @@ export function renderHall39(hall, day = true) {
     return { u0: u - (map[0].length >> 1), u1: u + (map[0].length >> 1), v0: v - 6, v1: v + 1 };
   };
   // the grand gate at the scriptorium's bottom edge, from its face sheet (piers, spires, arch, keystone, emblem): the
-  // void beyond on the opening's back plane (its 'leaves' part, cut from the frame with the void pasted in); the leaves
-  // slide in front of it in the dynamic layer, at anchors.gate
+  // iron leaves closed (GATE_L / GATE_R, over the void) set back in the opening as its 'leaves' part, cut from the frame
+  // with them pasted in; the dynamic layer slides them at anchors.gate (the leaves' plane and the opening)
   const A = PROP_AT.GATE, gate = grid(MAPS.GATE[0].length, MAPS.GATE.length), [ow, oh] = A.opening.slice(2).map(n => n * RES);
-  paste(gate, MAPS.GATE_VOID, A.opening[0] * RES, A.opening[1] * RES); paste(gate, MAPS.GATE, 0, 0);
+  paste(gate, MAPS.GATE_VOID, A.opening[0] * RES, A.opening[1] * RES);
+  paste(gate, MAPS.GATE_L, A.leafL[0] * RES, A.leafL[1] * RES); paste(gate, MAPS.GATE_R, A.leafR[0] * RES, A.leafR[1] * RES); // closed
+  paste(gate, MAPS.GATE, 0, 0);
   const gs = sheetOf('GATE', gate.map(r => r.join(''))), gu = fx(hall.entry.x - A.entry[0]), gv = fy(hall.h) - depthOf(gs);
   build39(buf, gs, gu, gv, id); ids.add(id).add(id + 1); id += 2;
   const back = gs.details.find(p => p.name === 'leaves');
