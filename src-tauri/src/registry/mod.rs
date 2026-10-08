@@ -28,6 +28,8 @@ pub struct Session {
     pub pid: u32,
     pub name: String,
     pub dept: String,
+    /// Its cwd is under the temp folder: it sits in the break-out room and `dept` is the temp folder's name (temp_dept).
+    pub temp: bool,
     pub cwd: String,
     pub status: String,
     pub waiting_for: Option<String>,

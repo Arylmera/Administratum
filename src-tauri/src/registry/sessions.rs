@@ -54,6 +54,37 @@ fn folder_of(cwd: &str) -> String {
     trimmed.rsplit(['\\', '/']).next().unwrap_or(trimmed).to_string()
 }
 
+/// The break-out room's name for a session under the temp folder `root` (std::env::temp_dir()), else None: Claude's
+/// scratch `<root>\claude\<encoded project>\…` is "<Project> (scratch)" (the encoded path's last `-` piece: a project
+/// named with a `-` keeps only its tail), any other its first folder under `root`, a mkdtemp suffix dropped.
+pub fn temp_dept(cwd: &str, root: &str) -> Option<String> {
+    let (cwd, root) = (cwd.replace('/', "\\"), root.replace('/', "\\"));
+    let root = root.trim_end_matches('\\');
+    if !cwd.get(..root.len())?.eq_ignore_ascii_case(root) {
+        return None;
+    }
+    let mut segs = cwd[root.len()..].strip_prefix('\\')?.split('\\').filter(|s| !s.is_empty());
+    let first = segs.next()?;
+    if first.eq_ignore_ascii_case("claude") {
+        if let Some(enc) = segs.next() {
+            return Some(format!("{} (scratch)", enc.rsplit('-').next().unwrap_or(enc)));
+        }
+    }
+    // mkdtemp's 6 random characters: alphanumeric, with a digit or both cases (so "build-output" stays whole)
+    let random = |t: &str| {
+        t.len() == 6
+            && t.chars().all(|c| c.is_ascii_alphanumeric())
+            && (t.chars().any(|c| c.is_ascii_digit()) || (t.chars().any(|c| c.is_ascii_uppercase()) && t.chars().any(|c| c.is_ascii_lowercase())))
+    };
+    Some(
+        match first.rsplit_once('-') {
+            Some((head, tail)) if !head.is_empty() && random(tail) => head,
+            _ => first,
+        }
+        .to_string(),
+    )
+}
+
 pub fn normalize_status(s: Option<&str>) -> &'static str {
     match s {
         Some("busy") => "busy",
@@ -75,6 +106,7 @@ pub struct Scan {
 pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: impl FnMut(&str, &str) -> (Option<Tail>, Vec<Helper>), mut orca_handle: impl FnMut(u32) -> Option<String>) -> Scan {
     let mut out = Scan { sessions: vec![], unreadable_pids: vec![] };
     let Ok(entries) = fs::read_dir(dir) else { return out };
+    let temp_root = std::env::temp_dir().to_string_lossy().into_owned();
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().and_then(|x| x.to_str()) != Some("json") {
@@ -112,7 +144,8 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             task,
             title,
             asks: if status == "waiting" { asks } else { None },
-            dept: dept_of(&rec.cwd),
+            dept: temp_dept(&rec.cwd, &temp_root).unwrap_or_else(|| dept_of(&rec.cwd)),
+            temp: temp_dept(&rec.cwd, &temp_root).is_some(),
             name: rec.name.clone().unwrap_or_else(|| folder_of(&rec.cwd)),
             id: rec.session_id,
             pid: rec.pid,
@@ -176,6 +209,20 @@ mod tests {
         assert_eq!(dept_of(r"C:\Users\guill\Documents\git\Terra"), "Terra");
         assert_eq!(dept_of(r"C:\Users\guill\Documents\git\Terra\"), "Terra");
         assert_eq!(dept_of("/home/x/Token-Dashboard"), "Token-Dashboard");
+    }
+
+    #[test]
+    fn temp_dept_names_the_break_out_room() {
+        let root = r"C:\Users\guill\AppData\Local\Temp";
+        assert_eq!(temp_dept(r"C:\Users\guill\AppData\Local\Temp\gs-triggers-PV9zh9\out", root).as_deref(), Some("gs-triggers"));
+        assert_eq!(temp_dept(r"C:\Users\guill\AppData\Local\Temp\claude\C--Users-guill-Documents-git-Administratum\5704\scratchpad", root).as_deref(), Some("Administratum (scratch)"));
+        // no random suffix (no digit, one case): kept whole; separators and case don't matter, nor a trailing slash
+        assert_eq!(temp_dept("c:/users/guill/appdata/local/temp/build-output", r"C:\Users\guill\AppData\Local\Temp\").as_deref(), Some("build-output"));
+        assert_eq!(temp_dept(r"C:\Users\guill\AppData\Local\Temp\claude", root).as_deref(), Some("claude"));
+        assert_eq!(temp_dept(r"C:\Users\guill\Documents\git\Terra", root), None);
+        assert_eq!(temp_dept(root, root), None);
+        assert_eq!(temp_dept(r"C:\Users\guill\AppData\Local\TempX\a", root), None);
+        assert_eq!(temp_dept("/tmp/gs-triggers-a1b2c3/out", "/tmp").as_deref(), Some("gs-triggers"));
     }
 
     #[test]
