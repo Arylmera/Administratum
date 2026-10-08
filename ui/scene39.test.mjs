@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { order } from './iso.js';
-import { hallOf, MAX_W, WALL } from './layout.js';
+import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39 } from './actors.js';
-import { use, pin, placeOf, actorFoot, actorAt39 } from './scene39.js';
+import { use, pin, placeOf, actorFoot, actorAt39, depthSort } from './scene39.js';
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
 const cast = new Cast();
@@ -26,6 +26,21 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
     const foot = placeOf(kind, desk).foot, seat = { x: desk.x + 11, y: desk.y + 30 }, north = { x: desk.x + 11, y: desk.y - 4 };
     assert.ok(order(foot, actorFoot(seat)) < 0 && order(actorFoot(seat), foot) > 0, `${tag}: ${kind} before the scribe south of it`);
     assert.ok(order(actorFoot(north), foot) < 0 && order(foot, actorFoot(north)) > 0, `${tag}: the scribe north of a ${kind} before it`);
+  }
+  // ...and over a whole crowded hall (iso.js order alone is not transitive: a plain sort scrambles it), in any input
+  // order: every desk before the scribe seated at it, every console before its adept, and nothing in front of a desk
+  // (a scribe north of it) drawn after it
+  const depts = ['A', 'B', 'C', 'D', 'E'].map((name, k) => ({ name, ids: Array.from({ length: 6 }, (_, i) => `${name}${i}`), helpers: k % 2 ? ['h1', 'h2', 'h3'].map(h => name + h) : [] }));
+  const L = layoutDepartments(depts, hall.w < 400 ? { compact: true, bays: 2 } : { bays: 2, size: { w: hall.w, h: hall.h } }); // footprints only: any hall
+  assert.ok(L.seats.size >= 18, `${tag}: a crowded hall`);
+  const items = [...L.desks.map(d => ({ k: `d:${d.id}`, foot: placeOf(d.compact ? 'lectern' : 'desk', d).foot })), ...L.consoles.map(c => ({ k: `c:${c.id}`, foot: placeOf('console', c).foot })),
+    ...L.desks.map(d => ({ k: `p:${d.id}`, foot: actorFoot({ x: d.x + (d.compact ? 20 : 30), y: d.y + 8 }) })), // right behind its back, at its east end
+    ...[...L.seats].map(([id, s]) => ({ k: `a:${id}`, foot: actorFoot(s) })), ...[...L.consoleSeats].map(([id, s]) => ({ k: `a:${id}`, foot: actorFoot(s) }))];
+  for (const shuffle of [x => x, x => x.reverse(), x => x.sort((p, q) => (p.k * 7919 % 13) - (q.k * 7919 % 13) || p.k.localeCompare(q.k))]) {
+    const at = new Map(depthSort(shuffle(items.slice())).map((it, i) => [it.k, i]));
+    for (const [id] of L.seats) assert.ok(at.get(`d:${id}`) < at.get(`a:${id}`), `${tag}: desk ${id} before its scribe`);
+    for (const [id] of L.seats) assert.ok(at.get(`p:${id}`) < at.get(`d:${id}`), `${tag}: the scribe behind desk ${id} before it`);
+    for (const [id] of L.consoleSeats) assert.ok(at.get(`c:${id}`) < at.get(`a:${id}`), `${tag}: console ${id} before its adept`);
   }
   // toFloor(toScreen(p)) round-trips within 1 logical px over the whole floor; pin (the drawing's) within 1 px of toScreen
   for (let x = 0; x <= hall.w; x += 7) for (let y = WALL; y <= hall.h; y += 5) {

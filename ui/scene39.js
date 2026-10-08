@@ -2,11 +2,11 @@
 // 39° hall (isohall.js) by projecting floor positions. Furniture (desks, lecterns, consoles) is built in 3D once per
 // theme from its face sheet (faces.js build39) into sprite canvases; actors are their 39° frames (actors.js bodyOf39)
 // or, while a theme has no 39° art, today's flat frames standing upright; everything standing is depth sorted by its
-// floor footprint (iso.js order). Flat drawing helpers are reused through canvas transforms: what lies on the floor
+// floor footprint (depthSort). Flat drawing helpers are reused through canvas transforms: what lies on the floor
 // (rugs, fallen sheets, shadows) through the floor plane's affine map, what sits on a face (seals, lamps, screens,
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
-import { P39, IsoBuf, VS39, order } from './iso.js';
+import { P39, IsoBuf, VS39 } from './iso.js';
 import { WALL, WALL_DY } from './layout.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf } from './isohall.js';
@@ -213,7 +213,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
 
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
   cogitator(g, t, all.filter(a => a.pose === 'cog').length);
-  items.sort((p, q) => order(p.foot, q.foot)).forEach(it => it.draw(g));
+  depthSort(items).forEach(it => it.draw(g));
   over.forEach(f => f(g));
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier's fire over the burner's hem (scene.js)
     const k = 1 - a.burn.left / BURN_S, f = a.burn.fire, heat = k < 0.25 ? k / 0.25 : (1 - k) / 0.75, yb = brazierFoot(f);
@@ -386,6 +386,35 @@ function alarm(g, all, t, dt) {
   skullAt(g, skull.x, skull.y, bob, on ? S.skullRed() : undefined);
   lights.push({ x: skull.x, y: skull.y + bob, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
   return lights;
+}
+
+// ---- depth order ----------------------------------------------------------------------------------------------------
+// The frame's items (each with a floor footprint foot { u0, u1, v0, v1 }) in drawing order. iso.js order is right for
+// one pair but not transitive over a whole hall (two footprints apart on both axes, one left and one behind, are each
+// 'behind' the other), so a plain sort scrambles a full hall. Here an item is drawn after each one behind it along an
+// axis where they overlap on the other (or behind it on both axes); otherwise, and to break a cycle, the footprint whose
+// centre's u + v is smaller (further back) goes first.
+// ponytail: O(n^2) in the items (~150 in a full hall: well under a millisecond); bucket by screen column if it grows.
+const across = (a0, a1, b0, b1) => a0 < b1 && b0 < a1;
+export function depthSort(items) {
+  const n = items.length, F = items.map(i => i.foot), indeg = new Int32Array(n), next = items.map(() => []);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const a = F[i], b = F[j];
+    let d = 0;
+    if (across(a.u0, a.u1, b.u0, b.u1)) d = a.v1 <= b.v0 ? -1 : b.v1 <= a.v0 ? 1 : 0;
+    else if (across(a.v0, a.v1, b.v0, b.v1)) d = a.u1 <= b.u0 ? -1 : b.u1 <= a.u0 ? 1 : 0;
+    else if ((a.u1 <= b.u0) === (a.v1 <= b.v0)) d = a.u1 <= b.u0 ? -1 : 1;
+    if (d < 0) { next[i].push(j); indeg[j]++; } else if (d > 0) { next[j].push(i); indeg[i]++; }
+  }
+  const key = F.map(f => f.u0 + f.u1 + f.v0 + f.v1), done = new Uint8Array(n), out = [];
+  for (let k = 0; k < n; k++) {
+    let best = -1;
+    for (let i = 0; i < n; i++) if (!done[i] && !indeg[i] && (best < 0 || key[i] < key[best])) best = i;
+    if (best < 0) for (let i = 0; i < n; i++) if (!done[i] && (best < 0 || key[i] < key[best])) best = i;
+    done[best] = 1; out.push(items[best]);
+    for (const j of next[best]) indeg[j]--;
+  }
+  return out;
 }
 
 // ---- hit testing ----------------------------------------------------------------------------------------------------
