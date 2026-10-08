@@ -71,6 +71,8 @@ static RECT: Mutex<Option<Rect>> = Mutex::new(None);
 /// The last CSS height asked for, so a monitor-change watcher (Task 7) can replay the same placement.
 static HEIGHT: Mutex<f64> = Mutex::new(0.0);
 
+/// The hall window's saved placement, physical px: `x`/`y` are `outer_position` (screen
+/// coordinates, no frame involved), `w`/`h` are `inner_size` (what `set_size` restores).
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct HallRect {
@@ -106,7 +108,8 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
     let hall = if ON.swap(true, Ordering::SeqCst) {
         None
     } else {
-        let (p, s) = (window.outer_position().map_err(|e| e.to_string())?, window.outer_size().map_err(|e| e.to_string())?);
+        // inner: set_size restores the inner size; the outer one carries Windows' invisible frame
+        let (p, s) = (window.outer_position().map_err(|e| e.to_string())?, window.inner_size().map_err(|e| e.to_string())?);
         window.set_min_size(None::<tauri::Size>).map_err(|e| e.to_string())?;
         window.set_resizable(false).map_err(|e| e.to_string())?;
         Some(HallRect { x: p.x, y: p.y, w: s.width, h: s.height })
