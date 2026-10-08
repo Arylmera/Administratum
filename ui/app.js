@@ -1,5 +1,5 @@
 import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf, layoutDepartments } from './layout.js';
-import { STRIP_H, stripOf, layoutStrip } from './strip.js';
+import { STRIP_H, FLOOR, stripOf, layoutStrip } from './strip.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
@@ -567,22 +567,24 @@ function openDept(name) {
 
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
+const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
 function renderPlaques(blocks) {
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...at(b.x + 2, b.y + b.h - 7), b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch)]]));
+  // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...(strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7)), b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch), undefined, strip()]]));
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
   if (!roster.length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
     const y = 120 + WALL_DY + (hall.h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall.sw, y), [mx, my] = at(hall.sw / 2, y);
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
   }
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
-  for (const [k, [cls, text, x, y, color, maxWidth, branch = '', width]] of want) {
+  for (const [k, [cls, text, x, y, color, maxWidth, branch = '', width, up]] of want) {
     let el = plaques.get(k);
     if (!el) {
       el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
       if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
     }
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: width ? `${width * scale}px` : '' };
+      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : '' };
     if (el.dataset.text !== `${text}|${branch}`) {
       el.dataset.text = `${text}|${branch}`;
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;

@@ -218,14 +218,15 @@ export function drawScene(g, layout, actors, fillOf, now) {
   drawRugs(g, layout.blocks);
   if (!H.strip) drawDoors(g, all);
   const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
-  const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
+  const dark = layout.level?.dark ?? 0.18, shade = H.strip ? STRIP_SHADE : 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
+  const footShadow = (g2, e, a) => contactShadow(g2, H.strip ? stood(e) : e, a); // the strip's: wider and darker
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, fill = deskFill(d, a, fillOf);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     paperFloor(g, pile, kindOf(d), fill, d, blockOf(d.dept), now);
     items.push(furniture(kindOf(d), d, pile, busy, fill, d.id && a, !!a?.s.background, now));
-    floor.push(() => contactShadow(g, shadowOf(MAPS[KIND[kindOf(d)].map], d.x, d.y), shade));
+    floor.push(() => footShadow(g, shadowOf(MAPS[KIND[kindOf(d)].map], d.x, d.y), shade));
     if (d.id) lights.push(deskLight(d, busy));
     if (d.id && a) reactions(a, d, KIND[kindOf(d)].at, over, lights, now, floor);
     if (a?.puff > 0) {
@@ -239,7 +240,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     const lit = !!a && a.pose === 'console';
     paperFloor(g, c.id, 'console', fill, c, blockOf(c.dept), now);
     items.push(furniture('console', c, c.id, lit, fill, a, false, now));
-    floor.push(() => contactShadow(g, shadowOf(MAPS.CONSOLE, c.x, c.y), shade));
+    floor.push(() => footShadow(g, shadowOf(MAPS.CONSOLE, c.x, c.y), shade));
     lights.push(consoleLight(c, lit));
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now, floor);
   }
@@ -253,7 +254,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
       const cv = sprite(b.map, b.over);
       floor.push(() => castShadow(g, cv, { x: b.x, y: b.y, w: cv.width / RES, h: cv.height / RES }, c.from, c.alpha));
     }
-    floor.push(() => contactShadow(g, e, shade));
+    floor.push(() => footShadow(g, e, shade));
   }
   if (H.strip) drawStripProps(g, H, all, now, items); // its contact shadows go down now, with the floor's
   floor.forEach(f => f(g));
@@ -715,11 +716,14 @@ function drawMagos(g, x, y, t) {
 // The strip's props (stripOf): the cogitator, the recaff left of its spot, the bench under the nappers, the Magos on
 // his throne at the right end, the doors between the zones (strip.js doors; the gate is drawGate's). Each stands 1 px
 // behind the walk line (foot FLOOR - 1), so the scribes pass in front.
+// The desktop strip has no floor: a wider, darker contact shadow makes everything stand on the taskbar.
+const STRIP_SHADE = 0.75;
+const stood = e => e && { ...e, rx: e.rx * 1.3, ry: Math.max(e.ry * 1.3, 2) };
 function drawStripProps(g, H, actors, now, items) {
   const t = now / 1000, cog = actors.filter(a => a.pose === 'cog').length, foot = FLOOR - 1;
   const top = map => foot - map.length / RES;
   const prop = (map, x, draw) => {
-    contactShadow(g, shadowOf(map, x, top(map)), 0.5);
+    contactShadow(g, stood(shadowOf(map, x, top(map))), STRIP_SHADE);
     items.push({ y: foot, draw: draw ?? (g2 => blit(g2, map, x, top(map))) });
   };
   prop(MAPS.COGITATOR, H.cog.x, g2 => {
