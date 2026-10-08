@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
 import { THEMES, setTheme } from './theme.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
@@ -67,7 +67,7 @@ const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./ar
   .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
 const owner = {};
 for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {
-  if (['scribe', 'adept', 'magos'].includes(fam) || fam.startsWith('room-')) continue; // characters and room tiles: named per family
+  if (['scribe', 'adept', 'magos', ...FAMILIES39].includes(fam) || fam.startsWith('room-')) continue; // characters (flat and 39°) and room tiles: named per family
   assert.ok(!owner[n], `frame ${n} in both ${owner[n]} and ${fam}`); owner[n] = fam;
 }
 for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);

@@ -102,22 +102,38 @@ const DIRS39 = ['E', 'W', 'S', 'N'];
 const WALK39 = DIRS39.flatMap(d => [0, 1, 2].map(i => `${d} ${i}`));
 const walk39 = (sheet, d) => [0, 1, 2].map(i => sheet.frames[`${d} ${i}`]);
 // The frame and anchor names each 39° family's art file must carry once it exists (step 2 of the brief: the contract
-// the art agents follow). Checked by checkComplete39 below.
-const REQ39 = {
+// the art agents follow; also the shape tools/sprite_catalog.mjs builds its listing from). Checked by
+// checkComplete39 below.
+export const REQ39 = {
   scribe39: { frames: [...WALK39, 'arm', 'armL', 'scroll'], anchors: ['feet', 'arm', 'armL', 'scroll'] },
   adept39: { frames: WALK39, anchors: ['feet'] },
   magos39: { frames: ['body', 'arm'], anchors: ['arm', 'chest', 'eyeL', 'eyeR'] },
   skull39: { frames: ['skull'], anchors: ['centre', 'carry', 'beam'] },
 };
-// A 39° family's sheet is either wholly absent (no frames: not drawn yet, falls back to empty) or complete (every
-// frame and anchor the brief names present); anything in between is a bug in the art file and throws loudly, as
-// art.js already does for a bad pixel. Returns false for absent, true for complete.
+// A 39° family's sheet is either wholly absent (no frames: not drawn yet) or complete (every frame and anchor the
+// brief names present); anything in between is a bug in a committed art file. This throws loudly (used by the
+// tests, which check every committed scribe39/adept39/magos39/skull39 file this way, base and every theme folder,
+// so an incomplete file can never land); resolve39 below degrades instead of throwing at runtime. Returns false
+// for absent, true for complete.
 export function checkComplete39(family, sheet) {
   if (!Object.keys(sheet.frames).length) return false;
   const req = REQ39[family];
   const missingNames = [...req.frames.filter(n => !(n in sheet.frames)), ...req.anchors.filter(n => !(n in sheet.anchors)).map(n => `anchor ${n}`)];
   if (missingNames.length) throw new Error(`${family}: missing ${missingNames.join(', ')}`);
   return true;
+}
+// Runtime use only: like checkComplete39, but an incomplete sheet degrades (console.error naming the family, where
+// it came from and what's missing) instead of throwing, so a bad art file never takes the app down.
+const degrade39 = (family, sheet, where) => {
+  try { return checkComplete39(family, sheet); } catch (e) { console.error(`39° ${where}: ${e.message}`); return false; }
+};
+// Resolves a 39° family for one theme: its own sheet if complete, else the base family's if that is complete, else
+// empty (the "export is then empty" case the brief names). Exported as the seam the test drives directly, with
+// fabricated sheets, to prove the themed-missing/incomplete -> base, and both-bad -> empty, fallbacks.
+export function resolve39(family, themedSheet, baseSheet, where) {
+  if (themedSheet && degrade39(family, themedSheet, where)) return themedSheet;
+  if (degrade39(family, baseSheet, 'base')) return baseSheet;
+  return EMPTY_SHEET;
 }
 
 // The exports below are the same objects for the app's life, refilled for the active theme's art (the drawing code
@@ -146,6 +162,15 @@ export const SCRIBE39 = {}, SCRIBE39_AT = {};
 export const ADEPT39 = {}, ADEPT39_AT = {};
 export const MAGOS39 = {}, MAGOS39_AT = {};
 export const SKULL39 = {}, SKULL39_AT = {};
+const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d)]));
+// How to build each family's export object from its (complete) sheet, and which [obj, at] pair to refill.
+const BUILD39 = {
+  scribe39: sheet => ({ ...walker39(sheet), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll }),
+  adept39: walker39,
+  magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm }),
+  skull39: sheet => ({ skull: sheet.frames.skull }),
+};
+const EXPORT39 = { scribe39: [SCRIBE39, SCRIBE39_AT], adept39: [ADEPT39, ADEPT39_AT], magos39: [MAGOS39, MAGOS39_AT], skull39: [SKULL39, SKULL39_AT] };
 
 function useArt(id) {
   const S = Object.fromEntries(FAMILIES.map(f => [f, sheetOf(id, f)]));
@@ -153,15 +178,11 @@ function useArt(id) {
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
   refill(ADEPT, walker(S.adept)); refill(ADEPT_AT, anchorsOf(S.adept));
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm }); refill(MAGOS_AT, anchorsOf(S.magos));
-  const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d)]));
-  refill(SCRIBE39, checkComplete39('scribe39', S.scribe39) ? { ...walker39(S.scribe39), arm: S.scribe39.frames.arm, armL: S.scribe39.frames.armL, scroll: S.scribe39.frames.scroll } : {});
-  refill(SCRIBE39_AT, Object.keys(SCRIBE39).length ? anchorsOf(S.scribe39) : {});
-  refill(ADEPT39, checkComplete39('adept39', S.adept39) ? walker39(S.adept39) : {});
-  refill(ADEPT39_AT, Object.keys(ADEPT39).length ? anchorsOf(S.adept39) : {});
-  refill(MAGOS39, checkComplete39('magos39', S.magos39) ? { body: S.magos39.frames.body, arm: S.magos39.frames.arm } : {});
-  refill(MAGOS39_AT, Object.keys(MAGOS39).length ? anchorsOf(S.magos39) : {});
-  refill(SKULL39, checkComplete39('skull39', S.skull39) ? { skull: S.skull39.frames.skull } : {});
-  refill(SKULL39_AT, Object.keys(SKULL39).length ? anchorsOf(S.skull39) : {});
+  for (const f of FAMILIES39) {
+    const sheet = resolve39(f, themed[dir]?.[f], base[f], `theme '${id}'`), [obj, at] = EXPORT39[f], complete = Object.keys(sheet.frames).length > 0;
+    refill(obj, complete ? BUILD39[f](sheet) : {});
+    refill(at, complete ? anchorsOf(sheet) : {});
+  }
   refill(MAPS, Object.assign({ ARM: S.scribe.frames.arm, ARM_L: mirror(S.scribe.frames.arm) }, ...PROP_SHEETS.map(f => S[f].frames)));
   refill(PROP_AT, Object.assign({}, ...PROP_SHEETS.map(f => logical(S[f].anchors ?? {}))));
   refill(ROOM.frames, Object.assign({}, ...ROOM_SHEETS.map(f => S[f].frames)));
