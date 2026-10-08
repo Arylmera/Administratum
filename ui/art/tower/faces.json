@@ -1583,6 +1583,118 @@
     "w": 15,
     "h": 2
    }
+  },
+  "GATE base side": {
+   "frame": {
+    "x": 0,
+    "y": 399,
+    "w": 13,
+    "h": 3
+   }
+  },
+  "GATE base top": {
+   "frame": {
+    "x": 14,
+    "y": 399,
+    "w": 64,
+    "h": 13
+   }
+  },
+  "GATE step side": {
+   "frame": {
+    "x": 79,
+    "y": 399,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "GATE step top": {
+   "frame": {
+    "x": 91,
+    "y": 399,
+    "w": 60,
+    "h": 11
+   }
+  },
+  "GATE pier L side": {
+   "frame": {
+    "x": 152,
+    "y": 399,
+    "w": 7,
+    "h": 29
+   }
+  },
+  "GATE pier L top": {
+   "frame": {
+    "x": 160,
+    "y": 399,
+    "w": 13,
+    "h": 7
+   }
+  },
+  "GATE pier R side": {
+   "frame": {
+    "x": 174,
+    "y": 399,
+    "w": 7,
+    "h": 29
+   }
+  },
+  "GATE pier R top": {
+   "frame": {
+    "x": 182,
+    "y": 399,
+    "w": 13,
+    "h": 7
+   }
+  },
+  "GATE haunch L rim": {
+   "frame": {
+    "x": 196,
+    "y": 399,
+    "w": 10,
+    "h": 15
+   }
+  },
+  "GATE haunch R rim": {
+   "frame": {
+    "x": 207,
+    "y": 399,
+    "w": 10,
+    "h": 15
+   }
+  },
+  "GATE crown rim": {
+   "frame": {
+    "x": 218,
+    "y": 399,
+    "w": 42,
+    "h": 10
+   }
+  },
+  "GATE keystone rim": {
+   "frame": {
+    "x": 261,
+    "y": 399,
+    "w": 12,
+    "h": 11
+   }
+  },
+  "GATE leaves side": {
+   "frame": {
+    "x": 274,
+    "y": 399,
+    "w": 1,
+    "h": 44
+   }
+  },
+  "GATE leaves top": {
+   "frame": {
+    "x": 276,
+    "y": 399,
+    "w": 32,
+    "h": 1
+   }
   }
  },
  "meta": {
@@ -1591,7 +1703,7 @@
   "format": "RGBA8888",
   "size": {
    "w": 508,
-   "h": 398
+   "h": 443
   },
   "palette": "key.gpl",
   "anchors": {},
@@ -3317,6 +3429,118 @@
       "v": 4,
       "d": 4,
       "z": 4
+     }
+    ]
+   },
+   "GATE": {
+    "details": [
+     {
+      "name": "base",
+      "rect": [
+       0,
+       57,
+       64,
+       3
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 30
+     },
+     {
+      "name": "step",
+      "rect": [
+       2,
+       54,
+       60,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 26
+     },
+     {
+      "name": "pier L",
+      "rect": [
+       3,
+       25,
+       13,
+       29
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 16
+     },
+     {
+      "name": "pier R",
+      "rect": [
+       48,
+       25,
+       13,
+       29
+      ],
+      "kind": "box",
+      "v": 4,
+      "d": 16
+     },
+     {
+      "name": "haunch L",
+      "rect": [
+       6,
+       10,
+       10,
+       15
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 10
+     },
+     {
+      "name": "haunch R",
+      "rect": [
+       48,
+       10,
+       10,
+       15
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 10
+     },
+     {
+      "name": "crown",
+      "rect": [
+       11,
+       0,
+       42,
+       10
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 10
+     },
+     {
+      "name": "keystone",
+      "rect": [
+       26,
+       0,
+       12,
+       11
+      ],
+      "kind": "disc",
+      "v": 6,
+      "t": 12
+     },
+     {
+      "name": "leaves",
+      "rect": [
+       16,
+       10,
+       32,
+       44
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 2
      }
     ]
    },
