@@ -8,6 +8,7 @@ mod quiet;
 mod registry;
 mod remote;
 mod settings;
+mod strip;
 mod toast;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
@@ -547,7 +548,11 @@ fn main() {
             firewall_allow,
             firewall_remove,
             check_update,
-            install_update
+            install_update,
+            strip::strip_supported,
+            strip::place_strip,
+            strip::place_hall,
+            strip::set_click_through
         ])
         .setup(move |app| {
             build_tray(app)?;
