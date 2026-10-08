@@ -80,15 +80,15 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/vault/workstations.png` | <img src="vault/LECTERN.unlit.png" height="160"> |
 | <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/vault/workstations.png`, drawn by scene.js | <img src="vault/CONSOLE.png" height="80"> |
 | <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/vault/workstations.png` | <img src="vault/CONSOLE.unlit.png" height="80"> |
-| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/vault/cogitator.png`, drawn by isohall.js, scene.js | <img src="vault/COGITATOR.png" height="160"> |
+| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/vault/cogitator.png`, drawn by isohall.js, scene.js, scene39.js | <img src="vault/COGITATOR.png" height="160"> |
 | <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/vault/sanctum.png`, drawn by isohall.js, scene.js | <img src="vault/THRONE.png" height="160"> |
 | <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/vault/sanctum.png`, drawn by isohall.js, scene.js | <img src="vault/LORD_DESK.png" height="104"> |
 | <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/vault/sanctum.png`, drawn by isohall.js, scene.js | <img src="vault/COG_MECH.png" height="144"> |
 | <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/vault/sanctum.png`, drawn by scene.js | <img src="vault/SEAL.png" height="80"> |
 | <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/vault/gate.png`, drawn by isohall.js, scene.js | <img src="vault/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/vault/gate.png`, drawn by isohall.js, scene.js | <img src="vault/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/vault/gate.png`, drawn by isohall.js, scene.js | <img src="vault/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/vault/gate.png`, drawn by isohall.js, scene.js | <img src="vault/GATE_VOID.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/vault/gate.png`, drawn by scene.js, scene39.js | <img src="vault/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/vault/gate.png`, drawn by scene.js, scene39.js | <img src="vault/GATE_R.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/vault/gate.png`, drawn by scene.js, scene39.js | <img src="vault/GATE_VOID.png" height="160"> |
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/vault/refectorium.png`, drawn by isohall.js, scene.js | <img src="vault/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/vault/refectorium.png`, drawn by isohall.js, scene.js | <img src="vault/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/vault/refectorium.png`, drawn by isohall.js, scene.js | <img src="vault/BENCH.png" height="32"> |
@@ -109,12 +109,12 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/vault/clutter.png`, drawn by scene.js | <img src="vault/LOOSE_A.png" height="32"> |
 | <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/vault/clutter.png`, drawn by scene.js | <img src="vault/LOOSE_B.png" height="40"> |
 | <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/vault/clutter.png`, drawn by isohall.js, scene.js | <img src="vault/CRATE.png" height="96"> |
-| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/vault/skull.png`, drawn by isohall.js, scene.js | <img src="vault/SKULL.png" height="80"> |
+| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/vault/skull.png`, drawn by scene.js, scene39.js | <img src="vault/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/vault/skull.png` | <img src="vault/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/vault/petitions.png`, drawn by actors.js | <img src="vault/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/vault/petitions.png`, drawn by actors.js | <img src="vault/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/vault/petitions.png`, drawn by actors.js | <img src="vault/SCROLL_HELD.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/vault/fire.png`, drawn by isohall.js, scene.js | <img src="vault/BRAZIER.png" height="104"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/vault/petitions.png`, drawn by actors.js, scene39.js | <img src="vault/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/vault/petitions.png`, drawn by actors.js, scene39.js | <img src="vault/SCROLL_HELD.png" height="56"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/vault/fire.png`, drawn by isohall.js, scene.js, scene39.js | <img src="vault/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/vault/fire.png`, drawn by scene.js | <img src="vault/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/vault/commits.png`, drawn by scene.js | <img src="vault/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/vault/commits.png`, drawn by scene.js | <img src="vault/COMMIT_TAG.png" height="60"> |
