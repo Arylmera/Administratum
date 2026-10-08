@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY } from './layout.js';
+import { layoutDepartments, planLayout, breakoutOf, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY } from './layout.js';
 import { propsOf, WIN_Y, wallArt } from './scene.js';
 import { MAPS, RES, ART } from './sprites.js';
 import { setTheme, THEMES } from './theme.js';
@@ -406,6 +406,23 @@ assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
     for (const d of clear.desks) assert.ok(!(d.y < H.y0 + 64 && d.x + 32 > 114 + H.dx && d.x < 200 + H.dx), `desk at ${d.x},${d.y} before the cogitator`);
     for (const b of clear.blocks) assert.equal((b.y - H.y0) % 64, 0, `block ${b.name} off the slot grid`);
   }
+}
+
+// break-out room: a temp department that arrived first still packs last, on a fresh row, fenced off
+{
+  const dept = (name, n, temp) => ({ name, color: '#ffffff', ids: ids(name, n), ...(temp && { temp }) });
+  let P = planLayout(null, [dept('out', 2, true)], 0);
+  P = planLayout(P, [dept('out', 2, true), dept('Terra', 3)], 1);
+  assert.deepEqual(P.blocks.map(b => [b.name, !!b.temp]), [['Terra', false], ['out', true]]);
+  const [terra, out] = P.blocks, H0 = hallOf(P.bays);
+  assert.equal(out.x, terra.x); // a fresh row, not beside Terra
+  assert.ok(out.y > terra.y);
+  const Z = breakoutOf(P.blocks, H0);
+  assert.ok(terra.y + terra.h < Z.y && H0.lanes.some(l => l > terra.y + terra.h && l < Z.y)); // Terra's lane stays outside
+  assert.ok(Z.x <= out.x && Z.y > out.y - 1 && Z.x + Z.w < H0.corridorX && Z.y + Z.h < H0.aisleY);
+  assert.deepEqual(Z.gates, H0.lanes.filter(l => l > Z.y && l < Z.y + Z.h).map(y => ({ x: Z.x + Z.w, y })));
+  assert.equal(Z.gates.length, 1);
+  assert.equal(breakoutOf([terra], H0), null);
 }
 
 console.log('layout ok');

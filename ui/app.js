@@ -381,7 +381,7 @@ function onRoster(next) {
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
   const napping = cast.napping(roster, (strip() ? stripOf(size.w) : hallOf(0, size)).refectory);
   const depts = deptOrder
-    .map(name => ({ name, color: colorOf(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
+    .map(name => ({ name, color: colorOf(name), temp: roster.some(s => s.dept === name && s.temp), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
   layout = planLayout(layout, depts, Date.now(), GRACE, size, strip() ? layoutStrip : iso() ? layIso : layoutDepartments);
   hall = strip() ? stripOf(size.w) : hallOf(layout.bays, size);

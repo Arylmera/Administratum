@@ -87,7 +87,7 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
   const seats = new Map();
   const consoles = [];
   const consoleSeats = new Map();
-  let x = x0, y = y0, rowH = 0, overflow = 0, full = false;
+  let x = x0, y = y0, rowH = 0, overflow = 0, full = false, inZone = false;
   for (const d of depts) {
     const helpers = d.helpers ?? [], slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id }));
     const n = slotsOf.length, live = slotsOf.filter(k => k.id).length;
@@ -96,11 +96,13 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
     const rows = Math.ceil(slots / COLS);
     const w = cols * SLOT_W + 2;
     const h = rows * SLOT_H - 8;
+    // the break-out room (temp departments, packed last by planLayout) starts on a row of its own
+    if (d.temp && !inZone) { inZone = true; if (x > x0) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } }
     if (clearCog && y === y0 && x < 200 + dx && x + w > 114 + dx) x = 200 + dx; // past the bank (wraps below if it no longer fits)
     // a block wraps past the hall's east edge, or when its last lectern would stand in the corridor (a 6-wide row never does)
     if (!full && x > x0 && (x + w > x1 + 1 || (compact && x + w - 6 > corridorX - 5))) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // rowH 0: the first block skipped the cogitator
     if (full || y + h > y1) { full = true; overflow += live; continue; }
-    blocks.push({ name: d.name, color: d.color, x, y, w, h });
+    blocks.push({ name: d.name, color: d.color, x, y, w, h, ...(d.temp && { temp: true }) });
     const slot = i => ({ x: x + (i % COLS) * SLOT_W, y: y + Math.floor(i / COLS) * SLOT_H });
     slotsOf.forEach((k, i) => {
       const s = slot(i), desk = { ...k, dept: d.name, x: s.x + 5, y: s.y + 8, ...(compact && { compact }) };
@@ -148,6 +150,7 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
   for (const p of plan) {
     const d = live.get(p.name), ids = d?.ids ?? [];
     p.color = d?.color ?? p.color;
+    p.temp = d?.temp ?? p.temp ?? false;
     p.helpers = d?.helpers ?? [];
     for (const k of p.desks) if (k.id && !ids.includes(k.id)) Object.assign(k, { id: null, was: k.id, freeSince: now });
     for (const id of ids) {
@@ -164,6 +167,7 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
     p.emptySince = ids.length || p.helpers.some(id => id != null) ? null : p.emptySince ?? now;
   }
   plan = plan.filter(p => p.emptySince == null || now - p.emptySince < deptG);
+  plan.sort((p, q) => p.temp - q.temp); // stable: arrival order, the break-out room's departments last
   let level = prev?.level ?? 0, shrinkSince = prev?.shrinkSince ?? null;
   let L = lay(plan, { ...levelOpt(level), size });
   if (L.overflow) { // capacity forces it: drop the waiting empties now
@@ -179,6 +183,17 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
     else if (now - (shrinkSince ??= now) >= shrinkG) { L = lay(plan, { ...levelOpt(--level), size }); shrinkSince = null; }
   }
   return { ...L, plan, seq, level, shrinkSince, ...levelOpt(level) };
+}
+
+// The break-out room: the rectangle fencing the temp blocks (packed last, from a fresh row) and its gates, null without
+// any. West and top 2 px inside the blocks (the lane above stays outside), east 2 px out but west of the corridor,
+// bottom 6 px under the last row so its lane is inside. A gate where each lane inside it meets the east (corridor) side.
+export function breakoutOf(blocks, H) {
+  const tb = blocks.filter(b => b.temp);
+  if (!tb.length || H.strip) return null;
+  const x = Math.min(...tb.map(b => b.x)) - 2, y = Math.min(...tb.map(b => b.y)) + 2;
+  const x1 = Math.min(Math.max(...tb.map(b => b.x + b.w)) + 2, H.corridorX - 1), y1 = Math.max(...tb.map(b => b.y + b.h)) + 6;
+  return { x, y, w: x1 - x, h: y1 - y, gates: H.lanes.filter(l => l > y && l < y1).map(l => ({ x: x1, y: l })) };
 }
 
 // Rooms east of the scriptorium's east wall: the refectorium above the sanctum. Each opens onto the scriptorium.
