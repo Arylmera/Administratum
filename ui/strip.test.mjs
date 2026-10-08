@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { STRIP_H, FLOOR, stripOf, layoutStrip, stripRoute } from './strip.js';
+import { STRIP_H, FLOOR, MARGIN_R, stripOf, layoutStrip, stripRoute } from './strip.js';
 import { planLayout } from './layout.js';
 import { Cast } from './actors.js';
 
@@ -16,6 +16,20 @@ assert.ok(Math.max(...H.cogSpots.map(p => p.x)) < H.recaff.x);
 for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff]) assert.equal(p.y, FLOOR);
 assert.ok(H.x1 < Math.min(...H.cogSpots.map(p => p.x)) - 12);
 assert.deepEqual(H.lanes, [FLOOR]);
+
+// the right group keeps MARGIN_R from the right edge (the throne, 20 wide, centred on the Magos)
+assert.ok(800 - (H.magos.x + 10) >= MARGIN_R);
+// doors, left to right: the gate (clear of the handle, 6..18), then departments | cogitator | refectory | sanctum
+const [gate, dCog, dRef, dSan] = H.doors;
+assert.deepEqual(H.doors.map(d => d.kind), ['gate', 'refectory', 'refectory', 'sanctum']);
+for (let i = 1; i < H.doors.length; i++) assert.ok(H.doors[i - 1].x + H.doors[i - 1].w <= H.doors[i].x);
+assert.ok(gate.x >= 18 && gate.x + gate.w <= H.x0);
+assert.ok(H.x1 <= dCog.x && dCog.x + dCog.w <= H.cog.x);
+assert.ok(H.cog.x + 82 <= dRef.x && dRef.x + dRef.w <= H.recaff.x - 18); // the recaff drawn 18 px left of its spot
+assert.ok(H.bench.x + 46 <= dSan.x && dSan.x + dSan.w <= H.queue.at(-1).x - 6);
+// nobody standing at a spot holds a door open (scene.js near: 12 px)
+const away = (p, d) => Math.max(d.x - p.x, p.x - (d.x + d.w));
+for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff, H.magos]) for (const d of H.doors.slice(1)) assert.ok(away(p, d) >= 12);
 
 // route: one step along the floor
 assert.deepEqual(stripRoute({ x: 10, y: FLOOR }, { x: 90, y: FLOOR }), [{ x: 90, y: FLOOR }]);

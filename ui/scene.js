@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
 import { WIN_Y, wallArt } from './wallart.js';
@@ -214,7 +214,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const all = [...actors.values()];
   drawRugs(g, layout.blocks);
   if (!H.strip) drawDoors(g, all);
-  const items = H.strip ? [] : [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
+  const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
   const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
@@ -710,7 +710,8 @@ function drawMagos(g, x, y, t) {
 }
 
 // The strip's props (stripOf): the cogitator, the recaff left of its spot, the bench under the nappers, the Magos on
-// his throne at the right end. Each stands 1 px behind the walk line (foot FLOOR - 1), so the scribes pass in front.
+// his throne at the right end, the doors between the zones (strip.js doors; the gate is drawGate's). Each stands 1 px
+// behind the walk line (foot FLOOR - 1), so the scribes pass in front.
 function drawStripProps(g, H, actors, now, items) {
   const t = now / 1000, cog = actors.filter(a => a.pose === 'cog').length, foot = FLOOR - 1;
   const top = map => foot - map.length / RES;
@@ -724,6 +725,10 @@ function drawStripProps(g, H, actors, now, items) {
   });
   prop(MAPS.RECAFF, H.recaff.x - 18);
   prop(MAPS.BENCH, H.bench.x);
+  for (const d of H.doors.slice(1)) { // the hall's east-wall doors, stood up: open while anyone is near (as drawDoors)
+    const name = `door ${d.kind} ${near(actors, d.x, FLOOR, d.x + d.w, FLOOR) ? 'open' : 'closed'}`, map = ROOM.frames[name];
+    prop(map, d.x, g2 => tile(g2, name, d.x, top(map)));
+  }
   const tx = H.magos.x - 10; // the throne centred on the Magos' spot, the body 4 px up-left of it (as in the hall)
   prop(MAPS.THRONE, tx, g2 => { blit(g2, MAPS.THRONE, tx, top(MAPS.THRONE)); drawMagos(g2, tx - 4, top(MAPS.THRONE) - 4, t); });
 }
@@ -797,24 +802,24 @@ function drawDoors(g, actors) {
 // The grand gate at ENTRY: the iron leaves slide apart into the piers (eased) while anyone is near.
 // The void is floor-level; leaves and frame (piers + arch) are returned as a drawable at the wall's base,
 // so anyone north of the wall walks behind the arch.
-// The frame's entry anchor sits on hall.entry; the leaves slide in its opening (PROP_AT.GATE).
+// The frame's entry anchor sits on hall.entry (the strip's: hall.gate); the leaves slide in its opening (PROP_AT.GATE).
 let gateOpen = 0, gateTo = 0;
 // The gate's leaves this frame (both views: one state): they ease open while anyone is near its opening. Returns how
 // far each leaf has slid (logical px, on the art-px grid).
 export function stepGate(actors, dt) {
-  const A = PROP_AT.GATE, ox = H.entry.x - A.entry[0] + A.opening[0], oy = H.entry.y - A.entry[1] + A.opening[1], [ow, oh] = A.opening.slice(2);
+  const A = PROP_AT.GATE, E = H.gate ?? H.entry, ox = E.x - A.entry[0] + A.opening[0], oy = E.y - A.entry[1] + A.opening[1], [ow, oh] = A.opening.slice(2);
   gateTo = near(actors, ox, oy, ox + ow, oy + oh) ? 1 : 0;
   gateOpen += (gateTo - gateOpen) * (1 - 0.82 ** (dt * 30)); // 0.18 per frame at 30 fps
   if (Math.abs(gateTo - gateOpen) < 0.01) gateOpen = gateTo; // at rest (half(0.01 * 7) is 0)
   return half(gateOpen * A.slide[0]);
 }
 function drawGate(g, actors) {
-  const A = PROP_AT.GATE, GATE = { x: H.entry.x - A.entry[0], y: H.entry.y - A.entry[1] };
+  const A = PROP_AT.GATE, E = H.gate ?? H.entry, GATE = { x: E.x - A.entry[0], y: E.y - A.entry[1] };
   const [ow, oh] = A.opening.slice(2), ox = GATE.x + A.opening[0], oy = GATE.y + A.opening[1];
   blit(g, MAPS.GATE_VOID, ox, oy); // the void beyond, lit by the braziers
   const s = stepGate(actors, frameDt);
   return {
-    y: GATE.y + MAPS.GATE.length / RES,
+    y: H.strip ? FLOOR - 1 : GATE.y + MAPS.GATE.length / RES, // the strip's walkers pass in front
     draw(g2) {
       g2.save(); g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
       blit(g2, MAPS.GATE_L, GATE.x + A.leafL[0] - s, GATE.y + A.leafL[1]); blit(g2, MAPS.GATE_R, GATE.x + A.leafR[0] + s, GATE.y + A.leafR[1]);

@@ -1,11 +1,15 @@
 // The desktop strip's geometry, logical px: one floor line along a thin bar on the taskbar. stripOf() returns the
 // fields the cast and app.js read from hallOf() (layout.js), so the same Cast walks in either. Left to right: the
-// gate (off-screen left), the departments' lecterns and consoles, the cogitator, the recaff and bench, the petition
-// line and the Magos at the right end (nearest the clock).
+// entry (off-screen left) and the gate, the departments' lecterns and consoles, a door, the cogitator, a door, the
+// recaff and bench, a door, the petition line and the Magos, MARGIN_R short of the right end (nearest the clock).
 export const STRIP_H = 56; // lectern (30) + the scribe's label above it
 export const FLOOR = STRIP_H - 3; // feet
-const GATE_W = 24, LEC_W = 32, CON_W = 20, GAP = 12;
-const RIGHT_W = 276; // cogitator (82 wide) to Magos
+const LEC_W = 32, CON_W = 20, GAP = 12;
+export const MARGIN_R = 32; // the right group (the Magos' throne) stops this far from the right edge
+// Doors (scene.js drawStripProps: the hall's room-doors frames, 10 wide, and its GATE, 32 wide). The gate starts right
+// of the handle (index.html #strip-handle, 6..18); a door clears what stands by it by 4, any spot by 12 (scene.js
+// near), so nobody standing still holds it open.
+const GATE_X = 20, GATE_W = 32, DOOR_W = 10;
 
 export const stripRoute = (a, b) => (a.x === b.x && a.y === b.y ? [] : [{ x: b.x, y: b.y }]); // every point is on the floor
 
@@ -16,15 +20,19 @@ export function stripOf(w) {
   if (S) return S;
   if (strips.size > 16) strips.clear();
   const at = x => ({ x, y: FLOOR });
-  const magos = at(w - 16), queue = Array.from({ length: 6 }, (_, i) => at(w - 40 - 14 * i));
-  const refectory = [w - 150, w - 138, w - 126].map(at), recaff = at(w - 166);
-  const cogSpots = [w - 250, w - 229, w - 208].map(at); // in front of the cogitator bank
+  const R = w - MARGIN_R, magos = at(R - 10), queue = Array.from({ length: 6 }, (_, i) => at(R - 34 - 14 * i));
+  const door = (x, kind, dw = DOOR_W) => ({ x, w: dw, kind });
+  const dSan = door(R - 104 - 12 - DOOR_W, 'sanctum'); // 12 clear of the last petitioner
+  const bench = { x: dSan.x - 50, y: FLOOR }, refectory = [11, 23, 35].map(d => at(bench.x + d)), recaff = at(bench.x - 5);
+  const dRef = door(recaff.x - 18 - 4 - DOOR_W, 'refectory'); // the recaff is drawn 18 px left of its spot
+  const cog = { x: dRef.x - 4 - 82, y: FLOOR }, cogSpots = [20, 41, 62].map(d => at(cog.x + d)); // in front of the bank
+  const dCog = door(cog.x - 4 - DOOR_W, 'refectory');
   S = {
     strip: true, route: stripRoute, w, h: STRIP_H, baseH: STRIP_H, bays: 0, dy: 0, rows: 1,
     sw: w, rx: w, ox: 0, dx: 0, split: STRIP_H, sd: 0, sb: 0, hy: 0, // roomOf(): everything is 'hall'
-    x0: GATE_W, x1: w - RIGHT_W, y0: FLOOR, y1: FLOOR, aisleY: FLOOR, corridorX: w, lanes: [FLOOR],
-    entry: at(-10), magos, queue, refectory, recaff, cogSpots,
-    cog: { x: w - 270, y: FLOOR }, bench: { x: w - 161, y: FLOOR }, // props' left end on the floor (scene.js drawStripProps)
+    x0: GATE_X + GATE_W + 4, x1: dCog.x - 4, y0: FLOOR, y1: FLOOR, aisleY: FLOOR, corridorX: w, lanes: [FLOOR],
+    entry: at(-10), magos, queue, refectory, recaff, cogSpots, cog, bench, // cog, bench: props' left end on the floor
+    gate: at(GATE_X + GATE_W / 2), doors: [door(GATE_X, 'gate', GATE_W), dCog, dRef, dSan], // scene.js drawStripProps
   };
   strips.set(w, S);
   return S;
