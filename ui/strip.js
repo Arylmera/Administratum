@@ -10,6 +10,12 @@ export const MARGIN_R = 32; // the right group (the Magos' throne) stops this fa
 // of the handle (index.html #strip-handle, 6..18); a door clears what stands by it by 4, any spot by 12 (scene.js
 // near), so nobody standing still holds it open.
 const GATE_X = 20, GATE_W = 32, DOOR_W = 10;
+// The three zones spread along the strip instead of packing against the right end: the sanctum (door + queue +
+// Magos) stays at R as always, but the refectory and cogitator zones are centred at these fractions of w, each
+// clamped so it keeps at least today's packed clearance from the zone to its right (narrow strips fall back to
+// the old packed layout, zone by zone, rather than overlapping).
+export const COG_AT = 0.5, REF_AT = 0.75;
+const REF_ZONE_W = 72, COG_BANK_W = 82; // content span used to centre each zone (door-to-last-spot / the bank)
 
 export const stripRoute = (a, b) => (a.x === b.x && a.y === b.y ? [] : [{ x: b.x, y: b.y }]); // every point is on the floor
 
@@ -22,11 +28,15 @@ export function stripOf(w) {
   const at = x => ({ x, y: FLOOR });
   const R = w - MARGIN_R, magos = at(R - 10), queue = Array.from({ length: 6 }, (_, i) => at(R - 34 - 14 * i));
   const door = (x, kind, dw = DOOR_W) => ({ x, w: dw, kind });
-  const dSan = door(R - 104 - 12 - DOOR_W, 'sanctum'); // 12 clear of the last petitioner
-  const bench = { x: dSan.x - 50, y: FLOOR }, refectory = [11, 23, 35].map(d => at(bench.x + d)), recaff = at(bench.x - 5);
-  const dRef = door(recaff.x - 18 - 4 - DOOR_W, 'sanctum'); // the recaff is drawn 18 px left of its spot
-  const cog = { x: dRef.x - 4 - 82, y: FLOOR }, cogSpots = [20, 41, 62].map(d => at(cog.x + d)); // in front of the bank
-  const dCog = door(cog.x - 4 - DOOR_W, 'sanctum'); // all three the sanctum's door: one height, the tallest
+  const dSan = door(R - 104 - 12 - DOOR_W, 'sanctum'); // 12 clear of the last petitioner; the sanctum zone never moves
+  // refectory zone: centred at REF_AT, but never closer to the sanctum door than today's packed gap (87 px)
+  const dRefX = Math.min(w * REF_AT - REF_ZONE_W / 2, dSan.x - 87);
+  const dRef = door(dRefX, 'sanctum');
+  const bench = { x: dRef.x + 37, y: FLOOR }, refectory = [11, 23, 35].map(d => at(bench.x + d)), recaff = at(dRef.x + 32); // the recaff is drawn 18 px left of its spot
+  // cogitator zone: centred at COG_AT, but never closer to the refectory door than today's packed gap (100 px)
+  const dCogX = Math.min(w * COG_AT - COG_BANK_W / 2 - 14, dRef.x - 100);
+  const dCog = door(dCogX, 'sanctum');
+  const cog = { x: dCog.x + 4 + DOOR_W, y: FLOOR }, cogSpots = [20, 41, 62].map(d => at(cog.x + d)); // in front of the bank; all three the sanctum's door: one height, the tallest
   S = {
     strip: true, route: stripRoute, w, h: STRIP_H, baseH: STRIP_H, bays: 0, dy: 0, rows: 1,
     sw: w, rx: w, ox: 0, dx: 0, split: STRIP_H, sd: 0, sb: 0, hy: 0, // roomOf(): everything is 'hall'

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { STRIP_H, FLOOR, MARGIN_R, stripOf, layoutStrip, stripRoute } from './strip.js';
+import { STRIP_H, FLOOR, MARGIN_R, COG_AT, REF_AT, stripOf, layoutStrip, stripRoute } from './strip.js';
 import { planLayout } from './layout.js';
 import { Cast } from './actors.js';
 
@@ -30,6 +30,23 @@ assert.ok(H.bench.x + 46 <= dSan.x && dSan.x + dSan.w <= H.queue.at(-1).x - 6);
 // nobody standing at a spot holds a door open (scene.js near: 12 px)
 const away = (p, d) => Math.max(d.x - p.x, p.x - (d.x + d.w));
 for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff, H.magos]) for (const d of H.doors.slice(1)) assert.ok(away(p, d) >= 12);
+
+// zones spread out on a wide strip: cogitator centred near w/2, refectory near 3w/4, sanctum still at the right
+const W = stripOf(1288);
+const cogCentre = W.cog.x + 41; // the 82 px bank's own centre
+const refCentre = (W.doors[2].x + W.refectory.at(-1).x) / 2; // the refectory door to its last spot
+assert.ok(Math.abs(cogCentre - 1288 * COG_AT) <= 10);
+assert.ok(Math.abs(refCentre - 1288 * REF_AT) <= 10);
+assert.ok(W.magos.x > 0.9 * 1288);
+
+// narrow strip: zones still clamp back towards the packed layout rather than overlap
+const N = stripOf(400);
+const [, nCog, nRef, nSan] = N.doors;
+for (let i = 1; i < N.doors.length; i++) assert.ok(N.doors[i - 1].x + N.doors[i - 1].w <= N.doors[i].x);
+assert.ok(Math.max(...N.cogSpots.map(p => p.x)) < nRef.x);
+assert.ok(N.refectory.at(-1).x < nSan.x);
+assert.ok(nSan.x + nSan.w <= N.queue.at(-1).x - 6);
+assert.ok(N.magos.x < 400 && N.queue[0].x < N.magos.x);
 
 // route: one step along the floor
 assert.deepEqual(stripRoute({ x: 10, y: FLOOR }, { x: 90, y: FLOOR }), [{ x: 90, y: FLOOR }]);
