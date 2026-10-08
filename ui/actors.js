@@ -2,8 +2,12 @@ import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADE
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
+import { view } from './view.js';
 
 const SPEED = 80; // logical px per second
+// The strip spans the whole screen, so a walk there takes twice the hall's speed (a wide screen's crossing stays short).
+const speed = () => (view.strip ? 2 * SPEED : SPEED);
+const STRIDE = SPEED / 16; // px walked per walk frame: the legs keep pace with the speed
 // Thresholds come from the settings panel (settings.js), read live:
 const COG_HOLD_MS = () => settings.cogHoldS * 1000; // a busy scribe stays at the cogitator this long after its last shell command
 const NAP_MS = () => settings.napMin * 60_000; // idle this long (no background shell) and a scribe leaves for the refectorium
@@ -150,8 +154,9 @@ export class Cast {
   update(dt) {
     for (const a of [...this.actors.values()]) {
       a.t += dt;
-      let step = SPEED * dt;
+      let step = speed() * dt;
       if (a.wait > 0) { a.wait -= dt; step = 0; } // pausing at a waypoint (the recaff)
+      a.walked = (a.walked ?? 0) + step;
       while (step > 0 && a.path.length) {
         const p = a.path[0], dx = p.x - a.x, dy = p.y - a.y, dist = Math.hypot(dx, dy);
         if (dist > 0) a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
@@ -190,10 +195,10 @@ const robeOf = (rank, sash) => {
 export function bodyOf(a) {
   const walk = a.pose === 'walk';
   if (a.h) { // adept: 12x14
-    const i = Math.floor(a.t * 16) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
+    const i = Math.floor((a.walked ?? 0) / STRIDE) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
     return { map: walk ? ADEPT[a.dir][i] : ADEPT[a.target.dir][0], over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
   }
-  const i = a.wait > 0 ? 0 : Math.floor(a.t * 16) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
+  const i = a.wait > 0 ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
   const map = a.pose === 'burn' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
   return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !(a.wait > 0) ? i : -1 };
 }
