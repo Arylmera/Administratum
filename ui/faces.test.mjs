@@ -5,6 +5,7 @@ import { MAPS } from './sprites.js';
 import { THEMES, setTheme } from './theme.js';
 import './themes.js';
 import { sheetOf, composeFlat, build39, cols, VS, inEllipse, FACES, FACE_OBJECTS } from './faces.js';
+import { ART } from './sprites.js';
 
 const diff = (a, b) => { let n = 0; a.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== b[y]?.[x]) n++; }); return n; };
 
@@ -139,10 +140,22 @@ for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'T
     assert.ok(side.length && side.every(p => sl.side.some(r => r.includes(p.c))), 'box: side from its frame');
     assert.ok(puts.some(p => p.v === sl.v + sl.d - 1 - sl.recess[0].depth && p.face === 1 && /[cC]/.test(p.c)), 'box: screen glass set back');
   }
+  // every theme's side/top: a frame present in a world's own faces.png is used, one missing falls back to null,
+  // proven per object against the raw faces data (not the sheetOf formula itself)
+  for (const id of Object.keys(THEMES)) {
+    const W = FACES.worlds[ART.dirOf(id)];
+    setTheme(id);
+    for (const name of FACE_OBJECTS) {
+      const own = W?.objects?.[name], F = own ? W.frames : FACES.base.frames;
+      const s = sheetOf(name);
+      assert.equal(s.side, F[`${name} side`] ?? null, `${id} ${name}: side fallback/override`);
+      assert.equal(s.top, F[`${name} top`] ?? null, `${id} ${name}: top fallback/override`);
+    }
+  }
   // a world without its own side/top art still builds (faces derived from the front's edge colours)
   setTheme('cyber');
   const w = sheetOf('DESK');
-  assert.equal(w.side, null);
+  assert.equal(w.side, null, 'cyber DESK: no side frame yet');
   const r = recorder();
   build39(r, w);
   assert.ok(r.puts.some(p => p.face === 2) && r.puts.some(p => p.face === 0), 'world desk: side and top derived');
