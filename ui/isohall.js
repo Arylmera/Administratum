@@ -41,6 +41,15 @@ export function roomPlan(hall) {
   const slab = (name, x0, x1, y0, y1, tex = 'wall') => { if (y1 > y0) add('slab', name, tex, fx(x0), fx(x1), fy(y0), fy(y1), 0, SLAB_Z); };
   const r0 = 78 + D, r1 = 98 + D, d0 = 150 + sd, d1 = 186 + sd;
   slab('east wall', sw, rx, WALL, r0); slab('east wall', sw, rx, r1, d0); slab('east wall', sw, rx, d1, h);
+  // each doorway: a post at either end and a lintel across (brass-capped iron, standing proud of the wall); the door
+  // leaves' place (kind door: not drawn here, the dynamic layer slides them; tex: their room tile, the flat frame)
+  for (const [name, y0, y1] of [['refectory', r0, r1], ['sanctum', d0, d1]]) {
+    const u0 = fx(sw) - 2, u1 = fx(rx) + 2, v0 = fy(y0), v1 = fy(y1);
+    add('box', 'jamb', 'pillar', u0, u1, v0 - 4, v0, 0, SLAB_Z + 8);
+    add('box', 'jamb', 'pillar', u0, u1, v1, v1 + 4, 0, SLAB_Z + 8);
+    add('box', 'lintel', 'pillar', u0, u1, v0, v1, SLAB_Z, SLAB_Z + 8);
+    add('door', name, `door ${name} closed`, fx(sw) + 6, fx(sw) + 10, v0, v1, 0, SLAB_Z);
+  }
   // the sanctum's back wall carries its hangings (placeProps): as tall as the flat hall's sanctum wall band (30 px)
   add('slab', 'refectorium/sanctum', 'wall', fx(rx), U, fy(split - 10), fy(split), 0, 2 * 30);
   slab('sanctum west', rx + 2, rx + 12, split - 2, d0); slab('sanctum west', rx + 2, rx + 12, d1, baseH); // the pillars
@@ -141,6 +150,8 @@ export function renderHall39(hall, day = true) {
     else if (s.kind === 'wall') buf.box({ ...box, top: () => CAP, // one face each: a 1-unit wall's other face would overdraw its edge
       ...(s.name === 'west' ? { side: (j, r, J) => wallTex(s.tex, s.foot, Z)(J - 1 - j, r) } : { front: wallTex(s.tex, s.foot, Z) }) });
     else if (s.kind === 'slab') buf.box({ ...box, top: cut, front: (i, r) => texel(s.tex, i, r + 20), side: (j, r) => texel(s.tex, j, r + 20) }); // plates below their seam row
+    else if (s.kind === 'door') continue; // the dynamic layer's
+    else if (s.name === 'jamb' || s.name === 'lintel') buf.box({ ...box, top: cut, front: (i, r) => texel(s.tex, i, r), side: (j, r) => texel(s.tex, j, r) });
     else buf.box({ ...box, front: (i, r) => texel(s.tex, i, r), top: i => texel(s.tex, i, 0), side: (j, r) => texel(s.tex, s.u1 - s.u0 - 1, r) });
   }
   // what hangs on the north wall: the windows (glass recoloured by day/night when painted); then every prop where
@@ -161,16 +172,24 @@ export function renderHall39(hall, day = true) {
     buf.bill(map, u, v, z, id, dz); ids.add(id++);
     return { u0: u - (map[0].length >> 1), u1: u + (map[0].length >> 1), v0: v - 6, v1: v + 1 };
   };
-  // the grand gate (closed) at the scriptorium's bottom edge: void, leaves and frame as one upright frame
-  const A = PROP_AT.GATE, gx = hall.entry.x - A.entry[0], gy = hall.entry.y - A.entry[1], gate = grid(MAPS.GATE[0].length, MAPS.GATE.length);
-  paste(gate, MAPS.GATE_VOID, A.opening[0] * RES, A.opening[1] * RES);
-  paste(gate, MAPS.GATE_L, A.leafL[0] * RES, A.leafL[1] * RES); paste(gate, MAPS.GATE_R, A.leafR[0] * RES, A.leafR[1] * RES);
-  paste(gate, MAPS.GATE, 0, 0);
-  bill(gate.map(r => r.join('')), gx, Math.min(hall.h, gy + MAPS.GATE.length / RES));
+  // the grand gate at the scriptorium's bottom edge, from its face sheet (piers, spires, arch, keystone, emblem): the
+  // void beyond on the opening's back plane (its 'leaves' part, cut from the frame with the void pasted in); the leaves
+  // slide in front of it in the dynamic layer, at anchors.gate
+  const A = PROP_AT.GATE, gate = grid(MAPS.GATE[0].length, MAPS.GATE.length), [ow, oh] = A.opening.slice(2).map(n => n * RES);
+  paste(gate, MAPS.GATE_VOID, A.opening[0] * RES, A.opening[1] * RES); paste(gate, MAPS.GATE, 0, 0);
+  const gs = sheetOf('GATE', gate.map(r => r.join(''))), gu = fx(hall.entry.x - A.entry[0]), gv = fy(hall.h) - depthOf(gs);
+  build39(buf, gs, gu, gv, id); ids.add(id).add(id + 1); id += 2;
+  const back = gs.details.find(p => p.name === 'leaves');
+  const anchors = {
+    gate: { u0: gu + A.opening[0] * RES, u1: gu + A.opening[0] * RES + ow, v: gv + back.v + back.d, z0: gs.fh - A.opening[1] * RES - oh, z1: gs.fh - A.opening[1] * RES },
+    doors: plan.surfaces.filter(s => s.kind === 'door'),
+  };
   // ponytail: the Magos and the servo-skulls from today's flat frames, upright; their 39° art (magos39, skull39) comes later
   const mag = grid(MAGOS.body[0].length, MAGOS.body.length), MX = 264 + hall.ox, MY = 120 + hall.sd;
   paste(mag, MAGOS.body, 0, 0); paste(mag, MAGOS.arm, MAGOS_AT.arm.x * RES, MAGOS_AT.arm.y * RES);
-  bill(mag.map(r => r.join('')), MX, MY + MAGOS.body.length / RES - 6, 0, 12); // on the throne's seat, over its front
+  // seated in the throne (scene.js PROPS.s: 268, 124 + sd, its face sheet 24 deep): in front of its back, drawn over the
+  // seat and arms as the flat frame is drawn over the throne
+  buf.bill(mag.map(r => r.join('')), fx(MX) + (MAGOS.body[0].length >> 1), fy(MY + 24) - 24 + 6, 0, id, 30); ids.add(id++);
   const SK = PROP_AT.SKULL, skullAt = (cx, cy) => bill(MAPS.SKULL, cx - SK.centre[0], cy + FLY_H, 2 * (FLY_H - MAPS.SKULL.length / RES + SK.centre[1]));
   skullAt(244 + hall.ox + SK.centre[0], 50 + WALL_DY + SK.centre[1]); // the refectorium's (scene.js drawDecorFrame)
   skullAt(297 + hall.ox, 128 + hall.sd); // on its perch by the Magos (scene.js perchOf)
@@ -206,14 +225,16 @@ export function renderHall39(hall, day = true) {
     const edge = Math.min(1, (Math.min(u - u0 + 2, u1 + 2 - u, v - v0 + 2, v1 + 3 - v) + 1) / 3);
     shade[i] = Math.min(0.8, 1 - (1 - shade[i]) * (1 - alpha * edge));
   }
-  return { buf, shade, w, h, ox: bx, oy: by };
+  return { buf, shade, w, h, ox: bx, oy: by, anchors };
 }
 
-// The 39° hall as a canvas (art px, RES per logical px) and the art-px offset of the world origin on it. Painted in
+// The 39° hall as a canvas (art px, RES per logical px), the art-px offset of the world origin on it, and the anchors
+// of what the dynamic layer draws into it (world coords): gate { u0, u1, v (the leaves' plane), z0, z1 } (the opening),
+// doors [{ name, tex, u0, u1, v0, v1, z0, z1 }] (each doorway's leaves). Painted in
 // the theme's px colours, the shading blended in; the windows' glass in the day or night colours (T.ink.window*).
 const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 export function buildHall39(hall, day = true) {
-  const { buf, shade, ox, oy } = renderHall39(hall, day);
+  const { buf, shade, ox, oy, anchors } = renderHall39(hall, day);
   const pal = { ...T.px }, win = { ...T.px, ...(day ? T.ink.windowDay : T.ink.windowNight) }, cache = new Map();
   const colour = (c, glass) => { const k = glass ? c + '!' : c; let v = cache.get(k); if (!v) cache.set(k, v = rgb((glass ? win : pal)[c] ?? '#000000')); return v; };
   const [sr, sg, sb] = T.light.shadow.split(',').map(Number);
@@ -227,5 +248,5 @@ export function buildHall39(hall, day = true) {
     D[4 * i] = r + (sr - r) * a; D[4 * i + 1] = gg + (sg - gg) * a; D[4 * i + 2] = b + (sb - b) * a; D[4 * i + 3] = 255;
   }
   g.putImageData(img, 0, 0);
-  return { canvas: cv, ox, oy };
+  return { canvas: cv, ox, oy, anchors };
 }

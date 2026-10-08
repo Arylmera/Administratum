@@ -502,6 +502,20 @@
      { "name": "fire", "rect": [4, 0, 10, 7], "kind": "bill", "v": 7 }
     ]
    },
+   "GATE": {
+    "details": [
+     { "name": "base", "rect": [0, 57, 64, 3], "kind": "box", "v": 0, "d": 30 },
+     { "name": "step", "rect": [0, 54, 64, 3], "kind": "box", "v": 2, "d": 26 },
+     { "name": "pier L", "rect": [0, 10, 13, 44], "kind": "box", "v": 4, "d": 16 },
+     { "name": "pier R", "rect": [51, 10, 13, 44], "kind": "box", "v": 4, "d": 16 },
+     { "name": "spire L", "rect": [0, 0, 13, 10], "kind": "disc", "v": 8, "t": 8, "rim": "G" },
+     { "name": "spire R", "rect": [51, 0, 13, 10], "kind": "disc", "v": 8, "t": 8, "rim": "G" },
+     { "name": "leaves", "rect": [16, 10, 32, 44], "kind": "box", "v": 8, "d": 2 },
+     { "name": "arch", "rect": [13, 0, 38, 54], "kind": "disc", "v": 6, "t": 10, "rim": "G" },
+     { "name": "keystone", "rect": [25, 2, 14, 12], "kind": "disc", "v": 6, "t": 12, "rim": "G" },
+     { "name": "emblem", "rect": [27, 3, 10, 10], "kind": "disc", "v": 6, "t": 14, "rim": "B", "round": true }
+    ]
+   },
    "BOOKS": {
     "details": [
      { "name": "book 1", "rect": [2, 0, 14, 5], "kind": "box", "v": 2, "d": 10 },

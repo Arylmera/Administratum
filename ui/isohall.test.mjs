@@ -35,7 +35,12 @@ for (const hall of halls) {
   for (const door of [hall.refOut, hall.doorOut]) {
     const v = 2 * (door.y - WALL);
     assert.ok(!east.some(s => v >= s.v0 && v < s.v1), `${tag}: a door at y ${door.y} is open`);
+    // a real doorway: a lintel across it above the cutaway wall, the leaves' place in it (the dynamic layer's)
+    const over = (s, k) => s.kind === k && v >= s.v0 && v < s.v1 && s.u0 <= 2 * hall.sw && s.u1 >= 2 * hall.rx;
+    assert.ok(surfaces.some(s => over(s, 'box') && s.name === 'lintel' && s.z0 === 32), `${tag}: a lintel over y ${door.y}`);
+    assert.ok(surfaces.some(s => s.kind === 'door' && v >= s.v0 && v < s.v1 && s.u0 >= 2 * hall.sw && s.u1 <= 2 * hall.rx), `${tag}: leaves at y ${door.y}`);
   }
+  assert.equal(named('box', 'jamb').length, 4, tag);
   assert.equal(east.length, 3, `${tag}: two openings`);
   assert.ok(east.every(s => s.u0 === 2 * hall.sw && s.u1 === 2 * hall.rx), tag);
   // props: hung ones on a wall plane within its height, standing ones on their room's floor, never on a wall band
