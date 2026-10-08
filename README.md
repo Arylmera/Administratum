@@ -190,7 +190,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
 | Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
 | Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower / Vault 111 | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station, Arcane Tower a wizards' tower and Vault 111 a Fallout vault, not 40k; the remote view keeps its own) |
-| View | Flat | Flat / 39° / Desktop strip | How the hall is drawn: today's flat 3/4 pixel art, turned 39° with real volumes, or the Windows taskbar strip (see *Views*; the remote view keeps its own). Desktop strip is offered only where the backend can place it (Windows) |
+| View | Flat | Flat / 2.5D / Desktop strip | How the hall is drawn: today's flat 3/4 pixel art, turned 39° with real volumes, or the Windows taskbar strip (see *Views*; the remote view keeps its own). Desktop strip is offered only where the backend can place it (Windows) |
 | Strip size *(strip only)* | M | S / M / L | Pixel size of the desktop strip |
 | Strip backdrop *(strip only)* | off | — | A translucent band behind the strip, for readability over a busy wallpaper |
 | Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
