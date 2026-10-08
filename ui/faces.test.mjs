@@ -57,12 +57,16 @@ for (const [name, o] of Object.entries(FACES.base.objects)) {
     if (p.kind === 'box') { sizes[`${name} ${key} side`] = [cols(p.d), h]; sizes[`${name} ${key} top`] = [w, cols(p.d)]; recessSizes(`${name} ${key}`, p.recess); }
     if (p.kind === 'cyl') sizes[`${name} ${key} top`] = [w, cols(w)];
     if (p.kind === 'disc') sizes[`${name} ${key} rim`] = [w, h];
+    sizes[`${name} ${key} front`] = [w, h]; // a drawn front for a detail its frame shows only top-down (under a flat-only retouch)
   }
 }
 for (const [k, f] of Object.entries(FACES.base.frames)) {
   assert.ok(sizes[k], `faces.png: frame '${k}' belongs to no box, cylinder, disc or recess`);
   assert.deepEqual([f[0].length, f.length], sizes[k], `faces.png: '${k}' size`);
 }
+// a drawn front replaces the crop (the TABLE's mugs: top-down in the flat frame, seen from the side in 39°)
+setTheme('tier2');
+assert.deepEqual(sheetOf('TABLE').details.find(d => d.name === 'mug 1').map, FACES.base.frames['TABLE mug 1 front'], 'detail front frame used');
 for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'TABLE', 'BENCH', 'RECAFF', 'LORD_DESK', 'THRONE'])
   for (const f of ['side', 'top']) assert.ok(FACES.base.frames[`${n} ${f}`], `faces.png: no base '${n} ${f}'`);
 

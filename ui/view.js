@@ -13,8 +13,9 @@ export function floorToWorld(x, y, WALL = WALL_DEFAULT) {
   return y >= WALL ? [2 * x, 2 * (y - WALL), 0] : [2 * x, 0, 2 * (WALL - y)];
 }
 
-// The 39° projection (exact, from the trial): horizontal rotation 39°, back wall receding 3:1, side wall 2:1.
-export const P39 = (u, v, z = 0) => { const w = Math.floor(v * Math.sqrt(2 / 3)); return [u - w, Math.floor(u / 3) + Math.floor(w / 2) - z]; };
+// The 39° projection (exact, from the trial): horizontal rotation 39°, back wall receding 3:1, side wall 2:1 (iso.js).
+import { P39 } from './iso.js';
+export { P39 };
 const K = Math.sqrt(2 / 3); // continuous inverse of P39 for floor points (z = 0), used by toFloor
 
 export const view = { mode: 'flat' };

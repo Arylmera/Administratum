@@ -2,11 +2,18 @@ import { RES } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { WALL } from './layout.js';
 import { wallArt } from './wallart.js';
+import { view, toScreen } from './view.js';
 
 // Depth: a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
 // pool into an ellipse lying on the floor in perspective, the lower the flatter.
 const FLAT = [0.7, 0.85, 1];
-const flatOf = l => FLAT[l.z ?? (l.y < WALL + 4 ? 2 : 1)];
+const heightOf = l => l.z ?? (l.y < WALL + 4 ? 2 : 1);
+const flatOf = l => l.f ?? FLAT[heightOf(l)];
+// The 39° view: a light's floor/wall point through the projection (view.js toScreen); a pool on the floor lies flatter
+// (the floor's depth is foreshortened about 2:1), one on the wall stays round.
+const FLAT39 = [0.5, 0.5, 1];
+const project = l => { const [x, y] = toScreen(l.x, l.y); return { ...l, x, y, f: FLAT39[heightOf(l)] }; };
+const beams39 = new Map(); // the 39° beams' gradients, by their projected ends (a window's x, the hall's size)
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
 // radius with drawImage, the vignette a canvas per scene size and phase. No gradient is built per frame.
@@ -63,13 +70,37 @@ function greyOf(w, h) {
   return grey;
 }
 let layer = null, beam = null;
-onTheme(() => { beam = null; });
+onTheme(() => { beam = null; beams39.clear(); });
+
+// The flat beams' shape (below) through the projection: from the bottom of the glass on the wall to the floor.
+function drawBeams39(g, level, windows) {
+  if (!level.beams) return;
+  const y0 = wallArt().winBottom - 1, y1 = WALL + 76;
+  for (const x of windows) {
+    const bx = x - 4, pts = [[bx + 9, y0], [bx + 21, y0], [bx + 30, y1], [bx, y1]].map(([px, py]) => toScreen(px, py));
+    const [ax, ay] = toScreen(x + 11, y0), [ex, ey] = toScreen(x + 11, y1), k = `${ax},${ay},${ex},${ey}`;
+    let grad = beams39.get(k);
+    if (!grad) {
+      if (beams39.size > 32) beams39.clear();
+      grad = g.createLinearGradient(ax, ay, ex, ey);
+      grad.addColorStop(0, `rgba(${T.light.beam},.16)`);
+      grad.addColorStop(1, `rgba(${T.light.beam},0)`);
+      beams39.set(k, grad);
+    }
+    g.fillStyle = grad;
+    g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.closePath(); g.fill();
+    g.save();
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
+    g.drawImage(glowOf(`rgba(${T.light.beam},1)`), ex - 15, ey - 2.5, 30, 5);
+    g.restore();
+  }
+}
 
 // Darkness with light holes (destination-out), then additive glows, beams by day, vignette. w, h: the scene's
 // logical size (hallOf); windows: the x of each window (scene.js propsOf), a beam falls from each by day, from the
 // bottom of its glass (wallArt) to 76 px out on the floor.
 export function drawLighting(g, lights, level, t, w, h, windows = []) {
-  if (level.beams) {
+  if (view.mode === '39') { drawBeams39(g, level, windows); lights = lights.map(project); } else if (level.beams) {
     const y0 = wallArt().winBottom - 1, y1 = WALL + 76;
     if (beam?.y0 !== y0) {
       beam = g.createLinearGradient(0, y0, 0, y1);

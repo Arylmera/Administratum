@@ -7,14 +7,15 @@ import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
-import { view as viewMode, setView, onView } from './view.js';
+import { view as viewMode, setView, onView, sceneSize } from './view.js';
+import { buildHall39 } from './isohall.js';
 import { quietAt, hhmmOf } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE, remoteActions } from './bridge.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
-// The saved view (adm.view): flat or 39°. Inert until a later task draws the 39° hall; still drops caches live.
+// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change).
 setView(store.get('adm.view', 'flat'));
 // The page follows the theme: its chrome colours (CSS variables, T.ui), its marked texts (data-t, data-t-title,
 // data-t-aria), and the wording of the PC's toasts (main.rs set_toast_text).
@@ -49,12 +50,17 @@ function renderQuiet() {
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d', { alpha: false }); // the background blit covers every pixel
 const overlay = document.getElementById('overlay');
+const scratch = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d'); // 39°: drawScene's lights only
 let scale = 2;
 let size = { ...SCENE }; // the scene's logical size, from the window and the Scale setting (fit)
 let hall = hallOf(0); // hallOf(bays, size): the scene's logical height also grows with the layout's bays
+// The canvas's logical size: the hall's own in the flat view, the projected hall's in the 39° view (view.js).
+const scene = () => sceneSize(hall);
+const iso = () => viewMode.mode === '39';
 function sizeCanvas() {
-  canvas.width = hall.w * RES;
-  canvas.height = hall.h * RES;
+  const S = scene();
+  canvas.width = S.w * RES;
+  canvas.height = S.h * RES;
   g.setTransform(RES, 0, 0, RES, 0, 0);
   g.imageSmoothingEnabled = false;
 }
@@ -65,18 +71,23 @@ function background(day) {
   const at = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${at}`;
   if (!bg[k]) {
     for (const o in bg) if (!o.endsWith(at)) delete bg[o]; // the hall changed size: drop the old sizes
-    const c = document.createElement('canvas');
-    c.width = hall.w * RES; c.height = hall.h * RES;
+    const c = document.createElement('canvas'), S = scene();
+    c.width = S.w * RES; c.height = S.h * RES;
     const cg = c.getContext('2d');
-    cg.setTransform(RES, 0, 0, RES, 0, 0);
-    cg.imageSmoothingEnabled = false;
-    drawStatic(cg, day, hall);
+    if (iso()) { // the 39° hall (isohall.js) on the backdrop colour: the canvas is opaque, its corners outside the hall too
+      cg.fillStyle = T.ink.backdrop; cg.fillRect(0, 0, c.width, c.height);
+      cg.drawImage(buildHall39(hall, day).canvas, 0, 0);
+    } else {
+      cg.setTransform(RES, 0, 0, RES, 0, 0);
+      cg.imageSmoothingEnabled = false;
+      drawStatic(cg, day, hall);
+    }
     bg[k] = c;
   }
   return bg[k];
 }
 // The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
-// view will need a different canvas size once a later task draws it; for now this is inert).
+// view's canvas is the projected hall's size: the next frame resizes it).
 onView(() => { for (const k in bg) delete bg[k]; fit(); });
 
 // Auto lighting follows the sun once a location is set: sun times recomputed once a day or when it changes.
@@ -121,8 +132,8 @@ let autoScale = 0;
 const stage = document.getElementById('stage'), world = document.getElementById('world');
 const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
 let viewW = 0, viewH = 0; // the stage, CSS px
-const pannable = () => viewW < hall.w * scale - 1 || viewH < hall.h * scale - 1;
-const clampPan = (x, y) => ({ x: Math.min(0, Math.max(viewW - hall.w * scale, x)), y: Math.min(0, Math.max(viewH - hall.h * scale, y)) });
+const pannable = () => { const S = scene(); return viewW < S.w * scale - 1 || viewH < S.h * scale - 1; };
+const clampPan = (x, y) => { const S = scene(); return { x: Math.min(0, Math.max(viewW - S.w * scale, x)), y: Math.min(0, Math.max(viewH - S.h * scale, y)) }; };
 function setPan(x, y) {
   Object.assign(pan, clampPan(x, y));
   world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
@@ -160,10 +171,10 @@ function fit() {
 }
 // The stage and the scene's CSS size for the window's W x H (CSS px), the view kept on its logical centre.
 function applySize(W, H) {
-  const cx = viewCentre?.x ?? hall.w / 2, cy = viewCentre?.y ?? hall.h / 2;
-  viewW = Math.floor(Math.min(hall.w * scale, W)); viewH = Math.floor(Math.min(hall.h * scale, H));
+  const S = scene(), cx = viewCentre?.x ?? S.w / 2, cy = viewCentre?.y ?? S.h / 2;
+  viewW = Math.floor(Math.min(S.w * scale, W)); viewH = Math.floor(Math.min(S.h * scale, H));
   stage.style.width = `${viewW}px`; stage.style.height = `${viewH}px`;
-  for (const el of [canvas, overlay]) { el.style.width = `${hall.w * scale}px`; el.style.height = `${hall.h * scale}px`; }
+  for (const el of [canvas, overlay]) { el.style.width = `${S.w * scale}px`; el.style.height = `${S.h * scale}px`; }
   pan.to = null;
   setPan(viewW / 2 - cx * scale, viewH / 2 - cy * scale);
   const root = document.documentElement.style;
@@ -219,7 +230,7 @@ const endDrag = () => {
 };
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { endDrag(); dragged = false; });
-canvas.ondblclick = () => { if (pannable()) centreOn(hall.w / 2, hall.h / 2); };
+canvas.ondblclick = () => { if (pannable()) { const S = scene(); centreOn(S.w / 2, S.h / 2); } };
 addEventListener('keydown', e => {
   const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
   if (!d || !pannable() || e.target.closest?.('input, select, textarea, #chron, #prefs')) return;
@@ -285,14 +296,24 @@ function frame(now) {
   const dt = Math.min(0.25, (now - drawn) / 1000);
   drawn = now;
   cast.update(dt);
-  if (canvas.width !== hall.w * RES || canvas.height !== hall.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize
+  const S = scene();
+  if (canvas.width !== S.w * RES || canvas.height !== S.h * RES) { sizeCanvas(); fit(); } // a bay came or went, a resize, the view
   const back = background(level.beams);
-  g.drawImage(back, 0, 0, hall.w, hall.h);
-  if (lag.x || lag.y) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
+  g.drawImage(back, 0, 0, S.w, S.h);
+  if (!iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(now);
   view.hall = hall;
   view.level = level;
-  view.mode = viewMode.mode; // flat or 39°; drawScene ignores it until a later task draws the 39° hall
+  view.mode = viewMode.mode;
+  if (iso()) {
+    // ponytail: until the 39° dynamic layer exists (desks, actors, labels), drawScene runs on a 1x1 scratch canvas only
+    // for this frame's lights (and its gate/skull state); the DOM overlays stay hidden rather than at flat positions.
+    drawLighting(g, drawScene(scratch, view, cast.actors, fillOf, now), level, now / 1000, S.w, S.h, propsOf(hall).windows);
+    if (!overlay.hidden) { overlay.hidden = true; for (const b of Object.values(edges)) b.hidden = true; }
+    syncHover();
+    return;
+  }
+  if (overlay.hidden) overlay.hidden = false;
   drawLighting(g, drawScene(g, view, cast.actors, fillOf, now), level, now / 1000, hall.w, hall.h, propsOf(hall).windows);
   renderPlaques(view.blocks);
   syncLabels();
@@ -701,6 +722,7 @@ function syncHover() {
 
 // Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins.
 function actorAt(e) {
+  if (iso()) return null; // ponytail: no 39° hit test until the 39° dynamic layer draws the characters
   const r = canvas.getBoundingClientRect(), px = (e.clientX - r.left) / scale, py = (e.clientY - r.top) / scale;
   let best = null;
   for (const a of cast.actors.values()) {
