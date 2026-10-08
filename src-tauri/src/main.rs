@@ -719,9 +719,15 @@ fn sample_grid(l: i32, t: i32, r: i32, b: i32) -> impl Iterator<Item = (i32, i32
 /// Can the user see any of the main window? False when minimised, hidden (tray) or covered: none
 /// of 25 points over the client area hit-tests to it (WindowFromPoint skips hidden and cloaked
 /// windows, and finds the WebView2 child, whose root is ours).
+///
+/// `grid`: the strip is click-through (WS_EX_TRANSPARENT|WS_EX_LAYERED via
+/// `set_ignore_cursor_events`), so `WindowFromPoint` never resolves to it and the grid always
+/// reports "covered" there; skip it while the strip is on and rely on minimised/visible only
+/// (the strip watcher already hides the window for a fullscreen app, so IsWindowVisible still
+/// goes false then).
 // ponytail: sampling, so a sliver showing between grid points counts as covered; walk the Z-order if that matters.
 #[cfg(windows)]
-fn on_screen(hwnd: windows_sys::Win32::Foundation::HWND) -> bool {
+fn on_screen(hwnd: windows_sys::Win32::Foundation::HWND, grid: bool) -> bool {
     use windows_sys::Win32::{
         Foundation::{POINT, RECT},
         Graphics::Gdi::ClientToScreen,
@@ -731,6 +737,9 @@ fn on_screen(hwnd: windows_sys::Win32::Foundation::HWND) -> bool {
     unsafe {
         if IsIconic(hwnd) != 0 || IsWindowVisible(hwnd) == 0 {
             return false;
+        }
+        if !grid {
+            return true;
         }
         let mut rc = RECT { left: 0, top: 0, right: 0, bottom: 0 };
         let mut o = POINT { x: 0, y: 0 };
@@ -752,7 +761,7 @@ fn watch_visibility(app: AppHandle) {
     let mut last = true;
     loop {
         thread::sleep(Duration::from_secs(2));
-        let now = on_screen(hwnd as windows_sys::Win32::Foundation::HWND);
+        let now = on_screen(hwnd as windows_sys::Win32::Foundation::HWND, !strip::ON.load(std::sync::atomic::Ordering::SeqCst));
         if now != last {
             last = now;
             let _ = app.emit("visible", now);
