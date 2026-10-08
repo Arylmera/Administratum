@@ -124,6 +124,9 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
     *HEIGHT.lock().unwrap_or_else(|e| e.into_inner()) = height;
     replace(&window, height)?;
     ON.store(true, Ordering::SeqCst);
+    // Windows 11 draws a 1 px border + shadow around undecorated windows while the shadow is on;
+    // off in the strip, where the bar must sit flush against the taskbar.
+    let _ = window.set_shadow(false);
     Ok(hall)
 }
 
@@ -135,6 +138,7 @@ pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Resul
     ON.store(false, Ordering::SeqCst);
     *RECT.lock().unwrap_or_else(|e| e.into_inner()) = None;
     let _ = window.set_ignore_cursor_events(false);
+    let _ = window.set_shadow(true);
     window.set_resizable(true).map_err(|e| e.to_string())?;
     window.set_min_size(Some(tauri::LogicalSize::new(360.0, 280.0))).map_err(|e| e.to_string())?; // tauri.conf.json
     let r = rect.unwrap_or(HallRect { x: 100, y: 100, w: 700, h: 500 });
