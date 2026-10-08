@@ -24,8 +24,8 @@ const level = { dark: 0.6, glow: 0.8, beams: true };
 const render = () => { log.length = 0; drawLighting(ctx('g'), lights, level, 12.5, 346, 248, [40, 140]); return createHash('sha1').update(JSON.stringify(log)).digest('hex').slice(0, 12); };
 
 render(); // builds the cached stamps, layer, vignette: every later frame logs the same calls
-const FLAT = '7703214c92d0';
-// Flat: call for call as before the 39° light heights (hash recorded from the code before T12)
+const FLAT = 'efd4ced741d1';
+// Flat: call for call as before the 39° light heights (hash recorded after the beams were fitted to the glass)
 assert.equal(render(), FLAT, 'flat lighting changed');
 
 // 39°: a desk-height light glows lift39.h px above a floor point lift39.d px south of its flat point, its pool (the

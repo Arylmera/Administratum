@@ -23,6 +23,13 @@ const project = l => {
   const yf = l.y + lift39.d, [x, y] = toScreen(l.x, yf, lift39.h), [px, py] = toScreen(l.x, yf);
   return { ...l, x, y, px, py, f: FLAT39[k] };
 };
+// A beam's trapezoid for the window slot x: its top spans the glass inside the frame (wallArt), its foot is 7 px
+// wider each side, 76 px out on the floor; c is its centre line.
+function beamOf(x) {
+  const { win, winDx, winBottom } = wallArt(), gl = x + winDx + 1, gr = x + winDx + win[0].length / RES - 1;
+  const y0 = winBottom - 1, y1 = WALL + 76;
+  return { y0, y1, c: (gl + gr) / 2, pts: [[gl, y0], [gr, y0], [gr + 7, y1], [gl - 7, y1]] };
+}
 const beams39 = new Map(); // the 39° beams' gradients, by their projected ends (a window's x, the hall's size)
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
@@ -85,10 +92,9 @@ onTheme(() => { beam = null; beams39.clear(); });
 // The flat beams' shape (below) through the projection: from the bottom of the glass on the wall to the floor.
 function drawBeams39(g, level, windows) {
   if (!level.beams) return;
-  const y0 = wallArt().winBottom - 1, y1 = WALL + 76;
   for (const x of windows) {
-    const bx = x - 4, pts = [[bx + 9, y0], [bx + 21, y0], [bx + 30, y1], [bx, y1]].map(([px, py]) => toScreen(px, py));
-    const [ax, ay] = toScreen(x + 11, y0), [ex, ey] = toScreen(x + 11, y1), k = `${ax},${ay},${ex},${ey}`;
+    const b = beamOf(x), pts = b.pts.map(([px, py]) => toScreen(px, py));
+    const [ax, ay] = toScreen(b.c, b.y0), [ex, ey] = toScreen(b.c, b.y1), k = `${ax},${ay},${ex},${ey}`;
     let grad = beams39.get(k);
     if (!grad) {
       if (beams39.size > 32) beams39.clear();
@@ -111,7 +117,7 @@ function drawBeams39(g, level, windows) {
 // bottom of its glass (wallArt) to 76 px out on the floor.
 export function drawLighting(g, lights, level, t, w, h, windows = []) {
   if (view.mode === '39') { drawBeams39(g, level, windows); lights = lights.map(project); } else if (level.beams) {
-    const y0 = wallArt().winBottom - 1, y1 = WALL + 76;
+    const { y0, y1 } = beamOf(0);
     if (beam?.y0 !== y0) {
       beam = g.createLinearGradient(0, y0, 0, y1);
       beam.y0 = y0;
@@ -119,14 +125,14 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
       beam.addColorStop(1, `rgba(${T.light.beam},0)`);
     }
     g.fillStyle = beam;
-    for (const bx of windows.map(x => x - 4)) {
-      g.beginPath(); g.moveTo(bx + 9, y0); g.lineTo(bx + 21, y0); g.lineTo(bx + 30, y1); g.lineTo(bx, y1); g.closePath(); g.fill();
+    for (const x of windows) {
+      g.beginPath(); beamOf(x).pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.closePath(); g.fill();
     }
     // where each beam meets the floor: a brighter patch, flat as the floor
     g.save();
     g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
     const patch = glowOf(`rgba(${T.light.beam},1)`);
-    for (const x of windows) g.drawImage(patch, x - 4, y1 - 8, 30, 10); // the beam's foot spans x - 4 .. x + 26 at y1
+    for (const x of windows) { const { pts: [, , [r], [l]] } = beamOf(x); g.drawImage(patch, l, y1 - 8, r - l, 10); } // across the beam's foot
     g.restore();
   }
   if (!layer || layer.width !== w * RES || layer.height !== h * RES) {

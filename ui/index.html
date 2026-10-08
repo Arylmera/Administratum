@@ -65,6 +65,7 @@
      through; the stage (and its canvas) stays, Task 4 draws into it. html/body otherwise keep their opaque --bg. */
   html.strip, html.strip body { background: transparent !important; }
   html.strip header { display: none; }
+  html.iso.bare, html.iso.bare body { background: transparent !important; } /* 2.5D, Backdrop off: the desktop shows round the hall */
   html.iso #stage { box-shadow: none; } /* the 39° hall floats on the backdrop, its corners transparent */
   html.strip #stage { box-shadow: none; position: fixed; left: 0; bottom: 0; margin: 0; max-width: none; max-height: none; overflow: visible; }
   /* The panels open above the strip (app.js growStrip makes the window taller while one is open). */
@@ -371,6 +372,7 @@
           <fieldset><legend>Switches</legend>
             <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
             <label class="strip-only" hidden><span>Strip backdrop</span><input type="checkbox" name="stripBackdrop"></label>
+            <label class="iso-only" hidden><span>Backdrop</span><input type="checkbox" name="isoBackdrop"></label>
           </fieldset>
           <fieldset><legend>Values</legend>
             <label class="wide"><span>Scale</span><input type="range" name="scale" min="1" max="3" step="0.25" value="2"><output name="scaleOut"></output></label>

@@ -38,7 +38,7 @@ export const store = {
 // Numbers: [default, min, max]. Context windows are in k tokens.
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
 const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (app.js stripScale)
-const DEFAULTS = { onTop: true, stripSize: 'M', stripBackdrop: false, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const DEFAULTS = { onTop: true, stripSize: 'M', stripBackdrop: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
@@ -47,11 +47,15 @@ function load() {
   if (typeof saved.onTop === 'boolean') s.onTop = saved.onTop;
   if (STRIP_SIZES.includes(saved.stripSize)) s.stripSize = saved.stripSize;
   if (typeof saved.stripBackdrop === 'boolean') s.stripBackdrop = saved.stripBackdrop;
+  if (typeof saved.isoBackdrop === 'boolean') s.isoBackdrop = saved.isoBackdrop;
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
 }
 // Shared, read live by actors.js (thresholds) and app.js (context windows).
 export const settings = load();
+// 2.5D, Backdrop off: no plates round the hall, the transparent window shows the desktop (index.html html.bare).
+const applyBackdrop = () => globalThis.document?.documentElement?.classList.toggle('bare', !settings.isoBackdrop);
+applyBackdrop();
 
 // Re-applies the saved always-on-top choice to the current window; app.js calls this leaving the
 // strip, whose watcher re-asserts topmost every tick regardless of this setting.
@@ -140,6 +144,8 @@ export function initSettings(hooks) {
     for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
     field('stripSize').value = settings.stripSize;
     field('stripBackdrop').checked = settings.stripBackdrop;
+    for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
+    field('isoBackdrop').checked = settings.isoBackdrop;
     field('chime').checked = !hooks.muted();
     for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
     for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
@@ -263,6 +269,7 @@ export function initSettings(hooks) {
     else if (k === 'view') pickView(el.value);
     else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
     else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
+    else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
     else if (k === 'chime') hooks.setMuted(!el.checked);
     else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
     else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
