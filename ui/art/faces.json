@@ -165,6 +165,15 @@
   "TABLE cup top": {
    "frame": { "x": 121, "y": 210, "w": 2, "h": 1 }
   },
+  "TABLE mug 1 front": {
+   "frame": { "x": 124, "y": 210, "w": 7, "h": 4 }
+  },
+  "TABLE mug 2 front": {
+   "frame": { "x": 132, "y": 210, "w": 6, "h": 4 }
+  },
+  "TABLE cup front": {
+   "frame": { "x": 139, "y": 210, "w": 2, "h": 2 }
+  },
   "BENCH side": {
    "frame": { "x": 0, "y": 222, "w": 4, "h": 4 }
   },
