@@ -71,14 +71,14 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   (every desk-level glow sits at one shared desk height, its pool on the floor under it). At Auto scale the whole
   turned hall fits the window (smaller pixels); an explicit Scale pans, as in the flat view.
 - **Desktop strip**: a thin, transparent, click-through bar pinned to the Windows taskbar, outlined pixel art
-  over whatever is behind it. Left to right: a handle (the same menu as the tray — Hall view, Settings, Chronicon,
+  over whatever is behind it. Left to right: a handle with its own small menu (Hall view, Settings, Chronicon,
   Hide), each department's lecterns and its adepts' consoles on a coloured mat with a name plaque, the cogitator,
   the recaff and bench where idle scribes nap, the petition line and the Magos at the right end. It is click-through
-  everywhere except over a character, a label, a plaque or an open panel; a panel (card, Settings, Chronicon) opens
-  by growing the window upward, above the strip. The strip hides itself while a fullscreen app has focus, and
-  re-places itself when the taskbar, its monitor or its DPI changes. Strip size (S/M/L) and an optional backdrop
-  are in Settings. Windows only for now, and only with a taskbar docked at the bottom of the screen (macOS, above
-  the Dock, is not done yet).
+  everywhere except over a character, a label, a plaque, the handle and its open menu, or another open panel; a
+  panel (card, Settings, Chronicon) opens by growing the window upward, above the strip. The strip hides itself
+  while a fullscreen app has focus, and re-places itself when the taskbar, its monitor or its DPI changes. Strip
+  size (S/M/L) and an optional backdrop are in Settings. Windows only for now, and only with a taskbar docked at
+  the bottom of the screen (macOS, above the Dock, is not done yet).
 
 ![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
@@ -214,6 +214,7 @@ Open Settings with the gear in the header. Changes apply immediately.
 | Show / hide | Toggle the window (the header's `–` button also hides it) |
 | Toggle chime | Mute / unmute |
 | Cycle lighting | Auto → Full light → Candles |
+| Desktop strip | Checkbox (Windows only): switches between the strip and the view held before it |
 | Start at login | Checkbox, kept in sync with Settings |
 | Quit | Exit Administratum |
 
