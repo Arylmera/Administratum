@@ -52,6 +52,10 @@ function load() {
 // Shared, read live by actors.js (thresholds) and app.js (context windows).
 export const settings = load();
 
+// Re-applies the saved always-on-top choice to the current window; app.js calls this leaving the
+// strip, whose watcher re-asserts topmost every tick regardless of this setting.
+export const applyTop = () => tauri()?.window?.getCurrentWindow()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
+
 // Where Auto lighting takes its sun (adm.lat / adm.lon, degrees, 4 decimals); NaN = unset: fixed hours.
 const RANGE = { lat: 90, lon: 180 };
 const coord = (k, v) => (v === '' || v == null || !Number.isFinite(+v) ? NaN : Math.round(1e4 * Math.min(RANGE[k], Math.max(-RANGE[k], +v))) / 1e4);
@@ -93,7 +97,6 @@ export const renderSettings = () => sync(); // the header controls changed: refr
 
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
-  const win = () => tauri()?.window?.getCurrentWindow();
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
   field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
@@ -105,7 +108,6 @@ export function initSettings(hooks) {
   };
   let login = null;
 
-  const applyTop = () => win()?.setAlwaysOnTop(settings.onTop).catch(err => console.warn('setAlwaysOnTop', err));
   const save = () => store.set('adm.settings', JSON.stringify(settings));
   const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
   const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});

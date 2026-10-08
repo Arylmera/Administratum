@@ -8,7 +8,7 @@ import { T, onTheme, setTheme, t } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings, applyTop } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
 import { buildHall39 } from './isohall.js';
 import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
@@ -138,6 +138,7 @@ async function leaveStrip() {
   through = null; grownTo = 0;
   const r = store.get('adm.hallRect');
   await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
+  applyTop(); // the strip's watcher re-asserts topmost every tick regardless of the user's setting
   if (strip()) return; // a newer enter is queued behind this leave: let it redo the move instead
   invoke('set_strip_menu', { on: false }).catch(() => {});
 }

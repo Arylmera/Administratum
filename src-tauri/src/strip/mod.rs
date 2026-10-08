@@ -88,6 +88,10 @@ pub fn strip_supported() -> bool {
 }
 
 /// Re-place the strip on the window's current monitor, `height_css` tall. Returns the rect it set.
+/// Holds the `RECT` lock across the compare-and-set *and* a re-check of `ON`, so a concurrent
+/// `place_hall` (which clears `ON` and `RECT` under the same lock) can never interleave: either
+/// this call finishes first and `place_hall` then reclaims the window, or `place_hall` finishes
+/// first and this call sees the strip off and leaves the window alone.
 pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String> {
     let m = w.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     let (p, s, wa) = (m.position(), m.size(), m.work_area());
@@ -95,10 +99,15 @@ pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String
     let work = Rect { left: wa.position.x, top: wa.position.y, right: wa.position.x + wa.size.width as i32, bottom: wa.position.y + wa.size.height as i32 };
     let bottom_bar = edge_of(mon, work).or_else(edge_fallback) == Some(Edge::Bottom);
     let r = strip_rect(mon, work, autohide() && bottom_bar, (height_css * m.scale_factor()).round() as i32);
-    if *RECT.lock().unwrap_or_else(|e| e.into_inner()) != Some(r) {
+    let mut rect = RECT.lock().unwrap_or_else(|e| e.into_inner());
+    if !ON.load(Ordering::SeqCst) {
+        // Lost the race with place_hall: the hall now owns the window, don't touch it.
+        return Ok(rect.unwrap_or(r));
+    }
+    if *rect != Some(r) {
         w.set_size(tauri::PhysicalSize::new((r.right - r.left) as u32, (r.bottom - r.top) as u32)).map_err(|e| e.to_string())?;
         w.set_position(tauri::PhysicalPosition::new(r.left, r.top)).map_err(|e| e.to_string())?;
-        *RECT.lock().unwrap_or_else(|e| e.into_inner()) = Some(r);
+        *rect = Some(r);
     }
     Ok(r)
 }
@@ -121,8 +130,13 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
 
 #[tauri::command]
 pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Result<(), String> {
-    ON.store(false, Ordering::SeqCst);
-    *RECT.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    {
+        // Same lock as replace()'s compare-and-set: a watcher call either finishes first (and this
+        // then reclaims the window below) or sees ON already false and bails before touching it.
+        let mut rect_guard = RECT.lock().unwrap_or_else(|e| e.into_inner());
+        ON.store(false, Ordering::SeqCst);
+        *rect_guard = None;
+    }
     let _ = window.set_ignore_cursor_events(false);
     window.set_resizable(true).map_err(|e| e.to_string())?;
     window.set_min_size(Some(tauri::LogicalSize::new(360.0, 280.0))).map_err(|e| e.to_string())?; // tauri.conf.json
@@ -162,6 +176,16 @@ pub fn act(fullscreen: bool, visible: bool, hidden_by_us: bool) -> Act {
     }
 }
 
+/// Prints `msg` unless it is the same text as last time (a stuck monitor/taskbar query would
+/// otherwise spam the console every tick); a success elsewhere resets `last` so the next failure,
+/// even a repeat of an earlier one, logs again.
+fn log_once(last: &mut Option<String>, msg: String) {
+    if last.as_deref() != Some(msg.as_str()) {
+        eprintln!("{msg}");
+    }
+    *last = Some(msg);
+}
+
 /// Watches (1 s, only while `ON`) for a fullscreen app covering the taskbar, and for monitor /
 /// work area / DPI / taskbar changes: hides the strip for the former (and shows it again without
 /// stealing focus), re-places and re-asserts topmost for the latter (Windows drops topmost after
@@ -171,21 +195,27 @@ pub fn start_watcher(app: tauri::AppHandle) {
     use tauri::{Emitter, Manager};
     std::thread::spawn(move || {
         let mut hidden_by_us = false;
+        let mut last_err: Option<String> = None;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(1));
             if !ON.load(Ordering::SeqCst) {
+                hidden_by_us = false; // the strip is off: nothing of ours left hidden to restore
                 continue;
             }
             let Some(w) = app.get_webview_window("main") else { continue };
             let visible = w.is_visible().unwrap_or(true);
+            if visible {
+                hidden_by_us = false; // seen visible by any means: no longer "hidden by us"
+            }
             match act(os::fullscreen(), visible, hidden_by_us) {
-                Act::Hide => {
-                    if let Err(e) = w.hide() {
-                        eprintln!("strip watcher hide: {e}");
+                Act::Hide => match w.hide() {
+                    Ok(()) => {
+                        let _ = app.emit("strip-hide", ());
+                        hidden_by_us = true;
+                        last_err = None;
                     }
-                    let _ = app.emit("strip-hide", ());
-                    hidden_by_us = true;
-                }
+                    Err(e) => log_once(&mut last_err, format!("strip watcher hide: {e}")), // not hidden: hidden_by_us stays false
+                },
                 Act::Show => {
                     os::show_no_activate(&w);
                     let _ = app.emit("strip-show", ());
@@ -195,11 +225,13 @@ pub fn start_watcher(app: tauri::AppHandle) {
             }
             if w.is_visible().unwrap_or(false) {
                 let height = *HEIGHT.lock().unwrap_or_else(|e| e.into_inner());
-                if let Err(e) = replace(&w, height) {
-                    eprintln!("strip watcher replace: {e}");
+                match replace(&w, height) {
+                    Ok(_) => last_err = None,
+                    Err(e) => log_once(&mut last_err, format!("strip watcher replace: {e}")),
                 }
-                if let Err(e) = w.set_always_on_top(true) {
-                    eprintln!("strip watcher topmost: {e}");
+                match w.set_always_on_top(true) {
+                    Ok(()) => last_err = None,
+                    Err(e) => log_once(&mut last_err, format!("strip watcher topmost: {e}")),
                 }
             }
         }
