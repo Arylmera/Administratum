@@ -96,8 +96,9 @@ export function catalog() {
   for (const name of FACE_OBJECTS) {
     const s = sheetOf(name), src = FACES.worlds[dir]?.objects[name] ? `${dir}/faces` : 'faces';
     const bezel = (pre, list = []) => list.flatMap(r => [[`${pre}${r.name} wall`, r.wallFrame], [`${pre}${r.name} floor`, r.floorFrame]]);
+    const F = (FACES.worlds[dir]?.objects[name] ? FACES.worlds[dir] : FACES.base).frames; // a detail's drawn front, if any
     const faces = [['side', s.side], ['top', s.top], ...bezel('', s.recess), ...s.details.flatMap(d => (d.parts ?? [d]).flatMap(p =>
-      [[`${p.name} side`, p.side], [`${p.name} top`, p.top], [`${p.name} rim`, p.rimFrame], ...bezel(`${p.name} `, p.recess)]))].filter(([, f]) => f);
+      [[`${p.name} front`, F[`${name} ${p.name} front`]], [`${p.name} side`, p.side], [`${p.name} top`, p.top], [`${p.name} rim`, p.rimFrame], ...bezel(`${p.name} `, p.recess)]))].filter(([, f]) => f);
     if (faces.length) add(`FACES.${name}`, 'Face sheets (39° side and top faces)', src, faces.map(([, rows]) => ({ rows, over: {} })), false, `${name}, 39° view only: ${faces.map(([k]) => k).join(', ')}`);
   }
   return out;

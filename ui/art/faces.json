@@ -157,22 +157,28 @@
    "frame": { "x": 12, "y": 210, "w": 92, "h": 11 }
   },
   "TABLE mug 1 top": {
-   "frame": { "x": 105, "y": 210, "w": 7, "h": 3 }
+   "frame": { "x": 105, "y": 210, "w": 5, "h": 3 }
   },
   "TABLE mug 2 top": {
-   "frame": { "x": 113, "y": 210, "w": 6, "h": 3 }
+   "frame": { "x": 113, "y": 210, "w": 4, "h": 2 }
   },
   "TABLE cup top": {
    "frame": { "x": 121, "y": 210, "w": 2, "h": 1 }
   },
   "TABLE mug 1 front": {
-   "frame": { "x": 124, "y": 210, "w": 7, "h": 4 }
+   "frame": { "x": 124, "y": 210, "w": 5, "h": 4 }
   },
   "TABLE mug 2 front": {
-   "frame": { "x": 132, "y": 210, "w": 6, "h": 4 }
+   "frame": { "x": 133, "y": 210, "w": 4, "h": 4 }
   },
   "TABLE cup front": {
    "frame": { "x": 139, "y": 210, "w": 2, "h": 2 }
+  },
+  "TABLE handle 2 front": {
+   "frame": { "x": 142, "y": 210, "w": 2, "h": 4 }
+  },
+  "TABLE handle 1 front": {
+   "frame": { "x": 130, "y": 210, "w": 2, "h": 4 }
   },
   "BENCH side": {
    "frame": { "x": 0, "y": 222, "w": 4, "h": 4 }
@@ -422,11 +428,13 @@
     "d": 26,
     "details": [
      { "name": "plate 1", "rect": [14, 3, 6, 6], "kind": "top", "v": 7 },
-     { "name": "mug 1", "rect": [26, 4, 7, 4], "kind": "cyl", "v": 13, "z": 5 },
+     { "name": "mug 1", "rect": [26, 4, 5, 4], "kind": "cyl", "v": 13, "z": 5 },
+     { "name": "handle 1", "rect": [31, 4, 2, 4], "kind": "box", "v": 12, "z": 5, "d": 1 },
      { "name": "plate 2", "rect": [42, 3, 6, 6], "kind": "top", "v": 7 },
      { "name": "cup", "rect": [56, 5, 2, 2], "kind": "cyl", "v": 14, "z": 5 },
      { "name": "plate 3", "rect": [70, 3, 6, 6], "kind": "top", "v": 7 },
-     { "name": "mug 2", "rect": [84, 3, 6, 4], "kind": "cyl", "v": 11, "z": 5 }
+     { "name": "mug 2", "rect": [84, 3, 4, 4], "kind": "cyl", "v": 11, "z": 5 },
+     { "name": "handle 2", "rect": [88, 3, 2, 4], "kind": "box", "v": 10, "z": 5, "d": 1 }
     ],
     "flatOnly": [
      { "name": "table top", "rect": [0, 0, 92, 11] }
