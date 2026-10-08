@@ -30,7 +30,7 @@ function beamOf(x) {
   const y0 = winBottom - 1, y1 = WALL + 76;
   return { y0, y1, c: (gl + gr) / 2, pts: [[gl, y0], [gr, y0], [gr + 7, y1], [gl - 7, y1]] };
 }
-const beams39 = new Map(); // the 39° beams' gradients, by their projected ends (a window's x, the hall's size)
+const beams = new Map(); // the beams' gradients, by their projected ends (a window's x, the hall's size, the view)
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
 // radius with drawImage, the vignette a canvas per scene size and phase. No gradient is built per frame.
@@ -86,55 +86,39 @@ function greyOf(w, h) {
   }
   return grey;
 }
-let layer = null, beam = null;
-onTheme(() => { beam = null; beams39.clear(); });
+let layer = null;
+onTheme(() => beams.clear());
 
-// The flat beams' shape (below) through the projection: from the bottom of the glass on the wall to the floor.
-function drawBeams39(g, level, windows) {
-  if (!level.beams) return;
+// By day, a beam from each window: beamOf through the projection (view.js toScreen: as is in Flat), fading from the
+// glass to the floor, and a brighter patch where it meets the floor, flat as the floor (thinner in 39°, the floor
+// foreshortened). windows: the x of each window slot (scene.js propsOf).
+function drawBeams(g, windows) {
+  const patch = glowOf(`rgba(${T.light.beam},1)`), ph = view.mode === '39' ? 5 : 10;
   for (const x of windows) {
-    const b = beamOf(x), pts = b.pts.map(([px, py]) => toScreen(px, py));
-    const [ax, ay] = toScreen(b.c, b.y0), [ex, ey] = toScreen(b.c, b.y1), k = `${ax},${ay},${ex},${ey}`;
-    let grad = beams39.get(k);
+    const b = beamOf(x), [ax, ay] = toScreen(b.c, b.y0), [ex, ey] = toScreen(b.c, b.y1), k = `${ax},${ay},${ex},${ey}`;
+    let grad = beams.get(k);
     if (!grad) {
-      if (beams39.size > 32) beams39.clear();
+      if (beams.size > 32) beams.clear();
       grad = g.createLinearGradient(ax, ay, ex, ey);
       grad.addColorStop(0, `rgba(${T.light.beam},.16)`);
       grad.addColorStop(1, `rgba(${T.light.beam},0)`);
-      beams39.set(k, grad);
+      beams.set(k, grad);
     }
     g.fillStyle = grad;
-    g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.closePath(); g.fill();
+    g.beginPath(); b.pts.forEach(([px, py], i) => (i ? g.lineTo : g.moveTo).call(g, ...toScreen(px, py))); g.closePath(); g.fill();
+    const fw = b.pts[2][0] - b.pts[3][0]; // the foot's width
     g.save();
     g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
-    g.drawImage(glowOf(`rgba(${T.light.beam},1)`), ex - 15, ey - 2.5, 30, 5);
+    g.drawImage(patch, ex - fw / 2, ey - ph * 0.75, fw, ph);
     g.restore();
   }
 }
 
 // Darkness with light holes (destination-out), then additive glows, beams by day, vignette. w, h: the scene's
-// logical size (hallOf); windows: the x of each window (scene.js propsOf), a beam falls from each by day, from the
-// bottom of its glass (wallArt) to 76 px out on the floor.
+// logical size (hallOf); windows: the x of each window (scene.js propsOf).
 export function drawLighting(g, lights, level, t, w, h, windows = []) {
-  if (view.mode === '39') { drawBeams39(g, level, windows); lights = lights.map(project); } else if (level.beams) {
-    const { y0, y1 } = beamOf(0);
-    if (beam?.y0 !== y0) {
-      beam = g.createLinearGradient(0, y0, 0, y1);
-      beam.y0 = y0;
-      beam.addColorStop(0, `rgba(${T.light.beam},.16)`);
-      beam.addColorStop(1, `rgba(${T.light.beam},0)`);
-    }
-    g.fillStyle = beam;
-    for (const x of windows) {
-      g.beginPath(); beamOf(x).pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.closePath(); g.fill();
-    }
-    // where each beam meets the floor: a brighter patch, flat as the floor
-    g.save();
-    g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
-    const patch = glowOf(`rgba(${T.light.beam},1)`);
-    for (const x of windows) { const { pts: [, , [r], [l]] } = beamOf(x); g.drawImage(patch, l, y1 - 8, r - l, 10); } // across the beam's foot
-    g.restore();
-  }
+  if (level.beams) drawBeams(g, windows);
+  if (view.mode === '39') lights = lights.map(project);
   if (!layer || layer.width !== w * RES || layer.height !== h * RES) {
     layer = document.createElement('canvas');
     layer.width = w * RES; layer.height = h * RES;
