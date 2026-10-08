@@ -9,6 +9,15 @@ Administratum watches Claude Code's own session files and never writes to them. 
 walks to the Sanctum and queues before the Magos. You get a Windows toast and an optional chime, and for
 permission prompts in Orca terminals you can approve or deny from the widget itself.
 
+**Quick start.** Install Claude Code, download the installer from the
+[latest release](https://github.com/Arylmera/Administratum/releases/latest), run it, and start a Claude Code
+session: its scribe walks in through the gate. To try it without any session, run the binary with `--demo`.
+
+**Contents:** [What it shows](#what-it-shows) · [Install](#install) · [Usage](#usage) ·
+[Remote view](#remote-view) · [Settings](#settings) · [Privacy and safety](#privacy-and-safety) ·
+[Performance](#performance) · [Troubleshooting](#troubleshooting) · [Development](#development) ·
+[Licenses](#licenses)
+
 ---
 
 ## What it shows
@@ -25,6 +34,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Small brass cog turning on the desk corner | Idle, but a background shell it started is still running. The scribe stays at its desk |
 | Scribe at the recaff dispenser, then asleep on a Refectorium bench | Idle for more than 2 min with no background shell. If every bench is taken, it dozes at its desk |
 | Scribe queued in the Sanctum holding a sealed scroll, red label above it | **Petition**: the session is waiting on you. The label says what it wants (`approve Bash`, `input needed`...) and for how long |
+| Scribe queued behind the petitioners with a question scroll, parchment label `question` | **Question**: the turn ended on a question to you. It queues like a petition, behind the real ones, with a toast and a softer chime; the header counter turns parchment-coloured when only questions wait. Both can be turned off in Settings > Petitions |
 | Beacon on the Sanctum wall sweeping red, servo-skull hovering by the petitioner, header counter flashing | The petition has waited past the stale mark (5 min). You get a second toast and a different chime |
 | Small grey figures at consoles in the department | **Adepts**: the session's active subagents, four consoles per desk slot. One leaves when the parent transcript reports it completed, or when its own transcript has been quiet for 10 min |
 | Paper piled on the desk | The session's context. The desk is full at 50 % of the model's window. Past that, sheets fall around the desk and spread over the department floor. Red sheets from 90 % |
@@ -49,8 +59,9 @@ header. The hall shrinks back once it has had room to spare for a minute.
 
 **Lighting.** *Auto* follows the clock: day 08–18 h, dusk 06–08 h and 18–21 h, night otherwise. If you set a
 latitude and longitude in Settings, *Auto* follows the real sun instead: civil dawn and dusk plus the half hour of
-low sun count as dusk. The *Auto* button's tooltip then shows today's sunrise and sunset. *Full light* and
-*Candles* pin the day or night look. At night the hall is dark, apart from pools of light around the candles,
+low sun count as dusk. The lighting choice lives in Settings > Hall: its *Auto* entry shows the hour and the phase
+(`Auto · 22h night`), and its tooltip today's sunrise and sunset. *Full light* and *Candles* pin the day or night
+look; the tray's *Cycle lighting* steps through the three. At night the hall is dark, apart from pools of light around the candles,
 braziers, screens and coolant channels.
 
 **Depth.** The hall is flat pixel art drawn to read as a volume: a soft shadow under everything that stands on the
@@ -86,8 +97,10 @@ Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbi
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
 banners in the Warhammer themes, each other world its own design), in both views. The remote view keeps its own View.
 
-**Header.** From left to right: lighting switch, petition counter, Tithe plaque (`⛁ tokens · working time`
-today), Chronicon, Settings, a moon while quiet hours are on, mute chime, hide to tray. To move the window, drag the header.
+**Header.** From left to right: petition counter, Tithe plaque (`⛁ tokens · working time` today), Chronicon,
+Settings, a moon while quiet hours are on, mute chime, then the window buttons: **–** hides to the tray (the window
+has no taskbar button), **□** maximizes and restores, **✕** quits. To move the window,
+drag the header.
 
 ---
 
@@ -160,6 +173,22 @@ Nothing read from the screen is sent anywhere or shown back. Only that one digit
 nothing is typed and the card says *No permission prompt visible — open the terminal*. Free-text petitions
 (`input needed`, open dialogs) can't be answered from the widget. Use **Open in Orca** for those.
 
+### Remote view
+
+Watch the hall from a tablet or phone on the same network, in its browser:
+
+1. Settings > Remote view > **Serve on the local network** (off by default; port 7770).
+2. **Allow this port** adds the Windows Firewall rule (Windows asks for administrator permission).
+3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
+   the link is then remembered in a cookie.
+
+The remote page shows the same hall, cards and Chronicon, live. It keeps its own lighting, scale, theme, view and
+chime; the PC's settings are shown read only. **Allow remote actions** (off by default) lets a paired device approve
+or deny permission prompts, with the same on-screen check as on the PC; anyone with the link on your network can
+then do it. *Open in Orca* and opening folders never run from a remote device. **Regenerate token** unpairs every
+device. Only private and local network addresses are answered. The HTTP API is documented in
+[docs/remote-api.md](docs/remote-api.md).
+
 ### Chronicon and Tithe
 
 ![The Chronicon: today's tithe, per-department and per-model bars, hourly charts and the event log](docs/img/chronicon.png)
@@ -182,28 +211,53 @@ To close the Chronicon, click ✕, press **Escape**, or click outside it.
 
 ![The settings panel](docs/img/settings.png)
 
-Open Settings with the gear in the header. Changes apply immediately.
+Open Settings with the gear in the header. Changes apply immediately. The panel has five tabs.
 
-| Setting | Default | Range | Effect |
-|---|---|---|---|
-| Always on top | on | — | Keeps the window above others |
-| Start at login | off | — | Registers the app to start at sign-in (same as the tray item) |
-| Lighting | Auto | Auto / Full light / Candles | Same as the header switch |
-| Theme | Ordo Administratum | Ordo Administratum / Ordo Machinum / Ordo Xenos / Ordo Malleus / Ordo Hereticus / Neon Grid / Corpo Tower / Rain City / Green Code / Sunset Drive / Orbital Station / Arcane Tower / Vault 111 | Colours of the hall and the window, the wording, and some art (Neon Grid is a cyberpunk den, Orbital Station a space station, Arcane Tower a wizards' tower and Vault 111 a Fallout vault, not 40k; the remote view keeps its own) |
-| View | Flat | Flat / 2.5D / Desktop strip | How the hall is drawn: today's flat 3/4 pixel art, turned 39° with real volumes, or the Windows taskbar strip (see *Views*; the remote view keeps its own). Desktop strip is offered only where the backend can place it (Windows) |
-| Strip size *(strip only)* | M | S / M / L | Pixel size of the desktop strip |
-| Strip backdrop *(strip only)* | off | — | A translucent band behind the strip, for readability over a busy wallpaper |
-| Petition chime | on | — | Chime on a new petition, a stale one, and a long task done (the header bell toggles it too) |
-| Petition turns stale after | 5 min | 1–120 | Stale escalation: beacon, servo-skull, second toast |
-| Quiet hours | off, 22:00–08:00 | any times | Inside the window no toast and no chime for a new petition, question, long task or usage limit. A petition turning stale still toasts and chimes. A moon in the header shows while it is quiet |
-| Idle to the Refectorium after | 2 min | 1–120 | How long a scribe stays idle at its desk before it goes to nap |
-| Stay at the cogitator for | 10 s | 0–120 | How long a scribe stays at the cogitator after its last shell command |
-| Context window: Haiku | 200 k tokens | 8–10 000 | Window used for the context fill of Haiku sessions |
-| Context window: Other models | 1000 k tokens | 8–10 000 | Window for every other model |
-| Latitude / Longitude | empty | ±90 / ±180 | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
-| Idle frame rate | 12 fps | 6 / 8 / 12 / 30 | Redraw rate while nothing moves (anything walking or animating always runs at 30 fps). Lower = less CPU/GPU |
-| Pause when hidden or covered | on | — | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
-| Open departments with | Explorer | Explorer / VS Code / Custom command | What a plaque click opens the folder with. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
+**Hall**
+
+| Setting | Default | Effect |
+|---|---|---|
+| Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
+| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout. Each world outside 40k has its own art |
+| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111 |
+| View | Flat | Flat / 2.5D (the 39° view) / Desktop strip (Windows only; see *Views*) |
+| Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip |
+| Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3) sets it, and a hall larger than the window pans |
+| Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
+| Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
+| Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
+
+**Petitions**
+
+| Setting | Default | Effect |
+|---|---|---|
+| Petition chime | on | Chime on a new petition, a stale one, a question and a long task done (the header bell toggles it too) |
+| A question at the end of a turn counts as a petition | on | The scribe queues in the Sanctum with a question scroll |
+| Toast for questions | on | A Windows toast for each new question |
+| Petition turns stale after | 5 min (1–120) | Stale escalation: beacon, servo-skull, second toast |
+| Quiet hours | off, 22:00–08:00 | No toast and no chime for a new petition, question, long task or usage limit inside the window. A petition turning stale still toasts and chimes. A moon shows in the header while it is quiet |
+
+**Scribes**
+
+| Setting | Default | Effect |
+|---|---|---|
+| Idle to the Refectorium after | 2 min (1–120) | How long a scribe stays idle at its desk before it goes to nap |
+| Stay at the cogitator for | 10 s (0–120) | How long a scribe stays at the cogitator after its last shell command |
+| Context window: Haiku | 200 k tokens | Window used for the context fill of Haiku sessions |
+| Context window: Other models | 1000 k tokens | Window for every other model |
+
+**System**
+
+| Setting | Default | Effect |
+|---|---|---|
+| Always on top | on | Keeps the window above others |
+| Start at login | off | Starts the app at sign-in (same as the tray item) |
+| Pause when hidden or covered | on | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
+| Idle frame rate | 12 fps | 6 / 8 / 12 / 30: redraw rate while nothing moves (anything walking or animating runs at 30 fps). Lower = less CPU/GPU |
+| Open departments with | Explorer | Explorer / VS Code / Custom command. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
+| Check for updates at startup | on | Fetches `latest.json` from GitHub Releases at start. *Check now* checks on demand; an update installs from here |
+
+**Remote view**: see [Remote view](#remote-view).
 
 **Reset to defaults** restores every value above except *Start at login*.
 
@@ -249,7 +303,7 @@ configuration, and installs no hooks. It reads:
 
 | Path | Content |
 |---|---|
-| `settings.json` | UI settings (the table above). The WebView's local storage holds only a cache |
+| `settings.json` | UI settings (the tables above) and the remote view's port, switches and pairing token. The WebView's local storage holds only a cache |
 | `chronicon\YYYY-MM-DD.jsonl` | That day's events: time, kind, session name, department, short detail (commit subject, test command, tool name...) |
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals |
 | `chronicon\offsets.json` | How far each transcript has been read |
@@ -257,7 +311,8 @@ configuration, and installs no hooks. It reads:
 Chronicon files older than 7 days are deleted at startup. Demo mode uses a separate `chronicon-demo\` folder,
 which is wiped at each start.
 
-**Nothing about your sessions leaves the machine.** There is no telemetry. The only network call is the update
+**Nothing about your sessions leaves the machine**, unless you turn on the [remote view](#remote-view), which serves
+the hall to paired devices on your local network only. There is no telemetry. The only network call is the update
 check: it fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*. The only other outbound action is opening a `https://claude.ai/code/<id>`
 link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
@@ -309,149 +364,17 @@ Measured on Windows 11 with a release build at rest:
 
 ## Development
 
-### Architecture
-
-Administratum is a Tauri 2 app with a Rust backend. The UI is plain ES modules served from `ui/` as they are,
-with no npm and no build step.
-
-**Backend** (`src-tauri/src/`):
-
-| Module | Job |
-|---|---|
-| `main.rs` | Window, tray, plugins (notification, window-state, autostart), the 1 s poll loop, Tauri commands: `open_session`, `answer_petition`, `chronicle_day`, `tithe_day`, `chronicle_days`, `set_stale_minutes`, `start_at_login`, `settings_load`, `settings_save` |
-| `poller.rs` | Builds the live roster each tick: liveness via Win32, Orca handle per pid, transcript location, memoised tails and subagents |
-| `registry.rs` | Pure functions: parse session records, task line, context, compaction, active subagents, petition tracking (new / stale once per episode), validators, the permission-prompt parser |
-| `chronicle.rs` | Incremental transcript reader: event extraction, token and working-time Tithe, day files, retention |
-| `settings.rs` | `settings.json` load, validation and atomic save |
-| `demo.rs` | Scripted 60 s roster, events and usage for demo mode |
-
-**Data flow.** Each second the poll loop emits:
-
-- `roster`: every session with its status, petition, task, context, helpers, Orca handle, claude.ai URL and
-  compaction time. It is emitted every tick.
-- `petition` and `petition-stale`: these also fire the toasts.
-- `chronicle`: each new event. Events older than 2 min are recorded but not played in the scene.
-
-The UI turns the roster into the scene and fetches Chronicon history on demand through the `chronicle_*`
-commands.
-
-**UI** (`ui/`):
-
-| Module | Job |
-|---|---|
-| `index.html` | Markup and styles (header, card, Chronicon and Settings panels) |
-| `app.js` | Wiring: roster → layout → cast, render loop, pan, card, petition labels, answering, chime |
-| `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases |
-| `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
-| `scene.js` | Canvas drawing of the static hall and each frame (furniture, paper, effects, beacon, servo-skull) |
-| `sprites.js` | Loads the art files (`ui/art/`), sprite cache, model ranks |
-| `art.js`, `png.js` | Art file loader (sheet + JSON → palette rows) and PNG decoder |
-| `room.js` | The room's structure from tiles (fill rules: repeat, strips, nine-slice) |
-| `theme.js`, `themes.js` | Themes: every colour (art, code, chrome) and the wording; `setTheme`, `t()` |
-| `lighting.js` | Darkness, light pools and glows from pre-rendered stamps |
-| `sun.js` | Sunrise, sunset and civil twilight (NOAA formulas) for *Auto* lighting |
-| `chronicon.js` | Chronicon parchment: tabs, Tithe charts, event log |
-| `settings.js` | Settings panel and persisted store |
-| `panel.js` | Shared open/close behaviour of the parchment panels |
-
-### Run
+Tauri 2 app: a Rust backend in `src-tauri/`, a UI of plain ES modules in `ui/` with no build step.
 
 ```sh
-cd src-tauri
-cargo tauri dev
+cd src-tauri && cargo tauri dev                      # run (ADMINISTRATUM_DEMO=1 for a scripted demo roster)
+cargo test --manifest-path src-tauri/Cargo.toml      # backend tests
+for t in ui/*.test.mjs; do node "$t"; done           # UI checks (plain assert scripts)
 ```
 
-To get a demo roster with no real sessions (scribes arriving, working, shelling, petitioning, compacting, with
-adepts and Chronicon events), set `ADMINISTRATUM_DEMO=1` before `cargo tauri dev`, or pass `--demo` to the binary:
-
-```powershell
-$env:ADMINISTRATUM_DEMO = 1; cargo tauri dev
-```
-
-Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --version "^2"`).
-
-### Tests
-
-```sh
-cargo test --manifest-path src-tauri/Cargo.toml   # registry, poller, chronicle, settings, demo
-node ui/layout.test.mjs                           # layout, routes, stable desks, compact/bays
-node ui/sprites.test.mjs                          # sprite sizes, palette chars, symmetry
-node ui/theme.test.mjs                            # themes: complete palettes, runtime switch
-node ui/art.test.mjs                              # art files: PNG decoder, key palette, sheets
-node ui/sun.test.mjs                              # sun times and Auto phases
-node ui/depth.test.mjs                            # depth: footprints, shadows, cast lights, AO bands
-node ui/view.test.mjs                             # views: flat identity, 39° projection, scene size, inverse
-node ui/iso.test.mjs                              # 39° z-buffer: projection, boxes, decals, outline, depth sort
-node ui/faces.test.mjs                            # face sheets: flat frames rebuilt exactly, 39° volumes
-node ui/flathall.test.mjs                         # flat hall: the static background's draw calls (hashes)
-node ui/isohall.test.mjs                          # 39° hall: room plan, prop placement, render (pixel hashes)
-node ui/scene39.test.mjs                          # 39° dynamic layer: depth order, seats, hit tests, gate
-node ui/lighting.test.mjs                         # lighting: flat unchanged, 39° light heights
-```
-
-The node self-checks are plain `assert` scripts with no test framework.
-
-### Sprites and themes
-
-Sprites and the room's tiles (floor, walls, pipes, doors) are art files in `ui/art/`: one PNG sheet per family,
-drawn in the key palette `ui/art/key.gpl` (load it in Aseprite or Piskel), plus JSON frames, anchors and the tiles'
-fill rules. Every colour (the art's, the ones drawn in code, the page's chrome) and the wording come from the
-active theme: `ui/theme.js` (Ordo Administratum) and `ui/themes.js` (Ordo Machinum, Ordo Xenos, Ordo Malleus, Ordo Hereticus,
-Neon Grid, a cyberpunk den with its own art in `ui/art/cyber/` and three accents of it (Corpo Tower, Rain City, Green Code, Sunset Drive: same art, recoloured), Orbital Station, a space station with its own art in
-`ui/art/orbital/`, Arcane Tower, a wizards' tower with its own art in `ui/art/tower/`, and Vault 111, a Fallout vault with its own art in `ui/art/vault/`), picked in Settings → Hall → Theme. `node tools/sprite_sheet.mjs` renders every sprite to [`docs/sprites/`](docs/sprites/README.md),
-the gallery used to discuss them one by one (a **Sprite** issue each).
-
-To work on the art, use the live viewer: every sprite in every theme side by side, read straight from `ui/art/`,
-walk cycles animated, zoom, pixel grid, backgrounds and a filter. Serve the repo root and open it:
-
-```sh
-python -m http.server 8123        # from the repo root
-# http://localhost:8123/tools/sprites.html   (edit an art file, press R)
-```
-
-Cells are named like a spreadsheet so a sprite in a theme is one short reference: the column is the theme
-(A Ordo Administratum, B Ordo Machinum, C Ordo Xenos, D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code, K Sunset Drive, L Arcane Tower, M Vault 111), the row is the sprite's number,
-so `F52` is the Neon Grid shelf. `#F52` in the URL jumps to it; `node tools/sprite_sheet.mjs --list` prints the key.
-Each family links to its discussion issue, each sprite to a prefilled new Sprite issue. The *depth* switch draws
-each sprite over the contact shadow it gets in the hall.
-
-To look at the whole hall in a browser without the backend (a fixed roster of scribes, adepts and petitions), open
-`http://localhost:8123/tools/preview.html`; `?mode=auto|full|candles&theme=<id>&n=<scribes>`
-pick what it shows. Design and roadmap:
-[`docs/superpowers/specs/2026-10-06-sprite-themes-design.md`](docs/superpowers/specs/2026-10-06-sprite-themes-design.md).
-
-### Build the installer
-
-```powershell
-cd src-tauri
-$env:TAURI_SIGNING_PRIVATE_KEY = "$HOME\.tauri\administratum.key"; $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""; cargo tauri build
-```
-
-Bundles are signed for the updater: the key file must exist (see Releasing). The output is
-src-tauri/target/release/bundle/nsis/Administratum_<version>_x64-setup.exe and its .sig. The release profile
-uses LTO, `opt-level = "s"` and stripped symbols.
-
-### Releasing
-
-Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>`, builds the
-signed installer on Windows, and publishes a GitHub Release with `latest.json`, which installed copies read to
-offer the update. A version with a `-` (`0.3.0-rc1`) becomes a pre-release that the updater never offers. To
-rebuild an existing tag: Actions > release > Run workflow, with the tag.
-
-The updater key: private key in `~/.tauri/administratum.key` (back it up; losing it means installed copies can no
-longer update), its contents in the repository secret `TAURI_SIGNING_PRIVATE_KEY`, its public key in
-`tauri.conf.json`.
-
-### Repository layout
-
-```
-src-tauri/          Rust backend, tauri.conf.json, capabilities, icons
-  src/              main, poller, registry, chronicle, settings, demo
-ui/                 the frontend, served as-is (ES modules, no build)
-  fonts/            bundled WOFF2 fonts and their OFL licences
-docs/               v1 spec and plan, backlog, Chronicon design, README images
-tools/make_icon.py  generates the app icon
-```
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) covers the architecture and every module, tests, the sprite and theme
+pipeline with its live viewer, building the installer and releasing. [docs/](docs/README.md) indexes the design
+specs, plans and the [backlog](docs/backlog.md).
 
 ---
 

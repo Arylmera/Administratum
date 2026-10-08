@@ -1,5 +1,7 @@
 # Administratum — notes for Claude
 
+Developer guide: `docs/DEVELOPMENT.md` (architecture, modules, tests, build, release). Docs index: `docs/README.md`.
+
 ## Working on sprites, animations, characters
 
 Whenever a task touches the art (sprites, room tiles, characters, animations, a theme's palette or its own art),
