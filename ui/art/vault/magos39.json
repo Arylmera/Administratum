@@ -1,0 +1,48 @@
+{
+  "frames": {
+    "body": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      }
+    },
+    "arm": {
+      "frame": {
+        "x": 49,
+        "y": 0,
+        "w": 10,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "vault 39° art",
+    "image": "magos39.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 59,
+      "h": 48
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "arm": [
+        6,
+        0
+      ],
+      "chest": [
+        34,
+        33
+      ],
+      "eyeL": [
+        19,
+        17
+      ],
+      "eyeR": [
+        25,
+        17
+      ]
+    }
+  }
+}
