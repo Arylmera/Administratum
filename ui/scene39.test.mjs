@@ -3,7 +3,7 @@ import { order, depthSort } from './iso.js';
 import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39 } from './actors.js';
-import { use, pin, placeOf, actorFoot, actorAt39, seatShift, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
+import { use, pin, placeOf, actorFoot, actorAt39, seatShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND } from './scene.js';
 import { SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
@@ -91,6 +91,19 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
     }
   }
   setTheme('tier2');
+}
+// sitting down and standing up ease the same way (SIT_MS = 300): halfway at 150 ms both ways, a turn mid-ease goes
+// on from where it is (no jump), and it settles at 0 / 1
+{
+  const e = { k: 0, t: 0, down: true };
+  assert.equal(sitLevel(e, true, 150), 0.5, 'halfway down');
+  assert.equal(sitLevel(e, true, 1000), 1, 'seated');
+  assert.equal(sitLevel(e, false, 1000), 1, 'gets up from fully seated');
+  assert.equal(sitLevel(e, false, 1150), 0.5, 'halfway up: no snap to standing');
+  assert.equal(sitLevel(e, true, 1150), 0.5, 'sits back down mid-rise: from where it is');
+  assert.equal(sitLevel(e, true, 1225), 0.75);
+  assert.equal(sitLevel(e, false, 1225), 0.75);
+  assert.equal(sitLevel(e, false, 1450), 0, 'standing after 225 ms more');
 }
 // the per-frame state both views share (scene.js): one gate, one alarm skull, one desk-pile fade, the same lights
 {

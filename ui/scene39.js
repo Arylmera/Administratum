@@ -128,8 +128,16 @@ function doorKit(list) {
 // ---- the frame ----------------------------------------------------------------------------------------------------
 // Seated 39° scribes: how far (logical floor px) each is drawn north of its seat, so its hands rest on the desk top
 // (layout.js seats a scribe 9 px south of its desk's front; the 39° view shows the desk's real height). Set each frame
-// by the desks, read by spriteOf (drawing, shadows, hit test); eased in over SIT_MS of the desk pose (sitSince).
-const seated = new Map(), sitSince = new Map(), SIT_MS = 300;
+// by the desks, read by spriteOf (drawing, shadows, hit test); eased in over SIT_MS of the desk pose and out over
+// SIT_MS once it leaves (sits: id -> its sitLevel state, its seat's full shift and the desk's front yb).
+const seated = new Map(), sits = new Map(), SIT_MS = 300;
+// How far down into its seat a scribe is at now (0 standing .. 1 seated), easing over SIT_MS toward down from wherever
+// it was when it last turned (e: { k, t, down }, updated in place): sitting down and standing up are symmetric.
+export function sitLevel(e, down, now) {
+  const k = Math.max(0, Math.min(1, e.k + (e.down ? 1 : -1) * (now - e.t) / SIT_MS));
+  if (down !== e.down) Object.assign(e, { k, t: now, down });
+  return k;
+}
 const handRow = new WeakMap(); // arm frame -> its first opaque row (the hands), logical px
 const handOf = m => handRow.get(m) ?? handRow.set(m, Math.max(0, m.findIndex(r => /[^.]/.test(r))) / RES).get(m);
 // The shift that puts the hands on the middle of the desk top's depth: between 0 and the gap to the desk's front.
@@ -172,21 +180,24 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     return p;
   };
   seated.clear();
-  for (const id of sitSince.keys()) if (actors.get(id)?.pose !== 'desk') sitSince.delete(id);
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, kind = S.kindOf(d), fill = S.deskFill(d, a, fillOf);
     const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
     const p = furniture(kind, d, pile, busy, fill, d.id && a, !!a?.s.background, blockOf(d.dept));
-    if (a?.pose === 'desk') {
-      if (!sitSince.has(a.id)) sitSince.set(a.id, now);
-      seated.set(a.id, seatShift(p, a) * Math.min(1, (now - sitSince.get(a.id)) / SIT_MS));
-    }
+    if (a?.pose === 'desk') Object.assign(sits.get(a.id) ?? sits.set(a.id, { k: 0, t: now, down: true }).get(a.id), { shift: seatShift(p, a), yb: p.yb, seen: true });
     if (d.id) lights.push(S.deskLight(d, busy));
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S, [px, py] = S.KIND[kind].at.puff;
       items.push({ foot: { ...p.foot, v0: p.foot.v1, v1: p.foot.v1 + 1 }, draw: g2 => save(g2, g3 => onFace(g3, p.v0 + p.k.d - 1, p.yb), g3 => S.puff(g3, d.x + px, d.y + py, k)) });
       lights.push({ x: d.x + px, y: d.y + py - 1, r: 18 * (1 - k), color: T.light.amber });
     }
+  }
+  for (const [id, e] of sits) {
+    const a = actors.get(id), k = a ? sitLevel(e, e.seen, now) : 0;
+    if (!a || (!k && !e.seen)) { sits.delete(id); continue; }
+    e.seen = false;
+    // a scribe getting up walks off while it eases: never drawn into the desk it leaves (feet kept south of its front)
+    seated.set(id, Math.min(e.shift * k, Math.max(0, Math.round(a.y) - e.yb - 1)));
   }
   for (const c of layout.consoles) {
     const a = actors.get(c.id), lit = !!a && a.pose === 'console';
