@@ -4,7 +4,7 @@
 // line and the Magos at the right end (nearest the clock).
 export const STRIP_H = 56; // lectern (30) + the scribe's label above it
 export const FLOOR = STRIP_H - 3; // feet
-const GATE_W = 24, LEC_W = 26, CON_W = 16, GAP = 6;
+const GATE_W = 24, LEC_W = 32, CON_W = 20, GAP = 12;
 const RIGHT_W = 276; // cogitator (82 wide) to Magos
 
 export const stripRoute = (a, b) => (a.x === b.x && a.y === b.y ? [] : [{ x: b.x, y: b.y }]); // every point is on the floor
@@ -49,7 +49,7 @@ export function layoutStrip(depts, { size } = {}) {
     });
     helpers.forEach((id, k) => {
       if (id == null) return;
-      const con = { id, dept: d.name, x: x + slotsOf.length * LEC_W + k * CON_W + 1, y: FLOOR - 22 };
+      const con = { id, dept: d.name, x: x + slotsOf.length * LEC_W + k * CON_W + 3, y: FLOOR - 22 };
       consoles.push(con);
       consoleSeats.set(id, { x: con.x + 7, y: FLOOR });
     });

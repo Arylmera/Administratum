@@ -33,6 +33,9 @@ assert.equal(L.consoles.length, 3);
 const xs = [...L.desks.map(d => d.x), ...L.consoles.map(c => c.x)];
 assert.equal(new Set(xs).size, xs.length); // no two items at one x
 assert.ok(L.desks.find(d => d.id === 's3').x > Math.max(...L.consoles.map(c => c.x))); // b after a's consoles
+// neighbouring lecterns in the same department (s1, s2 in 'a') clear 8 px edge to edge (lectern width 22)
+const [s1x, s2x] = [L.desks.find(d => d.id === 's1').x, L.desks.find(d => d.id === 's2').x];
+assert.ok(s2x - (s1x + 22) >= 8);
 assert.equal(L.seats.get('s1').y, FLOOR);
 assert.equal(L.consoleSeats.get('h1').y, FLOOR);
 assert.equal(L.blocks.length, 2);
@@ -43,7 +46,7 @@ assert.ok(L.desks[0].x >= H.x0);
 const many = Array.from({ length: 60 }, (_, i) => ({ name: `d${i}`, color: '#00f', ids: [`x${i}`], helpers: [] }));
 const F = layoutStrip(many, { size });
 assert.ok(F.overflow > 0);
-assert.ok(F.desks.every(d => d.x + 24 <= H.x1 + 1)); // a lectern slot is 26 wide, its desk 2 px in
+assert.ok(F.desks.every(d => d.x + 30 <= H.x1 + 1)); // a lectern slot is 32 wide, its desk 2 px in
 
 // planLayout keeps stable slots with the strip's layout
 const P1 = planLayout(null, [{ name: 'a', color: '#f00', ids: ['s1', 's2'], helpers: [] }], 0, {}, size, layoutStrip);
