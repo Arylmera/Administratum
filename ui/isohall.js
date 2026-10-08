@@ -226,8 +226,8 @@ export function renderHall39(hall, day = true) {
 const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 export function buildHall39(hall, day = true) {
   const { buf, shade, ox, oy, anchors } = renderHall39(hall, day);
-  const pal = { ...T.px }, win = { ...T.px, ...(day ? T.ink.windowDay : T.ink.windowNight) }, cache = new Map();
-  const colour = (c, glass) => { const k = glass ? c + '!' : c; let v = cache.get(k); if (!v) cache.set(k, v = rgb((glass ? win : pal)[c] ?? '#000000')); return v; };
+  const pal = { ...T.px }, win = { ...T.px, ...(day ? T.ink.windowDay : T.ink.windowNight) }, RGB = new Map(), GLASS = new Map();
+  const colour = (c, glass) => { const m = glass ? GLASS : RGB; let v = m.get(c); if (!v) m.set(c, v = rgb((glass ? win : pal)[c] ?? '#000000')); return v; };
   const [sr, sg, sb] = T.light.shadow.split(',').map(Number);
   const cv = document.createElement('canvas');
   cv.width = buf.w; cv.height = buf.h;
