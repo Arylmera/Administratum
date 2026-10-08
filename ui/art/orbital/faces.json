@@ -1560,10 +1560,146 @@
     "h": 1
    }
   },
-  "BRAZIER foot 1 side": {
+  "GATE base side": {
    "frame": {
     "x": 0,
     "y": 497,
+    "w": 13,
+    "h": 3
+   }
+  },
+  "GATE base top": {
+   "frame": {
+    "x": 14,
+    "y": 497,
+    "w": 64,
+    "h": 13
+   }
+  },
+  "GATE sill side": {
+   "frame": {
+    "x": 79,
+    "y": 497,
+    "w": 11,
+    "h": 3
+   }
+  },
+  "GATE sill top": {
+   "frame": {
+    "x": 91,
+    "y": 497,
+    "w": 58,
+    "h": 11
+   }
+  },
+  "GATE head rim": {
+   "frame": {
+    "x": 150,
+    "y": 497,
+    "w": 58,
+    "h": 21
+   }
+  },
+  "GATE jamb L rim": {
+   "frame": {
+    "x": 209,
+    "y": 497,
+    "w": 15,
+    "h": 44
+   }
+  },
+  "GATE jamb R rim": {
+   "frame": {
+    "x": 225,
+    "y": 497,
+    "w": 15,
+    "h": 44
+   }
+  },
+  "GATE panel L side": {
+   "frame": {
+    "x": 241,
+    "y": 497,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "GATE panel L top": {
+   "frame": {
+    "x": 243,
+    "y": 497,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "GATE panel R side": {
+   "frame": {
+    "x": 253,
+    "y": 497,
+    "w": 1,
+    "h": 9
+   }
+  },
+  "GATE panel R top": {
+   "frame": {
+    "x": 255,
+    "y": 497,
+    "w": 9,
+    "h": 1
+   }
+  },
+  "GATE lamps L side": {
+   "frame": {
+    "x": 265,
+    "y": 497,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "GATE lamps L top": {
+   "frame": {
+    "x": 267,
+    "y": 497,
+    "w": 5,
+    "h": 1
+   }
+  },
+  "GATE lamps R side": {
+   "frame": {
+    "x": 273,
+    "y": 497,
+    "w": 1,
+    "h": 3
+   }
+  },
+  "GATE lamps R top": {
+   "frame": {
+    "x": 275,
+    "y": 497,
+    "w": 6,
+    "h": 1
+   }
+  },
+  "GATE leaves side": {
+   "frame": {
+    "x": 282,
+    "y": 497,
+    "w": 1,
+    "h": 44
+   }
+  },
+  "GATE leaves top": {
+   "frame": {
+    "x": 284,
+    "y": 497,
+    "w": 32,
+    "h": 1
+   }
+  },
+  "BRAZIER foot 1 side": {
+   "frame": {
+    "x": 0,
+    "y": 542,
     "w": 4,
     "h": 1
    }
@@ -1571,7 +1707,7 @@
   "BRAZIER foot 1 top": {
    "frame": {
     "x": 5,
-    "y": 497,
+    "y": 542,
     "w": 3,
     "h": 4
    }
@@ -1579,7 +1715,7 @@
   "BRAZIER foot 2 side": {
    "frame": {
     "x": 9,
-    "y": 497,
+    "y": 542,
     "w": 4,
     "h": 1
    }
@@ -1587,7 +1723,7 @@
   "BRAZIER foot 2 top": {
    "frame": {
     "x": 14,
-    "y": 497,
+    "y": 542,
     "w": 3,
     "h": 4
    }
@@ -1595,7 +1731,7 @@
   "BRAZIER base side": {
    "frame": {
     "x": 18,
-    "y": 497,
+    "y": 542,
     "w": 6,
     "h": 2
    }
@@ -1603,7 +1739,7 @@
   "BRAZIER base top": {
    "frame": {
     "x": 25,
-    "y": 497,
+    "y": 542,
     "w": 18,
     "h": 6
    }
@@ -1611,7 +1747,7 @@
   "BRAZIER unit side": {
    "frame": {
     "x": 44,
-    "y": 497,
+    "y": 542,
     "w": 5,
     "h": 17
    }
@@ -1619,7 +1755,7 @@
   "BRAZIER unit top": {
    "frame": {
     "x": 50,
-    "y": 497,
+    "y": 542,
     "w": 16,
     "h": 5
    }
@@ -1627,7 +1763,7 @@
   "BRAZIER unit fan wall": {
    "frame": {
     "x": 67,
-    "y": 497,
+    "y": 542,
     "w": 2,
     "h": 4
    }
@@ -1635,7 +1771,7 @@
   "BRAZIER unit fan floor": {
    "frame": {
     "x": 70,
-    "y": 497,
+    "y": 542,
     "w": 6,
     "h": 2
    }
@@ -1643,7 +1779,7 @@
   "BRAZIER pipe top": {
    "frame": {
     "x": 77,
-    "y": 497,
+    "y": 542,
     "w": 4,
     "h": 2
    }
@@ -1655,7 +1791,7 @@
   "format": "RGBA8888",
   "size": {
    "w": 502,
-   "h": 514
+   "h": 559
   },
   "palette": "key.gpl",
   "note": "orbital: hand-edited source. The Orbital Station's face sheets: rects cut to this world's frames (flat view exact), its own split into volumes, its side, top, rim and bezel frames in faces.png. Format: ui/faces.js header.",
@@ -3280,6 +3416,130 @@
       "kind": "top",
       "v": 0,
       "z": 0
+     }
+    ]
+   },
+   "GATE": {
+    "details": [
+     {
+      "name": "base",
+      "rect": [
+       0,
+       57,
+       64,
+       3
+      ],
+      "kind": "box",
+      "v": 0,
+      "d": 30
+     },
+     {
+      "name": "sill",
+      "rect": [
+       3,
+       54,
+       58,
+       3
+      ],
+      "kind": "box",
+      "v": 2,
+      "d": 26
+     },
+     {
+      "name": "head",
+      "rect": [
+       3,
+       0,
+       58,
+       21
+      ],
+      "kind": "disc",
+      "v": 4,
+      "t": 12
+     },
+     {
+      "name": "jamb L",
+      "rect": [
+       3,
+       10,
+       15,
+       44
+      ],
+      "kind": "disc",
+      "v": 4,
+      "t": 12
+     },
+     {
+      "name": "jamb R",
+      "rect": [
+       46,
+       10,
+       15,
+       44
+      ],
+      "kind": "disc",
+      "v": 4,
+      "t": 12
+     },
+     {
+      "name": "panel L",
+      "rect": [
+       3,
+       15,
+       9,
+       9
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 2
+     },
+     {
+      "name": "panel R",
+      "rect": [
+       52,
+       15,
+       9,
+       9
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 2
+     },
+     {
+      "name": "lamps L",
+      "rect": [
+       6,
+       9,
+       5,
+       3
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 1
+     },
+     {
+      "name": "lamps R",
+      "rect": [
+       52,
+       9,
+       6,
+       3
+      ],
+      "kind": "box",
+      "v": 16,
+      "d": 1
+     },
+     {
+      "name": "leaves",
+      "rect": [
+       16,
+       10,
+       32,
+       44
+      ],
+      "kind": "box",
+      "v": 8,
+      "d": 2
      }
     ]
    },
