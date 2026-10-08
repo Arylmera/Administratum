@@ -1,4 +1,4 @@
-//! The toasts' wording, from the active theme: the UI pushes it (`set_toast_text`, app.js applyChrome) at start and on
+//! The toasts' wording, from the active theme: the UI pushes it (`set_toast_text`, chrome.js applyChrome) at start and on
 //! every theme change, so a setting other than the 40k scriptorium says "Request from …" instead of "Petition from …".
 //! Tier II's wording until then.
 

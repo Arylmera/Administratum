@@ -240,7 +240,7 @@ fn set_quiet(enabled: bool, from_min: u16, to_min: u16) {
     quiet::set(enabled, from_min, to_min);
 }
 
-/// The toasts' wording from the active theme (toast.rs; app.js pushes it on start and on a theme change).
+/// The toasts' wording from the active theme (toast.rs; chrome.js pushes it on start and on a theme change).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String) {

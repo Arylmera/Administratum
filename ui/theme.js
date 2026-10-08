@@ -76,7 +76,7 @@ const inkOf = px => ({
   // lattice-gem red 'a')
   windowDay: { u: '#6a8fb0', v: '#8aa86a', g: '#e0b85a', x: '#b8423a', a: '#ff3a20' },
   windowNight: { u: '#3a2236', v: '#36401f', g: '#7a5a28', x: '#3a0d09', a: '#3a0d09' },
-  // the riveted iron tile behind the scene (app.js)
+  // the riveted iron tile behind the scene (chrome.js)
   backdrop: '#17181b', backdropLit: '#24262a', backdropEdge: '#202226', backdropDark: '#0b0b0c',
   backdropSeam: '#101113', backdropSeamLit: '#1f2124', backdropRivet: '#3a3d42', backdropRivetLit: px.m,
   overflowPlaque: '#8a7a5c',
@@ -93,7 +93,7 @@ const LIGHT = {
 
 // Tier II's wording, by key. {name} placeholders are filled by t(); [one, other] pairs pick by {n}. A setting that is
 // not the 40k scriptorium replaces what it needs (an office: Director, requests, the break room, the logbook...).
-// index.html marks its texts with data-t / data-t-title / data-t-aria (app.js applies them).
+// index.html marks its texts with data-t / data-t-title / data-t-aria (chrome.js applies them).
 export const TEXT = {
   title: 'Administratum', subtitle: 'II · Data-Shrine of the Cult Mechanicus', motto: 'Knowledge is power, guard it well',
   rank: { high: 'Magos', standard: 'Tech-priest', novice: 'Novice' },
