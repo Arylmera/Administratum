@@ -425,4 +425,29 @@ assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
   assert.equal(breakoutOf([terra], H0), null);
 }
 
+// break-out room walks: nobody else ever sets foot in it; its scribes cross the fence only at a gate
+{
+  const dept = (name, n, temp) => ({ name, color: '#ffffff', ids: ids(name, n), ...(temp && { temp }) });
+  const P = planLayout(planLayout(null, [dept('out', 2, true)], 0), [dept('out', 2, true), dept('Terra', 3)], 1);
+  const H0 = hallOf(P.bays), Z = breakoutOf(P.blocks, H0);
+  const inZ = p => p.x > Z.x && p.x < Z.x + Z.w && p.y > Z.y && p.y < Z.y + Z.h;
+  const walk = (a, path) => { // every point along the path, 1 px apart
+    const pts = [a];
+    for (const q of path) { const p = pts.at(-1), n = Math.max(Math.abs(q.x - p.x), Math.abs(q.y - p.y)); for (let i = 1; i <= n; i++) pts.push({ x: p.x + (q.x - p.x) * i / n, y: p.y + (q.y - p.y) * i / n }); }
+    return pts;
+  };
+  const tSeat = P.seats.get('Terra-0'), oSeat = P.seats.get('out-1');
+  for (const [a, b] of [[ENTRY, tSeat], [tSeat, QUEUE_SLOTS[0]], [tSeat, REFECTORY_SPOTS[0]], [tSeat, COG_SPOTS[0]]])
+    assert.ok(!walk(a, route(a, b, P.blocks, H0)).some(inZ), `${a.x},${a.y} -> ${b.x},${b.y} enters the zone`);
+  for (const [a, b] of [[ENTRY, oSeat], [oSeat, QUEUE_SLOTS[0]], [oSeat, ENTRY]]) {
+    const pts = walk(a, route(a, b, P.blocks, H0));
+    let crossings = 0;
+    for (let i = 1; i < pts.length; i++) if (inZ(pts[i]) !== inZ(pts[i - 1])) {
+      crossings++;
+      assert.ok(Z.gates.some(q => Math.abs(pts[i].y - q.y) < 1 && Math.abs(pts[i].x - q.x) <= 1), `fence crossed at ${pts[i].x},${pts[i].y}`);
+    }
+    assert.equal(crossings, 1);
+  }
+}
+
 console.log('layout ok');

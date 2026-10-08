@@ -199,15 +199,21 @@ export function breakoutOf(blocks, H) {
 // Rooms east of the scriptorium's east wall: the refectorium above the sanctum. Each opens onto the scriptorium.
 export const roomOf = (p, H = hallOf(0)) => (p.x <= H.sw ? 'hall' : p.y < H.split - 6 ? 'ref' : 'sanct');
 
-// A block is solid row by row: the 8 px gap under each of its slot rows holds a lane and is open.
-const crosses = (x, y0, y1, blocks) => blocks.some(b => x > b.x && x < b.x + b.w &&
-  Array.from({ length: (b.h + 8) / SLOT_H }, (_, k) => b.y + k * SLOT_H).some(ry => y0 < ry + SLOT_H - 8 && y1 > ry));
+// A block is solid row by row: the 8 px gap under each of its slot rows holds a lane and is open. A `solid` one (the
+// break-out room, to anyone outside it) is solid all through.
+const crosses = (x, y0, y1, blocks) => blocks.some(b => x > b.x && x < b.x + b.w && (b.solid ? y0 < b.y + b.h && y1 > b.y :
+  Array.from({ length: (b.h + 8) / SLOT_H }, (_, k) => b.y + k * SLOT_H).some(ry => y0 < ry + SLOT_H - 8 && y1 > ry)));
 // Lanes a hall point can step onto straight up or down without walking through a department block.
 // Going down, the stretch to the first lane below is always clear (it's the point's own slot gap).
-function lanesOf(p, blocks, LANES, corridorX) {
+// Z (breakoutOf): a point inside the break-out room takes only its own lane in there (it leaves along it, through
+// that lane's gate); a point outside sees the room as solid, so never steps onto one of its lanes.
+function lanesOf(p, blocks, LANES, corridorX, Z) {
   if (p.x === corridorX) return [p.y];
+  const inside = Z && p.x > Z.x && p.x < Z.x + Z.w && p.y > Z.y && p.y < Z.y + Z.h;
+  const B = Z && !inside ? blocks.concat({ ...Z, solid: true }) : blocks;
   const first = LANES.find(y => y >= p.y);
-  return LANES.filter(y => (y < p.y ? !crosses(p.x, y, p.y, blocks) : !crosses(p.x, first, y, blocks)));
+  const out = LANES.filter(y => (y < p.y ? !crosses(p.x, y, p.y, B) : !crosses(p.x, first, y, B)));
+  return inside ? out.filter(y => y > Z.y && y < Z.y + Z.h).slice(0, 1) : out;
 }
 const lengthOf = pts => pts.reduce((s, p, i) => s + (i ? Math.abs(p.x - pts[i - 1].x) + Math.abs(p.y - pts[i - 1].y) : 0), 0);
 
@@ -221,8 +227,9 @@ export function route(a, b, blocks = [], H = hallOf(0)) {
   const head = ra === 'hall' ? [a].concat(a.via ?? []) : [a, DOORWAY[ra][1], DOORWAY[ra][0]];
   const tail = rb === 'hall' ? [].concat(b.via ?? [], b) : [DOORWAY[rb][0], DOORWAY[rb][1], b];
   const p = head.at(-1), q = tail[0];
+  const Z = breakoutOf(blocks, H);
   let best = null;
-  for (const la of lanesOf(p, blocks, LANES, CORRIDOR_X)) for (const lb of lanesOf(q, blocks, LANES, CORRIDOR_X)) {
+  for (const la of lanesOf(p, blocks, LANES, CORRIDOR_X, Z)) for (const lb of lanesOf(q, blocks, LANES, CORRIDOR_X, Z)) {
     const mid = la === lb ? [{ x: p.x, y: la }, { x: q.x, y: la }]
       : [{ x: p.x, y: la }, { x: CORRIDOR_X, y: la }, { x: CORRIDOR_X, y: lb }, { x: q.x, y: lb }];
     const pts = head.concat(mid, tail);
