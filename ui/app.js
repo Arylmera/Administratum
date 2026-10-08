@@ -105,6 +105,7 @@ function background(day) {
 onView((mode, prev) => {
   if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
     document.documentElement.classList.toggle('strip', mode === 'strip');
+    if (mode === 'strip') setThrough(true); else through = null; // Rust's place_hall already turns click-through off
     resetCast();
     for (const k in bg) delete bg[k];
     fit(); relayout();
@@ -751,6 +752,26 @@ const sealText = a => (!a.h && !a.leaving && a.s.limit && !labels.has(a.id)
 // A working scribe's files changed this turn, by its desk.
 const sheetTags = new Map();
 const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.status === 'busy' || a.s.status === 'shell') && filesOf(a.s.turn) ? `✎${filesOf(a.s.turn)}` : '');
+
+// Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
+// is over the strip (it gets no pointer events while ignoring them).
+let through = null;
+const HIT = '.lbl, .plaque, #card, #prefs, #chron, #strip-handle, #strip-menu';
+function stripHit(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return !!el?.closest(HIT) || !!actorAt({ clientX: x, clientY: y });
+}
+function setThrough(on) {
+  if (on === through) return;
+  through = on;
+  invoke('set_click_through', { on }).catch(() => {});
+}
+listen('strip-cursor', ({ payload: p }) => {
+  if (!strip()) return;
+  if (!p) { mouse = null; setThrough(true); return; }
+  mouse = { clientX: p.x, clientY: p.y, pointerType: 'mouse' }; // the hover tip works while clicks pass through
+  setThrough(!stripHit(p.x, p.y));
+});
 
 // Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
 const tip = document.getElementById('tip');

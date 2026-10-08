@@ -133,11 +133,51 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), S
     window.set_ignore_cursor_events(on).map_err(|e| e.to_string())
 }
 
-// ponytail: not called yet, Task 7's monitor-change watcher reads the strip's last rect.
-#[allow(dead_code)]
 pub fn last_rect() -> Option<Rect> {
     *RECT.lock().unwrap_or_else(|e| e.into_inner())
 }
+
+/// The cursor in window CSS px, if it is inside the strip's rect.
+pub fn inside(r: Rect, (x, y): (i32, i32), scale: f64) -> Option<(f64, f64)> {
+    (x >= r.left && x < r.right && y >= r.top && y < r.bottom).then(|| (f64::from(x - r.left) / scale, f64::from(y - r.top) / scale))
+}
+
+#[derive(serde::Serialize, Clone, Copy, PartialEq)]
+struct CursorPos {
+    x: f64,
+    y: f64,
+}
+
+/// Poll the cursor and tell the UI where it is over the strip, so the window can ignore clicks
+/// everywhere except over a character, label or plaque (the UI has no pointer events to hit-test
+/// while the window ignores the cursor). 250 ms between polls while the strip is off (cheap
+/// idling); 50 ms while it is on. Emits `strip-cursor` with `{x, y}` (window CSS px) only when the
+/// in-strip point changes, and `null` once when the cursor leaves the strip (or the strip goes
+/// off while the cursor was still inside it).
+#[cfg(windows)]
+pub fn start_cursor_poll(app: tauri::AppHandle) {
+    use tauri::{Emitter, Manager};
+    std::thread::spawn(move || {
+        let mut last: Option<CursorPos> = None;
+        loop {
+            let p = ON
+                .load(Ordering::SeqCst)
+                .then(|| app.get_webview_window("main"))
+                .flatten()
+                .and_then(|w| w.scale_factor().ok())
+                .and_then(|scale| Some((os::cursor()?, last_rect()?, scale)))
+                .and_then(|(c, r, scale)| inside(r, c, scale))
+                .map(|(x, y)| CursorPos { x, y });
+            if p != last {
+                let _ = app.emit("strip-cursor", p);
+                last = p;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(if ON.load(Ordering::SeqCst) { 50 } else { 250 }));
+        }
+    });
+}
+#[cfg(not(windows))]
+pub fn start_cursor_poll(_app: tauri::AppHandle) {}
 
 #[cfg(test)]
 mod tests {
@@ -166,5 +206,13 @@ mod tests {
         let mon = Rect { left: 1920, top: -200, right: 4480, bottom: 1240 };
         let work = Rect { bottom: 1180, ..mon };
         assert_eq!(strip_rect(mon, work, false, 150), Rect { left: 1920, top: 1030, right: 4480, bottom: 1180 });
+    }
+    #[test]
+    fn cursor_inside() {
+        let r = Rect { left: 100, top: 900, right: 2020, bottom: 1012 };
+        assert_eq!(inside(r, (100, 900), 2.0), Some((0.0, 0.0)));
+        assert_eq!(inside(r, (300, 1000), 2.0), Some((100.0, 50.0)));
+        assert_eq!(inside(r, (300, 1012), 2.0), None);
+        assert_eq!(inside(r, (99, 950), 2.0), None);
     }
 }

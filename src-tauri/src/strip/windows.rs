@@ -44,8 +44,6 @@ pub fn fullscreen() -> bool {
 }
 
 /// The cursor's position in screen px, or `None` if the call fails.
-// ponytail: not called yet, Task 5's click-through uses this to test the cursor against the strip.
-#[allow(dead_code)]
 pub fn cursor() -> Option<(i32, i32)> {
     let mut p = POINT { x: 0, y: 0 };
     // SAFETY: a single out-parameter write of a plain POINT.
