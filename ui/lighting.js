@@ -9,10 +9,20 @@ import { view, toScreen } from './view.js';
 const FLAT = [0.7, 0.85, 1];
 const heightOf = l => l.z ?? (l.y < WALL + 4 ? 2 : 1);
 const flatOf = l => l.f ?? FLAT[heightOf(l)];
-// The 39° view: a light's floor/wall point through the projection (view.js toScreen); a pool on the floor lies flatter
-// (the floor's depth is foreshortened about 2:1), one on the wall stays round.
+// The 39° view: a light through the projection (view.js toScreen); a pool on the floor lies flatter (the floor's depth
+// is foreshortened about 2:1), one on the wall stays round. A floor light is its floor point, a wall light its point on
+// the wall plane. A desk-height light's flat point is drawn h px above a floor point d px south of it (flat 3/4 shows
+// height as y): its glow at that height, its pool (px, py: the hole in the dark) flat on the floor under it.
+// ponytail: one height for every desk-level light (desk candle flame 20, slate 16, console screen 7, a flying skull 12);
+// per-light heights would need the light lists (scene.js) to carry h and d.
+export const lift39 = { h: 18, d: 10 };
 const FLAT39 = [0.5, 0.5, 1];
-const project = l => { const [x, y] = toScreen(l.x, l.y); return { ...l, x, y, f: FLAT39[heightOf(l)] }; };
+const project = l => {
+  const k = heightOf(l);
+  if (k !== 1) { const [x, y] = toScreen(l.x, l.y); return { ...l, x, y, f: FLAT39[k] }; }
+  const yf = l.y + lift39.d, [x, y] = toScreen(l.x, yf, lift39.h), [px, py] = toScreen(l.x, yf);
+  return { ...l, x, y, px, py, f: FLAT39[k] };
+};
 const beams39 = new Map(); // the 39° beams' gradients, by their projected ends (a window's x, the hall's size)
 
 // Every gradient is pre-rendered once: a light is a stamp (a radial gradient on a small canvas) drawn scaled to its
@@ -133,7 +143,7 @@ export function drawLighting(g, lights, level, t, w, h, windows = []) {
   d.globalCompositeOperation = 'destination-out';
   for (const l of lights) {
     const r = l.r * (l.flicker ? 0.94 + 0.06 * Math.sin(t * 9 + l.x) : 1), f = flatOf(l);
-    if (r > 0) d.drawImage(hole, l.x - r, l.y - r * f, 2 * r, 2 * r * f);
+    if (r > 0) d.drawImage(hole, (l.px ?? l.x) - r, (l.py ?? l.y) - r * f, 2 * r, 2 * r * f); // px, py: 39° pool
   }
   g.drawImage(layer, 0, 0, w, h);
 
