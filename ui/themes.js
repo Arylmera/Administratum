@@ -65,6 +65,7 @@ defineTheme({
 // (Okabe-Ito), no wall weathering, strong glows, a high-contrast frame.
 defineTheme({
   id: 'contrast', world: 'w40k', name: 'Ordo Hereticus',
+  art: ['breakout'], // ui/art/contrast/: the Penitent Cage (sandstone flagstones, iron bars under a red-leaded crossbar, a chained tome on the gate)
   px: { k: '#000000', 1: '#3a3a3e', 2: '#0a0a0c', 3: '#5e5e64', 4: '#38363a', 5: '#3a383c', r: '#9a1a10', R: '#d0382a', d: '#4a0a06',
     g: '#e0b040', G: '#8a6010', h: '#ffe080', p: '#f4ead0', P: '#c0ac80', b: '#f0e8d8',
     c: '#ffc040', C: '#3a1a00', o: '#ffc040', O: '#fff4d0', f: '#ff8a20', F: '#fff0a0',
