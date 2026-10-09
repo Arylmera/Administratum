@@ -271,6 +271,7 @@ accent(NEON, {
 // Green Code: the mainframe seen from inside. Every neon, screen and wall turned phosphor green on black.
 accent(NEON, {
   id: 'matrix', name: 'Green Code',
+  art: ['breakout'], // ui/art/matrix/: The Construct (the white loading-program void, white light-bar rails, a white door onto green code rain)
   bands: { pink: [128, 1, 0], violet: [150, 0.8, -0.06], night: [140, 0.5, -0.02], cyan: [105, 0.9, 0.04] },
   text: { subtitle: 'Mainframe · Green-code terminal', motto: 'Follow the white rabbit', breakout: 'The Construct' },
 });
