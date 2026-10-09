@@ -13,7 +13,10 @@ async function read(name, as) {
   }
   const r = await fetch(url, { credentials: 'same-origin' });
   if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
-  return as === 'json' ? r.json() : new Uint8Array(await r.arrayBuffer());
+  const buf = new Uint8Array(await r.arrayBuffer());
+  // the installed app (Tauri) answers a missing file with index.html, status 200: that is a 404 too
+  if (/^<!doctype/i.test(new TextDecoder().decode(buf.subarray(0, 9)))) throw new Error(`${name}: HTTP 404`);
+  return as === 'json' ? JSON.parse(new TextDecoder().decode(buf)) : buf;
 }
 
 // key.gpl -> 'r,g,b' -> palette char (the first letter of each colour's name)
