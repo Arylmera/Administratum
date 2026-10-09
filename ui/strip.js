@@ -14,7 +14,7 @@ export const MARGIN_R = 32; // the right group (the Magos' throne) stops this fa
 // of the handle (index.html #strip-handle, 6..18); a door clears what stands by it by 4, any spot by 12 (scene.js
 // near), so nobody standing still holds it open.
 const GATE_X = 20, GATE_W = 32, DOOR_W = 10;
-const BENCH_W = 46, BENCH_GAP = 6, GATE_GAP = 20, QUEUE_STEP = 22; // the bench sprite; petitioners this far apart
+const BENCH_W = 64, BENCH_GAP = 6, GATE_GAP = 20, QUEUE_STEP = 22; // a bench (scene.js widens the sprite to it); petitioners this far apart
 const COG_PAD = 14, COG_W = DOOR_W + COG_PAD + 82 + COG_PAD; // the 82 px bank with COG_PAD either side, door to door
 
 export const stripRoute = (a, b) => (a.x === b.x && a.y === b.y ? [] : [{ x: b.x, y: b.y }]); // every point is on the floor
@@ -33,7 +33,7 @@ export function stripOf(w) {
   // bench, a door to the hall 4 past the second bench
   const rx = GATE_X + GATE_W + GATE_GAP, recaff = at(rx + 18);
   const benches = [rx + 23, rx + 23 + BENCH_W + BENCH_GAP].map(x => ({ x, y: FLOOR }));
-  const refectory = benches.flatMap(b => [11, 23, 35].map(d => at(b.x + d)));
+  const refectory = benches.flatMap(b => [14, 32, 50].map(d => at(b.x + d))); // 18 apart: a dozing scribe is 16 wide
   const dRef = door(benches[1].x + BENCH_W + 4, 'sanctum');
   // the cogitator just before the sanctum: its bank between its door and the sanctum's
   const dCog = door(dSan.x - COG_W, 'sanctum');
@@ -42,7 +42,7 @@ export function stripOf(w) {
     strip: true, route: stripRoute, w, h: STRIP_H, baseH: STRIP_H, bays: 0, dy: 0, rows: 1,
     sw: w, rx: w, ox: 0, dx: 0, split: STRIP_H, sd: 0, sb: 0, hy: 0, // roomOf(): everything is 'hall'
     x0: dRef.x + DOOR_W + 4, x1: dCog.x - 4, y0: FLOOR, y1: FLOOR, aisleY: FLOOR, corridorX: w, lanes: [FLOOR],
-    entry: at(-10), magos, queue, refectory, recaff, cogSpots, cog, benches, // cog, benches: props' left end on the floor
+    entry: at(-10), magos, queue, refectory, recaff, cogSpots, cog, benches, benchW: BENCH_W, // cog, benches: props' left end on the floor
     gate: at(GATE_X + GATE_W / 2), doors: [door(GATE_X, 'gate', GATE_W), dRef, dCog, dSan], // scene.js drawStripProps
   };
   strips.set(w, S);

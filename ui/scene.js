@@ -760,6 +760,26 @@ function drawMagos(g, x, y, t) {
 // behind the walk line (foot FLOOR - 1), so the scribes pass in front.
 // The desktop strip has no floor: a wider, darker contact shadow makes everything stand on the taskbar.
 const STRIP_SHADE = 0.75;
+// A sprite widened to w art px by repeating its longest run of identical columns, preferring one with nothing under
+// it (a bench's plain seat between its legs, not a pedestal), so any theme's bench stretches without new art; cached
+// per sprite and width (the sprite cache keys on it).
+const wide = new WeakMap();
+export function widened(map, w) {
+  const extra = w - map[0].length;
+  if (extra <= 0) return map;
+  const byW = wide.get(map) ?? wide.set(map, new Map()).get(map);
+  if (byW.has(w)) return byW.get(w);
+  const col = i => map.map(r => r[i]).join(''), open = i => map.at(-1)[i] === '.';
+  let best = [0, 0];
+  const better = (a, b) => open(a[0]) !== open(b[0]) ? open(a[0]) : a[1] - a[0] > b[1] - b[0];
+  for (let i = 0, start = 0; i <= map[0].length; i++) if (i === map[0].length || col(i) !== col(start)) {
+    if (better([start, i], best)) best = [start, i];
+    start = i;
+  }
+  const out = map.map(r => r.slice(0, best[1]) + r[best[0]].repeat(extra) + r.slice(best[1]));
+  byW.set(w, out);
+  return out;
+}
 const stood = e => e && { ...e, rx: e.rx * 1.3, ry: Math.max(e.ry * 1.3, 2) };
 function drawStripProps(g, H, actors, now, items) {
   const t = now / 1000, cog = actors.filter(a => a.pose === 'cog').length, foot = FLOOR - 1;
@@ -773,7 +793,7 @@ function drawStripProps(g, H, actors, now, items) {
     g2.save(); g2.translate(H.cog.x - COG_X, top(MAPS.COGITATOR) - COG_Y); drawCogitator(g2, t, cog); g2.restore();
   });
   prop(MAPS.RECAFF, H.recaff.x - 18);
-  for (const b of H.benches) prop(MAPS.BENCH, b.x);
+  for (const b of H.benches) { const m = widened(MAPS.BENCH, H.benchW * RES); prop(m, b.x); }
   for (const d of H.doors.slice(1)) { // the hall's east-wall doors, stood up: open while anyone is near (as drawDoors)
     const name = `door ${d.kind} ${near(actors, d.x, FLOOR, d.x + d.w, FLOOR) ? 'open' : 'closed'}`, map = ROOM.frames[name];
     prop(map, d.x, g2 => tile(g2, name, d.x, top(map)));

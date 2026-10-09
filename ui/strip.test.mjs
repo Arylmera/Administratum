@@ -25,7 +25,9 @@ assert.deepEqual(H.doors.map(d => d.kind), ['gate', 'sanctum', 'sanctum', 'sanct
 for (let i = 1; i < H.doors.length; i++) assert.ok(H.doors[i - 1].x + H.doors[i - 1].w <= H.doors[i].x);
 assert.ok(gate.x >= 18 && gate.x + gate.w <= H.recaff.x - 18); // the recaff drawn 18 px left of its spot
 assert.equal(H.benches.length, 2);
-assert.ok(H.benches[0].x + 46 < H.benches[1].x && H.benches[1].x + 46 <= dRef.x && dRef.x + dRef.w <= H.x0);
+assert.ok(H.benches[0].x + H.benchW < H.benches[1].x && H.benches[1].x + H.benchW <= dRef.x && dRef.x + dRef.w <= H.x0);
+for (let i = 1; i < H.refectory.length; i++) if (i % 3) assert.ok(H.refectory[i].x - H.refectory[i - 1].x >= 16); // nappers don't overlap
+for (const b of H.benches) for (const p of H.refectory.filter(p => p.x >= b.x && p.x < b.x + H.benchW)) assert.ok(p.x - 8 >= b.x && p.x + 8 <= b.x + H.benchW);
 assert.equal(H.refectory.length, 6); // three nappers a bench
 assert.ok(H.recaff.x - 18 - (gate.x + gate.w) >= 20); // room between the gate and the refectory
 assert.ok(H.cog.x - (dCog.x + dCog.w) >= 14 && dSan.x - (H.cog.x + 82) >= 14); // the bank clear of both its doors
