@@ -47,10 +47,10 @@ Disarmed ─arm─▶ Armed{deadline?} ─ready or deadline─▶ Countdown{end 
 
 - **Countdown** is counted by the app (not handed to `shutdown /t 120`). At its end the rule is re-checked: if a
   session went `Working` meanwhile, the countdown stops (`resumed`), `calm_since = now`, the vigil stays armed.
-- **Deadline** (`adm.vigilDeadline`, `"HH:MM"`, empty by default): read when arming, it targets the next occurrence
+- **Deadline** (`adm.vigilDeadline`, minutes after midnight as a string like `adm.quietFrom`, empty by default): read when arming, it targets the next occurrence
   of that time. When it passes, a countdown starts whatever the sessions do, and is `forced`: no re-check at its end.
 - **Fire** is an injected action. Real: record the `fired` event, flush the Chronicon, then
-  `shutdown /s /t 0 /c "Administratum: Night Vigil"`. Tests and demo mode: a no-op (demo's scripted roster goes idle
+  `shutdown /s /f /t 0 /c "Administratum: Night Vigil"` (`/f` because the decided `/t 120` implied it: no app may veto the shutdown). Tests and demo mode: a no-op (demo's scripted roster goes idle
   and must never shut the PC down).
 - **Cancel** from any surface disarms. Cancelling during a countdown also disarms.
 - The state (`armed`, `deadline`, `countdown_end`, `forced`) is emitted every tick as event `vigil`, like `roster`,
@@ -116,6 +116,12 @@ Rust, in `vigil.rs` (the real `shutdown` is never called; the action is injected
 - `remote.rs`: `/api/vigil` routing and its 403 / 415 cases, like `answer_petition`'s tests.
 
 Node: the existing art and sprite tests cover the new families.
+
+## Known limit
+
+A background subagent stuck in one long tool call (a cargo or NSIS build) writes nothing to its transcript and drops
+out of `helpers` after `HELPER_SAFETY_CAP_MS` (10 min); the vigil can then fire ~15 min into that build. Still
+stricter than the prototype's window; no fix now.
 
 ## Later (not built)
 

@@ -17,7 +17,7 @@ Spec: `docs/superpowers/specs/2026-10-09-night-vigil-design.md`.
 ## Global Constraints
 
 - Quiet window `QUIET_MS = 300_000` (5 min), countdown `COUNTDOWN_MS = 120_000`: constants, not settings.
-- Shutdown command, verbatim: `shutdown /s /t 0 /c "Administratum: Night Vigil"`. Never run by a test; demo mode
+- Shutdown command, verbatim: `shutdown /s /f /t 0 /c "Administratum: Night Vigil"` (`/f`: the decided `/t 120` implied it; without it an app such as Orca or an editor can veto the shutdown and the PC hangs on "apps are preventing shutdown" all night). Never run by a test; demo mode
   (`--demo` / `ADMINISTRATUM_DEMO`) never runs it.
 - Arming does not persist across an app restart.
 - Deadline setting key: `adm.vigilDeadline`, minutes after midnight as a string (like `adm.quietFrom`), `""` = none.
@@ -28,6 +28,15 @@ Spec: `docs/superpowers/specs/2026-10-09-night-vigil-design.md`.
 - Work on `main`. Another session is live in this checkout: `git add` only the paths your task names, never
   `git add -A` / `git add .`, never touch other uncommitted files. Commit and push after each task.
 - Windows: set `PYTHONUTF8=1` for any Python; node scripts run as is.
+- **Commit hygiene (another session shares this checkout).** Before editing, run `git status --short -- <your task's
+  files>`; if any is already modified, STOP and report (do not edit, do not commit). Commit only with a pathspec:
+  `git commit -m "..." -- <paths>` (a bare `git commit` would take what the other session staged). If `git push` is
+  rejected, STOP and report; never `git pull --rebase` or stash in this checkout.
+- **Never shut the PC down.** Arm the vigil only in demo mode (`$env:ADMINISTRATUM_DEMO=1` before `cargo tauri dev`),
+  where Fire only logs. To reach a countdown in demo (its scripted roster rarely stays quiet 5 min), set the deadline
+  (`adm.vigilDeadline`) to the next minute: forced countdown → Fire → `night vigil: demo mode, no shutdown` in the
+  console. Before ending any step that armed it, cancel and confirm the `vigil` event shows `armed: false`.
+- The controller (not the implementer) rebuilds and silent-installs the NSIS build after each reviewed task.
 - Tests: `cargo test --manifest-path src-tauri/Cargo.toml` and `for t in ui/*.test.mjs; do node "$t" || echo "FAIL $t"; done`.
 
 ---
@@ -340,7 +349,7 @@ only if the struct derives `Default`).
 - [ ] **Step 5: Commit.**
 ```bash
 git add src-tauri/src/vigil.rs src-tauri/src/main.rs
-git commit -m "Night Vigil: pure readiness rule and state machine"
+git commit -m "Night Vigil: pure readiness rule and state machine" -- src-tauri/src/vigil.rs src-tauri/src/main.rs
 git push
 ```
 
@@ -422,7 +431,7 @@ fn vigil_cancel(app: AppHandle) {
 ```rust
 /// The real shutdown. Never called in demo mode or from a test.
 fn shutdown_now() {
-    if let Err(e) = no_window(Command::new("shutdown")).args(["/s", "/t", "0", "/c", "Administratum: Night Vigil"]).spawn() {
+    if let Err(e) = no_window(Command::new("shutdown")).args(["/s", "/f", "/t", "0", "/c", "Administratum: Night Vigil"]).spawn() {
         eprintln!("night vigil: shutdown: {e}");
     }
 }
@@ -526,14 +535,16 @@ app.manage(VigilItem(vigil));
   Run: `cargo test --manifest-path src-tauri/Cargo.toml` → all pass. `cargo clippy --manifest-path src-tauri/Cargo.toml`
   → no new warnings.
 
-- [ ] **Step 7: Demo smoke test.** `cd src-tauri && $env:ADMINISTRATUM_DEMO=1; cargo tauri dev` (PowerShell). Arm
-  from the tray. Confirm the `vigil` event arrives in the webview console (`listen` in devtools) and that arming
-  records an `armed` event in the Chronicon. Demo never shuts down (`eprintln!` instead). Quit.
+- [ ] **Step 7: Demo smoke test.** `cd src-tauri && $env:ADMINISTRATUM_DEMO=1; cargo tauri dev` (PowerShell). Set
+  `adm.vigilDeadline` in settings.json to the next minute, arm from the tray, confirm the `vigil` event arrives in
+  the webview console, then the forced countdown toast with Cancel, then Fire logging
+  `night vigil: demo mode, no shutdown`, and `armed`/`deadline`/`fired` events in the Chronicon. Arm again, press
+  the toast's Cancel, confirm `armed: false` and the tray unchecked. Clear the deadline. Quit.
 
 - [ ] **Step 8: Commit.**
 ```bash
 git add src-tauri/src/main.rs
-git commit -m "Night Vigil: step it in the poll loop, tray item, toast, commands, Chronicon events"
+git commit -m "Night Vigil: step it in the poll loop, tray item, toast, commands, Chronicon events" -- src-tauri/src/main.rs
 git push
 ```
 
@@ -588,7 +599,7 @@ Check `post`'s signature in `bridge.js` and match it (it may take the command na
 - [ ] **Step 7: Commit.**
 ```bash
 git add src-tauri/src/remote.rs src-tauri/src/main.rs ui/bridge.js docs/remote-api.md
-git commit -m "Night Vigil: arm and cancel from the remote view"
+git commit -m "Night Vigil: arm and cancel from the remote view" -- src-tauri/src/remote.rs src-tauri/src/main.rs ui/bridge.js docs/remote-api.md
 git push
 ```
 
@@ -648,14 +659,14 @@ if it answers) and open `http://localhost:8123/tools/sprites.html` in Chrome (Cl
 - [ ] **Step 7: Commit.**
 ```bash
 git add tools/watch_art.mjs tools/watch_art/base.mjs ui/art/watch.png ui/art/watch.json ui/art/watch39.png ui/art/watch39.json ui/sprites.js tools/sprite_catalog.mjs docs/sprites
-git commit -m "Night Vigil: the Watchman (Inquisitor), flat and 39°"
+git commit -m "Night Vigil: the Watchman (Inquisitor), flat and 39°" -- tools/watch_art.mjs tools/watch_art/base.mjs ui/art/watch.png ui/art/watch.json ui/art/watch39.png ui/art/watch39.json ui/sprites.js tools/sprite_catalog.mjs docs/sprites
 git push
 ```
 (Add `ui/art.test.mjs` / `ui/sprites.test.mjs` only if Step 5 changed them.)
 
 ---
 
-### Task 5: The Watchman in the hall, the header button, the deadline setting
+### Task 5: The Watchman in the hall, the header button, the deadline setting (two halves, two reviews)
 
 **Files:**
 - Create: `ui/vigil.js`, `ui/vigil.test.mjs`
@@ -709,6 +720,15 @@ Run `node ui/vigil.test.mjs` → `vigil ok`.
   remote view, show it only while remote actions are allowed (reuse `card.js`'s `remoteActions()` probe pattern), and on
   a `'remote actions disabled'` rejection hide it.
 
+- [ ] **Step 2b: Wording and deadline setting** (Steps 6 and 7 below belong to this first half). Then run every
+  node test and commit this half:
+```bash
+git add ui/vigil.js ui/vigil.test.mjs ui/app.js ui/index.html ui/settings.js ui/theme.js ui/themes.js ui/card.js
+git commit -m "Night Vigil: header button, deadline setting, wording" -- ui/vigil.js ui/vigil.test.mjs ui/app.js ui/index.html ui/settings.js ui/theme.js ui/themes.js ui/card.js
+git push
+```
+The controller reviews this half before the actor work (Steps 3–5, 8, 9) starts.
+
 - [ ] **Step 3: The Watchman actor.** In `actors.js`, a single non-session actor (`id: 'watch'`), added in `Cast.sync`
   when `vigil.armed` (walks in through `hall.entry` like a new scribe), removed (walks out, then dropped) when
   disarmed. While armed and no countdown: patrols, picking a random desk/lectern seat from `seats` as its next
@@ -742,8 +762,8 @@ Run `node ui/vigil.test.mjs` → `vigil ok`.
 
 - [ ] **Step 9: Commit.**
 ```bash
-git add ui/vigil.js ui/vigil.test.mjs ui/app.js ui/actors.js ui/scene.js ui/scene39.js ui/card.js ui/index.html ui/settings.js ui/theme.js ui/themes.js
-git commit -m "Night Vigil: the Watchman patrols the hall, countdown at the gate, header button, deadline setting"
+git add ui/app.js ui/actors.js ui/scene.js ui/scene39.js ui/card.js ui/lighting.js
+git commit -m "Night Vigil: the Watchman patrols the hall, countdown at the gate" -- ui/app.js ui/actors.js ui/scene.js ui/scene39.js ui/card.js ui/lighting.js
 git push
 ```
 
@@ -774,7 +794,7 @@ modify `ui/themes.js` (add `'watch', 'watch39'` to that world's theme `art` list
 - [ ] **Step 6: Commit.**
 ```bash
 git add tools/watch_art/W.mjs ui/art/W/watch.png ui/art/W/watch.json ui/art/W/watch39.png ui/art/W/watch39.json ui/themes.js docs/sprites
-git commit -m "Night Vigil: the Watchman for <world name>"
+git commit -m "Night Vigil: the Watchman for <world name>" -- tools/watch_art/W.mjs ui/art/W/watch.png ui/art/W/watch.json ui/art/W/watch39.png ui/art/W/watch39.json ui/themes.js docs/sprites
 git push
 ```
 
@@ -788,12 +808,12 @@ morning).
 
 - [ ] **Step 1:** Write both doc changes.
 - [ ] **Step 2:** Full test run: `cargo test --manifest-path src-tauri/Cargo.toml` and every `ui/*.test.mjs`.
-- [ ] **Step 3:** Rebuild and silent-install the NSIS build (house rule after each step: see the project memory
-  `reinstall-after-each-step`), launch the installed app, arm the vigil with a real session busy, confirm it does
-  **not** count down while the session works; cancel. Do not let it shut the PC down.
+- [ ] **Step 3 (controller, not the implementer):** with no deadline set, launch the installed app, arm the vigil
+  while a real session is busy, confirm no countdown starts while it works, then cancel within 2 minutes and confirm
+  `armed: false`. Never leave a non-demo build armed.
 - [ ] **Step 4: Commit.**
 ```bash
 git add docs/DEVELOPMENT.md README.md
-git commit -m "Night Vigil: docs"
+git commit -m "Night Vigil: docs" -- docs/DEVELOPMENT.md README.md
 git push
 ```
