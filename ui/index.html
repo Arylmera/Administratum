@@ -110,6 +110,7 @@
   .plaque.open { pointer-events: auto; cursor: pointer; }
   .plaque.open:hover { filter: brightness(1.25); }
   .plaque.err { border-style: dashed; }
+  .plaque.usage { z-index: 1; } /* the strip's usage banner stays readable over the petition labels under it */
   .plaque .branch { display: block; font-size: .8em; letter-spacing: 1px; text-transform: none; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
