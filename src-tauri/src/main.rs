@@ -10,6 +10,7 @@ mod remote;
 mod settings;
 mod strip;
 mod toast;
+mod vigil;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
