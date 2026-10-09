@@ -22,6 +22,7 @@ export function invoke(name, args = {}) {
   if (!REMOTE) return tauri()?.core?.invoke(name, args) ?? Promise.reject('no backend');
   if (GETS.has(name)) return fetch(`/api/${name}?${new URLSearchParams(args)}`, { credentials: 'same-origin' }).then(notPaired).then(reply);
   if (name === 'answer_petition') return post(name, args).then(r => (r.status === 403 ? Promise.reject('remote actions disabled') : reply(r)));
+  if (name === 'vigil_arm' || name === 'vigil_cancel') return post('vigil', { arm: name === 'vigil_arm' }).then(r => (r.status === 403 ? Promise.reject('remote actions disabled') : reply(r)));
   return Promise.reject(`${name} is not available remotely`);
 }
 

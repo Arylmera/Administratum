@@ -92,6 +92,14 @@ fetch('/api/answer_petition', { method: 'POST', headers: { 'Content-Type': 'appl
   body: JSON.stringify({ handle, choice }) })
 ```
 
+`POST /api/vigil`, body `{"arm": true | false}`: arms or cancels the Night Vigil. Same checks as
+`/api/answer_petition` above. Result: 200 `null`.
+
+```js
+fetch('/api/vigil', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Adm': '1' },
+  body: JSON.stringify({ arm: true }) })
+```
+
 ## Live events: `GET /events` (SSE, cookie)
 
 `Content-Type: text/event-stream`. Starts with `retry: 3000`. Each Tauri event becomes one named SSE

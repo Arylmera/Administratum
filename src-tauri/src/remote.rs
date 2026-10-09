@@ -38,6 +38,7 @@ pub enum Call {
     SettingsLoad,
     PeekPetition(String),
     AnswerPetition { handle: String, choice: String },
+    Vigil { arm: bool },
 }
 
 /// What the server needs from the app: its commands, and its embedded UI files (bytes, mime).
@@ -151,6 +152,21 @@ enum Route {
     Call(Call),
     /// POST /api/answer_petition passed every gate; the body is read and checked next.
     Answer,
+    /// POST /api/vigil passed every gate; the body is read and checked next.
+    Vigil,
+}
+
+/// The same on-screen safety gate for every action endpoint. `None` passed; `Some(403|415)` else.
+fn action_gate(req: &Req, actions: bool) -> Option<u16> {
+    let h = |n| header(req.headers, n);
+    let same_origin = h("origin").zip(h("host")).is_some_and(|(o, host)| o == format!("http://{host}")) && h("sec-fetch-site").is_none_or(|s| s == "same-origin");
+    if !actions || h("x-adm") != Some("1") || !same_origin {
+        Some(403)
+    } else if !h("content-type").is_some_and(|c| c.starts_with("application/json")) {
+        Some(415)
+    } else {
+        None
+    }
 }
 
 fn route(req: &Req, token: &str, actions: bool) -> Route {
@@ -174,17 +190,8 @@ fn route(req: &Req, token: &str, actions: bool) -> Route {
         ("GET", "/api/chronicle_days") => Route::Call(Call::ChronicleDays),
         ("GET", "/api/settings_load") => Route::Call(Call::SettingsLoad),
         ("GET", "/api/peek_petition") => with("handle", Call::PeekPetition),
-        ("POST", "/api/answer_petition") => {
-            let h = |n| header(req.headers, n);
-            let same_origin = h("origin").zip(h("host")).is_some_and(|(o, host)| o == format!("http://{host}")) && h("sec-fetch-site").is_none_or(|s| s == "same-origin");
-            if !actions || h("x-adm") != Some("1") || !same_origin {
-                Route::Status(403)
-            } else if !h("content-type").is_some_and(|c| c.starts_with("application/json")) {
-                Route::Status(415)
-            } else {
-                Route::Answer
-            }
-        }
+        ("POST", "/api/answer_petition") => action_gate(req, actions).map_or(Route::Answer, Route::Status),
+        ("POST", "/api/vigil") => action_gate(req, actions).map_or(Route::Vigil, Route::Status),
         ("GET", p) if !p.starts_with("/api/") => asset_path(p).map_or(Route::Status(404), Route::Asset),
         ("GET", _) => Route::Status(404),
         _ => Route::Status(405),
@@ -424,6 +431,17 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
                 Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
             }
         }
+        Route::Vigil => {
+            #[derive(serde::Deserialize)]
+            struct Arm {
+                arm: bool,
+            }
+            let parsed = read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY).and_then(|b| serde_json::from_slice::<Arm>(&b).map_err(|_| 400));
+            match parsed {
+                Ok(a) => json(&mut w, (backend.call)(Call::Vigil { arm: a.arm })),
+                Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
+            }
+        }
     }
 }
 
@@ -593,8 +611,12 @@ mod tests {
         assert_eq!(get("/../Cargo.toml", &authed(&[])), Route::Status(404));
     }
 
+    fn post_to(url: &str, headers: &[(String, String)], actions: bool) -> Route {
+        route(&Req { method: "POST", url, headers, peer: Some("192.168.1.20".parse().unwrap()) }, TOK, actions)
+    }
+
     fn post(headers: &[(String, String)], actions: bool) -> Route {
-        route(&Req { method: "POST", url: "/api/answer_petition", headers, peer: Some("192.168.1.20".parse().unwrap()) }, TOK, actions)
+        post_to("/api/answer_petition", headers, actions)
     }
 
     #[test]
@@ -616,6 +638,17 @@ mod tests {
         assert_eq!(post(&authed(&[good[0], good[1], ("content-type", "text/plain")]), true), Route::Status(415));
         // No cookie.
         assert_eq!(post(&h(&[("host", "192.168.1.5:7770"), good[0], good[1], good[2]]), true), Route::Unauthorized);
+    }
+
+    #[test]
+    fn vigil_is_gated() {
+        let good = [("x-adm", "1"), ("origin", "http://192.168.1.5:7770"), ("content-type", "application/json")];
+        assert_eq!(post_to("/api/vigil", &authed(&good), true), Route::Vigil);
+        assert_eq!(post_to("/api/vigil", &authed(&good), false), Route::Status(403));
+        assert_eq!(post_to("/api/vigil", &authed(&good[1..]), true), Route::Status(403));
+        assert_eq!(post_to("/api/vigil", &h(&[("host", "192.168.1.5:7770"), good[0], good[1], good[2]]), true), Route::Unauthorized);
+        assert_eq!(post_to("/api/vigil", &authed(&[good[0], good[1], ("content-type", "text/plain")]), true), Route::Status(415));
+        assert_eq!(get("/api/vigil", &authed(&[])), Route::Status(404));
     }
 
     #[test]

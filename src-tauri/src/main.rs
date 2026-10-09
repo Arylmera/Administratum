@@ -460,6 +460,10 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
             }),
             remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
             remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
+            remote::Call::Vigil { arm } => {
+                vigil_set(&a, arm);
+                Ok(serde_json::Value::Null)
+            }
         }),
         asset: Box::new(move |p| b.asset_resolver().get(p.to_string()).map(|x| (x.bytes, x.mime_type))),
     }
