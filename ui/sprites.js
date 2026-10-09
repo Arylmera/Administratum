@@ -61,11 +61,11 @@ const ROOM_SHEETS = ['room-floor', 'room-walls', 'room-pipes', 'room-doors'];
 // The 39° character families (wave 2): optional, drawn by separate art agents one world at a time. A missing base
 // or theme file is absence, not an error (the exports stay empty and callers fall back); any other load error
 // (a bad palette colour, a corrupt JSON) still throws, as loadSheet already does.
-export const FAMILIES39 = ['scribe39', 'adept39', 'magos39', 'skull39'];
+export const FAMILIES39 = ['scribe39', 'adept39', 'magos39', 'skull39', 'watch39'];
 const missing = e => e.code === 'ENOENT' || /HTTP 404/.test(e.message);
 const EMPTY_SHEET = { frames: {}, anchors: {}, tiles: {}, meta: {} };
 const loadOptional = f => loadSheet(f).catch(e => { if (missing(e)) return EMPTY_SHEET; throw e; });
-const FAMILIES = ['scribe', 'adept', 'magos', ...PROP_SHEETS, ...ROOM_SHEETS, ...FAMILIES39];
+const FAMILIES = ['scribe', 'adept', 'magos', 'watch', ...PROP_SHEETS, ...ROOM_SHEETS, ...FAMILIES39];
 const base = Object.fromEntries(FAMILIES.map((f, i) => [f, i]));
 const loaded = await Promise.all(FAMILIES.map(f => (FAMILIES39.includes(f) ? loadOptional(f) : loadSheet(f))));
 Object.keys(base).forEach((f, i) => { base[f] = loaded[i]; });
@@ -112,6 +112,7 @@ export const REQ39 = {
   adept39: { frames: WALK39, anchors: ['feet'] },
   magos39: { frames: ['body', 'arm'], anchors: ['arm', 'chest', 'eyeL', 'eyeR'] },
   skull39: { frames: ['skull'], anchors: ['centre', 'carry', 'beam'] },
+  watch39: { frames: [...WALK39, 'ring'], anchors: ['feet', 'light'] },
 };
 // A 39° family's sheet is either wholly absent (no frames: not drawn yet) or complete (every frame and anchor the
 // brief names present); anything in between is a bug in a committed art file. This throws loudly (used by the
@@ -149,6 +150,9 @@ export const ADEPT = {}, ADEPT_AT = {};
 // The Magos on the throne: body, and the drill forearm that swings (scene.js drawMagos). MAGOS_AT: where the arm,
 // the chest screen's scan line and the two optics sit on the body, logical px.
 export const MAGOS = {}, MAGOS_AT = {};
+// The Watchman (Night Vigil, while armed): 16x18 logical, walks like the scribe (left mirrors right), and `ring`, the
+// hand bell raised. WATCH_AT: feet (the actor's floor point), light (the lantern's centre, where its glow is drawn).
+export const WATCH = {}, WATCH_AT = {};
 // Every other sprite by name.
 export const MAPS = {};
 // Prop anchors by sprite name, logical px from its top-left: points [x, y], rects [x, y, w, h] (what each one is: the
@@ -165,6 +169,7 @@ export const SCRIBE39 = {}, SCRIBE39_AT = {};
 export const ADEPT39 = {}, ADEPT39_AT = {};
 export const MAGOS39 = {}, MAGOS39_AT = {};
 export const SKULL39 = {}, SKULL39_AT = {};
+export const WATCH39 = {}, WATCH39_AT = {};
 const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d)]));
 // How to build each family's export object from its (complete) sheet, and which [obj, at] pair to refill.
 const BUILD39 = {
@@ -172,8 +177,9 @@ const BUILD39 = {
   adept39: walker39,
   magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm }),
   skull39: sheet => ({ skull: sheet.frames.skull }),
+  watch39: sheet => ({ ...walker39(sheet), ring: sheet.frames.ring }),
 };
-const EXPORT39 = { scribe39: [SCRIBE39, SCRIBE39_AT], adept39: [ADEPT39, ADEPT39_AT], magos39: [MAGOS39, MAGOS39_AT], skull39: [SKULL39, SKULL39_AT] };
+const EXPORT39 = { scribe39: [SCRIBE39, SCRIBE39_AT], adept39: [ADEPT39, ADEPT39_AT], magos39: [MAGOS39, MAGOS39_AT], skull39: [SKULL39, SKULL39_AT], watch39: [WATCH39, WATCH39_AT] };
 
 function useArt(id) {
   const S = Object.fromEntries(FAMILIES.map(f => [f, sheetOf(id, f)]));
@@ -181,6 +187,7 @@ function useArt(id) {
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
   refill(ADEPT, walker(S.adept)); refill(ADEPT_AT, anchorsOf(S.adept));
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm }); refill(MAGOS_AT, anchorsOf(S.magos));
+  refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));
   for (const f of FAMILIES39) {
     const sheet = resolve39(f, themed[dir]?.[f], base[f], `theme '${id}'`), [obj, at] = EXPORT39[f], complete = Object.keys(sheet.frames).length > 0;
     refill(obj, complete ? BUILD39[f](sheet) : {});

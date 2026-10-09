@@ -42,6 +42,16 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Novice adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.right.png" height="112"> |
 | <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Novice adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.left.png" height="112"> |
 
+## Watchman (Night Vigil, while armed)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="watch-down"></a>`WATCH.down` | 16×18 | The Watchman, walking down with his lantern, 3 frames. Source: `ui/art/watch.png` | <img src="tier2/WATCH.down.png" height="144"> |
+| <a id="watch-up"></a>`WATCH.up` | 16×18 | The Watchman, walking up with his lantern, 3 frames. Source: `ui/art/watch.png` | <img src="tier2/WATCH.up.png" height="144"> |
+| <a id="watch-right"></a>`WATCH.right` | 16×18 | The Watchman, walking right with his lantern, 3 frames. Source: `ui/art/watch.png` | <img src="tier2/WATCH.right.png" height="144"> |
+| <a id="watch-left"></a>`WATCH.left` | 16×18 | The Watchman, walking left with his lantern, 3 frames. Source: `ui/art/watch.png` | <img src="tier2/WATCH.left.png" height="144"> |
+| <a id="watch-ring"></a>`WATCH.ring` | 16×18 | The Watchman ringing his hand bell. Source: `ui/art/watch.png` | <img src="tier2/WATCH.ring.png" height="144"> |
+
 ## Magos (on the throne)
 
 | Sprite | Logical size | Notes | Image |
@@ -67,6 +77,11 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/magos39.png` | <img src="tier2/MAGOS39.body.png" height="160"> |
 | <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/magos39.png` | <img src="tier2/MAGOS39.arm.png" height="160"> |
 | <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/skull39.png` | <img src="tier2/SKULL39.skull.png" height="80"> |
+| <a id="watch39-e"></a>`WATCH39.E` | 16×18 | WATCH39, 39° view, walking E, 3 frames. Source: `ui/art/watch39.png` | <img src="tier2/WATCH39.E.png" height="144"> |
+| <a id="watch39-w"></a>`WATCH39.W` | 16×18 | WATCH39, 39° view, walking W, 3 frames. Source: `ui/art/watch39.png` | <img src="tier2/WATCH39.W.png" height="144"> |
+| <a id="watch39-s"></a>`WATCH39.S` | 16×18 | WATCH39, 39° view, walking S, 3 frames. Source: `ui/art/watch39.png` | <img src="tier2/WATCH39.S.png" height="144"> |
+| <a id="watch39-n"></a>`WATCH39.N` | 16×18 | WATCH39, 39° view, walking N, 3 frames. Source: `ui/art/watch39.png` | <img src="tier2/WATCH39.N.png" height="144"> |
+| <a id="watch39-ring"></a>`WATCH39.ring` | 16×18 | WATCH39, ring. Source: `ui/art/watch39.png` | <img src="tier2/WATCH39.ring.png" height="144"> |
 
 ## Props and furniture
 

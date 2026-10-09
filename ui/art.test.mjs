@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, WATCH, WATCH_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
 import { THEMES, setTheme, t } from './theme.js';
 import { BREAKOUT_SIZES } from './layout.js';
 
@@ -68,14 +68,17 @@ const sheets = Object.fromEntries(await Promise.all(fs.readdirSync(new URL('./ar
   .map(async f => [f.slice(0, -5), await loadSheet(f.slice(0, -5))])));
 const owner = {};
 for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.frames)) {
-  if (['scribe', 'adept', 'magos', ...FAMILIES39].includes(fam) || fam.startsWith('room-')) continue; // characters (flat and 39°) and room tiles: named per family
+  if (['scribe', 'adept', 'magos', 'watch', ...FAMILIES39].includes(fam) || fam.startsWith('room-')) continue; // characters (flat and 39°) and room tiles: named per family
   assert.ok(!owner[n], `frame ${n} in both ${owner[n]} and ${fam}`); owner[n] = fam;
 }
 for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);
 assert.deepEqual(Object.keys(owner).sort(), Object.keys(MAPS).filter(n => SHEET_OF[n] !== 'scribe').sort(), 'every prop frame is a MAPS sprite');
-for (const fam of ['scribe', 'adept']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
+for (const fam of ['scribe', 'adept', 'watch']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
 assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 2 }, armL: { x: 0, y: 2 }, scroll: { x: 14, y: 8 } });
 assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 } });
+assert.deepEqual(WATCH_AT, { feet: { x: 8, y: 18 }, light: { x: 14, y: 14 } });
+assert.ok(sheets.watch.frames.ring, 'watch ring');
+assert.deepEqual(WATCH.left[0], WATCH.right[0].map(r => [...r].reverse().join('')));
 assert.deepEqual(MAGOS_AT, { arm: { x: 0, y: 0 }, chest: { x: 13, y: 15 }, eyeL: { x: 13, y: 9.5 }, eyeR: { x: 14.5, y: 9.5 } });
 assert.ok(sheets.magos.frames.body.every(r => r.startsWith('.'.repeat(10))), 'the Magos body leaves the arm columns to the arm frame');
 assert.deepEqual(SCRIBE.left[0], SCRIBE.right[0].map(r => [...r].reverse().join('')));

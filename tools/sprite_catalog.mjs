@@ -4,8 +4,8 @@
 //    family: the art family ('walls'), as the sprite issues group them; src: its art file for this theme ('cyber/walls').
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
 import {
-  MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
-  SCRIBE39, ADEPT39, MAGOS39, SKULL39, REQ39,
+  MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, WATCH, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
+  SCRIBE39, ADEPT39, MAGOS39, SKULL39, WATCH39, REQ39,
 } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
@@ -50,6 +50,9 @@ export function catalog() {
   add('SCRIBE.sashes', 'Scribe (one per session)', srcOf('scribe'), theme.sash.map(y => ({ rows: SCRIBE.down[0], over: { y } })), false, 'Department colours (theme sash), one per project');
   for (const r of RANKS) for (const dir of ['down', 'up', 'right', 'left']) add(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', srcOf('adept'), ADEPT[dir].map(rows => ({ rows, over: theme.rank[r].adept })), true, `${theme.text.rank[r]} adept, walking ${dir}, 3 frames`);
 
+  for (const dir of ['down', 'up', 'right', 'left']) add(`WATCH.${dir}`, 'Watchman (Night Vigil, while armed)', srcOf('watch'), WATCH[dir].map(rows => ({ rows, over: {} })), true, `The Watchman, walking ${dir} with his lantern, 3 frames`);
+  add('WATCH.ring', 'Watchman (Night Vigil, while armed)', srcOf('watch'), [{ rows: WATCH.ring, over: {} }], false, 'The Watchman ringing his hand bell');
+
   // The Magos as seen (the arm over the body at its anchor), and the arm alone.
   const ax = MAGOS_AT.arm.x * RES, ay = MAGOS_AT.arm.y * RES;
   const seated = MAGOS.body.map((row, j) => [...row].map((c, i) => { const a = MAGOS.arm[j - ay]?.[i - ax]; return a && a !== '.' ? a : c; }).join(''));
@@ -65,6 +68,7 @@ export function catalog() {
     { name: 'ADEPT39', family: 'adept39', obj: ADEPT39 },
     { name: 'MAGOS39', family: 'magos39', obj: MAGOS39 },
     { name: 'SKULL39', family: 'skull39', obj: SKULL39 },
+    { name: 'WATCH39', family: 'watch39', obj: WATCH39 },
   ];
   for (const { name, family, obj } of CH39) {
     if (!Object.keys(obj).length) continue;

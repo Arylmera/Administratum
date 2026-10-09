@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
-  BASE, MAPS, SCRIBE, ADEPT, MAGOS, RES, ART,
-  FAMILIES39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, checkComplete39, resolve39,
+  BASE, MAPS, SCRIBE, ADEPT, MAGOS, WATCH, RES, ART,
+  FAMILIES39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, WATCH39, WATCH39_AT, checkComplete39, resolve39,
 } from './sprites.js';
 import { TIER_II } from './theme.js';
 
@@ -34,6 +34,8 @@ for (const dir of ['up', 'down', 'left', 'right']) {
 }
 SCRIBE.right.forEach((f, i) => assert.deepEqual(SCRIBE.left[i], f.map(r => [...r].reverse().join(''))));
 for (const dir of ['up', 'down', 'left', 'right']) ADEPT[dir].forEach((f, i) => check(`ADEPT.${dir}[${i}]`, f, [12, 14]));
+for (const dir of ['up', 'down', 'left', 'right']) { assert.equal(WATCH[dir].length, 3); WATCH[dir].forEach((f, i) => check(`WATCH.${dir}[${i}]`, f, [16, 18])); }
+check('WATCH.ring', WATCH.ring, [16, 18]);
 check('MAGOS.body', MAGOS.body, [24, 24]);
 check('MAGOS.arm', MAGOS.arm, [5, 24]);
 const flip = r => [...r].reverse().join('');
@@ -43,24 +45,27 @@ MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).rep
 // 39° character families (wave 2): each ui/art/*39.* file (base or a world's) is either absent (the app still loads,
 // that export stays empty) or complete. At RUNTIME an incomplete file degrades instead of throwing (resolve39 below); completeness is
 // enforced by THIS TEST instead, over every file actually committed, so an incomplete one can never land.
-assert.deepEqual(FAMILIES39, ['scribe39', 'adept39', 'magos39', 'skull39']);
+assert.deepEqual(FAMILIES39, ['scribe39', 'adept39', 'magos39', 'skull39', 'watch39']);
 for (const f of FAMILIES39) if (Object.keys(ART.base[f].frames).length) assert.equal(checkComplete39(f, ART.base[f]), true, `ui/art/${f}.json: incomplete`);
 for (const [themeId, families] of Object.entries(ART.themed)) {
   for (const f of FAMILIES39) if (families[f] && Object.keys(families[f].frames).length) assert.equal(checkComplete39(f, families[f]), true, `ui/art/${themeId}/${f}.json: incomplete`);
 }
 // the exports (default theme) are filled exactly when the base file has frames, anchors with them
-for (const [f, obj, at] of [['scribe39', SCRIBE39, SCRIBE39_AT], ['adept39', ADEPT39, ADEPT39_AT], ['magos39', MAGOS39, MAGOS39_AT], ['skull39', SKULL39, SKULL39_AT]]) {
+for (const [f, obj, at] of [['scribe39', SCRIBE39, SCRIBE39_AT], ['adept39', ADEPT39, ADEPT39_AT], ['magos39', MAGOS39, MAGOS39_AT], ['skull39', SKULL39, SKULL39_AT], ['watch39', WATCH39, WATCH39_AT]]) {
   const has = Object.keys(ART.base[f].frames).length > 0;
   assert.equal(Object.keys(obj).length > 0, has, `${f}: exports vs file`); assert.equal(Object.keys(at).length > 0, has, `${f}: anchors vs file`);
 }
 // Any 39 family that does land (e.g. once an art agent has run) must be complete: every row still a key-palette char.
 const dirRows = (obj, name) => ['E', 'W', 'S', 'N'].flatMap(d => (obj[d] ?? []).map((rows, i) => [`${name}.${d}[${i}]`, rows]));
-for (const [name, obj, extra] of [['SCRIBE39', SCRIBE39, ['arm', 'armL', 'scroll']], ['ADEPT39', ADEPT39, []], ['MAGOS39', MAGOS39, ['body', 'arm']], ['SKULL39', SKULL39, ['skull']]]) {
+for (const [name, obj, extra] of [['SCRIBE39', SCRIBE39, ['arm', 'armL', 'scroll']], ['ADEPT39', ADEPT39, []], ['MAGOS39', MAGOS39, ['body', 'arm']], ['SKULL39', SKULL39, ['skull']], ['WATCH39', WATCH39, ['ring']]]) {
   if (!Object.keys(obj).length) continue;
   for (const [label, rows] of [...dirRows(obj, name), ...extra.map(n => [`${name}.${n}`, obj[n]])]) {
     for (const row of rows) for (const c of row) assert.ok(c === '.' || c in BASE, `${label}: bad char '${c}'`);
   }
 }
+
+// the Watchman's 39° frames keep the flat contract's size (16x18 logical)
+for (const [label, rows] of [...dirRows(WATCH39, 'WATCH39'), ['WATCH39.ring', WATCH39.ring]]) check(label, rows, [16, 18]);
 
 // Mutation-check: checkComplete39 must fail on a sheet missing a required frame (proves the "complete" check is not
 // vacuous), and must fail on one missing a required anchor too. A fully empty sheet (no file yet) is not a failure.
