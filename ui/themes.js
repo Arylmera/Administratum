@@ -255,6 +255,7 @@ function accent(base, { bands, text, ...t }) {
 // Corpo Tower: a megacorp's netsec floor. Black glass, blood-red neon, white chrome and white screens.
 accent(NEON, {
   id: 'corpo', name: 'Corpo Tower',
+  art: ['breakout'], // ui/art/corpo/: the Temp Pool (grey carpet tiles, glass hot-desk partitions, a TEMPS lanyard sign on the door)
   bands: { pink: [356, 1, -0.04], violet: [352, 0.9, -0.06], night: [0, 0.12], cyan: [210, 0.1, 0.2] },
   text: { subtitle: 'Tower 42 · Corporate netsec floor', motto: 'The company owns the night', breakout: 'Temp Pool' },
 });
