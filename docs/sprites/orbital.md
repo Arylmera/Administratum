@@ -119,6 +119,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/orbital/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/orbital/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_TAG.png" height="60"> |
 | <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/orbital/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_STAMP.png" height="48"> |
+| <a id="breakout_floor"></a>`BREAKOUT_FLOOR` | 8×8 | Break-out room floor tile (temp-folder sessions). Source: `ui/art/orbital/breakout.png`, drawn by scene.js | <img src="orbital/BREAKOUT_FLOOR.png" height="64"> |
+| <a id="breakout_rail"></a>`BREAKOUT_RAIL` | 8×5 | Break-out room rail, front and back edges. Source: `ui/art/orbital/breakout.png`, drawn by scene39.js | <img src="orbital/BREAKOUT_RAIL.png" height="40"> |
+| <a id="breakout_side"></a>`BREAKOUT_SIDE` | 2×8 | Break-out room side rail, seen from above. Source: `ui/art/orbital/breakout.png`, drawn by (not referenced by name) | <img src="orbital/BREAKOUT_SIDE.png" height="64"> |
+| <a id="breakout_post"></a>`BREAKOUT_POST` | 3×7 | Break-out room post: corners and beside each gate. Source: `ui/art/orbital/breakout.png`, drawn by (not referenced by name) | <img src="orbital/BREAKOUT_POST.png" height="56"> |
+| <a id="breakout_gate"></a>`BREAKOUT_GATE` | 2×8 | Break-out room gate, closed, in the side. Source: `ui/art/orbital/breakout.png`, drawn by (not referenced by name) | <img src="orbital/BREAKOUT_GATE.png" height="64"> |
+| <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/orbital/breakout.png`, drawn by (not referenced by name) | <img src="orbital/BREAKOUT_GATE_OPEN.png" height="40"> |
+| <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/orbital/breakout.png`, drawn by scene.js, scene39.js | <img src="orbital/BREAKOUT_GATE_FRONT.png" height="80"> |
+| <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/orbital/breakout.png`, drawn by scene.js | <img src="orbital/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
 
 ## Room tiles
 
