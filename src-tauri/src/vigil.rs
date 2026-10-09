@@ -65,11 +65,15 @@ pub struct VigilState {
 pub enum Step {
     Nothing,
     /// A countdown just started (`deadline`: started by the deadline).
-    Countdown { deadline: bool },
+    Countdown {
+        deadline: bool,
+    },
     /// The countdown stopped: something works again. Still armed.
     Resumed,
     /// Run the shutdown. The vigil is already disarmed. `last`: the session that stopped working last.
-    Fire { last: Option<String> },
+    Fire {
+        last: Option<String>,
+    },
 }
 
 #[derive(Default)]
