@@ -1,5 +1,5 @@
 import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf, layoutDepartments, breakoutOf } from './layout.js';
-import { STRIP_H, FLOOR, stripOf, layoutStrip } from './strip.js';
+import { STRIP_H, FLOOR, GAP, stripOf, layoutStrip } from './strip.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
@@ -423,12 +423,22 @@ function openDept(name) {
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
 const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
+// Subscription usage as claude-deck last wrote it (main.rs usage): session and weekly percent and the time to their
+// reset. Hidden when claude-deck is absent or its file is over 30 min old (it would show a stale percent).
+let usage = null;
+const pollUsage = () => invoke('usage').then(u => { usage = u; }, () => {});
+pollUsage(); setInterval(() => paused() || pollUsage(), 60_000);
+const until = iso => { const m = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60_000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
+const usageText = () => (usage?.session && usage?.weekly && Date.now() - Date.parse(usage.fetchedAt) < 30 * 60_000
+  ? `session ${usage.session.percent}% · ${until(usage.session.resetsAt)} | week ${usage.weekly.percent}% · ${until(usage.weekly.resetsAt)}` : '');
 function renderPlaques(blocks) {
   // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...(strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7)), b.color, b.w - 4, shownBranch(deptHead(b.name)?.branch), undefined, strip()]]));
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...(strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7)), b.color, b.w - 4 + (strip() ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip()]])); // the strip's plaque may run over the gap after it
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
   const Z = !strip() && breakoutOf(blocks, hall); // the break-out room's name under its fence (the strip has no room for it)
   if (Z) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
+  const u = strip() && usageText(); // the subscription's usage on a banner over the Magos, its right end at the throne's
+  if (u) want.set('usage', ['plaque usage', u, hall.magos.x + 10, FLOOR - 30 - STRIP_PAD, undefined, undefined, '', undefined, 'right']);
   if (!roster.length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
     const y = 120 + WALL_DY + (hall.h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall.sw, y), [mx, my] = at(hall.sw / 2, y);
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
@@ -441,7 +451,7 @@ function renderPlaques(blocks) {
       if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
     }
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : '' };
+      width: width ? `${width * scale}px` : '', transform: up === 'right' ? 'translate(-100%, -100%)' : up ? 'translateY(-100%)' : '' };
     if (el.dataset.text !== `${text}|${branch}`) {
       el.dataset.text = `${text}|${branch}`;
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;

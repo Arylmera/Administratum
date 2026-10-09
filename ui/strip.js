@@ -4,7 +4,9 @@
 // recaff and bench, a door, the petition line and the Magos, MARGIN_R short of the right end (nearest the clock).
 export const STRIP_H = 56; // lectern (30) + the scribe's label above it
 export const FLOOR = STRIP_H - 3; // feet
-const LEC_W = 32, CON_W = 20, GAP = 12;
+// Spread out, so a department's plaque (app.js, also over the GAP after it) has room for its name.
+const LEC_W = 44, CON_W = 24;
+export const GAP = 24;
 export const MARGIN_R = 32; // the right group (the Magos' throne) stops this far from the right edge
 // Doors (scene.js drawStripProps: the hall's room-doors frames, 10 wide, and its GATE, 32 wide). The gate starts right
 // of the handle (index.html #strip-handle, 6..18); a door clears what stands by it by 4, any spot by 12 (scene.js

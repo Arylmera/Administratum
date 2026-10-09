@@ -266,6 +266,13 @@ $s.Save()"
 }
 
 /// The header's close button: quits like the tray's Quit.
+/// Subscription usage as claude-deck last fetched it (~/.claude/claude-deck/usage-last.json: session and weekly
+/// percent and resetsAt), for the strip's banner; None when claude-deck isn't installed or the file is unreadable.
+#[tauri::command]
+fn usage() -> Option<serde_json::Value> {
+    std::fs::read_to_string(claude_dir().join("claude-deck").join("usage-last.json")).ok().and_then(|t| serde_json::from_str(&t).ok())
+}
+
 #[tauri::command]
 fn quit(app: AppHandle) {
     app.exit(0);
@@ -544,6 +551,7 @@ fn main() {
             set_quiet,
             set_toast_text,
             start_at_login,
+            usage,
             quit,
             desktop_shortcut,
             settings_load,
