@@ -279,6 +279,7 @@ accent(NEON, {
 // Sunset Drive: synthwave. A purple dusk, magenta neon, the chrome and screens a sunset orange.
 accent(NEON, {
   id: 'synth', name: 'Sunset Drive',
+  art: ['breakout'], // ui/art/synth/: the Arcade Corner (a checkered floor, magenta velvet ropes on brass stanchions, a PLAY marquee gate)
   bands: { pink: [318, 1, 0.02], violet: [285, 1, 0.02], night: [272, 1.4, 0.01], cyan: [28, 1, 0.02] },
   text: { subtitle: 'Outrun Strip · Midnight arcade', motto: 'Drive into the sunset', breakout: 'Arcade Corner' },
 });
