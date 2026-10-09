@@ -150,8 +150,9 @@ export const ADEPT = {}, ADEPT_AT = {};
 // The Magos on the throne: body, and the drill forearm that swings (scene.js drawMagos). MAGOS_AT: where the arm,
 // the chest screen's scan line and the two optics sit on the body, logical px.
 export const MAGOS = {}, MAGOS_AT = {};
-// The Watchman (Night Vigil, while armed): 16x18 logical, walks like the scribe (left mirrors right), and `ring`, the
-// hand bell raised. WATCH_AT: feet (the actor's floor point), light (the lantern's centre, where its glow is drawn).
+// The Watchman (Night Vigil, while armed): 16x18 logical, walks like the scribe (left mirrors right), and `ring`, his
+// signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle depending on the world). WATCH_AT: feet (the
+// actor's floor point), light (his light source's centre, where its glow is drawn).
 export const WATCH = {}, WATCH_AT = {}; // light is the right-facing frames'; WATCH.left mirrors it: x = 16 - light.x (actors.js lanternOf)
 // Every other sprite by name.
 export const MAPS = {};

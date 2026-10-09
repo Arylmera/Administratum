@@ -119,6 +119,21 @@ for (const [id, fams] of Object.entries(ART.themed)) for (const [fam, sh] of Obj
   }
   for (const [n, a] of Object.entries(sh.anchors)) for (const k of Object.keys(a)) assert.ok(ART.base[fam].anchors[n]?.[k] !== undefined, `${id}/${fam}: anchor ${n}.${k} unknown`);
 }
+// The Watchman's light source must sit on his `light` anchor: that pixel is non-transparent in every non-mirrored
+// frame (flat left is a mirror of right, with its own x; 39° has no mirrors), base art and every theme with its own
+// watch/watch39 sheet. Mutation-check: nudging a world's light anchor a few px onto empty pixels in its JSON must
+// fail this (checked by hand, not re-run here, since it would mean editing a committed art file).
+const litAt = (frames, name, [ax, ay]) => assert.ok(frames[name]?.[ay]?.[ax] && frames[name][ay][ax] !== '.', `${name}: light anchor (${ax},${ay}) is off the art`);
+for (const [world, flat, w39] of [['base', sheets.watch, sheets.watch39], ...Object.entries(ART.themed).filter(([, f]) => f.watch).map(([id, f]) => [id, f.watch, f.watch39])]) {
+  const [fx, fy] = flat.anchors.light;
+  for (const dir of ['up', 'down', 'right']) for (const i of [0, 1, 2]) litAt(flat.frames, `${dir} ${i}`, [fx, fy]);
+  litAt(flat.frames, 'ring', [fx, fy]);
+  if (w39 && Object.keys(w39.frames).length) {
+    const [wx, wy] = w39.anchors.light;
+    for (const dir of ['E', 'W', 'S', 'N']) for (const i of [0, 1, 2]) litAt(w39.frames, `${dir} ${i}`, [wx, wy]);
+    litAt(w39.frames, 'ring', [wx, wy]);
+  }
+}
 // Switching: a theme's frames come in, a theme without art keeps the default, and back again.
 const plain = { banner: MAPS.BANNER, table: MAPS.TABLE };
 setTheme('cyber');

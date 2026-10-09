@@ -46,11 +46,11 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="watch-down"></a>`WATCH.down` | 16×18 | The Watchman, walking down with his lantern, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.down.png" height="144"> |
-| <a id="watch-up"></a>`WATCH.up` | 16×18 | The Watchman, walking up with his lantern, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.up.png" height="144"> |
-| <a id="watch-right"></a>`WATCH.right` | 16×18 | The Watchman, walking right with his lantern, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.right.png" height="144"> |
-| <a id="watch-left"></a>`WATCH.left` | 16×18 | The Watchman, walking left with his lantern, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.left.png" height="144"> |
-| <a id="watch-ring"></a>`WATCH.ring` | 16×18 | The Watchman ringing his hand bell. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.ring.png" height="144"> |
+| <a id="watch-down"></a>`WATCH.down` | 16×18 | The Watchman, walking down with his light, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.down.png" height="144"> |
+| <a id="watch-up"></a>`WATCH.up` | 16×18 | The Watchman, walking up with his light, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.up.png" height="144"> |
+| <a id="watch-right"></a>`WATCH.right` | 16×18 | The Watchman, walking right with his light, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.right.png" height="144"> |
+| <a id="watch-left"></a>`WATCH.left` | 16×18 | The Watchman, walking left with his light, 3 frames. Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.left.png" height="144"> |
+| <a id="watch-ring"></a>`WATCH.ring` | 16×18 | The Watchman: his signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle). Source: `ui/art/cyber/watch.png` | <img src="matrix/WATCH.ring.png" height="144"> |
 
 ## Magos (on the throne)
 

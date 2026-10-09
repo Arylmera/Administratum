@@ -50,8 +50,8 @@ export function catalog() {
   add('SCRIBE.sashes', 'Scribe (one per session)', srcOf('scribe'), theme.sash.map(y => ({ rows: SCRIBE.down[0], over: { y } })), false, 'Department colours (theme sash), one per project');
   for (const r of RANKS) for (const dir of ['down', 'up', 'right', 'left']) add(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', srcOf('adept'), ADEPT[dir].map(rows => ({ rows, over: theme.rank[r].adept })), true, `${theme.text.rank[r]} adept, walking ${dir}, 3 frames`);
 
-  for (const dir of ['down', 'up', 'right', 'left']) add(`WATCH.${dir}`, 'Watchman (Night Vigil, while armed)', srcOf('watch'), WATCH[dir].map(rows => ({ rows, over: {} })), true, `The Watchman, walking ${dir} with his lantern, 3 frames`);
-  add('WATCH.ring', 'Watchman (Night Vigil, while armed)', srcOf('watch'), [{ rows: WATCH.ring, over: {} }], false, 'The Watchman ringing his hand bell');
+  for (const dir of ['down', 'up', 'right', 'left']) add(`WATCH.${dir}`, 'Watchman (Night Vigil, while armed)', srcOf('watch'), WATCH[dir].map(rows => ({ rows, over: {} })), true, `The Watchman, walking ${dir} with his light, 3 frames`);
+  add('WATCH.ring', 'Watchman (Night Vigil, while armed)', srcOf('watch'), [{ rows: WATCH.ring, over: {} }], false, 'The Watchman: his signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle)');
 
   // The Magos as seen (the arm over the body at its anchor), and the arm alone.
   const ax = MAGOS_AT.arm.x * RES, ay = MAGOS_AT.arm.y * RES;
