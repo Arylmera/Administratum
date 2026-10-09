@@ -7,6 +7,8 @@ use std::collections::HashMap;
 /// Nothing works and no transcript is written for this long: the countdown starts.
 pub const QUIET_MS: i64 = 300_000;
 pub const COUNTDOWN_MS: i64 = 120_000;
+/// Two ticks this far apart: the PC slept. Readings from before the sleep are stale, so the watch restarts.
+pub const WAKE_GAP_MS: i64 = 10_000;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Phase {
@@ -77,6 +79,8 @@ pub struct Vigil {
     /// Working sessions at the previous tick: id -> name.
     working: HashMap<String, String>,
     last_done: Option<String>,
+    /// `now` of the previous armed tick; None right after arming.
+    prev_tick: Option<i64>,
 }
 
 impl Vigil {
@@ -91,6 +95,8 @@ impl Vigil {
         }
         self.state = VigilState { armed: true, deadline, countdown_end: None, forced: false };
         self.calm_since = now;
+        self.prev_tick = None;
+        self.last_done = None;
         true
     }
 
@@ -109,6 +115,16 @@ impl Vigil {
         let busy = !working.is_empty();
         self.working = working;
         if !self.state.armed {
+            return Step::Nothing;
+        }
+        let woke = self.prev_tick.is_some_and(|p| now - p > WAKE_GAP_MS);
+        self.prev_tick = Some(now);
+        if woke {
+            // Never fire on the first tick after a sleep: restart the quiet window, drop any countdown.
+            if self.state.countdown_end.is_some() {
+                return self.resume(now);
+            }
+            self.calm_since = now;
             return Step::Nothing;
         }
         if busy {
@@ -157,6 +173,17 @@ mod tests {
         Helper { id: "h".into(), kind: "general-purpose".into(), task: "t".into(), model: None, context: None }
     }
     const M: i64 = 60_000;
+    const H: i64 = 60 * M;
+
+    /// Ticks once a second up to `now` (each of those must do nothing), then returns the step at `now`.
+    fn at(v: &mut Vigil, ss: &[Session], last_write: i64, now: i64) -> Step {
+        let mut t = v.prev_tick.unwrap_or(now);
+        while t + 1000 < now {
+            t += 1000;
+            assert_eq!(v.step(ss, last_write, t), Step::Nothing, "tick at {t}");
+        }
+        v.step(ss, last_write, now)
+    }
 
     #[test]
     fn phases() {
@@ -198,11 +225,11 @@ mod tests {
         assert_eq!(v.step(&idle, 0, 0), Step::Nothing, "disarmed");
         assert!(v.arm(0, None));
         assert!(!v.arm(1, None));
-        assert_eq!(v.step(&idle, 0, 5 * M - 1), Step::Nothing);
-        assert_eq!(v.step(&idle, 0, 5 * M), Step::Countdown { deadline: false });
+        assert_eq!(at(&mut v, &idle, 0, 5 * M - 1), Step::Nothing);
+        assert_eq!(at(&mut v, &idle, 0, 5 * M), Step::Countdown { deadline: false });
         assert_eq!(v.state().countdown_end, Some(7 * M));
-        assert_eq!(v.step(&idle, 0, 7 * M - 1), Step::Nothing);
-        assert_eq!(v.step(&idle, 0, 7 * M), Step::Fire { last: None });
+        assert_eq!(at(&mut v, &idle, 0, 7 * M - 1), Step::Nothing);
+        assert_eq!(at(&mut v, &idle, 0, 7 * M), Step::Fire { last: None });
         assert!(!v.state().armed, "fires once");
     }
 
@@ -211,23 +238,35 @@ mod tests {
         let mut v = Vigil::default();
         v.arm(0, None);
         v.step(&[s("a", "busy"), s("b", "busy")], 0, 0);
-        v.step(&[s("a", "idle"), s("b", "busy")], 0, M);
-        v.step(&[s("a", "idle"), s("b", "idle")], 0, 2 * M);
-        assert_eq!(v.step(&[s("a", "idle"), s("b", "idle")], 0, 7 * M), Step::Countdown { deadline: false });
-        assert_eq!(v.step(&[s("a", "idle"), s("b", "idle")], 0, 9 * M), Step::Fire { last: Some("n-b".into()) });
+        at(&mut v, &[s("a", "idle"), s("b", "busy")], 0, M);
+        at(&mut v, &[s("a", "idle"), s("b", "idle")], 0, 2 * M);
+        // b last worked on the tick at M: the quiet window ends at 6 M.
+        assert_eq!(at(&mut v, &[s("a", "idle"), s("b", "idle")], 0, 6 * M), Step::Countdown { deadline: false });
+        assert_eq!(at(&mut v, &[s("a", "idle"), s("b", "idle")], 0, 8 * M), Step::Fire { last: Some("n-b".into()) });
+    }
+
+    #[test]
+    fn a_session_done_before_arming_is_not_named() {
+        let mut v = Vigil::default();
+        v.step(&[s("a", "busy")], 0, 0);
+        v.step(&[s("a", "idle")], 0, 1000);
+        v.arm(1000, None);
+        assert!(v.last_done.is_none(), "arm forgets who finished before");
+        assert_eq!(at(&mut v, &[s("a", "idle")], 0, 5 * M + 1000), Step::Countdown { deadline: false });
+        assert_eq!(at(&mut v, &[s("a", "idle")], 0, 7 * M + 1000), Step::Fire { last: None });
     }
 
     #[test]
     fn countdown_resumes_when_work_comes_back() {
         let mut v = Vigil::default();
         v.arm(0, None);
-        v.step(&[s("a", "idle")], 0, 5 * M);
-        assert_eq!(v.step(&[s("a", "busy")], 0, 6 * M), Step::Resumed);
+        assert_eq!(at(&mut v, &[s("a", "idle")], 0, 5 * M), Step::Countdown { deadline: false });
+        assert_eq!(v.step(&[s("a", "busy")], 0, 5 * M + 1000), Step::Resumed);
         assert!(v.state().armed && v.state().countdown_end.is_none());
-        assert_eq!(v.step(&[s("a", "idle")], 0, 10 * M), Step::Nothing, "quiet window restarts from the busy tick");
-        assert_eq!(v.step(&[s("a", "idle")], 0, 11 * M), Step::Countdown { deadline: false });
+        assert_eq!(at(&mut v, &[s("a", "idle")], 0, 10 * M), Step::Nothing, "quiet window restarts from the busy tick");
+        assert_eq!(at(&mut v, &[s("a", "idle")], 0, 10 * M + 1000), Step::Countdown { deadline: false });
         // A transcript write during the countdown fails the re-check at its end.
-        assert_eq!(v.step(&[s("a", "idle")], 12 * M, 13 * M), Step::Resumed);
+        assert_eq!(at(&mut v, &[s("a", "idle")], 11 * M, 12 * M + 1000), Step::Resumed);
     }
 
     #[test]
@@ -235,10 +274,45 @@ mod tests {
         let mut v = Vigil::default();
         v.arm(0, Some(30 * M));
         let busy = [s("a", "busy")];
-        assert_eq!(v.step(&busy, 0, 29 * M), Step::Nothing);
-        assert_eq!(v.step(&busy, 0, 30 * M), Step::Countdown { deadline: true });
-        assert_eq!(v.step(&busy, 0, 31 * M), Step::Nothing, "forced: busy does not resume");
-        assert_eq!(v.step(&busy, 0, 32 * M), Step::Fire { last: None });
+        assert_eq!(at(&mut v, &busy, 0, 29 * M), Step::Nothing);
+        assert_eq!(at(&mut v, &busy, 0, 30 * M), Step::Countdown { deadline: true });
+        assert_eq!(at(&mut v, &busy, 0, 31 * M), Step::Nothing, "forced: busy does not resume");
+        assert_eq!(at(&mut v, &busy, 0, 32 * M), Step::Fire { last: None });
+    }
+
+    #[test]
+    fn a_wake_mid_countdown_resumes_instead_of_firing() {
+        let mut v = Vigil::default();
+        let idle = [s("a", "idle")];
+        v.arm(0, None);
+        assert_eq!(at(&mut v, &idle, 0, 5 * M), Step::Countdown { deadline: false });
+        assert_eq!(v.step(&idle, 0, 5 * M + 10 * H), Step::Resumed, "slept 10 h past the countdown end");
+        assert!(v.state().armed && v.state().countdown_end.is_none());
+        assert_eq!(at(&mut v, &idle, 0, 10 * M + 10 * H - 1000), Step::Nothing, "quiet window restarts at the wake");
+        assert_eq!(at(&mut v, &idle, 0, 10 * M + 10 * H), Step::Countdown { deadline: false });
+    }
+
+    #[test]
+    fn a_wake_mid_forced_countdown_resumes() {
+        let mut v = Vigil::default();
+        let busy = [s("a", "busy")];
+        v.arm(0, Some(30 * M));
+        assert_eq!(at(&mut v, &busy, 0, 30 * M), Step::Countdown { deadline: true });
+        assert_eq!(v.step(&busy, 0, 30 * M + 10 * H), Step::Resumed);
+        assert!(v.state().armed && !v.state().forced && v.state().countdown_end.is_none());
+        // The deadline has passed: a fresh, cancellable forced countdown starts on the next tick.
+        assert_eq!(v.step(&busy, 0, 30 * M + 10 * H + 1000), Step::Countdown { deadline: true });
+    }
+
+    #[test]
+    fn a_wake_without_countdown_restarts_the_quiet_window() {
+        let mut v = Vigil::default();
+        let idle = [s("a", "idle")];
+        v.arm(0, None);
+        assert_eq!(at(&mut v, &idle, 0, M), Step::Nothing);
+        assert_eq!(v.step(&idle, 0, M + 10 * H), Step::Nothing, "no countdown on the wake tick");
+        assert_eq!(at(&mut v, &idle, 0, 6 * M + 10 * H - 1000), Step::Nothing);
+        assert_eq!(at(&mut v, &idle, 0, 6 * M + 10 * H), Step::Countdown { deadline: false });
     }
 
     #[test]
