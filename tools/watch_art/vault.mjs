@@ -3,7 +3,7 @@
 // the back; the blue jumpsuit (r/R/d) with a yellow collar and front stripe (g/T), steel shoulder pads (m/l), a belt (M)
 // with a yellow buckle, steel gloves (m/M) and boots (M/m), a big yellow 111 on his back, a steel baton (l/m/M) hung at
 // his frame-left hip, a Maglite (steel handle, head l, lens F/f) held out at his frame right in every facing, so the
-// light anchor stays put. Ring: he blows a whistle (l/b), the frame-left hand raised to his mouth. 32x36 art px.
+// light anchor stays put. Ring: he blows a whistle (l/b), the frame-left arm bent up, a yellow glove (h/g) at his mouth. 32x36 art px.
 // Bodies are rows 0..26 (helmet 0..11, jumpsuit 12..26), legs rows 27..35 (they carry the walk); patches stamped over.
 
 const stamp = (rows, patch, x, y) => rows.map((r, j) => {
@@ -214,21 +214,19 @@ const TORCH = [
 const LX = 24, LY = 20, LIGHT = [LX + 6, LY + 2];
 // The baton in its yellow belt loop.
 const BATON = ['kgk', 'klk', 'kmk', 'kmk', 'kMk', 'kMk', 'kkk'];
-// Ring: his frame-left arm cleared, then raised, elbow out, the glove at his mouth with the whistle.
+// Ring: his frame-left arm cleared, then a forearm block bent up from the elbow, the yellow glove at his mouth with the whistle.
 const noArm = rows => put(put(rows, 16, 22, 5, '...'), 23, 23, 6, '..');
 const RAISE = [
-  '..........',
-  '.....kmmmk',
-  '.....kmMMk',
-  '....kRrkk.',
-  '...kRrk...',
-  '..kRrk....',
-  '.kRrk.....',
-  'kRrk......',
-  'kRrk......',
-  'kkkk......',
+  '..kkkk......',
+  '.kRrrdkkkkk.',
+  '.kRrrdkhggGk',
+  'kRrrdkkgggGk',
+  'kRrrdk.kkkk.',
+  'kRrr',
+  'kRrr',
+  'kkkkk',
 ];
-const WHISTLE = ['kbllk', '.kkkk'];
+const WHISTLE = ['klbbk', '.kkkk'];
 
 export default () => {
   const front = (head, suit) => [...head, ...suit];
@@ -246,7 +244,7 @@ export default () => {
     iso[`S ${i}`] = frame(S, LEGS_FRONT[i], baton, torch);
     iso[`N ${i}`] = frame(N, LEGS_FRONT[i], num(9), baton, torch);
   }
-  const ring = body => frame(noArm(body), LEGS_FRONT[0], baton, [RAISE, 2, 9], [WHISTLE, 11, 10], torch);
+  const ring = body => frame(noArm(body), LEGS_FRONT[0], baton, [RAISE, 0, 8], [WHISTLE, 11, 10], torch);
   flat.ring = ring(DOWN);
   iso.ring = ring(S);
   const anchors = { feet: [16, 36], light: LIGHT };
