@@ -437,8 +437,10 @@ function renderPlaques(blocks) {
   if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
   const Z = !strip() && breakoutOf(blocks, hall); // the break-out room's name under its fence (the strip has no room for it)
   if (Z) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
-  const u = strip() && usageText(); // the subscription's usage on a banner over the Magos, its right end at the throne's
-  if (u) want.set('usage', ['plaque usage', u, hall.magos.x + 10, FLOOR - 30 - STRIP_PAD, undefined, undefined, '', undefined, 'right']);
+  const u = strip() && usageText(); // the subscription's usage on a banner over the Magos
+  // centred over the Magos, or flush with the strip's right end when that would run off it (its width: last frame's)
+  const uw = (plaques.get('usage')?.offsetWidth ?? 0) / scale;
+  if (u) want.set('usage', ['plaque usage', u, Math.min(hall.magos.x - uw / 2, hall.w - 2 - uw), FLOOR - 30 - STRIP_PAD, undefined, undefined, '', undefined, true]);
   if (!roster.length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
     const y = 120 + WALL_DY + (hall.h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall.sw, y), [mx, my] = at(hall.sw / 2, y);
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
@@ -451,7 +453,7 @@ function renderPlaques(blocks) {
       if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
     }
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: width ? `${width * scale}px` : '', transform: up === 'right' ? 'translate(-100%, -100%)' : up ? 'translateY(-100%)' : '' };
+      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : '' };
     if (el.dataset.text !== `${text}|${branch}`) {
       el.dataset.text = `${text}|${branch}`;
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;

@@ -115,4 +115,12 @@ assert.ok(a.puff > 0 && !a.burn);
   assert.ok(b.puff > 0 && !b.burn);
 }
 
+// a finished adept leaves no hole: the strip packs the live consoles side by side, the block shrinks with them
+{
+  const lay = helpers => layoutStrip([{ name: 'Terra', color: '#fff', ids: ['t1'], helpers, cons: 1 }], { size: { w: 800 } });
+  const holed = lay(['a', null, 'c']), packed = lay(['a', 'c']);
+  assert.deepEqual(holed.consoles, packed.consoles);
+  assert.deepEqual(holed.blocks, packed.blocks);
+}
+
 console.log('strip ok');

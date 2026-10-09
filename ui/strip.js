@@ -57,8 +57,10 @@ export function layoutStrip(depts, { size } = {}) {
   const blocks = [], desks = [], seats = new Map(), consoles = [], consoleSeats = new Map();
   let x = x0, overflow = 0, full = false;
   for (const d of depts) {
-    const helpers = d.helpers ?? [], slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id }));
-    const ncons = Math.max(d.cons ?? 0, helpers.length);
+    // the strip packs its consoles: a finished adept's console goes at once, the others close up (the hall keeps its
+    // 2x2 console grid stable instead); d.cons, the hall's reservation in slots of 4, does not apply here
+    const helpers = (d.helpers ?? []).filter(id => id != null), slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id }));
+    const ncons = helpers.length;
     const w = slotsOf.length * LEC_W + ncons * CON_W;
     if (full || x + w + (d.temp ? 12 : 0) > x1 + 1) { full = true; overflow += slotsOf.filter(k => k.id).length; continue; } // a temp block keeps room for the bay's east gate
     blocks.push({ name: d.name, color: d.color, x, y: FLOOR - 3, w, h: 5, ...(d.temp && { temp: true }) });
@@ -68,7 +70,6 @@ export function layoutStrip(depts, { size } = {}) {
       if (k.id) seats.set(k.id, { x: desk.x + 11, y: FLOOR });
     });
     helpers.forEach((id, k) => {
-      if (id == null) return;
       const con = { id, dept: d.name, x: x + slotsOf.length * LEC_W + k * CON_W + 3, y: FLOOR - 22 };
       consoles.push(con);
       consoleSeats.set(id, { x: con.x + 7, y: FLOOR });
