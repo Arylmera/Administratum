@@ -178,7 +178,10 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
   if (L.overflow) shrinkSince = null;
   while (L.overflow && level < MAX_LEVEL) L = lay(plan, { ...levelOpt(++level), size }); // still full: compact, then grow
   if (level > 0 && !L.overflow) { // hysteresis: the level below must still hold a newcomer's department, for a while
-    const roomy = !lay(plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }), { ...levelOpt(level - 1), size }).overflow;
+    // the probe goes before any temp (break-out room) block, where a real newcomer would land, not after it
+    const i = plan.findIndex(p => p.temp), plus = { name: '+', desks: [{ key: '+', id: '+' }] };
+    const probe = i < 0 ? plan.concat(plus) : [...plan.slice(0, i), plus, ...plan.slice(i)];
+    const roomy = !lay(probe, { ...levelOpt(level - 1), size }).overflow;
     if (!roomy) shrinkSince = null;
     else if (now - (shrinkSince ??= now) >= shrinkG) { L = lay(plan, { ...levelOpt(--level), size }); shrinkSince = null; }
   }

@@ -134,6 +134,7 @@ onTheme(() => { fences = new Map(); });
 function fenceBox(axis, len, frame) {
   const key = `${axis}:${len}:${frame}`;
   if (fences.has(key)) return fences.get(key);
+  if (fences.size > 64) fences.clear();
   const f = MAPS[frame], R = f.length, C = f[0].length, gate = frame !== 'BREAKOUT_RAIL', [u1, v1] = axis === 'u' ? [len, 2] : [2, len];
   // rails tile the frame along the face; a gate (one leaf) scales its whole frame across the face instead, as doorKit does.
   const tile = (i, r) => f[Math.min(R - 1, r)][i % C];

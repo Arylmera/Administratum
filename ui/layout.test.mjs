@@ -450,4 +450,20 @@ assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
   }
 }
 
+// break-out room: the shrink hysteresis probe (a newcomer's department) must land before the temp block, as a
+// real newcomer would; appended after it, the probe sees the break-out zone's own room and wrongly reports fit
+{
+  const dept = (name, n, temp) => ({ name, color: '#fff', ids: ids(name, n), ...(temp && { temp }) });
+  const big = ['A', 'B'].map(n => dept(n, 5)); // force compact (level 1, no bays)
+  let P = planLayout(null, big, 0);
+  assert.ok(P.compact && P.bays === 0 && P.level === 1, 'starts compact');
+  const target = [dept('N0', 2), dept('N1', 1), dept('T', 1, true)];
+  const grace = { desk: 0, dept: 0 };
+  P = planLayout(P, target, 1000, grace);
+  P = planLayout(P, target, 1000 + SHRINK_MS - 1, grace);
+  assert.ok(P.compact, 'not yet SHRINK_MS');
+  P = planLayout(P, target, 1000 + SHRINK_MS, grace);
+  assert.ok(P.compact && P.level === 1, 'full desks would not actually hold a newcomer beside the break-out room');
+}
+
 console.log('layout ok');
