@@ -263,6 +263,7 @@ accent(NEON, {
 // Rain City: the lower levels in the rain. Sodium-amber neon, teal screens, burnt-orange coolant, blue-green smog.
 accent(NEON, {
   id: 'rain', name: 'Rain City',
+  art: ['breakout'], // ui/art/rain/: the Back Alley (wet asphalt with a puddle, chain-link fence on galvanised posts, a flickering OUT sign over the gate)
   bands: { pink: [30, 1, 0.02], violet: [18, 0.8, -0.04], night: [196, 0.7], cyan: [174, 0.75, -0.04] },
   text: { subtitle: 'Lower Levels · Night market den', motto: 'It never stops raining down here', breakout: 'Back Alley' },
 });
