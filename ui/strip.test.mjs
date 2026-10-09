@@ -8,7 +8,7 @@ assert.equal(H.strip, true);
 assert.equal(H.h, STRIP_H);
 assert.equal(H.entry.y, FLOOR);
 assert.ok(H.entry.x < 0); // off-screen left
-// left to right: gate, recaff and bench, the departments, cogitator, queue, Magos; all on the floor, no overlap
+// left to right: gate, recaff and two benches, the departments, cogitator, queue, Magos; all on the floor, no overlap
 assert.ok(H.magos.x < 800 && H.queue[0].x < H.magos.x);
 for (let i = 1; i < H.queue.length; i++) assert.ok(H.queue[i].x < H.queue[i - 1].x);
 assert.ok(H.recaff.x < H.refectory[0].x && H.refectory.at(-1).x < H.x0 - 12);
@@ -24,18 +24,23 @@ const [gate, dRef, dCog, dSan] = H.doors;
 assert.deepEqual(H.doors.map(d => d.kind), ['gate', 'sanctum', 'sanctum', 'sanctum']);
 for (let i = 1; i < H.doors.length; i++) assert.ok(H.doors[i - 1].x + H.doors[i - 1].w <= H.doors[i].x);
 assert.ok(gate.x >= 18 && gate.x + gate.w <= H.recaff.x - 18); // the recaff drawn 18 px left of its spot
-assert.ok(H.bench.x + 46 <= dRef.x && dRef.x + dRef.w <= H.x0);
+assert.equal(H.benches.length, 2);
+assert.ok(H.benches[0].x + 46 < H.benches[1].x && H.benches[1].x + 46 <= dRef.x && dRef.x + dRef.w <= H.x0);
+assert.equal(H.refectory.length, 6); // three nappers a bench
+assert.ok(H.recaff.x - 18 - (gate.x + gate.w) >= 20); // room between the gate and the refectory
+assert.ok(H.cog.x - (dCog.x + dCog.w) >= 14 && dSan.x - (H.cog.x + 82) >= 14); // the bank clear of both its doors
+for (let i = 1; i < H.queue.length; i++) assert.ok(H.queue[i - 1].x - H.queue[i].x >= 22); // petitioners spaced out
 assert.ok(H.x1 <= dCog.x && dCog.x + dCog.w <= H.cog.x);
 assert.ok(H.cog.x + 82 <= dSan.x && dSan.x + dSan.w <= H.queue.at(-1).x - 6);
 // nobody standing at a spot holds a door open (scene.js near: 12 px)
 const away = (p, d) => Math.max(d.x - p.x, p.x - (d.x + d.w));
 for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff, H.magos]) for (const d of H.doors.slice(1)) assert.ok(away(p, d) >= 12);
 
-// a narrow strip (a 1280 px screen at scale 2.5) still holds every room without overlap, and departments between them
-const N = stripOf(520);
+// a narrow strip (a 1280 px screen at scale 2) still holds every room without overlap, and departments between them
+const N = stripOf(640);
 for (let i = 1; i < N.doors.length; i++) assert.ok(N.doors[i - 1].x + N.doors[i - 1].w <= N.doors[i].x);
 assert.ok(N.x1 - N.x0 > 44);
-assert.ok(N.magos.x < 520 && N.queue[0].x < N.magos.x);
+assert.ok(N.magos.x < 640 && N.queue[0].x < N.magos.x);
 
 // route: one step along the floor
 assert.deepEqual(stripRoute({ x: 10, y: FLOOR }, { x: 90, y: FLOOR }), [{ x: 90, y: FLOOR }]);
@@ -110,6 +115,13 @@ assert.ok(a.puff > 0 && !a.burn);
   const holed = lay(['a', null, 'c']), packed = lay(['a', 'c']);
   assert.deepEqual(holed.consoles, packed.consoles);
   assert.deepEqual(holed.blocks, packed.blocks);
+}
+
+// the departments sit centred between the refectory and the cogitator, not packed against the refectory
+{
+  const S = stripOf(1000), L = layoutStrip([{ name: 'a', color: '#fff', ids: ['s1'] }], { size: { w: 1000 } }), [b] = L.blocks;
+  assert.ok(Math.abs((b.x - S.x0) - (S.x1 + 1 - (b.x + b.w))) <= 1);
+  assert.equal(L.seats.get('s1').x, L.desks[0].x + 11); // seats move with their desks
 }
 
 console.log('strip ok');

@@ -773,7 +773,7 @@ function drawStripProps(g, H, actors, now, items) {
     g2.save(); g2.translate(H.cog.x - COG_X, top(MAPS.COGITATOR) - COG_Y); drawCogitator(g2, t, cog); g2.restore();
   });
   prop(MAPS.RECAFF, H.recaff.x - 18);
-  prop(MAPS.BENCH, H.bench.x);
+  for (const b of H.benches) prop(MAPS.BENCH, b.x);
   for (const d of H.doors.slice(1)) { // the hall's east-wall doors, stood up: open while anyone is near (as drawDoors)
     const name = `door ${d.kind} ${near(actors, d.x, FLOOR, d.x + d.w, FLOOR) ? 'open' : 'closed'}`, map = ROOM.frames[name];
     prop(map, d.x, g2 => tile(g2, name, d.x, top(map)));

@@ -14,7 +14,8 @@ export const MARGIN_R = 32; // the right group (the Magos' throne) stops this fa
 // of the handle (index.html #strip-handle, 6..18); a door clears what stands by it by 4, any spot by 12 (scene.js
 // near), so nobody standing still holds it open.
 const GATE_X = 20, GATE_W = 32, DOOR_W = 10;
-const REF_W = 83, COG_W = 100; // recaff left edge to the far side of the door past the 46 px bench; cogitator door to the next
+const BENCH_W = 46, BENCH_GAP = 6, GATE_GAP = 20, QUEUE_STEP = 22; // the bench sprite; petitioners this far apart
+const COG_PAD = 14, COG_W = DOOR_W + COG_PAD + 82 + COG_PAD; // the 82 px bank with COG_PAD either side, door to door
 
 export const stripRoute = (a, b) => (a.x === b.x && a.y === b.y ? [] : [{ x: b.x, y: b.y }]); // every point is on the floor
 
@@ -25,20 +26,23 @@ export function stripOf(w) {
   if (S) return S;
   if (strips.size > 16) strips.clear();
   const at = x => ({ x, y: FLOOR });
-  const R = w - MARGIN_R, magos = at(R - 10), queue = Array.from({ length: 6 }, (_, i) => at(R - 34 - 14 * i));
+  const R = w - MARGIN_R, magos = at(R - 10), queue = Array.from({ length: 6 }, (_, i) => at(R - 34 - QUEUE_STEP * i));
   const door = (x, kind, dw = DOOR_W) => ({ x, w: dw, kind });
-  const dSan = door(R - 104 - 12 - DOOR_W, 'sanctum'); // 12 clear of the last petitioner; the sanctum zone never moves
-  // the refectory just inside the gate: the recaff (drawn 18 px left of its spot), the bench, a door to the hall
-  const rx = GATE_X + GATE_W + 4, recaff = at(rx + 18), bench = { x: rx + 23, y: FLOOR }, refectory = [11, 23, 35].map(d => at(bench.x + d));
-  const dRef = door(rx + REF_W - DOOR_W, 'sanctum');
+  const dSan = door(queue.at(-1).x - 12 - DOOR_W, 'sanctum'); // 12 clear of the last petitioner; the sanctum zone never moves
+  // the refectory GATE_GAP inside the gate: the recaff (drawn 18 px left of its spot), two benches, three nappers a
+  // bench, a door to the hall 4 past the second bench
+  const rx = GATE_X + GATE_W + GATE_GAP, recaff = at(rx + 18);
+  const benches = [rx + 23, rx + 23 + BENCH_W + BENCH_GAP].map(x => ({ x, y: FLOOR }));
+  const refectory = benches.flatMap(b => [11, 23, 35].map(d => at(b.x + d)));
+  const dRef = door(benches[1].x + BENCH_W + 4, 'sanctum');
   // the cogitator just before the sanctum: its bank between its door and the sanctum's
   const dCog = door(dSan.x - COG_W, 'sanctum');
-  const cog = { x: dCog.x + 4 + DOOR_W, y: FLOOR }, cogSpots = [20, 41, 62].map(d => at(cog.x + d)); // in front of the bank; all three the sanctum's door: one height, the tallest
+  const cog = { x: dCog.x + DOOR_W + COG_PAD, y: FLOOR }, cogSpots = [20, 41, 62].map(d => at(cog.x + d)); // in front of the bank; all three the sanctum's door: one height, the tallest
   S = {
     strip: true, route: stripRoute, w, h: STRIP_H, baseH: STRIP_H, bays: 0, dy: 0, rows: 1,
     sw: w, rx: w, ox: 0, dx: 0, split: STRIP_H, sd: 0, sb: 0, hy: 0, // roomOf(): everything is 'hall'
     x0: dRef.x + DOOR_W + 4, x1: dCog.x - 4, y0: FLOOR, y1: FLOOR, aisleY: FLOOR, corridorX: w, lanes: [FLOOR],
-    entry: at(-10), magos, queue, refectory, recaff, cogSpots, cog, bench, // cog, bench: props' left end on the floor
+    entry: at(-10), magos, queue, refectory, recaff, cogSpots, cog, benches, // cog, benches: props' left end on the floor
     gate: at(GATE_X + GATE_W / 2), doors: [door(GATE_X, 'gate', GATE_W), dRef, dCog, dSan], // scene.js drawStripProps
   };
   strips.set(w, S);
@@ -70,6 +74,11 @@ export function layoutStrip(depts, { size } = {}) {
       consoleSeats.set(id, { x: con.x + 7, y: FLOOR });
     });
     x += w + GAP;
+  }
+  // centred between the refectory's door and the cogitator's (packed from x0, then moved by half the room left over)
+  const dx = Math.max(0, Math.floor((x1 + 1 - (x - GAP)) / 2));
+  if (dx) {
+    for (const o of [...blocks, ...desks, ...consoles, ...seats.values(), ...consoleSeats.values()]) o.x += dx;
   }
   return { blocks, desks, seats, consoles, consoleSeats, overflow };
 }
