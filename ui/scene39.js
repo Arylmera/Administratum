@@ -307,7 +307,7 @@ function drawActor39(g, a, r, fillOf) {
   else {
     const fx = x + r.dx, fy = y + r.dy - bobOf(r);
     blit(g, r.map, fx, fy + (a.h && a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), r.over);
-    if (!a.h && a.pose !== 'burn') {
+    if (!a.h && !a.watch && a.pose !== 'burn') {
       const A = SCRIBE39_AT, scroll = isQuestion(a.s) ? MAPS.QSCROLL : SCRIBE39.scroll;
       if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); }
       else {

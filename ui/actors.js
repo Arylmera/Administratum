@@ -1,8 +1,9 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAPS, rankOf, blit } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
 import { view } from './view.js';
+import { vigil } from './vigil.js';
 
 const SPEED = 80; // logical px per second
 // The strip spans the whole screen, so a walk there takes twice the hall's speed (a wide screen's crossing stays short).
@@ -26,6 +27,13 @@ export const FX_S = { commit: 3, push: 4.4, 'tool-error': 1, 'task-done': 1.5 };
 export const PICK_S = 1.6; // the push courier reaches the desk and takes the newest seal
 export const LAMP_S = 20;
 export const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
+// Night Vigil's Watchman (id 'watch', a.watch, no session: never a.s nor a.h): in through the gate while the vigil is
+// armed, out when disarmed. He patrols from seat to seat (a desk's or lectern's, PATROL_S at each); during the
+// countdown he posts beside the gate, past its east brazier, facing down (in the opening its frame hides him). Never
+// in the strip (its gate is off-screen).
+export const WATCH_ID = 'watch';
+const PATROL_S = 3;
+export const RING_S = 1; // the bell raised (WATCH.ring) at each 30 s mark (app.js rings it)
 
 export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); this.hall = hallOf(0); } // naps: scribe id -> hall.refectory index
@@ -52,6 +60,7 @@ export class Cast {
       live.add(id);
       upsert(id, { owner: s.id, h });
     }
+    if (this.watchOn()) live.add(WATCH_ID);
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
     const waiting = roster.filter(isPetitioner).sort((p, q) => isQuestion(p) - isQuestion(q) || p.sinceMs - q.sinceMs).map(s => s.id);
     // Hysteresis: Bash calls flip a session busy<->shell every few seconds; don't walk back and forth for each one.
@@ -133,6 +142,7 @@ export class Cast {
   destination(a, seats, waiting, shell) {
     const { entry: ENTRY, queue: QUEUE_SLOTS, aisleY: AISLE_Y, cogSpots: COG_SPOTS, refectory } = this.hall;
     if (a.leaving) return { ...ENTRY, pose: 'gone' };
+    if (a.watch) return vigil.countdownEnd != null || !a.post ? { x: ENTRY.x + 36, y: ENTRY.y - 6, pose: 'gate', dir: 'down' } : { ...a.post, pose: 'patrol' };
     if (isPetitioner(a.s)) {
       const queueIdx = Math.min(waiting.indexOf(a.id), QUEUE_SLOTS.length - 1);
       a.burn = null; // a petition outranks the ritual: the bundle is dropped
@@ -151,7 +161,28 @@ export class Cast {
     return a.leaving || !seat ? { ...this.hall.entry, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
   }
 
+  watchOn() { return vigil.armed && !this.hall.strip; }
+  // Each frame: the Watchman walks in or out with the vigil, and moves on to another seat once he has stood PATROL_S.
+  watch(dt) {
+    const seats = [...(this.last?.seats.values() ?? [])], blocks = this.last?.blocks ?? [];
+    const pick = () => { const s = seats[Math.floor(Math.random() * seats.length)]; return s && { x: s.x, y: s.y }; };
+    let a = this.actors.get(WATCH_ID);
+    if (this.watchOn() && !a) {
+      const { entry } = this.hall;
+      a = { id: WATCH_ID, watch: true, x: entry.x, y: entry.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false, post: pick() };
+      this.actors.set(WATCH_ID, a);
+    }
+    if (!a) return;
+    a.leaving = !this.watchOn();
+    if (a.ring > 0) a.ring -= dt;
+    if (a.pose !== 'patrol') a.rest = null;
+    else if ((a.rest = (a.rest ?? PATROL_S) - dt) <= 0) { a.rest = null; a.post = pick(); }
+    if (!a.post) a.post = pick(); // no seat yet (an empty hall): he waits at the gate
+    this.go(a, this.destination(a), blocks);
+  }
+
   update(dt) {
+    this.watch(dt);
     for (const a of [...this.actors.values()]) {
       a.t += dt;
       let step = speed() * dt;
@@ -194,6 +225,10 @@ const robeOf = (rank, sash) => {
 // (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing.
 export function bodyOf(a) {
   const walk = a.pose === 'walk';
+  if (a.watch) { // the Watchman: 16x18, his bell raised for RING_S at each 30 s mark of the countdown
+    const i = Math.floor((a.walked ?? 0) / STRIDE) % 3, dir = walk ? a.dir : a.target?.dir ?? a.dir;
+    return { map: a.ring > 0 ? WATCH.ring : WATCH[dir][walk ? i : 0], left: a.ring > 0 ? false : dir === 'left', x: Math.round(a.x) - WATCH_AT.feet.x, y: Math.round(a.y) - WATCH_AT.feet.y, step: walk ? i : -1 };
+  }
   if (a.h) { // adept: 12x14
     const i = Math.floor((a.walked ?? 0) / STRIDE) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
     return { map: walk ? ADEPT[a.dir][i] : ADEPT[a.target.dir][0], over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
@@ -211,11 +246,21 @@ export const face39 = dir => FACE39[dir] ?? 'N';
 // (dx, dy, logical px), the palette and walk step of bodyOf. null while the theme has no 39° art for this actor (the
 // caller draws the flat frame upright).
 export function bodyOf39(a) {
-  const F = a.h ? ADEPT39 : SCRIBE39, A = a.h ? ADEPT39_AT : SCRIBE39_AT;
+  const F = a.watch ? WATCH39 : a.h ? ADEPT39 : SCRIBE39, A = a.watch ? WATCH39_AT : a.h ? ADEPT39_AT : SCRIBE39_AT;
   if (!F.E) return null;
   const b = bodyOf(a), walk = a.pose === 'walk', i = Math.max(0, b.step);
+  if (a.watch) {
+    const face = face39(walk ? a.dir : a.target?.dir ?? a.dir);
+    return { map: a.ring > 0 ? F.ring : F[face][walk ? i : 0], dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+  }
   const face = walk ? face39(a.dir) : a.pose === 'burn' ? 'S' : a.h ? face39(a.target?.dir) : 'N';
   return { map: F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+}
+
+// The Watchman's lantern in the flat view (floor coords): WATCH_AT.light, mirrored with the frame when he faces left.
+export function lanternOf(a) {
+  const b = bodyOf(a), L = WATCH_AT.light;
+  return { x: b.x + (b.left ? b.map[0].length / RES - L.x : L.x), y: b.y + L.y };
 }
 
 // A walker's body rises 1 art px on the passing frame (depth: motion cues); its shadow stays on the floor.
@@ -224,6 +269,7 @@ export const bobOf = b => (b.step === 0 ? 0.5 : 0);
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
   const b = bodyOf(a);
+  if (a.watch) { blit(g, b.map, b.x, b.y - bobOf(b)); return; }
   if (a.h) { // adept: typing bob of 1 art px at its console
     blit(g, b.map, b.x, b.y - bobOf(b) + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;

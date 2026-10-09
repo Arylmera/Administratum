@@ -6,7 +6,7 @@ import { drawLighting } from './lighting.js';
 import { RES } from './sprites.js';
 import { T, onTheme, setTheme, t, hexA } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
-import { Cast, isStale, isQuestion, LAMP_S, FRESH_MS } from './actors.js';
+import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
@@ -18,7 +18,7 @@ import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
 import { glide, gliding, clearGlides } from './glide.js';
 import { initCard, sel, fillOf, ago, filesOf, renderCard, answerable, probeActions, canAnswer, answer, pick, closeCard, actionsOn, noActions } from './card.js';
-import { vigil, onVigil } from './vigil.js';
+import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initStripWin, switchStrip, stripScale, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
@@ -291,7 +291,7 @@ const FPS = 30;
 function busy(now) {
   if (drag?.on || pan.to || Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02 || lag.x || lag.y || gliding(now) || sceneBusy()) return true;
   for (const a of cast.actors.values()) {
-    if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || (!a.h && a.s.status === 'waiting')) return true;
+    if (a.path.length || a.wait > 0 || a.fx?.length || a.burn || a.puff > 0 || (a.lamp && a.lamp.t < LAMP_S) || a.s?.status === 'waiting') return true;
   }
   return false;
 }
@@ -346,12 +346,18 @@ function frame(now) {
   let lights;
   outline.on = strip(); // outlined sprites in the strip only: the hall and the sprite viewer draw without
   try { lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now); } finally { outline.on = false; }
+  const w = cast.actors.get(WATCH_ID);
+  if (w) { // the Watchman's lantern; in 39° a pool on the floor under it (lighting.js lifts a desk-height light too far)
+    const l = lanternOf(w);
+    lights.push({ ...l, ...(iso() && { y: w.y, z: 0 }), r: 20, color: T.light.amber, flicker: true });
+  }
   if (back) drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
   if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
   syncTags(sheetTags, 'sheets', sheetText, 10, -2);
+  syncTags(watchTags, 'petition', watchText, 0, -22);
   syncHover();
   syncEdges();
 }
@@ -539,7 +545,7 @@ function syncEdges() {
     const list = beyond[dir];
     if (b.hidden !== !list.length) b.hidden = !list.length; // an unchanged write still dirties the DOM
     if (b.hidden) continue;
-    const pets = list.filter(o => !o.a.h && o.a.s.status === 'waiting');
+    const pets = list.filter(o => o.a.s?.status === 'waiting');
     const o = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p)); // not t: that is the wording (theme.js)
     const flat = dir === 'up' || dir === 'down', inset = 16;
     const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? o.x : o.y)))}px`;
@@ -569,8 +575,12 @@ function syncTags(tags, cls, textOf, dx, dy) {
 }
 // A scribe stopped on a usage limit (backend `limit`): sealed until the reset hour.
 const sealTags = new Map();
-const sealText = a => (!a.h && !a.leaving && a.s.limit && !labels.has(a.id)
+const sealText = a => (!a.h && !a.leaving && a.s?.limit && !labels.has(a.id)
   ? (a.s.limit.resetMs ? t('limitLabel', { time: hhmm(new Date(a.s.limit.resetMs)) }) : t('limitSealed')) : '');
+
+// The Watchman at the gate: the countdown's seconds over him.
+const watchTags = new Map();
+const watchText = a => (a.watch && !a.leaving && vigil.countdownEnd != null ? `${secondsLeft(Date.now())}s` : '');
 
 // A working scribe's files changed this turn, by its desk.
 const sheetTags = new Map();
@@ -593,7 +603,7 @@ function syncHover() {
   const hide = !h || labels.has(h.id);
   if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
-  tip.textContent = h.h ? h.h.kind : h.s.name;
+  tip.textContent = h.watch ? t('watch.name') : h.h ? h.h.kind : h.s.name;
   const [tx, ty] = at(...feet(h), h.h ? 15 : 18);
   setStyle(tip, { left: `${tx * scale}px`, top: `${ty * scale}px` });
 }
@@ -671,7 +681,16 @@ requestAnimationFrame(frame);
 window.ADM_BOOTED = true;
 if (tauri() || REMOTE) {
   listen('roster', e => onRoster(e.payload));
-  listen('vigil', e => { onVigil(e.payload); renderVigil(); });
+  // Night Vigil, every second (not per frame: it rings and ticks while paused too): the bell at each 30 s mark of the
+  // countdown (the Watchman raises his for RING_S), and the card's "Shutdown in N s".
+  let bellS = null;
+  listen('vigil', e => {
+    onVigil(e.payload); renderVigil();
+    const s = secondsLeft(Date.now()), w = cast.actors.get(WATCH_ID);
+    if (bellDue(bellS, s)) { chime([660, 660, 660]); if (w) w.ring = RING_S; }
+    bellS = s;
+    renderCard();
+  });
   listen('petition', () => quietNow() || chime());
   listen('question', () => quietNow() || chime([880, 1175]));
   listen('petition-stale', () => chime([990, 660, 990, 660]));

@@ -3,6 +3,7 @@ import { T, t } from './theme.js';
 import { rankOf } from './sprites.js';
 import { isQuestion } from './actors.js';
 import { settings } from './settings.js';
+import { vigil, secondsLeft } from './vigil.js';
 import { invoke, REMOTE, remoteActions } from './bridge.js';
 
 let cast, rosterOf; // app.js's cast, and a getter for its roster (reassigned on each roster tick) (initCard)
@@ -26,6 +27,22 @@ export function renderCard() {
   const card = document.getElementById('card');
   if (cast.actors.get(sel)?.leaving ?? true) sel = null; // the selected character left the hall: deselect it
   const s = rosterOf().find(r => r.id === sel), a = cast.actors.get(sel);
+  renderVigil(card, a?.watch);
+  if (a?.watch) {
+    card.hidden = false;
+    const left = secondsLeft(Date.now());
+    card.querySelector('.name').textContent = t('watch.name');
+    card.querySelector('.title').hidden = true;
+    card.querySelector('.meta').textContent = left != null ? `Shutdown in ${left} s` : vigil.deadline != null
+      ? `Deadline ${new Date(vigil.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}` : 'Armed';
+    for (const k of ['.ctx', '.task', '.path']) card.querySelector(k).textContent = '';
+    renderAsks(card, null);
+    renderTurn(card, null);
+    renderAnswer(card, null);
+    card.querySelector('.noact').hidden = actions; // remote, actions off: no Cancel, the note says why
+    renderLinks(card, null);
+    return;
+  }
   if (a?.h) {
     card.hidden = false;
     const owner = rosterOf().find(r => r.id === a.owner);
@@ -56,6 +73,21 @@ export function renderCard() {
   renderTurn(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
+}
+
+// The Watchman's card: a Cancel button (made once, after the answer row), under the same remote-actions flag.
+function renderVigil(card, on) {
+  let row = card.querySelector('.vigil');
+  if (!row) { // styled as the answer row (index.html #card .answer)
+    row = document.createElement('div'); row.className = 'answer vigil';
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = 'Cancel'; b.title = 'Cancel the Night Vigil';
+    b.onclick = () => invoke('vigil_cancel').catch(err => { if (err === 'remote actions disabled') noActions(); else console.warn('vigil', err); });
+    row.appendChild(b);
+    card.querySelector('.answer').after(row);
+  }
+  row.hidden = !(on && actions);
+  if (on) probeActions();
 }
 
 // A question petition: what the scribe asks, in full (the label only says "question").

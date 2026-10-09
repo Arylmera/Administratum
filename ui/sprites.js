@@ -152,7 +152,7 @@ export const ADEPT = {}, ADEPT_AT = {};
 export const MAGOS = {}, MAGOS_AT = {};
 // The Watchman (Night Vigil, while armed): 16x18 logical, walks like the scribe (left mirrors right), and `ring`, the
 // hand bell raised. WATCH_AT: feet (the actor's floor point), light (the lantern's centre, where its glow is drawn).
-export const WATCH = {}, WATCH_AT = {};
+export const WATCH = {}, WATCH_AT = {}; // light is the right-facing frames'; WATCH.left mirrors it: x = 16 - light.x (actors.js lanternOf)
 // Every other sprite by name.
 export const MAPS = {};
 // Prop anchors by sprite name, logical px from its top-left: points [x, y], rects [x, y, w, h] (what each one is: the
