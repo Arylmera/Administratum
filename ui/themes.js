@@ -39,6 +39,7 @@ defineTheme({
 // coolant, pale violet witch-candles, the warp glowing beyond the gate. Kept dim and soft, easy on the eyes.
 defineTheme({
   id: 'night', world: 'w40k', name: 'Ordo Malleus',
+  art: ['breakout'], // ui/art/night/: the Warded Circle (hexagram-inlaid flagstones, witch-candle posts, purity-sealed bar)
   px: { r: '#2a3040', R: '#3e4660', d: '#161a24', t: '#3e4660', T: '#161a24', z: '#2a3040', j: '#2a3040',
     g: '#a8b0bc', G: '#5e6674', h: '#dce2ea', U: '#2a303a', p: '#a8a28c', P: '#80785e', b: '#a09c8c', x: '#3a4a8a',
     c: '#8fb4e8', C: '#16203a', o: '#8fb4e8', O: '#d0e0ff', f: '#9a8ad0', F: '#d8d0f0',
