@@ -18,7 +18,7 @@ console.log('vigil ok');
 // disarmed; his lantern mirrors with the frame when he faces left.
 const { Cast, lanternOf, WATCH_ID } = await import('./actors.js');
 const { hallOf } = await import('./layout.js');
-const { WATCH, WATCH_AT } = await import('./sprites.js');
+const { WATCH, WATCH_AT, RES } = await import('./sprites.js');
 const cast = new Cast(), hall = hallOf(0), seat = { x: 60, y: 120 };
 cast.sync([], new Map([['s1', seat]]), () => '#000', new Map(), [], hall);
 onVigil({ armed: true, deadline: null, countdownEnd: null, forced: false });
@@ -27,14 +27,15 @@ const w = cast.actors.get(WATCH_ID);
 assert.ok(w && w.watch, 'armed: the Watchman walks in');
 assert.deepEqual([w.x, w.y], [hall.entry.x, hall.entry.y]);
 for (let i = 0; i < 200 && w.pose !== 'patrol'; i++) cast.update(0.1);
-assert.deepEqual([w.pose, w.x, w.y], ['patrol', seat.x, seat.y]);
+assert.deepEqual([w.pose, w.x, w.y], ['patrol', seat.x, seat.y + 10]);
+assert.notDeepEqual([w.x, w.y], [seat.x, seat.y], 'patrol stop must be off the occupied seat, not on it');
 cast.sync([], new Map([['s1', seat]]), () => '#000', new Map(), [], hall); // a roster tick keeps him
 assert.equal(w.leaving, false);
 onVigil({ countdownEnd: 1 });
 for (let i = 0; i < 200 && w.pose !== 'gate'; i++) cast.update(0.1);
 assert.deepEqual([w.pose, w.x, w.y], ['gate', hall.entry.x + 36, hall.entry.y - 6]);
 w.dir = 'left'; w.pose = 'walk';
-assert.equal(lanternOf(w).x - w.x, WATCH.left[0][0].length / 2 - WATCH_AT.light.x - WATCH_AT.feet.x);
+assert.equal(lanternOf(w).x - w.x, WATCH.left[0][0].length / RES - WATCH_AT.light.x - WATCH_AT.feet.x);
 w.dir = 'right';
 assert.equal(lanternOf(w).x - w.x, WATCH_AT.light.x - WATCH_AT.feet.x);
 w.pose = 'gate';

@@ -28,7 +28,7 @@ export const PICK_S = 1.6; // the push courier reaches the desk and takes the ne
 export const LAMP_S = 20;
 export const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
 // Night Vigil's Watchman (id 'watch', a.watch, no session: never a.s nor a.h): in through the gate while the vigil is
-// armed, out when disarmed. He patrols from seat to seat (a desk's or lectern's, PATROL_S at each); during the
+// armed, out when disarmed. He patrols the aisle beside each seat (a desk's or lectern's, PATROL_S at each); during the
 // countdown he posts beside the gate, past its east brazier, facing down (in the opening its frame hides him). Never
 // in the strip (its gate is off-screen).
 export const WATCH_ID = 'watch';
@@ -165,7 +165,7 @@ export class Cast {
   // Each frame: the Watchman walks in or out with the vigil, and moves on to another seat once he has stood PATROL_S.
   watch(dt) {
     const seats = [...(this.last?.seats.values() ?? [])], blocks = this.last?.blocks ?? [];
-    const pick = () => { const s = seats[Math.floor(Math.random() * seats.length)]; return s && { x: s.x, y: s.y }; };
+    const pick = () => { const s = seats[Math.floor(Math.random() * seats.length)]; return s && { x: s.x, y: s.y + 10 }; }; // off the seat, onto the aisle: a scribe stands here
     let a = this.actors.get(WATCH_ID);
     if (this.watchOn() && !a) {
       const { entry } = this.hall;
