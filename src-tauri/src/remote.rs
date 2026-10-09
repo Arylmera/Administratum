@@ -649,6 +649,10 @@ mod tests {
         assert_eq!(post_to("/api/vigil", &h(&[("host", "192.168.1.5:7770"), good[0], good[1], good[2]]), true), Route::Unauthorized);
         assert_eq!(post_to("/api/vigil", &authed(&[good[0], good[1], ("content-type", "text/plain")]), true), Route::Status(415));
         assert_eq!(get("/api/vigil", &authed(&[])), Route::Status(404));
+        // Cross-origin or no origin.
+        assert_eq!(post_to("/api/vigil", &authed(&[good[0], ("origin", "http://evil.example"), good[2]]), true), Route::Status(403));
+        assert_eq!(post_to("/api/vigil", &authed(&[good[0], ("origin", "null"), good[2]]), true), Route::Status(403));
+        assert_eq!(post_to("/api/vigil", &authed(&[good[0], good[1], good[2], ("sec-fetch-site", "cross-site")]), true), Route::Status(403));
     }
 
     #[test]
