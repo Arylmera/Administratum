@@ -187,6 +187,86 @@ fn now_ms() -> i64 {
     SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
 }
 
+type VigilBox = Mutex<vigil::Vigil>;
+pub struct VigilItem(CheckMenuItem<tauri::Wry>);
+
+/// The deadline (`adm.vigilDeadline`, minutes after midnight; empty or unparsable: none), as a time after `now`.
+fn vigil_deadline(v: &serde_json::Value, now: i64) -> Option<i64> {
+    use chrono::Timelike;
+    let target: u16 = v["adm.vigilDeadline"].as_str()?.parse().ok().filter(|m| *m < 1440)?;
+    let n = chrono::Local::now();
+    Some(vigil::deadline_after(now, (n.hour() * 60 + n.minute()) as u16, target))
+}
+
+/// Arm or cancel the Night Vigil (tray, commands, toast, remote). Records the Chronicon event and syncs the tray.
+fn vigil_set(app: &AppHandle, arm: bool) {
+    let now = now_ms();
+    let changed = {
+        let vigil = app.state::<VigilBox>();
+        let mut v = vigil.lock().unwrap_or_else(|e| e.into_inner());
+        if arm {
+            let saved = settings_path(app).map(|p| settings::load(&p)).unwrap_or_default();
+            v.arm(now, vigil_deadline(&saved, now))
+        } else {
+            v.cancel()
+        }
+    };
+    if changed {
+        vigil_event(app, now, if arm { "armed" } else { "cancelled" });
+    }
+    if let Some(item) = app.try_state::<VigilItem>() {
+        let _ = item.0.set_checked(arm);
+    }
+}
+
+fn vigil_event(app: &AppHandle, now: i64, detail: &str) {
+    let e = Event { ts: now, kind: "vigil".into(), session_id: String::new(), name: String::new(), dept: String::new(), helper: None, detail: detail.into() };
+    app.state::<Chron>().lock().unwrap_or_else(|e| e.into_inner()).record(&e);
+    emit(app, "chronicle", &e);
+}
+
+#[tauri::command]
+fn vigil_arm(app: AppHandle) {
+    vigil_set(&app, true);
+}
+
+#[tauri::command]
+fn vigil_cancel(app: AppHandle) {
+    vigil_set(&app, false);
+}
+
+/// The real shutdown. Never called in demo mode or from a test.
+fn shutdown_now() {
+    if let Err(e) = no_window(Command::new("shutdown")).args(["/s", "/f", "/t", "0", "/c", "Administratum: Night Vigil"]).spawn() {
+        eprintln!("night vigil: shutdown: {e}");
+    }
+}
+
+/// The countdown toast with a Cancel button (same WinRT path as petition_toast). Ignores quiet hours.
+fn vigil_toast(app: &AppHandle, deadline: bool) {
+    let title = if deadline { "Night Vigil: deadline reached" } else { "Night Vigil: all sessions are done" };
+    let body = "The PC shuts down in 2 minutes.";
+    #[cfg(windows)]
+    {
+        let handle = app.clone();
+        let shown = tauri_winrt_notification::Toast::new(&toast_app_id(app))
+            .title(title)
+            .text1(body)
+            .add_button("Cancel", "vigil-cancel")
+            .on_activated(move |arg| {
+                if arg.as_deref() == Some("vigil-cancel") {
+                    vigil_set(&handle, false);
+                }
+                Ok(())
+            })
+            .show();
+        if shown.is_ok() {
+            return;
+        }
+    }
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
 // Commands below that touch the disk run off the main thread (async) and read files only after
 // releasing the chronicle lock, so neither the UI nor the poll loop waits on them.
 
@@ -552,6 +632,8 @@ fn main() {
             set_quiet,
             set_toast_text,
             start_at_login,
+            vigil_arm,
+            vigil_cancel,
             usage,
             quit,
             desktop_shortcut,
@@ -572,6 +654,7 @@ fn main() {
             strip::set_strip_menu
         ])
         .setup(move |app| {
+            app.manage::<VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
             build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
             let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });
@@ -720,6 +803,33 @@ fn poll_loop(app: AppHandle, demo: bool) {
             for s in roster.iter_mut() {
                 s.turn = turns.remove(&s.id);
             }
+            // Night Vigil: newest transcript write among the files the poller already stats (subagents included).
+            let last_write = poller.files.values().flatten().map(|(f, _)| f.mtime_ms).max().unwrap_or(0);
+            let step = app.state::<VigilBox>().lock().unwrap_or_else(|e| e.into_inner()).step(&roster, last_write, now_ms);
+            match step {
+                vigil::Step::Countdown { deadline } => {
+                    if deadline {
+                        vigil_event(&app, now_ms, "deadline");
+                    }
+                    vigil_toast(&app, deadline);
+                }
+                vigil::Step::Resumed => vigil_event(&app, now_ms, "resumed"),
+                vigil::Step::Fire { last } => {
+                    vigil_event(&app, now_ms, &last.map_or_else(|| "fired".to_string(), |n| format!("fired · {n}")));
+                    app.state::<Chron>().lock().unwrap_or_else(|e| e.into_inner()).flush();
+                    if let Some(item) = app.try_state::<VigilItem>() {
+                        let _ = item.0.set_checked(false);
+                    }
+                    if demo {
+                        eprintln!("night vigil: demo mode, no shutdown");
+                    } else {
+                        shutdown_now();
+                    }
+                }
+                vigil::Step::Nothing => {}
+            }
+            let vigil_state = app.state::<VigilBox>().lock().unwrap_or_else(|e| e.into_inner()).state().clone();
+            emit(&app, "vigil", vigil_state);
             *app.state::<Live>().lock().unwrap_or_else(|e| e.into_inner()) = roster.clone();
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
@@ -811,9 +921,11 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", cfg!(windows), false, None::<&str>)?;
     let login_on = app.autolaunch().is_enabled().unwrap_or(false);
     let login = CheckMenuItem::with_id(app, "login", "Start at login", true, login_on, None::<&str>)?;
+    let vigil = CheckMenuItem::with_id(app, "vigil", "Night Vigil", true, false, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &mute, &light, &strip, &login, &quit])?;
+    let menu = Menu::with_items(app, &[&show, &mute, &light, &strip, &login, &vigil, &quit])?;
     app.manage(login);
+    app.manage(VigilItem(vigil));
     app.manage(strip::StripItem(strip));
     TrayIconBuilder::new()
         .icon(app.default_window_icon().expect("bundle icon").clone())
@@ -836,6 +948,10 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
                 let on = al.is_enabled().unwrap_or(false);
                 let _ = app.state::<CheckMenuItem<tauri::Wry>>().set_checked(on);
                 let _ = app.emit("autostart", on);
+            }
+            "vigil" => {
+                let armed = app.state::<VigilBox>().lock().map(|v| v.state().armed).unwrap_or(false);
+                vigil_set(app, !armed);
             }
             "quit" => app.exit(0),
             _ => {}
@@ -861,6 +977,14 @@ mod tests {
         assert_eq!(quiet_from_settings(&serde_json::json!({})), (false, 1320, 480), "missing keys: off, defaults");
         assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "1", "adm.quietFrom": "60", "adm.quietTo": "120"})), (true, 60, 120));
         assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "0", "adm.quietFrom": "oops"})), (false, 1320, 480), "unparsable falls back");
+    }
+
+    #[test]
+    fn vigil_deadline_reads_the_setting() {
+        assert_eq!(vigil_deadline(&serde_json::json!({}), 0), None);
+        assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": ""}), 0), None);
+        assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "1440"}), 0), None);
+        assert!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "240"}), 0).is_some_and(|d| d > 0 && d <= 1440 * 60_000));
     }
 
     #[test]
