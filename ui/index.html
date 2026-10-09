@@ -55,6 +55,7 @@
   .icon:hover { filter: brightness(1.3); }
   #mute .off { display: none; } #mute.muted .on { display: none; } #mute.muted .off { display: block; }
   #quiet { color: var(--light); font-size: 16px; cursor: default; } #quiet[hidden] { display: none; }
+  #vigil[hidden] { display: none; } #vigil[aria-pressed="true"] { color: var(--light); background: var(--edge); } /* armed: the moon lit */
   button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
   /* clip: the world moves by its pan transform only; max-*: never past the window, even before app.js's debounced fit (42 px: the header) */
   #stage { position: relative; margin: auto; overflow: clip; min-width: 0; min-height: 0; max-width: calc(100% - 24px); max-height: calc(100% - 66px); box-shadow: 0 0 0 2px var(--outline), 0 0 0 4px var(--copper), 0 0 0 5px var(--leather), 0 0 0 7px var(--outline), 0 10px 30px 6px rgba(0,0,0,.8); }
@@ -287,6 +288,9 @@
   <div class="grow" data-tauri-drag-region></div>
   <div id="count" class="count">0 petitions</div>
   <button id="tithe" class="count tithe" type="button" title="Tithe today: tokens and working time" data-t-title="tithe.hint">⛁ — · —</button>
+  <button id="vigil" class="icon" type="button" aria-pressed="false" title="Night Vigil" aria-label="Night Vigil" data-t-title="watch.button" data-t-aria="watch.button">
+    <svg width="18" height="18" viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><path d="M2 0h3v1h-3zM1 1h3v1h-3zM0 2h3v5h-3zM1 7h3v1h-3zM2 8h3v1h-3z" fill="currentColor"></path><rect x="6" y="2" width="1" height="1" style="fill: var(--light)"></rect></svg>
+  </button>
   <button id="chron-open" class="icon" type="button" aria-label="Open the Chronicon" data-t-aria="log.open">
     <svg width="18" height="18" viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="9" height="2" fill="currentColor"></rect><rect x="1" y="3" width="7" height="4" style="fill: var(--ink)"></rect><rect x="2" y="4" width="5" height="1" style="fill: var(--leather)"></rect><rect x="2" y="6" width="3" height="1" style="fill: var(--leather)"></rect><rect x="0" y="7" width="9" height="1" fill="currentColor"></rect><rect x="4" y="2" width="1" height="1" style="fill: var(--red)"></rect></svg>
   </button>
@@ -400,6 +404,10 @@
             <label><span>From</span><input type="time" name="quietFrom"></label>
             <label><span>To</span><input type="time" name="quietTo"></label>
             <p class="hint">No toast or chime in this window, except a petition turning stale.</p>
+          </fieldset>
+          <fieldset data-host><legend>Night Vigil</legend>
+            <label class="wide"><span>Night Vigil deadline</span><input type="time" name="vigilDeadline"></label>
+            <p class="hint">At this time an armed vigil starts its two-minute countdown to shutdown, even if a session is still working. Read when the vigil is armed. Empty: no deadline.</p>
           </fieldset>
         </section>
         <section data-cat="scribes" hidden>

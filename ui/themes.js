@@ -133,6 +133,7 @@ const NEON = defineTheme({
     '--display': "'VT323', monospace", '--paper-accent': '#ff2e88',
   },
   text: {
+    watch: { name: 'Night Guard', button: 'Night Vigil: the Night Guard shuts the PC down once every session waits on you' },
     subtitle: 'Sector 7 · Netrunner Den', motto: 'Jack in, stay frosty', breakout: 'Sandbox',
     rank: { high: 'Netrunner', standard: 'Hacker', novice: 'Script kiddie' },
     status: { busy: 'Coding', shell: 'At the server rack', idle: 'Turn done, awaiting input', waiting: 'Request pinged',
@@ -206,6 +207,7 @@ defineTheme({
     '--display': "'VT323', monospace", '--paper-accent': '#2a5ab8',
   },
   text: {
+    watch: { name: 'Night Shift', button: 'Night Vigil: the Night Shift shuts the PC down once every session waits on you' },
     subtitle: 'Low Earth Orbit · Station Deck', motto: 'Ad astra', breakout: 'Quarantine Bay',
     rank: { high: 'Commander', standard: 'Astronaut', novice: 'Cadet' },
     status: { busy: 'Working', shell: 'At the airlock', idle: 'Turn done, awaiting input', waiting: 'Calling the Commander',
@@ -338,6 +340,7 @@ defineTheme({
     '--display': "'Pirata One', serif", '--paper-accent': '#5a3a9a',
   },
   text: {
+    watch: { name: 'Lookout', button: 'Night Vigil: the Lookout shuts the PC down once every session waits on you' },
     subtitle: 'The Tower · Hall of Apprentices', motto: 'Knowledge is power', breakout: 'Summoning Circle',
     rank: { high: 'Archmage', standard: 'Wizard', novice: 'Apprentice' },
     status: { busy: 'Scribing spells', shell: 'At the scrying orb', idle: 'Turn done, awaiting input', waiting: 'Pleading to the Archmage',
@@ -411,6 +414,7 @@ defineTheme({
     '--display': "'VT323', monospace", '--paper-accent': '#1e4a8a',
   },
   text: {
+    watch: { name: 'Vault Security', button: 'Night Vigil: Vault Security shuts the PC down once every session waits on you' },
     subtitle: "Vault 111 · Overseer's Office", motto: 'Prepare for the future', breakout: 'Test Chamber',
     rank: { high: 'Overseer', standard: 'Dweller', novice: 'Newcomer' },
     status: { busy: 'On shift', shell: 'At the mainframe', idle: 'Turn done, awaiting input', waiting: 'Requisition filed',

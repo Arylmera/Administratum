@@ -17,7 +17,8 @@ import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
 import { glide, gliding, clearGlides } from './glide.js';
-import { initCard, sel, fillOf, ago, filesOf, renderCard, answerable, probeActions, canAnswer, answer, pick, closeCard } from './card.js';
+import { initCard, sel, fillOf, ago, filesOf, renderCard, answerable, probeActions, canAnswer, answer, pick, closeCard, actionsOn, noActions } from './card.js';
+import { vigil, onVigil } from './vigil.js';
 import { initStripWin, switchStrip, stripScale, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
@@ -651,6 +652,18 @@ function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state
 muteBtn.onclick = toggleMute;
 renderMute();
 
+// Night Vigil: the header moon arms and cancels it (state from the backend's 'vigil' event, every second). In the
+// remote view, only while the PC allows remote actions (card.js's probe; a 403 hides it until the next probe).
+const vigilBtn = document.getElementById('vigil');
+function renderVigil() {
+  vigilBtn.setAttribute('aria-pressed', String(!!vigil.armed));
+  if (REMOTE) { probeActions(); vigilBtn.hidden = !actionsOn(); }
+}
+vigilBtn.onclick = () => invoke(vigil.armed ? 'vigil_cancel' : 'vigil_arm').catch(err => {
+  if (err === 'remote actions disabled') { noActions(); renderVigil(); } else console.warn('vigil', err);
+});
+renderVigil();
+
 let refreshTithe = null;
 initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet });
 fit();
@@ -658,6 +671,7 @@ requestAnimationFrame(frame);
 window.ADM_BOOTED = true;
 if (tauri() || REMOTE) {
   listen('roster', e => onRoster(e.payload));
+  listen('vigil', e => { onVigil(e.payload); renderVigil(); });
   listen('petition', () => quietNow() || chime());
   listen('question', () => quietNow() || chime([880, 1175]));
   listen('petition-stale', () => chime([990, 660, 990, 660]));

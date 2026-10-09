@@ -116,6 +116,8 @@ export const TEXT = {
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',
     limit: '{name} sealed until {time}', limitMany: '{n} sessions sealed until {time}', failed: '{name}: open the terminal' },
+  // Night Vigil (vigil.js): the night watchman's name, the header moon's title
+  watch: { name: 'Inquisitor', button: 'Night Vigil: the Inquisitor shuts the PC down once every session waits on you' },
 };
 const merge = (a, b) => { // deep merge of plain objects (b wins), arrays replaced
   const out = { ...a };

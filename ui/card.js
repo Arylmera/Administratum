@@ -110,6 +110,8 @@ export function probeActions() {
   remoteActions().then(ok => { if (ok !== actions) { actions = ok; renderCard(); } });
 }
 export const canAnswer = s => actions && answerable(s);
+export const actionsOn = () => actions; // the header's Night Vigil button follows the same flag (app.js)
+export function noActions() { actions = false; renderCard(); } // a 403 elsewhere: off until the next probe says otherwise
 const episode = s => `${s.id}:${s.sinceMs}`;
 const answerErr = new Map(), answering = new Set(); // by episode
 export function answer(s, choice) {

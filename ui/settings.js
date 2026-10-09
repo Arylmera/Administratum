@@ -91,6 +91,7 @@ const setQuiet = (on, from, to) => {
   Object.assign(quiet, { on, from, to });
   store.set('adm.quiet', on ? '1' : '0'); store.set('adm.quietFrom', String(from)); store.set('adm.quietTo', String(to));
 };
+// Night Vigil deadline (adm.vigilDeadline, minutes after midnight, '' = none): the backend reads it when the vigil is armed.
 
 // Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by app.js's fit().
 const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
@@ -162,6 +163,8 @@ export function initSettings(hooks) {
       if (document.activeElement !== field(k)) field(k).value = hhmmOf(quiet[k === 'quietFrom' ? 'from' : 'to']);
       field(k).disabled = !quiet.on;
     }
+    const dl = minutes(store.get('adm.vigilDeadline', ''), null);
+    if (document.activeElement !== field('vigilDeadline')) field('vigilDeadline').value = dl === null ? '' : hhmmOf(dl);
     field('login').checked = !!login;
     field('login').disabled = login === null;
     field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
@@ -277,6 +280,7 @@ export function initSettings(hooks) {
       setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
       pushQuiet(); hooks.quieted?.();
     }
+    else if (k === 'vigilDeadline') store.set('adm.vigilDeadline', String(minutesOf(el.value) ?? '')); // read by the backend at arm time
     else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
     else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
@@ -301,6 +305,7 @@ export function initSettings(hooks) {
     setQuiet(false, 1320, 480);
     store.set('adm.openWith', 'explorer');
     store.set('adm.updateCheck', '1');
+    store.set('adm.vigilDeadline', '');
     setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
     hooks.setMode('auto'); hooks.setMuted(false);
