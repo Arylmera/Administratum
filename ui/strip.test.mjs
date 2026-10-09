@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { STRIP_H, FLOOR, MARGIN_R, COG_AT, REF_AT, stripOf, layoutStrip, stripRoute, breakoutOfStrip } from './strip.js';
+import { STRIP_H, FLOOR, MARGIN_R, stripOf, layoutStrip, stripRoute, breakoutOfStrip } from './strip.js';
 import { planLayout } from './layout.js';
 import { Cast } from './actors.js';
 
@@ -8,45 +8,34 @@ assert.equal(H.strip, true);
 assert.equal(H.h, STRIP_H);
 assert.equal(H.entry.y, FLOOR);
 assert.ok(H.entry.x < 0); // off-screen left
-// right to left: Magos, queue, bench, cogitator; all on the floor, inside the strip, no overlap between zones
+// left to right: gate, recaff and bench, the departments, cogitator, queue, Magos; all on the floor, no overlap
 assert.ok(H.magos.x < 800 && H.queue[0].x < H.magos.x);
 for (let i = 1; i < H.queue.length; i++) assert.ok(H.queue[i].x < H.queue[i - 1].x);
-assert.ok(H.refectory.at(-1).x < H.queue.at(-1).x - 6);
-assert.ok(Math.max(...H.cogSpots.map(p => p.x)) < H.recaff.x);
-for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff]) assert.equal(p.y, FLOOR);
+assert.ok(H.recaff.x < H.refectory[0].x && H.refectory.at(-1).x < H.x0 - 12);
 assert.ok(H.x1 < Math.min(...H.cogSpots.map(p => p.x)) - 12);
+assert.ok(Math.max(...H.cogSpots.map(p => p.x)) < H.queue.at(-1).x - 12);
+for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff]) assert.equal(p.y, FLOOR);
 assert.deepEqual(H.lanes, [FLOOR]);
 
 // the right group keeps MARGIN_R from the right edge (the throne, 20 wide, centred on the Magos)
 assert.ok(800 - (H.magos.x + 10) >= MARGIN_R);
-// doors, left to right: the gate (clear of the handle, 6..18), then departments | cogitator | refectory | sanctum
-const [gate, dCog, dRef, dSan] = H.doors;
+// doors, left to right: the gate (clear of the handle, 6..18), refectory | departments | cogitator | sanctum
+const [gate, dRef, dCog, dSan] = H.doors;
 assert.deepEqual(H.doors.map(d => d.kind), ['gate', 'sanctum', 'sanctum', 'sanctum']);
 for (let i = 1; i < H.doors.length; i++) assert.ok(H.doors[i - 1].x + H.doors[i - 1].w <= H.doors[i].x);
-assert.ok(gate.x >= 18 && gate.x + gate.w <= H.x0);
+assert.ok(gate.x >= 18 && gate.x + gate.w <= H.recaff.x - 18); // the recaff drawn 18 px left of its spot
+assert.ok(H.bench.x + 46 <= dRef.x && dRef.x + dRef.w <= H.x0);
 assert.ok(H.x1 <= dCog.x && dCog.x + dCog.w <= H.cog.x);
-assert.ok(H.cog.x + 82 <= dRef.x && dRef.x + dRef.w <= H.recaff.x - 18); // the recaff drawn 18 px left of its spot
-assert.ok(H.bench.x + 46 <= dSan.x && dSan.x + dSan.w <= H.queue.at(-1).x - 6);
+assert.ok(H.cog.x + 82 <= dSan.x && dSan.x + dSan.w <= H.queue.at(-1).x - 6);
 // nobody standing at a spot holds a door open (scene.js near: 12 px)
 const away = (p, d) => Math.max(d.x - p.x, p.x - (d.x + d.w));
 for (const p of [...H.queue, ...H.refectory, ...H.cogSpots, H.recaff, H.magos]) for (const d of H.doors.slice(1)) assert.ok(away(p, d) >= 12);
 
-// zones spread out on a wide strip: cogitator centred near w/2, refectory near 3w/4, sanctum still at the right
-const W = stripOf(1288);
-const cogCentre = W.cog.x + 41; // the 82 px bank's own centre
-const refCentre = (W.doors[2].x + W.refectory.at(-1).x) / 2; // the refectory door to its last spot
-assert.ok(Math.abs(cogCentre - 1288 * COG_AT) <= 10);
-assert.ok(Math.abs(refCentre - 1288 * REF_AT) <= 10);
-assert.ok(W.magos.x > 0.9 * 1288);
-
-// narrow strip: zones still clamp back towards the packed layout rather than overlap
-const N = stripOf(400);
-const [, nCog, nRef, nSan] = N.doors;
+// a narrow strip (a 1280 px screen at scale 2.5) still holds every room without overlap, and departments between them
+const N = stripOf(520);
 for (let i = 1; i < N.doors.length; i++) assert.ok(N.doors[i - 1].x + N.doors[i - 1].w <= N.doors[i].x);
-assert.ok(Math.max(...N.cogSpots.map(p => p.x)) < nRef.x);
-assert.ok(N.refectory.at(-1).x < nSan.x);
-assert.ok(nSan.x + nSan.w <= N.queue.at(-1).x - 6);
-assert.ok(N.magos.x < 400 && N.queue[0].x < N.magos.x);
+assert.ok(N.x1 - N.x0 > 44);
+assert.ok(N.magos.x < 520 && N.queue[0].x < N.magos.x);
 
 // route: one step along the floor
 assert.deepEqual(stripRoute({ x: 10, y: FLOOR }, { x: 90, y: FLOOR }), [{ x: 90, y: FLOOR }]);
@@ -97,7 +86,7 @@ assert.ok(a.puff > 0 && !a.burn);
 {
   const P = planLayout(null, [{ name: 'out', color: '#fff', ids: ['o1', 'o2'], temp: true }, { name: 'Terra', color: '#fff', ids: ['t1'] }], 0, {}, { w: 800, h: STRIP_H }, layoutStrip);
   assert.deepEqual(P.blocks.map(b => [b.name, !!b.temp]), [['Terra', false], ['out', true]]);
-  const [terra, out] = P.blocks, Z = breakoutOfStrip(P.blocks), dCog = stripOf(800).doors[1];
+  const [terra, out] = P.blocks, Z = breakoutOfStrip(P.blocks), dCog = stripOf(800).doors[2];
   assert.ok(Z.x < out.x && Z.x + Z.w > out.x + out.w && Z.x > terra.x + terra.w);
   assert.deepEqual(Z.gates.map(g => g.x), [Z.x, Z.x + Z.w]);
   assert.ok(Z.x + Z.w + 4 <= dCog.x); // the east gate (8 wide, centred on its x) stays off the door
