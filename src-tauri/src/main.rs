@@ -838,6 +838,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
         if tick.is_err() {
             eprintln!("poll tick panicked, skipped");
             app.state::<Chron>().clear_poison(); // keep the Chronicon commands working
+            app.state::<VigilBox>().clear_poison();
         }
         thread::sleep(Duration::from_secs(1));
     }
@@ -950,7 +951,7 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
                 let _ = app.emit("autostart", on);
             }
             "vigil" => {
-                let armed = app.state::<VigilBox>().lock().map(|v| v.state().armed).unwrap_or(false);
+                let armed = app.state::<VigilBox>().lock().unwrap_or_else(|e| e.into_inner()).state().armed;
                 vigil_set(app, !armed);
             }
             "quit" => app.exit(0),
@@ -985,6 +986,8 @@ mod tests {
         assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": ""}), 0), None);
         assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "1440"}), 0), None);
         assert!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "240"}), 0).is_some_and(|d| d > 0 && d <= 1440 * 60_000));
+        assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "oops"}), 0), None);
+        assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "-5"}), 0), None);
     }
 
     #[test]
