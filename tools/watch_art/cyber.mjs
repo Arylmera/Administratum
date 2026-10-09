@@ -33,19 +33,21 @@ const HEAD_DOWN = stamp(sym([
   '............k;::',
   '.............k;;',
 ]), BADGE[0], 15, 2);
+// From behind: hair (L, shaded w at the sides) under the cap band, the nape running into the collar, no skin. L, not n: in
+// cyber n is all but the outline k, and a dark head read as a face in shadow.
 const HEAD_UP = sym([
   '...........kkkkk',
   '..........kuuuuu',
   '..........kuuuuu',
   '..........kuuuuu',
   '..........kMMMMM',
-  '...........knnnn',
-  '...........knnnn',
-  '...........knnnn',
-  '...........knnnn',
-  '...........k;nnn',
-  '............k;::',
-  '.............k;;',
+  '...........kLLLL',
+  '...........kwLLL',
+  '...........kwLLL',
+  '...........kwwLL',
+  '...........kwwLL',
+  '............kwwL',
+  '.............kww',
 ]);
 // S: nearly facing, a little left (the hair shows on his left, the eyes close up).
 const HEAD_S = [
@@ -79,23 +81,25 @@ const HEAD_E = [
 ];
 // N: nearly away, a little right (one ear, the nape off centre).
 const HEAD_N = [
-  ...HEAD_UP.slice(0, 9),
-  '...........knnnnnnn;k...........',
-  '.............k;:::;k............',
-  '..............k;;;k.............',
+  ...HEAD_UP.slice(0, 7),
+  '...........kwLLLLLLL;k..........',
+  '...........kwwLLLLLwk...........',
+  '...........kwwLLLLLwk...........',
+  '.............kwwLLLwk...........',
+  '..............kwwwwk............',
 ];
-// W: three-quarters away and left: the visor's tip and a cheek on his left.
+// W: three-quarters away and left: the visor's tip and a sliver of cheek on his left, the rest hair down to the nape.
 const HEAD_W = [
   ...HEAD_UP.slice(0, 4),
   '........knnMMMMMMMMMk...........',
-  '...........k:;nnnnnnk...........',
-  '...........k:;nnnnnnk...........',
-  '...........k;nnnnnnnk...........',
-  '...........knnnnnnnnk...........',
-  '...........k;nnnnnnnk...........',
-  ...HEAD_UP.slice(10),
+  '...........k:LLLLLLLk...........',
+  '...........k:LLLLLLwk...........',
+  '...........k;LLLLLLwk...........',
+  '...........kwLLLLLwwk...........',
+  '...........kwwLLLLwwk...........',
+  '............kwwLLwwk............',
+  '.............kwwwwk.............',
 ];
-
 // The jacket from the front, rows 12..26: arms at the sides, the reflective band, the belt and buckle, the hips.
 const JACKET = sym([
   '........kkkuuukn',
@@ -247,8 +251,8 @@ export default () => {
     iso[`S ${i}`] = frame(S, LEGS_FRONT[i], [WALKIE, 10, 12], torch);
     iso[`N ${i}`] = frame(N, LEGS_FRONT[i], torch);
   }
-  flat.ring = frame(noArm(DOWN), LEGS_FRONT[0], [TALK, 2, 3], torch);
-  iso.ring = frame(noArm(S), LEGS_FRONT[0], [TALK, 2, 3], torch);
+  flat.ring = frame(noArm(DOWN), LEGS_FRONT[0], [TALK, 2, 4], torch);
+  iso.ring = frame(noArm(S), LEGS_FRONT[0], [TALK, 2, 4], torch);
   const anchors = { feet: [16, 36], light: LIGHT };
   return { flat, iso, flatAnchors: anchors, isoAnchors: anchors };
 };
