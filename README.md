@@ -275,6 +275,16 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Start at login | Checkbox, kept in sync with Settings |
 | Quit | Exit Administratum |
 
+### Night Vigil
+
+Night Vigil shuts the PC down once every session is stuck on a human (a permission prompt, a question or a usage
+limit) for 5 minutes straight, so the machine doesn't sit on all night for nothing. Arm it from the tray menu, the
+header, or a paired device in [Remote view](#remote-view); an optional deadline (Settings > Hall) forces the
+countdown at a set time even if a session is still busy. While armed, a world-specific Watchman patrols the hall;
+once no session can progress, he rings his signal and a 120 s countdown starts, cancellable from the same places.
+No session is ever closed: if the countdown reaches zero, Windows shuts down and every session resumes from its
+transcript, picking up where it left off, when the PC starts again. Arming does not persist across an app restart.
+
 ### Keyboard and panning
 
 When the window is too small to show the whole hall at a readable size, the view pans:

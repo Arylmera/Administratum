@@ -34,6 +34,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
 | `strip/` | The desktop strip window: placement on the taskbar, click-through. OS calls in `windows.rs` |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
+| `vigil.rs` | Night Vigil: arms once every session is stuck on a human, the 120 s countdown, the shutdown itself |
 
 **Events.** Each second the poll loop emits `roster` (every session with its status, petition, task, context,
 subagents, Orca handle, claude.ai URL, compaction time), `petition` and `petition-stale` (these also fire the
@@ -70,6 +71,7 @@ do not know which.
 | `room.js`, `wallart.js` | The room from tiles (fill rules), the back wall's window and hangings |
 | `theme.js`, `themes.js` | Themes: every colour and the wording; `setTheme`, `t()` |
 | `quiet.js` | Quiet hours, the same rule as `quiet.rs` |
+| `vigil.js` | Night Vigil state (armed, deadline, countdown) as the backend emits it, and the 30 s bell rule |
 
 ---
 
@@ -127,6 +129,7 @@ The node checks are plain `assert` scripts with no framework. One file per modul
 | `scene39.test.mjs` | 39° dynamic layer: depth order, seats, hit tests, gate |
 | `strip.test.mjs` | Strip geometry |
 | `outline.test.mjs` | Strip sprite outline |
+| `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
 
 ---
 
