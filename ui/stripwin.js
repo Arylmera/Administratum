@@ -71,7 +71,7 @@ export function toggleStrip() {
 // The handle: a cog at the strip's left end (over the gate) opening a small menu above it.
 let stripMenu, stripHandle;
 export const showMenu = on => { stripMenu.hidden = !on; stripHandle.setAttribute('aria-expanded', String(on)); };
-export function initStripWin({ actorAt: hit, fromStrip }) {
+export function initStripWin({ actorAt: hit, fromStrip, toggleVigil }) {
   actorAt = hit;
   bootStrip = fromStrip;
   const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
@@ -84,6 +84,7 @@ export function initStripWin({ actorAt: hit, fromStrip }) {
     if (!act) return;
     showMenu(false);
     if (act === 'hall') toggleStrip();
+    else if (act === 'vigil') toggleVigil();
     else document.getElementById(act).click(); // the header's own buttons (hidden in the strip): prefs-open, chron-open, hide
   };
   addEventListener('click', e => { if (!e.target.closest('#strip-menu, #strip-handle')) showMenu(false); });

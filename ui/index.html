@@ -76,6 +76,7 @@
   html.strip #strip-menu:not([hidden]) { display: flex; flex-direction: column; position: absolute; z-index: 7; padding: 3px; background: var(--card); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 4px 0 var(--outline); font-size: calc(12px * var(--k, 1)); }
   #strip-menu button { padding: .3em .9em; background: none; border: none; color: var(--paper-ink); font: inherit; text-align: left; cursor: pointer; }
   #strip-menu button:hover { background: var(--leather); color: var(--light); }
+  #strip-menu button[aria-checked="true"]::before { content: "✓ "; }
   #world { position: absolute; left: 0; top: 0; }
   #scene { display: block; image-rendering: pixelated; touch-action: none; }
   #world { touch-action: none; -webkit-touch-callout: none; }
@@ -320,6 +321,7 @@
   <button id="strip-handle" type="button" aria-label="Strip menu" aria-controls="strip-menu" aria-expanded="false"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h3v1h-3zM1 1h1v1h-1zM3 1h3v1h-3zM7 1h1v1h-1zM2 2h5v1h-5zM0 3h3v1h-3zM6 3h3v1h-3zM0 4h3v1h-3zM6 4h3v1h-3zM0 5h3v1h-3zM6 5h3v1h-3zM2 6h5v1h-5zM1 7h1v1h-1zM3 7h3v1h-3zM7 7h1v1h-1zM3 8h3v1h-3z"></path></svg></button>
   <div id="strip-menu" hidden>
     <button type="button" data-act="hall">Hall view</button>
+    <button type="button" id="strip-vigil" data-act="vigil" role="menuitemcheckbox" aria-checked="false">Night Vigil</button>
     <button type="button" data-act="prefs-open">Settings</button>
     <button type="button" data-act="chron-open">Chronicon</button>
     <button type="button" data-act="hide">Hide</button>

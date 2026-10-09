@@ -90,7 +90,25 @@ function background(day) {
   }
   return bg[k];
 }
-initStripWin({ actorAt, fromStrip: saved === 'strip' });
+// Night Vigil: the header moon arms and cancels it (state from the backend's 'vigil' event, every second), and so
+// does the strip menu's entry (toggleVigil, shared so neither duplicates the invoke/error handling). In the remote
+// view, only while the PC allows remote actions (card.js's probe; a 403 hides it until the next probe).
+const vigilBtn = document.getElementById('vigil');
+const stripVigilBtn = document.getElementById('strip-vigil');
+function renderVigil() {
+  vigilBtn.setAttribute('aria-pressed', String(!!vigil.armed));
+  stripVigilBtn.setAttribute('aria-checked', String(!!vigil.armed));
+  if (REMOTE) { probeActions(); vigilBtn.hidden = stripVigilBtn.hidden = !actionsOn(); }
+}
+function toggleVigil() {
+  invoke(vigil.armed ? 'vigil_cancel' : 'vigil_arm').catch(err => {
+    if (err === 'remote actions disabled') { noActions(); renderVigil(); } else console.warn('vigil', err);
+  });
+}
+vigilBtn.onclick = toggleVigil;
+renderVigil();
+
+initStripWin({ actorAt, fromStrip: saved === 'strip', toggleVigil });
 // The hall's floor point at its view centre, kept through a stay in the strip (the strip's view says nothing of it).
 // Leaving, the window is still strip-sized until place_hall lands: the first hall resize after (refloor) centres
 // on it again, the strip-sized fit in between having clamped it.
@@ -661,18 +679,6 @@ function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.
 function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state.muted ? '1' : '0'); renderMute(); }
 muteBtn.onclick = toggleMute;
 renderMute();
-
-// Night Vigil: the header moon arms and cancels it (state from the backend's 'vigil' event, every second). In the
-// remote view, only while the PC allows remote actions (card.js's probe; a 403 hides it until the next probe).
-const vigilBtn = document.getElementById('vigil');
-function renderVigil() {
-  vigilBtn.setAttribute('aria-pressed', String(!!vigil.armed));
-  if (REMOTE) { probeActions(); vigilBtn.hidden = !actionsOn(); }
-}
-vigilBtn.onclick = () => invoke(vigil.armed ? 'vigil_cancel' : 'vigil_arm').catch(err => {
-  if (err === 'remote actions disabled') { noActions(); renderVigil(); } else console.warn('vigil', err);
-});
-renderVigil();
 
 let refreshTithe = null;
 initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet });
