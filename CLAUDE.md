@@ -29,3 +29,9 @@ Where things live:
   galleries with `node tools/sprite_sheet.mjs` (and `--theme <id>` for each theme with its own art: cyber, orbital, tower, vault).
 - Discussion: one GitHub issue per family (Sprite board #3); design note
   `docs/superpowers/specs/2026-10-06-sprite-themes-design.md`.
+
+## Talking to the running app
+
+`node tools/adm.mjs status | vigil arm|cancel | chronicle [day] | days`: the running app over its local remote API
+(needs the remote view on; `vigil` needs remote actions). Use it instead of CDP. It deliberately cannot answer
+petitions: never approve a permission prompt on the user's behalf.
