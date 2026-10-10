@@ -8,7 +8,6 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
 - No desk glows or lighting pass in the strip (the hall's lighting is skipped there)
 - The cogitator (82×50) nearly fills the strip's height and leaves less room for lecterns on narrow screens
 - A click on a character needs the cursor to rest there about 50 ms first (the strip polls the cursor to decide click-through)
-- Fullscreen detection is system-wide: a fullscreen app on another monitor also hides the strip
 
 ## Known limits (39° view)
 - Effects drawn on a slanted plane (paper on a desk top, stamps and seals on a desk front, the cogitator's screens) are resampled through a transform and look softer than the pixel-exact background

@@ -227,7 +227,8 @@ pub fn start_watcher(app: tauri::AppHandle) {
             if visible {
                 hidden_by_us = false; // seen visible by any means: no longer "hidden by us"
             }
-            match act(os::fullscreen(), visible, hidden_by_us) {
+            let full = w.hwnd().is_ok_and(|h| os::fullscreen(h.0 as windows_sys::Win32::Foundation::HWND));
+            match act(full, visible, hidden_by_us) {
                 Act::Hide => match w.hide() {
                     Ok(()) => {
                         let _ = app.emit("strip-hide", ());
