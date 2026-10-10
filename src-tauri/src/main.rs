@@ -859,9 +859,7 @@ fn sample_grid(l: i32, t: i32, r: i32, b: i32) -> impl Iterator<Item = (i32, i32
 ///
 /// `grid`: the strip is click-through (WS_EX_TRANSPARENT|WS_EX_LAYERED via
 /// `set_ignore_cursor_events`), so `WindowFromPoint` never resolves to it and the grid always
-/// reports "covered" there; skip it while the strip is on and rely on minimised/visible only
-/// (the strip watcher already hides the window for a fullscreen app, so IsWindowVisible still
-/// goes false then).
+/// reports "covered" there; skip it while the strip is on and rely on minimised/visible only.
 // ponytail: sampling, so a sliver showing between grid points counts as covered; walk the Z-order if that matters.
 #[cfg(windows)]
 fn on_screen(hwnd: windows_sys::Win32::Foundation::HWND, grid: bool) -> bool {

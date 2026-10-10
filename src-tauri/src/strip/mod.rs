@@ -166,28 +166,10 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), S
     window.set_ignore_cursor_events(on).map_err(|e| e.to_string())
 }
 
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
-#[derive(Debug, PartialEq, Eq)]
-pub enum Act {
-    Hide,
-    Show,
-    Stay,
-}
-
-/// hidden_by_us: the watcher hid the strip for a fullscreen app (a user's own Hide is left alone).
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
-pub fn act(fullscreen: bool, visible: bool, hidden_by_us: bool) -> Act {
-    match (fullscreen, visible, hidden_by_us) {
-        (true, true, _) => Act::Hide,
-        (false, false, true) => Act::Show,
-        _ => Act::Stay,
-    }
-}
-
 /// Prints `msg` through `slot` unless it is the same text as last time through that same slot (a
 /// stuck monitor/taskbar query would otherwise spam the console every tick); a success elsewhere
 /// resets `slot` so the next failure, even a repeat of an earlier one, logs again. One slot per
-/// call site (hide, replace, set_always_on_top) so one succeeding never suppresses the other's own repeat.
+/// call site (replace, set_always_on_top) so one succeeding never suppresses the other's own repeat.
 #[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 fn log_once(slot: &Mutex<Option<String>>, msg: String) {
     let mut last = slot.lock().unwrap_or_else(|e| e.into_inner());
@@ -202,50 +184,23 @@ fn clear_log(slot: &Mutex<Option<String>>) {
     *slot.lock().unwrap_or_else(|e| e.into_inner()) = None;
 }
 
-/// Watches (1 s, only while `ON`) for a fullscreen app covering the taskbar, and for monitor /
-/// work area / DPI / taskbar changes: hides the strip for the former (and shows it again without
-/// stealing focus), re-places and re-asserts topmost for the latter (Windows drops topmost after
-/// some fullscreen transitions and Explorer restarts). The window-touching part (re-place,
+/// Watches (1 s, only while `ON`) for monitor / work area / DPI / taskbar changes: re-places the
+/// strip and re-asserts topmost (Windows drops topmost after some fullscreen transitions and
+/// Explorer restarts). A fullscreen app does not hide the strip. The window-touching part (re-place,
 /// set_always_on_top) runs on the main thread via `run_on_main_thread`, so it can never land out
 /// of order with `place_hall`'s own window calls (see `replace`'s doc comment).
 #[cfg(windows)]
 pub fn start_watcher(app: tauri::AppHandle) {
-    use tauri::{Emitter, Manager};
+    use tauri::Manager;
     static REPLACE_ERR: Mutex<Option<String>> = Mutex::new(None);
     static TOP_ERR: Mutex<Option<String>> = Mutex::new(None);
-    static HIDE_ERR: Mutex<Option<String>> = Mutex::new(None);
     std::thread::spawn(move || {
-        let mut hidden_by_us = false;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(1));
             if !ON.load(Ordering::SeqCst) {
-                hidden_by_us = false; // the strip is off: nothing of ours left hidden to restore
                 continue;
             }
-            let Some(w) = app.get_webview_window("main") else { continue };
-            let visible = w.is_visible().unwrap_or(true);
-            if visible {
-                hidden_by_us = false; // seen visible by any means: no longer "hidden by us"
-            }
-            let full = w.hwnd().is_ok_and(|h| os::fullscreen(h.0 as windows_sys::Win32::Foundation::HWND));
-            match act(full, visible, hidden_by_us) {
-                Act::Hide => match w.hide() {
-                    Ok(()) => {
-                        let _ = app.emit("strip-hide", ());
-                        hidden_by_us = true;
-                        clear_log(&HIDE_ERR);
-                    }
-                    // not hidden: hidden_by_us stays false (already cleared above since visible)
-                    Err(e) => log_once(&HIDE_ERR, format!("strip watcher hide: {e}")),
-                },
-                Act::Show => {
-                    os::show_no_activate(&w);
-                    let _ = app.emit("strip-show", ());
-                    hidden_by_us = false;
-                }
-                Act::Stay => {}
-            }
-            let w2 = w.clone();
+            let Some(w2) = app.get_webview_window("main") else { continue };
             let _ = app.run_on_main_thread(move || {
                 // Re-checked here, on the main thread, right before touching the window: the only
                 // place this (and place_hall) ever move it, so this check and the moves below can't
@@ -345,14 +300,6 @@ mod tests {
         let mon = Rect { left: 1920, top: -200, right: 4480, bottom: 1240 };
         let work = Rect { bottom: 1180, ..mon };
         assert_eq!(strip_rect(mon, work, false, 150), Rect { left: 1920, top: 1030, right: 4480, bottom: 1180 });
-    }
-    #[test]
-    fn fullscreen_hides_and_restores_only_its_own_hide() {
-        assert_eq!(act(true, true, false), Act::Hide);
-        assert_eq!(act(false, false, true), Act::Show);
-        assert_eq!(act(false, false, false), Act::Stay); // the user hid it
-        assert_eq!(act(true, false, true), Act::Stay);
-        assert_eq!(act(false, true, false), Act::Stay);
     }
     #[test]
     fn cursor_inside() {

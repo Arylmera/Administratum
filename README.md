@@ -89,8 +89,7 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   Hide), each department's lecterns and its adepts' consoles on a coloured mat with a name plaque, the cogitator,
   the recaff and bench where idle scribes nap, the petition line and the Magos at the right end. It is click-through
   everywhere except over a character, a label, a plaque, the handle and its open menu, or another open panel; a
-  panel (card, Settings, Chronicon) opens by growing the window upward, above the strip. The strip hides itself
-  while a fullscreen app has focus, and re-places itself when the taskbar, its monitor or its DPI changes. Strip
+  panel (card, Settings, Chronicon) opens by growing the window upward, above the strip. The strip re-places itself when the taskbar, its monitor or its DPI changes. Strip
   size (S/M/L) and an optional backdrop are in Settings. Windows only for now, and only with a taskbar docked at
   the bottom of the screen (macOS, above the Dock, is not done yet).
 

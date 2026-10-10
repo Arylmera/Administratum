@@ -705,8 +705,6 @@ if (tauri() || REMOTE) {
   listen('chronicle', e => { if ((paused() ? Date.now() - e.payload.ts < FRESH_MS : cast.chronicle(e.payload)) && e.payload.kind === 'task-done' && !quietNow()) chime([1320, 1760]); });
   listen('ui-command', e => ({ mute: toggleMute, light: cycleMode, strip: () => { if (!REMOTE) toggleStrip(); } })[e.payload]?.());
   listen('visible', e => { visible = e.payload; wake(); }); // the app's window only
-  listen('strip-hide', () => { visible = false; wake(); }); // a fullscreen app covers the taskbar
-  listen('strip-show', () => { visible = true; wake(); });
   refreshTithe = initChronicon(colorOf);
 }
 const hideBtn = document.getElementById('hide');
