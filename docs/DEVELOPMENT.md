@@ -174,9 +174,10 @@ board), each sprite linking to a prefilled new issue. Design notes:
 [sprite themes](superpowers/specs/2026-10-06-sprite-themes-design.md).
 
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
-sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `iso.html` / `iso.mjs` the
-39° projection trial, `faces.mjs` / `iso_art.mjs` / `map_to_art.mjs` / `sheet_writer.mjs` / `png_write.mjs` art
-conversion helpers, `make_icon.py` the app icon.
+sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
+`watch_art.mjs` (one module per theme or world under `breakout_art/` and `watch_art/`) the generators of the
+break-out room and Watchman art, `map_to_art.mjs` / `sheet_writer.mjs` / `png_write.mjs` art conversion helpers, `adm.mjs` the
+command-line client of the running app, `make_icon.py` the app icon.
 
 ---
 
