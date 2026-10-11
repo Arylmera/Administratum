@@ -30,7 +30,7 @@ pub fn track_compaction(prev: &[Session], roster: &mut [Session], now_ms: i64) {
         }
         s.compacted_at = p.compacted_at;
         let dropped = matches!((&p.context, &s.context), (Some(a), Some(b)) if b.tokens * 10 < a.tokens * 6);
-        if dropped && p.compacted_at.map_or(true, |t| now_ms - t > 60_000) {
+        if dropped && p.compacted_at.is_none_or(|t| now_ms - t > 60_000) {
             s.compacted_at = Some(now_ms);
         }
     }

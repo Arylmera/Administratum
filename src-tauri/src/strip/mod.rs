@@ -100,10 +100,10 @@ pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String
     let work = Rect { left: wa.position.x, top: wa.position.y, right: wa.position.x + wa.size.width as i32, bottom: wa.position.y + wa.size.height as i32 };
     let bottom_bar = edge_of(mon, work).or_else(edge_fallback) == Some(Edge::Bottom);
     let r = strip_rect(mon, work, autohide() && bottom_bar, (height_css * m.scale_factor()).round() as i32);
-    if *RECT.lock().unwrap_or_else(|e| e.into_inner()) != Some(r) {
+    if *crate::lock(&RECT) != Some(r) {
         w.set_size(tauri::PhysicalSize::new((r.right - r.left) as u32, (r.bottom - r.top) as u32)).map_err(|e| e.to_string())?;
         w.set_position(tauri::PhysicalPosition::new(r.left, r.top)).map_err(|e| e.to_string())?;
-        *RECT.lock().unwrap_or_else(|e| e.into_inner()) = Some(r);
+        *crate::lock(&RECT) = Some(r);
     }
     Ok(r)
 }
@@ -121,7 +121,7 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
         window.set_resizable(false).map_err(|e| e.to_string())?;
         Some(HallRect { x: p.x, y: p.y, w: s.width, h: s.height })
     };
-    *HEIGHT.lock().unwrap_or_else(|e| e.into_inner()) = height;
+    *crate::lock(&HEIGHT) = height;
     // Windows 11 draws a 1 px border + shadow around undecorated windows while the shadow is on;
     // off in the strip, where the bar must sit flush against the taskbar. Off before replace(): with the
     // shadow on, the window keeps an invisible resize frame round the size set, which becomes drawn
@@ -141,7 +141,7 @@ pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Resul
     // the main thread (run_on_main_thread), same as the set_size/set_position below, so whichever
     // of the two runs first on that single thread finishes before the other can start.
     ON.store(false, Ordering::SeqCst);
-    *RECT.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *crate::lock(&RECT) = None;
     let _ = window.set_ignore_cursor_events(false);
     let _ = window.set_shadow(true);
     window.set_resizable(true).map_err(|e| e.to_string())?;
@@ -151,7 +151,7 @@ pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Resul
     window.set_position(tauri::PhysicalPosition::new(r.x, r.y)).map_err(|e| e.to_string())
 }
 
-/// The tray's "Desktop strip" check item (main.rs build_tray); a newtype since the login item is the
+/// The tray's "Desktop strip" check item (window.rs build_tray); a newtype since the login item is the
 /// managed `CheckMenuItem`.
 pub struct StripItem(pub tauri::menu::CheckMenuItem<tauri::Wry>);
 
@@ -172,7 +172,7 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), S
 /// call site (replace, set_always_on_top) so one succeeding never suppresses the other's own repeat.
 #[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 fn log_once(slot: &Mutex<Option<String>>, msg: String) {
-    let mut last = slot.lock().unwrap_or_else(|e| e.into_inner());
+    let mut last = crate::lock(slot);
     if last.as_deref() != Some(msg.as_str()) {
         eprintln!("{msg}");
     }
@@ -181,7 +181,7 @@ fn log_once(slot: &Mutex<Option<String>>, msg: String) {
 
 #[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 fn clear_log(slot: &Mutex<Option<String>>) {
-    *slot.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *crate::lock(slot) = None;
 }
 
 /// Watches (1 s, only while `ON`) for monitor / work area / DPI / taskbar changes: re-places the
@@ -208,7 +208,7 @@ pub fn start_watcher(app: tauri::AppHandle) {
                 if !ON.load(Ordering::SeqCst) || !w2.is_visible().unwrap_or(false) {
                     return;
                 }
-                let height = *HEIGHT.lock().unwrap_or_else(|e| e.into_inner());
+                let height = *crate::lock(&HEIGHT);
                 match replace(&w2, height) {
                     Ok(_) => clear_log(&REPLACE_ERR),
                     Err(e) => log_once(&REPLACE_ERR, format!("strip watcher replace: {e}")),
@@ -226,7 +226,7 @@ pub fn start_watcher(_app: tauri::AppHandle) {}
 
 #[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
 pub fn last_rect() -> Option<Rect> {
-    *RECT.lock().unwrap_or_else(|e| e.into_inner())
+    *crate::lock(&RECT)
 }
 
 /// The cursor in window CSS px, if it is inside the strip's rect.

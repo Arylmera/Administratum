@@ -4,6 +4,8 @@
 use crate::registry::Session;
 use std::collections::HashMap;
 
+pub mod app;
+
 /// Nothing works and no transcript is written for this long: the countdown starts.
 pub const QUIET_MS: i64 = 300_000;
 pub const COUNTDOWN_MS: i64 = 120_000;

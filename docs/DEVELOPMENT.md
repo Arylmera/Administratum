@@ -22,19 +22,21 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 
 | Module | Job |
 |---|---|
-| `main.rs` | Window, tray, plugins (notification, window-state, autostart, updater), the 1 s poll loop, every Tauri command (listed in `generate_handler!`) |
+| `main.rs` | Plugins (notification, window-state, autostart, updater), setup, the 1 s poll loop and its toasts, the small commands; every Tauri command is listed in its `generate_handler!`. Crate-wide helpers: `lock`, `no_window`, `emit`, `now_ms` |
+| `window.rs` | The main window: tray icon and menu, show / hide, the watcher that tells the UI when the window is seen |
+| `orca.rs` | Orca's CLI: switch to a session's terminal, read and answer its permission dialog |
 | `poller.rs` | Builds the live roster each tick: liveness of each session pid via Win32, the Orca handle per pid, transcript location, memoised tails and subagents |
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell |
 | `chronicle.rs` | Incremental transcript reader: Chronicon events, the token and working-time Tithe, day files, retention |
-| `toast.rs` | Toast wording, pushed by the UI from the active theme |
+| `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
-| `settings.rs` | `settings.json`: load, shape checks, atomic save |
-| `remote.rs` | The LAN remote view: HTTP server, pairing token, policy. Its API: [remote-api.md](remote-api.md) |
+| `settings.rs` | `settings.json`: load, shape checks, atomic save; readers of saved `adm.*` values the backend needs (quiet hours, open-folder program) |
+| `remote/` | The LAN remote view. `mod.rs` the HTTP server, pairing token and policy, with no Tauri in it; `app.rs` its settings, the backend it calls and the settings panel's commands (remote view, firewall rule). Its API: [remote-api.md](remote-api.md) |
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
 | `strip/` | The desktop strip window: placement on the taskbar, click-through. OS calls in `windows.rs` |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
-| `vigil.rs` | Night Vigil: arms once every session is stuck on a human, the 120 s countdown, the shutdown itself |
+| `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown); `app.rs` arming, its tick, toast and Chronicon events, the shutdown itself |
 
 **Events.** Each second the poll loop emits `roster` (every session with its status, petition, task, context,
 subagents, Orca handle, claude.ai URL, compaction time), `petition` and `petition-stale` (these also fire the

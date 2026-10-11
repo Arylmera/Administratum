@@ -6,14 +6,18 @@ use std::{path::Path, process::Command};
 const RULE: &str = "Administratum remote view";
 
 /// Status read: active connection profiles and every rule named RULE, as JSON. Takes no input.
-const READ: &str = "$ErrorActionPreference = 'SilentlyContinue'
-$n = @(Get-NetConnectionProfile | ForEach-Object { [string]$_.NetworkCategory })
-$r = @(Get-NetFirewallRule -DisplayName 'Administratum remote view' | ForEach-Object {
+fn read_script() -> String {
+    format!(
+        "$ErrorActionPreference = 'SilentlyContinue'
+$n = @(Get-NetConnectionProfile | ForEach-Object {{ [string]$_.NetworkCategory }})
+$r = @(Get-NetFirewallRule -DisplayName '{RULE}' | ForEach-Object {{
   $p = $_ | Get-NetFirewallPortFilter
   $a = $_ | Get-NetFirewallApplicationFilter
-  @{ enabled = [string]$_.Enabled; action = [string]$_.Action; direction = [string]$_.Direction; profile = [string]$_.Profile; protocol = [string]$p.Protocol; port = [string]$p.LocalPort; program = [string]$a.Program }
-})
-ConvertTo-Json -Compress -Depth 3 -InputObject @{ networks = $n; rules = $r }";
+  @{{ enabled = [string]$_.Enabled; action = [string]$_.Action; direction = [string]$_.Direction; profile = [string]$_.Profile; protocol = [string]$p.Protocol; port = [string]$p.LocalPort; program = [string]$a.Program }}
+}})
+ConvertTo-Json -Compress -Depth 3 -InputObject @{{ networks = $n; rules = $r }}"
+    )
+}
 
 #[derive(serde::Serialize, Debug, PartialEq)]
 pub struct Status {
@@ -97,7 +101,7 @@ pub fn remove() -> Result<(), String> {
 
 pub fn status(port: u16) -> Result<Status, String> {
     let port = valid_port(port)?;
-    let out = powershell(READ)?;
+    let out = powershell(&read_script())?;
     let exe = std::env::current_exe().ok();
     parse(&String::from_utf8_lossy(&out.stdout), port, exe.as_deref().and_then(|p| p.to_str()))
 }
@@ -181,6 +185,21 @@ pub fn parse(json: &str, port: u16, exe: Option<&str>) -> Result<Status, String>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn read_script_names_the_rule() {
+        assert_eq!(
+            read_script(),
+            r#"$ErrorActionPreference = 'SilentlyContinue'
+$n = @(Get-NetConnectionProfile | ForEach-Object { [string]$_.NetworkCategory })
+$r = @(Get-NetFirewallRule -DisplayName 'Administratum remote view' | ForEach-Object {
+  $p = $_ | Get-NetFirewallPortFilter
+  $a = $_ | Get-NetFirewallApplicationFilter
+  @{ enabled = [string]$_.Enabled; action = [string]$_.Action; direction = [string]$_.Direction; profile = [string]$_.Profile; protocol = [string]$p.Protocol; port = [string]$p.LocalPort; program = [string]$a.Program }
+})
+ConvertTo-Json -Compress -Depth 3 -InputObject @{ networks = $n; rules = $r }"#
+        );
+    }
 
     const EXE: &str = r"C:\Users\guill\AppData\Local\Administratum\administratum.exe";
     fn rule(enabled: &str, profile: &str, port: &str) -> String {

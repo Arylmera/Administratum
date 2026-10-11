@@ -2,8 +2,10 @@
 //! every theme change, so a setting other than the 40k scriptorium says "Request from …" instead of "Petition from …".
 //! Tier II's wording until then.
 
-use crate::registry::Session;
+use crate::{orca::answer_petition, registry::Session, Live};
 use std::sync::Mutex;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_notification::NotificationExt;
 
 /// Title templates (`{name}`: the session's name) and the body's fallback when a petition names no tool.
 #[derive(Clone, Debug, PartialEq)]
@@ -49,12 +51,12 @@ pub fn set(new: Text) {
         limit_many: pick(new.limit_many, d.limit_many),
         failed: pick(new.failed, d.failed),
     };
-    *TEXT.lock().unwrap_or_else(|e| e.into_inner()) = Some(t);
+    *crate::lock(&TEXT) = Some(t);
 }
 
 /// The current wording.
 pub fn get() -> Text {
-    TEXT.lock().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or_default()
+    crate::lock(&TEXT).clone().unwrap_or_default()
 }
 
 /// `{name}` in a template -> the session's name.
@@ -100,6 +102,64 @@ pub fn has_buttons(s: &Session) -> bool {
 /// still a permission prompt in Orca. Otherwise (answered in the terminal, gone) None: nothing is typed.
 pub fn still_open<'a>(roster: &'a [Session], id: &str, since_ms: i64) -> Option<&'a str> {
     roster.iter().find(|s| s.id == id && s.since_ms == since_ms).filter(|s| has_buttons(s)).and_then(|s| s.orca.as_deref())
+}
+
+/// The app id toasts show under: the installed app's identifier; PowerShell's in a dev build (the identifier is only
+/// registered by the installer), as tauri-plugin-notification does.
+#[cfg(windows)]
+fn toast_app_id(app: &AppHandle) -> String {
+    let dev = std::env::current_exe()
+        .ok()
+        .and_then(|e| e.parent().map(|d| d.ends_with(std::path::Path::new("target").join("debug")) || d.ends_with(std::path::Path::new("target").join("release"))))
+        .unwrap_or(false);
+    if dev {
+        tauri_winrt_notification::Toast::POWERSHELL_APP_ID.to_string()
+    } else {
+        app.config().identifier.clone()
+    }
+}
+
+/// A toast with buttons: a click calls `on_click` with the button's argument. Off Windows, or on a WinRT error, the
+/// plugin's plain toast without them.
+pub fn with_buttons(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, &str)], on_click: impl Fn(Option<&str>) + Send + 'static) {
+    #[cfg(windows)]
+    {
+        let toast = buttons.iter().fold(tauri_winrt_notification::Toast::new(&toast_app_id(app)).title(title).text1(body), |t, (label, arg)| t.add_button(label, arg));
+        let shown = toast
+            .on_activated(move |arg| {
+                on_click(arg.as_deref());
+                Ok(())
+            })
+            .show();
+        if shown.is_ok() {
+            return;
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = (buttons, on_click);
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
+/// A petition toast. A permission prompt in an Orca terminal gets Approve / Deny: a click answers through
+/// `answer_petition` (the same screen check as the card), only while that petition is still open (still_open);
+/// a failure shows a plain "open the terminal" toast. Anything else: the plugin's plain toast.
+pub fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String) {
+    if !has_buttons(s) {
+        let _ = app.notification().builder().title(title).body(body).show();
+        return;
+    }
+    let (handle, name) = (app.clone(), s.name.clone());
+    let (yes, no) = (action_arg("yes", s.since_ms, &s.id), action_arg("no", s.since_ms, &s.id));
+    with_buttons(app, &title, &body, &[("Approve", &yes), ("Deny", &no)], move |arg| {
+        let Some((choice, since, id)) = arg.and_then(parse_action) else { return };
+        let open = handle.state::<Live>().lock().ok().and_then(|r| still_open(&r, id, since).map(str::to_string));
+        if let Some(orca) = open {
+            if let Err(e) = answer_petition(orca, choice.to_string()) {
+                eprintln!("toast answer: {e}");
+                let _ = handle.notification().builder().title(fill(&get().failed, &name)).show();
+            }
+        }
+    });
 }
 
 #[cfg(test)]

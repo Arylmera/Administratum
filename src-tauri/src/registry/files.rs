@@ -89,7 +89,7 @@ mod tests {
         let d = temp_dir("projects");
         fs::create_dir_all(d.join("C--git-Terra")).unwrap();
         let line = r#"{"type":"user","message":{"content":"x"}}"#;
-        let big = std::iter::repeat(line).take(3000).collect::<Vec<_>>().join("\n");
+        let big = std::iter::repeat_n(line, 3000).collect::<Vec<_>>().join("\n");
         fs::write(d.join("C--git-Terra").join("abc.jsonl"), &big).unwrap();
         let path = find_transcript(&d, "abc").expect("found via fallback scan");
         let tail = file_tail(&path, 65536).unwrap();

@@ -29,7 +29,7 @@ pub fn merge_ui(old: &Value, new: &Value) -> Value {
 /// Read-modify-write of the file, serialised so the UI's saves and the backend's never lose each other's keys.
 pub fn update(path: &Path, f: impl FnOnce(Value) -> Value) -> Result<(), String> {
     static LOCK: Mutex<()> = Mutex::new(());
-    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = crate::lock(&LOCK);
     save(path, &f(load(path)))
 }
 
@@ -60,6 +60,59 @@ pub fn save(path: &Path, v: &Value) -> Result<(), String> {
     let tmp = path.with_extension("tmp");
     fs::write(&tmp, text).map_err(|e| e.to_string())?;
     fs::rename(&tmp, path).map_err(|e| e.to_string())
+}
+
+/// The program and arguments that open a department's folder (Settings: adm.openWith = explorer | code | custom,
+/// adm.openCmd). `path` is always one argument: `{path}` in a custom command is replaced inside its word, and
+/// appended as the last argument when the command has none. Nothing goes through a shell.
+pub fn opener(kind: &str, custom: &str, path: &str) -> Result<(String, Vec<String>), String> {
+    match kind {
+        "code" => Ok(("code.cmd".into(), vec![path.into()])),
+        "custom" => {
+            let words = split_words(custom);
+            let (program, rest) = words.split_first().ok_or("no custom command set")?;
+            let mut args: Vec<String> = rest.iter().map(|w| w.replace("{path}", path)).collect();
+            if !rest.iter().any(|w| w.contains("{path}")) {
+                args.push(path.into());
+            }
+            Ok((program.clone(), args))
+        }
+        _ => Ok(("explorer.exe".into(), vec![path.into()])),
+    }
+}
+
+/// Words of a command line; double quotes group (no escapes): `"C:\Program Files\x.exe" -n {path}`.
+fn split_words(s: &str) -> Vec<String> {
+    let (mut out, mut cur, mut quoted, mut any) = (vec![], String::new(), false, false);
+    for c in s.chars() {
+        match c {
+            '"' => {
+                quoted = !quoted;
+                any = true;
+            }
+            c if c.is_whitespace() && !quoted => {
+                if any {
+                    out.push(std::mem::take(&mut cur));
+                    any = false;
+                }
+            }
+            c => {
+                cur.push(c);
+                any = true;
+            }
+        }
+    }
+    if any {
+        out.push(cur);
+    }
+    out
+}
+
+/// Quiet-hours settings as saved by the UI (adm.quiet/"1", adm.quietFrom/adm.quietTo, minutes after
+/// midnight as strings): defaults to off, 1320 (22:00), 480 (8:00) on a missing or unparsable value.
+pub fn quiet_from_settings(v: &serde_json::Value) -> (bool, u16, u16) {
+    let num = |key: &str, default: u16| v[key].as_str().and_then(|s| s.parse().ok()).unwrap_or(default);
+    (v["adm.quiet"].as_str() == Some("1"), num("adm.quietFrom", 1320), num("adm.quietTo", 480))
 }
 
 #[cfg(test)]
@@ -110,5 +163,23 @@ mod tests {
         .unwrap();
         assert_eq!(load(&path), json!({"a": 1, "remote.port": 8000}));
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn quiet_from_settings_defaults_and_parses() {
+        assert_eq!(quiet_from_settings(&serde_json::json!({})), (false, 1320, 480), "missing keys: off, defaults");
+        assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "1", "adm.quietFrom": "60", "adm.quietTo": "120"})), (true, 60, 120));
+        assert_eq!(quiet_from_settings(&serde_json::json!({"adm.quiet": "0", "adm.quietFrom": "oops"})), (false, 1320, 480), "unparsable falls back");
+    }
+
+    #[test]
+    fn opener_keeps_the_path_one_argument() {
+        let p = r"C:\My Projects\x & y";
+        assert_eq!(opener("explorer", "", p).unwrap(), ("explorer.exe".to_string(), vec![p.to_string()]));
+        assert_eq!(opener("code", "", p).unwrap(), ("code.cmd".to_string(), vec![p.to_string()]));
+        assert_eq!(opener("custom", r#""C:\Program Files\Ed\ed.exe" -n {path}"#, p).unwrap(), (r"C:\Program Files\Ed\ed.exe".to_string(), vec!["-n".to_string(), p.to_string()]));
+        assert_eq!(opener("custom", "ed --dir={path}", p).unwrap().1, vec![format!("--dir={p}")]);
+        assert_eq!(opener("custom", "ed", p).unwrap().1, vec![p.to_string()], "no {{path}}: appended");
+        assert!(opener("custom", "  ", p).is_err());
     }
 }

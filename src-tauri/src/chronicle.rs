@@ -200,7 +200,7 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     let Ok(v) = serde_json::from_str::<Value>(line) else { return };
     {
         let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
-        if min_ts > i64::MIN && ts.map_or(true, |t| t < min_ts) {
+        if min_ts > i64::MIN && ts.is_none_or(|t| t < min_ts) {
             return;
         }
         let ts = ts.unwrap_or(now_ms);
@@ -1193,7 +1193,7 @@ mod tests {
         let files = |c: &mut Chronicle| {
             let mut v = vec![(registry::stat(&base.join("s1.jsonl")).unwrap(), false)];
             v.extend(registry::list_subagents(&subs).into_iter().map(|f| (f, true)));
-            c.read_transcripts(&[s.clone()], &HashMap::from([("s1".to_string(), v)]), t)
+            c.read_transcripts(std::slice::from_ref(&s), &HashMap::from([("s1".to_string(), v)]), t)
         };
         let ev = files(&mut c);
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();

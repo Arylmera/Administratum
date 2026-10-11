@@ -5,6 +5,8 @@
 //! once, then an HttpOnly SameSite=Strict cookie). The decision is `route` (pure, tested); the
 //! I/O around it is `handle`. Live events fan out to `/events` clients through bounded channels.
 
+pub mod app;
+
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -80,7 +82,7 @@ pub fn valid_token(t: &str) -> bool {
 }
 
 /// The pairing cookie's value among every `Cookie` header.
-fn cookie_token<'a>(headers: &'a [(String, String)]) -> Option<&'a str> {
+fn cookie_token(headers: &[(String, String)]) -> Option<&str> {
     headers.iter().filter(|(k, _)| k == "cookie").flat_map(|(_, v)| v.split(';')).filter_map(|kv| kv.trim().split_once('=')).find(|(k, _)| *k == COOKIE).map(|(_, v)| v)
 }
 
@@ -205,7 +207,7 @@ static CLIENTS: Mutex<Vec<SyncSender<Arc<str>>>> = Mutex::new(Vec::new());
 /// Mirror a Tauri event to every `/events` client. Costs a lock on an empty list when none is
 /// connected; a client whose buffer is full is dropped (it reconnects and catches up).
 pub fn publish<S: Serialize + ?Sized>(event: &str, payload: &S) {
-    let mut clients = CLIENTS.lock().unwrap_or_else(|e| e.into_inner());
+    let mut clients = crate::lock(&CLIENTS);
     if clients.is_empty() {
         return;
     }
@@ -215,11 +217,11 @@ pub fn publish<S: Serialize + ?Sized>(event: &str, payload: &S) {
 }
 
 fn drop_clients() {
-    CLIENTS.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    crate::lock(&CLIENTS).clear();
 }
 
 fn subscribe() -> Option<Receiver<Arc<str>>> {
-    let mut clients = CLIENTS.lock().unwrap_or_else(|e| e.into_inner());
+    let mut clients = crate::lock(&CLIENTS);
     clients.retain(|tx| tx.try_send(": hi\n\n".into()).is_ok()); // prune the gone before counting
     if clients.len() >= MAX_CLIENTS {
         return None;
@@ -258,7 +260,7 @@ static CONNECTIONS: AtomicUsize = AtomicUsize::new(0);
 
 /// A new token cuts every paired device off, open event streams included.
 pub fn set_token(t: &str) {
-    *TOKEN.lock().unwrap_or_else(|e| e.into_inner()) = t.to_string();
+    *crate::lock(&TOKEN) = t.to_string();
     drop_clients();
 }
 
@@ -267,7 +269,7 @@ pub fn set_actions(on: bool) {
 }
 
 pub fn running_port() -> Option<u16> {
-    SERVER.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(|r| r.port)
+    crate::lock(&SERVER).as_ref().map(|r| r.port)
 }
 
 /// (Re)start on `addr`; returns the bound port. One thread blocked in accept; one short-lived
@@ -300,13 +302,13 @@ pub fn start(addr: SocketAddr, backend: Backend) -> Result<u16, String> {
             });
         }
     });
-    *SERVER.lock().unwrap_or_else(|e| e.into_inner()) = Some(Running { port, stop, thread });
+    *crate::lock(&SERVER) = Some(Running { port, stop, thread });
     Ok(port)
 }
 
 /// Close the port and end every event stream; returns once the port is free.
 pub fn stop() {
-    let Some(r) = SERVER.lock().unwrap_or_else(|e| e.into_inner()).take() else { return };
+    let Some(r) = crate::lock(&SERVER).take() else { return };
     r.stop.store(true, Ordering::Relaxed);
     let _ = TcpStream::connect_timeout(&SocketAddr::from((Ipv4Addr::LOCALHOST, r.port)), Duration::from_secs(1)); // wake accept
     let _ = r.thread.join();
@@ -386,7 +388,7 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
         Ok(h) => h,
         Err(code) => return respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
     };
-    let token = TOKEN.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let token = crate::lock(&TOKEN).clone();
     let decision = if valid_token(&token) {
         route(&Req { method: &head.method, url: &head.target, headers: &head.headers, peer }, &token, ACTIONS.load(Ordering::Relaxed))
     } else {

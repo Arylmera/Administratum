@@ -2,7 +2,7 @@
 
 Backend for the LAN remote view (design: `docs/superpowers/specs/2026-10-05-remote-view-design.md`).
 Command-line client on the same PC: `tools/adm.mjs` (status, vigil, chronicle; no petitions).
-Code: `src-tauri/src/remote.rs` (server, policy, tests) and the `remote_*` commands in `src-tauri/src/main.rs`.
+Code: `src-tauri/src/remote/mod.rs` (server, policy, tests) and `src-tauri/src/remote/app.rs` (the `remote_*` commands and the backend the server calls).
 
 ## Tauri commands (local settings panel only)
 

@@ -78,7 +78,7 @@ impl Poller {
             if s.limit.as_ref().and_then(|l| l.reset_ms).is_some_and(|r| r <= now_ms) {
                 s.limit = None; // the reset hour has passed: the next prompt will go through
             }
-            if !branches.get(&s.cwd).is_some_and(|(at, _)| at.elapsed() < BRANCH_EVERY) {
+            if branches.get(&s.cwd).is_none_or(|(at, _)| at.elapsed() >= BRANCH_EVERY) {
                 branches.insert(s.cwd.clone(), (Instant::now(), git::branch_of(Path::new(&s.cwd))));
             }
             s.branch = branches.get(&s.cwd).and_then(|(_, b)| b.clone());
@@ -110,7 +110,7 @@ fn locate(projects: &Path, found: &mut HashMap<String, (Instant, Option<PathBuf>
     let direct = registry::direct_transcript(projects, id, cwd);
     let main = registry::stat(&direct).or_else(|| {
         // A hit is kept while its file is there; a miss or a vanished file is scanned again after RESCAN_EVERY.
-        let rescan = found.get(id).map_or(true, |(at, p)| now.saturating_duration_since(*at) >= RESCAN_EVERY && !p.as_deref().is_some_and(Path::is_file));
+        let rescan = found.get(id).is_none_or(|(at, p)| now.saturating_duration_since(*at) >= RESCAN_EVERY && !p.as_deref().is_some_and(Path::is_file));
         if rescan {
             found.insert(id.to_string(), (now, registry::find_transcript(projects, id)));
         }
@@ -151,7 +151,7 @@ fn is_claude_image(path: &str) -> bool {
 /// The session record's `procStart` (FILETIME, decimal) against the process's creation time: a
 /// mismatch means the pid was reused. No or unreadable `procStart`: trust the name check alone.
 fn same_start(proc_start: Option<&str>, created: u64) -> bool {
-    proc_start.and_then(|s| s.parse::<u64>().ok()).map_or(true, |s| s == created)
+    proc_start.and_then(|s| s.parse::<u64>().ok()).is_none_or(|s| s == created)
 }
 
 /// Whether `pid` is a running `claude.exe` started at `proc_start`: one process handle, no snapshot.
