@@ -203,10 +203,17 @@
   #chron .events .who { font-weight: 600; } #chron .events .who small { font-weight: 400; color: var(--pm); font-size: 1em; }
   #chron .events .dept { color: var(--pm); }
   #chron .events li.tests-fail .d, #chron .events li.tool-error .d { color: var(--paper-err); }
+  /* While a day loads: a turning seal and a growing ellipsis, shown only past 150 ms so a fast load never flashes. */
+  #chron .loading { display: flex; align-items: center; gap: .6em; margin: 1.5em 0; justify-content: center; color: var(--pm); font-style: italic; opacity: 0; animation: appear .2s .15s forwards; }
+  #chron .loading .seal { width: .8em; height: .8em; border: 2px solid var(--blood); border-right-color: transparent; border-radius: 50%; animation: turn .8s linear infinite; }
+  #chron .loading::after { content: '...'; display: inline-block; width: 0; overflow: hidden; vertical-align: bottom; animation: ellipsis 1.2s steps(4) infinite; }
+  @keyframes appear { to { opacity: 1; } }
+  @keyframes turn { to { transform: rotate(1turn); } }
+  @keyframes ellipsis { to { width: 1.2em; } }
   @keyframes inked { from { background: color-mix(in srgb, var(--chart-new) 25%, transparent); } }
   @media (max-width: 600px) { .tithe { display: none; } }
   @media (max-width: 520px) { #chron .events li { grid-template-columns: 3.2em 1.2em minmax(4em, 8em) 1fr; } #chron .events .dept { display: none; } }
-  @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh, #chron .loading .seal, #chron .loading::after { animation: none; } #chron .loading::after { width: auto; } }
   /* Settings: the same scroll as the Chronicon; categories down the side, each one's settings grouped by type.
      Every colour and the title font come from the theme (T.ui), so the panel follows it. */
   #prefs { position: absolute; z-index: 6; top: 1em; left: 50%; transform: translateX(-50%); width: min(44em, calc(100% - 12px)); max-height: calc(100% - 2em);

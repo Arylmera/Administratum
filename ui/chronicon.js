@@ -77,6 +77,10 @@ export function initChronicon(colorOf = () => null) {
   async function show(day) {
     const my = ++seq;
     for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.day === day));
+    const wait = h('p', 'loading', 'Unrolling the scroll');
+    wait.setAttribute('role', 'status');
+    wait.prepend(h('span', 'seal'));
+    body.replaceChildren(wait);
     const [events, tithe] = await Promise.all([invoke('chronicle_day', { day }).catch(() => null), invoke('tithe_day', { day }).catch(() => null)]);
     if (my !== seq || !isOpen()) return;
     cur = { day, events: (events ?? []).slice().sort((a, b) => b.ts - a.ts), filter: cur?.day === day ? cur.filter : '' };

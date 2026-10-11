@@ -655,7 +655,8 @@ fn main() {
             strip::place_strip,
             strip::place_hall,
             strip::set_click_through,
-            strip::set_strip_menu
+            strip::set_strip_menu,
+            set_chime_menu
         ])
         .setup(move |app| {
             app.manage::<VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
@@ -917,9 +918,18 @@ fn toggle_window(app: &AppHandle) {
     }
 }
 
+/// The tray's "Chime" check item; a newtype since the login item is the managed `CheckMenuItem`.
+pub struct ChimeItem(CheckMenuItem<tauri::Wry>);
+
+/// Keeps the tray check in step with the UI's mute (the header bell, Settings or the tray itself).
+#[tauri::command]
+fn set_chime_menu(item: tauri::State<ChimeItem>, on: bool) -> Result<(), String> {
+    item.0.set_checked(on).map_err(|e| e.to_string())
+}
+
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show / hide", true, None::<&str>)?;
-    let mute = MenuItem::with_id(app, "mute", "Toggle chime", true, None::<&str>)?;
+    let mute = CheckMenuItem::with_id(app, "mute", "Chime", true, true, None::<&str>)?; // the UI sets it (set_chime_menu)
     let light = MenuItem::with_id(app, "light", "Cycle lighting", true, None::<&str>)?;
     let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", cfg!(windows), false, None::<&str>)?;
     let login_on = app.autolaunch().is_enabled().unwrap_or(false);
@@ -929,6 +939,7 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let menu = Menu::with_items(app, &[&show, &mute, &light, &strip, &login, &vigil, &quit])?;
     app.manage(login);
     app.manage(VigilItem(vigil));
+    app.manage(ChimeItem(mute.clone()));
     app.manage(strip::StripItem(strip));
     TrayIconBuilder::new()
         .icon(app.default_window_icon().expect("bundle icon").clone())
@@ -937,13 +948,13 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => toggle_window(app),
             "mute" => {
-                emit(app, "ui-command", "mute");
+                let _ = app.emit("ui-command", "mute"); // the PC's own UI only, never the remote view
             }
             "light" => {
-                emit(app, "ui-command", "light");
+                let _ = app.emit("ui-command", "light"); // the PC's own UI only, never the remote view
             }
             "strip" => {
-                emit(app, "ui-command", "strip");
+                let _ = app.emit("ui-command", "strip"); // the PC's own UI only, never the remote view
             }
             "login" => {
                 let al = app.autolaunch();

@@ -675,7 +675,7 @@ if (REMOTE) {
 }
 
 const muteBtn = document.getElementById('mute');
-function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.setAttribute('aria-label', state.muted ? 'Unmute chime' : 'Mute chime'); renderSettings(); }
+function renderMute() { muteBtn.classList.toggle('muted', state.muted); muteBtn.setAttribute('aria-label', state.muted ? 'Unmute chime' : 'Mute chime'); renderSettings(); if (!REMOTE) invoke('set_chime_menu', { on: !state.muted }).catch(() => {}); }
 function toggleMute() { state.muted = !state.muted; store.set('adm.muted', state.muted ? '1' : '0'); renderMute(); }
 muteBtn.onclick = toggleMute;
 renderMute();

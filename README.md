@@ -268,7 +268,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Item | Action |
 |---|---|
 | Show / hide | Toggle the window (the header's `–` button also hides it) |
-| Toggle chime | Mute / unmute |
+| Chime | Ticked while the chime is on; click to mute / unmute (same as the header bell) |
 | Cycle lighting | Auto → Full light → Candles |
 | Desktop strip | Checkbox (Windows only): switches between the strip and the view held before it |
 | Start at login | Checkbox, kept in sync with Settings |
