@@ -812,7 +812,7 @@ function drawStripAlarm(g, H, actors, now) {
   const t = now / 1000, blink = Math.sin(t * 5) > 0; // the hall beacon's sweep period (stepAlarm)
   const bx = H.magos.x - 10, by = FLOOR - 1 - MAPS.THRONE.length / RES - 12;
   rect(g, bx - 1, by - 1, 3, 3, blink ? I.alarm : I.alarmGlow);
-  const { x: sx, y: sy } = H.queue[0], hx = sx + 10, hy = sy - 30; // clear of the petition label (app.js syncLabels)
+  const { x: sx, y: sy } = H.queue[0], hx = sx + 10, hy = sy - 30; // clear of the petition label (overlay.js syncLabels)
   flyShadow(g, hx, hy);
   blit(g, MAPS.SKULL, half(hx) - SK.centre[0], half(hy) - SK.centre[1], skullRed());
   return [{ x: bx, y: by, r: 14, color: T.light.beacon }, { x: hx, y: hy, r: 14, color: T.light.skullAlarm }];

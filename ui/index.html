@@ -57,7 +57,7 @@
   #quiet { color: var(--light); font-size: 16px; cursor: default; } #quiet[hidden] { display: none; }
   #vigil[hidden] { display: none; } #vigil[aria-pressed="true"] { color: var(--light); background: var(--edge); } /* armed: the moon lit */
   button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-  /* clip: the world moves by its pan transform only; max-*: never past the window, even before app.js's debounced fit (42 px: the header) */
+  /* clip: the world moves by its pan transform only; max-*: never past the window, even before viewport.js's debounced fit (42 px: the header) */
   #stage { position: relative; margin: auto; overflow: clip; min-width: 0; min-height: 0; max-width: calc(100% - 24px); max-height: calc(100% - 66px); box-shadow: 0 0 0 2px var(--outline), 0 0 0 4px var(--copper), 0 0 0 5px var(--leather), 0 0 0 7px var(--outline), 0 10px 30px 6px rgba(0,0,0,.8); }
   /* strip mode: no header, no brass frame around the stage, the window itself transparent so the desktop shows
      through; the stage (and its canvas) stays, Task 4 draws into it. html/body otherwise keep their opaque --bg. */
@@ -102,7 +102,7 @@
   .lbl.sheets { font-size: calc(8px * var(--k, 1)); border-color: var(--green); }
   .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: color-mix(in srgb, var(--outline) 85%, transparent); border: 1px solid var(--edge); border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
   .tip[hidden] { display: none; }
-  /* Edge arrows: characters beyond the panned view (app.js syncEdges). */
+  /* Edge arrows: characters beyond the panned view (overlay.js syncEdges). */
   .edge { position: absolute; z-index: 2; transform: translate(-50%, -50%); display: flex; align-items: center; gap: .3em; padding: .1em .45em; background: color-mix(in srgb, var(--label) 90%, transparent); border: 1px solid var(--copper); border-radius: 2px; box-shadow: 0 2px 0 var(--outline); color: var(--light); font: inherit; font-size: calc(10px * var(--k, 1)); line-height: 1.2; cursor: pointer; }
   .edge.left, .edge.right { flex-direction: column; gap: 0; padding: .3em .2em; }
   .edge[hidden] { display: none; }

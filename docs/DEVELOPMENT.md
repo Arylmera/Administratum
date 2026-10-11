@@ -52,7 +52,9 @@ do not know which.
 | Module | Job |
 |---|---|
 | `index.html` | Markup and styles: header, card, Chronicon and Settings panels |
-| `app.js` | Wiring: roster → layout → cast, render loop, scale and pan, petition labels, header buttons, chime |
+| `app.js` | Wiring: roster → layout → cast, render loop, hit test, header buttons, chime |
+| `viewport.js` | The view: scale and scene size for the window, pan (drag, glide, coast, arrow keys), parallax lag |
+| `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags, edge arrows, hover tip |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server |
 | `card.js` | The selected character's card, and answering permission petitions |
 | `chrome.js` | The page follows the theme: CSS colours, marked texts, toast wording |

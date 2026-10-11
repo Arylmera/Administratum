@@ -93,7 +93,7 @@ const setQuiet = (on, from, to) => {
 };
 // Night Vigil deadline (adm.vigilDeadline, minutes after midnight, '' = none): the backend reads it when the vigil is armed.
 
-// Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by app.js's fit().
+// Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by viewport.js's fit().
 const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
 export const view = { scale: okScale(store.get('adm.scale')) };
 const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', view.scale); };

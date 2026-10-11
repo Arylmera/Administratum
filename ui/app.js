@@ -1,5 +1,5 @@
-import { SCENE, MAX_W, WALL, WALL_DY, lightLevel, planLayout, hallOf, layoutDepartments, breakoutOf } from './layout.js';
-import { STRIP_H, FLOOR, GAP, stripOf, layoutStrip } from './strip.js';
+import { WALL, lightLevel, planLayout, hallOf, layoutDepartments } from './layout.js';
+import { stripOf, layoutStrip } from './strip.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
@@ -8,7 +8,7 @@ import { T, onTheme, setTheme, t, hexA } from './theme.js';
 import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
-import { settings, store, place, perf, view as scaleSetting, quiet, initSettings, renderSettings } from './settings.js';
+import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
 import { buildHall39 } from './isohall.js';
 import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
@@ -17,9 +17,11 @@ import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
 import { glide, gliding, clearGlides } from './glide.js';
-import { initCard, sel, fillOf, ago, filesOf, renderCard, answerable, probeActions, canAnswer, answer, pick, closeCard, actionsOn, noActions } from './card.js';
+import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard, actionsOn, noActions } from './card.js';
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
-import { initStripWin, switchStrip, stripScale, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
+import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
+import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
+import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
@@ -46,8 +48,6 @@ function renderQuiet() {
 const canvas = document.getElementById('scene');
 const g = canvas.getContext('2d'); // the strip needs a transparent canvas; the hall's background blit still covers every pixel
 const overlay = document.getElementById('overlay');
-let scale = 2;
-let size = { ...SCENE }; // the scene's logical size, from the window and the Scale setting (fit)
 let hall = hallOf(0); // hallOf(bays, size): the scene's logical height also grows with the layout's bays
 // The canvas's logical size: the hall's own in the flat view, the projected hall's in the 39° view (view.js).
 const scene = () => sceneSize(hall);
@@ -125,7 +125,7 @@ onView((mode, prev) => {
     mouse = null; // the strip's cursor is backend-fed, the hall's a pointer event: neither means anything in the other
     resetCast();
     for (const k in bg) delete bg[k];
-    if (prev === 'strip') { viewW = 0; refloor = tauri(); } // the strip's stage: no hall centre to keep (hallFloor, else the scene's centre)
+    if (prev === 'strip') { setViewW(0); refloor = tauri(); } // the strip's stage: no hall centre to keep (hallFloor, else the scene's centre)
     fit(prev === 'strip' ? hallFloor : undefined); relayout();
     return;
   }
@@ -160,144 +160,20 @@ function renderModes() {
 function setMode(m) { state.mode = m; store.set('adm.mode', m); renderModes(); }
 function cycleMode() { setMode(MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]); }
 
-const FRAME = 12; // CSS px kept around the scene for the brass frame
-const FREE_W = 1920; // ponytail: an explicit Scale's widest scene (canvas cost); past it the stage is centred, scale kept
-// The window decides the room, the Scale setting the pixel size: the scene is as many logical px as the window
-// holds at that scale (never below the minimum SCENE). Auto: the scale of the original look at the default
-// 700x500 window (~1.93), kept while the window resizes, and never wider than MAX_W: an ultra-wide window gets
-// bigger pixels instead. An explicit Scale is honoured exactly (up to FREE_W wide). Smaller than the minimum, or
-// with bays below the window, the stage shows a view of the scene that pans (drag, arrow keys, edge arrows;
-// double-click recentres). The 39° view at Auto: the scale shrinks until the whole projected hall fits the window
-// (the same logical hall, smaller pixels), so nothing is off-screen; an explicit Scale pans there as in the flat view.
-let autoScale = 0;
-const stage = document.getElementById('stage'), world = document.getElementById('world');
-const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
-let viewW = 0, viewH = 0; // the stage, CSS px
-const pannable = () => { const S = scene(); return viewW < S.w * scale - 1 || viewH < S.h * scale - 1; };
-const clampPan = (x, y) => { const S = scene(); return { x: Math.min(0, Math.max(viewW - S.w * scale, x)), y: Math.min(0, Math.max(viewH - S.h * scale, y)) }; };
-function setPan(x, y) {
-  Object.assign(pan, clampPan(x, y));
-  world.style.transform = `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px)`;
-}
-const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
-// Depth: while the view pans, the back wall (y < WALL) trails the floor a little (0.92 of its speed), then
-// catches up: lag is that offset in logical px, 0 at rest so nothing is ever misaligned once the pan stops.
-const PARALLAX = 0.08, LAG_MAX = 1.5, lag = { x: 0, y: 0 };
-function panStep(x, y) { // a pan the user makes (drag, glide, coast), as opposed to a resize re-centring the view
-  const { x: x0, y: y0 } = pan;
-  setPan(x, y);
-  const clampLag = v => Math.max(-LAG_MAX, Math.min(LAG_MAX, v));
-  lag.x = clampLag(lag.x - PARALLAX * (pan.x - x0) / scale); lag.y = clampLag(lag.y - PARALLAX * (pan.y - y0) / scale);
-}
-function settleLag(ms) {
-  const k = 0.85 ** (ms / 16);
-  lag.x = Math.abs(lag.x * k) < 0.05 ? 0 : lag.x * k; lag.y = Math.abs(lag.y * k) < 0.05 ? 0 : lag.y * k;
-}
-const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
-let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
-function fit(floor) { // floor: a floor point to centre on (a view switch), else the view keeps its logical centre
-  if (strip()) { // the window's whole width, one strip high; nothing to pan
-    scale = stripScale();
-    const next = { w: Math.floor(innerWidth / scale), h: STRIP_H };
-    if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
-    viewCentre = null;
-    const S = scene();
-    applySize(S.w * scale, S.h * scale);
-    setPan(0, 0);
-    return;
-  }
-  // The laid-out viewport, floored: on a fractional display (125 %) innerWidth/innerHeight are rounded and can
-  // be half a px larger than the page, enough to overflow it.
-  const vp = document.documentElement.getBoundingClientRect(), head = document.querySelector('header').getBoundingClientRect().bottom;
-  const W = Math.max(1, Math.floor(vp.width) - 2 * FRAME), H = Math.max(1, Math.floor(vp.height - head) - 2 * FRAME);
-  if (viewW && !floor) viewCentre = { x: (viewW / 2 - pan.x) / scale, y: (viewH / 2 - pan.y) / scale };
-  // ponytail: fractional scale; pixelated rendering keeps it crisp enough at any size.
-  autoScale ||= Math.min((700 - 2 * FRAME) / SCENE.w, (500 - head - 2 * FRAME) / SCENE.h);
-  const auto = scaleSetting.scale === 'auto', maxW = auto ? MAX_W : FREE_W;
-  scale = auto ? autoScale : +scaleSetting.scale;
-  if (auto && W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
-  const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
-  if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
-  if (auto && iso()) { const S = scene(); scale = Math.min(scale, W / S.w, H / S.h); }
-  if (floor) { scene(); const [x, y] = at(...floor); viewCentre = { x, y }; } // scene(): the 39° offset, fresh
-  applySize(W, H);
-}
-// The stage and the scene's CSS size for the window's W x H (CSS px), the view kept on its logical centre.
-function applySize(W, H) {
-  const S = scene(), cx = viewCentre?.x ?? S.w / 2, cy = viewCentre?.y ?? S.h / 2;
-  viewW = Math.floor(Math.min(S.w * scale, W)); viewH = Math.floor(Math.min(S.h * scale, H));
-  stage.style.width = `${viewW}px`; stage.style.height = `${viewH}px`;
-  for (const el of [canvas, overlay]) { el.style.width = `${S.w * scale}px`; el.style.height = `${S.h * scale}px`; }
-  pan.to = null;
-  setPan(viewW / 2 - cx * scale, viewH / 2 - cy * scale);
-  const root = document.documentElement.style;
-  root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
-  root.setProperty('--px', `${scale}px`); // one logical px (the strip's handle)
-  root.setProperty('--tile', `${40 * scale / RES}px`);
-}
 let resizing;
 addEventListener('resize', () => {
   clearTimeout(resizing);
   resizing = setTimeout(() => {
     if (!refloor || strip()) return fit();
-    refloor = false; viewW = 0; fit(hallFloor);
+    refloor = false; setViewW(0); fit(hallFloor);
   }, 150);
 });
-addEventListener('scroll', () => scrollTo(0, 0)); // the page never scrolls, only the stage's pan (index.html: overflow clip)
+initViewport({ canvas, overlay, scene, iso, strip, at, relayout, setMouse: e => { mouse = e; } }); // scroll, drag-to-pan, double-click, arrow keys (viewport.js)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {
   hall = strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size);
   onRoster(pending ?? roster);
 }
-// Each animation frame (ms since the last): glide to a target, else coast on the drag's inertia.
-function stepPan(ms) {
-  if (pan.to) {
-    const { x, y } = pan.to, k = Math.min(1, ms / 90);
-    panStep(pan.x + (x - pan.x) * k, pan.y + (y - pan.y) * k);
-    if (Math.abs(x - pan.x) < 0.5 && Math.abs(y - pan.y) < 0.5) { panStep(x, y); pan.to = null; }
-  } else if (!drag?.on && Math.abs(pan.vx) + Math.abs(pan.vy) > 0.02) {
-    const { x, y } = pan;
-    panStep(x + pan.vx * ms, y + pan.vy * ms);
-    const f = 0.88 ** (ms / 16);
-    pan.vx = pan.x === x ? 0 : pan.vx * f; pan.vy = pan.y === y ? 0 : pan.vy * f; // stops at the scene's edge
-  }
-}
-
-// Click-and-hold drag pans once the pointer moves more than 4 px; a shorter move stays a click.
-let drag = null, dragged = false;
-canvas.addEventListener('pointerdown', e => {
-  if (e.button !== 0) return;
-  drag = { x0: e.clientX, y0: e.clientY, px: pan.x, py: pan.y, lx: e.clientX, ly: e.clientY, t: performance.now(), on: false };
-  dragged = false; pan.vx = pan.vy = 0; pan.to = null;
-});
-// Touch (tap = click, one-finger drag = pan; #scene has touch-action: none): a wider slop and hit pad, and the
-// tooltip follows the tapped character instead of a hover.
-const coarse = matchMedia('(pointer: coarse)');
-canvas.addEventListener('pointermove', e => {
-  if (e.pointerType === 'mouse') mouse = e;
-  if (!drag) return;
-  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
-  if (!drag.on && Math.hypot(dx, dy) > (coarse.matches ? 10 : 4) && pannable()) { drag.on = true; try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } canvas.style.cursor = 'grabbing'; }
-  if (!drag.on) return;
-  const t = performance.now(), dt = Math.max(1, t - drag.t);
-  pan.vx = (e.clientX - drag.lx) / dt; pan.vy = (e.clientY - drag.ly) / dt;
-  Object.assign(drag, { lx: e.clientX, ly: e.clientY, t });
-  panStep(drag.px + dx, drag.py + dy);
-});
-const endDrag = () => {
-  if (drag?.on) { dragged = true; if (performance.now() - drag.t > 80) pan.vx = pan.vy = 0; } // held still before letting go: no coast
-  drag = null;
-};
-canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', () => { endDrag(); dragged = false; });
-canvas.ondblclick = () => { if (pannable()) { const S = scene(); centreOn(S.w / 2, S.h / 2); } };
-addEventListener('keydown', e => {
-  const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
-  if (!d || !pannable() || e.target.closest?.('input, select, textarea, #chron, #prefs')) return;
-  e.preventDefault();
-  const from = pan.to ?? pan;
-  panTo(from.x + d[0] * 60, from.y + d[1] * 60);
-});
 
 backdrop();
 onTheme(backdrop);
@@ -432,177 +308,7 @@ function consolesOf(dept) {
   return order;
 }
 
-// A department's most recently active session: its cwd is what the plaque opens, its branch what the plaque shows.
-const deptHead = name => roster.filter(s => s.dept === name).reduce((p, q) => (!p || q.sinceMs > p.sinceMs ? q : p), null);
-const shownBranch = b => (b && b !== 'main' && b !== 'master' ? b : '');
-function openDept(name) {
-  const s = deptHead(name), el = plaques.get(`b:${name}`);
-  if (!s || REMOTE) return;
-  invoke('open_folder', { path: s.cwd }).catch(err => {
-    if (!el) return;
-    el.title = String(err); el.classList.add('err');
-    setTimeout(() => { el.title = 'Open the folder'; el.classList.remove('err'); }, 5000);
-  });
-}
-
-// Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
-const plaques = new Map();
-const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
-// Subscription usage as claude-deck last wrote it (main.rs usage): session and weekly percent and the time to their
-// reset. Hidden when claude-deck is absent or its file is over 30 min old (it would show a stale percent).
-let usage = null;
-const pollUsage = () => invoke('usage').then(u => { usage = u; }, () => {});
-pollUsage(); setInterval(() => paused() || pollUsage(), 60_000);
-const until = iso => { const m = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60_000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
-const usageText = () => (usage?.session && usage?.weekly && Date.now() - Date.parse(usage.fetchedAt) < 30 * 60_000
-  ? `session ${usage.session.percent}% · ${until(usage.session.resetsAt)} | week ${usage.weekly.percent}% · ${until(usage.weekly.resetsAt)}` : '');
-function renderPlaques(blocks) {
-  // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...(strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7)), b.color, b.w - 4 + (strip() ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip()]])); // the strip's plaque may run over the gap after it
-  if (layout.overflow) want.set('overflow', ['plaque', t('overflow', { n: layout.overflow }), ...at(120 + hall.dx, hall.y1 - 10), T.ink.overflowPlaque]);
-  const Z = !strip() && breakoutOf(blocks, hall); // the break-out room's name under its fence (the strip has no room for it)
-  if (Z) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
-  const u = strip() && usageText(); // the subscription's usage on a banner over the Magos
-  // centred over the Magos, or flush with the strip's right end when that would run off it (its width: last frame's)
-  const uw = (plaques.get('usage')?.offsetWidth ?? 0) / scale;
-  if (u) want.set('usage', ['plaque usage', u, Math.min(hall.magos.x - uw / 2, hall.w - 2 - uw), FLOOR - 30 - STRIP_PAD, undefined, undefined, '', undefined, true]);
-  if (!roster.length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
-    const y = 120 + WALL_DY + (hall.h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall.sw, y), [mx, my] = at(hall.sw / 2, y);
-    want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
-  }
-  for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
-  for (const [k, [cls, text, x, y, color, maxWidth, branch = '', width, up]] of want) {
-    let el = plaques.get(k);
-    if (!el) {
-      el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
-      if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
-    }
-    const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : '' };
-    if (el.dataset.text !== `${text}|${branch}`) {
-      el.dataset.text = `${text}|${branch}`;
-      const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;
-      el.replaceChildren(text, ...(branch ? [sub] : []));
-    }
-    for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
-  }
-}
-
-// Petitioners keep a compact always-visible label (they must not be missed); everyone else is found by
-// clicking/hovering the sprite itself.
-const labels = new Map();
-function syncLabels() {
-  const petition = a => !a.h && !a.leaving && a.pose === 'queue' && (a.s.status === 'waiting' || isQuestion(a.s));
-  for (const [id, el] of labels) if (!petition(cast.actors.get(id) ?? {})) { el.remove(); labels.delete(id); }
-  for (const a of cast.actors.values()) {
-    if (!petition(a)) continue;
-    let el = labels.get(a.id);
-    if (!el) {
-      el = document.createElement('div');
-      el.className = 'lbl petition';
-      overlay.appendChild(el);
-      labels.set(a.id, el);
-    }
-    const asks = isQuestion(a.s), want = asks ? 'question' : a.s.waitingFor ?? 'input needed';
-    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s), isStale(a.s)].join('|');
-    if (el.dataset.key !== key) {
-      el.dataset.key = key;
-      el.classList.toggle('question', asks);
-      el.classList.toggle('sel', sel === a.id);
-      el.classList.toggle('stale', isStale(a.s));
-      const who = document.createElement('button');
-      who.className = 'who';
-      who.onclick = () => pick(a.id);
-      who.setAttribute('aria-label', t('petitionLabel', { name: a.s.name, want }));
-      const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; who.appendChild(s); };
-      line('', a.s.name);
-      line('sub', `${want} · ${ago(a.s.sinceMs)}`);
-      el.replaceChildren(who);
-      if (canAnswer(a.s)) {
-        const ans = document.createElement('div');
-        ans.className = 'ans';
-        for (const [text, choice, verb] of [['✓', 'yes', 'Approve'], ['✗', 'no', 'Deny']]) {
-          const b = document.createElement('button');
-          b.textContent = text; b.title = verb;
-          b.setAttribute('aria-label', `${verb} ${a.s.name}`);
-          b.onclick = () => answer(a.s, choice);
-          ans.appendChild(b);
-        }
-        el.appendChild(ans);
-      }
-    }
-    // Adjacent queue labels alternate height so their text doesn't overlap.
-    const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
-    const [lx, ly] = at(...feet(a), qOff);
-    setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
-  }
-}
-
-// Off-screen awareness: an arrow on each edge of the view that has characters beyond it, with their count; it
-// blinks red when one of them petitions, and a click glides the view onto that petitioner (else the nearest one).
-const edges = Object.fromEntries(Object.entries({ up: '▲', down: '▼', left: '◀', right: '▶' }).map(([dir, glyph]) => {
-  const b = document.createElement('button'), g = document.createElement('span'), n = document.createElement('span');
-  b.type = 'button'; b.className = `edge ${dir}`; b.hidden = true;
-  g.textContent = glyph; g.setAttribute('aria-hidden', 'true');
-  b.append(g, n);
-  b.onclick = () => centreOn(...at(b.to.x, b.to.y, 8));
-  stage.appendChild(b);
-  return [dir, b];
-}));
-const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
-function syncEdges() {
-  const beyond = { up: [], down: [], left: [], right: [] };
-  if (pannable()) for (const a of cast.actors.values()) {
-    if (a.leaving) continue;
-    const [mx, my] = at(a.x, a.y, 8), x = mx * scale + pan.x, y = my * scale + pan.y; // the sprite's middle, in the view
-    const off = { left: -x, right: x - viewW, up: -y, down: y - viewH };
-    const dir = Object.keys(off).reduce((p, q) => (off[q] > off[p] ? q : p));
-    if (off[dir] > 0) beyond[dir].push({ a, x, y, d: off[dir] });
-  }
-  for (const [dir, b] of Object.entries(edges)) {
-    const list = beyond[dir];
-    if (b.hidden !== !list.length) b.hidden = !list.length; // an unchanged write still dirties the DOM
-    if (b.hidden) continue;
-    const pets = list.filter(o => o.a.s?.status === 'waiting');
-    const o = pets[0] ?? list.reduce((p, q) => (q.d < p.d ? q : p)); // not t: that is the wording (theme.js)
-    const flat = dir === 'up' || dir === 'down', inset = 16;
-    const along = `${Math.round(Math.min((flat ? viewW : viewH) - 2 * inset, Math.max(2 * inset, flat ? o.x : o.y)))}px`;
-    const edge = { up: inset, down: viewH - inset, left: inset, right: viewW - inset }[dir] + 'px';
-    setStyle(b, flat ? { left: along, top: edge } : { left: edge, top: along });
-    b.classList.toggle('alarm', pets.length > 0);
-    if (b.lastChild.textContent !== String(list.length)) b.lastChild.textContent = list.length;
-    const label = `${list.length} beyond the ${dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : dir} edge${pets.length ? `, ${t('petitioning', { n: pets.length })}` : ''}`;
-    if (b.title !== label) { b.title = label; b.setAttribute('aria-label', label); }
-    b.to = o.a; // read by the click handler set once below
-  }
-}
-
-// Small read-only tags over characters (a sealed scribe; Task 5's sheet count): one element per actor id, kept while
-// textOf(actor) is non-empty, placed at the actor's feet + (dx, dy) logical px.
-function syncTags(tags, cls, textOf, dx, dy) {
-  for (const [id, el] of tags) { const a = cast.actors.get(id); if (!a || !textOf(a)) { el.remove(); tags.delete(id); } }
-  for (const a of cast.actors.values()) {
-    const text = textOf(a);
-    if (!text) continue;
-    let el = tags.get(a.id);
-    if (!el) { el = document.createElement('div'); el.className = `lbl tag ${cls}`; overlay.appendChild(el); tags.set(a.id, el); }
-    if (el.textContent !== text) el.textContent = text;
-    const [fx, fy] = feet(a), [lx, ly] = at(fx + dx, fy, -dy);
-    setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
-  }
-}
-// A scribe stopped on a usage limit (backend `limit`): sealed until the reset hour.
-const sealTags = new Map();
-const sealText = a => (!a.h && !a.leaving && a.s?.limit && !labels.has(a.id)
-  ? (a.s.limit.resetMs ? t('limitLabel', { time: hhmm(new Date(a.s.limit.resetMs)) }) : t('limitSealed')) : '');
-
-// The Watchman at the gate: the countdown's seconds over him.
-const watchTags = new Map();
-const watchText = a => (a.watch && !a.leaving && vigil.countdownEnd != null ? `${secondsLeft(Date.now())}s` : '');
-
-// A working scribe's files changed this turn, by its desk.
-const sheetTags = new Map();
-const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.status === 'busy' || a.s.status === 'shell') && filesOf(a.s.turn) ? `✎${filesOf(a.s.turn)}` : '');
+initOverlay({ cast, canvas, overlay, at, feet, strip, hall: () => hall, layout: () => layout, roster: () => roster, mouse: () => mouse, actorAt, paused, hhmm }); // plaques, labels, tags, edges, tip (overlay.js)
 
 listen('strip-cursor', ({ payload: p }) => {
   if (!strip()) return;
@@ -611,20 +317,7 @@ listen('strip-cursor', ({ payload: p }) => {
   setThrough(!stripHit(p.x, p.y));
 });
 
-// Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
-const tip = document.getElementById('tip');
-let mouse = null;
-function syncHover() {
-  if (strip() && mouse) setThrough(!stripHit(mouse.clientX, mouse.clientY)); // re-decided every frame: a still cursor, a walking scribe
-  const h = mouse ? actorAt(mouse) : coarse.matches && sel ? cast.actors.get(sel) : null;
-  setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '' });
-  const hide = !h || labels.has(h.id);
-  if (tip.hidden !== hide) tip.hidden = hide;
-  if (tip.hidden) return;
-  tip.textContent = h.watch ? t('watch.name') : h.h ? h.h.kind : h.s.name;
-  const [tx, ty] = at(...feet(h), h.h ? 15 : 18);
-  setStyle(tip, { left: `${tx * scale}px`, top: `${ty * scale}px` });
-}
+let mouse = null; // the last pointer position (pointermove, strip-cursor): overlay.js's syncHover re-tests it every frame
 
 // Canvas hit test on the sprite's logical rect (feet at a.x, a.y), padded by 1; the frontmost (largest y) wins. The 39°
 // view tests the drawn frame's pixels at its projected place (scene39.js).
@@ -639,7 +332,7 @@ function actorAt(e) {
   return best;
 }
 canvas.onclick = e => {
-  if (dragged) { dragged = false; return; } // the end of a pan, not a click
+  if (dragged) { setDragged(false); return; } // the end of a pan, not a click
   const a = actorAt(e); if (a) pick(a.id); else closeCard();
 };
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
