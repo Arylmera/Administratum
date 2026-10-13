@@ -184,7 +184,7 @@ assert.equal(layoutDepartments([{ name: 'T', color: '#fff', ids: ids('t', 6) }])
     });
   }
   assert.equal(route(H1.entry, seats[0], P.blocks, H1)[0].x, H1.entry.x, 'newcomers walk straight up out of the gate');
-  // the bay goes again once compact without it holds one more department, after SHRINK_MS, one level at a time
+  // the bay goes again once compact without it holds one more department, after SHRINK_MS
   // (a newcomer's lectern beside a five-lectern block would stand in the corridor: e-1 keeps four)
   const E2 = [dept('e-0', 5), dept('e-1', 4)];
   P = planLayout(P, E2, 2000, { desk: 0, dept: 0 });
@@ -464,6 +464,19 @@ assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
   assert.ok(P.compact, 'not yet SHRINK_MS');
   P = planLayout(P, target, 1000 + SHRINK_MS, grace);
   assert.ok(P.compact && P.level === 1, 'full desks would not actually hold a newcomer beside the break-out room');
+}
+
+// once the crowd leaves, the hall drops straight to the smallest level that holds it (no minute per bay of empty floor)
+{
+  const dept = (name, n) => ({ name, color: '#fff', ids: ids(name, n) });
+  const grace = { desk: 0, dept: 0 };
+  let P = planLayout(null, ['a', 'b', 'c', 'd', 'e', 'f'].map(n => dept(n, 6)), 0, grace);
+  assert.ok(P.bays >= 2, 'starts with bays');
+  const few = [dept('a', 1), dept('b', 1)];
+  P = planLayout(P, few, 1000, grace);
+  assert.ok(P.bays >= 2, 'no shrink right after');
+  P = planLayout(P, few, 1000 + SHRINK_MS, grace);
+  assert.equal(P.level, 0, 'all the way down in one step');
 }
 
 console.log('layout ok');

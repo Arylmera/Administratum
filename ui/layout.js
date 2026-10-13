@@ -139,7 +139,7 @@ const MAX_LEVEL = 1 + MAX_BAYS;
 // layoutDepartments (ids, helpers, without the scribes dozing in the refectorium: they release their desk) in arrival order; now: ms. Returns layoutDepartments() plus `plan`, the
 // state to pass back next tick. grace: { desk, dept, shrink } ms overrides. size: the scene's {w, h} (hallOf).
 // Space: past capacity the hall goes compact, then grows bays (result `level`, `compact`, `bays`); it steps back
-// one level at a time once the level below would still fit with one more department, for SHRINK_MS.
+// once the level below would still fit with one more department for SHRINK_MS, straight down to the smallest such level.
 // The "+N in the stacks" overflow only remains past MAX_BAYS. lay: the layout function (layoutStrip in the desktop strip).
 export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = layoutDepartments) {
   const deskG = grace.desk ?? DESK_GRACE_MS, deptG = grace.dept ?? DEPT_GRACE_MS, shrinkG = grace.shrink ?? SHRINK_MS;
@@ -181,9 +181,13 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
     // the probe goes before any temp (break-out room) block, where a real newcomer would land, not after it
     const i = plan.findIndex(p => p.temp), plus = { name: '+', desks: [{ key: '+', id: '+' }] };
     const probe = i < 0 ? plan.concat(plus) : [...plan.slice(0, i), plus, ...plan.slice(i)];
-    const roomy = !lay(probe, { ...levelOpt(level - 1), size }).overflow;
-    if (!roomy) shrinkSince = null;
-    else if (now - (shrinkSince ??= now) >= shrinkG) { L = lay(plan, { ...levelOpt(--level), size }); shrinkSince = null; }
+    const roomy = l => !lay(probe, { ...levelOpt(l), size }).overflow;
+    if (!roomy(level - 1)) shrinkSince = null;
+    else if (now - (shrinkSince ??= now) >= shrinkG) { // straight down to the smallest roomy level, not a minute per bay
+      do level--; while (level > 0 && roomy(level - 1));
+      L = lay(plan, { ...levelOpt(level), size });
+      shrinkSince = null;
+    }
   }
   return { ...L, plan, seq, level, shrinkSince, ...levelOpt(level) };
 }
