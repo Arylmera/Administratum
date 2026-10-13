@@ -67,16 +67,33 @@ pub fn watch_visibility(app: AppHandle) {
     }
 }
 
-fn toggle_window(app: &AppHandle) {
+/// Can the user see the main window right now? A minimised, hidden or covered window is not seen.
+fn seen(w: &tauri::WebviewWindow) -> bool {
+    #[cfg(windows)]
+    return w.hwnd().map(|h| on_screen(h.0 as _, !strip::ON.load(std::sync::atomic::Ordering::SeqCst))).unwrap_or(false);
+    #[cfg(not(windows))]
+    return w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false);
+}
+
+/// Bring the main window to the front: un-minimise, show, focus. Also what a second launch does.
+pub fn reveal(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
-        if w.is_visible().unwrap_or(false) {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        let _ = app.emit("visible", true);
+    }
+}
+
+/// Tray "Show / hide": hide only a window the user can see; a minimised or covered one comes to the front.
+fn toggle_window(app: &AppHandle) {
+    match app.get_webview_window("main") {
+        Some(w) if seen(&w) => {
             let _ = w.hide();
             let _ = app.emit("visible", false);
-        } else {
-            let _ = w.show();
-            let _ = w.set_focus();
-            let _ = app.emit("visible", true);
         }
+        Some(_) => reveal(app),
+        None => {}
     }
 }
 

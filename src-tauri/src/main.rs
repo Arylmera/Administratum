@@ -227,6 +227,8 @@ fn claude_dir() -> PathBuf {
 fn main() {
     let demo = std::env::args().any(|a| a == "--demo") || std::env::var("ADMINISTRATUM_DEMO").is_ok();
     tauri::Builder::default()
+        // First: a second launch just raises the running window, then exits.
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| window::reveal(app)))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
