@@ -111,9 +111,11 @@ export function syncLabels() {
         el.appendChild(ans);
       }
     }
-    // Adjacent queue labels alternate height so their text doesn't overlap.
-    const qOff = a.target?.queueIdx % 2 === 1 ? 30 : 18;
-    const [lx, ly] = at(...feet(a), qOff);
+    // Adjacent queue labels alternate height so their text doesn't overlap. In the hall they hang under the feet: the
+    // queue faces the lord's desk, so above the heads they hid its seals. The strip has no floor below, so above there.
+    const odd = a.target?.queueIdx % 2 === 1, below = !strip();
+    el.classList.toggle('below', below);
+    const [lx, ly] = at(...feet(a), below ? (odd ? -14 : -2) : odd ? 30 : 18);
     setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
 }

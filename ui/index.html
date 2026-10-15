@@ -84,6 +84,7 @@
   #card .note { color: var(--paper-ink-2); font-style: italic; }
   #overlay { position: absolute; inset: 0; pointer-events: none; }
   .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: var(--label); border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
+  .lbl.below { transform: translate(-50%, 0); }
   .lbl.stale { border-color: var(--alarm); background: var(--blood); }
   .lbl.sel { border-color: var(--green); background: var(--label-sel); }
   .lbl .sub { color: var(--pink); }
