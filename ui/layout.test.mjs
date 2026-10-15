@@ -392,9 +392,12 @@ for (const id of Object.keys(THEMES)) {
   const a = wallArt();
   assert.equal(a.win, MAPS[tallWin ? 'WINDOW_TALL' : 'WINDOW'], `${id}: win`);
   assert.equal(a.tallHang, tallHang, `${id}: tallHang`);
+  if (own.HANGING && !own.HANGING_B) assert.equal(a.hangB, MAPS.HANGING, `${id}: its own hanging, never the base second design`);
 }
 setTheme('tier2');
 assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
+assert.equal(wallArt().hangB, MAPS.HANGING_B, 'tier2: the second hanging design');
+assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HANGING' && alt), 'every other hanging is the second design');
 
 // clearCog (the 39° view): no first-row desk before the cogitator bank (x 116..198 + dx); every block stays on the
 // slot-row grid (y0 + 64k), the lanes' gaps; without it the layout is unchanged.

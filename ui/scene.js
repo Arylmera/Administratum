@@ -88,6 +88,8 @@ export function propsOf(hall) {
     if (a.win) { windows.push(a.x + 6); props.push(asHanging(a.x + 26)); }
     else props.push(['SHELF', a.x + 4, 19 + D], ['PAPER_STACK', a.x + 8, 8 + D], ['BOOKS', a.x + 18, 11 + D], ['PAPER_STACK', a.x + 28, 9 + D]);
   }
+  // every other back-wall hanging, west to east, is the second design (wallArt hangB): a 4th element, alt
+  props.filter(p => p[0] === 'HANGING').sort((a, b) => a[1] - b[1]).forEach((p, i) => { if (i % 2) p.push(1); });
   const channels = [];
   for (let x = 98 + dx - 200 * Math.floor((88 + dx) / 200); x < sw - 20; x += 200) channels.push(x);
   F = { props, windows, channels };
@@ -150,9 +152,9 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
   drawAO(g, hall);
   for (const [name, x, y] of props) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
-  for (const [name, x, y] of props) {
+  for (const [name, x, y, alt] of props) {
     if (name === 'HANGING' && !art.tallHang) blit(g, MAPS.BANNER, x + 0.5, 10); // the short banner, where it hung
-    else blit(g, MAPS[name], x, y);
+    else blit(g, alt ? art.hangB : MAPS[name], x, y);
   }
   tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }

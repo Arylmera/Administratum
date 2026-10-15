@@ -22,7 +22,7 @@ const ABOUT = {
   LORD_DESK: 'The Magos\'s desk, petitions queue before it', BRAZIER: 'Brazier at the gate and in the Sanctum; compaction burns here',
   RECAFF: 'Recaff dispenser (Refectorium), first stop of an idle scribe', CONSOLE: 'Adept console, one per subagent',
   COGITATOR: 'Cogitator bank on the back wall: where shell commands run', WINDOW: 'Window: day or night glass, casts a beam by day',
-  WINDOW_TALL: 'Tall gothic window on the back walls: day or night glass, casts a beam by day', HANGING: 'Full-height hanging on the back walls',
+  WINDOW_TALL: 'Tall gothic window on the back walls: day or night glass, casts a beam by day', HANGING: 'Full-height hanging on the back walls', HANGING_B: 'Second full-height hanging (aquila and litany scroll), every other one on the back walls',
   BANNER: 'Wall banner (the Sanctum wall; the back walls of a world without its own hangings)', CRATE: 'Supply crate', PAPER_STACK: 'Paper tower (decor)', SCROLL_PILE: 'Scroll pile (decor)', BOOKS: 'Book pile (decor)',
   LOOSE_A: 'Loose sheet on the floor (decor)', LOOSE_B: 'Loose sheet on the floor (decor)', GAUGE: 'Pressure gauge on the Sanctum pillars',
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',

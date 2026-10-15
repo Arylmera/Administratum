@@ -55,6 +55,14 @@
         "w": 26,
         "h": 100
       }
+    },
+    "HANGING_B": {
+      "frame": {
+        "x": 211,
+        "y": 0,
+        "w": 26,
+        "h": 100
+      }
     }
   },
   "meta": {
@@ -62,7 +70,7 @@
     "image": "walls.png",
     "format": "RGBA8888",
     "size": {
-      "w": 210,
+      "w": 237,
       "h": 100
     },
     "palette": "key.gpl",

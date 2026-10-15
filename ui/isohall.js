@@ -118,9 +118,9 @@ const lift = (buf, Z) => ({
 //      foot: its floor footprint { u0, u1, v0, v1 } }]
 export function placeProps(hall) {
   const art = wallArt(), band = sanctumBand(hall), out = [];
-  for (let [name, x, y] of propsOf(hall).props) {
+  for (let [name, x, y, alt] of propsOf(hall).props) {
     if (name === 'HANGING' && !art.tallHang) { name = 'BANNER'; x += 0.5; y = 10; } // the short banner, where it hung
-    const map = MAPS[name], fw = map[0].length, fh = map.length, yb = y + fh / RES, u0 = fx(x);
+    const map = alt && name === 'HANGING' ? art.hangB : MAPS[name], fw = map[0].length, fh = map.length, yb = y + fh / RES, u0 = fx(x);
     const s = sheetOf(name), sheet = s && (s.front || s.details.length) ? s : null, d = sheet ? depthOf(sheet) : 1;
     const foot = (v0, dd = d) => (sheet?.front ? { u0: u0 + sheet.x0, u1: u0 + sheet.x0 + sheet.w, v0, v1: v0 + dd } : { u0, u1: u0 + fw, v0, v1: v0 + dd });
     const hang = (v0, top) => out.push({ name, x, y, yb, map, sheet, on: 'wall', u0, v0, z0: top - fh, z1: top, foot: foot(v0) });
