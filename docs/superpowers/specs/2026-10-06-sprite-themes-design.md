@@ -84,7 +84,7 @@ now follows that: `ui/sprites.js` went from 1,286 lines of text maps to about 80
   - gate: entry point, opening, leaves, slide
   - servo-skull: centre, carried sheet, searchlight
 
-  Effects drawn in code (the held scroll, the Zs) keep their offsets in code.
+  Effects drawn in code keep their offsets in code.
 - **Sheets**, one per discussion family:
   - characters: `scribe` (12 walk frames and the arm), `adept` (walk frames); left frames and the left arm are
     mirrored at load
@@ -248,6 +248,18 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
     - faces and hands use two palette slots added for them, skin `:` and skin shadow `;`
   - The commit seals, the stamp and the raised scroll were code-drawn; they are now art (`ui/art/commits.png`,
     `SCROLL_HELD` in `petitions.png`) so a theme can redraw them, at the same pixels for Tier II.
+  - Issue #21, step 1: the dozing Zs and the background-shell cog were code-drawn too; their shapes are now art, so a
+    world can redraw them (step 2), while the code keeps the motion:
+    - `DOZE_Z` (`refectorium.png`, 7x7 art px): `actors.js dozing` draws it twice, drifting up and fading. Same
+      pixels as before in every theme, both views.
+    - `SHELL_COG_0..15` (`workstations.png`, 12x12 art px each, centred on the desk's `cog` anchor): one turn in 16
+      steps, frame k baked from the old drawing just past k/16 of a turn. `scene.js spinCog` steps through them at
+      the old speed (a turn every pi s). Each frame is the old picture at its phase, but the old code showed 80
+      states a turn, so the turn now steps; in the 39° view the sheared frame is drawn as an image, not as rects, so
+      its edges are crisper (as the commit seals already are). A world redraws the whole turn or none (art test).
+    - The Magos's chest screen and the cogitator's screens stay code: they are light (a scanning line, scrolling
+      cant, a waveform, bars, flicker), not a shape; their place is already art (the `chest` anchor, the cogitator's
+      `screen`, `wave`, `bars` rects).
 - **Tests**:
   - a theme's art is only families it declares, at the default's sizes, with known anchors
   - switching swaps the art in and back
@@ -287,12 +299,12 @@ Suggested starting set: 18 issues by family, not 96.
 |---|---|
 | Scribe | `SCRIBE.*`, `SCRIBE.sashes`, `ARM`, `ARM_L` |
 | Adept | `ADEPT.*` |
-| Workstations | `DESK`, `LECTERN`, `CONSOLE` (lit/unlit) |
+| Workstations | `DESK`, `LECTERN`, `CONSOLE` (lit/unlit), `SHELL_COG` (the background-shell cog's turn) |
 | Cogitator bank | `COGITATOR` + its animated screens (procedural) |
 | Magos | `MAGOS` (body + drill arm) |
 | Sanctum | `THRONE`, `LORD_DESK`, `COG_MECH`, `SEAL` |
 | Grand gate | `GATE`, `GATE_L`, `GATE_R` + the void (procedural) |
-| Refectorium | `RECAFF`, `TABLE`, `BENCH` |
+| Refectorium | `RECAFF`, `TABLE`, `BENCH`, `DOZE_Z` |
 | Walls | `WINDOW` (day/night), `BANNER`, `SHELF`, `GAUGE`, `CENSER` |
 | Floor clutter | `PAPER_STACK`, `SCROLL_PILE`, `BOOKS`, `LOOSE_A`, `LOOSE_B`, `CRATE` |
 | Servo-skull | `SKULL`, `SKULL.alarm` |

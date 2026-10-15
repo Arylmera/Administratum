@@ -123,6 +123,14 @@ for (const [id, fams] of Object.entries(ART.themed)) for (const [fam, sh] of Obj
   }
   for (const [n, a] of Object.entries(sh.anchors)) for (const k of Object.keys(a)) assert.ok(ART.base[fam].anchors[n]?.[k] !== undefined, `${id}/${fam}: anchor ${n}.${k} unknown`);
 }
+// The shell cog's turn (scene.js spinCog) is one set: a world that redraws one SHELL_COG frame redraws them all, so its
+// turn never mixes in the 40k cog's frames.
+const cogTurn = Object.keys(ART.base.workstations.frames).filter(n => n.startsWith('SHELL_COG_'));
+assert.ok(cogTurn.length, 'the base art has the cog turn');
+for (const [id, fams] of Object.entries(ART.themed)) {
+  const own = Object.keys(fams.workstations?.frames ?? {}).filter(n => n.startsWith('SHELL_COG_'));
+  if (own.length) assert.deepEqual(own.sort(), [...cogTurn].sort(), `${id}/workstations: the cog's whole turn or none`);
+}
 // The Watchman's light source must sit on his `light` anchor: that pixel is non-transparent in every non-mirrored
 // frame (flat left is a mirror of right, with its own x; 39° has no mirrors), base art and every theme with its own
 // watch/watch39 sheet. Mutation-check: nudging a world's light anchor a few px onto empty pixels in its JSON must

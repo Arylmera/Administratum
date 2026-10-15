@@ -42,4 +42,24 @@ for (const id of ['tier2', 'vault']) {
 if (process.env.RECORD) console.log(got);
 for (const k in FLAT) assert.equal(got[k], FLAT[k], `${k}: the flat background changed`);
 assert.equal(new Set(Object.values(got)).size, 8, 'each hall, theme and light draws differently');
+
+// The background-shell cog and the dozing Zs draw their art, not code (both views share these): spinCog frame k
+// (MAPS.SHELL_COG_k) for its k / COG_TURN of a turn (2 rad/s), centred on (cx, cy); dozing two MAPS.DOZE_Z, fading.
+// Gate: swapping the art for another frame changes what is drawn.
+{
+  const { spinCog, COG_TURN } = await import('./scene.js'), { dozing } = await import('./actors.js'), { MAPS, sprite } = await import('./sprites.js');
+  setTheme('tier2');
+  const drawn = f => { const cv = fakeCanvas(); f(cv.getContext('2d')); return cv.log; };
+  const img = map => { const cv = sprite(map); return `cv:${cv.width}x${cv.height}:${sha(cv.log.join('\n'))}`; };
+  assert.ok(MAPS[`SHELL_COG_${COG_TURN - 1}`] && !MAPS[`SHELL_COG_${COG_TURN}`], 'one frame per step of the turn, no more');
+  for (let k = 0; k < COG_TURN; k++) for (const t of [k + 0.01, k + 0.99].map(s => s * Math.PI / COG_TURN + 3 * Math.PI)) // a later turn too
+    assert.deepEqual(drawn(g => spinCog(g, 100, 50, t)), [`drawImage(${img(MAPS[`SHELL_COG_${k}`])},97,47,6,6)`], `cog frame ${k} at t ${t}`);
+  assert.deepEqual(drawn(g => dozing(g, 50, 50, 0)), ['globalAlpha=1', `drawImage(${img(MAPS.DOZE_Z)},49.5,49.5,3.5,3.5)`,
+    'globalAlpha=1', `drawImage(${img(MAPS.DOZE_Z)},50.5,46.5,3.5,3.5)`, 'globalAlpha=1'], 'two Zs, half a cycle apart');
+  const before = [drawn(g => spinCog(g, 100, 50, 0)), drawn(g => dozing(g, 50, 50, 1))], keep = [MAPS.SHELL_COG_0, MAPS.DOZE_Z];
+  MAPS.SHELL_COG_0 = MAPS.SHELL_COG_1; MAPS.DOZE_Z = MAPS.SHELL_COG_1;
+  assert.notDeepEqual(drawn(g => spinCog(g, 100, 50, 0)), before[0], 'the cog reads its art');
+  assert.notDeepEqual(drawn(g => dozing(g, 50, 50, 1)), before[1], 'the Zs read their art');
+  [MAPS.SHELL_COG_0, MAPS.DOZE_Z] = keep;
+}
 console.log('flathall ok');
