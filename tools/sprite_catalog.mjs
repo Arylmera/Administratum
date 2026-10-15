@@ -4,7 +4,7 @@
 //    family: the art family ('walls'), as the sprite issues group them; src: its art file for this theme ('cyber/walls').
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
 import {
-  MAPS, SCRIBE, ADEPT, MAGOS, MAGOS_AT, WATCH, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
+  MAPS, PROP_AT, SCRIBE, ADEPT, MAGOS, MAGOS_AT, WATCH, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
   SCRIBE39, ADEPT39, MAGOS39, SKULL39, WATCH39, REQ39,
 } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
@@ -91,8 +91,17 @@ export function catalog() {
     SKULL: [['alarm', { o: theme.ink.alarm, O: theme.ink.alarmGlow }]],
   };
   for (const [name, rows] of Object.entries(MAPS)) {
+    if (/_FIRE_\d$/.test(name)) continue; // drawn over their prop: its '.fire' row below
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
+  }
+  // The licking flames (scene.js flameOf): the prop with its <NAME>_FIRE_n frames over it, as the hall cycles them.
+  for (const name of ['BRAZIER', 'CANDLES']) {
+    const f = n => MAPS[`${name}_FIRE_${n}`], at = PROP_AT[name]?.fire;
+    if (!at || !f(1) || SHEET_OF[`${name}_FIRE_1`] !== SHEET_OF[name]) continue; // a world's own fire: still
+    const [ax, ay] = at.map(v => v * RES), base = Array(-ay).fill('.'.repeat(MAPS[name][0].length)).concat(MAPS[name]);
+    const lick = m => base.map((r, j) => [...r].map((c, i) => { const o = m?.[j]?.[i - ax]; return o && o !== '.' ? o : c; }).join(''));
+    add(`${name}.fire`, 'Props and furniture', SHEET_OF[name], [null, f(1), null, f(2)].map(m => ({ rows: lick(m), over: {} })), true, `${name}: the flame licking, 4 frames (still, ${name}_FIRE_1 over it, still, ${name}_FIRE_2)`);
   }
 
   // Room tiles: each tile, and for tiles that repeat a 3x3 (or 6-long) sample of the fill, as it covers the floor or a wall.

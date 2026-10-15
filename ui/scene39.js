@@ -271,6 +271,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
 
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
   cogitator(g, t, all.filter(a => a.pose === 'cog').length);
+  flames(g, t); // over the hall's still flames, under everyone (as scene.js)
   depthSort(items).forEach(it => it.draw(g));
   over.forEach(f => f(g));
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier's fire over the burner's hem (scene.js)
@@ -413,6 +414,22 @@ function cogitator(g, t, cog) {
   if (!p?.sheet) return;
   const glass = p.v0 + p.sheet.d - 1 - (p.sheet.recess[0]?.depth ?? 1);
   save(g, g2 => { onFace(g2, glass, p.yb, p.z0); g2.translate(H.dx, WALL_DY); }, g2 => S.drawCogitator(g2, t, cog));
+}
+
+// The braziers' and candles' licking flames (scene.js flameOf): the frame cut to each flame part of the face sheet (kind
+// bill) and stood where the hall built that part, so each candle flame keeps its own depth. Cuts kept per frame.
+const cuts = new WeakMap();
+function flames(g, t) {
+  for (const p of placed) {
+    const m = p.sheet && S.flameOf(p.name, p.x, t);
+    if (!m) continue;
+    const [ax, ay] = PROP_AT[p.name].fire.map(v => v * RES), byPart = cuts.get(m) ?? cuts.set(m, new Map()).get(m);
+    for (const d of p.sheet.details) if (d.kind === 'bill') {
+      const [x, y, w, h] = d.rect, [X, Y] = exact(p.u0 + d.u, p.v0 + d.v, p.z0 + d.z); // the part's bottom centre (iso.js bill)
+      const cut = byPart.get(d.name) ?? byPart.set(d.name, m.slice(0, y + h - ay).map(r => r.slice(x - ax, x - ax + w))).get(d.name);
+      blit(g, cut, X - (w >> 1) / RES, Y - (h - 1 + y - ay) / RES); // the frame's row 0 is the part's row ay - y
+    }
+  }
 }
 
 // The floor line of the brazier a fire point belongs to (its prop's frame bottom).

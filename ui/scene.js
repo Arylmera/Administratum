@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
 import { WIN_Y, wallArt } from './wallart.js';
@@ -263,6 +263,10 @@ export function drawScene(g, layout, actors, fillOf, now) {
   }
   if (H.strip) drawStripProps(g, H, all, now, items); // its contact shadows go down now, with the floor's
   floor.forEach(f => f(g));
+  if (!H.strip) for (const [name, x, y] of propsOf(H).props) { // the flames lick, under everyone as the props they sit on
+    const m = flameOf(name, x, now / 1000);
+    if (m) blit(g, m, x + PROP_AT[name].fire[0], y + PROP_AT[name].fire[1]);
+  }
   items.sort((p, q) => p.y - q.y).forEach(it => it.draw(g));
   over.forEach(f => f(g));
   for (const a of all) if (a.burn && a.pose === 'burn') { // the brazier sits south of the burner: its fire draws over the robe hem
@@ -681,6 +685,15 @@ function deskLight(desk, busy) {
     : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green };
 }
 
+// A brazier's or candle cluster's flame this frame: its <NAME>_FIRE_<n> frame drawn over the still flame at its fire
+// anchor (it only adds and recolours flame), else null (the still frame). Each prop out of phase; never over a world's
+// own fire art (the frame must come from the prop's own sheet): there the flame stays still, its light still flickers.
+const LICK = [0, 1, 0, 2];
+function flameOf(name, x, t) {
+  const n = LICK[Math.floor(t * 6 + x * 0.37) & 3], f = `${name}_FIRE_${n}`;
+  return n && MAPS[f] && SHEET_OF[f] === SHEET_OF[name] ? MAPS[f] : null;
+}
+
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, steam) and its lamp row tallies them.
 // Drawn in the minimum scene's coordinates, moved with their room.
 function drawDecorFrame(g, t, cog = 0) {
@@ -973,4 +986,4 @@ fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
 export { KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
-  newest, stamping, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, near, skullRed };
+  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, near, skullRed };

@@ -5,7 +5,7 @@ import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39 } from './actors.js';
 import { use, pin, placeOf, actorFoot, actorAt39, seatShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
-import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND } from './scene.js';
+import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf } from './scene.js';
 import { SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
@@ -134,3 +134,13 @@ for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault']) {
 }
 setTheme('tier2');
 console.log('scene39 ok');
+
+// the flames lick (fire.json *_FIRE_n frames) in the base art, out of phase per prop; a world with its own fire keeps it still
+const licks = (name, x) => new Set(Array.from({ length: 24 }, (_, i) => flameOf(name, x, i / 6)));
+setTheme('tier2');
+assert.equal(licks('BRAZIER', 72).size, 3, 'a brazier: its still flame and two licking frames');
+assert.equal(licks('CANDLES', 100).size, 3, 'candles: the same');
+assert.notDeepEqual([...Array(8)].map((_, i) => flameOf('BRAZIER', 72, i / 6)), [...Array(8)].map((_, i) => flameOf('BRAZIER', 118, i / 6)), 'the two gate braziers out of phase');
+assert.deepEqual([...licks('DESK', 72)], [null], 'only fire licks');
+for (const id of ['cyber', 'orbital', 'tower', 'vault']) { setTheme(id); assert.deepEqual([...licks('BRAZIER', 72)], [null], `${id}: its own brazier keeps a still flame`); }
+setTheme('tier2');
