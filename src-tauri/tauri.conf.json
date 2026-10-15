@@ -5,6 +5,7 @@
   "build": { "frontendDist": "../ui" },
   "app": {
     "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",
@@ -17,7 +18,8 @@
         "alwaysOnTop": true,
         "resizable": true,
         "skipTaskbar": true,
-        "transparent": true
+        "transparent": true,
+        "acceptFirstMouse": true
       }
     ],
     "security": { "csp": null }

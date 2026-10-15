@@ -112,7 +112,7 @@ pub fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show / hide", true, None::<&str>)?;
     let mute = CheckMenuItem::with_id(app, "mute", "Chime", true, true, None::<&str>)?; // the UI sets it (set_chime_menu)
     let light = MenuItem::with_id(app, "light", "Cycle lighting", true, None::<&str>)?;
-    let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", cfg!(windows), false, None::<&str>)?;
+    let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", cfg!(any(windows, target_os = "macos")), false, None::<&str>)?;
     let login_on = app.autolaunch().is_enabled().unwrap_or(false);
     let login = CheckMenuItem::with_id(app, "login", "Start at login", true, login_on, None::<&str>)?;
     let vigil = CheckMenuItem::with_id(app, "vigil", "Night Vigil", true, false, None::<&str>)?;

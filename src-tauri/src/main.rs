@@ -284,6 +284,9 @@ fn main() {
             window::set_chime_menu
         ])
         .setup(move |app| {
+            // No Dock icon or app menu: a widget that lives in the tray (skipTaskbar is ignored on macOS).
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
             window::build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.

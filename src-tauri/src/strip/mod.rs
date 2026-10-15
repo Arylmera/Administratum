@@ -1,10 +1,14 @@
-//! The desktop strip: a thin transparent window on the taskbar. The OS calls live in one file per OS
-//! (windows.rs now; macos.rs would add the same functions, the Dock instead of the taskbar).
+//! The desktop strip: a thin transparent window on the taskbar (Windows) or above the Dock (macOS). The OS calls
+//! live in one file per OS: windows.rs, macos.rs.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+#[cfg(target_os = "macos")]
+mod macos;
 #[cfg(windows)]
 mod windows;
+#[cfg(target_os = "macos")]
+use self::macos as os;
 #[cfg(windows)]
 use self::windows as os;
 
@@ -24,6 +28,7 @@ pub enum Edge {
 }
 
 /// The taskbar's side of a monitor: the side where the work area stops short of the monitor.
+#[cfg_attr(target_os = "macos", allow(dead_code))] // macOS: the Dock's own preference (macos.rs), see bar_edge
 pub fn edge_of(mon: Rect, work: Rect) -> Option<Edge> {
     if work.bottom < mon.bottom {
         Some(Edge::Bottom)
@@ -45,22 +50,41 @@ pub fn strip_rect(mon: Rect, work: Rect, autohide: bool, h: i32) -> Rect {
     Rect { left: work.left, top: bottom - h, right: work.right, bottom }
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 fn autohide() -> bool {
     os::autohide()
 }
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 fn autohide() -> bool {
     false
 }
 
+/// The side the taskbar is on: where the work area stops short of the monitor, else the shell's own idea.
 #[cfg(windows)]
-fn edge_fallback() -> Option<Edge> {
+fn bar_edge(mon: Rect, work: Rect) -> Option<Edge> {
+    edge_of(mon, work).or_else(os::taskbar_edge)
+}
+/// The side the Dock is on, from its own preference: on macOS the work area (`visibleFrame`) always stops short of
+/// the top (the menu bar), and an auto-hidden Dock may leave no gap.
+#[cfg(target_os = "macos")]
+fn bar_edge(_mon: Rect, _work: Rect) -> Option<Edge> {
     os::taskbar_edge()
 }
-#[cfg(not(windows))]
-fn edge_fallback() -> Option<Edge> {
-    None
+#[cfg(not(any(windows, target_os = "macos")))]
+fn bar_edge(mon: Rect, work: Rect) -> Option<Edge> {
+    edge_of(mon, work)
+}
+
+/// The cursor in screen px, the monitors' coordinate space.
+#[cfg(windows)]
+fn cursor(_app: &tauri::AppHandle) -> Option<(i32, i32)> {
+    os::cursor()
+}
+/// The cursor in screen px through Tauri (`NSEvent.mouseLocation`, flipped to a top-left origin and scaled like the
+/// monitor rects; tao scales it by the primary display's factor, so a mixed-DPI multi-display setup may be off).
+#[cfg(target_os = "macos")]
+fn cursor(app: &tauri::AppHandle) -> Option<(i32, i32)> {
+    app.cursor_position().ok().map(|p| (p.x.floor() as i32, p.y.floor() as i32))
 }
 
 /// Whether the strip is currently showing in place of the hall window.
@@ -84,7 +108,7 @@ pub struct HallRect {
 
 #[tauri::command]
 pub fn strip_supported() -> bool {
-    cfg!(windows)
+    cfg!(any(windows, target_os = "macos"))
 }
 
 /// Re-place the strip on the window's current monitor, `height_css` tall. Returns the rect it set.
@@ -98,7 +122,7 @@ pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String
     let (p, s, wa) = (m.position(), m.size(), m.work_area());
     let mon = Rect { left: p.x, top: p.y, right: p.x + s.width as i32, bottom: p.y + s.height as i32 };
     let work = Rect { left: wa.position.x, top: wa.position.y, right: wa.position.x + wa.size.width as i32, bottom: wa.position.y + wa.size.height as i32 };
-    let bottom_bar = edge_of(mon, work).or_else(edge_fallback) == Some(Edge::Bottom);
+    let bottom_bar = bar_edge(mon, work) == Some(Edge::Bottom);
     let r = strip_rect(mon, work, autohide() && bottom_bar, (height_css * m.scale_factor()).round() as i32);
     if *crate::lock(&RECT) != Some(r) {
         w.set_size(tauri::PhysicalSize::new((r.right - r.left) as u32, (r.bottom - r.top) as u32)).map_err(|e| e.to_string())?;
@@ -132,6 +156,9 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
         return Err(e);
     }
     ON.store(true, Ordering::SeqCst);
+    // On every Space, not only the one it was placed on (macOS; elsewhere a no-op).
+    #[cfg(target_os = "macos")]
+    let _ = window.set_visible_on_all_workspaces(true);
     Ok(hall)
 }
 
@@ -144,6 +171,8 @@ pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Resul
     *crate::lock(&RECT) = None;
     let _ = window.set_ignore_cursor_events(false);
     let _ = window.set_shadow(true);
+    #[cfg(target_os = "macos")]
+    let _ = window.set_visible_on_all_workspaces(false);
     window.set_resizable(true).map_err(|e| e.to_string())?;
     window.set_min_size(Some(tauri::LogicalSize::new(360.0, 280.0))).map_err(|e| e.to_string())?; // tauri.conf.json
     let r = rect.unwrap_or(HallRect { x: 100, y: 100, w: 700, h: 500 });
@@ -170,7 +199,7 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), S
 /// stuck monitor/taskbar query would otherwise spam the console every tick); a success elsewhere
 /// resets `slot` so the next failure, even a repeat of an earlier one, logs again. One slot per
 /// call site (replace, set_always_on_top) so one succeeding never suppresses the other's own repeat.
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 fn log_once(slot: &Mutex<Option<String>>, msg: String) {
     let mut last = crate::lock(slot);
     if last.as_deref() != Some(msg.as_str()) {
@@ -179,7 +208,7 @@ fn log_once(slot: &Mutex<Option<String>>, msg: String) {
     *last = Some(msg);
 }
 
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 fn clear_log(slot: &Mutex<Option<String>>) {
     *crate::lock(slot) = None;
 }
@@ -189,7 +218,7 @@ fn clear_log(slot: &Mutex<Option<String>>) {
 /// Explorer restarts). A fullscreen app does not hide the strip. The window-touching part (re-place,
 /// set_always_on_top) runs on the main thread via `run_on_main_thread`, so it can never land out
 /// of order with `place_hall`'s own window calls (see `replace`'s doc comment).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn start_watcher(app: tauri::AppHandle) {
     use tauri::Manager;
     static REPLACE_ERR: Mutex<Option<String>> = Mutex::new(None);
@@ -221,21 +250,21 @@ pub fn start_watcher(app: tauri::AppHandle) {
         }
     });
 }
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn start_watcher(_app: tauri::AppHandle) {}
 
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 pub fn last_rect() -> Option<Rect> {
     *crate::lock(&RECT)
 }
 
 /// The cursor in window CSS px, if it is inside the strip's rect.
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 pub fn inside(r: Rect, (x, y): (i32, i32), scale: f64) -> Option<(f64, f64)> {
     (x >= r.left && x < r.right && y >= r.top && y < r.bottom).then(|| (f64::from(x - r.left) / scale, f64::from(y - r.top) / scale))
 }
 
-#[cfg_attr(not(windows), allow(dead_code))] // the watcher and the cursor poll are Windows-only
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 #[derive(serde::Serialize, Clone, Copy, PartialEq)]
 struct CursorPos {
     x: f64,
@@ -248,7 +277,7 @@ struct CursorPos {
 /// idling); 50 ms while it is on. Emits `strip-cursor` with `{x, y}` (window CSS px) only when the
 /// in-strip point changes, and `null` once when the cursor leaves the strip (or the strip goes
 /// off while the cursor was still inside it).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn start_cursor_poll(app: tauri::AppHandle) {
     use tauri::{Emitter, Manager};
     std::thread::spawn(move || {
@@ -259,7 +288,7 @@ pub fn start_cursor_poll(app: tauri::AppHandle) {
                 .then(|| app.get_webview_window("main"))
                 .flatten()
                 .and_then(|w| w.scale_factor().ok())
-                .and_then(|scale| Some((os::cursor()?, last_rect()?, scale)))
+                .and_then(|scale| Some((cursor(&app)?, last_rect()?, scale)))
                 .and_then(|(c, r, scale)| inside(r, c, scale))
                 .map(|(x, y)| CursorPos { x, y });
             if p != last {
@@ -270,7 +299,7 @@ pub fn start_cursor_poll(app: tauri::AppHandle) {
         }
     });
 }
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn start_cursor_poll(_app: tauri::AppHandle) {}
 
 #[cfg(test)]
