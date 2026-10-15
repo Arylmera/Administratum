@@ -4,6 +4,7 @@
 //   repeat-x/y  a strip along one axis, its own size across (pipes, channels, sills, pillars)
 //   nine        nine-slice: corners kept, edges and centre tiled; `edge`: the border in art px (the sanctum floor)
 //   once        drawn as is (doors, fittings, pilasters, the beacon); the default
+// `mix` (repeat, no `top`): variant frames of the same size laid over some cells, by cellFrame (the floor grates).
 // `glow`: the tile glows in that ink colour (the coolant), `glowPasses` times over for a stronger glow (default 1).
 // Where things go stays in scene.js: a theme reskins the
 // tiles, the room keeps its shape.
@@ -31,6 +32,16 @@ function tiled(g, cv, rep, x, y, w, h, ox = x, oy = y) {
   g.fillRect(x, y, w, h);
 }
 
+// The frame of cell (cx, cy) of tile `name`'s fill, counted from the rect's top-left: each `mix` variant on about one
+// cell in 10, the tile itself elsewhere. Seeded by the cell, so every frame and both views (isohall.js texOf) agree.
+export function cellFrame(name, cx, cy) {
+  const mix = ROOM.tiles[name]?.mix;
+  if (!mix?.length) return name;
+  let k = Math.imul(cx + 1, 0x9e3779b1) ^ Math.imul(cy + 1, 0x85ebca77); // murmur3's finaliser over the cell
+  k = Math.imul(k ^ (k >>> 16), 0x85ebca6b); k = Math.imul(k ^ (k >>> 13), 0xc2b2ae35);
+  return mix[((k ^ (k >>> 16)) >>> 0) % 10] ?? name;
+}
+
 // Draws tile `name` over the rect (x, y, w, h) by its fill rule; strips and `once` tiles ignore the size across.
 export function tile(g, name, x, y, w, h) {
   const t = ROOM.tiles[name] ?? {}, cv = sprite(ROOM.frames[name]), tw = cv.width / RES, th = cv.height / RES;
@@ -41,6 +52,14 @@ export function tile(g, name, x, y, w, h) {
         tiled(g, sprite(ROOM.frames[t.top]), 'repeat-x', x, y, w, Math.min(th, h));
         if (h > th) tiled(g, cv, 'repeat', x, y + th, w, h - th, x, y);
       } else tiled(g, cv, 'repeat', x, y, w, h);
+      if (t.mix?.length) {
+        g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+        for (let cy = 0; cy * th < h; cy++) for (let cx = 0; cx * tw < w; cx++) {
+          const n = cellFrame(name, cx, cy);
+          if (n !== name) g.drawImage(sprite(ROOM.frames[n]), x + cx * tw, y + cy * th, tw, th);
+        }
+        g.restore();
+      }
       break;
     case 'repeat-x': tiled(g, cv, 'repeat-x', x, y, w, th); break;
     case 'repeat-y': tiled(g, cv, 'repeat-y', x, y, tw, h); break;

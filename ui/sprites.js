@@ -202,6 +202,8 @@ function useArt(id) {
   refill(ROOM.anchors, Object.assign({}, ...ROOM_SHEETS.map(f => logical(S[f].anchors))));
   refill(SHEET_OF, { ARM: src('scribe', 'arm'), ARM_L: src('scribe', 'arm'), ...Object.fromEntries(PROP_SHEETS.flatMap(f => Object.keys(S[f].frames).map(n => [n, src(f, n)]))) });
   refill(ROOM_SHEET_OF, Object.fromEntries(ROOM_SHEETS.flatMap(f => Object.keys(S[f].frames).map(n => [n, src(f, n)]))));
+  // A tile's mix only from its own art: a world that redraws the floor but not its variants keeps the one tile.
+  for (const [n, t] of Object.entries(ROOM.tiles)) if (t.mix) ROOM.tiles[n] = { ...t, mix: t.mix.filter(v => ROOM_SHEET_OF[v] === ROOM_SHEET_OF[n]) };
 }
 useArt(T.id);
 onTheme(t => useArt(t.id));

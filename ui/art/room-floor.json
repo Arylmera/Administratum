@@ -40,6 +40,22 @@
         "h": 4
       }
     },
+    "floor vent": {
+      "frame": {
+        "x": 53,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      }
+    },
+    "floor bolts": {
+      "frame": {
+        "x": 62,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      }
+    },
     "sanctum floor": {
       "frame": {
         "x": 0,
@@ -54,14 +70,18 @@
     "image": "room-floor.png",
     "format": "RGBA8888",
     "size": {
-      "w": 52,
+      "w": 70,
       "h": 49
     },
     "palette": "key.gpl",
     "anchors": {},
     "tiles": {
       "floor": {
-        "fill": "repeat"
+        "fill": "repeat",
+        "mix": [
+          "floor vent",
+          "floor bolts"
+        ]
       },
       "channel h": {
         "fill": "repeat-x",

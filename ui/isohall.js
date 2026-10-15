@@ -6,6 +6,7 @@
 import { IsoBuf, P39, VS39 } from './iso.js';
 import { WALL, WALL_DY } from './layout.js';
 import { propsOf, wallArt, WIN_Y, STANDING, hung } from './scene.js';
+import { cellFrame } from './room.js';
 import { MAPS, PROP_AT, ROOM, RES } from './sprites.js';
 import { sheetOf, build39 } from './faces.js';
 import { aoBands } from './depth.js';
@@ -84,6 +85,7 @@ export function bounds(hall) {
 const NO_RULE = {};
 function texOf(name) {
   const t = ROOM.tiles[name] ?? NO_RULE, f = ROOM.frames[name], th = f.length, tw = f[0].length;
+  if (t.fill === 'repeat' && t.mix?.length) return (i, r) => ROOM.frames[cellFrame(name, (i / tw) | 0, (r / th) | 0)][r % th][i % tw];
   if (t.fill === 'repeat') { const top = t.top && ROOM.frames[t.top]; return (i, r) => (top && r < th ? top : f)[r % th][i % tw]; }
   if (t.fill === 'repeat-x' || t.fill === 'repeat-y') return (i, r) => f[r % th][i % tw];
   if (t.fill === 'nine') {

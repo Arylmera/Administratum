@@ -8,6 +8,7 @@ import {
   SCRIBE39, ADEPT39, MAGOS39, SKULL39, WATCH39, REQ39,
 } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
+import { cellFrame } from '../ui/room.js';
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
@@ -105,11 +106,16 @@ export function catalog() {
   }
 
   // Room tiles: each tile, and for tiles that repeat a 3x3 (or 6-long) sample of the fill, as it covers the floor or a wall.
+  // A `mix` tile's variants show in its sample (8x4 cells, as the hall lays them), not as rows of their own (nor in a
+  // world whose own floor drops them).
+  const mixed = new Set(Object.values(ART.base).flatMap(s => Object.values(s.tiles ?? {}).flatMap(t => t.mix ?? [])));
   for (const [name, rows] of Object.entries(ROOM.frames)) {
+    if (mixed.has(name)) continue;
     const t = ROOM.tiles[name] ?? {};
-    const how = t.fill ? FILL[t.fill] + (t.top ? `, first row from \`${t.top}\`` : '') + (t.glow ? `, glows (${t.glow})` : '') : 'drawn as is';
-    const n = t.fill === 'repeat' ? 3 : 1, nx = t.fill === 'repeat-x' ? 6 : n, ny = t.fill === 'repeat-y' ? 6 : n;
-    const sample = Array.from({ length: rows.length * ny }, (_, j) => rows[j % rows.length].repeat(nx));
+    const how = t.fill ? FILL[t.fill] + (t.top ? `, first row from \`${t.top}\`` : '') + (t.mix?.length ? `, mixed with ${t.mix.map(m => `\`${m}\``).join(', ')}` : '') + (t.glow ? `, glows (${t.glow})` : '') : 'drawn as is';
+    const n = t.fill === 'repeat' ? 3 : 1, nx = t.fill === 'repeat-x' ? 6 : t.mix?.length ? 8 : n, ny = t.fill === 'repeat-y' ? 6 : t.mix?.length ? 4 : n;
+    const th = rows.length;
+    const sample = Array.from({ length: th * ny }, (_, j) => Array.from({ length: nx }, (_, cx) => ROOM.frames[cellFrame(name, cx, (j / th) | 0)][j % th]).join(''));
     add(`ROOM.${name.replace(/ /g, '_')}`, 'Room tiles', ROOM_SHEET_OF[name], [{ rows: sample, over: {} }], false, `\`${name}\`: ${how}${nx * ny > 1 ? ' (shown repeated)' : ''}`);
   }
 

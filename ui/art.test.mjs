@@ -105,6 +105,8 @@ for (const [n, t] of Object.entries(ROOM.tiles)) {
   const f = ROOM.frames[n];
   if (t.fill === 'nine') assert.ok(2 * t.edge < f.length && 2 * t.edge < f[0].length, `${n}: edges larger than the tile`);
   if (t.top) assert.deepEqual([ROOM.frames[t.top].length, ROOM.frames[t.top][0].length], [f.length, f[0].length], `${n}: top tile size`);
+  for (const m of t.mix ?? []) assert.deepEqual([ROOM.frames[m].length, ROOM.frames[m][0].length], [f.length, f[0].length], `${n}: mix '${m}' size`);
+  if (t.mix) assert.ok(t.fill === 'repeat' && !t.top, `${n}: mix only on a plain repeat`);
 }
 for (const n of ['door sanctum open', 'door sanctum closed', 'door refectory open', 'door refectory closed']) assert.ok(ROOM.anchors[n]?.door, `${n}: door anchor`);
 // Themes' own art: only families a theme declares, each frame redrawn at the default's size, anchors known by name.
@@ -149,6 +151,19 @@ assert.equal(MAGOS.claw, undefined, 'tower: no base claw over its own Magos');
 assert.equal(MAGOS39.claw, undefined, 'tower: no base claw over its own 39° Magos');
 setTheme('tier2');
 assert.ok(MAGOS.claw && MAGOS39.claw, 'the base Magos has its claw in both views');
+// the floor's grate variants likewise: mixed in where the floor is the base one, dropped where a world redraws its floor
+assert.deepEqual(ROOM.tiles.floor.mix, ['floor vent', 'floor bolts']);
+setTheme('forge');
+assert.equal(ROOM.tiles.floor.mix.length, 2, 'forge: a palette-only theme mixes the base grates');
+setTheme('cyber');
+assert.equal(ROOM.tiles.floor.mix?.length ?? 0, 0, 'cyber: its own floor, not the base grates');
+setTheme('tier2');
+{ // the mix, seeded by the cell: every variant shows, the plain grate stays the bulk, the same cell always the same frame
+  const { cellFrame } = await import('./room.js'), seen = {};
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 40; x++) { const n = cellFrame('floor', x, y); seen[n] = (seen[n] ?? 0) + 1; assert.equal(cellFrame('floor', x, y), n); }
+  for (const m of ROOM.tiles.floor.mix) assert.ok(seen[m] > 0, `floor: '${m}' never laid`);
+  assert.ok(seen.floor > 300, 'floor: the plain grate is most cells');
+}
 assert.equal(MAPS.BANNER, plain.banner);
 assert.equal(SHEET_OF.BANNER, 'walls');
 

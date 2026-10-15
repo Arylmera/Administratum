@@ -151,7 +151,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="tier2/ROOM.floor.png" height="96"> |
+| <a id="room-floor"></a>`ROOM.floor` | 32×16 | `floor`: repeats both ways, mixed with `floor vent`, `floor bolts` (shown repeated). Source: `ui/art/room-floor.png` | <img src="tier2/ROOM.floor.png" height="128"> |
 | <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="tier2/ROOM.channel_h.png" height="16"> |
 | <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="tier2/ROOM.channel_v.png" height="160"> |
 | <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="tier2/ROOM.sanctum_passage.png" height="48"> |
