@@ -298,6 +298,11 @@ fn main() {
             let saved = settings_path(app.handle()).map(|p| settings::load(&p)).unwrap_or_default();
             let (on, from, to) = settings::quiet_from_settings(&saved);
             quiet::set(on, from, to);
+            #[cfg(target_os = "macos")]
+            toast::mac::hook(app.handle()); // before the first toast: toasts shown earlier report no click
+            if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
+                toast::test_toast(app.handle());
+            }
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             remote::app::start_saved(app.handle());

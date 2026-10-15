@@ -119,8 +119,9 @@ fn toast_app_id(app: &AppHandle) -> String {
     }
 }
 
-/// A toast with buttons: a click calls `on_click` with the button's argument. Off Windows, or on a WinRT error, the
-/// plugin's plain toast without them.
+/// A toast with buttons: a click calls `on_click` with the button's argument (None: a click on the toast itself).
+/// Windows: tauri-winrt-notification. macOS: the plugin's actions (`mac`). Anywhere else, or when the toast with
+/// buttons cannot be shown, the plugin's plain toast without them.
 pub fn with_buttons(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, &str)], on_click: impl Fn(Option<&str>) + Send + 'static) {
     #[cfg(windows)]
     {
@@ -135,9 +136,112 @@ pub fn with_buttons(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, 
             return;
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    match mac::show(app, title, body, buttons, on_click) {
+        Ok(()) => return,
+        Err(e) => eprintln!("toast with buttons: {e}"),
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     let _ = (buttons, on_click);
     let _ = app.notification().builder().title(title).body(body).show();
+}
+
+/// What a click on a toast with buttons calls back, by the toast's id (macOS: one plugin handler for every toast).
+type Click = Box<dyn Fn(Option<&str>) + Send>;
+
+/// The toasts with buttons still waiting for a click.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[derive(Default)]
+struct Pending(std::collections::HashMap<i32, Click>);
+
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+impl Pending {
+    /// ponytail: a toast closed without a click never reports back, so only the newest `KEEP` wait; a click on an
+    /// older one does nothing. A real expiry if toasts start piling up.
+    const KEEP: usize = 32;
+
+    fn add(&mut self, id: i32, click: Click) {
+        self.0.insert(id, click);
+        while self.0.len() > Self::KEEP {
+            let Some(&oldest) = self.0.keys().min() else { break };
+            self.0.remove(&oldest);
+        }
+    }
+
+    /// Toast `id`'s click, once (a toast reports one action); None for a plain or evicted toast. Called outside
+    /// the lock: a click may show a toast itself.
+    fn take(&mut self, id: i32) -> Option<Click> {
+        self.0.remove(&id)
+    }
+}
+
+/// The plugin's action id -> `on_click`'s argument: `tap` (the toast itself) is None, as on Windows.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn click_arg(action: &str) -> Option<&str> {
+    (action != "tap").then_some(action)
+}
+
+/// macOS: toast buttons through tauri-plugin-notification's actions (NSUserNotification via notify-rust). The
+/// plugin reports every action to one handler, registered once by `hook` before the first toast; it is routed to
+/// the toast's own `on_click` by the toast's id. Each button's action id is its argument, as on Windows.
+#[cfg(target_os = "macos")]
+pub mod mac {
+    use super::{click_arg, Click, Pending};
+    use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Mutex;
+    use tauri::AppHandle;
+    use tauri_plugin_notification::{Action, ActionType, NotificationExt};
+
+    static PENDING: Mutex<Option<Pending>> = Mutex::new(None);
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+
+    /// Registers the action handler. Only on macOS: once a handler exists, the plugin shows every toast on a
+    /// thread of its own that waits for the click. Toasts shown before it report nothing.
+    pub fn hook(app: &AppHandle) {
+        let _ = app.notification().on_action(|p| {
+            let id = p.notification().map(|n| n.id());
+            eprintln!("toast click: {} on toast {id:?}", p.action_id()); // before routing: a click that arrives is seen
+            let Some(id) = id else { return };
+            let click = crate::lock(&PENDING).get_or_insert_with(Pending::default).take(id);
+            if let Some(click) = click {
+                click(click_arg(p.action_id()));
+            }
+        });
+    }
+
+    pub fn show(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, &str)], on_click: impl Fn(Option<&str>) + Send + 'static) -> tauri_plugin_notification::Result<()> {
+        let id = NEXT.fetch_add(1, Ordering::Relaxed);
+        let kind = format!("buttons-{id}"); // ponytail: one action type per toast, a few bytes each, never removed
+        let actions = buttons.iter().map(|(label, arg)| Action::builder(*arg, *label).build()).collect();
+        app.notification().register_action_types(vec![ActionType::builder(&kind).actions(actions).build()])?;
+        crate::lock(&PENDING).get_or_insert_with(Pending::default).add(id, Box::new(on_click) as Click);
+        let shown = app.notification().builder().id(id).title(title).body(body).action_type_id(kind).show();
+        if shown.is_err() {
+            crate::lock(&PENDING).get_or_insert_with(Pending::default).take(id);
+        }
+        shown
+    }
+}
+
+/// A petition toast's buttons. macOS shows two or more as an "Options" menu, and a click on the menu's own button
+/// reports the first: Deny comes first there, so a stray click never approves.
+pub fn petition_buttons<'a>(mac: bool, yes: &'a str, no: &'a str) -> [(&'static str, &'a str); 2] {
+    if mac {
+        [("Deny", no), ("Approve", yes)]
+    } else {
+        [("Approve", yes), ("Deny", no)]
+    }
+}
+
+/// `ADMINISTRATUM_TEST_TOAST` in demo mode: one petition-like toast with buttons a few seconds after start, to check that a click
+/// arrives (stderr `test toast click: Some("yes:0:test")`). It answers nothing.
+pub fn test_toast(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        let buttons = petition_buttons(cfg!(target_os = "macos"), "yes:0:test", "no:0:test");
+        with_buttons(&app, "Test petition", "A click is only logged", &buttons, |arg| eprintln!("test toast click: {arg:?}"));
+    });
 }
 
 /// A petition toast. A permission prompt in an Orca terminal gets Approve / Deny: a click answers through
@@ -150,7 +254,7 @@ pub fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String)
     }
     let (handle, name) = (app.clone(), s.name.clone());
     let (yes, no) = (action_arg("yes", s.since_ms, &s.id), action_arg("no", s.since_ms, &s.id));
-    with_buttons(app, &title, &body, &[("Approve", &yes), ("Deny", &no)], move |arg| {
+    with_buttons(app, &title, &body, &petition_buttons(cfg!(target_os = "macos"), &yes, &no), move |arg| {
         let Some((choice, since, id)) = arg.and_then(parse_action) else { return };
         let open = handle.state::<Live>().lock().ok().and_then(|r| still_open(&r, id, since).map(str::to_string));
         if let Some(orca) = open {
@@ -213,5 +317,37 @@ mod tests {
         assert_eq!(still_open(&roster, "s", 8), None, "another episode");
         assert_eq!(still_open(&[Session { status: "busy".into(), ..p.clone() }], "s", 9), None, "already answered");
         assert_eq!(still_open(&[], "s", 9), None, "gone");
+    }
+
+    #[test]
+    fn macos_menu_button_never_approves() {
+        assert_eq!(petition_buttons(true, "y", "n")[0], ("Deny", "n"), "the menu's own button reports the first");
+        assert_eq!(petition_buttons(false, "y", "n"), [("Approve", "y"), ("Deny", "n")]);
+    }
+
+    #[test]
+    fn pending_clicks_go_to_their_own_toast_once() {
+        use std::sync::{Arc, Mutex};
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let mut p = Pending::default();
+        for id in 1..=2 {
+            let seen = seen.clone();
+            p.add(id, Box::new(move |arg| seen.lock().unwrap().push((id, arg.map(str::to_string)))));
+        }
+        let mut click = |id, action| {
+            if let Some(c) = p.take(id) {
+                c(click_arg(action));
+            }
+        };
+        click(2, "no:5:abc");
+        click(2, "yes:5:abc"); // a toast reports once
+        click(1, "tap");
+        click(9, "yes:5:abc"); // a plain toast
+        assert_eq!(*seen.lock().unwrap(), [(2, Some("no:5:abc".into())), (1, None)]);
+        for id in 0..(Pending::KEEP as i32 + 5) {
+            p.add(id, Box::new(|_| {}));
+        }
+        assert_eq!(p.0.len(), Pending::KEEP);
+        assert!(!p.0.contains_key(&0) && p.0.contains_key(&(Pending::KEEP as i32 + 4)), "the oldest go first");
     }
 }
