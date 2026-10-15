@@ -1,6 +1,6 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF, ROOM_SHEET_OF } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
-import { tile, roomAt } from './room.js';
+import { tile, roomAt, halfOf } from './room.js';
 import { WIN_Y, wallArt } from './wallart.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
@@ -885,8 +885,8 @@ const SWING_MS = 120, swings = new Map(); // key -> { open, at }
 function doorFrame(key, kind, open, now) {
   let s = swings.get(key);
   if (s?.open !== open) swings.set(key, s = { open, at: s ? now : -Infinity }); // first sight: at rest
-  const half = `door ${kind} half`, mid = now - s.at < SWING_MS && ROOM_SHEET_OF[half] && ROOM_SHEET_OF[half] === ROOM_SHEET_OF[`door ${kind} closed`];
-  return mid ? half : `door ${kind} ${open ? 'open' : 'closed'}`;
+  const half = halfOf(kind);
+  return half && now - s.at < SWING_MS ? half : `door ${kind} ${open ? 'open' : 'closed'}`;
 }
 function drawDoors(g, actors, now) {
   for (const d of doorsOf(H)) {

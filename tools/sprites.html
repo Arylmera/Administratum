@@ -5,7 +5,8 @@
   Edit an art file, press R (or Reload) to see it. Each family links to its GitHub discussion issue; each sprite
   can open a new prefilled Sprite issue. The static gallery for issues is still tools/sprite_sheet.mjs.
   Cells are named like a spreadsheet: column = theme (A Ordo Administratum ... F Neon Grid), row = sprite number, so "C12" is
-  one sprite in one theme; #C12 in the URL jumps to it. The same key in a terminal: node tools/sprite_sheet.mjs --list
+  one sprite in one theme; #C12 in the URL jumps to it. Rows follow column A's list in every column; a sprite the hall
+  never draws in a world (the default art lends it, the world's own art has none) shows there as "not in this world". The same key in a terminal: node tools/sprite_sheet.mjs --list
 -->
 <!doctype html>
 <meta charset="utf-8">
@@ -32,6 +33,7 @@
   .themes { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
   figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
   figcaption { color: var(--dim); font-size: 11px; }
+  figure.absent .stage { color: var(--dim); font-size: 11px; font-style: italic; border: 1px dashed var(--edge); background: none; }
   .stage { position: relative; display: inline-block; padding: var(--z); border-radius: 3px; overflow-x: auto; max-width: 100%; }
   .stage canvas { display: block; image-rendering: pixelated; }
   .bg-dark .stage { background: #0a0a0b; }
@@ -163,7 +165,13 @@ function render() {
     for (const id of ids) {
       if (!shown.has(id)) continue;
       const e = byTheme[id].get(base.id);
-      if (!e) continue;
+      if (!e) { // the hall never draws it in this world (sprite_catalog.mjs): an empty cell keeps the column and its ref
+        const fig = document.createElement('figure');
+        fig.id = `${col(id)}${n}`; fig.className = 'absent';
+        fig.innerHTML = `<div class="stage">not in this world</div><figcaption><span class="ref">${fig.id}</span>${names[id]}</figcaption>`;
+        strip.append(fig);
+        continue;
+      }
       let frames = e.anim ? e.cells.map(c => canvasOf([c])) : [canvasOf(e.cells)];
       if (stripOn) { setTheme(id); frames = frames.map(outlined); }
       const fig = document.createElement('figure'), cv = document.createElement('canvas');

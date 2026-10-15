@@ -8,6 +8,7 @@ import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, ADEPT39, ADEPT39_AT, marked, MAGOS,
 import { THEMES, setTheme, t } from './theme.js';
 import { BREAKOUT_SIZES } from './layout.js';
 import { markOf, bodyOf, bodyOf39 } from './actors.js';
+import { catalog } from '../tools/sprite_catalog.mjs';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -199,5 +200,13 @@ for (const id of Object.keys(THEMES)) {
   }
   assert.ok(t('breakout') && t('breakout') !== 'breakout', `${id}: room name`);
 }
+setTheme('tier2');
+
+// the sprite catalogue (viewer, galleries) lists only what the hall draws: the default art's second designs and door
+// halves in the default world, never in a world whose own walls and doors lack them
+const LENT = ['HANGING_B', 'SHELF_B', 'ROOM.door_sanctum_half', 'ROOM.door_refectory_half'];
+const listed = id => { setTheme(id); return new Set(catalog().map(e => e.id)); };
+for (const n of LENT) assert.ok(listed('tier2').has(n), `tier2 lists ${n}`);
+for (const id of ['cyber', 'corpo', 'orbital', 'tower', 'vault']) { const s = listed(id); for (const n of LENT) assert.ok(!s.has(n), `${id} omits ${n}`); }
 setTheme('tier2');
 console.log('art ok');

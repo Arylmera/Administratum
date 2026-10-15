@@ -161,8 +161,11 @@ python -m http.server 8123        # from the repo root
 
 Cells are named like a spreadsheet: the column is the theme (A Ordo Administratum, B Ordo Machinum, C Ordo Xenos,
 D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code,
-K Sunset Drive, L Arcane Tower, M Vault 111), the row is the sprite's number. `F52` is the Neon Grid shelf, and
-`sprites.html#F52` jumps to it. `node tools/sprite_sheet.mjs --list` prints the key. The *depth* switch draws each
+K Sunset Drive, L Arcane Tower, M Vault 111), the row is the sprite's number. `F79` is the Neon Grid shelf, and
+`sprites.html#F79` jumps to it. `node tools/sprite_sheet.mjs --list` prints the key. Rows are numbered over the default
+theme's list, so a ref means the same sprite in every column; a sprite the hall never draws in a world (a frame the
+default art lends but the world's own art lacks: `HANGING_B`, `SHELF_B`, a door's half frame...) shows there as an
+empty "not in this world" cell, and its theme gallery leaves it out. The *depth* switch draws each
 sprite over the contact shadow it gets in the hall.
 
 **After an art change:**

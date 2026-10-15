@@ -118,8 +118,6 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/tower/walls.png` | <img src="tower/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/tower/walls.png` | <img src="tower/WINDOW_TALL.night.png" height="160"> |
 | <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/tower/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="tower/HANGING.png" height="160"> |
-| <a id="hanging_b"></a>`HANGING_B` | 13×50 | Second full-height hanging (aquila and litany scroll), every other one on the back walls. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="tower/HANGING_B.png" height="160"> |
-| <a id="shelf_b"></a>`SHELF_B` | 32×21 | Second back-wall shelf (scroll cubbies, a skull niche, reliquary caskets), every other one on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="tower/SHELF_B.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/tower/clutter.png`, drawn by scene.js | <img src="tower/BOOKS.png" height="72"> |
@@ -176,10 +174,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/tower/room-pipes.png` | <img src="tower/ROOM.fitting_v.png" height="24"> |
 | <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/tower/room-pipes.png` | <img src="tower/ROOM.fitting_wide.png" height="16"> |
 | <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_sanctum_closed.png" height="160"> |
-| <a id="room-door_sanctum_half"></a>`ROOM.door_sanctum_half` | 10×40 | `door sanctum half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tower/ROOM.door_sanctum_half.png" height="160"> |
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_refectory_closed.png" height="160"> |
-| <a id="room-door_refectory_half"></a>`ROOM.door_refectory_half` | 10×24 | `door refectory half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tower/ROOM.door_refectory_half.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/tower/room-doors.png` | <img src="tower/ROOM.door_refectory_open.png" height="160"> |
 
 ## Face sheets (39° side and top faces)

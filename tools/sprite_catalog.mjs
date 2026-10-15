@@ -1,4 +1,5 @@
-// Every sprite of the active theme as the hall draws it, for reviewing them: tools/sprite_sheet.mjs (PNG + gallery)
+// Every sprite of the active theme as the hall draws it (a frame the hall never draws in that world, though the default
+// art lends it, is left out, by the hall's own gates: wallArt, halfOf, MAGOS.claw, ADEPT.marks, the flame check), for reviewing them: tools/sprite_sheet.mjs (PNG + gallery)
 // and tools/sprites.html (the live viewer) both list this. Pure: no fs, no DOM. Call setTheme() first.
 // -> [{ id, group, family, src, cells: [{ rows, over }], anim, note, size }]
 //    family: the art family ('walls'), as the sprite issues group them; src: its art file for this theme ('cyber/walls').
@@ -8,7 +9,8 @@ import {
   SCRIBE39, ADEPT39, ADEPT39_AT, MAGOS39, SKULL39, WATCH39, REQ39,
 } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
-import { cellFrame } from '../ui/room.js';
+import { cellFrame, halfOf } from '../ui/room.js';
+import { wallArt } from '../ui/wallart.js';
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
@@ -98,15 +100,18 @@ export function catalog() {
     CONSOLE: [['unlit', { c: theme.ink.screenOff }]],
     SKULL: [['alarm', { o: theme.ink.alarm, O: theme.ink.alarmGlow }]],
   };
+  // The back wall's art as the hall picks it (wallart.js): a tall window or hanging, or a second design, only from the
+  // world's own art; false = never drawn in this world.
+  const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$/.test(name)) continue; // drawn over their prop: its '.fire' row below
+    if (/_FIRE_\d$/.test(name) || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
   // The licking flames (scene.js flameOf): the prop with its <NAME>_FIRE_n frames over it, as the hall cycles them.
   for (const name of ['BRAZIER', 'CANDLES']) {
     const f = n => MAPS[`${name}_FIRE_${n}`], at = PROP_AT[name]?.fire;
-    if (!at || !f(1) || SHEET_OF[`${name}_FIRE_1`] !== SHEET_OF[name]) continue; // a world's own fire: still
+    if (!at || !f(1) || SHEET_OF[`${name}_FIRE_1`] !== SHEET_OF[name]) continue; // a world's own fire: still (scene.js flameOf's gate)
     const [ax, ay] = at.map(v => v * RES), base = Array(-ay).fill('.'.repeat(MAPS[name][0].length)).concat(MAPS[name]);
     const lick = m => base.map((r, j) => [...r].map((c, i) => { const o = m?.[j]?.[i - ax]; return o && o !== '.' ? o : c; }).join(''));
     add(`${name}.fire`, 'Props and furniture', SHEET_OF[name], [null, f(1), null, f(2)].map(m => ({ rows: lick(m), over: {} })), true, `${name}: the flame licking, 4 frames (still, ${name}_FIRE_1 over it, still, ${name}_FIRE_2)`);
@@ -117,7 +122,7 @@ export function catalog() {
   // world whose own floor drops them).
   const mixed = new Set(Object.values(ART.base).flatMap(s => Object.values(s.tiles ?? {}).flatMap(t => t.mix ?? [])));
   for (const [name, rows] of Object.entries(ROOM.frames)) {
-    if (mixed.has(name)) continue;
+    if (mixed.has(name) || (/^door .+ half$/.test(name) && !halfOf(name.split(' ')[1]))) continue; // a half the doors never swing through
     const t = ROOM.tiles[name] ?? {};
     const how = t.fill ? FILL[t.fill] + (t.top ? `, first row from \`${t.top}\`` : '') + (t.mix?.length ? `, mixed with ${t.mix.map(m => `\`${m}\``).join(', ')}` : '') + (t.glow ? `, glows (${t.glow})` : '') : 'drawn as is';
     const n = t.fill === 'repeat' ? 3 : 1, nx = t.fill === 'repeat-x' ? 6 : t.mix?.length ? 8 : n, ny = t.fill === 'repeat-y' ? 6 : t.mix?.length ? 4 : n;

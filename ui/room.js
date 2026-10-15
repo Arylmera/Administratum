@@ -8,7 +8,7 @@
 // `glow`: the tile glows in that ink colour (the coolant), `glowPasses` times over for a stronger glow (default 1).
 // Where things go stays in scene.js: a theme reskins the
 // tiles, the room keeps its shape.
-import { sprite, RES, ROOM } from './sprites.js';
+import { sprite, RES, ROOM, ROOM_SHEET_OF } from './sprites.js';
 import { T } from './theme.js';
 
 const parts = new WeakMap(); // tile canvas -> 'sx,sy,sw,sh' -> canvas of that part (nine-slice pieces)
@@ -77,5 +77,9 @@ export function tile(g, name, x, y, w, h) {
   }
   if (t.glow) g.restore();
 }
+// A door's mid-swing frame name ('door <kind> half'), only when it comes from the door's own sheet (a world's own
+// doors without one still jump), else null: scene.js doorFrame, and the sprite catalogue (what the hall never draws).
+export const halfOf = kind => { const h = `door ${kind} half`; return ROOM_SHEET_OF[h] && ROOM_SHEET_OF[h] === ROOM_SHEET_OF[`door ${kind} closed`] ? h : null; };
+
 // A room tile's anchors (logical px from its top-left), e.g. a door frame's doorway corner.
 export const roomAt = name => ROOM.anchors[name] ?? {};

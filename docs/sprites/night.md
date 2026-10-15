@@ -41,6 +41,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept-novice-up"></a>`ADEPT.novice.up` | 12×14 | Novice adept, walking up, 3 frames. Source: `ui/art/adept.png` | <img src="night/ADEPT.novice.up.png" height="112"> |
 | <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Novice adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="night/ADEPT.novice.right.png" height="112"> |
 | <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Novice adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="night/ADEPT.novice.left.png" height="112"> |
+| <a id="adept-kinds"></a>`ADEPT.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing down, then up. Source: `ui/art/adept.png` | <img src="night/ADEPT.kinds.png" height="112"> |
 
 ## Watchman (Night Vigil, while armed)
 
@@ -75,6 +76,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.W.png" height="112"> |
 | <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.S.png" height="112"> |
 | <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.N.png" height="112"> |
+| <a id="adept39-kinds"></a>`ADEPT39.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing S, then E, then N, then W. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.kinds.png" height="112"> |
 | <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/magos39.png` | <img src="night/MAGOS39.body.png" height="160"> |
 | <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/magos39.png` | <img src="night/MAGOS39.arm.png" height="160"> |
 | <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/skull39.png` | <img src="night/SKULL39.skull.png" height="80"> |
@@ -112,7 +114,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/walls.png` | <img src="night/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/walls.png` | <img src="night/WINDOW.night.png" height="136"> |
 | <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="night/BANNER.png" height="120"> |
-| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js | <img src="night/SHELF.png" height="160"> |
+| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="night/SHELF.png" height="160"> |
 | <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/walls.png`, drawn by scene.js | <img src="night/GAUGE.png" height="48"> |
 | <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/walls.png`, drawn by scene.js | <img src="night/CENSER.png" height="80"> |
 | <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="night/WINDOW_TALL.png" height="160"> |
@@ -120,6 +122,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="night/WINDOW_TALL.night.png" height="160"> |
 | <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="night/HANGING.png" height="160"> |
 | <a id="hanging_b"></a>`HANGING_B` | 13×50 | Second full-height hanging (aquila and litany scroll), every other one on the back walls. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="night/HANGING_B.png" height="160"> |
+| <a id="shelf_b"></a>`SHELF_B` | 32×21 | Second back-wall shelf (scroll cubbies, a skull niche, reliquary caskets), every other one on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="night/SHELF_B.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="night/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="night/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="night/BOOKS.png" height="72"> |
