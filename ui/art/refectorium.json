@@ -23,6 +23,14 @@
         "w": 92,
         "h": 8
       }
+    },
+    "DOZE_Z": {
+      "frame": {
+        "x": 219,
+        "y": 0,
+        "w": 7,
+        "h": 7
+      }
     }
   },
   "meta": {
@@ -30,7 +38,7 @@
     "image": "refectorium.png",
     "format": "RGBA8888",
     "size": {
-      "w": 218,
+      "w": 226,
       "h": 36
     },
     "palette": "key.gpl",

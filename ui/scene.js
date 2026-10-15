@@ -345,16 +345,13 @@ function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
   };
 }
 
-// A background shell still runs after the turn: a tiny brass cog turning on the desk corner (art px = 0.5).
+// A background shell still runs after the turn: a tiny brass cog turning on the desk corner, ~1 rev / 3 s. Its turn
+// is COG_TURN frames, MAPS.SHELL_COG_0.. (workstations art), frame k at k / COG_TURN of a revolution, each centred on
+// (cx, cy); drawImage, not blit: the cog never takes the outline pass.
+export const COG_TURN = 16;
 function spinCog(g, cx, cy, t) {
-  rect(g, cx - 2, cy - 1, 4, 3, I.outline); rect(g, cx - 1.5, cy - 1.5, 3, 4, I.outline); // outline
-  for (let i = 0; i < 8; i++) { // 8 teeth, turning ~1 rev / 3 s
-    const ang = t * 2 + i * Math.PI / 4;
-    rect(g, half(cx - 0.25 + Math.cos(ang) * 2.25), half(cy - 0.25 + Math.sin(ang) * 2.25), 1, 1, i ? I.copperShade : I.brassLit);
-  }
-  rect(g, cx - 1.5, cy - 1, 3, 2, I.brass); rect(g, cx - 1, cy - 1.5, 2, 3, I.brass);
-  rect(g, cx - 1.5, cy - 1, 0.5, 1, I.brassLit); rect(g, cx - 1, cy - 1.5, 1, 0.5, I.brassLit); // lit upper-left
-  rect(g, cx - 0.5, cy - 0.5, 1, 1, I.ironDark); // axle
+  const cv = sprite(MAPS[`SHELL_COG_${Math.floor(t * COG_TURN / Math.PI) % COG_TURN}`]); // t * 2 rad: a turn every pi s
+  g.drawImage(cv, cx - cv.width / (2 * RES), cy - cv.height / (2 * RES), cv.width / RES, cv.height / RES);
 }
 
 

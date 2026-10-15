@@ -30,6 +30,7 @@ const ABOUT = {
   LOOSE_A: 'Loose sheet on the floor (decor)', LOOSE_B: 'Loose sheet on the floor (decor)', GAUGE: 'Pressure gauge on the Sanctum pillars',
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',
   GATE_R: 'Grand gate, right leaf (slides open)', GATE_VOID: 'Grand gate, the ember-lit void beyond the leaves', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
+  DOZE_Z: 'The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading',
   BREAKOUT_FLOOR: 'Break-out room floor tile (temp-folder sessions)', BREAKOUT_RAIL: 'Break-out room rail, front and back edges',
   BREAKOUT_SIDE: 'Break-out room side rail, seen from above', BREAKOUT_POST: 'Break-out room post: corners and beside each gate',
   BREAKOUT_GATE: 'Break-out room gate, closed, in the side', BREAKOUT_GATE_OPEN: 'Break-out room gate leaf, swung open',
@@ -104,7 +105,7 @@ export function catalog() {
   // world's own art; false = never drawn in this world.
   const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$/.test(name) || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below
+    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$/.test(name) || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects: last (below)
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
@@ -142,5 +143,12 @@ export function catalog() {
       [[`${p.name} front`, F[`${name} ${p.name} front`]], [`${p.name} side`, p.side], [`${p.name} top`, p.top], [`${p.name} rim`, p.rimFrame], ...bezel(`${p.name} `, p.recess)]))].filter(([, f]) => f);
     if (faces.length) add(`FACES.${name}`, 'Face sheets (39° side and top faces)', src, faces.map(([, rows]) => ({ rows, over: {} })), false, `${name}, 39° view only: ${faces.map(([k]) => k).join(', ')}`);
   }
+
+  // Effects moved from code to art (issue #21), listed last so the sprite numbers before them (cell refs) keep their
+  // meaning: the dozing Z, and the background-shell cog's turn (scene.js spinCog) frame by frame.
+  add('DOZE_Z', 'Props and furniture', SHEET_OF.DOZE_Z, [{ rows: MAPS.DOZE_Z, over: {} }], false, ABOUT.DOZE_Z);
+  const turn = [];
+  for (let k = 0; MAPS[`SHELL_COG_${k}`]; k++) turn.push({ rows: MAPS[`SHELL_COG_${k}`], over: {} });
+  add('SHELL_COG', 'Props and furniture', SHEET_OF.SHELL_COG_0, turn, true, `Cog turning on a desk corner while a background shell runs, ${turn.length} frames a revolution (~3 s)`);
   return out;
 }

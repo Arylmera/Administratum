@@ -1,4 +1,4 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, marked } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, sprite, marked } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -301,27 +301,14 @@ function heldScroll(g, x, y) {
 }
 
 // "z z" over a dozing scribe: two 5x5-art-px Zs drifting up and fading, half a cycle apart.
-// One 7x7 art-px sprite (a dark outline so it reads over paper, a pale core), drawn twice with fading alpha.
-const Z = ['11111', '00010', '00100', '01000', '11111'];
-let zCv = null;
-onTheme(() => { zCv = null; });
-function zSprite() {
-  if (zCv) return zCv;
-  zCv = document.createElement('canvas');
-  zCv.width = zCv.height = 7;
-  const c = zCv.getContext('2d');
-  for (const [col, o, w] of [[T.ink.outline, 0, 3], [T.ink.glint, 1, 1]]) {
-    c.fillStyle = col;
-    Z.forEach((row, j) => { for (let i = 0; i < 5; i++) if (row[i] === '1') c.fillRect(i + o, j + o, w, w); });
-  }
-  return zCv;
-}
+// One 7x7 art-px sprite, MAPS.DOZE_Z (refectorium art: a dark outline so it reads over paper, a pale core), drawn twice
+// with fading alpha; drawImage, not blit: the Zs never take the outline pass.
 export function dozing(g, x, y, t) {
-  const z = zSprite(), a0 = g.globalAlpha;
+  const z = sprite(MAPS.DOZE_Z), a0 = g.globalAlpha;
   for (const k of [0, 0.5]) {
     const p = (t / 2.4 + k) % 1, zx = x + Math.round(p * 4) / 2, zy = y - Math.round(p * 12) / 2;
     g.globalAlpha = Math.min(1, 3 * (1 - p));
-    g.drawImage(z, zx - 0.5, zy - 0.5, 3.5, 3.5);
+    g.drawImage(z, zx - 0.5, zy - 0.5, z.width / RES, z.height / RES);
   }
   g.globalAlpha = a0;
 }

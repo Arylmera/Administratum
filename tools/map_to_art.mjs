@@ -50,8 +50,8 @@ const walkFrames = (set, frames) => { for (const dir of ['down', 'up', 'right'])
 const WALK = [['down 0', 'down 1', 'down 2', 'up 0', 'up 1', 'up 2', 'right 0', 'right 1', 'right 2']];
 // Prop families, one sheet each, as the sprite discussion issues group them (docs/superpowers/specs/...-design.md).
 export const PROPS = {
-  workstations: ['DESK', 'LECTERN', 'CONSOLE'], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'LORD_DESK', 'COG_MECH', 'SEAL'],
-  gate: ['GATE', 'GATE_L', 'GATE_R', 'GATE_VOID'], refectorium: ['RECAFF', 'TABLE', 'BENCH'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER', 'WINDOW_TALL', 'HANGING', 'HANGING_B', 'SHELF_B'],
+  workstations: ['DESK', 'LECTERN', 'CONSOLE', ...Array.from({ length: 16 }, (_, k) => `SHELL_COG_${k}`)], cogitator: ['COGITATOR'], sanctum: ['THRONE', 'LORD_DESK', 'COG_MECH', 'SEAL'],
+  gate: ['GATE', 'GATE_L', 'GATE_R', 'GATE_VOID'], refectorium: ['RECAFF', 'TABLE', 'BENCH', 'DOZE_Z'], walls: ['WINDOW', 'BANNER', 'SHELF', 'GAUGE', 'CENSER', 'WINDOW_TALL', 'HANGING', 'HANGING_B', 'SHELF_B'],
   clutter: ['PAPER_STACK', 'SCROLL_PILE', 'BOOKS', 'LOOSE_A', 'LOOSE_B', 'CRATE'], skull: ['SKULL'], petitions: ['SCROLL', 'QSCROLL', 'SCROLL_HELD'],
   fire: ['BRAZIER', 'CANDLES', 'BRAZIER_FIRE_1', 'BRAZIER_FIRE_2', 'CANDLES_FIRE_1', 'CANDLES_FIRE_2'], commits: ['COMMIT_SEAL', 'COMMIT_TAG', 'COMMIT_STAMP'],
 };

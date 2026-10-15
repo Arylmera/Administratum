@@ -142,6 +142,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/tower/breakout.png`, drawn by (not referenced by name) | <img src="tower/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/tower/breakout.png`, drawn by scene.js, scene39.js | <img src="tower/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/tower/breakout.png`, drawn by scene.js | <img src="tower/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
+| <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/refectorium.png`, drawn by actors.js | <img src="tower/DOZE_Z.png" height="28"> |
+| <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/workstations.png`, drawn by (not referenced by name) | <img src="tower/SHELL_COG.png" height="48"> |
 
 ## Room tiles
 

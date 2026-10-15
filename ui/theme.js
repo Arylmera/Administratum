@@ -56,7 +56,8 @@ const inkOf = px => ({
   flame: px.f, flameCore: px.F, alarm: px.a, crimson: px.x,
   // weathering on the walls: scratches and cracks, their lit edge, the binary cant, grime stains (transparent to drop them)
   scratch: px.k, scratchSheen: 'rgba(255,240,220,.06)', cant: 'rgba(124,255,158,.38)', grime: 'rgba(10,6,4,.35)',
-  // the background-shell cog's teeth (copper, as the room's pipes); the coolant channels' glow
+  // copper shade, as the room's pipes (the background-shell cog's teeth were drawn in it; the cog is art now:
+  // SHELL_COG_*, its Z slot); the coolant channels' glow
   copperShade: px.Z, coolant: '#3aa864',
   // screens: the cogitator bank, the Magos's chest, an unlit desk slate
   screenHot: '#b8ffc8', screenDim: '#3aa864', screenMark: '#2a8a50', screenFlicker: 'rgba(22,48,31,.55)', screenOff: '#2e6b47',
