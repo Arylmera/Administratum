@@ -103,7 +103,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/gate.png`, drawn by isohall.js, scene.js | <img src="night/GATE.png" height="160"> |
 | <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="night/GATE_L.png" height="160"> |
 | <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="night/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | ?. Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="night/GATE_VOID.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | Grand gate, the ember-lit void beyond the leaves. Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="night/GATE_VOID.png" height="160"> |
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="night/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="night/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="night/BENCH.png" height="32"> |

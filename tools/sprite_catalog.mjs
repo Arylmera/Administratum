@@ -26,7 +26,7 @@ const ABOUT = {
   BANNER: 'Wall banner (the Sanctum wall; the back walls of a world without its own hangings)', CRATE: 'Supply crate', PAPER_STACK: 'Paper tower (decor)', SCROLL_PILE: 'Scroll pile (decor)', BOOKS: 'Book pile (decor)',
   LOOSE_A: 'Loose sheet on the floor (decor)', LOOSE_B: 'Loose sheet on the floor (decor)', GAUGE: 'Pressure gauge on the Sanctum pillars',
   CENSER: 'Censer', GATE: 'Grand gate frame: sessions enter and leave here', GATE_L: 'Grand gate, left leaf (slides open)',
-  GATE_R: 'Grand gate, right leaf (slides open)', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
+  GATE_R: 'Grand gate, right leaf (slides open)', GATE_VOID: 'Grand gate, the ember-lit void beyond the leaves', TABLE: 'Refectorium table', BENCH: 'Refectorium bench: long-idle scribes sleep here',
   BREAKOUT_FLOOR: 'Break-out room floor tile (temp-folder sessions)', BREAKOUT_RAIL: 'Break-out room rail, front and back edges',
   BREAKOUT_SIDE: 'Break-out room side rail, seen from above', BREAKOUT_POST: 'Break-out room post: corners and beside each gate',
   BREAKOUT_GATE: 'Break-out room gate, closed, in the side', BREAKOUT_GATE_OPEN: 'Break-out room gate leaf, swung open',
