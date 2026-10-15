@@ -402,13 +402,27 @@ function pileOf(id, kind, now) {
     const flat = rnd() < 0.6;
     return { x: half(k.cx + Math.cos(a) * r * 1.2), y: half(k.cy + Math.sin(a) * r * 0.8), w: flat ? 4 : 3, h: flat ? 3 : 4, red: i % 5 === 2 };
   });
-  // the top pile's bounds (sheet outlines included), pile-local: every sheet edge sits on the art-px grid
-  const tb = { x0: Math.min(...top.map(t => t.x)) - 0.5, y0: Math.min(...top.map(t => t.y - t.layers + 1)) - 0.5 };
-  tb.w = Math.max(...top.map(t => t.x + t.w)) + 0.5 - tb.x0; tb.h = Math.max(...top.map(t => t.y)) + 3 - tb.y0;
-  p = { top, floor, tb, shown: -1, born: [], seen: now ?? 0, topKey: -1, topCv: null, fKey: [], fCv: null, fAt: null,
+  p = { top, floor, tb: boundsOf(top), shown: -1, born: [], seen: now ?? 0, topKey: -1, topCv: null, fKey: [], fCv: null, fAt: null,
     fx: new Float64Array(floor.length), fy: new Float64Array(floor.length) };
   piles.set(`${kind}:${id}`, p);
   return p;
+}
+// A top pile's bounds (sheet outlines included), pile-local: every sheet edge sits on the art-px grid.
+function boundsOf(top) {
+  const tb = { x0: Math.min(...top.map(t => t.x)) - 0.5, y0: Math.min(...top.map(t => t.y - t.layers + 1)) - 0.5 };
+  tb.w = Math.max(...top.map(t => t.x + t.w)) + 0.5 - tb.x0; tb.h = Math.max(...top.map(t => t.y)) + 3 - tb.y0;
+  return tb;
+}
+// The same sheets spread over a face rect (pile-local x, y, w, h; the 39° desk top): each keeps its size and its place
+// in the pile's order, its position mapped across the face so the whole stack (outline and layers) stays on it.
+function fitTop(p, f) {
+  const key = `${f.x},${f.y},${f.w},${f.h}`;
+  if (p.fit?.key === key) return p.fit;
+  const span = v => { const a = Math.min(...v), b = Math.max(...v); return x => (b > a ? (x - a) / (b - a) : 0.5); };
+  const fx = span(p.top.map(t => t.x)), fy = span(p.top.map(t => t.y)), down = v => Math.floor(v * 2) / 2; // down: never past the face
+  const top = p.top.map(t => ({ ...t, x: down(f.x + 0.5 + fx(t.x) * Math.max(0, f.w - t.w - 1)),
+    y: down(f.y + t.layers - 0.5 + fy(t.y) * Math.max(0, f.h - t.layers - 2.5)) }));
+  return (p.fit = { key, top, tb: boundsOf(top), topKey: -1, topCv: null });
 }
 const topCount = (p, fill) => Math.round(Math.min(Math.max(0, fill), 0.5) / 0.5 * p.top.length);
 const floorCount = (p, fill) => Math.round(Math.min(1, Math.max(0, fill - 0.5) / 0.5) * p.floor.length);
@@ -425,10 +439,11 @@ function sheet(g, x, y, w, h, red) {
   g.fillStyle = red ? I.crimson : I.parchmentShade; g.fillRect(x + 0.5, y + 1, w - 1.5, 0.5);
   if (h > 3) g.fillRect(x + 0.5, y + 2.5, w - 2, 0.5);
 }
-// On the desk surface (or beside the console), drawn with the furniture.
-function paperTop(g, id, kind, fill, at) {
-  const p = pileOf(id, kind), n = topCount(p, fill), key = 2 * n + (fill >= 0.9 ? 1 : 0), { tb } = p;
+// On the desk surface (or beside the console), drawn with the furniture; face: spread over that rect (fitTop).
+function paperTop(g, id, kind, fill, at, face) {
+  const q = pileOf(id, kind), n = topCount(q, fill), key = 2 * n + (fill >= 0.9 ? 1 : 0);
   if (!n) return;
+  const p = face ? fitTop(q, face) : q, { tb } = p;
   if (p.topKey !== key) { // the count or the warning changed: redraw the pile (back to front) into its canvas
     p.topKey = key;
     p.topCv = rasterIn(p.topCv, tb.x0, tb.y0, tb.w, tb.h);
