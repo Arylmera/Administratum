@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
+import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF, ROOM_SHEET_OF } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt } from './room.js';
 import { WIN_Y, wallArt } from './wallart.js';
@@ -220,7 +220,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const Z = H.strip ? breakoutOfStrip(layout.blocks) : breakoutOf(layout.blocks, H);
   if (Z) breakoutFloor(g, Z);
   drawRugs(g, layout.blocks);
-  if (!H.strip) drawDoors(g, all);
+  if (!H.strip) drawDoors(g, all, now);
   const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
   if (Z) (H.strip ? stripBreakout : breakoutFence)(Z, all, items);
   const dark = layout.level?.dark ?? 0.18, shade = H.strip ? STRIP_SHADE : 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
@@ -811,7 +811,7 @@ function drawStripProps(g, H, actors, now, items) {
   prop(MAPS.RECAFF, H.recaff.x - 18);
   for (const b of H.benches) { const m = widened(MAPS.BENCH, H.benchW * RES); prop(m, b.x); }
   for (const d of H.doors.slice(1)) { // the hall's east-wall doors, stood up: open while anyone is near (as drawDoors)
-    const name = `door ${d.kind} ${near(actors, d.x, FLOOR, d.x + d.w, FLOOR) ? 'open' : 'closed'}`, map = ROOM.frames[name];
+    const name = doorFrame(`strip ${d.x}`, d.kind, near(actors, d.x, FLOOR, d.x + d.w, FLOOR), now), map = ROOM.frames[name];
     prop(map, d.x, g2 => tile(g2, name, d.x, top(map)));
   }
   const tx = H.magos.x - 10; // the throne centred on the Magos' spot, the body 4 px up-left of it (as in the hall)
@@ -877,9 +877,18 @@ const doorsOf = ({ sw, sd }) => [
 ];
 // Is anyone within 12 logical px of the rect x0..x1, y0..y1?
 const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);
-function drawDoors(g, actors) {
+// A door's frame this frame: its 'half' frame for SWING_MS after it starts to open or close, so the leaves pass through
+// mid-swing; only when that frame comes from the door's own sheet (a world's own doors without one still jump).
+const SWING_MS = 120, swings = new Map(); // key -> { open, at }
+function doorFrame(key, kind, open, now) {
+  let s = swings.get(key);
+  if (s?.open !== open) swings.set(key, s = { open, at: s ? now : -Infinity }); // first sight: at rest
+  const half = `door ${kind} half`, mid = now - s.at < SWING_MS && ROOM_SHEET_OF[half] && ROOM_SHEET_OF[half] === ROOM_SHEET_OF[`door ${kind} closed`];
+  return mid ? half : `door ${kind} ${open ? 'open' : 'closed'}`;
+}
+function drawDoors(g, actors, now) {
   for (const d of doorsOf(H)) {
-    const name = `door ${d.name} ${near(actors, d.x0, d.y0, d.x1, d.y1) ? 'open' : 'closed'}`, [ax, ay] = roomAt(name).door;
+    const name = doorFrame(d.name, d.name, near(actors, d.x0, d.y0, d.x1, d.y1), now), [ax, ay] = roomAt(name).door;
     tile(g, name, d.x0 - ax, d.y0 - ay); // leaves, lock cog, brass lintels and jambs
   }
 }
@@ -986,4 +995,4 @@ fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
 export { KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
-  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, near, skullRed };
+  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, doorFrame, near, skullRed };

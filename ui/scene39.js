@@ -108,19 +108,21 @@ export function placeOf(kind, at) {
 // An actor's floor footprint: a small box at its feet.
 export const actorFoot = a => { const x = Math.round(a.x), v = 2 * (Math.round(a.y) - WALL); return { u0: 2 * x - 4, u1: 2 * x + 4, v0: v - 3, v1: v + 1 }; };
 
-// The doorways' leaves (isohall anchors.doors), closed and open: a box in the opening, its +u face (the one the view
-// sees) the flat door frame turned upright (its rows along v, its columns down the height), open: the leaves gone
-// into the wall, only their ends showing.
+// The doorways' leaves (isohall anchors.doors), closed, half (mid-swing: scene.js doorFrame) and open: a box in the
+// opening, its +u face (the one the view sees) the flat door frame turned upright (its rows along v, its columns down
+// the height), open: the leaves gone into the wall, only their ends showing.
 let doors = null;
 function doorKit(list) {
   if (doors) return doors;
   doors = {};
-  for (const s of list) for (const open of [false, true]) {
-    const f = ROOM.frames[`door ${s.name} ${open ? 'open' : 'closed'}`], R = f.length - 8, C = f[0].length - 6;
+  for (const s of list) for (const state of ['closed', 'half', 'open']) {
+    const f = ROOM.frames[`door ${s.name} ${state}`];
+    if (!f) continue; // no half frame: scene.js doorFrame never asks for it
+    const R = f.length - 8, C = f[0].length - 6;
     const tex = (j, J, r, Z) => f[4 + Math.min(R - 1, fl(j * R / J))][3 + Math.min(C - 1, fl(r * C / Z))];
     const buf = bake(box(s.u0, s.u1, s.v0, s.v1, s.z0, s.z1), b => b.box({ u0: s.u0, u1: s.u1, v0: s.v0, v1: s.v1, z0: s.z0, z1: s.z1, id: 1,
       side: (j, r, J, Z) => tex(J - 1 - j, J, r, Z), top: (i, j, U, J) => tex(j, J, 0, 1), front: (i, r, U, Z) => tex(R - 1, R, r, Z) }));
-    doors[`${s.name}:${open}`] = { buf, cv: paint(buf) };
+    doors[`door ${s.name} ${state}`] = { buf, cv: paint(buf) };
   }
   return doors;
 }
@@ -262,7 +264,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   if (an) {
     const K2 = doorKit(an.doors);
     for (const d of S.doorsOf(H)) {
-      const s = an.doors.find(q => q.name === d.name), open = S.near(all, d.x0, d.y0, d.x1, d.y1), k = K2[`${d.name}:${open}`];
+      const s = an.doors.find(q => q.name === d.name), k = K2[S.doorFrame(d.name, d.name, S.near(all, d.x0, d.y0, d.x1, d.y1), now)];
       if (s && k) items.push({ foot: s, draw: g2 => drawBuf(g2, k.buf, k.cv, 0, 0) });
     }
   }

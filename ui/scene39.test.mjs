@@ -5,7 +5,7 @@ import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39 } from './actors.js';
 import { use, pin, placeOf, actorFoot, actorAt39, seatShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
-import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf } from './scene.js';
+import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf, doorFrame } from './scene.js';
 import { SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
@@ -143,4 +143,10 @@ assert.equal(licks('CANDLES', 100).size, 3, 'candles: the same');
 assert.notDeepEqual([...Array(8)].map((_, i) => flameOf('BRAZIER', 72, i / 6)), [...Array(8)].map((_, i) => flameOf('BRAZIER', 118, i / 6)), 'the two gate braziers out of phase');
 assert.deepEqual([...licks('DESK', 72)], [null], 'only fire licks');
 for (const id of ['cyber', 'orbital', 'tower', 'vault']) { setTheme(id); assert.deepEqual([...licks('BRAZIER', 72)], [null], `${id}: its own brazier keeps a still flame`); }
+setTheme('tier2');
+
+// a door passes through its half frame for a moment as it opens or closes (at rest on first sight); a world's own doors jump
+const swing = (key, kind) => [[false, 0], [true, 1000], [true, 1100], [true, 1200], [false, 2000], [false, 2200]].map(([o, t]) => doorFrame(key, kind, o, t));
+for (const kind of ['sanctum', 'refectory']) assert.deepEqual(swing(`t ${kind}`, kind), ['closed', 'half', 'half', 'open', 'half', 'closed'].map(s => `door ${kind} ${s}`), kind);
+for (const id of ['cyber', 'orbital', 'tower', 'vault']) { setTheme(id); assert.ok(!swing(`t ${id}`, 'sanctum').some(n => n.endsWith('half')), `${id}: its own doors jump`); }
 setTheme('tier2');

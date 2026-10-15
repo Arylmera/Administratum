@@ -178,8 +178,10 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="tier2/ROOM.fitting_v.png" height="24"> |
 | <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="tier2/ROOM.fitting_wide.png" height="16"> |
 | <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_sanctum_closed.png" height="160"> |
+| <a id="room-door_sanctum_half"></a>`ROOM.door_sanctum_half` | 10×40 | `door sanctum half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_sanctum_half.png" height="160"> |
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_refectory_closed.png" height="160"> |
+| <a id="room-door_refectory_half"></a>`ROOM.door_refectory_half` | 10×24 | `door refectory half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_refectory_half.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="tier2/ROOM.door_refectory_open.png" height="160"> |
 
 ## Face sheets (39° side and top faces)
