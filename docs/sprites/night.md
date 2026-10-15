@@ -58,6 +58,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 |---|---|---|---|
 | <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/magos.png` | <img src="night/MAGOS.png" height="160"> |
 | <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png` | <img src="night/MAGOS.arm.png" height="160"> |
+| <a id="magos-claw"></a>`MAGOS.claw` | 24×24 | The claw snapping: open, then shut (the claw frame over the body). Source: `ui/art/magos.png` | <img src="night/MAGOS.claw.png" height="160"> |
 
 ## 39° characters
 
@@ -118,6 +119,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="night/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="night/WINDOW_TALL.night.png" height="160"> |
 | <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="night/HANGING.png" height="160"> |
+| <a id="hanging_b"></a>`HANGING_B` | 13×50 | Second full-height hanging (aquila and litany scroll), every other one on the back walls. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="night/HANGING_B.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="night/PAPER_STACK.png" height="96"> |
 | <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="night/SCROLL_PILE.png" height="56"> |
 | <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="night/BOOKS.png" height="72"> |
@@ -142,12 +144,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/night/breakout.png`, drawn by (not referenced by name) | <img src="night/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/night/breakout.png`, drawn by scene.js, scene39.js | <img src="night/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/night/breakout.png`, drawn by scene.js | <img src="night/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
+| <a id="brazier-fire"></a>`BRAZIER.fire` | 10×14 | BRAZIER: the flame licking, 4 frames (still, BRAZIER_FIRE_1 over it, still, BRAZIER_FIRE_2). Source: `ui/art/fire.png` | <img src="night/BRAZIER.fire.png" height="112"> |
+| <a id="candles-fire"></a>`CANDLES.fire` | 12×9.5 | CANDLES: the flame licking, 4 frames (still, CANDLES_FIRE_1 over it, still, CANDLES_FIRE_2). Source: `ui/art/fire.png` | <img src="night/CANDLES.fire.png" height="76"> |
 
 ## Room tiles
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="room-floor"></a>`ROOM.floor` | 12×12 | `floor`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="night/ROOM.floor.png" height="96"> |
+| <a id="room-floor"></a>`ROOM.floor` | 32×16 | `floor`: repeats both ways, mixed with `floor vent`, `floor bolts` (shown repeated). Source: `ui/art/room-floor.png` | <img src="night/ROOM.floor.png" height="128"> |
 | <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="night/ROOM.channel_h.png" height="16"> |
 | <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="night/ROOM.channel_v.png" height="160"> |
 | <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="night/ROOM.sanctum_passage.png" height="48"> |
@@ -174,8 +178,10 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="night/ROOM.fitting_v.png" height="24"> |
 | <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="night/ROOM.fitting_wide.png" height="16"> |
 | <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="night/ROOM.door_sanctum_closed.png" height="160"> |
+| <a id="room-door_sanctum_half"></a>`ROOM.door_sanctum_half` | 10×40 | `door sanctum half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="night/ROOM.door_sanctum_half.png" height="160"> |
 | <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="night/ROOM.door_sanctum_open.png" height="160"> |
 | <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="night/ROOM.door_refectory_closed.png" height="160"> |
+| <a id="room-door_refectory_half"></a>`ROOM.door_refectory_half` | 10×24 | `door refectory half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="night/ROOM.door_refectory_half.png" height="160"> |
 | <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="night/ROOM.door_refectory_open.png" height="160"> |
 
 ## Face sheets (39° side and top faces)
