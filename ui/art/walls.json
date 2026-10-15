@@ -63,6 +63,14 @@
         "w": 26,
         "h": 100
       }
+    },
+    "SHELF_B": {
+      "frame": {
+        "x": 238,
+        "y": 0,
+        "w": 64,
+        "h": 42
+      }
     }
   },
   "meta": {
@@ -70,7 +78,7 @@
     "image": "walls.png",
     "format": "RGBA8888",
     "size": {
-      "w": 237,
+      "w": 302,
       "h": 100
     },
     "palette": "key.gpl",

@@ -72,6 +72,12 @@
   "SHELF top": {
    "frame": { "x": 6, "y": 63, "w": 64, "h": 5 }
   },
+  "SHELF_B side": {
+   "frame": { "x": 0, "y": 63, "w": 5, "h": 42 }
+  },
+  "SHELF_B top": {
+   "frame": { "x": 6, "y": 63, "w": 64, "h": 5 }
+  },
   "COGITATOR side": {
    "frame": { "x": 0, "y": 106, "w": 9, "h": 82 }
   },
@@ -422,6 +428,7 @@
     ]
    },
    "SHELF": { "front": [0, 0, 64, 42], "d": 10 },
+   "SHELF_B": { "front": [0, 0, 64, 42], "d": 10 },
    "COGITATOR": {
     "front": [9, 15, 146, 82],
     "d": 22,

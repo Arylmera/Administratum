@@ -122,6 +122,7 @@ export function placeProps(hall) {
   const art = wallArt(), band = sanctumBand(hall), out = [];
   for (let [name, x, y, alt] of propsOf(hall).props) {
     if (name === 'HANGING' && !art.tallHang) { name = 'BANNER'; x += 0.5; y = 10; } // the short banner, where it hung
+    if (alt && name === 'SHELF') name = art.shelfB; // the second shelf design, its own face sheet
     const map = alt && name === 'HANGING' ? art.hangB : MAPS[name], fw = map[0].length, fh = map.length, yb = y + fh / RES, u0 = fx(x);
     const s = sheetOf(name), sheet = s && (s.front || s.details.length) ? s : null, d = sheet ? depthOf(sheet) : 1;
     const foot = (v0, dd = d) => (sheet?.front ? { u0: u0 + sheet.x0, u1: u0 + sheet.x0 + sheet.w, v0, v1: v0 + dd } : { u0, u1: u0 + fw, v0, v1: v0 + dd });
@@ -135,7 +136,7 @@ export function placeProps(hall) {
   }
   // what rests on a shelf (the flat art overlaps its top by a few px) stands exactly on that shelf's top
   for (const p of out) if (p.on === 'floor' && p.z0) {
-    const q = out.find(s => s.name === 'SHELF' && !s.z0 && s.foot.u0 <= (p.foot.u0 + p.foot.u1) / 2 && (p.foot.u0 + p.foot.u1) / 2 < s.foot.u1);
+    const q = out.find(s => (s.name === 'SHELF' || s.name === 'SHELF_B') && !s.z0 && s.foot.u0 <= (p.foot.u0 + p.foot.u1) / 2 && (p.foot.u0 + p.foot.u1) / 2 < s.foot.u1);
     if (q) { p.z1 += q.z1 - p.z0; p.z0 = q.z1; }
   }
   return out;

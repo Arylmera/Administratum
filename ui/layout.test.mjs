@@ -393,11 +393,21 @@ for (const id of Object.keys(THEMES)) {
   assert.equal(a.win, MAPS[tallWin ? 'WINDOW_TALL' : 'WINDOW'], `${id}: win`);
   assert.equal(a.tallHang, tallHang, `${id}: tallHang`);
   if (own.HANGING && !own.HANGING_B) assert.equal(a.hangB, MAPS.HANGING, `${id}: its own hanging, never the base second design`);
+  // the second shelf: a world that redraws SHELF keeps its own (never the base SHELF_B); the others alternate
+  assert.equal(a.shelfB, own.SHELF && !own.SHELF_B ? 'SHELF' : 'SHELF_B', `${id}: shelfB`);
 }
 setTheme('tier2');
 assert.equal(wallArt().tallHang, true, 'tier2 (no art of its own) -> tall');
 assert.equal(wallArt().hangB, MAPS.HANGING_B, 'tier2: the second hanging design');
 assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HANGING' && alt), 'every other hanging is the second design');
+{
+  const shelves = propsOf(hallOf(0, SCENE)).props.filter(([name]) => name === 'SHELF').sort((a, b) => a[1] - b[1]);
+  assert.deepEqual(shelves.map(([, , , alt]) => !!alt), shelves.map((_, i) => i % 2 === 1), 'every other shelf, west to east, is the second design');
+  setTheme('vault');
+  assert.equal(wallArt().shelfB, 'SHELF', 'vault: its own shelf, never the base second design');
+  setTheme('tier2');
+  assert.equal(wallArt().shelfB, 'SHELF_B', 'tier2: the second shelf design');
+}
 
 // clearCog (the 39° view): no first-row desk before the cogitator bank (x 116..198 + dx); every block stays on the
 // slot-row grid (y0 + 64k), the lanes' gaps; without it the layout is unchanged.

@@ -8,7 +8,7 @@ import { TIER_II } from './theme.js';
 // [width, height] in logical px of every sprite (the art is RES times that). The drawing code places them by these
 // sizes, so a redraw in ui/art/ keeps them unless the code moves too (design note: depth C).
 const LOW = {
-  ARM: [4, 8], ARM_L: [4, 8], SCROLL: [6, 7], QSCROLL: [6, 7], DESK: [32, 21], LECTERN: [22, 21], SHELF: [32, 21], SKULL: [10, 10],
+  ARM: [4, 8], ARM_L: [4, 8], SCROLL: [6, 7], QSCROLL: [6, 7], DESK: [32, 21], LECTERN: [22, 21], SHELF: [32, 21], SHELF_B: [32, 21], SKULL: [10, 10],
   COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], BRAZIER_FIRE_1: [5, 4.5], BRAZIER_FIRE_2: [5, 4.5], CANDLES_FIRE_1: [12, 4], CANDLES_FIRE_2: [12, 4], THRONE: [20, 20], LORD_DESK: [44, 13], BRAZIER: [10, 13],
   RECAFF: [16, 18], COGITATOR: [82, 50], CONSOLE: [14, 10], WINDOW: [16, 17], BANNER: [12, 15], WINDOW_TALL: [18, 42], HANGING: [13, 50], HANGING_B: [13, 50], CRATE: [14, 12], PAPER_STACK: [8, 12],
   SCROLL_PILE: [18, 7], BOOKS: [10, 9], LOOSE_A: [5, 4], LOOSE_B: [4, 5], GAUGE: [6, 6], CENSER: [5, 10],

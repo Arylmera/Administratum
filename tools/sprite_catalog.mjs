@@ -17,7 +17,7 @@ const ABOUT = {
   SCROLL: 'Sealed petition scroll, held while queued in the Sanctum', SCROLL_HELD: 'The finished scroll a scribe raises when a long turn is done',
   COMMIT_SEAL: 'Purity seal hung on the desk for each commit (up to 3)', COMMIT_TAG: 'The seal\'s strips before the wax lands', COMMIT_STAMP: 'The stamp that seals a commit', QSCROLL: 'Question scroll: the turn ended with a question',
   DESK: 'Scribe\'s desk: screen and candle lit while busy', LECTERN: 'Compact desk once the hall is full (6 a row)',
-  SHELF: 'Bookshelf on the back wall', SKULL: 'Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition',
+  SHELF: 'Bookshelf on the back wall', SHELF_B: 'Second back-wall shelf (scroll cubbies, a skull niche, reliquary caskets), every other one on the back walls', SKULL: 'Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition',
   COG_MECH: 'Cog Mechanicus above the throne', SEAL: 'Purity seals on the lord desk', CANDLES: 'Candle cluster',
   THRONE: 'The Magos\'s throne (Sanctum)',
   LORD_DESK: 'The Magos\'s desk, petitions queue before it', BRAZIER: 'Brazier at the gate and in the Sanctum; compaction burns here',
@@ -129,6 +129,7 @@ export function catalog() {
   // Face sheets (ui/faces.js): the faces only the 39° view draws, side by side per object (main box side and top, its
   // screens' bezel sides and floors, then its details' sides, tops and disc rims). A world without its 39° art lists none.
   for (const name of FACE_OBJECTS) {
+    if (name.endsWith('_B')) continue; // a second design (SHELF_B) has its first's carcass and faces (faces.test): no row of its own
     const s = sheetOf(name), src = FACES.worlds[dir]?.objects[name] ? `${dir}/faces` : 'faces';
     const bezel = (pre, list = []) => list.flatMap(r => [[`${pre}${r.name} wall`, r.wallFrame], [`${pre}${r.name} floor`, r.floorFrame]]);
     const F = (FACES.worlds[dir]?.objects[name] ? FACES.worlds[dir] : FACES.base).frames; // a detail's drawn front, if any

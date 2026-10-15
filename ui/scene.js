@@ -88,8 +88,8 @@ export function propsOf(hall) {
     if (a.win) { windows.push(a.x + 6); props.push(asHanging(a.x + 26)); }
     else props.push(['SHELF', a.x + 4, 19 + D], ['PAPER_STACK', a.x + 8, 8 + D], ['BOOKS', a.x + 18, 11 + D], ['PAPER_STACK', a.x + 28, 9 + D]);
   }
-  // every other back-wall hanging, west to east, is the second design (wallArt hangB): a 4th element, alt
-  props.filter(p => p[0] === 'HANGING').sort((a, b) => a[1] - b[1]).forEach((p, i) => { if (i % 2) p.push(1); });
+  // every other back-wall hanging and shelf, west to east, is the second design (wallArt hangB, shelfB): a 4th element, alt
+  for (const n of ['HANGING', 'SHELF']) props.filter(p => p[0] === n).sort((a, b) => a[1] - b[1]).forEach((p, i) => { if (i % 2) p.push(1); });
   const channels = [];
   for (let x = 98 + dx - 200 * Math.floor((88 + dx) / 200); x < sw - 20; x += 200) channels.push(x);
   F = { props, windows, channels };
@@ -98,7 +98,7 @@ export function propsOf(hall) {
 }
 
 // Props that stand on the floor and get a contact shadow (depth.js); the rest hangs on a wall or lies flat.
-export const STANDING = new Set(['SHELF', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
+export const STANDING = new Set(['SHELF', 'SHELF_B', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
 // The scriptorium is 0..sw, its east wall sw..rx, the right column rx..w (refectorium 0..split - 10, a wall, the
 // sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
 export function drawStatic(g, daylight, hall = hallOf(0)) {
@@ -151,10 +151,11 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
   tile(g, 'sanctum passage', 210 + ox, d0, 10, 36); tile(g, 'fitting wide', 210 + ox, d0 - 2); tile(g, 'fitting wide', 210 + ox, d1); // pillar opens onto the passage door
   rect(g, 254 + ox, 163 + sd, 44, 3, I.shadowDeep);
   drawAO(g, hall);
-  for (const [name, x, y] of props) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
-  for (const [name, x, y, alt] of props) {
+  const named = props.map(([name, x, y, alt]) => [alt && name === 'SHELF' ? art.shelfB : name, x, y, alt]); // the second shelf design
+  for (const [name, x, y] of named) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
+  for (const [name, x, y, alt] of named) {
     if (name === 'HANGING' && !art.tallHang) blit(g, MAPS.BANNER, x + 0.5, 10); // the short banner, where it hung
-    else blit(g, alt ? art.hangB : MAPS[name], x, y);
+    else blit(g, alt && name === 'HANGING' ? art.hangB : MAPS[name], x, y);
   }
   tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
 }

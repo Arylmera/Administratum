@@ -49,7 +49,7 @@ for (const hall of halls) {
   const fy = y => 2 * (y - WALL), band = [fy(hall.split), fy(hall.split + 30)], placed = placeProps(hall);
   assert.ok(placed.length > 40, tag);
   const hung = p => p.name === 'HANGING' || hungOn(p.name, p.y);
-  const shelves = placed.filter(q => q.name === 'SHELF');
+  const shelves = placed.filter(q => q.name === 'SHELF' || q.name === 'SHELF_B');
   const roomOf = p => (p.x + p.map[0].length / 4 <= hall.sw ? 'scriptorium' : p.yb < hall.split - 6 ? 'refectorium' : 'sanctum');
   const TOL = 2; // art px: a flat frame may overlap its room's wall by a pixel (the censer by the east wall)
   assert.ok(placed.some(hung), tag);
@@ -103,7 +103,7 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // hall, in Tier II and the vault, against hashes recorded before the T12 optimisation (iso.js box/outline, texOf).
 // An art or layout change on purpose changes them: re-record (print the hash below) once the new look is checked.
 const GRID = {
-  'tier2 346x248 day': '75d3dd81f8dc', 'tier2 554x728 night': '52b3fae73826', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'e75a00c15e4d',
+  'tier2 346x248 day': 'a330330e82d5', 'tier2 554x728 night': '02840d226440', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'e75a00c15e4d',
 };
 for (const id of ['tier2', 'vault']) {
   setTheme(id);

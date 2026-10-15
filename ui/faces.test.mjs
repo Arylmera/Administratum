@@ -65,10 +65,12 @@ for (const [k, f] of Object.entries(FACES.base.frames)) {
   assert.ok(sizes[k], `faces.png: frame '${k}' belongs to no box, cylinder, disc or recess`);
   assert.deepEqual([f[0].length, f.length], sizes[k], `faces.png: '${k}' size`);
 }
+// the second shelf design is the same carcass: SHELF's side and top (the gallery lists them once, under SHELF)
+for (const f of ['side', 'top']) assert.deepEqual(FACES.base.frames[`SHELF_B ${f}`], FACES.base.frames[`SHELF ${f}`], `SHELF_B ${f}: SHELF's`);
 // a drawn front replaces the crop (the TABLE's mugs: top-down in the flat frame, seen from the side in 39°)
 setTheme('tier2');
 assert.deepEqual(sheetOf('TABLE').details.find(d => d.name === 'mug 1').map, FACES.base.frames['TABLE mug 1 front'], 'detail front frame used');
-for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'COGITATOR', 'CRATE', 'RECAFF', 'LORD_DESK', 'THRONE', 'TABLE board', 'BENCH seat'])
+for (const n of ['DESK', 'LECTERN', 'CONSOLE', 'SHELF', 'SHELF_B', 'COGITATOR', 'CRATE', 'RECAFF', 'LORD_DESK', 'THRONE', 'TABLE board', 'BENCH seat'])
   for (const f of ['side', 'top']) assert.ok(FACES.base.frames[`${n} ${f}`], `faces.png: no base '${n} ${f}'`);
 // the canteen in 39°: a board and a seat up on legs (TABLE top at z 16, BENCH seat at z 9, art px)
 {
