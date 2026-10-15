@@ -1,16 +1,17 @@
 # Administratum
 
-A Windows desktop widget that shows every Claude Code session on your PC as a tech-priest scribe in a pixel-art
+A Windows and macOS desktop widget that shows every Claude Code session on your PC as a tech-priest scribe in a pixel-art
 Mechanicus scriptorium, and calls you when one of them needs an answer.
 
 ![The hall: departments of scribes at their desks, adepts at their consoles, a petition queued before the Magos](docs/img/hall.png)
 
 Administratum watches Claude Code's own session files and never writes to them. A session waiting on you
-walks to the Sanctum and queues before the Magos. You get a Windows toast and an optional chime, and for
+walks to the Sanctum and queues before the Magos. You get a desktop notification and an optional chime, and for
 permission prompts in Orca terminals you can approve or deny from the widget itself.
 
-**Quick start.** Install Claude Code, download the installer from the
-[latest release](https://github.com/Arylmera/Administratum/releases/latest), run it, and start a Claude Code
+**Quick start.** Install Claude Code, download the Windows installer from the
+[latest release](https://github.com/Arylmera/Administratum/releases/latest) and run it (macOS:
+`brew install --cask arylmera/administratum/administratum`), and start a Claude Code
 session: its scribe walks in through the gate. To try it without any session, run the binary with `--demo`.
 
 **Contents:** [What it shows](#what-it-shows) · [Install](#install) · [Usage](#usage) ·
@@ -84,14 +85,15 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
 
   ![The 2.5D view: the same hall turned 39°, with real volumes, cutaway walls and a petition in the Sanctum](docs/img/hall39.png)
 
-- **Desktop strip**: a thin, transparent, click-through bar pinned to the Windows taskbar, outlined pixel art
+- **Desktop strip**: a thin, transparent, click-through bar pinned to the Windows taskbar (on macOS, above the
+  Dock, on every Space), outlined pixel art
   over whatever is behind it. Left to right: a handle with its own small menu (Hall view, Settings, Chronicon,
   Hide), each department's lecterns and its adepts' consoles on a coloured mat with a name plaque, the cogitator,
   the recaff and bench where idle scribes nap, the petition line and the Magos at the right end. It is click-through
   everywhere except over a character, a label, a plaque, the handle and its open menu, or another open panel; a
   panel (card, Settings, Chronicon) opens by growing the window upward, above the strip. The strip re-places itself when the taskbar, its monitor or its DPI changes. Strip
-  size (S/M/L) and an optional backdrop are in Settings. Windows only for now, and only with a taskbar docked at
-  the bottom of the screen (macOS, above the Dock, is not done yet).
+  size (S/M/L) and an optional backdrop are in Settings. It sits best with a taskbar or Dock at the bottom of the
+  screen; with one on a side it stands on the bottom of the screen. On macOS it does not show over full-screen apps.
 
 ![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
@@ -110,14 +112,21 @@ drag the header.
 
 ### Requirements
 
-- Windows 10 or 11 (tested on Windows 11). Other platforms are not supported.
-- Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is missing.
+- Windows 10 or 11 (tested on Windows 11), or macOS (built and run on macOS 26, Apple silicon). Linux is not
+  supported.
+- Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
+  missing.
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
 - Optional: Orca (tested with 1.4.220), needed to jump to a session's terminal and to answer
   petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
-  `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe`.
+  `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe` (Windows), or at
+  `/Applications/Orca.app/Contents/Resources/bin/orca`, `/usr/local/bin/orca` or `/opt/homebrew/bin/orca` (macOS;
+  an app started from the Dock or Finder does not see your shell's `PATH`).
 
 ### Installer
+
+Each release ships the Windows installer and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
+silicon) and `Administratum_<version>_x64.dmg` (Intel). On macOS, install through Homebrew instead (see [macOS](#macos)).
 
 Download Administratum_<version>_x64-setup.exe from the [latest release](https://github.com/Arylmera/Administratum/releases/latest). Windows SmartScreen may say "unknown publisher" (the installer is not code-signed): More info > Run anyway. Later versions install from Settings > System > Updates.
 
@@ -125,6 +134,25 @@ Run the setup. On first launch the widget opens as a frameless, always-on-top 70
 button. It lives in the system tray. Its position and size are remembered between runs.
 
 To launch it at sign-in, turn on **Start at login** from the tray menu or from Settings. This is off by default.
+
+### macOS
+
+Install with Homebrew: `brew install --cask arylmera/administratum/administratum` (the app is not notarized; the
+cask clears the quarantine flag so Gatekeeper lets it open). Later versions install from Settings > System > Updates.
+
+The widget has no Dock icon and no menu bar menu of its own: it lives in the menu bar's status area (the tray menu
+above). Its settings and Chronicon are in `~/Library/Application Support/com.arylmera.administratum`. Differences
+from Windows:
+
+- **Open departments with**: *Finder* or VS Code (through `open -a "Visual Studio Code"`), or a custom command.
+- **Remote view**: there is no firewall rule to add. If the macOS firewall is on, macOS asks once whether
+  Administratum may accept incoming connections: allow it. The *Add desktop icon* button is Windows-only too.
+- **Petition toasts**: Approve and Deny sit in the notification's *Options* menu, Deny first, so a click on the
+  *Options* button itself denies, never approves. A click runs the same checks as on Windows.
+- **Night Vigil** shuts down through System Events. The first vigil that reaches zero makes macOS ask whether
+  Administratum may control System Events (Automation); unanswered, the Mac stays on. Let one vigil run out while
+  you are there and allow it (it then shows in *System Settings → Privacy & Security → Automation*). An app with
+  unsaved work can still refuse the shutdown.
 
 ---
 
@@ -145,7 +173,7 @@ To launch it at sign-in, turn on **Start at login** from the tray menu or from S
   only when the session record carries a claude.ai session id.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
 - **Click a department's plaque** to open its folder (the most recently active session's working directory) in
-  Explorer, VS Code or a command of your own (Settings > System). A branch other than `main` / `master` shows under
+  Explorer (Finder on macOS), VS Code or a command of your own (Settings > System). A branch other than `main` / `master` shows under
   the department's name, read from `.git/HEAD` (worktrees included).
 
 ### Answering petitions
@@ -180,7 +208,8 @@ nothing is typed and the card says *No permission prompt visible — open the te
 Watch the hall from a tablet or phone on the same network, in its browser:
 
 1. Settings > Remote view > **Serve on the local network** (off by default; port 7770).
-2. **Allow this port** adds the Windows Firewall rule (Windows asks for administrator permission).
+2. Windows: **Allow this port** adds the Windows Firewall rule (Windows asks for administrator permission). macOS:
+   see [macOS](#macos).
 3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
    the link is then remembered in a cookie.
 
@@ -222,7 +251,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
 | Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout. Each world outside 40k has its own art |
 | Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111 |
-| View | Flat | Flat / 2.5D (the 39° view) / Desktop strip (Windows only; see *Views*) |
+| View | Flat | Flat / 2.5D (the 39° view) / Desktop strip (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip |
 | Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3) sets it, and a hall larger than the window pans |
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
@@ -235,7 +264,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 |---|---|---|
 | Petition chime | on | Chime on a new petition, a stale one, a question and a long task done (the header bell toggles it too) |
 | A question at the end of a turn counts as a petition | on | The scribe queues in the Sanctum with a question scroll |
-| Toast for questions | on | A Windows toast for each new question |
+| Toast for questions | on | A notification for each new question |
 | Petition turns stale after | 5 min (1–120) | Stale escalation: beacon, servo-skull, second toast |
 | Quiet hours | off, 22:00–08:00 | No toast and no chime for a new petition, question, long task or usage limit inside the window. A petition turning stale still toasts and chimes. A moon shows in the header while it is quiet |
 
@@ -256,7 +285,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Start at login | off | Starts the app at sign-in (same as the tray item) |
 | Pause when hidden or covered | on | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30: redraw rate while nothing moves (anything walking or animating runs at 30 fps). Lower = less CPU/GPU |
-| Open departments with | Explorer | Explorer / VS Code / Custom command. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
+| Open departments with | Explorer (macOS: Finder) | Explorer or Finder / VS Code / Custom command. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
 | Check for updates at startup | on | Fetches `latest.json` from GitHub Releases at start. *Check now* checks on demand; an update installs from here |
 
 **Remote view**: see [Remote view](#remote-view).
@@ -270,7 +299,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Show / hide | Toggle the window (the header's `–` button also hides it) |
 | Chime | Ticked while the chime is on; click to mute / unmute (same as the header bell) |
 | Cycle lighting | Auto → Full light → Candles |
-| Desktop strip | Checkbox (Windows only): switches between the strip and the view held before it |
+| Desktop strip | Checkbox (Windows and macOS): switches between the strip and the view held before it |
 | Start at login | Checkbox, kept in sync with Settings |
 | Quit | Exit Administratum |
 
@@ -281,7 +310,7 @@ or stopped on a usage limit, with no transcript written, for 5 minutes straight,
 header, or a paired device in [Remote view](#remote-view); an optional deadline (Settings > Petitions) forces the
 countdown at a set time even if a session is still busy. While armed, a world-specific Watchman patrols the hall;
 once no session can progress, he rings his signal and a 120 s countdown starts, cancellable from the same places.
-No session is ever closed: if the countdown reaches zero, Windows shuts down, and the next morning you resume each
+No session is ever closed: if the countdown reaches zero, the computer shuts down (on macOS, see [macOS](#macos)), and the next morning you resume each
 session from its transcript (e.g. `claude --resume`) to pick up where it left off. Arming does not persist across an app restart.
 
 ### Keyboard and panning
@@ -363,8 +392,8 @@ Measured on Windows 11 with a release build at rest:
 
 | Symptom | Check |
 |---|---|
-| No toasts for petitions | Windows notifications are off for Administratum, or Focus / Do not disturb is on. Check *Settings → System → Notifications* |
-| "No scribes on duty" while sessions are running | Administratum reads `%USERPROFILE%\.claude\sessions\`. Check that folder exists and holds `<pid>.json` files while Claude Code runs. Sessions of another Windows user or on another machine are not seen |
+| No toasts for petitions | Notifications are off for Administratum, or Focus / Do not disturb is on. Check *Settings → System → Notifications* (macOS: *System Settings → Notifications → Administratum*) |
+| "No scribes on duty" while sessions are running | Administratum reads `%USERPROFILE%\.claude\sessions\` (macOS: `~/.claude/sessions/`). Check that folder exists and holds `<pid>.json` files while Claude Code runs. Sessions of another Windows user or on another machine are not seen |
 | No **Open in Orca** button, or ✓ / ✗ missing on a petition | The session was not started in an Orca terminal (no `ORCA_TERMINAL_HANDLE`), or the `orca` CLI is not found. Answer buttons also appear only for permission prompts, not free-text questions |
 | "No permission prompt visible — open the terminal" | The dialog is no longer at the bottom of the terminal screen (answered elsewhere, scrolled, or a different prompt). Use **Open in Orca** |
 | Settings and Chronicon history gone after reinstalling | The uninstaller was run with its *delete the application data* option, which removes `%APPDATA%\com.arylmera.administratum`. A normal uninstall or reinstall keeps them |

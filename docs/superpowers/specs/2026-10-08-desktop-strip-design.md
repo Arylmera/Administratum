@@ -30,9 +30,9 @@ the Dock) only has to add its own implementation later. Both phases of the plan 
 |---|---|
 | `src-tauri/src/strip/mod.rs` | Shared: the `place_strip` and `set_click_through` commands, the 1 s watcher (re-place, fullscreen hide/show, topmost), the 50 ms cursor poll while the cursor is over the strip, the pure rect maths (unit tested), `supported()` for the UI |
 | `src-tauri/src/strip/windows.rs` | `taskbar(monitor) -> Option<(Edge, Rect)>` (`SHAppBarMessage(ABM_GETTASKBARPOS)`, work area vs monitor rect on secondary monitors), `fullscreen() -> bool` (`SHQueryUserNotificationState`), `cursor() -> (i32, i32)` (`GetCursorPos`) |
-| `src-tauri/src/strip/macos.rs` | Not written now. Would provide the same three functions: `NSScreen.visibleFrame` for the Dock edge, the active app's fullscreen state, `NSEvent.mouseLocation`. Click-through itself is Tauri's `set_ignore_cursor_events` on both OSes |
+| `src-tauri/src/strip/macos.rs` | Written with the macOS port. The Dock's side (`orientation`) and auto-hide (`autohide`) come from the Dock's own preferences (`defaults read com.apple.dock`, read again at most every 30 s), not from `NSScreen.visibleFrame`: the menu bar always makes the work area stop short of the top, and an auto-hidden Dock may leave no gap, so the work area cannot say where the Dock is. The work area and the cursor come from Tauri (`visibleFrame`, `NSEvent.mouseLocation`). Click-through itself is Tauri's `set_ignore_cursor_events` on both OSes |
 
-`mod.rs` picks the OS module with `#[cfg(windows)]`; other targets get a stub where `supported()` is false.
+`mod.rs` picks the OS module with `#[cfg(windows)]` / `#[cfg(target_os = "macos")]`; other targets get a stub where `supported()` is false.
 
 ### Everything else: as in the plan
 
@@ -49,6 +49,14 @@ After each task: rebuild and silently reinstall the NSIS build.
 
 ## Out of scope
 
-- The macOS build itself (release spec phase 2) and `strip/macos.rs`.
+- The macOS build itself (release spec phase 2) and `strip/macos.rs` were out of scope for this plan; both now
+  exist (macOS port).
 - A strip on a top, left or right taskbar (falls back to the bottom of the work area, as in the plan).
 - A 39° strip.
+
+## macOS limits
+
+- **Full-screen apps.** The strip is on every Space (`set_visible_on_all_workspaces`), but a full-screen app is a
+  Space of its own that it does not join: it does not show over full-screen apps.
+- **Mixed DPI.** tao scales the cursor by the primary display's factor, so on several displays with different
+  scale factors the hover / click-through hit test may be off on the secondary ones.

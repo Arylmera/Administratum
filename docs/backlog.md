@@ -4,7 +4,7 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
 
 ## Known limits (strip)
 - Bottom taskbar only: a side or top taskbar puts the strip at the bottom of the work area instead
-- No macOS yet (planned: above the Dock)
+- macOS: not over full-screen apps (needs the FullScreenAuxiliary collection behaviour, not exposed by Tauri); on a mixed-DPI multi-display Mac the cursor and the monitor rects may disagree (tao scales the cursor by the primary display)
 - No desk glows or lighting pass in the strip (the hall's lighting is skipped there)
 - The cogitator (82×50) nearly fills the strip's height and leaves less room for lecterns on narrow screens
 - A click on a character needs the cursor to rest there about 50 ms first (the strip polls the cursor to decide click-through)
@@ -21,6 +21,7 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
 
 ## Ideas not scheduled
 - Global hotkey to show/hide; petition count badge on the tray icon
+- macOS Night Vigil: send a harmless System Events query when a vigil is armed, so the Automation prompt shows while the user is there, not at shutdown time
 - Binharic sound pack per event
 - Bundle the Google Fonts locally (fully offline)
 - Other agents (Gemini CLI, Codex…) in the hall: their session files first, an opt-in ACP relay later (notes: docs/superpowers/specs/2026-10-07-other-agents-acp-notes.md)

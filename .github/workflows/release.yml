@@ -44,17 +44,53 @@ jobs:
           echo "tagged=true" >> "$GITHUB_OUTPUT"
 
   build:
+    name: build (${{ matrix.label }})
     needs: [tag]
     if: always() && (github.event_name == 'workflow_dispatch' || needs.tag.outputs.tagged == 'true')
-    runs-on: windows-2022
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            label: windows
+            artifact_glob: |
+              src-tauri/target/release/bundle/nsis/*-setup.exe
+              src-tauri/target/release/bundle/nsis/*-setup.exe.sig
+          # Both macOS legs build with --target so the DMG names carry the arch (Administratum_<ver>_aarch64.dmg,
+          # Administratum_<ver>_x64.dmg); the x64 leg cross-compiles on the arm64 runner.
+          - os: macos-14
+            label: macos-arm64
+            rust_target: aarch64-apple-darwin
+            arch: aarch64
+            artifact_glob: |
+              src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+              src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+              src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+          - os: macos-14
+            label: macos-x64
+            rust_target: x86_64-apple-darwin
+            arch: x64
+            artifact_glob: |
+              src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+              src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
+              src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.tag.outputs.tag || inputs.tag }}
       - uses: dtolnay/rust-toolchain@stable
+      # Added with rustup, not the action's `targets` input: should a rust-toolchain.toml ever pin the compiler,
+      # rustup treats it as a different install from `stable` and the action's target is invisible to cargo
+      # ("Target x86_64-apple-darwin is not installed", Token Dashboard v5.1.3). rustup resolves the toolchain from
+      # the checkout, so this lands on the one cargo uses.
+      - name: Add the cross target
+        if: matrix.rust_target != ''
+        run: rustup target add ${{ matrix.rust_target }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri -> target"
+          key: ${{ matrix.label }}
       - uses: taiki-e/install-action@v2
         with:
           tool: tauri-cli
@@ -65,17 +101,52 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-        run: cargo tauri build
+        # bundle.targets is ["nsis"], so macOS names its bundles. bundle_dmg.sh flakes on macos-14 when hdiutil
+        # attach/detach races Spotlight: build the .app (and its signed .app.tar.gz) once, then retry only the DMG,
+        # up to 3 times.
+        run: |
+          set -e
+          if [ "${{ runner.os }}" != "macOS" ]; then
+            cargo tauri build
+            exit 0
+          fi
+          cargo tauri build --target ${{ matrix.rust_target }} --bundles app
+          attempt=1
+          until cargo tauri build --target ${{ matrix.rust_target }} --bundles dmg; do
+            if [ $attempt -ge 3 ]; then
+              echo "bundle_dmg.sh failed after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "bundle_dmg.sh failed (attempt $attempt), retrying in 15s"
+            attempt=$((attempt + 1))
+            sleep 15
+          done
+      # Both macOS legs produce Administratum.app.tar.gz and release assets are a flat namespace, so stamp the arch
+      # in now: it cannot be recovered downstream (upload-artifact strips the <target> path segment).
+      - name: Name the macOS updater archive per arch
+        if: matrix.arch != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
+          src=$(find "$dir" -name '*.app.tar.gz' | head -1)
+          if [ -z "$src" ] || [ ! -f "$src.sig" ]; then
+            echo "no signed .app.tar.gz under $dir" >&2
+            ls -la "$dir" >&2 || true
+            exit 1
+          fi
+          mv "$src" "$dir/Administratum_${{ matrix.arch }}.app.tar.gz"
+          mv "$src.sig" "$dir/Administratum_${{ matrix.arch }}.app.tar.gz.sig"
+          ls -la "$dir"
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
-          path: |
-            src-tauri/target/release/bundle/nsis/*-setup.exe
-            src-tauri/target/release/bundle/nsis/*-setup.exe.sig
+          name: ${{ matrix.label }}
+          path: ${{ matrix.artifact_glob }}
           if-no-files-found: error
 
   release:
     needs: [tag, build]
+    # Every leg must succeed: latest.json lists all platforms, so a failed macOS leg holds back Windows too.
     if: always() && needs.build.result == 'success'
     runs-on: ubuntu-22.04
     permissions:
@@ -87,17 +158,32 @@ jobs:
         with:
           path: dist
       - name: latest.json (updater manifest)
-        # Fails if the installer or its signature is missing rather than publish a manifest that breaks updates.
+        # The updater validates the whole file, so fail if any artifact or .sig is missing rather than publish a
+        # manifest that breaks updates. The macOS archives are found by their arch-stamped names: if the rename
+        # step regresses, nothing matches and this fails closed.
         run: |
           set -euo pipefail
           exe=$(find dist -name '*-setup.exe' | head -1)
-          [ -n "$exe" ] && [ -f "$exe.sig" ] || { echo "missing installer or .sig" >&2; find dist -type f >&2; exit 1; }
+          arm=$(find dist -name 'Administratum_aarch64.app.tar.gz' | head -1)
+          x64=$(find dist -name 'Administratum_x64.app.tar.gz' | head -1)
+          for f in "$exe" "$arm" "$x64"; do
+            if [ -z "$f" ] || [ ! -f "$f.sig" ]; then
+              echo "missing updater artifact or .sig: '$f'" >&2
+              find dist -type f >&2
+              exit 1
+            fi
+          done
+          base="https://github.com/${{ github.repository }}/releases/download/$TAG"
           jq -n \
             --arg version "${TAG#v}" \
             --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg url "https://github.com/${{ github.repository }}/releases/download/$TAG/$(basename "$exe")" \
-            --arg sig "$(cat "$exe.sig")" \
-            '{version: $version, pub_date: $pub_date, platforms: {"windows-x86_64": {url: $url, signature: $sig}}}' \
+            --arg win_url "$base/$(basename "$exe")" --arg win_sig "$(cat "$exe.sig")" \
+            --arg arm_url "$base/$(basename "$arm")" --arg arm_sig "$(cat "$arm.sig")" \
+            --arg x64_url "$base/$(basename "$x64")" --arg x64_sig "$(cat "$x64.sig")" \
+            '{version: $version, pub_date: $pub_date, platforms: {
+              "windows-x86_64": {url: $win_url, signature: $win_sig},
+              "darwin-aarch64": {url: $arm_url, signature: $arm_sig},
+              "darwin-x86_64": {url: $x64_url, signature: $x64_sig}}}' \
             > dist/latest.json
           cat dist/latest.json
       - uses: softprops/action-gh-release@v2
@@ -110,4 +196,69 @@ jobs:
           files: |
             dist/**/*-setup.exe
             dist/**/*-setup.exe.sig
+            dist/**/*.dmg
+            dist/**/*.app.tar.gz
+            dist/**/*.app.tar.gz.sig
             dist/latest.json
+
+  homebrew:
+    needs: [tag, release]
+    # Real releases only: a "-" tag (pre-release, validation run) would publish its version to the tap and break
+    # `brew install` until the next release. Non-blocking: a tap failure does not turn the release red.
+    if: always() && needs.release.result == 'success' && !contains(needs.tag.outputs.tag || inputs.tag, '-')
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    env:
+      TAG: ${{ needs.tag.outputs.tag || inputs.tag }}
+      TAP_REPO: Arylmera/homebrew-administratum
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Update the tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        # Casks/administratum.rb is the template. The cask picks the DMG by arch, so each arch gets its own sha256.
+        run: |
+          set -euo pipefail
+          if [ -z "${HOMEBREW_TAP_TOKEN:-}" ]; then
+            echo "HOMEBREW_TAP_TOKEN not set, skipping the tap update."
+            exit 0
+          fi
+          version="${TAG#v}"
+          arm=$(find dist -name "Administratum_${version}_aarch64.dmg" | head -1)
+          x64=$(find dist -name "Administratum_${version}_x64.dmg" | head -1)
+          if [ -z "$arm" ] || [ -z "$x64" ]; then
+            echo "missing a DMG for $version" >&2
+            find dist -name '*.dmg' >&2
+            exit 1
+          fi
+          sha_arm=$(sha256sum "$arm" | cut -d' ' -f1)
+          sha_x64=$(sha256sum "$x64" | cut -d' ' -f1)
+          tap=$(mktemp -d)
+          git clone --depth=1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${TAP_REPO}.git" "$tap"
+          mkdir -p "$tap/Casks"
+          sed -E \
+            -e "s/^  version \".*\"$/  version \"${version}\"/" \
+            -e "s/^  sha256 arm: +\".*\",$/  sha256 arm:   \"${sha_arm}\",/" \
+            -e "s/^         intel: +\".*\"$/         intel: \"${sha_x64}\"/" \
+            Casks/administratum.rb > "$tap/Casks/administratum.rb"
+          # Fail rather than push the placeholder hashes if the template's shape drifts from the patterns above.
+          grep -q "version \"${version}\"" "$tap/Casks/administratum.rb"
+          grep -q "$sha_arm" "$tap/Casks/administratum.rb"
+          grep -q "$sha_x64" "$tap/Casks/administratum.rb"
+          cd "$tap"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/administratum.rb
+          if git diff --cached --quiet; then
+            echo "Cask already up to date."
+            exit 0
+          fi
+          git commit -m "administratum ${version}"
+          # The tap starts empty, with no default branch: push main explicitly.
+          git branch -M main
+          git push -u origin main

@@ -22,19 +22,19 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 
 | Module | Job |
 |---|---|
-| `main.rs` | Plugins (notification, window-state, autostart, updater), setup, the 1 s poll loop and its toasts, the small commands; every Tauri command is listed in its `generate_handler!`. Crate-wide helpers: `lock`, `no_window`, `emit`, `now_ms` |
+| `main.rs` | Plugins (notification, window-state, autostart, updater), setup, the 1 s poll loop and its toasts, the small commands (among them `platform`: the OS, `windows` / `macos`, so Settings hides what is Windows-only); every Tauri command is listed in its `generate_handler!`. Crate-wide helpers: `lock`, `no_window`, `emit`, `now_ms` |
 | `window.rs` | The main window: tray icon and menu, show / hide, the watcher that tells the UI when the window is seen |
 | `orca.rs` | Orca's CLI: switch to a session's terminal, read and answer its permission dialog |
 | `poller.rs` | Builds the live roster each tick: liveness of each session pid via Win32, the Orca handle per pid, transcript location, memoised tails and subagents |
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell |
 | `chronicle.rs` | Incremental transcript reader: Chronicon events, the token and working-time Tithe, day files, retention |
-| `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil) |
+| `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS: tauri-plugin-notification's actions (`toast::mac`, one `on_action` handler registered at setup, routed by toast id; two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first; only the bundled app has the right notification identity, `tauri dev` posts as Terminal). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
 | `settings.rs` | `settings.json`: load, shape checks, atomic save; readers of saved `adm.*` values the backend needs (quiet hours, open-folder program) |
 | `remote/` | The LAN remote view. `mod.rs` the HTTP server, pairing token and policy, with no Tauri in it; `app.rs` its settings, the backend it calls and the settings panel's commands (remote view, firewall rule). Its API: [remote-api.md](remote-api.md) |
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
-| `strip/` | The desktop strip window: placement on the taskbar, click-through. OS calls in `windows.rs` |
+| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
 | `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown); `app.rs` arming, its tick, toast and Chronicon events, the shutdown itself |
 
@@ -199,10 +199,20 @@ symbols.
 
 ## Releasing
 
-Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>`, builds the
-signed installer on Windows, and publishes a GitHub Release with `latest.json`, which installed copies read to offer
-the update. A version with a `-` (`0.3.0-rc1`) becomes a pre-release that the updater never offers. To rebuild an
-existing tag: Actions > release > Run workflow, with the tag. A second workflow, `fmt`, checks `cargo fmt`.
+Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>` and builds
+three legs: the signed NSIS installer on Windows, and on macOS a DMG plus a signed updater archive for each arch
+(`Administratum_<version>_aarch64.dmg`, `Administratum_<version>_x64.dmg`, `Administratum_aarch64.app.tar.gz`,
+`Administratum_x64.app.tar.gz`). It then publishes a GitHub Release with `latest.json` (`windows-x86_64`,
+`darwin-aarch64`, `darwin-x86_64`), which installed copies read to offer the update. Every leg must succeed: a
+missing artifact or `.sig` fails the release, Windows included. A version with a `-` (`0.3.0-rc1`) becomes a
+pre-release that the updater never offers. To rebuild an existing tag: Actions > release > Run workflow, with the
+tag. A second workflow, `fmt`, checks `cargo fmt`.
+
+Homebrew: after a release, the `homebrew` job hashes both DMGs, writes the version and hashes into the cask template
+`Casks/administratum.rb`, and pushes it to the tap `Arylmera/homebrew-administratum`. It needs the repository secret
+`HOMEBREW_TAP_TOKEN` (a token with write access to the tap) and skips cleanly without it; it skips `-` tags, and
+its failure never fails the release. Install: `brew install --cask arylmera/administratum/administratum`. The app is
+not notarized; the cask removes the quarantine flag after install, so Gatekeeper does not call it damaged.
 
 The updater key: the private key is in `~/.tauri/administratum.key` (back it up: losing it means installed copies
 can no longer update), its contents in the repository secret `TAURI_SIGNING_PRIVATE_KEY`, its public key in
@@ -216,11 +226,12 @@ can no longer update), its contents in the repository secret `TAURI_SIGNING_PRIV
 src-tauri/            Rust backend, tauri.conf.json, capabilities, icons, NSIS hooks
   src/                main, poller, chronicle, remote, firewall, settings, toast, quiet, git, demo
   src/registry/       pure parsing of Claude Code's session files and transcripts
-  src/strip/          the desktop strip window (Windows calls in windows.rs)
+  src/strip/          the desktop strip window (OS calls in windows.rs, macos.rs)
 ui/                   the frontend, served as-is (ES modules, no build) + its *.test.mjs checks
   art/                sprite sheets (PNG + JSON) in the key palette; ui/art/<theme>/ for a theme's own art
   fonts/              bundled WOFF2 fonts and their OFL licences
 tools/                sprite viewer, hall preview, gallery generator, art helpers, icon script
 docs/                 user and developer docs, specs and plans, sprite gallery, README images
-.github/workflows/    release (tag, build, publish) and fmt
+Casks/                the Homebrew cask template the release workflow pushes to the tap
+.github/workflows/    release (tag, build, publish, homebrew) and fmt
 ```

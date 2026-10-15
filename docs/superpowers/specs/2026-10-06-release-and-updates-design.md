@@ -101,24 +101,39 @@ pre-release rule.
 
 ### CI
 
-Matrix gains `macos-14` twice (`aarch64-apple-darwin`, `x86_64-apple-darwin`, each with `--target`) and
-`ubuntu-22.04`. Copy Token Dashboard's fixes:
-- macOS: build `--bundles app`, then retry `--bundles dmg` up to 3 times (`hdiutil` race);
-- rename each `.app.tar.gz` (+ `.sig`) with its arch before upload (flat asset namespace);
-- Linux apt deps: `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libsoup-3.0-dev`.
+Built (macOS). The `build` job becomes a matrix: `windows-2022` as before, plus `macos-14` twice
+(`aarch64-apple-darwin`, `x86_64-apple-darwin`, each with `--target`; x64 cross-compiles on the arm64 runner).
+Token Dashboard's fixes, copied:
+- `rustup target add <target>` as its own step, so a future `rust-toolchain.toml` pin still sees the target;
+- `bundle.targets` stays `["nsis"]`: macOS passes `--bundles app`, then retries `--bundles dmg` up to 3 times
+  (`hdiutil` race);
+- each `Administratum.app.tar.gz` (+ `.sig`) is renamed `Administratum_<arch>.app.tar.gz` before upload (flat asset
+  namespace; upload-artifact drops the target directory).
 
-Outputs: DMG (both arches), AppImage, .deb. `latest.json` gains `darwin-aarch64`, `darwin-x86_64`,
-`linux-x86_64`, and fails if any of them is missing.
+Outputs: `Administratum_<version>_aarch64.dmg`, `Administratum_<version>_x64.dmg` and the two updater archives.
+`latest.json` gains `darwin-aarch64` and `darwin-x86_64`, found by their arch-stamped names, and fails if any
+artifact or `.sig` is missing. Consequence: every release needs both macOS legs green; a flaky DMG holds back the
+Windows release too.
+
+Linux (`ubuntu-22.04`, AppImage, .deb, `linux-x86_64`) is deferred. When added: apt deps
+`libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libsoup-3.0-dev`, and seed AppRun 0755 as Token
+Dashboard does.
 
 ### Homebrew (macOS without an Apple Developer account)
 
 - Tap repo `Arylmera/homebrew-administratum`, cask `Casks/administratum.rb` kept in this repo as the template:
   `arch arm: "aarch64", intel: "x64"`, URL to the DMG of the release, per-arch `sha256`, `livecheck` on GitHub latest,
-  and a `postflight` running `xattr -dr com.apple.quarantine` on the installed app. That removes Gatekeeper's
+  and a `postflight_steps` `run` of `xattr -dr com.apple.quarantine` on the installed app. That removes Gatekeeper's
   "damaged app" block without notarization.
 - In-app updates after that work because the updater downloads outside the browser, so no quarantine flag is set.
+- `auto_updates true`: the app updates itself, so `brew upgrade` leaves it alone unless `--greedy`.
+- `depends_on :macos` with no minimum: Tauri 2's default `minimumSystemVersion` (10.13) is below the oldest macOS
+  Homebrew 7 accepts (`:high_sierra` is disabled there, the floor is `:big_sur`), so a minimum would add nothing.
+- `zap`: the Tauri/WebKit paths for `com.arylmera.administratum` (Application Support, Caches, WebKit, Preferences
+  plist, Saved Application State), to confirm against a real install.
 - CI job `homebrew` (after `release`, skipped for `-` tags, `continue-on-error`): hash both DMGs, sed version and
-  sha256 into the cask, push to the tap with secret `HOMEBREW_TAP_TOKEN`. Skips cleanly when the secret is absent.
+  sha256 into the cask, check the sed took, push to the tap with secret `HOMEBREW_TAP_TOKEN`. Skips cleanly when
+  the secret is absent; fails (without failing the release) if a DMG is missing.
 - Install: `brew install --cask arylmera/administratum/administratum`.
 
 ### Out of scope
