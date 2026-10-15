@@ -7,6 +7,8 @@ import { invoke, REMOTE } from './bridge.js';
 import { sel, ago, filesOf, canAnswer, answer, pick } from './card.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
+import { view } from './view.js';
+import { TAN39 } from './iso.js';
 import { scale, pan, viewW, viewH, pannable, centreOn, drag, coarse, stage } from './viewport.js';
 
 // app.js's: hall, layout, roster and mouse are getters (app.js reassigns them) (initOverlay)
@@ -28,6 +30,7 @@ function openDept(name) {
 
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
+const FLOOR39 = `matrix(1, ${1 / 3}, ${-TAN39}, ${TAN39 / 2}, 0, 0)`; // one floor px along x and y, as toScreen maps them in 39°
 const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
 // Subscription usage as claude-deck last wrote it (main.rs usage): session and weekly percent and the time to their
 // reset. Hidden when claude-deck is absent or its file is over 30 min old (it would show a stale percent).
@@ -57,8 +60,9 @@ export function renderPlaques(blocks) {
       el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
       if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
     }
+    const floor = k.startsWith('b:') && view.mode === '39' && !strip(); // in 39° a department's name lies on the floor (P39's floor axes)
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : '' };
+      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : floor ? FLOOR39 : '', transformOrigin: floor ? '0 0' : '' };
     if (el.dataset.text !== `${text}|${branch}`) {
       el.dataset.text = `${text}|${branch}`;
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;
