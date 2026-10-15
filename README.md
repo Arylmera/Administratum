@@ -1,4 +1,16 @@
-# Administratum
+<p align="center">
+  <img src="docs/img/banner.svg" alt="Administratum: a scribe walks out of the gate toward the Magos between two braziers" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Arylmera/Administratum/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Arylmera/Administratum?style=flat-square&color=b8742e&label=release"></a>
+  <a href="https://github.com/Arylmera/Administratum/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Arylmera/Administratum/total?style=flat-square&color=8e1c16"></a>
+  <a href="https://github.com/Arylmera/Administratum/actions/workflows/release.yml"><img alt="Release build" src="https://img.shields.io/github/actions/workflow/status/Arylmera/Administratum/release.yml?style=flat-square&label=build"></a>
+  <a href="#install"><img alt="Windows | macOS" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-3a2a1e?style=flat-square"></a>
+  <a href="#macos-with-homebrew-recommended"><img alt="Homebrew cask" src="https://img.shields.io/badge/brew-arylmera%2Fadministratum-6a6f76?style=flat-square&logo=homebrew&logoColor=white"></a>
+  <a href="https://docs.anthropic.com/en/docs/claude-code"><img alt="For Claude Code" src="https://img.shields.io/badge/for-Claude%20Code-d97757?style=flat-square&logo=anthropic&logoColor=white"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-1c1d20?style=flat-square"></a>
+</p>
 
 A Windows and macOS desktop widget that shows every Claude Code session on your PC as a tech-priest scribe in a pixel-art
 Mechanicus scriptorium, and calls you when one of them needs an answer.
