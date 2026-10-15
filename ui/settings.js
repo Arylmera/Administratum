@@ -142,6 +142,7 @@ export function initSettings(hooks) {
     field('onTop').checked = settings.onTop;
     const auto = view.scale === 'auto';
     field('scaleAuto').checked = auto; field('scale').disabled = auto;
+    for (const b of form.querySelectorAll('.step')) b.disabled = auto;
     if (!auto) field('scale').value = view.scale;
     field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
     field('mode').value = hooks.mode();
@@ -269,6 +270,11 @@ export function initSettings(hooks) {
   form.onsubmit = e => e.preventDefault();
   // The slider rescales while it is dragged, not only on release (9 steps: at most 9 relayouts per drag).
   form.oninput = e => { if (e.target.name === 'scale') { setScale(e.target.value); hooks.rescaled(); sync(); } };
+  // − / + beside it: one step per click, for where dragging the slider fails (the macOS app's window).
+  for (const b of form.querySelectorAll('.step')) b.onclick = () => {
+    const s = field('scale'); s.value = Math.min(+s.max, Math.max(+s.min, +s.value + b.dataset.step * s.step));
+    setScale(s.value); hooks.rescaled(); sync();
+  };
   form.onchange = e => {
     const el = e.target, k = el.name;
     if (k.startsWith('remote')) { applyRemote(); return; }
