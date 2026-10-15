@@ -62,12 +62,23 @@ pub fn save(path: &Path, v: &Value) -> Result<(), String> {
     fs::rename(&tmp, path).map_err(|e| e.to_string())
 }
 
+#[cfg(windows)]
+const FILE_MANAGER: &str = "explorer.exe";
+#[cfg(target_os = "macos")]
+const FILE_MANAGER: &str = "/usr/bin/open";
+#[cfg(not(any(windows, target_os = "macos")))]
+const FILE_MANAGER: &str = "xdg-open";
+
 /// The program and arguments that open a department's folder (Settings: adm.openWith = explorer | code | custom,
 /// adm.openCmd). `path` is always one argument: `{path}` in a custom command is replaced inside its word, and
-/// appended as the last argument when the command has none. Nothing goes through a shell.
+/// appended as the last argument when the command has none. Nothing goes through a shell. On macOS "explorer" is
+/// the Finder and VS Code goes through `open -a` (an app started from Finder does not get the shell's PATH).
 pub fn opener(kind: &str, custom: &str, path: &str) -> Result<(String, Vec<String>), String> {
     match kind {
-        "code" => Ok(("code.cmd".into(), vec![path.into()])),
+        #[cfg(target_os = "macos")]
+        "code" => Ok(("/usr/bin/open".into(), vec!["-a".into(), "Visual Studio Code".into(), path.into()])),
+        #[cfg(not(target_os = "macos"))]
+        "code" => Ok((if cfg!(windows) { "code.cmd" } else { "code" }.into(), vec![path.into()])),
         "custom" => {
             let words = split_words(custom);
             let (program, rest) = words.split_first().ok_or("no custom command set")?;
@@ -77,7 +88,7 @@ pub fn opener(kind: &str, custom: &str, path: &str) -> Result<(String, Vec<Strin
             }
             Ok((program.clone(), args))
         }
-        _ => Ok(("explorer.exe".into(), vec![path.into()])),
+        _ => Ok((FILE_MANAGER.into(), vec![path.into()])),
     }
 }
 
@@ -175,8 +186,14 @@ mod tests {
     #[test]
     fn opener_keeps_the_path_one_argument() {
         let p = r"C:\My Projects\x & y";
+        #[cfg(windows)]
         assert_eq!(opener("explorer", "", p).unwrap(), ("explorer.exe".to_string(), vec![p.to_string()]));
+        #[cfg(target_os = "macos")]
+        assert_eq!(opener("explorer", "", p).unwrap(), ("/usr/bin/open".to_string(), vec![p.to_string()]));
+        #[cfg(windows)]
         assert_eq!(opener("code", "", p).unwrap(), ("code.cmd".to_string(), vec![p.to_string()]));
+        #[cfg(target_os = "macos")]
+        assert_eq!(opener("code", "", p).unwrap(), ("/usr/bin/open".to_string(), vec!["-a".to_string(), "Visual Studio Code".to_string(), p.to_string()]));
         assert_eq!(opener("custom", r#""C:\Program Files\Ed\ed.exe" -n {path}"#, p).unwrap(), (r"C:\Program Files\Ed\ed.exe".to_string(), vec!["-n".to_string(), p.to_string()]));
         assert_eq!(opener("custom", "ed --dir={path}", p).unwrap().1, vec![format!("--dir={p}")]);
         assert_eq!(opener("custom", "ed", p).unwrap().1, vec![p.to_string()], "no {{path}}: appended");

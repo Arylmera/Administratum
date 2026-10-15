@@ -2,18 +2,41 @@
 use crate::{no_window, registry};
 use std::process::Command;
 
-/// Run `orca <args>` through `run` (spawn or output): "orca" on PATH first, the known install
-/// path if that's not resolvable. Args go straight to the process, never through a shell.
+/// Where to look for the Orca CLI: "orca" on PATH first, then the known install paths (an app started from
+/// Finder or the Dock does not get the shell's PATH, so /usr/local/bin and Homebrew are listed too).
+fn candidates() -> Vec<String> {
+    #[cfg_attr(not(any(windows, target_os = "macos")), allow(unused_mut))]
+    let mut c = vec!["orca".to_string()];
+    #[cfg(windows)]
+    c.extend(std::env::var("LOCALAPPDATA").map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe")));
+    #[cfg(target_os = "macos")]
+    c.extend(["/Applications/Orca.app/Contents/Resources/bin/orca", "/usr/local/bin/orca", "/opt/homebrew/bin/orca"].map(String::from));
+    c
+}
+
+/// Run `orca <args>` through `run` (spawn or output), trying each of `candidates()` until one starts.
+/// Args go straight to the process, never through a shell.
 fn orca<T>(args: &[&str], run: impl Fn(&mut Command) -> std::io::Result<T>) -> Result<T, String> {
-    let with = |exe: String| {
-        let mut cmd = no_window(Command::new(exe));
+    let mut err = "orca not found".to_string();
+    for exe in candidates() {
+        let mut cmd = no_window(Command::new(&exe));
         cmd.args(args);
-        run(&mut cmd)
-    };
-    with("orca".into()).or_else(|_| {
-        let fallback = std::env::var("LOCALAPPDATA").map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe")).map_err(|_| "orca not found".to_string())?;
-        with(fallback).map_err(|e| e.to_string())
-    })
+        match run(&mut cmd) {
+            Ok(t) => return Ok(t),
+            Err(e) => err = e.to_string(),
+        }
+    }
+    Err(err)
+}
+
+/// Open `url` in the default browser. The URL is one argument to the OS's opener.
+fn open_url(url: &str) -> std::io::Result<std::process::Child> {
+    #[cfg(windows)]
+    return no_window(Command::new("cmd")).args(["/c", "start", "", url]).spawn();
+    #[cfg(target_os = "macos")]
+    return Command::new("/usr/bin/open").arg(url).spawn();
+    #[cfg(not(any(windows, target_os = "macos")))]
+    return Command::new("xdg-open").arg(url).spawn();
 }
 
 /// Switch Orca's foreground terminal to `handle`, or open `url` in the default browser. `target`
@@ -31,7 +54,7 @@ pub fn open_session(target: String) -> Result<(), String> {
         if !registry::valid_claude_web_url(url) {
             return Err("invalid claude.ai url".into());
         }
-        no_window(Command::new("cmd")).args(["/c", "start", "", url]).spawn().map_err(|e| e.to_string())?;
+        open_url(url).map_err(|e| e.to_string())?;
         Ok(())
     } else {
         Err("unknown target kind".into())

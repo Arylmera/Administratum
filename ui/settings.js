@@ -118,6 +118,7 @@ export function initSettings(hooks) {
   const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
   const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
   const pushQuiet = () => invoke('set_quiet', { enabled: quiet.on, fromMin: quiet.from, toMin: quiet.to }).catch(() => {});
+  let isWin = true; // the backend's OS (platform): the firewall rule and the desktop icon are Windows-only
   if (REMOTE) {
     // The PC's settings, read only; window, login, remote view and reset belong to the PC.
     for (const f of form.querySelectorAll('[data-host]')) f.disabled = true;
@@ -126,8 +127,15 @@ export function initSettings(hooks) {
   } else {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
     pushStale(); pushQuestions(); pushQuiet();
-    // Desktop strip: offered only where the backend can place it (Windows).
+    // Desktop strip: offered only where the backend can place it (Windows, macOS).
     invoke('strip_supported').then(ok => { if (ok) form.querySelector('[value="strip"]').hidden = false; }, () => {});
+    invoke('platform').then(os => {
+      isWin = os === 'windows';
+      if (isWin) return;
+      for (const e of form.querySelectorAll('.win-only')) e.hidden = true;
+      if (os === 'macos') form.querySelector('[name="openWith"] [value="explorer"]').textContent = 'Finder';
+      field('openCmd').placeholder = '/path/to/app {path}';
+    }, () => {});
   }
 
   sync = () => {
@@ -203,7 +211,7 @@ export function initSettings(hooks) {
   let fwBusy = false, fwTimer;
   const readFw = () => {
     const port = fwPort();
-    if (fwBusy) return;
+    if (fwBusy || !isWin) return;
     if (port === null) { fwErr('Port must be between 1024 and 65535.'); return; }
     invoke('firewall_status', { port }).then(st => { if (!fwBusy && port === fwPort()) showFw(st); }, fwErr);
   };

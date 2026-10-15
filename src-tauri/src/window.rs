@@ -3,6 +3,7 @@ use crate::{
     strip,
     vigil::app::{vigil_set, VigilBox, VigilItem},
 };
+#[cfg(windows)]
 use std::{thread, time::Duration};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
@@ -12,6 +13,7 @@ use tauri::{
 use tauri_plugin_autostart::ManagerExt;
 
 /// 5x5 points spread over a rect (left, top, right, bottom), each at the centre of its cell.
+#[cfg_attr(not(windows), allow(dead_code))] // on_screen is Windows-only
 fn sample_grid(l: i32, t: i32, r: i32, b: i32) -> impl Iterator<Item = (i32, i32)> {
     (0..25).map(move |i| (l + (r - l) * (2 * (i % 5) + 1) / 10, t + (b - t) * (2 * (i / 5) + 1) / 10))
 }

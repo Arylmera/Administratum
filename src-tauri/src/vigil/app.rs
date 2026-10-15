@@ -1,5 +1,5 @@
 //! The Night Vigil in the app: arming (tray, commands, toast, remote), its Chronicon events, its toast, the shutdown.
-use crate::{chronicle::Event, emit, no_window, now_ms, registry::Session, settings, settings_path, toast, vigil, Chron};
+use crate::{chronicle::Event, emit, now_ms, registry::Session, settings, settings_path, toast, vigil, Chron};
 use std::{process::Command, sync::Mutex};
 use tauri::{menu::CheckMenuItem, AppHandle, Manager};
 
@@ -51,9 +51,16 @@ pub fn vigil_cancel(app: AppHandle) {
     vigil_set(&app, false);
 }
 
-/// The real shutdown. Never called in demo mode or from a test.
+/// The real shutdown. Never called in demo mode or from a test. On macOS through System Events: the first time,
+/// macOS asks for the Automation permission, and an app may still veto the shutdown (unsaved work).
 fn shutdown_now() {
-    if let Err(e) = no_window(Command::new("shutdown")).args(["/s", "/f", "/t", "0", "/c", "Administratum: Night Vigil"]).spawn() {
+    #[cfg(windows)]
+    let cmd = crate::no_window(Command::new("shutdown")).args(["/s", "/f", "/t", "0", "/c", "Administratum: Night Vigil"]).spawn();
+    #[cfg(target_os = "macos")]
+    let cmd = Command::new("/usr/bin/osascript").args(["-e", r#"tell application "System Events" to shut down"#]).spawn();
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let cmd = Command::new("systemctl").arg("poweroff").spawn();
+    if let Err(e) = cmd {
         eprintln!("night vigil: shutdown: {e}");
     }
 }

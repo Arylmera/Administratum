@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
 mod demo;
+#[cfg(windows)]
 mod firewall;
 mod git;
 mod orca;
@@ -40,6 +41,7 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+#[cfg_attr(not(windows), allow(unused_mut))]
 fn no_window(mut cmd: Command) -> Command {
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
@@ -115,7 +117,8 @@ fn set_toast_text(petition: String, question: String, stale: String, needed: Str
     toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed });
 }
 
-/// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh).
+/// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh). Windows only.
+#[cfg(windows)]
 #[tauri::command(async)]
 fn desktop_shortcut() -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -221,7 +224,14 @@ fn open_folder(path: String, app: AppHandle, live: State<Live>) -> Result<(), St
 }
 
 fn claude_dir() -> PathBuf {
-    PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default()).join(".claude")
+    std::env::home_dir().unwrap_or_default().join(".claude")
+}
+
+/// The OS the backend runs on (`std::env::consts::OS`: windows, macos, linux), so the settings can hide what only
+/// works on Windows (firewall rule, desktop icon) and name the file manager.
+#[tauri::command]
+fn platform() -> &'static str {
+    std::env::consts::OS
 }
 
 fn main() {
@@ -250,14 +260,19 @@ fn main() {
             vigil::app::vigil_cancel,
             usage,
             quit,
+            platform,
+            #[cfg(windows)]
             desktop_shortcut,
             settings_load,
             settings_save,
             remote::app::remote_status,
             remote::app::remote_set,
             remote::app::remote_regenerate_token,
+            #[cfg(windows)]
             remote::app::firewall_status,
+            #[cfg(windows)]
             remote::app::firewall_allow,
+            #[cfg(windows)]
             remote::app::firewall_remove,
             check_update,
             install_update,

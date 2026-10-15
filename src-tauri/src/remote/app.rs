@@ -1,7 +1,9 @@
 //! The remote view in the app: its settings (`remote.*`), the backend it calls, and the settings panel's commands
 //! (remote view and its firewall rule).
+#[cfg(windows)]
+use crate::firewall;
 use crate::{
-    chronicle_day, chronicle_days, firewall,
+    chronicle_day, chronicle_days,
     orca::{answer_petition, peek_petition},
     remote, settings, settings_load, settings_path, tithe_day,
     vigil::app::vigil_set,
@@ -118,12 +120,14 @@ pub fn remote_regenerate_token(app: AppHandle) -> Result<RemoteStatus, String> {
 }
 
 /// Whether the Windows Firewall lets other devices reach `port` (read-only, unelevated).
+#[cfg(windows)]
 #[tauri::command(async)]
 pub fn firewall_status(port: u16) -> Result<firewall::Status, String> {
     firewall::status(port)
 }
 
 /// Replace the remote view's firewall rule with one for this exe on `port` (UAC prompt), then re-read.
+#[cfg(windows)]
 #[tauri::command(async)]
 pub fn firewall_allow(port: u16) -> Result<firewall::Status, String> {
     firewall::allow(port)?;
@@ -131,6 +135,7 @@ pub fn firewall_allow(port: u16) -> Result<firewall::Status, String> {
 }
 
 /// Remove the remote view's firewall rule (UAC prompt); `port` only for the status re-read.
+#[cfg(windows)]
 #[tauri::command(async)]
 pub fn firewall_remove(port: u16) -> Result<firewall::Status, String> {
     firewall::remove()?;

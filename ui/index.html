@@ -241,7 +241,7 @@
   #prefs label > span:first-child { flex: 1; line-height: 1.05; }
   #prefs .wide, #prefs .hint, #prefs .clear, #prefs .btns, #prefs .rv-on, #prefs .rv-urls { grid-column: 1 / -1; }
   #prefs .clear { justify-self: start; }
-  #prefs .btns { display: flex; flex-wrap: wrap; gap: .4em; }
+  #prefs .btns { display: flex; flex-wrap: wrap; gap: .4em; } #prefs .btns[hidden] { display: none; }
   #prefs .btns .clear, #prefs .rv-on .clear { margin-top: 0; }
   #prefs .unit { width: 3.2em; white-space: nowrap; color: var(--paper-ink-2); }
   #prefs input[type="number"], #prefs select { width: 5.5em; box-sizing: border-box; padding: .1em .3em; background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; text-align: right; }
@@ -433,7 +433,7 @@
           <fieldset data-host><legend>Switches</legend>
             <label class="host-only"><span>Always on top</span><input type="checkbox" name="onTop"></label>
             <label class="host-only"><span>Start at login</span><input type="checkbox" name="login"></label>
-            <button type="button" class="clear desk-icon host-only">Add desktop icon</button>
+            <button type="button" class="clear desk-icon host-only win-only">Add desktop icon</button>
             <label class="wide"><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
             <p class="hint" data-t="prefs.pauseHint">Near-zero CPU when unseen; petitions still alert.</p>
           </fieldset>
@@ -458,13 +458,13 @@
           <p class="hint">Anyone with the link on your network can approve or deny Claude Code permission prompts on this PC.</p>
           <div class="sub">Connection</div>
           <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
-          <p class="hint rv-fw" aria-live="polite"></p>
-          <p class="hint rv-public" hidden>Windows treats this network as Public, so the rule does not apply. On a home network, mark it Private: Windows Settings → Network &amp; internet → your connection → Private network (or, in an admin PowerShell: Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private).</p>
-          <div class="btns">
+          <p class="hint rv-fw win-only" aria-live="polite"></p>
+          <p class="hint rv-public win-only" hidden>Windows treats this network as Public, so the rule does not apply. On a home network, mark it Private: Windows Settings → Network &amp; internet → your connection → Private network (or, in an admin PowerShell: Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private).</p>
+          <div class="btns win-only">
             <button type="button" class="clear rv-fw-btn" data-cmd="firewall_allow">Allow this port</button>
             <button type="button" class="clear rv-fw-btn" data-cmd="firewall_remove">Remove rule</button>
           </div>
-          <p class="hint">Windows will ask for administrator permission.</p>
+          <p class="hint win-only">Windows will ask for administrator permission.</p>
           <p class="hint rv-err" role="alert" hidden></p>
           <div class="rv-on" hidden>
             <div class="sub">Pairing</div>
