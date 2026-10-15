@@ -361,11 +361,12 @@ function spinCog(g, cx, cy, t) {
 // console), above 0.5 sheets fall and spread over the department floor, dense at 1. Red sheets from 0.9.
 // Every desk/console has one deterministic sheet list (seeded by its id); fill only picks how many show.
 // x0, y0: the pile's origin on the surface; cx, cy: where fallen sheets spread from (the sprite's paper / pile anchors).
+// dy, jy: row step and random drop: a desk/lectern top is ~4.5 px deep, so its rows (2.5 px sheets) stay within 1 px.
 const paperAt = (name, k) => ({ ...k, x0: PROP_AT[name].paper[0], y0: PROP_AT[name].paper[1], cx: PROP_AT[name].pile[0], cy: PROP_AT[name].pile[1] });
 const papers = () => ({
-  desk: paperAt('DESK', { cols: 6, rows: 3, dx: 4.8, dy: 2.6, layers: 4, floor: 56, r0: 14, reach: 30 }),
-  lectern: paperAt('LECTERN', { cols: 4, rows: 3, dx: 4.4, dy: 2.6, layers: 4, floor: 40, r0: 11, reach: 22 }),
-  console: paperAt('CONSOLE', { cols: 1, rows: 3, dx: 0, dy: 0.5, layers: 2, floor: 5, r0: 9, reach: 6 }),
+  desk: paperAt('DESK', { cols: 6, rows: 3, dx: 4.8, dy: 0.25, jy: 0.5, layers: 4, floor: 56, r0: 14, reach: 30 }),
+  lectern: paperAt('LECTERN', { cols: 4, rows: 3, dx: 4.4, dy: 0.25, jy: 0.5, layers: 4, floor: 40, r0: 11, reach: 22 }),
+  console: paperAt('CONSOLE', { cols: 1, rows: 3, dx: 0, dy: 0.5, jy: 1, layers: 2, floor: 5, r0: 9, reach: 6 }),
 });
 // Paper is cached: each pile's desk-top sheets, and its settled floor sheets, are rasterised once into a small canvas
 // (redrawn only when the sheet count, the red warning or the place changes) and blitted; fluttering sheets draw live.
@@ -391,7 +392,7 @@ function pileOf(id, kind, now) {
   const k = PAPER[kind];
   const top = [];
   for (let r = 0; r < k.rows; r++) for (let c = 0; c < k.cols; c++) {
-    top.push({ x: half(k.x0 + c * k.dx + rnd() * 1.5), y: half(k.y0 + r * k.dy + rnd()), w: rnd() < 0.5 ? 4 : 5 });
+    top.push({ x: half(k.x0 + c * k.dx + rnd() * 1.5), y: half(k.y0 + r * k.dy + rnd() * k.jy), w: rnd() < 0.5 ? 4 : 5 });
   }
   for (let i = top.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [top[i], top[j]] = [top[j], top[i]]; }
   top.forEach((t, i) => { t.layers = 1 + Math.floor(rnd() * (1 + k.layers * i / top.length)); t.red = i % 6 === 5; });
