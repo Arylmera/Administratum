@@ -15,7 +15,8 @@ pub struct RawRecord {
     pub waiting_for: Option<String>,
     pub status_updated_at: Option<i64>,
     pub bridge_session_id: Option<String>,
-    /// Process creation time as a Windows FILETIME (100 ns ticks since 1601), in decimal.
+    /// Process creation time: on Windows a FILETIME (100 ns ticks since 1601) in decimal; on macOS `ps`'s lstart
+    /// in UTC ("Wed Oct 14 16:54:12 2026"). See poller.rs `alive`.
     pub proc_start: Option<String>,
 }
 

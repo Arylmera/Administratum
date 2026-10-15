@@ -143,13 +143,17 @@ fn orca_handle(sys: &mut System, cache: &mut HashMap<u32, Option<String>>, pid: 
     handle
 }
 
-/// An executable path (or bare name) that is Claude Code's `claude.exe`.
+/// An executable path (or bare name) that is Claude Code: `claude.exe` on Windows, `claude` elsewhere (Homebrew's
+/// cask), or the native installer's `.../claude/versions/<version>` binary.
 fn is_claude_image(path: &str) -> bool {
-    path.rsplit(['\\', '/']).next().is_some_and(|n| n.eq_ignore_ascii_case("claude.exe"))
+    let mut parts = path.rsplit(['\\', '/']);
+    let name = parts.next().unwrap_or_default();
+    name.eq_ignore_ascii_case("claude.exe") || name == "claude" || (parts.next() == Some("versions") && parts.next() == Some("claude"))
 }
 
 /// The session record's `procStart` (FILETIME, decimal) against the process's creation time: a
 /// mismatch means the pid was reused. No or unreadable `procStart`: trust the name check alone.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn same_start(proc_start: Option<&str>, created: u64) -> bool {
     proc_start.and_then(|s| s.parse::<u64>().ok()).is_none_or(|s| s == created)
 }
@@ -183,12 +187,32 @@ pub fn alive(pid: u32, proc_start: Option<&str>) -> bool {
     }
 }
 
-/// ponytail: non-Windows is a dev build only: a one-pid sysinfo refresh, no pid-reuse guard.
+/// Off Windows the record's `procStart` is `ps -o lstart= -p <pid>` run by Claude Code with `LC_ALL=C TZ=UTC`
+/// ("Wed Oct 14 16:54:12 2026"): its start second, UTC. Another format: None.
+#[cfg_attr(windows, allow(dead_code))]
+fn lstart_secs(s: &str) -> Option<u64> {
+    let s = s.split_whitespace().collect::<Vec<_>>().join(" "); // ps pads a one-digit day: "Oct  4"
+    let t = chrono::NaiveDateTime::parse_from_str(&s, "%a %b %e %H:%M:%S %Y").ok()?;
+    u64::try_from(t.and_utc().timestamp()).ok()
+}
+
+/// `procStart` (lstart) against the process's start time, seconds since the epoch: a mismatch means the pid was
+/// reused. No or unparseable `procStart`: trust the name check alone. 1 s of slack for rounding.
+#[cfg_attr(windows, allow(dead_code))]
+fn same_lstart(proc_start: Option<&str>, started: u64) -> bool {
+    proc_start.and_then(lstart_secs).is_none_or(|s| s.abs_diff(started) <= 1)
+}
+
+/// Whether `pid` is a running Claude Code started at `proc_start`: a one-pid sysinfo refresh, no snapshot.
 #[cfg(not(windows))]
-pub fn alive(pid: u32, _proc_start: Option<&str>) -> bool {
+pub fn alive(pid: u32, proc_start: Option<&str>) -> bool {
     let mut sys = System::new();
-    sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[Pid::from_u32(pid)]), true, ProcessRefreshKind::nothing());
-    sys.process(Pid::from_u32(pid)).is_some_and(|p| is_claude_image(&p.name().to_string_lossy()))
+    let pid = Pid::from_u32(pid);
+    sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[pid]), true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet));
+    sys.process(pid).is_some_and(|p| {
+        let image = is_claude_image(&p.name().to_string_lossy()) || p.exe().is_some_and(|e| is_claude_image(&e.to_string_lossy()));
+        image && same_lstart(proc_start, p.start_time())
+    })
 }
 
 #[cfg(test)]
@@ -201,6 +225,37 @@ mod tests {
         assert!(is_claude_image("CLAUDE.EXE"));
         assert!(!is_claude_image(r"C:\x\notclaude.exe"));
         assert!(!is_claude_image(r"C:\claude.exe\node.exe"));
+        assert!(is_claude_image("/opt/homebrew/Caskroom/claude-code/2.1.285/claude"));
+        assert!(is_claude_image("claude"));
+        assert!(is_claude_image("/Users/x/.local/share/claude/versions/2.1.285"));
+        assert!(!is_claude_image("/usr/bin/claudette"));
+        assert!(!is_claude_image("/Users/x/versions/2.1.285"));
+    }
+
+    #[test]
+    fn lstart_guards_pid_reuse() {
+        assert_eq!(lstart_secs("Wed Oct 14 16:54:12 2026"), Some(1_791_996_852));
+        assert_eq!(lstart_secs("Sun Oct  4 09:05:01 2026"), Some(1_791_104_701), "one-digit day, padded");
+        assert!(same_lstart(Some("Wed Oct 14 16:54:12 2026"), 1_791_996_852));
+        assert!(same_lstart(Some("Wed Oct 14 16:54:12 2026"), 1_791_996_853), "1 s of slack");
+        assert!(!same_lstart(Some("Wed Oct 14 16:54:12 2026"), 1_791_996_900), "same pid, another process");
+        assert!(same_lstart(None, 1), "no procStart");
+        assert!(same_lstart(Some("134356821919957930"), 1), "unparseable: the name check alone");
+    }
+
+    /// Claude Code's own `ps` call against sysinfo's start time, on this test process.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn lstart_matches_sysinfo_for_a_real_process() {
+        let me = std::process::id();
+        let out = std::process::Command::new("ps").args(["-o", "lstart=", "-p", &me.to_string()]).env("LC_ALL", "C").env("TZ", "UTC").output().unwrap();
+        let lstart = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        let mut sys = System::new();
+        sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[Pid::from_u32(me)]), true, ProcessRefreshKind::nothing());
+        let started = sys.process(Pid::from_u32(me)).unwrap().start_time();
+        assert!(lstart_secs(&lstart).is_some(), "parses {lstart:?}");
+        assert!(same_lstart(Some(&lstart), started), "{lstart:?} vs {started}");
+        assert!(!same_lstart(Some(&lstart), started + 60));
     }
 
     #[test]
