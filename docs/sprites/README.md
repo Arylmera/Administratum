@@ -41,6 +41,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept-novice-up"></a>`ADEPT.novice.up` | 12×14 | Novice adept, walking up, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.up.png" height="112"> |
 | <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Novice adept, walking right, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.right.png" height="112"> |
 | <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Novice adept, walking left, 3 frames. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.novice.left.png" height="112"> |
+| <a id="adept-kinds"></a>`ADEPT.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing down, then up. Source: `ui/art/adept.png` | <img src="tier2/ADEPT.kinds.png" height="112"> |
 
 ## Watchman (Night Vigil, while armed)
 
@@ -75,6 +76,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.W.png" height="112"> |
 | <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.S.png" height="112"> |
 | <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.N.png" height="112"> |
+| <a id="adept39-kinds"></a>`ADEPT39.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing S, then E, then N, then W. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.kinds.png" height="112"> |
 | <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/magos39.png` | <img src="tier2/MAGOS39.body.png" height="160"> |
 | <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/magos39.png` | <img src="tier2/MAGOS39.arm.png" height="160"> |
 | <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/skull39.png` | <img src="tier2/SKULL39.skull.png" height="80"> |

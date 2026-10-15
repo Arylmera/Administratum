@@ -52,6 +52,19 @@ export function blit(g, map, x, y, over) {
   g.drawImage(cv, x, y, cv.width / RES, cv.height / RES);
 }
 
+// An adept frame with the glyph of its subagent kind ('explore', 'plan', 'general', 'custom': actors.js markOf) laid in
+// at the facing's anchor: the chest screen from the front, a plate over the back cog from behind (its back is what shows
+// at its console). As is where the art has none (side views, a world's own adept). F, A: ADEPT/ADEPT_AT or the 39° pair.
+// Cached per frame and glyph, so the sprite cache finds the result by identity.
+const laid = new WeakMap();
+export function marked(map, F, A, face, mark) {
+  const part = F.marks?.[`glyph ${mark}`], at = A[`glyph ${face}`];
+  if (!part || !at) return map;
+  const x = at.x * RES, y = at.y * RES, by = laid.get(map) ?? laid.set(map, new WeakMap()).get(map);
+  if (!by.has(part)) by.set(part, map.map((row, j) => [...row].map((c, i) => { const o = part[j - y]?.[i - x]; return o && o !== '.' ? o : c; }).join('')));
+  return by.get(part);
+}
+
 const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
@@ -97,6 +110,7 @@ const anchorsOf = sheet => Object.fromEntries(Object.entries(sheet.anchors).map(
 const logical = v => (Array.isArray(v) ? v.map(logical) : typeof v === 'number' ? v / RES : Object.fromEntries(Object.entries(v).map(([k, w]) => [k, logical(w)])));
 const walk = (sheet, dir) => [0, 1, 2].map(i => sheet.frames[`${dir} ${i}`]);
 const walker = sheet => ({ up: walk(sheet, 'up'), down: walk(sheet, 'down'), right: walk(sheet, 'right'), left: walk(sheet, 'right').map(mirror) });
+const marksOf = (frames, mine = () => true) => Object.fromEntries(Object.entries(frames).filter(([n]) => n.startsWith('glyph ') && mine(n)));
 const refill = (target, from) => { for (const k of Object.keys(target)) delete target[k]; return Object.assign(target, from); };
 
 // 39° walk frames: E along +u (the back wall, to the right), W = -u, S = +v (toward the viewer), N = -v (away). No
@@ -145,7 +159,9 @@ export function resolve39(family, themedSheet, baseSheet, where) {
 // Scribe (one per session): 16x17 logical, 3 walk frames a direction (left mirrors right), and the arm drawn over the
 // desk. SCRIBE_AT: its anchor points, logical px from the frame's top-left (feet: the actor's position).
 export const SCRIBE = {}, SCRIBE_AT = {};
-// Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate.
+// Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate. marks: its
+// subagent kind's glyphs ('glyph <kind>'), only those drawn with the body, so a world's own adept stays unmarked;
+// ADEPT_AT['glyph down'], ['glyph up']: where they sit (marked).
 export const ADEPT = {}, ADEPT_AT = {};
 // The Magos on the throne: body, the drill forearm that swings, and claw, his right pincer shut (drawn over the open one
 // now and then; only with the body it was drawn for, so a world's own Magos never wears the 40k claw) (scene.js
@@ -176,7 +192,7 @@ const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d
 // How to build each family's export object from its (complete) sheet, and which [obj, at] pair to refill.
 const BUILD39 = {
   scribe39: sheet => ({ ...walker39(sheet), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll }),
-  adept39: walker39,
+  adept39: sheet => ({ ...walker39(sheet), marks: marksOf(sheet.frames) }), // marks: optional, as ADEPT.marks (whole sheets: no gate)
   magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm, claw: sheet.frames.claw }), // claw: optional, as MAGOS.claw
   skull39: sheet => ({ skull: sheet.frames.skull }),
   watch39: sheet => ({ ...walker39(sheet), ring: sheet.frames.ring }),
@@ -187,7 +203,7 @@ function useArt(id) {
   const S = Object.fromEntries(FAMILIES.map(f => [f, sheetOf(id, f)]));
   const dir = dirOf(id), src = (f, n) => (themed[id]?.[f]?.frames[n] ? `${id}/${f}` : themed[dir]?.[f]?.frames[n] ? `${dir}/${f}` : f);
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
-  refill(ADEPT, walker(S.adept)); refill(ADEPT_AT, anchorsOf(S.adept));
+  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => src('adept', n) === src('adept', 'down 0')) }); refill(ADEPT_AT, anchorsOf(S.adept));
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: src('magos', 'claw') === src('magos', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
   refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));
   for (const f of FAMILIES39) {

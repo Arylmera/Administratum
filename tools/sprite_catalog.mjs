@@ -4,8 +4,8 @@
 //    family: the art family ('walls'), as the sprite issues group them; src: its art file for this theme ('cyber/walls').
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
 import {
-  MAPS, PROP_AT, SCRIBE, ADEPT, MAGOS, MAGOS_AT, WATCH, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
-  SCRIBE39, ADEPT39, MAGOS39, SKULL39, WATCH39, REQ39,
+  MAPS, PROP_AT, SCRIBE, ADEPT, ADEPT_AT, marked, MAGOS, MAGOS_AT, WATCH, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
+  SCRIBE39, ADEPT39, ADEPT39_AT, MAGOS39, SKULL39, WATCH39, REQ39,
 } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { cellFrame } from '../ui/room.js';
@@ -51,6 +51,12 @@ export function catalog() {
   add('SCRIBE.sashes', 'Scribe (one per session)', srcOf('scribe'), theme.sash.map(y => ({ rows: SCRIBE.down[0], over: { y } })), false, 'Department colours (theme sash), one per project');
   for (const r of RANKS) for (const dir of ['down', 'up', 'right', 'left']) add(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', srcOf('adept'), ADEPT[dir].map(rows => ({ rows, over: theme.rank[r].adept })), true, `${theme.text.rank[r]} adept, walking ${dir}, 3 frames`);
 
+  // The subagent kind's mark (sprites.js marked), base adept only: chest screen from the front, back plate from behind.
+  const KINDS = ['explore', 'plan', 'general', 'custom'], kinds = (name, F, A, faces, src) => {
+    if (Object.keys(F.marks ?? {}).length) add(`${name}.kinds`, name === 'ADEPT' ? 'Adept (one per subagent)' : '39° characters', src, faces.flatMap(f => KINDS.map(k => ({ rows: marked(F[f][0], F, A, f, k), over: name === 'ADEPT' ? theme.rank.standard.adept : {} }))), false, `Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing ${faces.join(', then ')}`);
+  };
+  kinds('ADEPT', ADEPT, ADEPT_AT, ['down', 'up'], srcOf('adept'));
+
   for (const dir of ['down', 'up', 'right', 'left']) add(`WATCH.${dir}`, 'Watchman (Night Vigil, while armed)', srcOf('watch'), WATCH[dir].map(rows => ({ rows, over: {} })), true, `The Watchman, walking ${dir} with his light, 3 frames`);
   add('WATCH.ring', 'Watchman (Night Vigil, while armed)', srcOf('watch'), [{ rows: WATCH.ring, over: {} }], false, 'The Watchman: his signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle)');
 
@@ -81,6 +87,7 @@ export function catalog() {
     const src = srcOf(family), extra = REQ39[family].frames.filter(n => !/^[EWSN] \d$/.test(n));
     for (const d of ['E', 'W', 'S', 'N']) if (obj[d]) add(`${name}.${d}`, '39° characters', src, obj[d].map(rows => ({ rows, over: {} })), true, `${name}, 39° view, walking ${d}, 3 frames`);
     for (const n of extra) add(`${name}.${n}`, '39° characters', src, [{ rows: obj[n], over: {} }], false, `${name}, ${n}`);
+    if (name === 'ADEPT39') kinds(name, obj, ADEPT39_AT, ['S', 'E', 'N', 'W'], src);
   }
 
   const VARIANTS = { // extra renders of maps that are drawn with overrides

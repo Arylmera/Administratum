@@ -1,4 +1,4 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, marked } from './sprites.js';
 import { T, onTheme } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -221,6 +221,10 @@ const robeOf = (rank, sash) => {
   return by.get(sash) ?? by.set(sash, { ...T.rank[rank].robe, y: sash }).get(sash);
 };
 
+// An adept's glyph by its subagent kind (a.h.kind, the agent type: open-ended), drawn by sprites.js marked: the built-in
+// kinds' own, any other kind (a custom agent) the generic one. Exact names in any case, so 'code-explorer' is custom.
+const KIND_MARK = { explore: 'explore', plan: 'plan', 'general-purpose': 'general' };
+export const markOf = kind => KIND_MARK[String(kind ?? '').toLowerCase()] ?? 'custom';
 // The body frame an actor is drawn with and its top-left (feet at a.x, a.y), for drawActor and its floor shadow
 // (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing.
 export function bodyOf(a) {
@@ -231,7 +235,8 @@ export function bodyOf(a) {
   }
   if (a.h) { // adept: 12x14
     const i = Math.floor((a.walked ?? 0) / STRIDE) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
-    return { map: walk ? ADEPT[a.dir][i] : ADEPT[a.target.dir][0], over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
+    const face = walk ? a.dir : a.target.dir;
+    return { map: marked(ADEPT[face][walk ? i : 0], ADEPT, ADEPT_AT, face, markOf(a.h.kind)), over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
   }
   const i = a.wait > 0 ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
   const map = a.pose === 'burn' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
@@ -254,7 +259,7 @@ export function bodyOf39(a) {
     return { map: a.ring > 0 ? F.ring : F[face][walk ? i : 0], dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
   }
   const face = walk ? face39(a.dir) : a.pose === 'burn' ? 'S' : a.h ? face39(a.target?.dir) : 'N';
-  return { map: F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+  return { map: a.h ? marked(F[face][walk ? i : 0], F, A, face, markOf(a.h.kind)) : F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
 }
 
 // The Watchman's lantern in the flat view (floor coords): WATCH_AT.light, mirrored with the frame when he faces left.

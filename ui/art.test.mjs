@@ -4,9 +4,10 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS, MAGOS_AT, MAGOS39, WATCH, WATCH_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, ADEPT39, ADEPT39_AT, marked, MAGOS, MAGOS_AT, MAGOS39, WATCH, WATCH_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
 import { THEMES, setTheme, t } from './theme.js';
 import { BREAKOUT_SIZES } from './layout.js';
+import { markOf, bodyOf, bodyOf39 } from './actors.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -75,7 +76,7 @@ for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]],
 assert.deepEqual(Object.keys(owner).sort(), Object.keys(MAPS).filter(n => SHEET_OF[n] !== 'scribe').sort(), 'every prop frame is a MAPS sprite');
 for (const fam of ['scribe', 'adept', 'watch']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
 assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 2 }, armL: { x: 0, y: 2 }, scroll: { x: 14, y: 8 } });
-assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 } });
+assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 }, 'glyph down': { x: 3, y: 7 }, 'glyph up': { x: 3.5, y: 7 } });
 assert.deepEqual(WATCH_AT, { feet: { x: 8, y: 18 }, light: { x: 14, y: 14 } });
 assert.ok(sheets.watch.frames.ring, 'watch ring');
 assert.deepEqual(WATCH.left[0], WATCH.right[0].map(r => [...r].reverse().join('')));
@@ -151,6 +152,28 @@ assert.equal(MAGOS.claw, undefined, 'tower: no base claw over its own Magos');
 assert.equal(MAGOS39.claw, undefined, 'tower: no base claw over its own 39° Magos');
 setTheme('tier2');
 assert.ok(MAGOS.claw && MAGOS39.claw, 'the base Magos has its claw in both views');
+// the adept's subagent kind glyph (actors.js): the built-in kinds by exact name in any case, any other the generic one
+assert.deepEqual(['Explore', 'explore', 'PLAN', 'general-purpose', 'code-explorer', 'my-agent', 'agent', undefined, null].map(markOf),
+  ['explore', 'explore', 'plan', 'general', 'custom', 'custom', 'custom', 'custom', 'custom']);
+const KINDS = ['explore', 'plan', 'general', 'custom'];
+for (const [F, A, faces] of [[ADEPT, ADEPT_AT, ['down', 'up']], [ADEPT39, ADEPT39_AT, ['S', 'E', 'N', 'W']]]) for (const f of faces) {
+  const by = KINDS.map(k => marked(F[f][0], F, A, f, k)), at = A[`glyph ${f}`], g = F.marks['glyph plan'];
+  assert.equal(new Set([F[f][0], ...by].map(m => m.join('|'))).size, 5, `${f}: each kind its own glyph, none the plain frame`);
+  assert.equal(marked(F[f][0], F, A, f, 'explore'), by[0], `${f}: one map per frame and kind (the sprite cache's identity)`);
+  g.forEach((row, j) => assert.equal(by[1][at.y * RES + j].slice(at.x * RES, at.x * RES + row.length), row, `${f}: the plan glyph at its anchor`));
+}
+assert.equal(marked(ADEPT.right[0], ADEPT, ADEPT_AT, 'right', 'explore'), ADEPT.right[0], 'the side view: no glyph');
+const adept = kind => ({ h: { kind }, x: 50, y: 50, pose: 'console', target: { dir: 'up' } }); // at its console, its back to us
+assert.equal(bodyOf(adept('Plan')).map, marked(ADEPT.up[0], ADEPT, ADEPT_AT, 'up', 'plan'), 'a Plan adept wears the plan glyph');
+assert.equal(bodyOf39(adept('reviewer')).map, marked(ADEPT39.N[0], ADEPT39, ADEPT39_AT, 'N', 'custom'), 'a custom agent the generic one (39°)');
+setTheme('forge');
+assert.equal(Object.keys(ADEPT.marks).length, 4, 'forge: a palette-only theme wears the base glyphs');
+for (const id of ['cyber', 'orbital', 'tower', 'vault']) { // a world's own adept is never marked with the 40k glyphs
+  setTheme(id);
+  assert.deepEqual([Object.keys(ADEPT.marks), Object.keys(ADEPT39.marks ?? {})], [[], []], `${id}: no base glyphs`);
+  assert.equal(marked(ADEPT.down[0], ADEPT, ADEPT_AT, 'down', 'explore'), ADEPT.down[0], `${id}: its own adept as drawn`);
+}
+setTheme('tier2');
 // the floor's grate variants likewise: mixed in where the floor is the base one, dropped where a world redraws its floor
 assert.deepEqual(ROOM.tiles.floor.mix, ['floor vent', 'floor bolts']);
 setTheme('forge');
