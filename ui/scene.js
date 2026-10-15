@@ -679,7 +679,7 @@ function deskLight(desk, busy) {
     : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green };
 }
 
-// cog = scribes standing at the cogitator: the bank works harder (faster scroll, blinking, steam).
+// cog = scribes standing at the cogitator: the bank works harder (faster scroll, steam) and its lamp row tallies them.
 // Drawn in the minimum scene's coordinates, moved with their room.
 function drawDecorFrame(g, t, cog = 0) {
   const sy = 50 + WALL_DY + Math.round(2 * Math.sin(t * 4));
@@ -723,10 +723,10 @@ function drawCogitator(g, t, cog) {
     const h = 1 + Math.floor(hash(i * 977 + Math.floor(t * (on ? 6 : 1.5))) * 14) / 2;
     rect(g, bx + 0.5 + i * 1.5, by + 8 - h, 1, h, i % 3 ? I.screenDim : I.phosphor);
   }
-  // lamp row: idle a slow chase, busy a random chatter
+  // lamp row: idle a slow chase, busy a tally from the left, one steady lamp per scribe at the bank (the rest dark)
   const [lx, ly] = at(C.lamps);
   for (let i = 0; i < 7; i++) {
-    const lit = on ? hash(i * 31 + Math.floor(t * 8)) < 0.5 : Math.floor(t * 2) % 7 === i;
+    const lit = on ? i < cog : Math.floor(t * 2) % 7 === i;
     if (!lit) rect(g, lx + 2.5 * i, ly, 1, 1, I.lampDead);
   }
   // data-drums: a light notch turning on each reel
