@@ -147,8 +147,9 @@ export function resolve39(family, themedSheet, baseSheet, where) {
 export const SCRIBE = {}, SCRIBE_AT = {};
 // Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate.
 export const ADEPT = {}, ADEPT_AT = {};
-// The Magos on the throne: body, and the drill forearm that swings (scene.js drawMagos). MAGOS_AT: where the arm,
-// the chest screen's scan line and the two optics sit on the body, logical px.
+// The Magos on the throne: body, the drill forearm that swings, and claw, his right pincer shut (drawn over the open one
+// now and then; only with the body it was drawn for, so a world's own Magos never wears the 40k claw) (scene.js
+// drawMagos). MAGOS_AT: where the arm, the claw, the chest screen's scan line and the two optics sit on the body, logical px.
 export const MAGOS = {}, MAGOS_AT = {};
 // The Watchman (Night Vigil, while armed): 16x18 logical, walks like the scribe (left mirrors right), and `ring`, his
 // signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle depending on the world). WATCH_AT: feet (the
@@ -176,7 +177,7 @@ const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d
 const BUILD39 = {
   scribe39: sheet => ({ ...walker39(sheet), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll }),
   adept39: walker39,
-  magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm }),
+  magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm, claw: sheet.frames.claw }), // claw: optional, as MAGOS.claw
   skull39: sheet => ({ skull: sheet.frames.skull }),
   watch39: sheet => ({ ...walker39(sheet), ring: sheet.frames.ring }),
 };
@@ -187,7 +188,7 @@ function useArt(id) {
   const dir = dirOf(id), src = (f, n) => (themed[id]?.[f]?.frames[n] ? `${id}/${f}` : themed[dir]?.[f]?.frames[n] ? `${dir}/${f}` : f);
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
   refill(ADEPT, walker(S.adept)); refill(ADEPT_AT, anchorsOf(S.adept));
-  refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm }); refill(MAGOS_AT, anchorsOf(S.magos));
+  refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: src('magos', 'claw') === src('magos', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
   refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));
   for (const f of FAMILIES39) {
     const sheet = resolve39(f, themed[dir]?.[f], base[f], `theme '${id}'`), [obj, at] = EXPORT39[f], complete = Object.keys(sheet.frames).length > 0;

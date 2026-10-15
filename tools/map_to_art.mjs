@@ -89,12 +89,13 @@ const FAMILIES = {
     return { frames, rows: [...WALK, ['arm']], anchors: { feet: [16, 34], arm: [28, 4], armL: [0, 4], scroll: [28, 16] } };
   },
   // The seated Magos: the body, and the drill forearm (art cols 0..9 of the old map) as its own frame so it can swing.
-  // arm: where the arm frame's top-left sits on the body frame; chest: the scanning screen line; eyeL / eyeR: optics.
+  // claw: the right pincer shut, drawn over the open one. Anchors: where each frame's top-left sits on the body frame
+  // (arm, claw); chest: the scanning screen line; eyeL / eyeR: optics.
   async magos() {
     const { MAPS, MAGOS } = await import('../ui/sprites.js');
     const full = MAPS.MAGOS; // only while the old map still exists (the conversion)
     const body = full ? full.map(r => '.'.repeat(10) + r.slice(10)) : MAGOS.body, arm = full ? full.map(r => r.slice(0, 10)) : MAGOS.arm;
-    return { frames: { body, arm }, rows: [['body', 'arm']], anchors: { arm: [0, 0], chest: [26, 30], eyeL: [26, 19], eyeR: [29, 19] } };
+    return { frames: { body, arm, claw: MAGOS.claw }, rows: [['body', 'arm', 'claw']], anchors: { arm: [0, 0], chest: [26, 30], eyeL: [26, 19], eyeR: [29, 19], claw: [41, 35] } };
   },
   async adept() {
     const { ADEPT } = await import('../ui/sprites.js');

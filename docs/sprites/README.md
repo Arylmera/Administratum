@@ -58,6 +58,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 |---|---|---|---|
 | <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/magos.png` | <img src="tier2/MAGOS.png" height="160"> |
 | <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png` | <img src="tier2/MAGOS.arm.png" height="160"> |
+| <a id="magos-claw"></a>`MAGOS.claw` | 24×24 | The claw snapping: open, then shut (the claw frame over the body). Source: `ui/art/magos.png` | <img src="tier2/MAGOS.claw.png" height="160"> |
 
 ## 39° characters
 

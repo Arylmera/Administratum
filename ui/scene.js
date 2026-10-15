@@ -744,13 +744,14 @@ function drawCogitator(g, t, cog) {
   }
 }
 
-// The Magos on the throne: the hanging drill forearm swings 1 art px, chest screen scans, optics pulse (anchors: MAGOS_AT).
+// The Magos on the throne: the hanging drill forearm swings 1 art px, the claw snaps, chest screen scans, optics pulse (anchors: MAGOS_AT).
 const MAG = { x: 264, y: 120 };
 // (x, y): the body's top-left (the throne, drawn by drawStatic in the hall, sits 4 px right and down of it).
 function drawMagos(g, x, y, t) {
   const A = MAGOS_AT, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
   blit(g, MAGOS.body, x, y);
   blit(g, MAGOS.arm, x + A.arm.x + sway, y + A.arm.y);
+  if (MAGOS.claw && Math.sin(t * 1.3) > 0.85) blit(g, MAGOS.claw, x + A.claw.x, y + A.claw.y); // the right pincer snaps shut now and then
   rect(g, x + A.chest.x, y + A.chest.y + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
   if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, x + e.x, y + e.y, 0.5, 0.5, I.glint);
 }

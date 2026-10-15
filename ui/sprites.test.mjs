@@ -38,6 +38,7 @@ for (const dir of ['up', 'down', 'left', 'right']) { assert.equal(WATCH[dir].len
 check('WATCH.ring', WATCH.ring, [16, 18]);
 check('MAGOS.body', MAGOS.body, [24, 24]);
 check('MAGOS.arm', MAGOS.arm, [5, 24]);
+check('MAGOS.claw', MAGOS.claw, [3, 1.5]);
 const flip = r => [...r].reverse().join('');
 for (const n of ['THRONE', 'LORD_DESK', 'COG_MECH']) MAPS[n].forEach((r, j) => assert.equal(r.replace(/[^.]/g, '#'), flip(r).replace(/[^.]/g, '#'), `${n}: silhouette row ${j}`));
 MAPS.THRONE.forEach((r, j) => assert.equal(r.replace(/[^.k]/g, '#'), flip(r).replace(/[^.k]/g, '#'), `THRONE: outline row ${j}`));

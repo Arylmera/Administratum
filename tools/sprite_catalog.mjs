@@ -58,6 +58,11 @@ export function catalog() {
   const seated = MAGOS.body.map((row, j) => [...row].map((c, i) => { const a = MAGOS.arm[j - ay]?.[i - ax]; return a && a !== '.' ? a : c; }).join(''));
   add('MAGOS', 'Magos (on the throne)', srcOf('magos'), [{ rows: seated, over: {} }], false, 'Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames)');
   add('MAGOS.arm', 'Magos (on the throne)', srcOf('magos'), [{ rows: MAGOS.arm, over: {} }], false, 'The drill forearm, its own frame so it can swing');
+  if (MAGOS.claw) { // the base Magos only: his right pincer, open (the body) and snapped shut (the claw frame over it)
+    const cx = MAGOS_AT.claw.x * RES, cy = MAGOS_AT.claw.y * RES;
+    const shut = seated.map((row, j) => [...row].map((c, i) => { const a = MAGOS.claw[j - cy]?.[i - cx]; return a && a !== '.' ? a : c; }).join(''));
+    add('MAGOS.claw', 'Magos (on the throne)', srcOf('magos'), [{ rows: seated, over: {} }, { rows: shut, over: {} }], false, 'The claw snapping: open, then shut (the claw frame over the body)');
+  }
 
   // 39° characters (wave 2): one generic section, listing every frame present for the active theme. Empty until an
   // art agent's PNG exists (sprites.js checkComplete39), so the viewer shows a world's frames the moment they land.

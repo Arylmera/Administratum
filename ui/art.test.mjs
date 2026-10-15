@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import { decodePng } from './png.js';
 import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
-import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS_AT, WATCH, WATCH_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT_AT, MAGOS, MAGOS_AT, MAGOS39, WATCH, WATCH_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
 import { THEMES, setTheme, t } from './theme.js';
 import { BREAKOUT_SIZES } from './layout.js';
 
@@ -79,7 +79,7 @@ assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 } });
 assert.deepEqual(WATCH_AT, { feet: { x: 8, y: 18 }, light: { x: 14, y: 14 } });
 assert.ok(sheets.watch.frames.ring, 'watch ring');
 assert.deepEqual(WATCH.left[0], WATCH.right[0].map(r => [...r].reverse().join('')));
-assert.deepEqual(MAGOS_AT, { arm: { x: 0, y: 0 }, chest: { x: 13, y: 15 }, eyeL: { x: 13, y: 9.5 }, eyeR: { x: 14.5, y: 9.5 } });
+assert.deepEqual(MAGOS_AT, { arm: { x: 0, y: 0 }, chest: { x: 13, y: 15 }, eyeL: { x: 13, y: 9.5 }, eyeR: { x: 14.5, y: 9.5 }, claw: { x: 20.5, y: 17.5 } });
 assert.ok(sheets.magos.frames.body.every(r => r.startsWith('.'.repeat(10))), 'the Magos body leaves the arm columns to the arm frame');
 assert.deepEqual(SCRIBE.left[0], SCRIBE.right[0].map(r => [...r].reverse().join('')));
 // Prop anchors: the ones the drawing code reads exist, and every point / rect lies on the art-pixel grid.
@@ -143,7 +143,12 @@ setTheme('forge'); // a palette-only theme
 assert.equal(MAPS.BANNER, plain.banner, 'a theme without art draws the default');
 assert.equal(MAPS.TABLE, plain.table);
 assert.equal(SHEET_OF.BANNER, 'walls');
+// the shut claw goes with the body it was drawn for: a world that redraws its Magos never wears the 40k claw
+setTheme('tower');
+assert.equal(MAGOS.claw, undefined, 'tower: no base claw over its own Magos');
+assert.equal(MAGOS39.claw, undefined, 'tower: no base claw over its own 39° Magos');
 setTheme('tier2');
+assert.ok(MAGOS.claw && MAGOS39.claw, 'the base Magos has its claw in both views');
 assert.equal(MAPS.BANNER, plain.banner);
 assert.equal(SHEET_OF.BANNER, 'walls');
 
