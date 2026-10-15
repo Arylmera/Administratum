@@ -260,6 +260,15 @@ everything the code needs to know about it (anchors, fill rules) is in their JSO
     - The Magos's chest screen and the cogitator's screens stay code: they are light (a scanning line, scrolling
       cant, a waveform, bars, flicker), not a shape; their place is already art (the `chest` anchor, the cogitator's
       `screen`, `wave`, `bars` rects).
+  - Issue #21, step 2: three worlds redraw the background-shell indicator, all 16 `SHELL_COG_*` frames in their own
+    `workstations` sheet (same names and 12x12 size, so no code changes); Vault 111 and the 40k themes keep the cog,
+    and `DOZE_Z` stays the same everywhere:
+    - Neon Grid (and its accents): a loading ring, a bright arc (`h` head, then `c`, `g`, `G`) sweeping clockwise round
+      a dark `C` track on a `k` backing.
+    - Orbital Station: a radar scope, a `k` bezel with an `l`/`m` rim round a `C` face; an `O` beam line turns with a
+      `c` then `!` trail behind it, and two blips light `O` as it passes, fade to `c`, then go out.
+    - Arcane Tower: a rune circle, a violet `!` ring on `k` with four `+` rune notches turning on it, a gold triangle
+      sigil (`g` strokes, `h` points) turning the other way on a `D` glow, and an `F`/`f` heart pulsing twice a turn.
 - **Tests**:
   - a theme's art is only families it declares, at the default's sizes, with known anchors
   - switching swaps the art in and back
