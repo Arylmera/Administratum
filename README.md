@@ -12,8 +12,10 @@
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-1c1d20?style=flat-square"></a>
 </p>
 
-A Windows and macOS desktop widget that shows every Claude Code session on your PC as a tech-priest scribe in a pixel-art
-Mechanicus scriptorium, and calls you when one of them needs an answer.
+A Windows and macOS desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
+office, and calls you when one of them needs an answer. Pick your world: a tech-priest scribe in a Warhammer 40k
+scriptorium, a netrunner in a cyberpunk den, crew on an orbital station, an apprentice in a wizard's tower or a
+dweller in a Fallout vault ([Worlds and themes](#worlds-and-themes)).
 
 ![The hall: departments of scribes at their desks, adepts at their consoles, a petition queued before the Magos](docs/img/hall.png)
 
@@ -21,15 +23,144 @@ Administratum watches Claude Code's own session files and never writes to them. 
 walks to the Sanctum and queues before the Magos. You get a desktop notification and an optional chime, and for
 permission prompts in Orca terminals you can approve or deny from the widget itself.
 
-**Quick start.** Install Claude Code, download the Windows installer from the
-[latest release](https://github.com/Arylmera/Administratum/releases/latest) and run it (macOS:
-`brew install --cask arylmera/administratum/administratum`), and start a Claude Code
-session: its scribe walks in through the gate. Step by step: [Windows](#windows), [macOS](#macos-with-homebrew-recommended). To try it without any session, run the binary with `--demo`.
-
-**Contents:** [What it shows](#what-it-shows) · [Install](#install) · [Usage](#usage) ·
+**Contents:** [Install](#install) · [Worlds and themes](#worlds-and-themes) · [What it shows](#what-it-shows) · [Usage](#usage) ·
 [Remote view](#remote-view) · [Settings](#settings) · [Privacy and safety](#privacy-and-safety) ·
 [Performance](#performance) · [Troubleshooting](#troubleshooting) · [Development](#development) ·
 [Licenses](#licenses)
+
+---
+
+## Install
+
+| | How | Then |
+|---|---|---|
+| **Windows 10 / 11** | Download `Administratum_<version>_x64-setup.exe` from the [latest release](https://github.com/Arylmera/Administratum/releases/latest) and run it | [Step by step](#windows) |
+| **macOS** (Apple silicon or Intel) | `brew install --cask arylmera/administratum/administratum` | [Step by step](#macos-with-homebrew-recommended), or [without Homebrew](#macos-without-homebrew) |
+
+Then start a Claude Code session: its scribe walks in through the gate. To look around without any session, run
+the app with `--demo`.
+
+### Requirements
+
+- Windows 10 or 11 (tested on Windows 11), or macOS (built and run on macOS 26, Apple silicon). Linux is not
+  supported.
+- Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
+  missing.
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
+- Optional: Orca (tested with 1.4.220), needed to jump to a session's terminal and to answer
+  petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
+  `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe` (Windows), or at
+  `/Applications/Orca.app/Contents/Resources/bin/orca`, `/usr/local/bin/orca` or `/opt/homebrew/bin/orca` (macOS;
+  an app started from the Dock or Finder does not see your shell's `PATH`).
+
+Each [release](https://github.com/Arylmera/Administratum/releases/latest) ships the Windows installer
+`Administratum_<version>_x64-setup.exe` and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
+silicon) and `Administratum_<version>_x64.dmg` (Intel). Neither is signed by Microsoft or Apple, so each OS warns
+once; the steps below get past it.
+
+### Windows
+
+1. Download `Administratum_<version>_x64-setup.exe` from the
+   [latest release](https://github.com/Arylmera/Administratum/releases/latest).
+2. Run it. If SmartScreen says "Windows protected your PC" (unknown publisher): **More info → Run anyway**.
+3. The installer needs no administrator rights: it installs for your user in `%LOCALAPPDATA%\Administratum` and
+   adds a Start menu entry. Its last page offers to start the widget.
+4. The widget opens as a frameless, always-on-top 700 × 500 window with no taskbar button. It lives in the system
+   tray (click the `^` next to the clock if it is hidden there). Its position and size are remembered between runs.
+5. Optional: tray menu or Settings → **Start at login** (off by default), and Settings → System → **Add desktop
+   icon**.
+6. Start a Claude Code session: its scribe walks in through the gate.
+
+**Updates:** Settings → System → Updates checks at startup and installs a new version in place (*Check now* checks
+on demand). **Uninstall:** Windows Settings → Apps → Installed apps → Administratum → Uninstall; your settings and
+Chronicon stay in `%APPDATA%\com.arylmera.administratum` unless you tick the uninstaller's option to delete them.
+
+### macOS with Homebrew (recommended)
+
+1. If you don't have [Homebrew](https://brew.sh) yet, install it (one command from its home page, in Terminal).
+2. In Terminal:
+   ```sh
+   brew install --cask arylmera/administratum/administratum
+   ```
+   This picks the right build for Apple silicon or Intel, puts `Administratum.app` in Applications, and clears the
+   quarantine flag, so Gatekeeper opens the app although it is not notarized.
+3. Open **Administratum** from Applications or Spotlight. It has no Dock icon: it lives in the menu bar's status
+   area, at the top right (the tray menu above).
+4. The first notification makes macOS ask whether Administratum may send notifications: allow it.
+5. Optional: tray menu or Settings → **Start at login**.
+6. Start a Claude Code session: its scribe walks in through the gate.
+
+**Updates:** the app updates itself from Settings → System → Updates, as on Windows. Because of that, a plain
+`brew upgrade` skips it; `brew upgrade --cask --greedy administratum` forces Homebrew's copy up to date.
+**Uninstall:** `brew uninstall --cask administratum`; add `--zap` to also delete its settings and Chronicon.
+
+### macOS without Homebrew
+
+1. From the [latest release](https://github.com/Arylmera/Administratum/releases/latest), download
+   `Administratum_<version>_aarch64.dmg` for Apple silicon (M1 and later; Apple menu → About This Mac shows the
+   chip) or `Administratum_<version>_x64.dmg` for an Intel Mac.
+2. Open the `.dmg` and drag **Administratum** into **Applications**.
+3. The app is not notarized, so the first launch is blocked. Either right-click it in Applications → **Open** →
+   **Open**, or, if macOS says the app "is damaged", clear the quarantine flag in Terminal:
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Administratum.app
+   ```
+   Later launches open normally, and later versions install from Settings → System → Updates.
+4. Continue from step 3 of the Homebrew steps above.
+
+**Uninstall:** quit it from the tray menu, then drag `Administratum.app` to the Bin.
+
+### What differs on macOS
+
+The widget has no Dock icon and no menu bar menu of its own: it lives in the menu bar's status area (the tray menu
+above). Its settings and Chronicon are in `~/Library/Application Support/com.arylmera.administratum`. Differences
+from Windows:
+
+- **Open departments with**: *Finder* or VS Code (through `open -a "Visual Studio Code"`), or a custom command.
+- **Remote view**: there is no firewall rule to add. If the macOS firewall is on, macOS asks once whether
+  Administratum may accept incoming connections: allow it. The *Add desktop icon* button is Windows-only too.
+- **Petition toasts**: Approve and Deny sit in the notification's *Options* menu, Deny first, so a click on the
+  *Options* button itself denies, never approves. A click runs the same checks as on Windows.
+- **Night Vigil** shuts down through System Events. The first vigil that reaches zero makes macOS ask whether
+  Administratum may control System Events (Automation); unanswered, the Mac stays on. Let one vigil run out while
+  you are there and allow it (it then shows in *System Settings → Privacy & Security → Automation*). An app with
+  unsaved work can still refuse the shutdown.
+
+---
+
+## Worlds and themes
+
+Settings → Hall → **Theme** picks the world, **Style** a variant within it. Each world outside Warhammer has its own
+art for every character and object, both views (Flat and 2.5D), the desktop strip and its own wording: the
+sessions, the boss who receives petitions, the subagents and the notifications all change name.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/world-tier2.png" alt="Warhammer 40k: the Ordo Administratum scriptorium"><br>
+<b>Warhammer 40k</b>: tech-priest scribes at their lecterns, bone-robed adepts, the Magos on his throne, servo-skulls,
+gothic windows and banners. Styles: <i>Ordo Administratum</i>, <i>Machinum</i>, <i>Xenos</i>, <i>Malleus</i>,
+<i>Hereticus</i> (high contrast).</td>
+<td width="50%"><img src="docs/img/world-cyber.png" alt="Cyberpunk: the netrunner den"><br>
+<b>Cyberpunk</b>: netrunners jacked in at their rigs, daemon subagents, the fixer, neon kanji signs and a city window.
+Styles: <i>Neon Grid</i>, <i>Corpo Tower</i>, <i>Rain City</i>, <i>Green Code</i>, <i>Sunset Drive</i>.</td>
+</tr>
+<tr>
+<td><img src="docs/img/world-orbital.png" alt="Space: the orbital station desk"><br>
+<b>Space</b>: crew at the station desks, bot subagents, the Commander, portholes and white hull panels.
+Style: <i>Orbital Station</i>.</td>
+<td><img src="docs/img/world-tower.png" alt="Fantasy: the wizard's tower"><br>
+<b>Fantasy</b>: apprentices at their reading desks, familiars, the Archmage, arched windows and violet hangings.
+Style: <i>Arcane Tower</i>.</td>
+</tr>
+<tr>
+<td><img src="docs/img/world-vault.png" alt="Fallout: the Overseer's office in Vault 111"><br>
+<b>Fallout</b>: vault dwellers at RobCo terminals, Mr. Handy robots, the Overseer with his clipboard, the cog vault
+door and a Nuka-Cola machine. Style: <i>Vault 111</i>.</td>
+<td>Every sprite of every world, side by side: the <a href="docs/sprites/README.md">sprite gallery</a>, or
+<code>tools/sprites.html</code> in a local checkout (one column per style). The remote view keeps its own theme, so
+a phone can show a different world than the PC.</td>
+</tr>
+</table>
 
 ---
 
@@ -117,96 +248,6 @@ banners in the Warhammer themes, each other world its own design), in both views
 Settings, a moon while quiet hours are on, mute chime, then the window buttons: **–** hides to the tray (the window
 has no taskbar button), **□** maximizes and restores, **✕** quits. To move the window,
 drag the header.
-
----
-
-## Install
-
-### Requirements
-
-- Windows 10 or 11 (tested on Windows 11), or macOS (built and run on macOS 26, Apple silicon). Linux is not
-  supported.
-- Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
-  missing.
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
-- Optional: Orca (tested with 1.4.220), needed to jump to a session's terminal and to answer
-  petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
-  `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe` (Windows), or at
-  `/Applications/Orca.app/Contents/Resources/bin/orca`, `/usr/local/bin/orca` or `/opt/homebrew/bin/orca` (macOS;
-  an app started from the Dock or Finder does not see your shell's `PATH`).
-
-Each [release](https://github.com/Arylmera/Administratum/releases/latest) ships the Windows installer
-`Administratum_<version>_x64-setup.exe` and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
-silicon) and `Administratum_<version>_x64.dmg` (Intel). Neither is signed by Microsoft or Apple, so each OS warns
-once; the steps below get past it.
-
-### Windows
-
-1. Download `Administratum_<version>_x64-setup.exe` from the
-   [latest release](https://github.com/Arylmera/Administratum/releases/latest).
-2. Run it. If SmartScreen says "Windows protected your PC" (unknown publisher): **More info → Run anyway**.
-3. The installer needs no administrator rights: it installs for your user in `%LOCALAPPDATA%\Administratum` and
-   adds a Start menu entry. Its last page offers to start the widget.
-4. The widget opens as a frameless, always-on-top 700 × 500 window with no taskbar button. It lives in the system
-   tray (click the `^` next to the clock if it is hidden there). Its position and size are remembered between runs.
-5. Optional: tray menu or Settings → **Start at login** (off by default), and Settings → System → **Add desktop
-   icon**.
-6. Start a Claude Code session: its scribe walks in through the gate.
-
-**Updates:** Settings → System → Updates checks at startup and installs a new version in place (*Check now* checks
-on demand). **Uninstall:** Windows Settings → Apps → Installed apps → Administratum → Uninstall; your settings and
-Chronicon stay in `%APPDATA%\com.arylmera.administratum` unless you tick the uninstaller's option to delete them.
-
-### macOS with Homebrew (recommended)
-
-1. If you don't have [Homebrew](https://brew.sh) yet, install it (one command from its home page, in Terminal).
-2. In Terminal:
-   ```sh
-   brew install --cask arylmera/administratum/administratum
-   ```
-   This picks the right build for Apple silicon or Intel, puts `Administratum.app` in Applications, and clears the
-   quarantine flag, so Gatekeeper opens the app although it is not notarized.
-3. Open **Administratum** from Applications or Spotlight. It has no Dock icon: it lives in the menu bar's status
-   area, at the top right (the tray menu above).
-4. The first notification makes macOS ask whether Administratum may send notifications: allow it.
-5. Optional: tray menu or Settings → **Start at login**.
-6. Start a Claude Code session: its scribe walks in through the gate.
-
-**Updates:** the app updates itself from Settings → System → Updates, as on Windows. Because of that, a plain
-`brew upgrade` skips it; `brew upgrade --cask --greedy administratum` forces Homebrew's copy up to date.
-**Uninstall:** `brew uninstall --cask administratum`; add `--zap` to also delete its settings and Chronicon.
-
-### macOS without Homebrew
-
-1. From the [latest release](https://github.com/Arylmera/Administratum/releases/latest), download
-   `Administratum_<version>_aarch64.dmg` for Apple silicon (M1 and later; Apple menu → About This Mac shows the
-   chip) or `Administratum_<version>_x64.dmg` for an Intel Mac.
-2. Open the `.dmg` and drag **Administratum** into **Applications**.
-3. The app is not notarized, so the first launch is blocked. Either right-click it in Applications → **Open** →
-   **Open**, or, if macOS says the app "is damaged", clear the quarantine flag in Terminal:
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/Administratum.app
-   ```
-   Later launches open normally, and later versions install from Settings → System → Updates.
-4. Continue from step 3 of the Homebrew steps above.
-
-**Uninstall:** quit it from the tray menu, then drag `Administratum.app` to the Bin.
-
-### What differs on macOS
-
-The widget has no Dock icon and no menu bar menu of its own: it lives in the menu bar's status area (the tray menu
-above). Its settings and Chronicon are in `~/Library/Application Support/com.arylmera.administratum`. Differences
-from Windows:
-
-- **Open departments with**: *Finder* or VS Code (through `open -a "Visual Studio Code"`), or a custom command.
-- **Remote view**: there is no firewall rule to add. If the macOS firewall is on, macOS asks once whether
-  Administratum may accept incoming connections: allow it. The *Add desktop icon* button is Windows-only too.
-- **Petition toasts**: Approve and Deny sit in the notification's *Options* menu, Deny first, so a click on the
-  *Options* button itself denies, never approves. A click runs the same checks as on Windows.
-- **Night Vigil** shuts down through System Events. The first vigil that reaches zero makes macOS ask whether
-  Administratum may control System Events (Automation); unanswered, the Mac stays on. Let one vigil run out while
-  you are there and allow it (it then shows in *System Settings → Privacy & Security → Automation*). An app with
-  unsaved work can still refuse the shutdown.
 
 ---
 
