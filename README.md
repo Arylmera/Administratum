@@ -12,7 +12,7 @@ permission prompts in Orca terminals you can approve or deny from the widget its
 **Quick start.** Install Claude Code, download the Windows installer from the
 [latest release](https://github.com/Arylmera/Administratum/releases/latest) and run it (macOS:
 `brew install --cask arylmera/administratum/administratum`), and start a Claude Code
-session: its scribe walks in through the gate. To try it without any session, run the binary with `--demo`.
+session: its scribe walks in through the gate. Step by step: [Windows](#windows), [macOS](#macos-with-homebrew-recommended). To try it without any session, run the binary with `--demo`.
 
 **Contents:** [What it shows](#what-it-shows) · [Install](#install) · [Usage](#usage) ·
 [Remote view](#remote-view) · [Settings](#settings) · [Privacy and safety](#privacy-and-safety) ·
@@ -123,22 +123,64 @@ drag the header.
   `/Applications/Orca.app/Contents/Resources/bin/orca`, `/usr/local/bin/orca` or `/opt/homebrew/bin/orca` (macOS;
   an app started from the Dock or Finder does not see your shell's `PATH`).
 
-### Installer
+Each [release](https://github.com/Arylmera/Administratum/releases/latest) ships the Windows installer
+`Administratum_<version>_x64-setup.exe` and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
+silicon) and `Administratum_<version>_x64.dmg` (Intel). Neither is signed by Microsoft or Apple, so each OS warns
+once; the steps below get past it.
 
-Each release ships the Windows installer and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
-silicon) and `Administratum_<version>_x64.dmg` (Intel). On macOS, install through Homebrew instead (see [macOS](#macos)).
+### Windows
 
-Download Administratum_<version>_x64-setup.exe from the [latest release](https://github.com/Arylmera/Administratum/releases/latest). Windows SmartScreen may say "unknown publisher" (the installer is not code-signed): More info > Run anyway. Later versions install from Settings > System > Updates.
+1. Download `Administratum_<version>_x64-setup.exe` from the
+   [latest release](https://github.com/Arylmera/Administratum/releases/latest).
+2. Run it. If SmartScreen says "Windows protected your PC" (unknown publisher): **More info → Run anyway**.
+3. The installer needs no administrator rights: it installs for your user in `%LOCALAPPDATA%\Administratum` and
+   adds a Start menu entry. Its last page offers to start the widget.
+4. The widget opens as a frameless, always-on-top 700 × 500 window with no taskbar button. It lives in the system
+   tray (click the `^` next to the clock if it is hidden there). Its position and size are remembered between runs.
+5. Optional: tray menu or Settings → **Start at login** (off by default), and Settings → System → **Add desktop
+   icon**.
+6. Start a Claude Code session: its scribe walks in through the gate.
 
-Run the setup. On first launch the widget opens as a frameless, always-on-top 700 × 500 window with no taskbar
-button. It lives in the system tray. Its position and size are remembered between runs.
+**Updates:** Settings → System → Updates checks at startup and installs a new version in place (*Check now* checks
+on demand). **Uninstall:** Windows Settings → Apps → Installed apps → Administratum → Uninstall; your settings and
+Chronicon stay in `%APPDATA%\com.arylmera.administratum` unless you tick the uninstaller's option to delete them.
 
-To launch it at sign-in, turn on **Start at login** from the tray menu or from Settings. This is off by default.
+### macOS with Homebrew (recommended)
 
-### macOS
+1. If you don't have [Homebrew](https://brew.sh) yet, install it (one command from its home page, in Terminal).
+2. In Terminal:
+   ```sh
+   brew install --cask arylmera/administratum/administratum
+   ```
+   This picks the right build for Apple silicon or Intel, puts `Administratum.app` in Applications, and clears the
+   quarantine flag, so Gatekeeper opens the app although it is not notarized.
+3. Open **Administratum** from Applications or Spotlight. It has no Dock icon: it lives in the menu bar's status
+   area, at the top right (the tray menu above).
+4. The first notification makes macOS ask whether Administratum may send notifications: allow it.
+5. Optional: tray menu or Settings → **Start at login**.
+6. Start a Claude Code session: its scribe walks in through the gate.
 
-Install with Homebrew: `brew install --cask arylmera/administratum/administratum` (the app is not notarized; the
-cask clears the quarantine flag so Gatekeeper lets it open). Later versions install from Settings > System > Updates.
+**Updates:** the app updates itself from Settings → System → Updates, as on Windows. Because of that, a plain
+`brew upgrade` skips it; `brew upgrade --cask --greedy administratum` forces Homebrew's copy up to date.
+**Uninstall:** `brew uninstall --cask administratum`; add `--zap` to also delete its settings and Chronicon.
+
+### macOS without Homebrew
+
+1. From the [latest release](https://github.com/Arylmera/Administratum/releases/latest), download
+   `Administratum_<version>_aarch64.dmg` for Apple silicon (M1 and later; Apple menu → About This Mac shows the
+   chip) or `Administratum_<version>_x64.dmg` for an Intel Mac.
+2. Open the `.dmg` and drag **Administratum** into **Applications**.
+3. The app is not notarized, so the first launch is blocked. Either right-click it in Applications → **Open** →
+   **Open**, or, if macOS says the app "is damaged", clear the quarantine flag in Terminal:
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Administratum.app
+   ```
+   Later launches open normally, and later versions install from Settings → System → Updates.
+4. Continue from step 3 of the Homebrew steps above.
+
+**Uninstall:** quit it from the tray menu, then drag `Administratum.app` to the Bin.
+
+### What differs on macOS
 
 The widget has no Dock icon and no menu bar menu of its own: it lives in the menu bar's status area (the tray menu
 above). Its settings and Chronicon are in `~/Library/Application Support/com.arylmera.administratum`. Differences
@@ -209,7 +251,7 @@ Watch the hall from a tablet or phone on the same network, in its browser:
 
 1. Settings > Remote view > **Serve on the local network** (off by default; port 7770).
 2. Windows: **Allow this port** adds the Windows Firewall rule (Windows asks for administrator permission). macOS:
-   see [macOS](#macos).
+   see [macOS](#what-differs-on-macos).
 3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
    the link is then remembered in a cookie.
 
@@ -310,7 +352,7 @@ or stopped on a usage limit, with no transcript written, for 5 minutes straight,
 header, or a paired device in [Remote view](#remote-view); an optional deadline (Settings > Petitions) forces the
 countdown at a set time even if a session is still busy. While armed, a world-specific Watchman patrols the hall;
 once no session can progress, he rings his signal and a 120 s countdown starts, cancellable from the same places.
-No session is ever closed: if the countdown reaches zero, the computer shuts down (on macOS, see [macOS](#macos)), and the next morning you resume each
+No session is ever closed: if the countdown reaches zero, the computer shuts down (on macOS, see [macOS](#what-differs-on-macos)), and the next morning you resume each
 session from its transcript (e.g. `claude --resume`) to pick up where it left off. Arming does not persist across an app restart.
 
 ### Keyboard and panning
