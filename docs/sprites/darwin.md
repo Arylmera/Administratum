@@ -46,11 +46,11 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="watch-down"></a>`WATCH.down` | 16×18 | The Watchman, walking down with his light, 3 frames. Source: `ui/art/watch.png` | <img src="darwin/WATCH.down.png" height="144"> |
-| <a id="watch-up"></a>`WATCH.up` | 16×18 | The Watchman, walking up with his light, 3 frames. Source: `ui/art/watch.png` | <img src="darwin/WATCH.up.png" height="144"> |
-| <a id="watch-right"></a>`WATCH.right` | 16×18 | The Watchman, walking right with his light, 3 frames. Source: `ui/art/watch.png` | <img src="darwin/WATCH.right.png" height="144"> |
-| <a id="watch-left"></a>`WATCH.left` | 16×18 | The Watchman, walking left with his light, 3 frames. Source: `ui/art/watch.png` | <img src="darwin/WATCH.left.png" height="144"> |
-| <a id="watch-ring"></a>`WATCH.ring` | 16×18 | The Watchman: his signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle). Source: `ui/art/watch.png` | <img src="darwin/WATCH.ring.png" height="144"> |
+| <a id="watch-down"></a>`WATCH.down` | 16×18 | The Watchman, walking down with his light, 3 frames. Source: `ui/art/darwin/watch.png` | <img src="darwin/WATCH.down.png" height="144"> |
+| <a id="watch-up"></a>`WATCH.up` | 16×18 | The Watchman, walking up with his light, 3 frames. Source: `ui/art/darwin/watch.png` | <img src="darwin/WATCH.up.png" height="144"> |
+| <a id="watch-right"></a>`WATCH.right` | 16×18 | The Watchman, walking right with his light, 3 frames. Source: `ui/art/darwin/watch.png` | <img src="darwin/WATCH.right.png" height="144"> |
+| <a id="watch-left"></a>`WATCH.left` | 16×18 | The Watchman, walking left with his light, 3 frames. Source: `ui/art/darwin/watch.png` | <img src="darwin/WATCH.left.png" height="144"> |
+| <a id="watch-ring"></a>`WATCH.ring` | 16×18 | The Watchman: his signal pose (bell, walkie-talkie, wrist panel, hourglass or whistle). Source: `ui/art/darwin/watch.png` | <img src="darwin/WATCH.ring.png" height="144"> |
 
 ## Magos (on the throne)
 
@@ -63,26 +63,25 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="scribe39-e"></a>`SCRIBE39.E` | 16×17 | SCRIBE39, 39° view, walking E, 3 frames. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.E.png" height="136"> |
-| <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.W.png" height="136"> |
-| <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.S.png" height="136"> |
-| <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.N.png" height="136"> |
-| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.arm.png" height="64"> |
-| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.armL.png" height="64"> |
-| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/scribe39.png` | <img src="darwin/SCRIBE39.scroll.png" height="56"> |
-| <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/adept39.png` | <img src="darwin/ADEPT39.E.png" height="112"> |
-| <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="darwin/ADEPT39.W.png" height="112"> |
-| <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/adept39.png` | <img src="darwin/ADEPT39.S.png" height="112"> |
-| <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/adept39.png` | <img src="darwin/ADEPT39.N.png" height="112"> |
-| <a id="adept39-kinds"></a>`ADEPT39.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing S, then E, then N, then W. Source: `ui/art/adept39.png` | <img src="darwin/ADEPT39.kinds.png" height="112"> |
-| <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/magos39.png` | <img src="darwin/MAGOS39.body.png" height="160"> |
-| <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/magos39.png` | <img src="darwin/MAGOS39.arm.png" height="160"> |
-| <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/skull39.png` | <img src="darwin/SKULL39.skull.png" height="80"> |
-| <a id="watch39-e"></a>`WATCH39.E` | 16×18 | WATCH39, 39° view, walking E, 3 frames. Source: `ui/art/watch39.png` | <img src="darwin/WATCH39.E.png" height="144"> |
-| <a id="watch39-w"></a>`WATCH39.W` | 16×18 | WATCH39, 39° view, walking W, 3 frames. Source: `ui/art/watch39.png` | <img src="darwin/WATCH39.W.png" height="144"> |
-| <a id="watch39-s"></a>`WATCH39.S` | 16×18 | WATCH39, 39° view, walking S, 3 frames. Source: `ui/art/watch39.png` | <img src="darwin/WATCH39.S.png" height="144"> |
-| <a id="watch39-n"></a>`WATCH39.N` | 16×18 | WATCH39, 39° view, walking N, 3 frames. Source: `ui/art/watch39.png` | <img src="darwin/WATCH39.N.png" height="144"> |
-| <a id="watch39-ring"></a>`WATCH39.ring` | 16×18 | WATCH39, ring. Source: `ui/art/watch39.png` | <img src="darwin/WATCH39.ring.png" height="144"> |
+| <a id="scribe39-e"></a>`SCRIBE39.E` | 16×17 | SCRIBE39, 39° view, walking E, 3 frames. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.E.png" height="136"> |
+| <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.W.png" height="136"> |
+| <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.S.png" height="136"> |
+| <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.N.png" height="136"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.armL.png" height="64"> |
+| <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/darwin/scribe39.png` | <img src="darwin/SCRIBE39.scroll.png" height="56"> |
+| <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/darwin/adept39.png` | <img src="darwin/ADEPT39.E.png" height="112"> |
+| <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/darwin/adept39.png` | <img src="darwin/ADEPT39.W.png" height="112"> |
+| <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/darwin/adept39.png` | <img src="darwin/ADEPT39.S.png" height="112"> |
+| <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/darwin/adept39.png` | <img src="darwin/ADEPT39.N.png" height="112"> |
+| <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/darwin/magos39.png` | <img src="darwin/MAGOS39.body.png" height="160"> |
+| <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/darwin/magos39.png` | <img src="darwin/MAGOS39.arm.png" height="160"> |
+| <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/darwin/skull39.png` | <img src="darwin/SKULL39.skull.png" height="80"> |
+| <a id="watch39-e"></a>`WATCH39.E` | 16×18 | WATCH39, 39° view, walking E, 3 frames. Source: `ui/art/darwin/watch39.png` | <img src="darwin/WATCH39.E.png" height="144"> |
+| <a id="watch39-w"></a>`WATCH39.W` | 16×18 | WATCH39, 39° view, walking W, 3 frames. Source: `ui/art/darwin/watch39.png` | <img src="darwin/WATCH39.W.png" height="144"> |
+| <a id="watch39-s"></a>`WATCH39.S` | 16×18 | WATCH39, 39° view, walking S, 3 frames. Source: `ui/art/darwin/watch39.png` | <img src="darwin/WATCH39.S.png" height="144"> |
+| <a id="watch39-n"></a>`WATCH39.N` | 16×18 | WATCH39, 39° view, walking N, 3 frames. Source: `ui/art/darwin/watch39.png` | <img src="darwin/WATCH39.N.png" height="144"> |
+| <a id="watch39-ring"></a>`WATCH39.ring` | 16×18 | WATCH39, ring. Source: `ui/art/darwin/watch39.png` | <img src="darwin/WATCH39.ring.png" height="144"> |
 
 ## Props and furniture
 
@@ -135,14 +134,14 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/darwin/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_SEAL.png" height="60"> |
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/darwin/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_TAG.png" height="60"> |
 | <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/darwin/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_STAMP.png" height="48"> |
-| <a id="breakout_floor"></a>`BREAKOUT_FLOOR` | 8×8 | Break-out room floor tile (temp-folder sessions). Source: `ui/art/breakout.png`, drawn by scene.js | <img src="darwin/BREAKOUT_FLOOR.png" height="64"> |
-| <a id="breakout_rail"></a>`BREAKOUT_RAIL` | 8×5 | Break-out room rail, front and back edges. Source: `ui/art/breakout.png`, drawn by scene39.js | <img src="darwin/BREAKOUT_RAIL.png" height="40"> |
-| <a id="breakout_side"></a>`BREAKOUT_SIDE` | 2×8 | Break-out room side rail, seen from above. Source: `ui/art/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_SIDE.png" height="64"> |
-| <a id="breakout_post"></a>`BREAKOUT_POST` | 3×7 | Break-out room post: corners and beside each gate. Source: `ui/art/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_POST.png" height="56"> |
-| <a id="breakout_gate"></a>`BREAKOUT_GATE` | 2×8 | Break-out room gate, closed, in the side. Source: `ui/art/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_GATE.png" height="64"> |
-| <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_GATE_OPEN.png" height="40"> |
-| <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/breakout.png`, drawn by scene.js, scene39.js | <img src="darwin/BREAKOUT_GATE_FRONT.png" height="80"> |
-| <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/breakout.png`, drawn by scene.js | <img src="darwin/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
+| <a id="breakout_floor"></a>`BREAKOUT_FLOOR` | 8×8 | Break-out room floor tile (temp-folder sessions). Source: `ui/art/darwin/breakout.png`, drawn by scene.js | <img src="darwin/BREAKOUT_FLOOR.png" height="64"> |
+| <a id="breakout_rail"></a>`BREAKOUT_RAIL` | 8×5 | Break-out room rail, front and back edges. Source: `ui/art/darwin/breakout.png`, drawn by scene39.js | <img src="darwin/BREAKOUT_RAIL.png" height="40"> |
+| <a id="breakout_side"></a>`BREAKOUT_SIDE` | 2×8 | Break-out room side rail, seen from above. Source: `ui/art/darwin/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_SIDE.png" height="64"> |
+| <a id="breakout_post"></a>`BREAKOUT_POST` | 3×7 | Break-out room post: corners and beside each gate. Source: `ui/art/darwin/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_POST.png" height="56"> |
+| <a id="breakout_gate"></a>`BREAKOUT_GATE` | 2×8 | Break-out room gate, closed, in the side. Source: `ui/art/darwin/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_GATE.png" height="64"> |
+| <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/darwin/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_GATE_OPEN.png" height="40"> |
+| <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/darwin/breakout.png`, drawn by scene.js, scene39.js | <img src="darwin/BREAKOUT_GATE_FRONT.png" height="80"> |
+| <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/darwin/breakout.png`, drawn by scene.js | <img src="darwin/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/refectorium.png`, drawn by actors.js | <img src="darwin/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/darwin/workstations.png`, drawn by (not referenced by name) | <img src="darwin/SHELL_COG.png" height="48"> |
 
@@ -187,22 +186,24 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="faces-desk"></a>`FACES.DESK` | 5×12 | DESK, 39° view only: side, top, slate side, slate top, paper side, paper top, dish top, candle top, candle 2 top. Source: `ui/art/faces.png` | <img src="darwin/FACES.DESK.png" height="96"> |
-| <a id="faces-lectern"></a>`FACES.LECTERN` | 5×12 | LECTERN, 39° view only: side, top, slate side, slate top, dish top, candle top, candle 2 top. Source: `ui/art/faces.png` | <img src="darwin/FACES.LECTERN.png" height="96"> |
-| <a id="faces-console"></a>`FACES.CONSOLE` | 3×4 | CONSOLE, 39° view only: side, top, monitor side, monitor top, monitor screen wall, monitor screen floor. Source: `ui/art/faces.png` | <img src="darwin/FACES.CONSOLE.png" height="48"> |
-| <a id="faces-shelf"></a>`FACES.SHELF` | 2.5×21 | SHELF, 39° view only: side, top. Source: `ui/art/faces.png` | <img src="darwin/FACES.SHELF.png" height="160"> |
-| <a id="faces-cogitator"></a>`FACES.COGITATOR` | 4.5×41 | COGITATOR, 39° view only: side, top, screen wall, screen floor, wave wall, wave floor, bars wall, bars floor, vents L side, vents L top, vents R side, vents R top, cog rim, knob top, gauge 1 rim, gauge 2 rim, gauge 3 rim, gauge 4 rim, dial 1 rim, dial 2 rim, dial 3 rim, dial 4 rim. Source: `ui/art/faces.png` | <img src="darwin/FACES.COGITATOR.png" height="160"> |
-| <a id="faces-crate"></a>`FACES.CRATE` | 5×10 | CRATE, 39° view only: side, top, tins side, tins top. Source: `ui/art/faces.png` | <img src="darwin/FACES.CRATE.png" height="80"> |
-| <a id="faces-table"></a>`FACES.TABLE` | 1.5×6 | TABLE, 39° view only: leg 1 front, leg 2 front, leg 3 front, leg 4 front, leg 5 front, leg 6 front, board front, board side, board top, mug 1 front, mug 1 top, handle 1 front, cup front, cup top, mug 2 front, mug 2 top, handle 2 front. Source: `ui/art/faces.png` | <img src="darwin/FACES.TABLE.png" height="48"> |
-| <a id="faces-bench"></a>`FACES.BENCH` | 1.5×3.5 | BENCH, 39° view only: leg 1 front, leg 2 front, leg 3 front, leg 4 front, leg 5 front, leg 6 front, seat front, seat side, seat top. Source: `ui/art/faces.png` | <img src="darwin/FACES.BENCH.png" height="28"> |
-| <a id="faces-recaff"></a>`FACES.RECAFF` | 3.5×18 | RECAFF, 39° view only: side, top, screen wall, screen floor, alcove wall, alcove floor. Source: `ui/art/faces.png` | <img src="darwin/FACES.RECAFF.png" height="144"> |
-| <a id="faces-lord_desk"></a>`FACES.LORD_DESK` | 5.5×7.5 | LORD_DESK, 39° view only: side, top, inkwell top. Source: `ui/art/faces.png` | <img src="darwin/FACES.LORD_DESK.png" height="60"> |
-| <a id="faces-throne"></a>`FACES.THRONE` | 5×6 | THRONE, 39° view only: side, top, back side, back top, arm L side, arm L top, arm R side, arm R top, crest rim. Source: `ui/art/faces.png` | <img src="darwin/FACES.THRONE.png" height="80"> |
-| <a id="faces-cog_mech"></a>`FACES.COG_MECH` | 18×18 | COG_MECH, 39° view only: cog rim. Source: `ui/art/faces.png` | <img src="darwin/FACES.COG_MECH.png" height="144"> |
-| <a id="faces-seal"></a>`FACES.SEAL` | 5×4 | SEAL, 39° view only: wax rim. Source: `ui/art/faces.png` | <img src="darwin/FACES.SEAL.png" height="32"> |
-| <a id="faces-gauge"></a>`FACES.GAUGE` | 6×6 | GAUGE, 39° view only: dial rim. Source: `ui/art/faces.png` | <img src="darwin/FACES.GAUGE.png" height="48"> |
-| <a id="faces-censer"></a>`FACES.CENSER` | 5×2.5 | CENSER, 39° view only: bowl top. Source: `ui/art/faces.png` | <img src="darwin/FACES.CENSER.png" height="20"> |
-| <a id="faces-candles"></a>`FACES.CANDLES` | 12×5 | CANDLES, 39° view only: dish top, candle 1 top, candle 2 top, candle 3 top. Source: `ui/art/faces.png` | <img src="darwin/FACES.CANDLES.png" height="40"> |
-| <a id="faces-brazier"></a>`FACES.BRAZIER` | 7×3 | BRAZIER, 39° view only: foot top, bowl top. Source: `ui/art/faces.png` | <img src="darwin/FACES.BRAZIER.png" height="24"> |
-| <a id="faces-books"></a>`FACES.BOOKS` | 2.5×2.5 | BOOKS, 39° view only: book 1 side, book 1 top, book 2 side, book 2 top, book 3 side, book 3 top, book 4 side, book 4 top. Source: `ui/art/faces.png` | <img src="darwin/FACES.BOOKS.png" height="24"> |
-| <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 3×4.5 | PAPER_STACK, 39° view only: ream 1 side, ream 1 top, ream 2 side, ream 2 top, ream 3 side, ream 3 top. Source: `ui/art/faces.png` | <img src="darwin/FACES.PAPER_STACK.png" height="40"> |
+| <a id="faces-desk"></a>`FACES.DESK` | 5×9 | DESK, 39° view only: side, top, typewriter front, typewriter side, typewriter top, page side, inkwell front, inkwell top, pages front, pages side, pages top, lamp font top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.DESK.png" height="72"> |
+| <a id="faces-lectern"></a>`FACES.LECTERN` | 5×10 | LECTERN, 39° view only: side, top, book rest side, book rest top, holder front, holder top, candle top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.LECTERN.png" height="80"> |
+| <a id="faces-console"></a>`FACES.CONSOLE` | 11×4 | CONSOLE, 39° view only: crate front, crate side, crate top, typewriter front, typewriter side, typewriter top, page front. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.CONSOLE.png" height="40"> |
+| <a id="faces-shelf"></a>`FACES.SHELF` | 2.5×21 | SHELF, 39° view only: side, top, bay 1 wall, bay 1 floor, bay 2 wall, bay 2 floor. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.SHELF.png" height="160"> |
+| <a id="faces-cogitator"></a>`FACES.COGITATOR` | 4.5×43 | COGITATOR, 39° view only: side, top, screen wall, screen floor, wave wall, wave floor, bars wall, bars floor, cornice side, cornice top, cartouche side, cartouche top, lamp L top, lamp R top, ammonite 1 rim, ammonite 2 rim, ammonite 3 rim, ammonite 4 rim. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.COGITATOR.png" height="160"> |
+| <a id="faces-crate"></a>`FACES.CRATE` | 4.5×9.5 | CRATE, 39° view only: side, top, straw side, straw top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.CRATE.png" height="76"> |
+| <a id="faces-table"></a>`FACES.TABLE` | 1.5×6 | TABLE, 39° view only: leg 1 front, leg 2 front, leg 3 front, leg 4 front, leg 5 front, leg 6 front, board front, board side, board top, runner front, cup 1 top, teapot top, cup 2 top, cake stand top, cup 3 top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.TABLE.png" height="48"> |
+| <a id="faces-bench"></a>`FACES.BENCH` | 1.5×1 | BENCH, 39° view only: leg 1 front, leg 2 front, leg 3 front, leg 4 front, seat front, seat side, seat top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.BENCH.png" height="28"> |
+| <a id="faces-recaff"></a>`FACES.RECAFF` | 5×3 | RECAFF, 39° view only: side, top, lid top, bowl top, bananas side, bananas top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.RECAFF.png" height="40"> |
+| <a id="faces-lord_desk"></a>`FACES.LORD_DESK` | 5.5×7.5 | LORD_DESK, 39° view only: side, top, kneehole wall, kneehole floor, deed box side, deed box top, inkwell top, microscope base side, microscope base top, microscope top, jar stand side, jar stand top, bell jar top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.LORD_DESK.png" height="60"> |
+| <a id="faces-throne"></a>`FACES.THRONE` | 5×4.5 | THRONE, 39° view only: side, top, back front, back side, back top, seat side, seat top, arm L side, arm L top, arm R side, arm R top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.THRONE.png" height="100"> |
+| <a id="faces-cog_mech"></a>`FACES.COG_MECH` | 20×18 | COG_MECH, 39° view only: frame rim. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.COG_MECH.png" height="144"> |
+| <a id="faces-seal"></a>`FACES.SEAL` | 6×5 | SEAL, 39° view only: wax rim. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.SEAL.png" height="40"> |
+| <a id="faces-gauge"></a>`FACES.GAUGE` | 6×6 | GAUGE, 39° view only: dial rim. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.GAUGE.png" height="48"> |
+| <a id="faces-censer"></a>`FACES.CENSER` | 5×2.5 | CENSER, 39° view only: globe top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.CENSER.png" height="20"> |
+| <a id="faces-candles"></a>`FACES.CANDLES` | 2.5×2 | CANDLES, 39° view only: stand side, stand top, font top, shade top, chimney top, book 1 side, book 1 top, book 2 side, book 2 top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.CANDLES.png" height="24"> |
+| <a id="faces-brazier"></a>`FACES.BRAZIER` | 3.5×1 | BRAZIER, 39° view only: hearth side, hearth top, surround side, surround firebox wall, surround firebox floor, fender side, fender top, mantel side, mantel top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.BRAZIER.png" height="64"> |
+| <a id="faces-gate"></a>`FACES.GATE` | 6.5×1.5 | GATE, 39° view only: sill side, sill top, step side, step top, pier L side, pier L top, pier R side, pier R top, lintel side, lintel top, pediment side, pediment top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.GATE.png" height="160"> |
+| <a id="faces-books"></a>`FACES.BOOKS` | 3×3 | BOOKS, 39° view only: volume 1 side, volume 1 top, volume 2 side, volume 2 top, volume 3 side, volume 3 top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.BOOKS.png" height="24"> |
+| <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 2.5×1.5 | PAPER_STACK, 39° view only: sheaf 1 side, sheaf 1 top, sheaf 2 side, sheaf 2 top, sheaf 3 side, sheaf 3 top, sheaf 4 side, sheaf 4 top, sheaf 5 side, sheaf 5 top, sheaf 6 side, sheaf 6 top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.PAPER_STACK.png" height="28"> |
+| <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 5×2.5 | SCROLL_PILE, 39° view only: ball 1 top, ball 2 top, ball 3 top, ball 4 top, ball 5 top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.SCROLL_PILE.png" height="28"> |

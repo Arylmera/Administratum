@@ -74,10 +74,12 @@ viewer; the app in Flat view (`tools/preview.html?theme=darwin&n=12`).
 Same designs in the 39° sheets; `faces.*` gives the 39° sides and tops of every object the world redraws (follow
 `ui/art/vault/faces.json` for which objects). Check: `preview.html?theme=darwin&n=12&view=39`, and the theme shows
 in the picker (39° completeness, `checkComplete39`).
+- [x] scribe39, adept39, magos39, skull39, faces drawn; faces rebuild every flat frame (`ui/faces.test.mjs`), all five 39° families complete; darwin in `WORLDS` and the picker.
 ### Task 9: `breakout`, `watch`, `watch39` — Blocked by: 1
 `tools/breakout_art/darwin.mjs` (the Monkey House: straw floor, bamboo fence, banana-crate gate) and
 `tools/watch_art/darwin.mjs` (museum night keeper: peaked cap, long coat, lantern on the `light` anchor, keys;
 ring = he rings a hand bell), each modelled on its `vault.mjs` sibling; run both generators.
+- [x] both generators run (`node tools/breakout_art.mjs darwin`, `node tools/watch_art.mjs darwin`); breakout, watch, watch39 registered.
 
 ## Milestone 4: ship
 
@@ -91,4 +93,4 @@ ring = he rings a hand bell), each modelled on its `vault.mjs` sibling; run both
 Ruling (Task 1 spike): a transparent rank colour does not work: `rgba(0,0,0,0)` as a rank slot renders as an opaque
 near-black pixel in the gallery (`tools/png_write.mjs` `rgba()` parses only `#rrggbb`), and in the app the canvas
 skips it, a hole through the face on a one-layer sprite. Spectacles dropped (decision 10).
-Done: 1-7 (3-7 art uncommitted, awaiting the parent's commit). Current: Milestone 2 check. Next: 8, 9. Blockers: none. Irreversible: pushes to main (authorised by the repo's commit-and-push law).
+Done: 1-9 (8-9 uncommitted, awaiting the parent's commit; faces.test was red after 3-7 until darwin's faces landed). Current: none. Next: 10. Blockers: none. Irreversible: pushes to main (authorised by the repo's commit-and-push law).
