@@ -39,10 +39,19 @@ pub enum Call {
     ChronicleDays,
     SettingsLoad,
     PeekPetition(String),
-    AnswerPetition { handle: String, choice: String },
+    AnswerPetition {
+        handle: String,
+        choice: String,
+    },
     /// An OpenCode permission request on a session's card (opencode::answer_opencode).
-    AnswerOpenCode { session: String, request: String, choice: String },
-    Vigil { arm: bool },
+    AnswerOpenCode {
+        session: String,
+        request: String,
+        choice: String,
+    },
+    Vigil {
+        arm: bool,
+    },
 }
 
 /// What the server needs from the app: its commands, and its embedded UI files (bytes, mime).

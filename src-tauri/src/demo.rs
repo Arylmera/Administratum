@@ -70,7 +70,8 @@ pub fn roster(t: u64) -> Vec<Session> {
         v[1].question = Some("Shall I rename the playlists to match the new rooms, or keep the old names as aliases?".into());
     }
     // An OpenCode session (no Orca handle, no claude.ai link): it works, then asks a permission.
-    let mut brave = scribe("brave-tiger", "Administratum", if (35..50).contains(&phase) { "waiting" } else { "busy" }, Some("permission"), epoch + 35_000, "“wire the OpenCode source”", 180_000, SONNET);
+    let mut brave =
+        scribe("brave-tiger", "Administratum", if (35..50).contains(&phase) { "waiting" } else { "busy" }, Some("permission"), epoch + 35_000, "“wire the OpenCode source”", 180_000, SONNET);
     brave.source = Agent::OpenCode;
     brave.web = None;
     if brave.status == "waiting" {

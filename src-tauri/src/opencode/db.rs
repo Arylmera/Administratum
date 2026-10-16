@@ -183,7 +183,11 @@ pub(super) mod tests {
         let c = db();
         add_session(&c, "ses_a", None, "A", (Some(NOW), None, None));
         assert_eq!(last_assistant(&c, "ses_a").unwrap(), None);
-        let usage = |input, read, write| format!(r#"{{"model":{{"id":"claude-opus-5-5","providerID":"anthropic"}},"content":[],"tokens":{{"input":{input},"output":900,"reasoning":50,"cache":{{"read":{read},"write":{write}}}}}}}"#);
+        let usage = |input, read, write| {
+            format!(
+                r#"{{"model":{{"id":"claude-opus-5-5","providerID":"anthropic"}},"content":[],"tokens":{{"input":{input},"output":900,"reasoning":50,"cache":{{"read":{read},"write":{write}}}}}}}"#
+            )
+        };
         add_message(&c, "ses_a", 1, "assistant", &usage(1, 2, 3));
         add_message(&c, "ses_a", 2, "assistant", &usage(10, 20_000, 300));
         add_message(&c, "ses_a", 3, "assistant", r#"{"model":{"id":"claude-opus-5-5","providerID":"anthropic"},"content":[]}"#); // still streaming

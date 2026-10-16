@@ -382,13 +382,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let reg = dir.join("service.json");
         std::fs::write(&reg, format!(r#"{{"id":"svc","version":"2.0.29","url":"http://127.0.0.1:{port}","pid":1,"password":"pw-zz9"}}"#)).unwrap();
-        let card = Session {
-            status: "waiting".into(),
-            source: Agent::OpenCode,
-            opencode_request: Some("per_7".into()),
-            opencode_asker: Some("ses_kid".into()),
-            ..registry::tests_session("ses_run")
-        };
+        let card = Session { status: "waiting".into(), source: Agent::OpenCode, opencode_request: Some("per_7".into()), opencode_asker: Some("ses_kid".into()), ..registry::tests_session("ses_run") };
         let roster = [card.clone()];
         answer_at(&reg, &roster, "ses_run", "per_7", "no").unwrap();
         assert_eq!(*log.lock().unwrap(), [r#"POST /api/session/ses_kid/permission/per_7/reply {"decision":"reject"}"#], "the helper's request: its own session");

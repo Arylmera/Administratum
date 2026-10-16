@@ -544,7 +544,12 @@ fn claude_lines(st: &mut OcCursor, kind: &str, d: &Value) -> Vec<String> {
             st.open = Some(created);
             vec![json!({"type": "user", "timestamp": iso_of(created), "message": {"content": d["text"].as_str().unwrap_or("")}}).to_string()]
         }
-        "idle" => st.open.take().map(|start| json!({"type": "system", "subtype": "turn_duration", "durationMs": created.saturating_sub(start).max(0), "timestamp": iso_of(created)}).to_string()).into_iter().collect(),
+        "idle" => st
+            .open
+            .take()
+            .map(|start| json!({"type": "system", "subtype": "turn_duration", "durationMs": created.saturating_sub(start).max(0), "timestamp": iso_of(created)}).to_string())
+            .into_iter()
+            .collect(),
         "assistant" => {
             let ts = iso_of(ms_of(&d["time"]["completed"]).unwrap_or(created));
             let (mut uses, mut results) = (vec![], vec![]);
@@ -1523,7 +1528,8 @@ mod tests {
         let ((ev, usage, _), next) = oc_feed(&mut st, &[user, partial], 0);
         assert_eq!((ev.len(), usage.len(), next), (0, 0, 1), "the row being written is not consumed");
         // the same seq rewritten: completed, with its usage and the finished tool
-        let done: Msg = (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(9_000), vec![oc_shell("t", "cargo test", "test result: ok. 1 passed; 0 failed;", 0)], Some(oc_tokens(3, 4, 0, 0, 0))));
+        let done: Msg =
+            (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(9_000), vec![oc_shell("t", "cargo test", "test result: ok. 1 passed; 0 failed;", 0)], Some(oc_tokens(3, 4, 0, 0, 0))));
         let ((ev, usage, _), next) = oc_feed(&mut st, &[done], next);
         assert_eq!((kinds(&ev), usage.len(), next), (vec![("tests-pass", "cargo test")], 1, 2));
         assert_eq!(usage[0].tokens.total(), 7);
