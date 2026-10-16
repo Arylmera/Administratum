@@ -152,7 +152,7 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
 - A theme belongs to a **world** (Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout). Settings picks the world, then
   one of its themes as the **style**.
 - A theme with its own art lists the families it redraws in its `art` field; the files sit in `ui/art/<theme>/`
-  (`cyber`, `orbital`, `tower`, `vault`). Every other family falls back to the base art.
+  (`cyber`, `orbital`, `tower`, `vault`, `darwin`). Every other family falls back to the base art.
 
 **Live viewer.** Every sprite of every theme side by side, read straight from `ui/art/`, walk cycles animated,
 zoom, pixel grid, backgrounds and a filter:
@@ -176,7 +176,7 @@ sprite over the contact shadow it gets in the hall.
 ```sh
 node ui/art.test.mjs && node ui/sprites.test.mjs
 node tools/sprite_sheet.mjs                     # regenerates docs/sprites/
-node tools/sprite_sheet.mjs --theme cyber       # and orbital, tower, vault: each theme with its own art
+node tools/sprite_sheet.mjs --theme cyber       # and orbital, tower, vault, darwin: each theme with its own art
 ```
 
 `docs/sprites/` is the committed gallery used to discuss sprites one by one: one GitHub issue per family (Sprite

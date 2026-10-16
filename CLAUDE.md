@@ -26,7 +26,7 @@ Where things live:
 - Sprite list shared by the viewer and the gallery: `tools/sprite_catalog.mjs`.
 - To read a sprite as text rows: `node -e "import('./ui/sprites.js').then(m => console.log(m.MAPS.SHELF.join('\n')))"`.
 - After an art change: run `node ui/art.test.mjs` and `node ui/sprites.test.mjs`, then regenerate the committed
-  galleries with `node tools/sprite_sheet.mjs` (and `--theme <id>` for each theme with its own art: cyber, orbital, tower, vault).
+  galleries with `node tools/sprite_sheet.mjs` (and `--theme <id>` for each theme with its own art: cyber, orbital, tower, vault, darwin).
 - Discussion: one GitHub issue per family (Sprite board #3); design note
   `docs/superpowers/specs/2026-10-06-sprite-themes-design.md`.
 

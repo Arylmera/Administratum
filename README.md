@@ -14,8 +14,8 @@
 
 A Windows and macOS desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
 office, and calls you when one of them needs an answer. Pick your world: a tech-priest scribe in a Warhammer 40k
-scriptorium, a netrunner in a cyberpunk den, crew on an orbital station, an apprentice in a wizard's tower or a
-dweller in a Fallout vault ([Worlds and themes](#worlds-and-themes)).
+scriptorium, a netrunner in a cyberpunk den, crew on an orbital station, an apprentice in a wizard's tower, a
+dweller in a Fallout vault or a monkey at a typewriter in Darwin's study ([Worlds and themes](#worlds-and-themes)).
 
 ![The hall: departments of scribes at their desks, adepts at their consoles, a petition queued before the Magos](docs/img/hall.png)
 
@@ -162,6 +162,12 @@ door and a Nuka-Cola machine. Style: <i>Vault 111</i>.</td>
 <code>tools/sprites.html</code> in a local checkout (one column per style). The remote view keeps its own theme, so
 a phone can show a different world than the PC.</td>
 </tr>
+<tr>
+<td><img src="docs/img/world-darwin.png" alt="Darwin: monkeys at their typewriters in a Victorian naturalist's study"><br>
+<b>Darwin</b>: monkeys at their typewriters (the infinite monkey theorem), capuchin subagents, the gorilla Professor
+with his magnifying glass, specimen cabinets and a Galapagos finch. Style: <i>Darwin</i>.</td>
+<td></td>
+</tr>
 </table>
 
 ---
@@ -243,7 +249,7 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
 
 ![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
-Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111)
+Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111, Darwin)
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
 banners in the Warhammer themes, each other world its own design), in both views. The remote view keeps its own View.
 

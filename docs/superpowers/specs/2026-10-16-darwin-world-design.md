@@ -1,6 +1,6 @@
 # A new world: Darwin (the infinite monkeys)
 
-Date: 2026-10-16. Status: design approved, not started.
+Date: 2026-10-16. Status: done (shipped with its own art, Flat and 39°).
 Asked for by colleagues. Builds on `2026-10-06-three-worlds-design.md` (one world = one theme entry + its own art,
 no engine change) and on the later additions every world now carries (39° view, break-out room, Night Vigil).
 
