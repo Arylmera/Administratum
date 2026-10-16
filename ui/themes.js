@@ -433,3 +433,79 @@ defineTheme({
     toast: { petition: 'Requisition from {name}', stale: 'Requisition still waiting: {name}', limit: '{name} off shift until {time}', limitMany: '{n} dwellers off shift until {time}' },
   },
 });
+
+// Darwin, a Victorian naturalist's study, not 40k: walnut and mahogany panelling, green baize, brass, ivory paper,
+// ink, bottle-green specimen glass, gas-lamp amber; monkeys at typewriters (the infinite monkey theorem).
+// Ranks are colour only: fur in r R d (ginger orang-utan, brown chimpanzee, pale young monkey), waistcoat t T,
+// watch chain z (no spectacles: a transparent rank colour does not work, decision 10).
+defineTheme({
+  id: 'darwin', world: 'darwin', name: 'Darwin', art: ['scribe', 'adept'], // ui/art/darwin/: monkeys in shirt sleeves, waistcoat and neckerchief, long arms reaching for the keys; capuchins in a little fez hurrying with typed pages
+  px: {
+    k: '#120c08', e: '#1e140c', n: '#0c0806',
+    r: '#4a3020', R: '#6a4630', d: '#2a1a10', t: '#5a5e66', T: '#3a3e44', z: '#d8a83a', j: '#d8a83a', // chimpanzee fur, slate waistcoat, brass watch chain
+    g: '#c8963a', G: '#7a5418', h: '#f0c870', U: '#4a3010', // brass
+    m: '#3a3a3c', M: '#1e1e20', l: '#6a6a6e', V: '#141416', // black typewriter enamel
+    p: '#e8dcc0', P: '#b8a888', b: '#ddd0b0', B: '#a8987a', s: '#b89a70', ':': '#d8a888', ';': '#a07058', // ivory paper, pink-tan faces
+    q: '#d8c8a0', Q: '#9a8868', J: '#a8281e', I: '#e0b040', // capuchin cream, red fez with a gold tassel
+    w: '#5a3820', W: '#34200e', L: '#7a5232', u: '#24304a', v: '#2e4a2e', // walnut, green baize
+    c: '#5a9a5a', C: '#1a3a20', o: '#f0c060', O: '#fff4d0', f: '#f0a840', F: '#ffe8b0', x: '#8a2a1e', a: '#d83a20', // specimen glass, gas lamp
+    1: '#6a4428', 2: '#2a180c', 3: '#8a5a34', 4: '#4a2c18', 5: '#3e2414', 6: '#24140a', 0: '#1a0e06', A: '#100a06',
+    D: '#3a1e14', E: '#200e08', N: '#4a2418', S: '#2a1a10',
+    X: '#c8963a', Y: '#f0c870', Z: '#8a6420', i: '#4a3010', '!': '#6a1e18', '+': '#8a2a20',
+    '@': '#060404', $: '#1a0e08', '%': '#3a2010', '*': '#8a6420', '-': '#4a3010', '=': '#ffe8a0', '&': '#f0c870',
+    '(': '#a8281e', ')': '#e05a40', '[': '#5a1008', ']': '#2a1e14',
+  },
+  sash: ['#a8281e', '#2e6a3a', '#2a4a8a', '#d8a83a', '#7a3a7a', '#e8dcc0', '#d06a2a', '#3a8a8a'],
+  rank: {
+    high: { robe: { r: '#a04a18', R: '#d06a28', d: '#5a2408', t: '#2a2228', T: '#16121a', z: '#ffd870', j: '#ffd870', g: '#c8963a', G: '#7a5418' }, // orang-utan, black velvet waistcoat, gold chain
+      adept: { x: '#8a2a1e', b: '#ddd0b0', J: '#2a5a3a', I: '#ffd870' } },
+    novice: { robe: { r: '#8a7e68', R: '#a89c84', d: '#5a5040', t: '#8a7e68', T: '#5a5040', z: '#8a7e68', j: '#8a7e68', g: '#8a7e68', G: '#5a5040' }, // young monkey: no waistcoat, chain or buttons
+      adept: { x: '#8a2a1e', q: '#d8c8a0', Q: '#9a8868', b: '#ddd0b0', J: '#8a7e68', I: '#a89c84' } },
+  },
+  ink: {
+    coolant: '#c8963a', screenHot: '#fff4d0', screenDim: '#b8a888', screenMark: '#2a1e14', screenFlicker: 'rgba(40,30,16,.45)', screenOff: '#5a4a30',
+    cant: 'rgba(0,0,0,0)', grime: 'rgba(16,10,6,.25)', scratchSheen: 'rgba(255,240,220,.08)',
+    parchmentWarn: '#d09060',
+    smoke: '#c8c0b0', sparkSmoke: '#d0c8c0', steam: '#dcd4c8', alarmGlow: '#f0c870', beaconSweep: '#f0c870', searchlight: '#f0c060',
+    // the sash window: an English garden by day (blue sky, green lawn, sun); by night a moon over dark trees
+    windowDay: { u: '#8ab4d8', v: '#4a7a3a', g: '#fff0b0', h: '#fff0b0', x: '#8ab4d8' },
+    windowNight: { u: '#141a2a', v: '#0a120c', g: '#e8e4c8', h: '#141a2a', x: '#c8c8b0' },
+    backdrop: '#1a120c', backdropLit: '#2a1e14', backdropEdge: '#241810', backdropDark: '#0e0906', backdropSeam: '#140c08', backdropSeamLit: '#2a1c10',
+    backdropRivet: '#7a5418', overflowPlaque: '#a8987a',
+  },
+  light: { amber: 'rgba(240,168,64,.26)', green: 'rgba(90,154,90,.18)', red: 'rgba(216,58,32,.22)', lampOn: 'rgba(240,192,96,.5)',
+    glint: 'rgba(240,200,112,.6)', spark: 'rgba(255,232,160,.8)', night: '10,6,4', beam: '255,220,160' },
+  ui: {
+    '--bg': '#140e0a', '--bar': '#24180e', '--ink': '#e8dcc0', '--dim': '#9a8a70', '--light': '#f4ecd8', '--edge': '#3e2a18', '--btn': '#2a1c10',
+    '--copper': '#c8963a', '--outline': '#120c08', '--bone': '#ddd0b0', '--iron': '#3a3a3c', '--green': '#5a9a5a',
+    '--red': '#d83a20', '--pink': '#e8a088', '--blood': '#5a1008', '--glow': '#f0c060', '--wax': '#a8281e', '--wax-deep': '#3a0a06',
+    '--alarm': '#d83a20', '--flame': '#ffe8b0', '--label': '#1e140c', '--label-sel': '#34220e', '--label-btn': '#2a1c10', '--plaque': '#1a120c',
+    '--yes': '#5a9a5a', '--yes-deep': '#1a3a20',
+    // ivory typed pages over the walnut bar
+    '--card': '#e8dcc0', '--paper': '#efe4c8', '--paper-edge': '#b8a888', '--paper-hi': '#f8f0dc', '--paper-tab': '#ddd0b0', '--paper-q': '#e8dcbc',
+    '--paper-shade': '#b8a888', '--paper-line': '#8a7a5a', '--paper-ink': '#1e160e', '--paper-ink-2': '#3e3020', '--paper-ink-3': '#6a5a40',
+    '--paper-err': '#a8281e', '--leather': '#4a2418', '--leather-deep': '#24100a', '--chart-new': '#c8963a', '--chart-cache': '#5a9a5a',
+    '--rod-hi': '#f0c870', '--rod': '#c8963a', '--rod-lo': '#7a5418', '--rod-edge': '#4a3010', '--rod-cap': '#fff4d0',
+    // typewriter type for titles, green baize accent over the ivory page
+    '--display': "'VT323', monospace", '--paper-accent': '#2e4a2e',
+  },
+  text: {
+    watch: { name: 'Night Keeper', button: 'Night Vigil: the Night Keeper shuts the PC down once every session waits on you' },
+    subtitle: 'Darwin · The Study', motto: 'To be or not to be… eventually', breakout: 'Monkey House',
+    rank: { high: 'Orang-utan', standard: 'Chimpanzee', novice: 'Young monkey' },
+    status: { busy: 'Typing', shell: 'At the specimen cabinet', idle: 'Page done, awaiting input', waiting: 'Holding up a page',
+      background: 'Idle · capuchin on errands', napping: 'Idle · asleep on the typewriter' },
+    petitions: ['{n} query', '{n} queries'], petitioning: '{n} querying', petitionLabel: '{name}, query: {want}',
+    adeptOf: '{kind} · capuchin of {owner}', overflow: '+{n} in the monkey house', empty: 'No monkeys at the keys',
+    modes: { full: 'Daylight', candles: 'Gaslight' },
+    log: { title: 'Field notebook', open: 'Open the field notebook', close: 'Close the field notebook', silent: 'The field notebook is blank: no record could be read for this day.' },
+    tithe: { hint: 'Typed today: tokens and time at the keys', day: 'Typed today: {tokens} tokens, {time} at the keys' },
+    event: { commit: 'A page of Shakespeare', petition: 'Query', 'petition-answered': 'Query answered', compaction: 'Pages bound', limit: 'Out of bananas' },
+    prefs: { chime: 'Query bell', petitions: 'Queries', questions: 'A question at the end of a turn counts as a query',
+      stale: 'Query goes stale after', nap: 'Idle to a nap on the typewriter after', cog: 'Stay at the specimen cabinet for',
+      pauseHint: 'Near-zero CPU when unseen; queries still alert.',
+      cat: { hall: 'Study', petitions: 'Queries', scribes: 'Monkeys', system: 'System', remote: 'Remote access' } },
+    limitLabel: 'out of bananas · back at {time}', limitSealed: 'out of bananas',
+    toast: { petition: 'Query from {name}', stale: 'Query still waiting: {name}', limit: '{name} out of bananas until {time}', limitMany: '{n} monkeys out of bananas until {time}' },
+  },
+});

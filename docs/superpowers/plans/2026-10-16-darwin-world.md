@@ -83,4 +83,7 @@ ring = he rings a hand bell), each modelled on its `vault.mjs` sibling; run both
 - [ ] Spec status `done`; all tests `ok`; rebuild and silently reinstall the NSIS build; check the theme in the app.
 
 ## Worklog
+Ruling (Task 1 spike): a transparent rank colour does not work: `rgba(0,0,0,0)` as a rank slot renders as an opaque
+near-black pixel in the gallery (`tools/png_write.mjs` `rgba()` parses only `#rrggbb`), and in the app the canvas
+skips it, a hole through the face on a one-layer sprite. Spectacles dropped (decision 10).
 Done: none. Current: 1. Next: 2. Blockers: none. Irreversible: pushes to main (authorised by the repo's commit-and-push law).

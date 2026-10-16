@@ -1,10 +1,10 @@
-// Writes a world's Watchman sheets (Night Vigil): node tools/watch_art.mjs <base|cyber|orbital|tower|vault>. Frames come
+// Writes a world's Watchman sheets (Night Vigil): node tools/watch_art.mjs <base|cyber|orbital|tower|vault|darwin>. Frames come
 // from tools/watch_art/<world>.mjs (default export: () => { flat: { 'up 0': rows, ..., ring }, iso: { 'E 0': rows, ...,
 // ring }, flatAnchors: { feet, light }, isoAnchors: { feet, light } }, anchors in art px); base writes ui/art/watch.* and
 // watch39.*, every other world ui/art/<world>/watch.* and watch39.*. Every frame is 32x36 art px of ui/art/key.gpl chars.
 import { writeSheet, keyPalette } from './sheet_writer.mjs';
 
-const W = 32, H = 36, WORLDS = ['base', 'cyber', 'orbital', 'tower', 'vault'];
+const W = 32, H = 36, WORLDS = ['base', 'cyber', 'orbital', 'tower', 'vault', 'darwin'];
 const walk = dirs => dirs.flatMap(d => [0, 1, 2].map(i => `${d} ${i}`));
 const FLAT = [...walk(['up', 'down', 'right']), 'ring'], ISO = [...walk(['E', 'W', 'S', 'N']), 'ring'];
 

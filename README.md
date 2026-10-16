@@ -186,6 +186,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Paper piled on the desk | The session's context. The desk is full at 50 % of the model's window. Past that, sheets fall around the desk and spread over the department floor. Red sheets from 90 % |
 | Scribe carrying its pile to a brazier at the gate and burning it | **Compaction**: the session's context was compacted. If the scribe is away from its desk, the pile goes up in a puff instead |
 | Gilded robe / plain red robe / faded robe | **Model rank**: Opus or Fable = *Magos*, Sonnet and others = *Tech-priest*, Haiku = *Novice*. Adepts carry the same marks |
+| Wizard smoking a pipe, wisps rising from the bowl (Arcane Tower only) | A Wizard or the Archmage (not an Apprentice) that is not working: `idle` or a petition waiting. Seen from behind, only the smoke shows |
 | Scribe walking in through the grand gate / gathering papers and walking out | Session started / session ended |
 | Purity seal stamped on a parchment on the desk (up to 3 stay) | A `git commit` succeeded |
 | Servo-skull picks up a seal and flies out of the gate | A `git push` |
@@ -362,8 +363,8 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Setting | Default | Effect |
 |---|---|---|
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
-| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout. Each world outside 40k has its own art |
-| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111 |
+| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
+| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip |
 | Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3, or its − / + buttons, a quarter step per click) sets it, and a hall larger than the window pans |
