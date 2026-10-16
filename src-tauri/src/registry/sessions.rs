@@ -1,6 +1,6 @@
 //! One pass over ~/.claude/sessions into the roster, merged with the last tick's.
 use super::tail::{is_shell_call, Tail};
-use super::{Helper, Session};
+use super::{Agent, Helper, Session};
 use serde::Deserialize;
 use std::{fs, path::Path};
 
@@ -164,6 +164,8 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             branch: None,
             limit,
             turn: None,
+            source: Agent::Claude,
+            opencode_request: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -246,6 +248,7 @@ mod tests {
         assert_eq!(out.sessions[0].title.as_deref(), Some("Fix the card"));
         assert_eq!(out.sessions[1].asks, None);
         assert_eq!(out.sessions[1].title.as_deref(), Some("Fix the card"));
+        assert!(out.sessions.iter().all(|s| s.source == Agent::Claude && s.opencode_request.is_none()));
     }
 
     fn record(pid: u32, id: &str, name: &str, status: &str) -> String {

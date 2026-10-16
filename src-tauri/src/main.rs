@@ -4,6 +4,7 @@ mod demo;
 #[cfg(windows)]
 mod firewall;
 mod git;
+mod opencode;
 mod orca;
 mod poller;
 mod quiet;
@@ -328,6 +329,7 @@ fn main() {
 
 fn poll_loop(app: AppHandle, demo: bool) {
     let mut poller = poller::Poller::new(&claude_dir());
+    let mut opencode = opencode::Source::new();
     let mut tracker = Tracker::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
@@ -338,7 +340,15 @@ fn poll_loop(app: AppHandle, demo: bool) {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
         let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let mut roster = if demo { demo::roster(start.elapsed().as_secs()) } else { poller.roster(&prev, now_ms()) };
+            let mut roster = if demo {
+                demo::roster(start.elapsed().as_secs())
+            } else {
+                let mut roster = poller.roster(&prev, now_ms());
+                let mut theirs = opencode.roster(now_ms());
+                registry::track_compaction(&prev, &mut theirs, now_ms()); // the poller ran it on Claude's sessions
+                roster.extend(theirs);
+                roster
+            };
             let now_ms = now_ms();
             let limit_events = notify(&app, &mut tracker, &roster, first, now_ms);
             let mut turns = std::collections::HashMap::new();

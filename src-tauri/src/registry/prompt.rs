@@ -11,6 +11,12 @@ pub fn valid_claude_web_url(url: &str) -> bool {
     url.strip_prefix("https://claude.ai/code/").is_some_and(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
 }
 
+/// Only an OpenCode session, permission or message id may go into a loopback API path: `ses_` / `per_` / `msg_`
+/// and 1 to 64 ASCII letters or digits (OpenCode makes 26).
+pub fn valid_opencode_id(id: &str) -> bool {
+    ["ses_", "per_", "msg_"].iter().any(|p| id.strip_prefix(p).is_some_and(|rest| (1..=64).contains(&rest.len()) && rest.bytes().all(|c| c.is_ascii_alphanumeric())))
+}
+
 /// A Claude Code permission dialog: its question line, every numbered option with its label, and
 /// the option numbers of plain "Yes", the first "Yes, ..." (don't ask again / allow all edits) if
 /// offered (never "switch to auto mode"), and the "No" option.
@@ -87,6 +93,18 @@ mod tests {
         assert!(!valid_claude_web_url("javascript:alert(1)"));
         assert!(!valid_claude_web_url("https://claude.ai/code/x&calc"));
         assert!(!valid_claude_web_url("https://claude.ai/code/x|whoami"));
+    }
+
+    #[test]
+    fn opencode_id_validator() {
+        assert!(valid_opencode_id("ses_01abcXYZ"));
+        assert!(valid_opencode_id("per_9"));
+        assert!(valid_opencode_id("msg_0a1b2c3d4e5fGHIJKLMNOPqr"));
+        assert!(valid_opencode_id(&format!("ses_{}", "a".repeat(64))));
+        assert!(!valid_opencode_id(&format!("ses_{}", "a".repeat(65))));
+        for bad in ["ses_", "ses_a/b", "ses_a?x", "../", "ses_../x", "prj_abc", "ses_a b", "ses_é", "SES_abc", ""] {
+            assert!(!valid_opencode_id(bad), "{bad}");
+        }
     }
 
     // Claude Code permission dialogs as `orca terminal read --screen` renders them (trailing spaces trimmed).

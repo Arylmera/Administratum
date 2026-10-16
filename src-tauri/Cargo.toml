@@ -18,6 +18,7 @@ sysinfo = { version = "0.37", default-features = false, features = ["system"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 getrandom = "0.3"
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 tauri-plugin-single-instance = "2"
 
 [target.'cfg(windows)'.dependencies]

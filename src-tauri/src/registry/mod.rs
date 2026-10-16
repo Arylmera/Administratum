@@ -15,8 +15,8 @@ pub(crate) use files::slug; // only chronicle.rs's tests reach it from outside
 pub use files::{direct_transcript, file_tail, find_transcript, list_subagents, stat, FileStat};
 pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
-pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_orca_handle, Prompt};
-pub use sessions::{merge, scan, track_compaction};
+pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
+pub use sessions::{dept_of, merge, scan, temp_dept, track_compaction};
 pub(crate) use tail::{clip, iso_utc_ms};
 pub use tail::{read_tail, Tail};
 pub use tracker::{Tracker, STALE_MS};
@@ -54,6 +54,19 @@ pub struct Session {
     pub limit: Option<Limit>,
     /// The current or last turn (chronicle.rs), filled by the poll loop.
     pub turn: Option<TurnSummary>,
+    /// The agent it runs in: Claude Code (this module) or OpenCode 2.x (`opencode/`).
+    pub source: Agent,
+    /// An OpenCode session's pending permission request (`per_…`), the one its card answers.
+    pub opencode_request: Option<String>,
+}
+
+/// The agent a session runs in, serialized `"claude"` / `"opencode"`.
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Agent {
+    #[default]
+    Claude,
+    OpenCode,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -111,6 +124,15 @@ mod tests {
         let json = serde_json::to_value(&s).unwrap();
         assert_eq!(json["context"]["tokens"], 42);
         assert_eq!(json["context"]["model"], "claude-opus-5-5");
+    }
+
+    #[test]
+    fn session_serializes_its_source_claude_by_default() {
+        let json = serde_json::to_value(tests_session("a")).unwrap();
+        assert_eq!((&json["source"], &json["opencodeRequest"]), (&serde_json::json!("claude"), &serde_json::Value::Null));
+        let oc = Session { source: Agent::OpenCode, opencode_request: Some("per_1".into()), ..tests_session("b") };
+        let json = serde_json::to_value(oc).unwrap();
+        assert_eq!((&json["source"], &json["opencodeRequest"]), (&serde_json::json!("opencode"), &serde_json::json!("per_1")));
     }
 
     #[test]

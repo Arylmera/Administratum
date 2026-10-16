@@ -1,5 +1,5 @@
 use crate::chronicle::{Event, Tokens, Usage};
-use crate::registry::{Context, Helper, Session};
+use crate::registry::{Agent, Context, Helper, Session};
 use std::{
     sync::OnceLock,
     time::{SystemTime, UNIX_EPOCH},
@@ -69,6 +69,15 @@ pub fn roster(t: u64) -> Vec<Session> {
         v[1].since_ms = epoch + 30_000;
         v[1].question = Some("Shall I rename the playlists to match the new rooms, or keep the old names as aliases?".into());
     }
+    // An OpenCode session (no Orca handle, no claude.ai link): it works, then asks a permission.
+    let mut brave = scribe("brave-tiger", "Administratum", if (35..50).contains(&phase) { "waiting" } else { "busy" }, Some("permission"), epoch + 35_000, "“wire the OpenCode source”", 180_000, SONNET);
+    brave.source = Agent::OpenCode;
+    brave.web = None;
+    if brave.status == "waiting" {
+        brave.asks = Some("shell: cargo test".into());
+        brave.opencode_request = Some("per_demo1".into());
+    }
+    v.push(brave);
     if phase >= 45 {
         v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000, HAIKU));
     }
@@ -185,6 +194,20 @@ mod tests {
         assert_eq!(chronicle(16, 17, &roster(17), 7)[0].helper.as_deref(), Some("Explore"));
         assert_eq!(chronicle(3, 9, &roster(9), 7).len(), 2, "a skipped second still plays its beat");
         assert!(chronicle(9, 9, &roster(9), 7).is_empty());
+    }
+
+    #[test]
+    fn demo_has_one_opencode_session_the_rest_claude() {
+        for t in [0, 40] {
+            let r = roster(t);
+            let oc: Vec<_> = r.iter().filter(|s| s.source == Agent::OpenCode).collect();
+            assert_eq!(oc.len(), 1);
+            assert_eq!((oc[0].orca.as_ref(), oc[0].web.as_ref()), (None, None));
+            assert_eq!(oc[0].opencode_request.is_some(), oc[0].status == "waiting");
+            assert!(serde_json::to_string(&r).unwrap().contains("\"source\":\"opencode\""));
+            assert_eq!(serde_json::to_value(r.iter().find(|s| s.name == "terra-77").unwrap()).unwrap()["source"], "claude");
+        }
+        assert_eq!(roster(40).iter().find(|s| s.source == Agent::OpenCode).unwrap().status, "waiting");
     }
 
     #[test]
