@@ -13,10 +13,12 @@ on typewriters (the infinite monkey theorem: every session is a monkey that will
    globes, engravings. Monkeys type on typewriters.
 2. **Identity**: world id `darwin`, world name `Darwin` (in `WORLDS`); theme id `darwin`, theme name `Darwin`.
    It is the 14th theme: column **N** in the sprite viewer key.
-3. **Cast**: scribe = a monkey at a typewriter, rank read by species and dress (novice: a young monkey; standard: a
-   chimpanzee in a waistcoat; high: an orang-utan with spectacles), within decision 10. Adept = a capuchin monkey carrying typed pages.
-   Magos = an old gorilla in a frock coat in a wing chair (not Charles Darwin himself: no caricature of a real
-   person). Skull = a Galápagos finch. Watchman = a museum night keeper with a lantern.
+3. **Cast**: every animal a real, wild-looking ape or monkey with real anatomy and proportions, no human clothes
+   (operator, after the first build). Scribe = a monkey at a typewriter, rank read by species (novice: a young
+   monkey; standard: a dark-brown chimpanzee; high: a ginger orang-utan), within decision 10. Adept = a white-faced
+   capuchin carrying typed pages. Magos = an old flanged male orang-utan in a wing chair, clearly bigger and older than
+   the high-rank scribe (not Charles Darwin himself: no caricature of a real person). Skull = a Galápagos finch.
+   Watchman = a museum night keeper with a lantern.
 4. **Full scope**: every family Vault 111 ships (list below), Flat and 39°, plus the 39° faces sheet.
 5. **Every sprite drawn from scratch** (the operator's rule): the default art gives only frame sizes and anchors,
    never shapes to recolour. Colours in `ui/art/key.gpl` slots only.
@@ -27,11 +29,9 @@ on typewriters (the infinite monkey theorem: every session is a monkey that will
    "monkey actually types Shakespeare" text generator.
 9. **Delivery** (Claude's call, ratified): one theme, built family by family with a viewer screenshot each step.
 10. **Ranks are colour only** (operator, after the builder check): a rank is a palette swap over one drawing per
-    direction (`T.rank[rank]`, `ui/sprites.js`), so the three species share one monkey silhouette and differ by fur
-    and clothing colour through the rank slots: ginger (orang-utan), brown (chimpanzee), pale grey-brown (young
-    monkey). The high rank's spectacles sit in a slot made transparent for the other ranks; if a transparent rank
-    colour does not work, the spectacles are dropped (no engine change). Per-rank drawings may come later as a
-    separate engine change.
+    direction (`T.rank[rank]`, `ui/sprites.js`), so the three species share one ape silhouette and differ by fur
+    colour through the robe slots: ginger (orang-utan), dark brown (chimpanzee), pale grey-brown (young monkey).
+    Per-rank drawings may come later as a separate engine change.
 
 ## What the world delivers
 
@@ -52,14 +52,19 @@ Same contract as `2026-10-06-three-worlds-design.md` § "What every world delive
 ## Darwin (`darwin`)
 
 - **Palette**: dark walnut and mahogany panelling, green baize, brass and tarnished gold, ivory paper and aged
-  parchment, ink black, bottle-green specimen glass, gas-lamp amber; the monkeys in warm browns, ginger (orang-utan)
-  and charcoal (gorilla), pink-tan faces and hands.
-- **Scribe** → a monkey at a typewriter, one silhouette for every rank (decision 10). Fur in the robe slots
-  (`r R d`), recoloured per rank; department colour (`y`) on a neckerchief; rank colour (`t`) on the waistcoat
-  and watch chain (bare-looking for the novice); spectacles in a slot transparent except for high. At the desk, long arms on the keys.
-- **Adept** → a capuchin monkey hurrying with a sheaf of typed pages (rank colour on its little fez or collar).
-- **Magos** → the old gorilla, the Professor: frock coat, cravat, in a wing chair; the swinging limb is an arm with
-  a magnifying glass (Claude's call: one prop, the quill dropped).
+  parchment, ink black, bottle-green specimen glass, gas-lamp amber; the apes in dark brown, ginger and pale
+  grey-brown, the Professor in a deeper ginger-red (`V`), pink-tan faces and hands.
+- **Scribe** → a real ape at a typewriter, no clothes, one silhouette for every rank (decision 10): hunched, long
+  hairy arms to the knees, heavy brow, muzzle and ears, bare face, hands and feet (`:` `;`); knuckle-walking in
+  profile. Fur all over in the robe slots (`r R d`), recoloured per rank. The department colour (`y`) is a small
+  ringed tag on the right ankle, seen in every facing. At the desk, hairy arms on the keys in the neutral walnut
+  browns (`L w W`), since the engine draws arm frames without rank colours.
+- **Adept** → a white-faced capuchin (black cap, cream face ring and throat, dark body, long curled tail) hurrying
+  with a sheaf of typed pages; rank colour on a ribbon tied round its tail (`J`, knot `I`).
+- **Magos** → the Professor, an old flanged male orang-utan, no clothes: wide grey cheek pads, a throat sac, long
+  shaggy ginger-red fur, very long arms, seated in the wing chair with a typed page on his lap (the chest flicker
+  scans it); the swinging limb is his long arm holding a brass magnifying glass (Claude's call: one prop, the quill
+  dropped).
 - **Sanctum**: throne → leather wing chair; lord desk → a big partners' desk with a microscope and a skull
   specimen; Cog → an evolutionary tree emblem (the "I think" sketch); seal → a finch-stamped wax seal.
 - **Cogitator** → a wall of specimen cabinets: butterflies under glass, jars, a branching tree-of-life chart.

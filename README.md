@@ -164,7 +164,7 @@ a phone can show a different world than the PC.</td>
 </tr>
 <tr>
 <td><img src="docs/img/world-darwin.png" alt="Darwin: monkeys at their typewriters in a Victorian naturalist's study"><br>
-<b>Darwin</b>: monkeys at their typewriters (the infinite monkey theorem), capuchin subagents, the gorilla Professor
+<b>Darwin</b>: monkeys at their typewriters (the infinite monkey theorem), capuchin subagents, the old orang-utan Professor
 with his magnifying glass, specimen cabinets and a Galapagos finch. Style: <i>Darwin</i>.</td>
 <td></td>
 </tr>
