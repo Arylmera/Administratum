@@ -18,7 +18,8 @@ and palette are the starting art for the app.
 
 ## Goal and scope
 
-- Show all local Claude Code sessions (Orca panes, plain terminals, IDE), independent of Orca.
+- Show all local Claude Code sessions (Orca panes, plain terminals, IDE), independent of Orca, and the sessions of
+  OpenCode 2.x (design: `docs/superpowers/specs/2026-10-16-opencode-design.md`).
 - Show where each one works (project) and what it is doing (state + last task line).
 - Make a session that is blocked on the operator impossible to miss: queue at the operator's
   office, Windows toast, optional chime.
@@ -44,7 +45,8 @@ Claude Code keeps one live record per running session in `~/.claude/sessions/<pi
 Task line: tail of the transcript (last user prompt or last tool name + target), read from the
 end of the file only. Unreadable → `—`.
 
-The registry is the only source of truth. Read-only. No hooks, no Claude Code config change.
+The registry is the only source of truth. Read-only. No hooks, no Claude Code config change. OpenCode's database and
+service registration are only read; its local service is written to only when the operator answers a petition.
 
 ## Architecture
 

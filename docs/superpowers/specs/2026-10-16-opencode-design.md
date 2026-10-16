@@ -47,8 +47,9 @@ Paths are `packages/...` in `anomalyco/opencode`.
 - `db.rs` — pure reads over a `rusqlite::Connection`: the sessions to show (running: `time_suspended` set; or
   `time_idle` within 15 min; never archived), their newest user text (task), newest assistant message (context,
   model, error), child sessions (helpers), and for the Chronicon the messages after a `seq` cursor. Opened
-  read-only (`SQLITE_OPEN_READ_ONLY`, `busy_timeout` 200 ms, never `immutable`), **one short transaction per tick,
-  never held across ticks** (a pinned reader blocks OpenCode's WAL checkpoint on a multi-GB DB). Every query goes
+  read-only (`SQLITE_OPEN_READ_ONLY`, `busy_timeout` 200 ms, never `immutable`), **short transactions, never held across ticks**, and only while the database's `-wal` file
+  exists: a read-only open of a closed WAL database recreates `-wal`/`-shm` in OpenCode's folder (found in Task 1),
+  so a closed OpenCode shows no sessions (a pinned reader blocks OpenCode's WAL checkpoint on a multi-GB DB). Every query goes
   through the indexes above.
 - `service.rs` — the registration file and a minimal HTTP/1.1 client on `std::net` (the house style of `remote/`):
   - parse `service.json`; **refuse any `url` whose host is not `127.0.0.1`/`localhost`/`::1`** (config allows a
@@ -69,8 +70,9 @@ Status of a shown session:
 
 A claim (`time_suspended`) with a dead service is a crashed run: shown idle, then dropped after 15 min.
 
-`Session` gains `source: "claude" | "opencode"` and `opencode_request: Option<String>` (the `per_…` id of the
-pending permission shown on the card). OpenCode sessions get `pid` = the service pid, `orca`/`web`/`limit` = None;
+`Session` gains `source: "claude" | "opencode"`, `opencode_request: Option<String>` (the `per_…` id of the
+pending permission shown on the card) and, backend only (`serde(skip)`), `opencode_asker`: the session that asked,
+a helper's own id when a helper asked, where the reply goes. OpenCode sessions get `pid` = the service pid, `orca`/`web`/`limit` = None;
 the only other `pid` consumer is the poller's Orca cache, which never sees them. The password never enters
 `Session`, a log line, an error string or the remote view.
 

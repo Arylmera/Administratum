@@ -70,6 +70,9 @@ Source read: `agentclientprotocol/claude-agent-acp` 0.86.0 (formerly `zed-indust
 
 ## If we pick it up
 
+Done for OpenCode 2.x (2026-10-16): read from its own database and local service, petitions answered through that
+service. See `2026-10-16-opencode-design.md`.
+
 1. Keep Claude Code on file-watching.
 2. Add other agents by reading their own session files first (Codex: `~/.codex/sessions/`, Gemini CLI: under
    `~/.gemini/`; formats not checked yet). Zero setup, watch-only.

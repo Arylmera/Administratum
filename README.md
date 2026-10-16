@@ -47,6 +47,8 @@ the app with `--demo`.
 - Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
   missing.
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
+- Optional: [OpenCode](https://opencode.ai) 2.x (tested with 2.0.25). Its sessions show up beside Claude Code's, and
+  their permission prompts can be answered without Orca. See [OpenCode sessions](#opencode-sessions).
 - Optional: Orca (tested with 1.4.220), needed to jump to a session's terminal and to answer
   petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
   `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe` (Windows), or at
@@ -298,6 +300,21 @@ Nothing read from the screen is sent anywhere or shown back. Only that one digit
 nothing is typed and the card says *No permission prompt visible — open the terminal*. Free-text petitions
 (`input needed`, open dialogs) can't be answered from the widget. Use **Open in Orca** for those.
 
+### OpenCode sessions
+
+Sessions of OpenCode 2.x (the `opencode` TUI) are scribes too, read from OpenCode's own database
+(`~/.local/share/opencode/opencode.db`) and its local service. Nothing to configure.
+
+- A session is shown while it runs or waits on a permission, then for 15 minutes once it went idle: OpenCode records
+  nothing that says a TUI still has it open. Its subagents are its adepts; a subagent's permission prompt shows on
+  its parent.
+- Its permission prompts are answered with **✓ / ✗**, the card or the toast, through OpenCode's service, Orca or not.
+  **Deny also refuses the session's other pending requests**, and *Always* approves the matching ones (OpenCode's
+  rule). An answer is sent only while that request is still shown.
+- Chronicon events (tests, commits, pushes, edited files) and Tithe tokens are counted as for Claude Code.
+- Not seen: OpenCode before 2.0, TUIs started with `--standalone` (they register no service), and OpenCode's
+  sessions while OpenCode is closed. There is no **Open in Orca** link for an OpenCode session.
+
 ### Remote view
 
 Watch the hall from a tablet or phone on the same network, in its browser:
@@ -433,6 +450,8 @@ configuration, and installs no hooks. It reads:
 | `.../<sessionId>/subagents/agent-*.jsonl` and `agent-*.meta.json` | Active subagents: type, task, model, context |
 | `ORCA_TERMINAL_HANDLE` in the environment of running `claude.exe` processes | Which Orca terminal a session lives in. Read once per process |
 | Process name and start time of each session's pid | Whether the session is still alive (guards against pid reuse) |
+| `~/.local/share/opencode/opencode.db` (OpenCode 2.x), read-only, only while OpenCode has it open | OpenCode sessions, their prompts, context, subagents, Chronicon events and tokens |
+| `~/.local/state/opencode/service.json` | OpenCode's local service: its address (accepted only on `127.0.0.1` / `localhost` / `::1`) and password, used to ask which sessions run and wait, and to send an answer you clicked. The password is never stored, logged or shown |
 | `.git/HEAD` in or above each session's working directory (following a worktree's `.git` file) | The branch shown under the department plaque. Read directly, git is never run |
 
 **What it writes, and where.** Everything goes under `%APPDATA%\com.arylmera.administratum\`:
@@ -443,6 +462,7 @@ configuration, and installs no hooks. It reads:
 | `chronicon\YYYY-MM-DD.jsonl` | That day's events: time, kind, session name, department, short detail (commit subject, test command, tool name...) |
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals |
 | `chronicon\offsets.json` | How far each transcript has been read |
+| `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
 
 Chronicon files older than 7 days are deleted at startup. Demo mode uses a separate `chronicon-demo\` folder,
 which is wiped at each start.
