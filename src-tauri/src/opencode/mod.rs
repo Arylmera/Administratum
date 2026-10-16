@@ -12,8 +12,9 @@ use service::Permission;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
+    time::{Duration, Instant},
 };
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 /// How long an OpenCode session stays in the hall after it went idle: nothing on disk says a TUI still has it open.
 pub const OPENCODE_IDLE_MS: i64 = 900_000;
@@ -103,6 +104,44 @@ pub fn build(rows: &[Shown], live: Option<&Live>, now_ms: i64) -> Vec<Session> {
     out
 }
 
+/// How often the opencode TUIs and their folders are listed (a scan of every process name, cwd read once per pid).
+const TUIS_EVERY: Duration = Duration::from_secs(5);
+
+/// A process that is an OpenCode TUI (or a one-shot `opencode run`): the `opencode` executable, not its service.
+fn is_tui(name: &str, cmd: &[String]) -> bool {
+    let name = name.to_ascii_lowercase();
+    (name == "opencode" || name == "opencode.exe") && !cmd.iter().skip(1).any(|a| a == "serve")
+}
+
+/// A folder as compared between OpenCode's `directory` and a process cwd: one separator, no trailing one, and on
+/// Windows no case.
+fn folder_key(p: &str) -> String {
+    let p = p.replace('\\', "/");
+    let p = p.trim_end_matches('/');
+    if cfg!(windows) {
+        p.to_lowercase()
+    } else {
+        p.to_string()
+    }
+}
+
+/// An idle session leaves as soon as no TUI runs in its folder: OpenCode records no presence, and its service
+/// outlives every TUI. `tuis` None (not listed yet): the OPENCODE_IDLE_MS window alone decides.
+fn keep_idle(sessions: &mut Vec<Session>, tuis: Option<&HashSet<String>>) {
+    if let Some(tuis) = tuis {
+        sessions.retain(|s| s.status != "idle" || tuis.contains(&folder_key(&s.cwd)));
+    }
+}
+
+/// The folders the running opencode TUIs were started in: every process name is refreshed, a command line and cwd
+/// are read once per pid (`OnlyIfNotSet`), dead pids are dropped.
+fn scan_tuis(sys: &mut System) -> HashSet<String> {
+    let refresh = ProcessRefreshKind::nothing().with_cmd(UpdateKind::OnlyIfNotSet).with_cwd(UpdateKind::OnlyIfNotSet);
+    sys.refresh_processes_specifics(ProcessesToUpdate::All, true, refresh);
+    let tuis = sys.processes().values().filter(|p| is_tui(&p.name().to_string_lossy(), &p.cmd().iter().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>()));
+    tuis.filter_map(|p| p.cwd()).map(|c| folder_key(&c.to_string_lossy())).collect()
+}
+
 /// `$OPENCODE_DB` (resolved against the data dir), else `<data>/opencode/opencode.db`, the data dir being
 /// `$XDG_DATA_HOME` (when set and non-empty) or `~/.local/share`: OpenCode's rule on every OS. Default channel only.
 fn db_path() -> PathBuf {
@@ -135,6 +174,12 @@ pub struct Source {
     /// The database stamp the Chronicon last read messages at, and whether a batch came back full (more to read).
     fed: Option<[Option<(u64, i64)>; 2]>,
     more: bool,
+    /// The folders opencode TUIs run in, listed at most every TUIS_EVERY while an idle session is shown, and the
+    /// process table that lists them (kept so a pid's cwd is read once).
+    tuis: Option<(Instant, HashSet<String>)>,
+    sys: System,
+    /// Lists the TUI folders from the process table: `scan_tuis`, a fixed list in tests.
+    lister: fn(&mut System) -> HashSet<String>,
 }
 
 /// Session id -> its top-level session (the hall's): a parent cycle in the DB cannot hang the tick.
@@ -158,7 +203,15 @@ impl Source {
     }
 
     fn at(db: PathBuf, registration: PathBuf) -> Self {
-        Source { db, registration, stamp: None, rows: vec![], seen: HashMap::new(), logged: HashSet::new(), fed: None, more: false }
+        Source { db, registration, stamp: None, rows: vec![], seen: HashMap::new(), logged: HashSet::new(), fed: None, more: false, tuis: None, sys: System::new(), lister: scan_tuis }
+    }
+
+    /// The folders of the running opencode TUIs, re-listed at most every TUIS_EVERY.
+    fn tui_folders(&mut self) -> &HashSet<String> {
+        if self.tuis.as_ref().is_none_or(|(at, _)| at.elapsed() >= TUIS_EVERY) {
+            self.tuis = Some((Instant::now(), (self.lister)(&mut self.sys)));
+        }
+        &self.tuis.as_ref().expect("just listed").1
     }
 
     pub fn roster(&mut self, now_ms: i64) -> Vec<Session> {
@@ -186,7 +239,14 @@ impl Source {
         if live.is_none() {
             self.seen.clear();
         }
-        build(&self.rows, live.as_ref(), now_ms)
+        let mut out = build(&self.rows, live.as_ref(), now_ms);
+        if out.iter().any(|s| s.status == "idle") {
+            let tuis = self.tui_folders().clone();
+            keep_idle(&mut out, Some(&tuis));
+        } else {
+            self.tuis = None; // nothing idle to keep: no process scan
+        }
+        out
     }
 
     fn log(&mut self, msg: String) {
@@ -413,7 +473,7 @@ mod tests {
         ]);
         let reg = dir.join("service.json");
         std::fs::write(&reg, format!(r#"{{"id":"svc","version":"2.0.29","url":"http://127.0.0.1:{port}","pid":{},"password":"{SECRET}"}}"#, std::process::id())).unwrap();
-        let mut src = Source::at(db_file.clone(), reg.clone());
+        let mut src = test_source(db_file.clone(), reg.clone());
         let first = src.roster(NOW);
         assert_eq!(first.len(), 1);
         let s = &first[0];
@@ -422,15 +482,24 @@ mod tests {
         let again = src.roster(NOW + 1_000);
         assert_eq!(again[0].since_ms, NOW, "the same request is the same petition episode");
         assert!(!serde_json::to_string(&again).unwrap().contains(SECRET));
-        // no registration: the claim stands alone, shown idle
+        // no registration: the claim stands alone, shown idle while a TUI runs in its folder
         std::fs::remove_file(&reg).unwrap();
         assert_eq!(src.roster(NOW + 2_000)[0].status, "idle");
+        // its TUI quits: the idle scribe leaves at the next listing, well inside the window
+        src.lister = |_| HashSet::new();
+        src.tuis = None;
+        assert!(src.roster(NOW + 3_000).is_empty(), "no TUI in its folder any more");
         drop(c);
         let _ = std::fs::remove_dir_all(&dir);
-        assert!(Source::at(dir.join("opencode.db"), dir.join("service.json")).roster(NOW).is_empty(), "no OpenCode installed");
+        assert!(test_source(dir.join("opencode.db"), dir.join("service.json")).roster(NOW).is_empty(), "no OpenCode installed");
     }
 
     const NOW: i64 = 50_000_000;
+
+    /// A source whose only TUI runs in the fixtures' folder (`db::tests::add_session`), never the machine's.
+    fn test_source(db: PathBuf, registration: PathBuf) -> Source {
+        Source { lister: |_| [folder_key(r"C:\git\Terra")].into(), ..Source::at(db, registration) }
+    }
 
     fn row(id: &str, parent: Option<&str>, suspended: Option<i64>, idle: Option<i64>) -> Shown {
         Shown {
@@ -465,6 +534,70 @@ mod tests {
         let cycle = [row("ses_a", Some("ses_b"), Some(NOW), None), row("ses_b", Some("ses_a"), Some(NOW), None)];
         let both: HashSet<String> = ["ses_a", "ses_b"].map(String::from).into();
         assert_eq!(Source::askable(&cycle, Some(&both)).len(), 2, "a parent cycle ends");
+    }
+
+    #[test]
+    fn a_tui_is_the_opencode_executable_but_not_its_service() {
+        let cmd = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(is_tui("opencode.exe", &cmd(&[r"C:\x\opencode.exe"])));
+        assert!(is_tui("OpenCode.EXE", &cmd(&["opencode", "-c"])));
+        assert!(is_tui("opencode", &cmd(&["/opt/homebrew/bin/opencode", "run", "hi"])));
+        assert!(!is_tui("opencode.exe", &cmd(&["opencode.exe", "serve", "--service"])));
+        assert!(!is_tui("opencode-helper", &cmd(&["opencode-helper"])));
+        assert!(!is_tui("node.exe", &cmd(&["node", "opencode"])));
+        assert!(is_tui("opencode", &cmd(&["serve"])), "only an argument after the program is a subcommand");
+    }
+
+    #[test]
+    fn folders_compare_across_separators_and_a_trailing_one() {
+        assert_eq!(folder_key("C:/Users/guill/git/Terra/"), folder_key(r"C:\Users\guill\git\Terra"));
+        assert_ne!(folder_key("/a/b"), folder_key("/a/bc"));
+        if cfg!(windows) {
+            assert_eq!(folder_key(r"C:\Users\Guill"), folder_key(r"c:\users\guill"));
+        }
+    }
+
+    #[test]
+    fn an_idle_session_leaves_when_no_tui_runs_in_its_folder() {
+        let at = |id: &str, status: &str, cwd: &str| Session { id: id.into(), status: status.into(), cwd: cwd.into(), ..Default::default() };
+        let all = vec![at("ses_open", "idle", r"C:\git\Terra"), at("ses_closed", "idle", r"C:\git\Geneseed"), at("ses_busy", "busy", r"C:\git\Geneseed"), at("ses_ask", "waiting", r"C:\git\Geneseed")];
+        let mut out = all.clone();
+        keep_idle(&mut out, Some(&[folder_key("C:/git/Terra")].into()));
+        assert_eq!(out.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(), ["ses_open", "ses_busy", "ses_ask"], "running and waiting stay regardless");
+        let mut out = all.clone();
+        keep_idle(&mut out, Some(&HashSet::new()));
+        assert_eq!(out.len(), 2, "no TUI at all: every idle session leaves");
+        let mut out = all.clone();
+        keep_idle(&mut out, None);
+        assert_eq!(out, all, "not listed yet: the window alone decides");
+    }
+
+    /// The real process scan on this machine: its cost, and that it runs (`cargo test -- --ignored --nocapture`).
+    #[test]
+    #[ignore]
+    fn live_tui_scan_cost() {
+        let mut src = Source::new();
+        let t = Instant::now();
+        let n = src.tui_folders().len();
+        let first = t.elapsed();
+        src.tuis = None;
+        let t = Instant::now();
+        src.tui_folders();
+        let again = t.elapsed();
+        let me = src.sys.process(Pid::from_u32(std::process::id())).expect("this test process is listed");
+        assert!(me.cwd().is_some(), "a process cwd is readable here");
+        let count = src.sys.processes().len();
+        let mut probe = System::new();
+        let rss = |sys: &mut System| {
+            let pid = Pid::from_u32(std::process::id());
+            sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[pid]), false, ProcessRefreshKind::nothing().with_memory());
+            sys.process(pid).map_or(0, |p| p.memory())
+        };
+        let before = rss(&mut probe);
+        drop(src);
+        let after = rss(&mut probe);
+        // the table's size: what freeing it gives back (approximate, the allocator may keep some)
+        println!("tuis={n} processes={count} first={first:?} again={again:?} table≈{} KB", before.saturating_sub(after) / 1024);
     }
 
     fn live(active: &[&str]) -> Live {
@@ -567,7 +700,7 @@ mod tests {
     fn source_follows_a_live_wal_database() {
         let (dir, file, c) = wal_db("wal");
         db::tests::add_session(&c, "ses_a", None, "First", (None, Some(NOW), None));
-        let mut src = Source::at(file.clone(), dir.join("service.json"));
+        let mut src = test_source(file.clone(), dir.join("service.json"));
         assert_eq!(src.roster(NOW).iter().map(|s| s.id.as_str()).collect::<Vec<_>>(), ["ses_a"], "rows still in the -wal");
         db::tests::add_session(&c, "ses_b", None, "Second", (None, Some(NOW), None));
         assert_eq!(src.roster(NOW).len(), 2, "a write to the -wal is seen next tick");
@@ -578,7 +711,7 @@ mod tests {
         let sidecars = || ["opencode.db-wal", "opencode.db-shm"].map(|f| dir.join(f).exists());
         assert_eq!(sidecars(), [false, false]);
         assert!(src.roster(NOW).is_empty(), "OpenCode closed its database");
-        assert!(Source::at(file.clone(), dir.join("service.json")).roster(NOW).is_empty());
+        assert!(test_source(file.clone(), dir.join("service.json")).roster(NOW).is_empty());
         assert_eq!(sidecars(), [false, false], "the reader wrote nothing beside OpenCode's database");
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -589,7 +722,7 @@ mod tests {
         db::tests::add_session(&c, "ses_a", None, "Run", (None, Some(NOW), None));
         db::tests::add_session(&c, "ses_kid", Some("ses_a"), "Look", (None, Some(NOW), None));
         db::tests::add_message(&c, "ses_a", 1, "user", r#"{"text":"go"}"#);
-        let mut src = Source::at(file, dir.join("service.json"));
+        let mut src = test_source(file, dir.join("service.json"));
         let read = |src: &mut Source| src.with_messages(|rows| rows("ses_a", 0).len());
         assert_eq!(read(&mut src), 0, "before a roster read the database is not known open");
         src.roster(NOW);
@@ -625,7 +758,7 @@ mod tests {
             let _ = std::fs::remove_file(dir.join(f));
         }
         assert!(during != [false, false] || after != [false, false], "a read-only open wrote nothing: the gate would be moot");
-        let shown = Source::at(file, dir.join("service.json")).roster(NOW);
+        let shown = test_source(file, dir.join("service.json")).roster(NOW);
         assert_eq!(sidecars(), [false, false], "the source wrote nothing beside OpenCode's database");
         assert!(shown.is_empty(), "OpenCode has its database closed");
         let _ = std::fs::remove_dir_all(&dir);
@@ -637,9 +770,9 @@ mod tests {
         db::tests::add_session(&c, "ses_a", None, "Run", (Some(NOW), None, None));
         let reg = dir.join("service.json");
         std::fs::write(&reg, r#"{"id":"svc","version":"1.14.2","url":"http://127.0.0.1:4096","pid":1,"password":"x"}"#).unwrap();
-        assert!(Source::at(file.clone(), reg.clone()).roster(NOW).is_empty());
+        assert!(test_source(file.clone(), reg.clone()).roster(NOW).is_empty());
         std::fs::write(&reg, r#"{"id":"svc","version":"2.0.29","url":"http://10.0.0.5:4096","pid":1,"password":"x"}"#).unwrap();
-        assert_eq!(Source::at(file, reg).roster(NOW)[0].status, "idle", "a 2.x service out of reach: no live state, sessions still shown");
+        assert_eq!(test_source(file, reg).roster(NOW)[0].status, "idle", "a 2.x service out of reach: no live state, sessions still shown");
         drop(c);
         let _ = std::fs::remove_dir_all(&dir);
     }

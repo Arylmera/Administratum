@@ -305,9 +305,10 @@ nothing is typed and the card says *No permission prompt visible — open the te
 Sessions of OpenCode 2.x (the `opencode` TUI) are scribes too, read from OpenCode's own database
 (`~/.local/share/opencode/opencode.db`) and its local service. Nothing to configure.
 
-- A session is shown while it runs or waits on a permission, then for 15 minutes once it went idle: OpenCode records
-  nothing that says a TUI still has it open. Its subagents are its adepts; a subagent's permission prompt shows on
-  its parent.
+- A session is shown while it runs or waits on a permission. Once idle it stays while an `opencode` TUI runs in its
+  folder, for at most 15 minutes: quit the TUI and the scribe leaves within a few seconds. OpenCode records nothing
+  that says which session a TUI has open, so two TUIs in one folder keep its idle sessions until both are closed.
+  Its subagents are its adepts; a subagent's permission prompt shows on its parent.
 - Its permission prompts are answered with **✓ / ✗**, the card or the toast, through OpenCode's service, Orca or not.
   **Deny also refuses the session's other pending requests**, and *Always* approves the matching ones (OpenCode's
   rule). An answer is sent only while that request is still shown.

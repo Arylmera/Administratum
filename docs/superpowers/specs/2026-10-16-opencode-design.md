@@ -15,6 +15,9 @@ Picks up `2026-10-07-other-agents-acp-notes.md` step 2 ("read their own session 
   Chronicon stays in day files (576 KB over 15 days, measured).
 - **D4** Roster membership: a session is shown while it runs or waits on a permission, and for **15 min** after it
   went idle. Nothing on disk says a TUI has a session open, so an idle session cannot be followed longer.
+  Added in 0.5.1: an idle session also leaves as soon as no `opencode` TUI (not `serve`) runs in its folder. The
+  process table is listed at most every 5 s and only while an idle OpenCode session is shown; cwd and command line
+  are read once per pid (measured on Windows: ~700 processes, 13-15 ms per listing after the first, ~380 KB kept).
 - **D5** Standalone TUIs (`--standalone`, or the service disabled in config) write no registration and stay
   invisible. Accepted limitation.
 - **D6** Polling, not the SSE stream: one read transaction and at most a few loopback GETs per 1 s tick, like the
