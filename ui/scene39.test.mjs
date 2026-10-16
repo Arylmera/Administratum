@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { order, depthSort } from './iso.js';
 import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
-import { Cast, face39 } from './actors.js';
+import { Cast, face39, pipeOf } from './actors.js';
 import { use, pin, placeOf, actorFoot, actorAt39, seatShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf, doorFrame } from './scene.js';
-import { SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
+import { SCRIBE, SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
 const cast = new Cast();
@@ -149,4 +149,27 @@ setTheme('tier2');
 const swing = (key, kind) => [[false, 0], [true, 1000], [true, 1100], [true, 1200], [false, 2000], [false, 2200]].map(([o, t]) => doorFrame(key, kind, o, t));
 for (const kind of ['sanctum', 'refectory']) assert.deepEqual(swing(`t ${kind}`, kind), ['closed', 'half', 'half', 'open', 'half', 'closed'].map(s => `door ${kind} ${s}`), kind);
 for (const id of ['cyber', 'orbital', 'tower', 'vault']) { setTheme(id); assert.ok(!swing(`t ${id}`, 'sanctum').some(n => n.endsWith('half')), `${id}: its own doors jump`); }
+setTheme('tier2');
+
+// Arcane Tower only: wizards and the Archmage smoke a pipe while idle or waiting, never apprentices, never while working;
+// a pipe in every facing, the back included
+const sc = (model, status) => ({ s: { status, context: { model } } }), SONNET = 'claude-sonnet-5', OPUS = 'claude-opus-5-5', HAIKU = 'claude-haiku-4-5';
+setTheme('tower');
+for (const face of ['down', 'up', 'right', 'left', 'S', 'N', 'E', 'W']) {
+  assert.ok(pipeOf(sc(SONNET, 'idle'), face)?.bowl, `wizard idle, ${face}: a pipe`);
+  assert.ok(pipeOf(sc(OPUS, 'waiting'), face)?.bowl, `archmage waiting, ${face}: a pipe`);
+}
+// the bowl stands clear of the drawn figure in every facing (past the hat brim); from the back the stem too stays
+// outside the head, poking out to its left
+const clear = (map, [i, j, w, h]) => { for (let y = j; y < j + h; y++) for (let x = i; x < i + w; x++) if ((map[y]?.[x] ?? '.') !== '.') return false; return true; };
+for (const [face, map] of [...['down', 'up', 'left', 'right'].map(f => [f, SCRIBE[f][0]]), ...['S', 'N', 'W', 'E'].map(f => [f, SCRIBE39[f][0]])]) {
+  const P = pipeOf(sc(SONNET, 'idle'), face);
+  assert.ok(clear(map, P.bowl), `${face}: the bowl past the silhouette`);
+  if (face === 'up' || face === 'N') assert.ok(clear(map, P.stem) && P.bowl[0] < P.stem[0], `${face}: from behind, the stem pokes out left of the head`);
+}
+assert.equal(pipeOf(sc(HAIKU, 'idle'), 'down'), null, 'an apprentice never smokes');
+for (const status of ['busy', 'shell']) assert.equal(pipeOf(sc(OPUS, status), 'down'), null, `${status}: no pipe`);
+assert.equal(pipeOf({ ...sc(SONNET, 'idle'), h: { kind: 'Explore' } }, 'down'), null, 'an adept never smokes');
+assert.equal(pipeOf({ watch: true }, 'down'), null, 'nor the Watchman');
+for (const id of ['tier2', 'cyber', 'orbital', 'vault']) { setTheme(id); assert.equal(pipeOf(sc(SONNET, 'idle'), 'down'), null, `${id}: no pipe`); }
 setTheme('tier2');

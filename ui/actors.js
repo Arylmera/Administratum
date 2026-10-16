@@ -1,5 +1,5 @@
 import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, sprite, marked } from './sprites.js';
-import { T, onTheme } from './theme.js';
+import { T, onTheme, hexA } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
 import { view } from './view.js';
@@ -279,11 +279,12 @@ export function drawActor(g, a) {
     blit(g, b.map, b.x, b.y - bobOf(b) + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;
   }
-  const A = SCRIBE_AT, fx = b.x, fy = b.y - bobOf(b);
+  const A = SCRIBE_AT, fx = b.x, fy = b.y - bobOf(b), P = pipeOf(a, a.pose === 'burn' ? 'down' : a.pose === 'walk' ? a.dir : 'up');
   blit(g, b.map, fx, fy, b.over);
-  if (a.pose === 'burn') return; // standing over the brazier (bundle + flare: scene.js)
+  if (a.pose === 'burn') { if (P) pipe(g, fx, fy, P, a.t); return; } // standing over the brazier (bundle + flare: scene.js)
   if (a.pose === 'walk') {
     if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
+    if (P) pipe(g, fx, fy, P, a.t);
     return;
   }
   const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
@@ -293,6 +294,42 @@ export function drawActor(g, a) {
   if (done) heldScroll(g, fx + 2, fy - 3 - lift); // task done: the finished scroll held up in both hands
   if (a.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
   if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+  if (P) pipe(g, fx, fy, P, a.t);
+}
+
+// Arcane Tower: wizards and the Archmage (ranks standard, high; never apprentices) smoke a long churchwarden pipe while
+// not working (idle or waiting). Per facing, art px from the frame's top-left (32x34): the stem from the mouth out past
+// the hat brim, the bowl beyond the silhouette. Seen from the back (flat 'up', 39° 'N') the stem pokes out left of the
+// head (the Zs are right), stopping at the silhouette (m: its last column, the mouth's or the head's edge).
+const L = m => ({ stem: [3, 17, m - 2, 2], bowl: [0, 13, 4, 6] }), R = m => ({ stem: [m, 17, 29 - m, 2], bowl: [28, 13, 4, 6] });
+const PIPE = { down: L(14), up: L(9), left: L(11), right: R(20) };
+const PIPE39 = { S: L(13), N: L(9), W: L(11), E: R(20) };
+// face: the drawn frame's, a flat direction or a 39° face. null: no pipe for this actor now.
+export function pipeOf(a, face) {
+  if (T.id !== 'tower' || a.h || a.watch || !a.s || !(a.s.status === 'idle' || a.s.status === 'waiting') || rankOf(a.s.context?.model) === 'novice') return null;
+  return PIPE[face] ?? PIPE39[face] ?? null;
+}
+// The pipe at (x, y), the frame's top-left: a wood stem (lit top, shaded underside), the bowl with a glowing ember, and
+// puffs of pale smoke (theme smoke lifted toward white) rising ~14 px and drifting outward, now and then a ring.
+const half = v => Math.round(v * 2) / 2, PUFFS = 5, RISE_S = 5;
+const pale = c => `${[1, 3, 5].map(i => Math.round((parseInt(c.slice(i, i + 2), 16) + 255 * 1.5) / 2.5)).join(',')}`;
+export function pipe(g, x, y, P, t) {
+  const at = ([i, j, w, h], c) => { g.fillStyle = c; g.fillRect(x + i / RES, y + j / RES, w / RES, h / RES); };
+  const [si, sj, sw] = P.stem, [bi, bj, bw, bh] = P.bowl;
+  at([si, sj, sw, 1], T.px.L); at([si, sj + 1, sw, 1], T.px.W);
+  at([bi, bj + 1, bw, bh - 1], T.px.w); at([bi, bj, bw, 1], T.px.W); at([bi + (bi < 16 ? 0 : bw - 1), bj + 1, 1, bh - 1], T.px.W); // the bowl, shaded on its outer side
+  at([bi - 1, bj - 2, bw + 2, 3], hexA(T.ink.flame, 0.2 + 0.08 * Math.sin(t * 4)));
+  at([bi + 1, bj - 1, bw - 2, 2], hexA(T.ink.flame, 0.8 + 0.2 * Math.sin(t * 5.3)));
+  const ox = x + (bi + bw / 2) / RES, oy = y + (bj - 1) / RES, side = bi < 16 ? -1 : 1, rgb = pale(T.ink.smoke);
+  for (let k = 0; k < PUFFS; k++) {
+    const q = t / RISE_S + k / PUFFS, p = q % 1, a = 0.95 * Math.min(1, 5 * p) * (1 - p) ** 0.6;
+    const cx = half(ox + side * p * 2.5 + Math.sin(t * 1.1 + k * 2.3) * 0.6), cy = half(oy - p * 14);
+    g.fillStyle = `rgba(${rgb},${a})`;
+    if (k === 0 && Math.floor(q) % 4 === 0) { // a smoke ring: a hollow square that widens as it rises
+      const s = 2 + 1.5 * p, l = cx - s / 2, u = cy - s / 2;
+      g.fillRect(l, u, s, 0.5); g.fillRect(l, u + s - 0.5, s, 0.5); g.fillRect(l, u + 0.5, 0.5, s - 1); g.fillRect(l + s - 0.5, u + 0.5, 0.5, s - 1);
+    } else { const s = 1 + 0.5 * p; g.fillRect(cx - s / 2, cy - s / 2, s, s); }
+  }
 }
 
 // An unrolled scroll, 13x5 logical, rolled ends, writing and a red seal (art px = 0.5).

@@ -186,7 +186,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Paper piled on the desk | The session's context. The desk is full at 50 % of the model's window. Past that, sheets fall around the desk and spread over the department floor. Red sheets from 90 % |
 | Scribe carrying its pile to a brazier at the gate and burning it | **Compaction**: the session's context was compacted. If the scribe is away from its desk, the pile goes up in a puff instead |
 | Gilded robe / plain red robe / faded robe | **Model rank**: Opus or Fable = *Magos*, Sonnet and others = *Tech-priest*, Haiku = *Novice*. Adepts carry the same marks |
-| Wizard smoking a pipe, wisps rising from the bowl (Arcane Tower only) | A Wizard or the Archmage (not an Apprentice) that is not working: `idle` or a petition waiting. Seen from behind, only the smoke shows |
+| Wizard smoking a long churchwarden pipe, its ember glowing and pale smoke rising, now and then a ring (Arcane Tower only) | A Wizard or the Archmage (not an Apprentice) that is not working: `idle` or a petition waiting. Seen from behind, the pipe pokes out left of the head |
 | Scribe walking in through the grand gate / gathering papers and walking out | Session started / session ended |
 | Purity seal stamped on a parchment on the desk (up to 3 stay) | A `git commit` succeeded |
 | Servo-skull picks up a seal and flies out of the gate | A `git push` |

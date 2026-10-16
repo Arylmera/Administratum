@@ -13,7 +13,7 @@ import { bounds, placeProps, gateOf } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
 import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, SCRIBE39, SCRIBE39_AT, blit, sprite } from './sprites.js';
 import { T, onTheme, hexA } from './theme.js';
-import { drawActor, bodyOf, bodyOf39, bobOf, dozing, isQuestion, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
+import { drawActor, bodyOf, bodyOf39, bobOf, dozing, pipe, pipeOf, isQuestion, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
 
@@ -324,6 +324,8 @@ function drawActor39(g, a, r, fillOf) {
         if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
       }
     }
+    const P = pipeOf(a, r.face);
+    if (P) pipe(g, fx, fy, P, a.t);
   }
   if (a.burn) S.bundle(g, a, fillOf(a.burn.old));
   g.restore();
