@@ -56,9 +56,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/magos.png` | <img src="darwin/MAGOS.png" height="160"> |
-| <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/magos.png` | <img src="darwin/MAGOS.arm.png" height="160"> |
-| <a id="magos-claw"></a>`MAGOS.claw` | 24×24 | The claw snapping: open, then shut (the claw frame over the body). Source: `ui/art/magos.png` | <img src="darwin/MAGOS.claw.png" height="160"> |
+| <a id="magos"></a>`MAGOS` | 24×24 | Seated Magos: the drill arm swings, the chest screen scans, the optics pulse (body and arm frames). Source: `ui/art/darwin/magos.png` | <img src="darwin/MAGOS.png" height="160"> |
+| <a id="magos-arm"></a>`MAGOS.arm` | 5×24 | The drill forearm, its own frame so it can swing. Source: `ui/art/darwin/magos.png` | <img src="darwin/MAGOS.arm.png" height="160"> |
 
 ## 39° characters
 
@@ -91,53 +90,51 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 |---|---|---|---|
 | <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/darwin/scribe.png`, drawn by actors.js | <img src="darwin/ARM.png" height="64"> |
 | <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/darwin/scribe.png`, drawn by actors.js | <img src="darwin/ARM_L.png" height="64"> |
-| <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="darwin/DESK.png" height="160"> |
-| <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/workstations.png` | <img src="darwin/DESK.unlit.png" height="160"> |
-| <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/workstations.png`, drawn by scene.js | <img src="darwin/LECTERN.png" height="160"> |
-| <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/workstations.png` | <img src="darwin/LECTERN.unlit.png" height="160"> |
-| <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="darwin/CONSOLE.png" height="80"> |
-| <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/workstations.png` | <img src="darwin/CONSOLE.unlit.png" height="80"> |
-| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/cogitator.png`, drawn by scene.js, scene39.js | <img src="darwin/COGITATOR.png" height="160"> |
-| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="darwin/THRONE.png" height="160"> |
-| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="darwin/LORD_DESK.png" height="104"> |
-| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="darwin/COG_MECH.png" height="144"> |
-| <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/sanctum.png`, drawn by scene.js | <img src="darwin/SEAL.png" height="80"> |
-| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/gate.png`, drawn by isohall.js, scene.js | <img src="darwin/GATE.png" height="160"> |
-| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="darwin/GATE_L.png" height="160"> |
-| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="darwin/GATE_R.png" height="160"> |
-| <a id="gate_void"></a>`GATE_VOID` | 16×22 | Grand gate, the ember-lit void beyond the leaves. Source: `ui/art/gate.png`, drawn by scene.js, scene39.js | <img src="darwin/GATE_VOID.png" height="160"> |
-| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="darwin/RECAFF.png" height="144"> |
-| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="darwin/TABLE.png" height="64"> |
-| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="darwin/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="darwin/WINDOW.png" height="136"> |
-| <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/walls.png` | <img src="darwin/WINDOW.day.png" height="136"> |
-| <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/walls.png` | <img src="darwin/WINDOW.night.png" height="136"> |
-| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/BANNER.png" height="120"> |
-| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/SHELF.png" height="160"> |
-| <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/walls.png`, drawn by scene.js | <img src="darwin/GAUGE.png" height="48"> |
-| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/walls.png`, drawn by scene.js | <img src="darwin/CENSER.png" height="80"> |
-| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="darwin/WINDOW_TALL.png" height="160"> |
-| <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="darwin/WINDOW_TALL.day.png" height="160"> |
-| <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="darwin/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/HANGING.png" height="160"> |
-| <a id="hanging_b"></a>`HANGING_B` | 13×50 | Second full-height hanging (aquila and litany scroll), every other one on the back walls. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="darwin/HANGING_B.png" height="160"> |
-| <a id="shelf_b"></a>`SHELF_B` | 32×21 | Second back-wall shelf (scroll cubbies, a skull niche, reliquary caskets), every other one on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/SHELF_B.png" height="160"> |
-| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="darwin/PAPER_STACK.png" height="96"> |
-| <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="darwin/SCROLL_PILE.png" height="56"> |
-| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="darwin/BOOKS.png" height="72"> |
-| <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="darwin/LOOSE_A.png" height="32"> |
-| <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="darwin/LOOSE_B.png" height="40"> |
-| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/clutter.png`, drawn by scene.js | <img src="darwin/CRATE.png" height="96"> |
-| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/skull.png`, drawn by scene.js, scene39.js | <img src="darwin/SKULL.png" height="80"> |
-| <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/skull.png` | <img src="darwin/SKULL.alarm.png" height="80"> |
-| <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="darwin/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js, scene39.js | <img src="darwin/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js, scene39.js | <img src="darwin/SCROLL_HELD.png" height="56"> |
-| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/fire.png`, drawn by scene.js, scene39.js | <img src="darwin/BRAZIER.png" height="104"> |
-| <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/fire.png`, drawn by scene.js | <img src="darwin/CANDLES.png" height="72"> |
-| <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_SEAL.png" height="60"> |
-| <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_TAG.png" height="60"> |
-| <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_STAMP.png" height="48"> |
+| <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/darwin/workstations.png`, drawn by scene.js | <img src="darwin/DESK.png" height="160"> |
+| <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/darwin/workstations.png` | <img src="darwin/DESK.unlit.png" height="160"> |
+| <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/darwin/workstations.png`, drawn by scene.js | <img src="darwin/LECTERN.png" height="160"> |
+| <a id="lectern-unlit"></a>`LECTERN.unlit` | 22×21 | LECTERN, unlit. Source: `ui/art/darwin/workstations.png` | <img src="darwin/LECTERN.unlit.png" height="160"> |
+| <a id="console"></a>`CONSOLE` | 14×10 | Adept console, one per subagent. Source: `ui/art/darwin/workstations.png`, drawn by scene.js | <img src="darwin/CONSOLE.png" height="80"> |
+| <a id="console-unlit"></a>`CONSOLE.unlit` | 14×10 | CONSOLE, unlit. Source: `ui/art/darwin/workstations.png` | <img src="darwin/CONSOLE.unlit.png" height="80"> |
+| <a id="cogitator"></a>`COGITATOR` | 82×50 | Cogitator bank on the back wall: where shell commands run. Source: `ui/art/darwin/cogitator.png`, drawn by scene.js, scene39.js | <img src="darwin/COGITATOR.png" height="160"> |
+| <a id="throne"></a>`THRONE` | 20×20 | The Magos's throne (Sanctum). Source: `ui/art/darwin/sanctum.png`, drawn by scene.js | <img src="darwin/THRONE.png" height="160"> |
+| <a id="lord_desk"></a>`LORD_DESK` | 44×13 | The Magos's desk, petitions queue before it. Source: `ui/art/darwin/sanctum.png`, drawn by scene.js | <img src="darwin/LORD_DESK.png" height="104"> |
+| <a id="cog_mech"></a>`COG_MECH` | 20×18 | Cog Mechanicus above the throne. Source: `ui/art/darwin/sanctum.png`, drawn by scene.js | <img src="darwin/COG_MECH.png" height="144"> |
+| <a id="seal"></a>`SEAL` | 6×10 | Purity seals on the lord desk. Source: `ui/art/darwin/sanctum.png`, drawn by scene.js | <img src="darwin/SEAL.png" height="80"> |
+| <a id="gate"></a>`GATE` | 32×30 | Grand gate frame: sessions enter and leave here. Source: `ui/art/darwin/gate.png`, drawn by isohall.js, scene.js | <img src="darwin/GATE.png" height="160"> |
+| <a id="gate_l"></a>`GATE_L` | 8×22 | Grand gate, left leaf (slides open). Source: `ui/art/darwin/gate.png`, drawn by scene.js, scene39.js | <img src="darwin/GATE_L.png" height="160"> |
+| <a id="gate_r"></a>`GATE_R` | 8×22 | Grand gate, right leaf (slides open). Source: `ui/art/darwin/gate.png`, drawn by scene.js, scene39.js | <img src="darwin/GATE_R.png" height="160"> |
+| <a id="gate_void"></a>`GATE_VOID` | 16×22 | Grand gate, the ember-lit void beyond the leaves. Source: `ui/art/darwin/gate.png`, drawn by scene.js, scene39.js | <img src="darwin/GATE_VOID.png" height="160"> |
+| <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/darwin/refectorium.png`, drawn by scene.js | <img src="darwin/RECAFF.png" height="144"> |
+| <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/darwin/refectorium.png`, drawn by scene.js | <img src="darwin/TABLE.png" height="64"> |
+| <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/darwin/refectorium.png`, drawn by scene.js | <img src="darwin/BENCH.png" height="32"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/darwin/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="darwin/WINDOW.png" height="136"> |
+| <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/darwin/walls.png` | <img src="darwin/WINDOW.day.png" height="136"> |
+| <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/darwin/walls.png` | <img src="darwin/WINDOW.night.png" height="136"> |
+| <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/darwin/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/BANNER.png" height="120"> |
+| <a id="shelf"></a>`SHELF` | 32×21 | Bookshelf on the back wall. Source: `ui/art/darwin/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/SHELF.png" height="160"> |
+| <a id="gauge"></a>`GAUGE` | 6×6 | Pressure gauge on the Sanctum pillars. Source: `ui/art/darwin/walls.png`, drawn by scene.js | <img src="darwin/GAUGE.png" height="48"> |
+| <a id="censer"></a>`CENSER` | 5×10 | Censer. Source: `ui/art/darwin/walls.png`, drawn by scene.js | <img src="darwin/CENSER.png" height="80"> |
+| <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/darwin/walls.png`, drawn by wallart.js | <img src="darwin/WINDOW_TALL.png" height="160"> |
+| <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/darwin/walls.png` | <img src="darwin/WINDOW_TALL.day.png" height="160"> |
+| <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/darwin/walls.png` | <img src="darwin/WINDOW_TALL.night.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/darwin/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/HANGING.png" height="160"> |
+| <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/darwin/clutter.png`, drawn by scene.js | <img src="darwin/PAPER_STACK.png" height="96"> |
+| <a id="scroll_pile"></a>`SCROLL_PILE` | 18×7 | Scroll pile (decor). Source: `ui/art/darwin/clutter.png`, drawn by scene.js | <img src="darwin/SCROLL_PILE.png" height="56"> |
+| <a id="books"></a>`BOOKS` | 10×9 | Book pile (decor). Source: `ui/art/darwin/clutter.png`, drawn by scene.js | <img src="darwin/BOOKS.png" height="72"> |
+| <a id="loose_a"></a>`LOOSE_A` | 5×4 | Loose sheet on the floor (decor). Source: `ui/art/darwin/clutter.png`, drawn by scene.js | <img src="darwin/LOOSE_A.png" height="32"> |
+| <a id="loose_b"></a>`LOOSE_B` | 4×5 | Loose sheet on the floor (decor). Source: `ui/art/darwin/clutter.png`, drawn by scene.js | <img src="darwin/LOOSE_B.png" height="40"> |
+| <a id="crate"></a>`CRATE` | 14×12 | Supply crate. Source: `ui/art/darwin/clutter.png`, drawn by scene.js | <img src="darwin/CRATE.png" height="96"> |
+| <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/darwin/skull.png`, drawn by scene.js, scene39.js | <img src="darwin/SKULL.png" height="80"> |
+| <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/darwin/skull.png` | <img src="darwin/SKULL.alarm.png" height="80"> |
+| <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/darwin/petitions.png`, drawn by actors.js | <img src="darwin/SCROLL.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/darwin/petitions.png`, drawn by actors.js, scene39.js | <img src="darwin/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/darwin/petitions.png`, drawn by actors.js, scene39.js | <img src="darwin/SCROLL_HELD.png" height="56"> |
+| <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/darwin/fire.png`, drawn by scene.js, scene39.js | <img src="darwin/BRAZIER.png" height="104"> |
+| <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/darwin/fire.png`, drawn by scene.js | <img src="darwin/CANDLES.png" height="72"> |
+| <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/darwin/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_SEAL.png" height="60"> |
+| <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/darwin/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_TAG.png" height="60"> |
+| <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/darwin/commits.png`, drawn by scene.js | <img src="darwin/COMMIT_STAMP.png" height="48"> |
 | <a id="breakout_floor"></a>`BREAKOUT_FLOOR` | 8×8 | Break-out room floor tile (temp-folder sessions). Source: `ui/art/breakout.png`, drawn by scene.js | <img src="darwin/BREAKOUT_FLOOR.png" height="64"> |
 | <a id="breakout_rail"></a>`BREAKOUT_RAIL` | 8×5 | Break-out room rail, front and back edges. Source: `ui/art/breakout.png`, drawn by scene39.js | <img src="darwin/BREAKOUT_RAIL.png" height="40"> |
 | <a id="breakout_side"></a>`BREAKOUT_SIDE` | 2×8 | Break-out room side rail, seen from above. Source: `ui/art/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_SIDE.png" height="64"> |
@@ -146,47 +143,45 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/breakout.png`, drawn by (not referenced by name) | <img src="darwin/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/breakout.png`, drawn by scene.js, scene39.js | <img src="darwin/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/breakout.png`, drawn by scene.js | <img src="darwin/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
-| <a id="brazier-fire"></a>`BRAZIER.fire` | 10×14 | BRAZIER: the flame licking, 4 frames (still, BRAZIER_FIRE_1 over it, still, BRAZIER_FIRE_2). Source: `ui/art/fire.png` | <img src="darwin/BRAZIER.fire.png" height="112"> |
-| <a id="candles-fire"></a>`CANDLES.fire` | 12×9.5 | CANDLES: the flame licking, 4 frames (still, CANDLES_FIRE_1 over it, still, CANDLES_FIRE_2). Source: `ui/art/fire.png` | <img src="darwin/CANDLES.fire.png" height="76"> |
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/refectorium.png`, drawn by actors.js | <img src="darwin/DOZE_Z.png" height="28"> |
-| <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/workstations.png`, drawn by (not referenced by name) | <img src="darwin/SHELL_COG.png" height="48"> |
+| <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/darwin/workstations.png`, drawn by (not referenced by name) | <img src="darwin/SHELL_COG.png" height="48"> |
 
 ## Room tiles
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="room-floor"></a>`ROOM.floor` | 32×16 | `floor`: repeats both ways, mixed with `floor vent`, `floor bolts` (shown repeated). Source: `ui/art/room-floor.png` | <img src="darwin/ROOM.floor.png" height="128"> |
-| <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="darwin/ROOM.channel_h.png" height="16"> |
-| <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/room-floor.png` | <img src="darwin/ROOM.channel_v.png" height="160"> |
-| <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/room-floor.png` | <img src="darwin/ROOM.sanctum_passage.png" height="48"> |
-| <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/room-floor.png` | <img src="darwin/ROOM.sill.png" height="16"> |
-| <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/room-floor.png` | <img src="darwin/ROOM.sanctum_floor.png" height="160"> |
-| <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_top.png" height="80"> |
-| <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall.png" height="160"> |
-| <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_east_top.png" height="80"> |
-| <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_east.png" height="160"> |
-| <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_sanctum_top.png" height="80"> |
-| <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_sanctum.png" height="160"> |
-| <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_foot.png" height="48"> |
-| <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_dark.png" height="48"> |
-| <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.wall_base.png" height="24"> |
-| <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.sanctum_base.png" height="24"> |
-| <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.pillar.png" height="160"> |
-| <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.pilaster.png" height="156"> |
-| <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.beacon_off.png" height="80"> |
-| <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.beacon_on.png" height="80"> |
-| <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/room-walls.png` | <img src="darwin/ROOM.beacon_cage.png" height="80"> |
-| <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/room-pipes.png` | <img src="darwin/ROOM.pipe_h.png" height="24"> |
-| <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/room-pipes.png` | <img src="darwin/ROOM.pipe_v.png" height="160"> |
-| <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="darwin/ROOM.fitting_h.png" height="40"> |
-| <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="darwin/ROOM.fitting_v.png" height="24"> |
-| <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/room-pipes.png` | <img src="darwin/ROOM.fitting_wide.png" height="16"> |
-| <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="darwin/ROOM.door_sanctum_closed.png" height="160"> |
-| <a id="room-door_sanctum_half"></a>`ROOM.door_sanctum_half` | 10×40 | `door sanctum half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="darwin/ROOM.door_sanctum_half.png" height="160"> |
-| <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="darwin/ROOM.door_sanctum_open.png" height="160"> |
-| <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/room-doors.png` | <img src="darwin/ROOM.door_refectory_closed.png" height="160"> |
-| <a id="room-door_refectory_half"></a>`ROOM.door_refectory_half` | 10×24 | `door refectory half`: drawn as is. Source: `ui/art/room-doors.png` | <img src="darwin/ROOM.door_refectory_half.png" height="160"> |
-| <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/room-doors.png` | <img src="darwin/ROOM.door_refectory_open.png" height="160"> |
+| <a id="room-floor"></a>`ROOM.floor` | 32×16 | `floor`: repeats both ways, mixed with `floor vent`, `floor bolts` (shown repeated). Source: `ui/art/darwin/room-floor.png` | <img src="darwin/ROOM.floor.png" height="128"> |
+| <a id="room-channel_h"></a>`ROOM.channel_h` | 24×2 | `channel h`: repeats along x, glows (coolant) (shown repeated). Source: `ui/art/darwin/room-floor.png` | <img src="darwin/ROOM.channel_h.png" height="16"> |
+| <a id="room-channel_v"></a>`ROOM.channel_v` | 2×24 | `channel v`: repeats along y, glows (coolant) (shown repeated). Source: `ui/art/darwin/room-floor.png` | <img src="darwin/ROOM.channel_v.png" height="160"> |
+| <a id="room-sanctum_passage"></a>`ROOM.sanctum_passage` | 6×6 | `sanctum passage`: repeats both ways (shown repeated). Source: `ui/art/darwin/room-floor.png` | <img src="darwin/ROOM.sanctum_passage.png" height="48"> |
+| <a id="room-sill"></a>`ROOM.sill` | 72×2 | `sill`: repeats along x (shown repeated). Source: `ui/art/darwin/room-floor.png` | <img src="darwin/ROOM.sill.png" height="16"> |
+| <a id="room-sanctum_floor"></a>`ROOM.sanctum_floor` | 20×20 | `sanctum floor`: nine-slice (corners kept, edges and centre repeat). Source: `ui/art/darwin/room-floor.png` | <img src="darwin/ROOM.sanctum_floor.png" height="160"> |
+| <a id="room-wall_top"></a>`ROOM.wall_top` | 12×10 | `wall top`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_top.png" height="80"> |
+| <a id="room-wall"></a>`ROOM.wall` | 36×30 | `wall`: repeats both ways, first row from `wall top` (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall.png" height="160"> |
+| <a id="room-wall_east_top"></a>`ROOM.wall_east_top` | 12×10 | `wall east top`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_east_top.png" height="80"> |
+| <a id="room-wall_east"></a>`ROOM.wall_east` | 36×30 | `wall east`: repeats both ways, first row from `wall east top` (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_east.png" height="160"> |
+| <a id="room-wall_sanctum_top"></a>`ROOM.wall_sanctum_top` | 12×10 | `wall sanctum top`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_sanctum_top.png" height="80"> |
+| <a id="room-wall_sanctum"></a>`ROOM.wall_sanctum` | 36×30 | `wall sanctum`: repeats both ways, first row from `wall sanctum top` (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_sanctum.png" height="160"> |
+| <a id="room-wall_foot"></a>`ROOM.wall_foot` | 6×6 | `wall foot`: repeats both ways (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_foot.png" height="48"> |
+| <a id="room-wall_dark"></a>`ROOM.wall_dark` | 6×6 | `wall dark`: repeats both ways (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_dark.png" height="48"> |
+| <a id="room-wall_base"></a>`ROOM.wall_base` | 12×3 | `wall base`: repeats along x (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.wall_base.png" height="24"> |
+| <a id="room-sanctum_base"></a>`ROOM.sanctum_base` | 12×3 | `sanctum base`: repeats along x (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.sanctum_base.png" height="24"> |
+| <a id="room-pillar"></a>`ROOM.pillar` | 10×24 | `pillar`: repeats along y (shown repeated). Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.pillar.png" height="160"> |
+| <a id="room-pilaster"></a>`ROOM.pilaster` | 4×19.5 | `pilaster`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.pilaster.png" height="156"> |
+| <a id="room-beacon_off"></a>`ROOM.beacon_off` | 7×10 | `beacon off`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.beacon_off.png" height="80"> |
+| <a id="room-beacon_on"></a>`ROOM.beacon_on` | 7×10 | `beacon on`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.beacon_on.png" height="80"> |
+| <a id="room-beacon_cage"></a>`ROOM.beacon_cage` | 7×10 | `beacon cage`: drawn as is. Source: `ui/art/darwin/room-walls.png` | <img src="darwin/ROOM.beacon_cage.png" height="80"> |
+| <a id="room-pipe_h"></a>`ROOM.pipe_h` | 24×3 | `pipe h`: repeats along x (shown repeated). Source: `ui/art/darwin/room-pipes.png` | <img src="darwin/ROOM.pipe_h.png" height="24"> |
+| <a id="room-pipe_v"></a>`ROOM.pipe_v` | 3×24 | `pipe v`: repeats along y (shown repeated). Source: `ui/art/darwin/room-pipes.png` | <img src="darwin/ROOM.pipe_v.png" height="160"> |
+| <a id="room-fitting_h"></a>`ROOM.fitting_h` | 3×5 | `fitting h`: drawn as is. Source: `ui/art/darwin/room-pipes.png` | <img src="darwin/ROOM.fitting_h.png" height="40"> |
+| <a id="room-fitting_v"></a>`ROOM.fitting_v` | 5×3 | `fitting v`: drawn as is. Source: `ui/art/darwin/room-pipes.png` | <img src="darwin/ROOM.fitting_v.png" height="24"> |
+| <a id="room-fitting_wide"></a>`ROOM.fitting_wide` | 10×2 | `fitting wide`: drawn as is. Source: `ui/art/darwin/room-pipes.png` | <img src="darwin/ROOM.fitting_wide.png" height="16"> |
+| <a id="room-door_sanctum_closed"></a>`ROOM.door_sanctum_closed` | 10×40 | `door sanctum closed`: drawn as is. Source: `ui/art/darwin/room-doors.png` | <img src="darwin/ROOM.door_sanctum_closed.png" height="160"> |
+| <a id="room-door_sanctum_half"></a>`ROOM.door_sanctum_half` | 10×40 | `door sanctum half`: drawn as is. Source: `ui/art/darwin/room-doors.png` | <img src="darwin/ROOM.door_sanctum_half.png" height="160"> |
+| <a id="room-door_sanctum_open"></a>`ROOM.door_sanctum_open` | 10×40 | `door sanctum open`: drawn as is. Source: `ui/art/darwin/room-doors.png` | <img src="darwin/ROOM.door_sanctum_open.png" height="160"> |
+| <a id="room-door_refectory_closed"></a>`ROOM.door_refectory_closed` | 10×24 | `door refectory closed`: drawn as is. Source: `ui/art/darwin/room-doors.png` | <img src="darwin/ROOM.door_refectory_closed.png" height="160"> |
+| <a id="room-door_refectory_half"></a>`ROOM.door_refectory_half` | 10×24 | `door refectory half`: drawn as is. Source: `ui/art/darwin/room-doors.png` | <img src="darwin/ROOM.door_refectory_half.png" height="160"> |
+| <a id="room-door_refectory_open"></a>`ROOM.door_refectory_open` | 10×24 | `door refectory open`: drawn as is. Source: `ui/art/darwin/room-doors.png` | <img src="darwin/ROOM.door_refectory_open.png" height="160"> |
 
 ## Face sheets (39° side and top faces)
 

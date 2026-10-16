@@ -49,16 +49,21 @@ Monkey at a typewriter (one silhouette, fur in `r R d`, neckerchief `y`, waistco
 capuchin with typed pages. Viewer check: all three ranks side by side read as ginger / brown / pale.
 ### Task 3: `magos`, `sanctum` — Blocked by: 1
 Gorilla Professor in a wing chair, swinging arm with a magnifying glass; partners' desk, tree-of-life emblem, finch seal.
+- [x] `magos`, `sanctum` drawn and registered; theme, art, sprites tests `ok`.
 ### Task 4: `workstations`, `cogitator` — Blocked by: 1
 Typewriter desk, reading lectern, portable typewriter on a crate; specimen-cabinet wall.
+- [x] `workstations`, `cogitator` drawn and registered; theme, art, sprites tests `ok`.
 ### Task 5: `walls`, `skull`, `gate`, `fire` — Blocked by: 1
 Sash window (garden day / moon night), Beagle voyage chart, books and jars, barometer, gas lamp; finch; mahogany
 double doors onto a dark corridor; fireplace, oil lamp.
+- [x] `walls`, `skull`, `gate`, `fire` drawn and registered; theme, art, sprites tests `ok`.
 ### Task 6: `clutter`, `petitions`, `commits`, `refectorium` — Blocked by: 1
 Typed-page tower, crumpled pages, leather volumes, loose pages, Beagle specimen crate; typed page with `?`, page
 held up; page of Shakespeare, specimen label, brass stamp; tea urn with bananas, tea table and Chesterfield bench.
+- [x] `clutter`, `petitions`, `commits`, `refectorium` drawn and registered; theme, art, sprites tests `ok`.
 ### Task 7: room tiles `room-floor`, `room-walls`, `room-doors`, `room-pipes` — Blocked by: 1
 Herringbone parquet with runner carpet; panelling under wallpaper; panelled doors; brass gas pipes; brass bell beacon.
+- [x] `room-floor`, `room-walls`, `room-doors`, `room-pipes` drawn and registered (default `meta.tiles` copied); theme, art, sprites tests `ok`.
 
 **Milestone 2 check:** all tests `ok`; `node tools/sprite_sheet.mjs --theme darwin`; full column N screenshot in the
 viewer; the app in Flat view (`tools/preview.html?theme=darwin&n=12`).
@@ -86,4 +91,4 @@ ring = he rings a hand bell), each modelled on its `vault.mjs` sibling; run both
 Ruling (Task 1 spike): a transparent rank colour does not work: `rgba(0,0,0,0)` as a rank slot renders as an opaque
 near-black pixel in the gallery (`tools/png_write.mjs` `rgba()` parses only `#rrggbb`), and in the app the canvas
 skips it, a hole through the face on a one-layer sprite. Spectacles dropped (decision 10).
-Done: none. Current: 1. Next: 2. Blockers: none. Irreversible: pushes to main (authorised by the repo's commit-and-push law).
+Done: 1-7 (3-7 art uncommitted, awaiting the parent's commit). Current: Milestone 2 check. Next: 8, 9. Blockers: none. Irreversible: pushes to main (authorised by the repo's commit-and-push law).
