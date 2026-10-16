@@ -40,6 +40,8 @@ pub enum Call {
     SettingsLoad,
     PeekPetition(String),
     AnswerPetition { handle: String, choice: String },
+    /// An OpenCode permission request on a session's card (opencode::answer_opencode).
+    AnswerOpenCode { session: String, request: String, choice: String },
     Vigil { arm: bool },
 }
 
@@ -421,18 +423,10 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
             None => respond(&mut w, 503, TEXT, b"too many event streams", &[]),
         },
         Route::Call(c) => json(&mut w, (backend.call)(c)),
-        Route::Answer => {
-            #[derive(serde::Deserialize)]
-            struct Answer {
-                handle: String,
-                choice: String,
-            }
-            let parsed = read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY).and_then(|b| serde_json::from_slice::<Answer>(&b).map_err(|_| 400));
-            match parsed {
-                Ok(a) => json(&mut w, (backend.call)(Call::AnswerPetition { handle: a.handle, choice: a.choice })),
-                Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
-            }
-        }
+        Route::Answer => match read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY).and_then(|b| answer_call(&b)) {
+            Ok(call) => json(&mut w, (backend.call)(call)),
+            Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
+        },
         Route::Vigil => {
             #[derive(serde::Deserialize)]
             struct Arm {
@@ -444,6 +438,25 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
                 Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
             }
         }
+    }
+}
+
+/// `/api/answer_petition`'s body: `{handle, choice}` for a Claude prompt in Orca, `{session, request, choice}` for an
+/// OpenCode request (ids checked here: they never reach the backend malformed). Anything else is a 400.
+fn answer_call(body: &[u8]) -> Result<Call, u16> {
+    #[derive(serde::Deserialize)]
+    struct Answer {
+        handle: Option<String>,
+        session: Option<String>,
+        request: Option<String>,
+        choice: String,
+    }
+    let a: Answer = serde_json::from_slice(body).map_err(|_| 400u16)?;
+    let id = |v: &str, prefix| v.starts_with(prefix) && crate::registry::valid_opencode_id(v);
+    match (a.handle, a.session, a.request) {
+        (Some(handle), None, None) => Ok(Call::AnswerPetition { handle, choice: a.choice }),
+        (None, Some(session), Some(request)) if id(&session, "ses_") && id(&request, "per_") => Ok(Call::AnswerOpenCode { session, request, choice: a.choice }),
+        _ => Err(400),
     }
 }
 
@@ -622,6 +635,25 @@ mod tests {
     }
 
     #[test]
+    fn answer_bodies() {
+        let call = |b: &str| answer_call(b.as_bytes());
+        assert_eq!(call(r#"{"handle":"term_1","choice":"no"}"#), Ok(Call::AnswerPetition { handle: "term_1".into(), choice: "no".into() }));
+        assert_eq!(call(r#"{"session":"ses_x","request":"per_y","choice":"yes"}"#), Ok(Call::AnswerOpenCode { session: "ses_x".into(), request: "per_y".into(), choice: "yes".into() }));
+        for bad in [
+            "{}",
+            r#"{"handle":"term_1"}"#,
+            r#"{"session":"ses_x","choice":"yes"}"#,
+            r#"{"session":"per_y","request":"ses_x","choice":"yes"}"#,
+            r#"{"session":"ses_x","request":"per_y?z","choice":"yes"}"#,
+            r#"{"session":"ses_","request":"per_y","choice":"yes"}"#,
+            r#"{"handle":"term_1","session":"ses_x","request":"per_y","choice":"yes"}"#,
+            "not json",
+        ] {
+            assert_eq!(call(bad), Err(400), "{bad}");
+        }
+    }
+
+    #[test]
     fn answer_is_gated() {
         let good = [("x-adm", "1"), ("origin", "http://192.168.1.5:7770"), ("content-type", "application/json")];
         assert_eq!(post(&authed(&good), true), Route::Answer);
@@ -726,6 +758,9 @@ mod tests {
         assert!(answer("{\"handle\":\"term_1\"}").starts_with("HTTP/1.1 400"));
         let ok = answer("{\"handle\":\"term_1\",\"choice\":\"yes\"}");
         assert!(ok.starts_with("HTTP/1.1 200") && ok.contains("AnswerPetition"), "{ok}");
+        let oc = answer(r#"{"session":"ses_x","request":"per_y","choice":"yes"}"#);
+        assert!(oc.starts_with("HTTP/1.1 200") && oc.contains("AnswerOpenCode"), "{oc}");
+        assert!(answer(r#"{"session":"ses_x/../y","request":"per_y","choice":"yes"}"#).starts_with("HTTP/1.1 400"), "a bad id never reaches the app");
         // SSE: a published event reaches the stream; a new token ends it.
         let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
         s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();

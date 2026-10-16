@@ -102,6 +102,7 @@ export const TEXT = {
     background: 'Idle · background shell running', napping: 'Idle · dozing in the Refectorium' },
   petitions: ['{n} petition', '{n} petitions'], questions: ['{n} question', '{n} questions'], petitioning: '{n} petitioning',
   petitionLabel: '{name}, petition: {want}', adeptOf: '{kind} · adept of {owner}',
+  rejectAll: "Deny also refuses this session's other pending requests", // an OpenCode petition's card (OpenCode's rule)
   overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen',
   limitLabel: 'sealed · resets {time}', limitSealed: 'sealed',
   modes: { full: 'Full light', candles: 'Candles' },
@@ -116,7 +117,7 @@ export const TEXT = {
     cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',
-    limit: '{name} sealed until {time}', limitMany: '{n} sessions sealed until {time}', failed: '{name}: open the terminal' },
+    limit: '{name} sealed until {time}', limitMany: '{n} sessions sealed until {time}', failed: '{name}: answer not sent — answer it in the session' },
   // Night Vigil (vigil.js): the night watchman's name, the header moon's title
   watch: { name: 'Inquisitor', button: 'Night Vigil: the Inquisitor shuts the PC down once every session waits on you' },
 };

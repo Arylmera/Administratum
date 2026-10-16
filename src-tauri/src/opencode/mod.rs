@@ -4,7 +4,10 @@
 mod db;
 mod service;
 
-use crate::registry::{self, Agent, Context, Helper, Session};
+use crate::{
+    chronicle::{Msg, OPENCODE_BATCH},
+    registry::{self, Agent, Context, Helper, Session},
+};
 use service::Permission;
 use std::{
     collections::{HashMap, HashSet},
@@ -92,6 +95,7 @@ pub fn build(rows: &[Shown], live: Option<&Live>, now_ms: i64) -> Vec<Session> {
             context: context.clone(),
             source: Agent::OpenCode,
             opencode_request: pending.map(|(p, _)| p.id.clone()),
+            opencode_asker: pending.map(|(p, _)| p.session_id.clone()),
             ..Default::default()
         });
     }
@@ -128,6 +132,24 @@ pub struct Source {
     seen: HashMap<String, i64>,
     /// Messages already logged: each is printed once per run.
     logged: HashSet<String>,
+    /// The database stamp the Chronicon last read messages at, and whether a batch came back full (more to read).
+    fed: Option<[Option<(u64, i64)>; 2]>,
+    more: bool,
+}
+
+/// Session id -> its top-level session (the hall's): a parent cycle in the DB cannot hang the tick.
+fn root_of<'a>(parent: &HashMap<&'a str, &'a str>, mut id: &'a str) -> &'a str {
+    for _ in 0..16 {
+        match parent.get(id) {
+            Some(p) => id = p,
+            None => break,
+        }
+    }
+    id
+}
+
+fn parents(rows: &[Shown]) -> HashMap<&str, &str> {
+    rows.iter().filter_map(|s| Some((s.row.id.as_str(), s.row.parent_id.as_deref()?))).collect()
 }
 
 impl Source {
@@ -136,7 +158,7 @@ impl Source {
     }
 
     fn at(db: PathBuf, registration: PathBuf) -> Self {
-        Source { db, registration, stamp: None, rows: vec![], seen: HashMap::new(), logged: HashSet::new() }
+        Source { db, registration, stamp: None, rows: vec![], seen: HashMap::new(), logged: HashSet::new(), fed: None, more: false }
     }
 
     pub fn roster(&mut self, now_ms: i64) -> Vec<Session> {
@@ -199,18 +221,42 @@ impl Source {
     /// Nothing is asked when `/active` did not answer: the service is hung and every call would wait out its timeout.
     fn askable<'a>(rows: &'a [Shown], active: Option<&HashSet<String>>) -> Vec<(&'a str, &'a str)> {
         let Some(active) = active else { return vec![] };
-        let parent: HashMap<&str, &str> = rows.iter().filter_map(|s| Some((s.row.id.as_str(), s.row.parent_id.as_deref()?))).collect();
-        let root = |mut id: &'a str| {
-            for _ in 0..16 {
-                // bounded: a parent cycle in the DB cannot hang the tick
-                match parent.get(id) {
-                    Some(p) => id = p,
-                    None => break,
-                }
+        let parent = parents(rows);
+        rows.iter().filter(|s| s.row.time_suspended.is_some() && active.contains(&s.row.id)).map(|s| (s.row.id.as_str(), root_of(&parent, &s.row.id))).collect()
+    }
+
+    /// The sessions whose messages feed the Chronicon: every shown one, finished helpers included (their last rows
+    /// land as they finish), as (id, top-level session id, helper kind for a child).
+    pub fn family(&self) -> Vec<(String, String, Option<String>)> {
+        let parent = parents(&self.rows);
+        let kind = |s: &Shown| s.row.parent_id.as_ref().map(|_| s.row.agent.clone().unwrap_or_else(|| "agent".into()));
+        self.rows.iter().map(|s| (s.row.id.clone(), root_of(&parent, &s.row.id).to_string(), kind(s))).collect()
+    }
+
+    /// Runs `f` with a reader of a session's rows after a seq (`db::messages_after`, OPENCODE_BATCH at most), all in
+    /// one read transaction dropped before returning. The reader gives nothing while the database is closed (no
+    /// `-wal`: opening would create sidecars) or unchanged since the last read with nothing left over.
+    pub fn with_messages<T>(&mut self, f: impl FnOnce(&mut dyn FnMut(&str, i64) -> Vec<Msg>) -> T) -> T {
+        let open = self.stamp.is_some_and(|s| s[1].is_some()) && (self.more || self.fed != self.stamp);
+        let conn = if open { db::open(&self.db) } else { None };
+        let Some(tx) = conn.as_ref().and_then(|c| c.unchecked_transaction().ok()) else { return f(&mut |_, _| vec![]) };
+        let (mut more, mut failed) = (false, None);
+        let out = f(&mut |id, seq| match db::messages_after(&tx, id, seq, OPENCODE_BATCH) {
+            Ok(rows) => {
+                more |= rows.len() >= OPENCODE_BATCH as usize;
+                rows
             }
-            id
-        };
-        rows.iter().filter(|s| s.row.time_suspended.is_some() && active.contains(&s.row.id)).map(|s| (s.row.id.as_str(), root(&s.row.id))).collect()
+            Err(e) => {
+                failed = Some(format!("opencode db: {e}"));
+                vec![]
+            }
+        });
+        drop(tx); // never held across ticks
+        (self.fed, self.more) = (self.stamp, more || failed.is_some());
+        if let Some(e) = failed {
+            self.log(e);
+        }
+        out
     }
 
     fn live(&mut self, text: &str, now_ms: i64) -> Option<Live> {
@@ -228,7 +274,10 @@ impl Source {
                 if live.pending.contains_key(root) {
                     continue; // one petition per scribe: the first one found
                 }
-                if let Some(p) = service::pending(&reg, ask).ok().and_then(|v| v.into_iter().next()) {
+                if let Some(mut p) = service::pending(&reg, ask).ok().and_then(|v| v.into_iter().next()) {
+                    if p.session_id.is_empty() {
+                        p.session_id = ask.to_string(); // the session asked about is the one that asks
+                    }
                     let seen = *self.seen.entry(p.id.clone()).or_insert(now_ms);
                     live.pending.insert(root.to_string(), (p, seen));
                 }
@@ -240,6 +289,41 @@ impl Source {
     }
 }
 
+/// The card's Approve / Always / Deny as OpenCode's reply decision.
+pub fn decision(choice: &str) -> Result<&'static str, String> {
+    match choice {
+        "yes" => Ok("once"),
+        "always" => Ok("always"),
+        "no" => Ok("reject"),
+        _ => Err("unknown choice".into()),
+    }
+}
+
+/// Answers permission request `request` on hall session `session`'s card, only while `roster` (the newest) still
+/// shows it there: the ids from the UI or the remote view select a roster entry, never a URL by themselves. The
+/// reply goes to the session that asked (a helper's own, maybe) at the service the registration at `registration`
+/// names now (re-read at each click: the service may have restarted).
+fn answer_at(registration: &std::path::Path, roster: &[Session], session: &str, request: &str, choice: &str) -> Result<(), String> {
+    let decision = decision(choice)?;
+    let shown = |s: &&Session| s.id == session && s.source == Agent::OpenCode && s.status == "waiting" && s.opencode_request.as_deref() == Some(request);
+    let s = roster.iter().find(shown).ok_or("no permission request pending")?; // as Orca's "no permission prompt on screen"
+    let text = std::fs::read_to_string(registration).map_err(|_| "opencode: no service registration".to_string())?;
+    let reg = service::registration(&text)?;
+    service::reply(&reg, s.opencode_asker.as_deref().unwrap_or(&s.id), request, decision)
+}
+
+pub fn answer(roster: &[Session], session: &str, request: &str, choice: &str) -> Result<(), String> {
+    answer_at(&service::registration_path(), roster, session, request, choice)
+}
+
+/// Answer an OpenCode permission petition from the card: `choice` yes / always / no -> once / always / reject (a
+/// reject also refuses the asking session's other pending requests). Runs off the main thread (async).
+#[tauri::command(async)]
+pub fn answer_opencode(session: String, request: String, choice: String, live: tauri::State<crate::Live>) -> Result<(), String> {
+    let roster: Vec<Session> = crate::lock(&live).iter().filter(|s| s.id == session).cloned().collect(); // the lock is not held over the call
+    answer(&roster, &session, &request, &choice)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,22 +333,32 @@ mod tests {
         thread,
     };
 
-    /// A fake service answering every GET by path from `routes` (404 otherwise), until the test process ends.
-    fn fake_service(routes: Vec<(&'static str, &'static str)>) -> u16 {
+    /// A fake service answering every request by path from `routes` (404 otherwise), until the test process ends;
+    /// it logs each as "METHOD path body".
+    fn fake_service(routes: Vec<(&'static str, &'static str)>) -> (u16, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = l.local_addr().unwrap().port();
+        let log = std::sync::Arc::new(std::sync::Mutex::new(vec![]));
+        let seen = log.clone();
         thread::spawn(move || {
             for s in l.incoming().flatten() {
                 let mut r = BufReader::new(s);
                 let mut first = String::new();
                 r.read_line(&mut first).unwrap();
+                let mut len = 0;
                 loop {
                     let mut line = String::new();
                     if r.read_line(&mut line).unwrap() == 0 || line == "\r\n" {
                         break;
                     }
+                    if let Some(v) = line.to_ascii_lowercase().strip_prefix("content-length:") {
+                        len = v.trim().parse().unwrap();
+                    }
                 }
-                let path = first.split(' ').nth(1).unwrap_or_default();
+                let mut body = vec![0; len];
+                std::io::Read::read_exact(&mut r, &mut body).unwrap();
+                let (method, path) = (first.split(' ').next().unwrap_or_default(), first.split(' ').nth(1).unwrap_or_default());
+                seen.lock().unwrap().push(format!("{method} {path} {}", String::from_utf8_lossy(&body)));
                 let reply = match routes.iter().find(|(p, _)| *p == path) {
                     Some((_, body)) => format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()),
                     None => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".into(),
@@ -272,7 +366,45 @@ mod tests {
                 r.get_mut().write_all(reply.as_bytes()).unwrap();
             }
         });
-        port
+        (port, log)
+    }
+
+    #[test]
+    fn choices_map_to_opencode_decisions() {
+        assert_eq!(["yes", "always", "no"].map(|c| decision(c).unwrap()), ["once", "always", "reject"]);
+        assert!(decision("once").is_err() && decision("").is_err());
+    }
+
+    #[test]
+    fn an_answer_goes_to_the_asking_session_while_the_card_shows_the_request() {
+        let (port, log) = fake_service(vec![("/api/session/ses_kid/permission/per_7/reply", "")]);
+        let dir = std::env::temp_dir().join(format!("adm-opencode-answer-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let reg = dir.join("service.json");
+        std::fs::write(&reg, format!(r#"{{"id":"svc","version":"2.0.29","url":"http://127.0.0.1:{port}","pid":1,"password":"pw-zz9"}}"#)).unwrap();
+        let card = Session {
+            status: "waiting".into(),
+            source: Agent::OpenCode,
+            opencode_request: Some("per_7".into()),
+            opencode_asker: Some("ses_kid".into()),
+            ..registry::tests_session("ses_run")
+        };
+        let roster = [card.clone()];
+        answer_at(&reg, &roster, "ses_run", "per_7", "no").unwrap();
+        assert_eq!(*log.lock().unwrap(), [r#"POST /api/session/ses_kid/permission/per_7/reply {"decision":"reject"}"#], "the helper's request: its own session");
+        for (session, request) in [("ses_run", "per_8"), ("ses_other", "per_7")] {
+            let e = answer_at(&reg, &roster, session, request, "yes").unwrap_err();
+            assert_eq!(e, "no permission request pending", "{session} {request}");
+        }
+        assert!(answer_at(&reg, &[Session { status: "busy".into(), ..card.clone() }], "ses_run", "per_7", "yes").is_err(), "answered meanwhile");
+        // the service no longer has it (answered in the TUI): its 404, said plainly
+        let gone = [Session { opencode_asker: None, ..card.clone() }];
+        let e = answer_at(&reg, &gone, "ses_run", "per_7", "always").unwrap_err();
+        assert_eq!(e, "opencode: that request is no longer pending");
+        assert!(log.lock().unwrap()[1].starts_with("POST /api/session/ses_run/permission/per_7/reply"), "no asker known: the card's session");
+        std::fs::remove_file(&reg).unwrap();
+        assert!(answer_at(&reg, &roster, "ses_run", "per_7", "yes").unwrap_err().contains("no service registration"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -281,7 +413,7 @@ mod tests {
         let (dir, db_file, c) = wal_db("source");
         db::tests::add_session(&c, "ses_run", None, "Fix the card", (Some(NOW - 5_000), None, None));
         db::tests::add_message(&c, "ses_run", 1, "user", r#"{"text":"fix the card"}"#);
-        let port = fake_service(vec![
+        let (port, _) = fake_service(vec![
             ("/api/session/active", r#"{"data":{"ses_run":{"type":"running"}}}"#),
             ("/api/session/ses_run/permission", r#"{"data":[{"id":"per_7","sessionID":"ses_run","action":"shell","resources":["cargo test"]}]}"#),
         ]);
@@ -454,6 +586,31 @@ mod tests {
         assert!(src.roster(NOW).is_empty(), "OpenCode closed its database");
         assert!(Source::at(file.clone(), dir.join("service.json")).roster(NOW).is_empty());
         assert_eq!(sidecars(), [false, false], "the reader wrote nothing beside OpenCode's database");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn messages_are_read_when_the_database_moved() {
+        let (dir, file, c) = wal_db("messages");
+        db::tests::add_session(&c, "ses_a", None, "Run", (None, Some(NOW), None));
+        db::tests::add_session(&c, "ses_kid", Some("ses_a"), "Look", (None, Some(NOW), None));
+        db::tests::add_message(&c, "ses_a", 1, "user", r#"{"text":"go"}"#);
+        let mut src = Source::at(file, dir.join("service.json"));
+        let read = |src: &mut Source| src.with_messages(|rows| rows("ses_a", 0).len());
+        assert_eq!(read(&mut src), 0, "before a roster read the database is not known open");
+        src.roster(NOW);
+        let mut fam = src.family();
+        fam.sort();
+        assert_eq!(fam, [("ses_a".into(), "ses_a".into(), None), ("ses_kid".into(), "ses_a".into(), Some("build".into()))]);
+        assert_eq!(read(&mut src), 1);
+        assert_eq!(read(&mut src), 0, "unchanged since: not read again");
+        db::tests::add_message(&c, "ses_a", 2, "idle", r#"{"outcome":"succeeded"}"#);
+        src.roster(NOW);
+        assert_eq!(read(&mut src), 2);
+        drop(c);
+        src.roster(NOW); // OpenCode closed it: its -wal is gone
+        assert_eq!(read(&mut src), 0);
+        assert!(!dir.join("opencode.db-wal").exists(), "the reader wrote nothing beside OpenCode's database");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

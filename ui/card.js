@@ -133,7 +133,14 @@ function renderTurn(card, s) {
 
 // Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
 // really shows the dialog before typing one option key. Free-text petitions only get "Open in Orca".
-export const answerable = s => s?.status === 'waiting' && !!s.orca && /approve|permission/i.test(s.waitingFor ?? '');
+// An OpenCode permission request is answered through its service (no terminal needed).
+export const answerable = s => s?.status === 'waiting'
+  && (s.source === 'opencode' ? !!s.opencodeRequest : !!s.orca && /approve|permission/i.test(s.waitingFor ?? ''));
+// The backend command and its arguments for answering `s` with yes / always / no (the backend maps OpenCode's).
+export const answerCall = (s, choice) => (s.source === 'opencode'
+  ? ['answer_opencode', { session: s.id, request: s.opencodeRequest, choice }]
+  : ['answer_petition', { handle: s.orca, choice }]);
+const OPENCODE = { yes: 'Allow once', always: 'Always allow', no: 'Reject' }; // OpenCode's own options: nothing to peek
 // Remote view: buttons only while the PC allows remote actions (probed every 10 s at most, and a 403 turns them off).
 let actions = !REMOTE, probed = 0;
 export function probeActions() {
@@ -150,9 +157,10 @@ export function answer(s, choice) {
   const key = episode(s);
   if (answering.has(key)) return;
   answering.add(key); answerErr.delete(key); renderCard();
-  invoke('answer_petition', { handle: s.orca, choice }).catch(err => {
+  invoke(...answerCall(s, choice)).catch(err => {
     if (err === 'remote actions disabled') { actions = false; return; }
-    answerErr.set(key, /no permission prompt|screen unavailable/.test(err) ? 'No permission prompt visible — open the terminal' : String(err));
+    answerErr.set(key, /no permission prompt|screen unavailable/.test(err) ? 'No permission prompt visible — open the terminal'
+      : /no permission request pending|no longer pending/.test(err) ? 'Request no longer pending — answered elsewhere' : String(err));
     sel = s.id; // show the error in this scribe's card
   }).finally(() => { answering.delete(key); renderCard(); }); // success: the scribe leaves the queue on a coming roster tick
 }
@@ -173,7 +181,8 @@ function peek(s) {
 function renderAnswer(card, s) {
   const row = card.querySelector('.answer'), err = card.querySelector('.err'), q = card.querySelector('.q');
   row.hidden = q.hidden = !canAnswer(s);
-  const p = row.hidden ? undefined : peek(s);
+  const p = row.hidden ? undefined : s.source === 'opencode' ? OPENCODE : peek(s);
+  card.querySelector('.reject').hidden = row.hidden || s.source !== 'opencode'; // OpenCode's rule: a reject is for all
   q.textContent = p?.question ?? (p === null ? 'Prompt not visible — buttons will check on click' : '');
   q.classList.toggle('hint', p === null);
   q.hidden ||= !q.textContent;

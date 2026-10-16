@@ -166,6 +166,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             turn: None,
             source: Agent::Claude,
             opencode_request: None,
+            opencode_asker: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));

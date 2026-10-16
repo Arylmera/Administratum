@@ -196,7 +196,6 @@ pub fn pending(reg: &Registration, session: &str) -> Result<Vec<Permission>, Str
 
 /// `POST /api/session/{sid}/permission/{rid}/reply` with `{"decision": once | always | reject}`. A reject also
 /// refuses the session's other pending requests (OpenCode's rule).
-#[allow(dead_code)] // the card's answer command calls it; not wired yet
 pub fn reply(reg: &Registration, session: &str, request: &str, decision: &str) -> Result<(), String> {
     let ids = valid_opencode_id(session) && session.starts_with("ses_") && valid_opencode_id(request) && request.starts_with("per_");
     if !ids || !matches!(decision, "once" | "always" | "reject") {

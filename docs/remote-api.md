@@ -77,16 +77,20 @@ Not exposed: `open_session`, `settings_save`, `set_*`, `start_at_login`, the `re
 
 ## Action endpoint (POST)
 
-`POST /api/answer_petition`, body `{"handle": "term_...", "choice": "yes" | "always" | "no"}`.
-Same on-screen safety check as the Tauri command. Required, in this order:
+`POST /api/answer_petition`, body `{"handle": "term_...", "choice": "yes" | "always" | "no"}` for a Claude Code
+prompt in an Orca terminal (same on-screen safety check as the Tauri command), or
+`{"session": "ses_...", "request": "per_...", "choice": "yes" | "always" | "no"}` for an OpenCode permission
+request (`answer_opencode`: only the request the session's card shows; yes / always / no reply once / always /
+reject, and a reject also refuses that session's other pending requests). Required, in this order:
 
 - remote actions allowed in settings, else 403;
 - cookie (else 401), header `X-Adm: 1`, `Origin` equal to `http://<Host>`, and `Sec-Fetch-Site`
   absent or `same-origin`, else 403;
-- `Content-Type: application/json`, else 415; `Content-Length` <= 1024, else 413; valid JSON with both
-  fields, else 400.
+- `Content-Type: application/json`, else 415; `Content-Length` <= 1024, else 413; valid JSON with `choice` and
+  either `handle` or both `session` and `request` (ids `ses_` / `per_` + 1 to 64 letters or digits), else 400.
 
-Result: 200 `null`, or 400 `{"error": "..."}` (e.g. "no permission prompt on screen").
+Result: 200 `null`, or 400 `{"error": "..."}` (e.g. "no permission prompt on screen", "no permission request
+pending").
 
 ```js
 fetch('/api/answer_petition', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Adm': '1' },

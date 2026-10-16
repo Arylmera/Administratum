@@ -348,6 +348,7 @@
     <div class="path"></div>
     <div class="q" hidden></div>
     <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
+    <div class="note reject" data-t="rejectAll" hidden>Deny also refuses this session's other pending requests</div>
     <div class="note noact" hidden>Remote actions are disabled on the PC</div>
     <div class="err" hidden></div>
     <div class="links" hidden><button type="button">Open in Orca</button><button type="button">Open on claude.ai</button><span class="note" hidden>Open on the PC</span></div>
@@ -458,7 +459,7 @@
         <fieldset id="remote" class="host-only"><legend>Switches</legend>
           <label><span>Serve on the local network</span><input type="checkbox" name="remoteOn"></label>
           <label><span>Allow remote actions</span><input type="checkbox" name="remoteActions"></label>
-          <p class="hint">Anyone with the link on your network can approve or deny Claude Code permission prompts on this PC.</p>
+          <p class="hint">Anyone with the link on your network can approve or deny Claude Code and OpenCode permission prompts on this PC.</p>
           <div class="sub">Connection</div>
           <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
           <p class="hint rv-fw win-only" aria-live="polite"></p>

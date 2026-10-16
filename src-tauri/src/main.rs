@@ -249,6 +249,7 @@ fn main() {
             open_folder,
             orca::peek_petition,
             orca::answer_petition,
+            opencode::answer_opencode,
             chronicle_day,
             tithe_day,
             chronicle_days,
@@ -368,8 +369,11 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     last_t = t;
                     ev
                 } else {
-                    let ev = c.read_transcripts(&roster, &poller.files, now);
+                    let mut ev = c.read_transcripts(&roster, &poller.files, now);
+                    let family = opencode.family();
+                    ev.extend(opencode.with_messages(|rows| c.read_opencode(&roster, &family, rows, now)));
                     turns = c.turns(&poller.files);
+                    turns.extend(c.opencode_turns());
                     ev
                 };
                 let from_transcripts = !demo && !events.is_empty();

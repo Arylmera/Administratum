@@ -107,7 +107,8 @@ export function syncLabels() {
         ans.className = 'ans';
         for (const [text, choice, verb] of [['✓', 'yes', 'Approve'], ['✗', 'no', 'Deny']]) {
           const b = document.createElement('button');
-          b.textContent = text; b.title = verb;
+          // OpenCode's rule: a deny also refuses the session's other pending requests (as the card says)
+          b.textContent = text; b.title = choice === 'no' && a.s.source === 'opencode' ? `${verb}: ${t('rejectAll')}` : verb;
           b.setAttribute('aria-label', `${verb} ${a.s.name}`);
           b.onclick = () => answer(a.s, choice);
           ans.appendChild(b);

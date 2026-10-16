@@ -58,6 +58,9 @@ pub struct Session {
     pub source: Agent,
     /// An OpenCode session's pending permission request (`per_…`), the one its card answers.
     pub opencode_request: Option<String>,
+    /// The OpenCode session that asked it: a helper's own id when a helper asked (the reply goes there). Backend only.
+    #[serde(skip)]
+    pub opencode_asker: Option<String>,
 }
 
 /// The agent a session runs in, serialized `"claude"` / `"opencode"`.
@@ -133,6 +136,13 @@ mod tests {
         let oc = Session { source: Agent::OpenCode, opencode_request: Some("per_1".into()), ..tests_session("b") };
         let json = serde_json::to_value(oc).unwrap();
         assert_eq!((&json["source"], &json["opencodeRequest"]), (&serde_json::json!("opencode"), &serde_json::json!("per_1")));
+    }
+
+    #[test]
+    fn the_opencode_asker_is_never_serialized() {
+        let oc = Session { source: Agent::OpenCode, opencode_request: Some("per_1".into()), opencode_asker: Some("ses_asker9".into()), ..tests_session("b") };
+        let json = serde_json::to_string(&oc).unwrap();
+        assert!(json.contains("per_1") && !json.contains("ses_asker9") && !json.to_lowercase().contains("asker"), "{json}");
     }
 
     #[test]

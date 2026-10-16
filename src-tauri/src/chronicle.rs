@@ -1,6 +1,7 @@
-//! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code
-//! transcripts. Read-only on `~/.claude`; everything it writes lives in the app data dir.
-use crate::registry::{self, FileStat, Session, TurnSummary};
+//! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code transcripts and
+//! OpenCode's message rows (fed in as transcript lines). Read-only on `~/.claude` and OpenCode; everything it
+//! writes lives in the app data dir.
+use crate::registry::{self, Agent, FileStat, Session, TurnSummary};
 use chrono::{Local, NaiveDate, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -296,19 +297,24 @@ pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
                     continue;
                 }
                 let Some(p) = b["input"]["file_path"].as_str().or(b["input"]["notebook_path"].as_str()) else { continue };
-                let p = relative(p, cwd);
-                // ponytail: past the cap a file edited twice counts twice in more_files; the card only says "+N more".
-                if turn.files.contains(&p) {
-                    continue;
-                }
-                if turn.files.len() < MAX_TURN_FILES {
-                    turn.files.push(p);
-                } else {
-                    turn.more_files += 1;
-                }
+                add_file(turn, p, cwd);
             }
         }
         _ => {}
+    }
+}
+
+/// A file the turn changed, once, relative to `cwd`.
+fn add_file(turn: &mut TurnSummary, p: &str, cwd: &str) {
+    let p = relative(p, cwd);
+    // ponytail: past the cap a file edited twice counts twice in more_files; the card only says "+N more".
+    if turn.files.contains(&p) {
+        return;
+    }
+    if turn.files.len() < MAX_TURN_FILES {
+        turn.files.push(p);
+    } else {
+        turn.more_files += 1;
     }
 }
 
@@ -484,6 +490,132 @@ fn fmt_duration(ms: u64) -> String {
     }
 }
 
+// ---- OpenCode messages (pure) -----------------------------------------------------------------
+
+/// An OpenCode `session_message` row: (seq, type, data).
+pub type Msg = (i64, String, Value);
+
+/// How many rows of one OpenCode session are read per poll.
+pub const OPENCODE_BATCH: u32 = 500;
+
+/// Per OpenCode session memory carried between polls: a transcript's pairing and turn state, the open turn's first
+/// prompt, and whether its first read (today's rows only, like a transcript's first scan) is still going.
+#[derive(Default)]
+pub struct OcCursor {
+    cur: Cursor,
+    open: Option<i64>,
+    backfill: bool,
+    /// A hall session's own log, not a helper's: its turn is the card's.
+    main: bool,
+}
+
+fn ms_of(v: &Value) -> Option<i64> {
+    v.as_f64().map(|x| x as i64)
+}
+
+fn iso_of(ms: i64) -> String {
+    chrono::DateTime::from_timestamp_millis(ms).unwrap_or_default().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+/// The paths of an OpenCode `patch` (`*** Add File: <path>`, `Update`, `Delete`; tool/patch.txt).
+fn patch_files(text: &str) -> Vec<&str> {
+    text.lines().filter_map(|l| ["*** Add File: ", "*** Update File: ", "*** Delete File: "].iter().find_map(|p| l.strip_prefix(p)).map(str::trim)).collect()
+}
+
+/// Whether OpenCode is done writing a row: it rewrites an assistant row (same seq) until `time.completed`, a shell
+/// or compaction row while `running`. Its own projector copies a session by the same rule (session/projector.ts).
+fn finished(kind: &str, d: &Value) -> bool {
+    match kind {
+        "assistant" => !d["time"]["completed"].is_null(),
+        "shell" | "compaction" => d["status"] != "running",
+        _ => true,
+    }
+}
+
+/// One OpenCode row as the Claude transcript lines `extract_line` and `track_turn` read, so events come from the
+/// same code: the turn's first prompt (OpenCode's turn runs to its `idle` row, prompts steered in meanwhile
+/// included), an assistant message with its usage and tool calls (`shell` -> Bash, `edit` / `patch` -> Edit,
+/// `write` -> Write) and then their results, and at `idle` the turn's duration.
+fn claude_lines(st: &mut OcCursor, kind: &str, d: &Value) -> Vec<String> {
+    use serde_json::json;
+    let Some(created) = ms_of(&d["time"]["created"]) else { return vec![] };
+    match kind {
+        "user" if st.open.is_none() => {
+            st.open = Some(created);
+            vec![json!({"type": "user", "timestamp": iso_of(created), "message": {"content": d["text"].as_str().unwrap_or("")}}).to_string()]
+        }
+        "idle" => st.open.take().map(|start| json!({"type": "system", "subtype": "turn_duration", "durationMs": created.saturating_sub(start).max(0), "timestamp": iso_of(created)}).to_string()).into_iter().collect(),
+        "assistant" => {
+            let ts = iso_of(ms_of(&d["time"]["completed"]).unwrap_or(created));
+            let (mut uses, mut results) = (vec![], vec![]);
+            for t in d["content"].as_array().into_iter().flatten().filter(|c| c["type"] == "tool") {
+                let (id, s, input) = (t["id"].as_str().unwrap_or(""), &t["state"], &t["state"]["input"]);
+                let (name, input) = match t["name"].as_str().unwrap_or("tool") {
+                    "shell" => ("Bash", json!({"command": input["command"]})),
+                    "edit" => ("Edit", json!({"file_path": input["path"]})),
+                    "write" => ("Write", json!({"file_path": input["path"]})),
+                    "patch" => ("Edit", json!({"file_path": patch_files(input["patchText"].as_str().unwrap_or("")).first()})),
+                    n => (n, input.clone()),
+                };
+                uses.push(json!({"type": "tool_use", "id": id, "name": name, "input": input}));
+                // No result: still running, declined by the operator or cut off by an interruption (`aborted`,
+                // runner/step.ts), or a shell moved to the background (its outcome is never this tool's).
+                let done = s["status"] == "completed" || s["status"] == "error";
+                if !done || s["error"]["type"] == "aborted" || s["metadata"]["status"] == "running" {
+                    continue;
+                }
+                let mut text: Vec<&str> = s["error"]["message"].as_str().into_iter().collect();
+                text.extend(s["content"].as_array().into_iter().flatten().filter_map(|c| c["text"].as_str()));
+                // A failing shell command still completes: its exit code says (shell/result.ts metadata).
+                let is_error = if s["status"] == "error" { Some(true) } else { ms_of(&s["metadata"]["exit"]).map(|e| e != 0) };
+                results.push(json!({"type": "tool_result", "tool_use_id": id, "content": text.join("\n"), "is_error": is_error}));
+            }
+            let n = |v: &Value| ms_of(v).unwrap_or(0).max(0);
+            let t = &d["tokens"];
+            let usage = t.is_object().then(|| {
+                json!({"input_tokens": n(&t["input"]), "output_tokens": n(&t["output"]).saturating_add(n(&t["reasoning"])), "cache_read_input_tokens": n(&t["cache"]["read"]), "cache_creation_input_tokens": n(&t["cache"]["write"])})
+            });
+            let mut out = vec![json!({"type": "assistant", "timestamp": ts, "message": {"id": d["id"], "model": d["model"]["id"], "content": uses, "usage": usage}}).to_string()];
+            if !results.is_empty() {
+                out.push(json!({"type": "user", "timestamp": ts, "message": {"content": results}}).to_string());
+            }
+            out
+        }
+        _ => vec![],
+    }
+}
+
+/// Folds an OpenCode session's rows after seq `after` into `out` (events, usage, turns) and its card's turn, like
+/// transcript lines; returns the seq to read after next time. A row OpenCode is still rewriting (`finished`) stops
+/// the read before it, so its tokens count once and no tool result is missed; unless an `idle` row follows it in the
+/// batch: the turn is over and that row will never finish (a crash).
+// shortcut: an unfinished row with no idle within OPENCODE_BATCH rows after it holds the session back until one comes.
+pub fn feed_opencode(st: &mut OcCursor, rows: &[Msg], after: i64, min_ts: i64, src: &Src, cwd: &str, out: &mut Found) -> i64 {
+    let mut next = after;
+    for (i, (seq, kind, d)) in rows.iter().enumerate() {
+        if !finished(kind, d) && !rows[i + 1..].iter().any(|(_, k, _)| k == "idle") {
+            break;
+        }
+        next = *seq;
+        for line in claude_lines(st, kind, d) {
+            if st.main && turn_wanted(&line) {
+                track_turn(&mut st.cur.turn, &line, cwd);
+            }
+            if wanted(&line) {
+                extract_line(&mut st.cur, &line, min_ts, src, 0, out); // every line carries its timestamp: no "now" needed
+            }
+        }
+        if st.main && kind == "assistant" {
+            // track_turn saw a patch's first file; the others are the turn's too
+            let patches = d["content"].as_array().into_iter().flatten().filter(|t| t["type"] == "tool" && t["name"] == "patch");
+            for p in patches.flat_map(|t| patch_files(t["state"]["input"]["patchText"].as_str().unwrap_or("")).into_iter().skip(1)) {
+                add_file(&mut st.cur.turn, p, cwd);
+            }
+        }
+    }
+    next
+}
+
 /// Lifecycle events between two rosters: arrived, left, petition, petition-answered, compaction
 /// (none of arrived, left, compaction for the break-out room's temp sessions).
 pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
@@ -563,6 +695,9 @@ pub struct Chronicle {
     offsets: HashMap<String, u64>,
     /// Per transcript: pairing state and, for a subagent's, its kind.
     cursors: HashMap<PathBuf, (Cursor, Option<String>)>,
+    /// Per OpenCode session id: the seq read up to and when it was last read (ms), saved with the offsets.
+    seqs: HashMap<String, (i64, i64)>,
+    oc: HashMap<String, OcCursor>,
     tithe: Tithe,
     last_flush_ms: i64,
     /// Tithe or offsets changed since the last flush.
@@ -573,6 +708,13 @@ pub struct Chronicle {
 fn prune_offsets(offsets: &mut HashMap<String, u64>, today_start: i64) {
     offsets.retain(|p, _| registry::stat(Path::new(p)).is_some_and(|f| f.mtime_ms >= today_start));
 }
+
+/// Likewise an OpenCode session not read since before today: back in the hall, it is read from today's rows.
+fn prune_seqs(seqs: &mut HashMap<String, (i64, i64)>, today_start: i64) {
+    seqs.retain(|_, (_, seen)| *seen >= today_start);
+}
+
+const SEQS: &str = "opencode-seqs.json";
 
 fn write_atomic(path: &Path, text: &str) {
     let tmp = path.with_extension("tmp");
@@ -613,9 +755,11 @@ impl Chronicle {
         let today_start = midnight_ms(now_ms);
         let mut offsets: HashMap<String, u64> = fs::read_to_string(dir.join("offsets.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
         prune_offsets(&mut offsets, today_start);
+        let mut seqs: HashMap<String, (i64, i64)> = fs::read_to_string(dir.join(SEQS)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+        prune_seqs(&mut seqs, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
-        Chronicle { dir, offsets, cursors: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false }
+        Chronicle { dir, offsets, cursors: HashMap::new(), seqs, oc: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false }
     }
 
     pub fn dir(&self) -> &Path {
@@ -688,6 +832,51 @@ impl Chronicle {
             .collect()
     }
 
+    /// New events from OpenCode sessions, tokens to the Tithe: `family` lists (session id, its hall session's id,
+    /// helper kind for a subagent's) and `rows(id, after)` gives up to OPENCODE_BATCH of that session's rows after
+    /// seq `after`. A session first seen (no seq kept) is read from seq 0, today's rows only.
+    pub fn read_opencode(&mut self, roster: &[Session], family: &[(String, String, Option<String>)], rows: &mut dyn FnMut(&str, i64) -> Vec<Msg>, now_ms: i64) -> Vec<Event> {
+        let today_start = midnight_ms(now_ms);
+        let mut events = vec![];
+        for (id, root, helper) in family {
+            let Some(s) = roster.iter().find(|s| s.id == *root && s.source == Agent::OpenCode) else { continue };
+            let stored = self.seqs.get(id).copied();
+            let after = stored.map_or(0, |(seq, _)| seq);
+            let batch = rows(id, after);
+            let st = self.oc.entry(id.clone()).or_insert_with(|| OcCursor { backfill: stored.is_none(), ..Default::default() });
+            st.main = helper.is_none();
+            let min_ts = if st.backfill { today_start } else { i64::MIN };
+            let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref(), branch: s.branch.as_deref().filter(|_| !st.backfill) };
+            let mut found = Found::default();
+            let next = feed_opencode(st, &batch, after, min_ts, &src, &s.cwd, &mut found);
+            if batch.len() < OPENCODE_BATCH as usize {
+                st.backfill = false;
+            }
+            if stored.is_none_or(|(seq, seen)| seq != next || seen < today_start) {
+                self.seqs.insert(id.clone(), (next, now_ms));
+                self.dirty = true;
+            }
+            let (ev, usage, turns) = found;
+            events.extend(ev);
+            for u in usage {
+                self.add_usage(&s.dept, &u); // a helper's tokens count toward its hall session's project
+            }
+            for t in turns {
+                if let Some(tithe) = self.tithe_at(t.ts) {
+                    tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
+                    self.dirty = true;
+                }
+            }
+        }
+        self.oc.retain(|id, _| family.iter().any(|(f, _, _)| f == id));
+        events
+    }
+
+    /// Each OpenCode hall session's current turn, by session id (as `turns`).
+    pub fn opencode_turns(&self) -> impl Iterator<Item = (String, TurnSummary)> + '_ {
+        self.oc.iter().filter(|(_, st)| st.main && (st.cur.turn.started_ms.is_some() || st.cur.turn.tools > 0)).map(|(id, st)| (id.clone(), st.cur.turn.clone()))
+    }
+
     /// The Tithe of `ts`'s day, rolling over (flushing the old one, dropping offsets of files
     /// untouched since) when a new day starts; older days are dropped.
     fn tithe_at(&mut self, ts: i64) -> Option<&mut Tithe> {
@@ -696,6 +885,7 @@ impl Chronicle {
             self.flush();
             self.tithe = load_tithe(&self.dir, &day).unwrap_or_else(|| Tithe::new(&day));
             prune_offsets(&mut self.offsets, midnight_ms(ts));
+            prune_seqs(&mut self.seqs, midnight_ms(ts));
         }
         if day == self.tithe.day {
             Some(&mut self.tithe)
@@ -747,6 +937,9 @@ impl Chronicle {
         }
         if let Ok(t) = serde_json::to_string(&self.offsets) {
             write_atomic(&self.dir.join("offsets.json"), &t);
+        }
+        if let Ok(t) = serde_json::to_string(&self.seqs) {
+            write_atomic(&self.dir.join(SEQS), &t);
         }
     }
 
@@ -1209,5 +1402,191 @@ mod tests {
         c.flush();
         let again = Chronicle::open(c.dir().to_path_buf(), t, false);
         assert_eq!(again.offsets.len(), 2, "offsets persisted");
+    }
+
+    // ---- OpenCode rows (shapes from schema/src/session-message.ts at v2.0.29) ----
+
+    fn oc_tool(id: &str, name: &str, input: Value, state: Value) -> Value {
+        let mut st = serde_json::json!({"input": input});
+        st.as_object_mut().unwrap().extend(state.as_object().unwrap().clone());
+        serde_json::json!({"type":"tool","id":id,"name":name,"state":st,"time":{"created":1}})
+    }
+
+    fn oc_shell(id: &str, cmd: &str, text: &str, exit: i64) -> Value {
+        oc_tool(id, "shell", serde_json::json!({"command": cmd}), serde_json::json!({"status":"completed","content":[{"type":"text","text":text}],"metadata":{"exit":exit}}))
+    }
+
+    /// An assistant row: `completed` None while OpenCode is still writing it.
+    fn oc_assistant(id: &str, ts: i64, completed: Option<i64>, tools: Vec<Value>, tokens: Option<Value>) -> Value {
+        let mut d = serde_json::json!({"id":id,"type":"assistant","agent":"build","model":{"id":"claude-sonnet-5","providerID":"anthropic"},"content":tools,"time":{"created":ts}});
+        if let Some(c) = completed {
+            d["time"]["completed"] = c.into();
+        }
+        if let Some(t) = tokens {
+            d["tokens"] = t;
+        }
+        d
+    }
+
+    fn oc_tokens(input: u64, output: u64, reasoning: u64, read: u64, write: u64) -> Value {
+        serde_json::json!({"input":input,"output":output,"reasoning":reasoning,"cache":{"read":read,"write":write}})
+    }
+
+    fn oc_feed(st: &mut OcCursor, rows: &[Msg], after: i64) -> (Found, i64) {
+        let mut out = Found::default();
+        let next = feed_opencode(st, rows, after, i64::MIN, &SRC, r"C:\git\Terra", &mut out);
+        (out, next)
+    }
+
+    #[test]
+    fn opencode_tools_give_the_same_events_as_claude_ones() {
+        let cases = [
+            ("cargo test", "test result: FAILED. 4 passed; 1 failed;\n\nExited with code 101", 101),
+            ("cargo test", "test result: ok. 5 passed; 0 failed;", 0),
+            ("git commit -m \"opencode: read sessions\"", "[opencode 1a2b] opencode: read sessions", 0),
+            ("git push origin opencode", "", 0),
+            ("cargo build", "error[E0425]: cannot find value\n\nExited with code 101", 101),
+        ];
+        for (i, (cmd, text, exit)) in cases.iter().enumerate() {
+            let id = format!("t{i}");
+            let claude = run(&mut Cursor::default(), &[bash_use(&id, cmd, 5), result(&id, (*text).into(), Some(*exit != 0), 5)]);
+            let row = (1, "assistant".to_string(), oc_assistant("msg_a", 5, Some(5), vec![oc_shell(&id, cmd, text, *exit)], None));
+            let ((ev, _, _), next) = oc_feed(&mut OcCursor::default(), &[row], 0);
+            assert_eq!(kinds(&ev), kinds(&claude), "{cmd}");
+            assert!(!ev.is_empty(), "{cmd}: the case must yield an event");
+            assert_eq!(next, 1);
+        }
+        // a failing command whose output says nothing: the exit code alone makes it a failed run
+        let row = (1, "assistant".to_string(), oc_assistant("msg_a", 5, Some(5), vec![oc_shell("x", "npm test", "boom", 1)], None));
+        assert_eq!(kinds(&oc_feed(&mut OcCursor::default(), &[row], 0).0 .0), [("tests-fail", "npm test")]);
+    }
+
+    #[test]
+    fn opencode_declines_and_interruptions_are_not_tool_errors() {
+        let aborted = serde_json::json!({"status":"error","error":{"type":"aborted","message":"The user declined this tool call"}});
+        let failed = serde_json::json!({"status":"error","error":{"type":"unknown","message":"File not found: a.rs"}});
+        let background = serde_json::json!({"status":"completed","content":[{"type":"text","text":"Command moved to the background"}],"metadata":{"status":"running"}});
+        let tools = vec![
+            oc_tool("d", "shell", serde_json::json!({"command":"git commit -m x"}), aborted),
+            oc_tool("e", "edit", serde_json::json!({"path":"a.rs"}), failed),
+            oc_tool("b", "shell", serde_json::json!({"command":"cargo test"}), background),
+        ];
+        let row = (1, "assistant".to_string(), oc_assistant("msg_a", 5, Some(5), tools, None));
+        assert_eq!(kinds(&oc_feed(&mut OcCursor::default(), &[row], 0).0 .0), [("tool-error", "Edit · File not found: a.rs")]);
+    }
+
+    #[test]
+    fn opencode_tokens_turns_and_files() {
+        let mut st = OcCursor { main: true, ..Default::default() };
+        let patch = "*** Begin Patch\n*** Update File: ui/card.js\n@@\n-a\n+b\n*** Add File: C:\\git\\Terra\\ui\\new.js\n+x\n*** End Patch";
+        let ok = || serde_json::json!({"status":"completed","content":[{"type":"text","text":"ok"}]});
+        let tools = vec![
+            oc_tool("1", "edit", serde_json::json!({"path":"C:\\git\\Terra\\src\\a.rs"}), ok()),
+            oc_tool("2", "write", serde_json::json!({"path":"notes.md"}), ok()),
+            oc_tool("3", "patch", serde_json::json!({"patchText":patch}), ok()),
+            oc_tool("4", "read", serde_json::json!({"path":"x"}), ok()),
+        ];
+        let rows: Vec<Msg> = vec![
+            (1, "user".into(), serde_json::json!({"type":"user","text":"fix the card","time":{"created":1_000}})),
+            (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(3_000), tools, Some(oc_tokens(10, 20, 5, 100, 7)))),
+            (3, "user".into(), serde_json::json!({"type":"user","text":"and the toast","time":{"created":4_000}})), // steered in: same turn
+            (4, "assistant".into(), oc_assistant("msg_b", 5_000, Some(6_000), vec![], Some(oc_tokens(1, 1, 0, 0, 0)))),
+            (5, "idle".into(), serde_json::json!({"type":"idle","outcome":"succeeded","time":{"created":61_000}})),
+        ];
+        let ((ev, usage, turns), next) = oc_feed(&mut st, &rows, 0);
+        assert!(ev.is_empty());
+        assert_eq!(next, 5);
+        assert_eq!(
+            usage,
+            [
+                Usage { ts: 3_000, model: "claude-sonnet-5".into(), tokens: Tokens { input: 10, output: 25, cache_read: 100, cache_write: 7 } },
+                Usage { ts: 6_000, model: "claude-sonnet-5".into(), tokens: Tokens { input: 1, output: 1, cache_read: 0, cache_write: 0 } },
+            ],
+            "reasoning counts as output, as Claude's thinking does"
+        );
+        assert_eq!(turns, [Turn { ts: 61_000, ms: 60_000 }], "first prompt to idle, the steered prompt inside it");
+        assert_eq!((st.cur.turn.started_ms, st.cur.turn.tools), (Some(1_000), 4));
+        assert_eq!(st.cur.turn.files, ["src/a.rs", "notes.md", "ui/card.js", "ui/new.js"]);
+        // a helper's log: its tokens count, its turn is no one's
+        let mut helper = OcCursor::default();
+        let mut out = Found::default();
+        feed_opencode(&mut helper, &rows, 0, i64::MIN, &Src { helper: Some("explore"), ..SRC }, r"C:\git\Terra", &mut out);
+        assert_eq!((out.1.len(), out.2.len(), helper.cur.turn.tools), (2, 0, 0));
+    }
+
+    #[test]
+    fn opencode_rows_still_being_written_are_read_once_finished() {
+        let mut st = OcCursor::default();
+        let user: Msg = (1, "user".into(), serde_json::json!({"type":"user","text":"go","time":{"created":1_000}}));
+        let running = oc_tool("t", "shell", serde_json::json!({"command":"cargo test"}), serde_json::json!({"status":"running","metadata":{}}));
+        let partial: Msg = (2, "assistant".into(), oc_assistant("msg_a", 2_000, None, vec![running], None));
+        let ((ev, usage, _), next) = oc_feed(&mut st, &[user, partial], 0);
+        assert_eq!((ev.len(), usage.len(), next), (0, 0, 1), "the row being written is not consumed");
+        // the same seq rewritten: completed, with its usage and the finished tool
+        let done: Msg = (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(9_000), vec![oc_shell("t", "cargo test", "test result: ok. 1 passed; 0 failed;", 0)], Some(oc_tokens(3, 4, 0, 0, 0))));
+        let ((ev, usage, _), next) = oc_feed(&mut st, &[done], next);
+        assert_eq!((kinds(&ev), usage.len(), next), (vec![("tests-pass", "cargo test")], 1, 2));
+        assert_eq!(usage[0].tokens.total(), 7);
+        // a row that never finished (a crash) does not hold back the turn's end
+        let stuck: Msg = (3, "assistant".into(), oc_assistant("msg_c", 3_000, None, vec![], Some(oc_tokens(1, 0, 0, 0, 0))));
+        let idle: Msg = (4, "idle".into(), serde_json::json!({"type":"idle","outcome":"interrupted","time":{"created":10_000}}));
+        assert_eq!(oc_feed(&mut st, std::slice::from_ref(&stuck), 2).1, 2);
+        let ((_, usage, turns), next) = oc_feed(&mut st, &[stuck, idle], 2);
+        assert_eq!((usage.len(), turns, next), (1, vec![Turn { ts: 10_000, ms: 9_000 }], 4));
+        // malformed rows are skipped, never a panic
+        let junk: Msg = (5, "assistant".into(), serde_json::json!({"content":"x","time":{"created":"soon","completed":1}}));
+        assert_eq!(oc_feed(&mut st, &[junk, (6, "idle".into(), Value::Null)], 4).1, 6);
+    }
+
+    #[test]
+    fn opencode_extreme_numbers_never_panic() {
+        let mut st = OcCursor { main: true, ..Default::default() };
+        let huge = oc_tokens(0, u64::MAX, u64::MAX, 0, 0); // output + reasoning past i64 (Tokens::total itself is unguarded, shared with Claude)
+        let rows: Vec<Msg> = vec![
+            (1, "user".into(), serde_json::json!({"type":"user","text":"go","time":{"created":1e300}})),
+            (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(3_000), vec![oc_shell("t", "ls", "x", i64::MAX)], Some(huge))),
+            (3, "idle".into(), serde_json::json!({"type":"idle","outcome":"succeeded","time":{"created":-1e300}})),
+        ];
+        assert_eq!(oc_feed(&mut st, &rows, 0).1, 3);
+    }
+
+    #[test]
+    fn chronicle_reads_opencode_sessions_and_keeps_their_seqs() {
+        let root = temp_dir("opencode");
+        let t = now();
+        let mut c = Chronicle::open(root.clone(), t, true);
+        let s = Session { source: Agent::OpenCode, ..crate::registry::tests_session("ses_main") };
+        let family = vec![("ses_main".to_string(), "ses_main".to_string(), None), ("ses_kid".to_string(), "ses_main".to_string(), Some("explore".to_string()))];
+        let yesterday = midnight_ms(t) - 3_600_000;
+        let log: HashMap<&str, Vec<Msg>> = HashMap::from([
+            (
+                "ses_main",
+                vec![
+                    (1, "assistant".to_string(), oc_assistant("msg_old", yesterday, Some(yesterday), vec![oc_shell("o", "git commit -m old", "", 0)], Some(oc_tokens(50, 0, 0, 0, 0)))),
+                    (2, "assistant".to_string(), oc_assistant("msg_a", t, Some(t), vec![oc_shell("a", "git commit -m today", "", 0)], Some(oc_tokens(1, 2, 0, 3, 4)))),
+                ],
+            ),
+            ("ses_kid", vec![(7, "assistant".to_string(), oc_assistant("msg_k", t, Some(t), vec![], Some(oc_tokens(5, 5, 0, 0, 0))))]),
+        ]);
+        let mut rows = |id: &str, after: i64| log.get(id).into_iter().flatten().filter(|(seq, _, _)| *seq > after).cloned().collect::<Vec<_>>();
+        let ev = c.read_opencode(std::slice::from_ref(&s), &family, &mut rows, t);
+        assert_eq!(kinds(&ev), [("commit", "today")], "first sight: today's rows only");
+        assert_eq!(ev[0].session_id, "ses_main");
+        let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
+        assert_eq!(tithe.by_project["Terra"].tokens, 20, "the helper's tokens go to its hall session's project");
+        assert!(c.read_opencode(std::slice::from_ref(&s), &family, &mut rows, t).is_empty(), "nothing new");
+        assert!(c.read_opencode(&[], &family, &mut rows, t).is_empty(), "not in the hall: not read");
+        assert_eq!(c.seqs.get("ses_main").map(|v| v.0), Some(2));
+        c.flush();
+        // a restart: the seqs come back with the Tithe, nothing is counted twice
+        let mut again = Chronicle::open(root.clone(), t, false);
+        assert_eq!(again.seqs.len(), 2, "seqs persisted");
+        assert!(again.read_opencode(std::slice::from_ref(&s), &family, &mut rows, t).is_empty());
+        assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(t)).tokens.total(), 20);
+        // not read since before today: dropped at the next open, like a stale offset
+        again.seqs.insert("ses_gone".into(), (9, yesterday));
+        again.flush();
+        let third = Chronicle::open(root, t, false);
+        assert!(!third.seqs.contains_key("ses_gone") && third.seqs.contains_key("ses_main"));
     }
 }

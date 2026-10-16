@@ -2,7 +2,12 @@
 //! every theme change, so a setting other than the 40k scriptorium says "Request from …" instead of "Petition from …".
 //! Tier II's wording until then.
 
-use crate::{orca::answer_petition, registry::Session, Live};
+use crate::{
+    opencode,
+    orca::answer_petition,
+    registry::{Agent, Session},
+    Live,
+};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
@@ -28,7 +33,7 @@ impl Default for Text {
             needed: "input needed".into(),
             limit: "{name} sealed until {time}".into(),
             limit_many: "{n} sessions sealed until {time}".into(),
-            failed: "{name}: open the terminal".into(),
+            failed: "{name}: answer not sent — answer it in the session".into(),
         }
     }
 }
@@ -88,20 +93,26 @@ pub fn parse_action(arg: &str) -> Option<(&str, i64, &str)> {
     (matches!(choice, "yes" | "no") && !id.is_empty() && parts.next().is_none()).then_some((choice, since, id))
 }
 
-/// Whether a petition toast gets Approve / Deny: a permission prompt in an Orca terminal (as the card's `answerable`).
+/// Whether a petition toast gets Approve / Deny: a permission prompt in an Orca terminal, or an OpenCode permission
+/// request (as the card's `answerable`).
 pub fn has_buttons(s: &Session) -> bool {
     s.status == "waiting"
-        && s.orca.is_some()
-        && s.waiting_for.as_deref().is_some_and(|w| {
-            let w = w.to_ascii_lowercase();
-            w.contains("approve") || w.contains("permission")
-        })
+        && match s.source {
+            Agent::OpenCode => s.opencode_request.is_some(),
+            Agent::Claude => {
+                s.orca.is_some()
+                    && s.waiting_for.as_deref().is_some_and(|w| {
+                        let w = w.to_ascii_lowercase();
+                        w.contains("approve") || w.contains("permission")
+                    })
+            }
+        }
 }
 
-/// The Orca handle to answer through, only while the toast's petition is still open: same session, same episode,
-/// still a permission prompt in Orca. Otherwise (answered in the terminal, gone) None: nothing is typed.
-pub fn still_open<'a>(roster: &'a [Session], id: &str, since_ms: i64) -> Option<&'a str> {
-    roster.iter().find(|s| s.id == id && s.since_ms == since_ms).filter(|s| has_buttons(s)).and_then(|s| s.orca.as_deref())
+/// The session to answer, only while the toast's petition is still open: same session, same episode, still a
+/// petition with buttons. Otherwise (answered in the terminal, gone) None: nothing is sent.
+pub fn still_open<'a>(roster: &'a [Session], id: &str, since_ms: i64) -> Option<&'a Session> {
+    roster.iter().find(|s| s.id == id && s.since_ms == since_ms).filter(|s| has_buttons(s))
 }
 
 /// The app id toasts show under: the installed app's identifier; PowerShell's in a dev build (the identifier is only
@@ -244,9 +255,9 @@ pub fn test_toast(app: &AppHandle) {
     });
 }
 
-/// A petition toast. A permission prompt in an Orca terminal gets Approve / Deny: a click answers through
-/// `answer_petition` (the same screen check as the card), only while that petition is still open (still_open);
-/// a failure shows a plain "open the terminal" toast. Anything else: the plugin's plain toast.
+/// A petition toast. A permission prompt in an Orca terminal or from OpenCode gets Approve / Deny: a click answers
+/// through `answer_petition` (the same screen check as the card) or `opencode::answer`, only while that petition is
+/// still open (still_open); a failure shows a plain "answer not sent" toast (`toast.failed`). Anything else: the plugin's plain toast.
 pub fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String) {
     if !has_buttons(s) {
         let _ = app.notification().builder().title(title).body(body).show();
@@ -256,9 +267,13 @@ pub fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String)
     let (yes, no) = (action_arg("yes", s.since_ms, &s.id), action_arg("no", s.since_ms, &s.id));
     with_buttons(app, &title, &body, &petition_buttons(cfg!(target_os = "macos"), &yes, &no), move |arg| {
         let Some((choice, since, id)) = arg.and_then(parse_action) else { return };
-        let open = handle.state::<Live>().lock().ok().and_then(|r| still_open(&r, id, since).map(str::to_string));
-        if let Some(orca) = open {
-            if let Err(e) = answer_petition(orca, choice.to_string()) {
+        let open = handle.state::<Live>().lock().ok().and_then(|r| still_open(&r, id, since).cloned()); // answered outside the lock
+        if let Some(s) = open {
+            let answered = match s.source {
+                Agent::OpenCode => opencode::answer(std::slice::from_ref(&s), &s.id, s.opencode_request.as_deref().unwrap_or_default(), choice),
+                Agent::Claude => answer_petition(s.orca.clone().unwrap_or_default(), choice.to_string()),
+            };
+            if let Err(e) = answered {
                 eprintln!("toast answer: {e}");
                 let _ = handle.notification().builder().title(fill(&get().failed, &name)).show();
             }
@@ -313,10 +328,16 @@ mod tests {
         assert!(!has_buttons(&Session { orca: None, ..p.clone() }), "not in Orca");
         assert!(!has_buttons(&Session { waiting_for: Some("input needed".into()), ..p.clone() }), "free-text petition");
         let roster = vec![p.clone()];
-        assert_eq!(still_open(&roster, "s", 9), Some("term_ab"));
+        assert_eq!(still_open(&roster, "s", 9), Some(&p));
         assert_eq!(still_open(&roster, "s", 8), None, "another episode");
         assert_eq!(still_open(&[Session { status: "busy".into(), ..p.clone() }], "s", 9), None, "already answered");
         assert_eq!(still_open(&[], "s", 9), None, "gone");
+        // OpenCode: its pending request, no Orca needed
+        let oc = Session { source: crate::registry::Agent::OpenCode, orca: None, waiting_for: Some("permission".into()), opencode_request: Some("per_1".into()), ..p.clone() };
+        assert!(has_buttons(&oc));
+        assert!(!has_buttons(&Session { opencode_request: None, ..oc.clone() }), "no request to answer");
+        assert!(!has_buttons(&Session { source: crate::registry::Agent::Claude, ..oc.clone() }), "a Claude petition still needs Orca");
+        assert_eq!(still_open(std::slice::from_ref(&oc), "s", 9), Some(&oc));
     }
 
     #[test]

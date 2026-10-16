@@ -99,8 +99,7 @@ pub fn last_assistant(conn: &Connection, id: &str) -> rusqlite::Result<Option<Co
 }
 
 /// Up to `limit` messages of session `id` after `seq`, as (seq, type, data), in seq order (index
-/// `session_message_session_seq_idx`). The Chronicon's feeder, not wired yet.
-#[allow(dead_code)]
+/// `session_message_session_seq_idx`). The Chronicon's feeder.
 pub fn messages_after(conn: &Connection, id: &str, seq: i64, limit: u32) -> rusqlite::Result<Vec<(i64, String, Value)>> {
     let mut st = conn.prepare_cached(AFTER_SQL)?;
     let mut rows = st.query(params![id, seq, limit])?;

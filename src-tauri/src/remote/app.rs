@@ -4,6 +4,7 @@
 use crate::firewall;
 use crate::{
     chronicle_day, chronicle_days,
+    opencode::answer_opencode,
     orca::{answer_petition, peek_petition},
     remote, settings, settings_load, settings_path, tithe_day,
     vigil::app::vigil_set,
@@ -28,8 +29,8 @@ fn remote_conf(path: &std::path::Path) -> Result<(bool, u16, bool, String), Stri
     Ok(out)
 }
 
-/// The app as the remote view reaches it: the read commands, answer_petition (gated by the
-/// server), and the embedded UI files. open_session and every settings write stay local.
+/// The app as the remote view reaches it: the read commands, answer_petition and answer_opencode
+/// (gated by the server), and the embedded UI files. open_session and every settings write stay local.
 fn remote_backend(app: &AppHandle) -> remote::Backend {
     fn json<T: serde::Serialize>(r: Result<T, String>) -> Result<serde_json::Value, String> {
         r.and_then(|v| serde_json::to_value(v).map_err(|e| e.to_string()))
@@ -49,6 +50,7 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
             }),
             remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
             remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
+            remote::Call::AnswerOpenCode { session, request, choice } => json(answer_opencode(session, request, choice, a.state())),
             remote::Call::Vigil { arm } => {
                 vigil_set(&a, arm);
                 Ok(serde_json::Value::Null)
