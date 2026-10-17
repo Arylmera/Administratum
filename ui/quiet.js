@@ -5,5 +5,6 @@ export const minutesOf = hhmm => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm ?? '');
   return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : null;
 };
-export const hhmmOf = min => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+export const pad2 = n => String(n).padStart(2, '0');
+export const hhmmOf = min => `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`;
 export const quietAt = (q, date) => q.on && inWindow(date.getHours() * 60 + date.getMinutes(), q.from, q.to);

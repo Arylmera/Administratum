@@ -17,7 +17,7 @@ const STALE_MS = () => settings.staleMin * 60_000; // a petition waiting longer 
 export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now() - s.sinceMs > STALE_MS();
 // A turn that ended on a question (backend `question`, idle only) queues like a petition, behind the real ones.
 export const isQuestion = s => questions.on && !!s.question && s.status !== 'waiting';
-export const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
+const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.

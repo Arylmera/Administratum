@@ -4,6 +4,7 @@ import { rankOf } from './sprites.js';
 import { isQuestion } from './actors.js';
 import { settings } from './settings.js';
 import { vigil, secondsLeft } from './vigil.js';
+import { pad2 } from './quiet.js';
 import { invoke, REMOTE, remoteActions } from './bridge.js';
 
 let cast, rosterOf; // app.js's cast, and a getter for its roster (reassigned on each roster tick) (initCard)
@@ -126,7 +127,7 @@ function renderAsks(card, s) {
 
 // The turn in progress (or the last one, frozen at its newest answer): length, tool calls, files changed (backend `turn`).
 const expanded = new Set(); // session ids whose file list is shown in full
-const span = ms => { const m = Math.floor(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}`; };
+const span = ms => { const m = Math.floor(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${pad2(m % 60)}`; };
 export const filesOf = tr => (tr ? tr.files.length + tr.moreFiles : 0);
 function renderTurn(card, s) {
   const line = card.querySelector('.turn'), list = card.querySelector('.files'), tr = s?.turn;

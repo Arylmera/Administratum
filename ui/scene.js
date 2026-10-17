@@ -832,7 +832,7 @@ const STRIP_SHADE = 0.75;
 // it (a bench's plain seat between its legs, not a pedestal), so any theme's bench stretches without new art; cached
 // per sprite and width (the sprite cache keys on it).
 const wide = new WeakMap();
-export function widened(map, w) {
+function widened(map, w) {
   const extra = w - map[0].length;
   if (extra <= 0) return map;
   const byW = wide.get(map) ?? wide.set(map, new Map()).get(map);

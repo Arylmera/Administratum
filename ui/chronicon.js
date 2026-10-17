@@ -4,10 +4,11 @@
 import { panel } from './panel.js';
 import { invoke, listen } from './bridge.js';
 import { T, t as say } from './theme.js';
+import { pad2 } from './quiet.js';
 
-export const fmtTok = n => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${+(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k` : String(Math.round(n)));
-export const fmtDur = ms => { const m = Math.floor((ms || 0) / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`; };
-export const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const fmtTok = n => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${+(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k` : String(Math.round(n)));
+const fmtDur = ms => { const m = Math.floor((ms || 0) / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${pad2(m % 60)}`; };
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const hhmm = ts => new Date(ts).toTimeString().slice(0, 5);
 const total = t => (t ? Object.values(t.tokens ?? {}).reduce((a, b) => a + (b || 0), 0) : 0);
 const projTok = v => (typeof v === 'number' ? v : v?.tokens ?? 0);
@@ -147,14 +148,14 @@ export function initChronicon(colorOf = () => null) {
   // 24 bars, one per hour; peak labelled directly, every bar has a hover title.
   function hourly(title, vals, fmt, cls, now) {
     const box = h('div', `hours ${cls}`), max = Math.max(...vals), peak = vals.indexOf(max);
-    box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} at ${String(peak).padStart(2, '0')}h` : 'none'));
+    box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} at ${pad2(peak)}h` : 'none'));
     const plot = h('div', 'plot');
     plot.setAttribute('role', 'img');
     plot.setAttribute('aria-label', `${title}: ${vals.map((v, i) => `${i}h ${fmt(v)}`).join(', ')}`);
     vals.forEach((v, i) => {
       const col = h('span', i === now ? 'now' : null), fill = h('i');
       fill.style.height = `${max ? (100 * v) / max : 0}%`;
-      col.title = `${String(i).padStart(2, '0')}:00 · ${fmt(v)}`;
+      col.title = `${pad2(i)}:00 · ${fmt(v)}`;
       col.append(fill);
       plot.append(col);
     });

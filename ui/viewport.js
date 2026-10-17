@@ -31,7 +31,8 @@ function setPan(x, y) {
 const panTo = (x, y) => { pan.to = clampPan(x, y); pan.vx = pan.vy = 0; };
 // Depth: while the view pans, the back wall (y < WALL) trails the floor a little (0.92 of its speed), then
 // catches up: lag is that offset in logical px, 0 at rest so nothing is ever misaligned once the pan stops.
-export const PARALLAX = 0.08, LAG_MAX = 1.5, lag = { x: 0, y: 0 };
+const PARALLAX = 0.08;
+export const LAG_MAX = 1.5, lag = { x: 0, y: 0 };
 function panStep(x, y) { // a pan the user makes (drag, glide, coast), as opposed to a resize re-centring the view
   const { x: x0, y: y0 } = pan;
   setPan(x, y);
