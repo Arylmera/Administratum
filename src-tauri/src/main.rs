@@ -81,6 +81,17 @@ fn tithe_day(day: String, chron: State<Chron>) -> Result<Tithe, String> {
     Ok(chronicle::tithe_of(&dir, &live, &day))
 }
 
+/// The day report of one local day ("YYYY-MM-DD"), with its markdown (the Chronicon's Copy button).
+#[tauri::command(async)]
+fn day_report(day: String, chron: State<Chron>) -> Result<serde_json::Value, String> {
+    if !chronicle::valid_day(&day) {
+        return Err("invalid day".into());
+    }
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    let r = chronicle::report(&day, &chronicle::tithe_of(&dir, &live, &day), &chronicle::read_events(&dir, &day));
+    Ok(serde_json::json!({ "markdown": r.markdown(), "report": r }))
+}
+
 /// Today and the 6 previous days, newest first.
 #[tauri::command(async)]
 fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
@@ -257,6 +268,7 @@ fn main() {
             chronicle_day,
             tithe_day,
             chronicle_days,
+            day_report,
             set_stale_minutes,
             set_question_prefs,
             set_quiet,

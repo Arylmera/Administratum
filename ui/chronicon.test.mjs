@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { sumTithes } from './chronicon.js';
+import { sumTithes, reportText } from './chronicon.js';
 
 const day = (n, sessions) => ({
   tokens: { input: n, output: 2 * n, cacheRead: 10 * n, cacheWrite: n }, busyMs: 1000 * n,
@@ -15,4 +15,6 @@ assert.deepEqual(week.bySession.a, { name: 'terra-77', dept: 'Terra', fresh: 12,
 // A 0.6.5 day file has no bySession; a missing day is null.
 assert.deepEqual(sumTithes([day(1)]).bySession, {});
 assert.deepEqual(sumTithes([]), { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, busyMs: 0, byProject: {}, byModel: {}, bySession: {} });
+assert.equal(reportText('---\ndate: 2026-10-16\nsource: Administratum\n---\n\n# Day report — 2026-10-16\n\nx\n'), '# Day report — 2026-10-16\n\nx\n');
+assert.equal(reportText('# no frontmatter'), '# no frontmatter');
 console.log('chronicon ok');

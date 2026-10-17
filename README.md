@@ -347,11 +347,17 @@ device. Only private and local network addresses are answered. The HTTP API is d
 
 ![The Chronicon: today's tithe, per-department and per-model bars, hourly charts and the event log](docs/img/chronicon.png)
 
-To unroll the Chronicon, click the scroll icon or the Tithe plaque in the header. It has one tab per day: today
-and the 6 previous days. Each day shows:
+To unroll the Chronicon, click the scroll icon or the Tithe plaque in the header. It has one tab per day (today
+and the 6 previous days) and a **Week** tab that adds those 7 days up (with a tokens-by-day chart instead of the
+hourly ones). Each day shows:
 
 - **Tithe**: tokens (new input/output vs. cache), working time (time sessions spent busy or in a shell),
-  event count, tokens and time per department and per model, and 24-hour charts of tokens and working minutes.
+  event count, tokens and time per department and per model, the top 10 sessions by new tokens, and 24-hour charts
+  of tokens and working minutes.
+- **Day report** (folded): sessions seen and finished, turns, working time, tokens, and per department its turns,
+  tokens and the files edited, plus counts of commits, pushes, failed tests, usage limits, stuck sessions and token
+  alerts. *Copy as markdown* puts it on the clipboard. It can also be written to a folder each night (Settings >
+  Petitions > Monitoring).
 - **Chronicle**: the event log, newest first. It covers commits, pushes, test passes and failures, tool errors,
   long tasks finished, arrivals, departures, petitions opened and answered, compactions and usage limits. You can filter it
   by department. While the Chronicon is open, new events appear at the top.
@@ -392,6 +398,10 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Toast for questions | on | A notification for each new question |
 | Petition turns stale after | 5 min (1–120) | Stale escalation: beacon, servo-skull, second toast |
 | Quiet hours | off, 22:00–08:00 | No toast and no chime for a new petition, question, long task or usage limit inside the window. A petition turning stale still toasts and chimes. A moon shows in the header while it is quiet |
+| Token alert | off | One toast (and a Chronicon event) the first time a session passes this many new tokens (input, output and cache writes; cache reads left out) in a day. A count you pick: the app cannot see your subscription's quota |
+| Flag stuck sessions | on | A busy session (not one running a shell command) with no transcript written for *Stuck when busy with no writing for* (15 min, 5–120), or whose last *identical tool calls* (5, 3–20) are the same tool with the same input, gets a dashed tag over the scribe and a line on its card. Polling (`BashOutput`, `sleep`, `watch`) never counts as a loop. OpenCode sessions are only checked for loops |
+| Toast when a session gets stuck | on | One toast per stuck episode (quiet hours respected), and a Chronicon event |
+| Also write the day report to a folder | off | When the Night Vigil arms and when it fires, writes the day report as `YYYY-MM-DD-administratum-day.md` into *Folder* (an absolute folder that already exists; never created), replacing that day's file. Armed before 04:00, the report covers the day before |
 
 **Scribes**
 
@@ -437,6 +447,8 @@ countdown at a set time even if a session is still busy. While armed, a world-sp
 once no session can progress, he rings his signal and a 120 s countdown starts, cancellable from the same places.
 No session is ever closed: if the countdown reaches zero, the computer shuts down (on macOS, see [macOS](#what-differs-on-macos)), and the next morning you resume each
 session from its transcript (e.g. `claude --resume`) to pick up where it left off. Arming does not persist across an app restart.
+When the day report's folder is set (Settings > Petitions > Monitoring), arming and the shutdown also write the day
+report there.
 
 ### Keyboard and panning
 
@@ -476,6 +488,10 @@ configuration, and installs no hooks. It reads:
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
+
+Outside that folder, the app writes only the day report, and only when you turn *Also write the day report to a
+folder* on and name an existing absolute folder: one `YYYY-MM-DD-administratum-day.md` per day (session names,
+departments, file paths edited, counts; no transcript text), replaced on the next write of the same day.
 
 Chronicon files older than 7 days are deleted at startup. Demo mode uses a separate `chronicon-demo\` folder,
 which is wiped at each start.

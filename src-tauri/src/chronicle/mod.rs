@@ -14,6 +14,8 @@ use std::{
 
 mod opencode;
 pub use opencode::{feed_opencode, Msg, OcCursor, OPENCODE_BATCH};
+mod report;
+pub use report::{report, write_capture};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -67,6 +69,32 @@ impl Tokens {
 pub struct Share {
     pub tokens: u64,
     pub busy_ms: u64,
+    /// Finished main-session turns (a department's day; zero in `hourly`). Added after 0.6.5, as the next two.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub turns: u32,
+    /// Files changed (Edit, Write, MultiEdit, NotebookEdit; subagents included), relative to the session's cwd
+    /// when inside it, sorted, at most MAX_DAY_FILES; the rest counted in `more_files`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files: Vec<String>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub more_files: u32,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
+}
+
+pub const MAX_DAY_FILES: usize = 200;
+
+impl Share {
+    fn add_file(&mut self, p: String) {
+        match self.files.binary_search(&p) {
+            Ok(_) => {}
+            // ponytail: past the cap a file edited twice counts twice in more_files; the report only says "+N more".
+            Err(_) if self.files.len() >= MAX_DAY_FILES => self.more_files += 1,
+            Err(i) => self.files.insert(i, p),
+        }
+    }
 }
 
 /// One session's tokens of the day (subagents included), for the token alert and the Chronicon.
@@ -209,7 +237,8 @@ pub struct Turn {
 }
 
 /// Events, token deltas and turn durations found in transcript lines.
-pub type Found = (Vec<Event>, Vec<Usage>, Vec<Turn>);
+/// ..., and the files edited (timestamp, path as written).
+pub type Found = (Vec<Event>, Vec<Usage>, Vec<Turn>, Vec<(i64, String)>);
 
 /// `extract_line` over every line of `text`.
 #[cfg(test)]
@@ -231,7 +260,7 @@ pub fn wanted(line: &str) -> bool {
 /// stamped before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing
 /// spans calls via `cur`.
 pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms: i64, out: &mut Found) {
-    let (events, usage, turns) = out;
+    let (events, usage, turns, edits) = out;
     let Ok(v) = serde_json::from_str::<Value>(line) else { return };
     // A fork's file opens with a copy of its parent's history, still under the parent's id: the parent counts it.
     if v["sessionId"].as_str().is_some_and(|id| id != src.session_id) {
@@ -249,6 +278,9 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     match v["type"].as_str() {
         Some("assistant") => {
             for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
+                if let Some(p) = edited_path(b) {
+                    edits.push((ts, p.into()));
+                }
                 if cur.pending.len() >= CAP {
                     cur.pending.clear();
                 }
@@ -331,15 +363,21 @@ pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
             for b in content.as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
                 turn.tools += 1;
                 track_repeat(&mut turn.repeat, b, msg);
-                if !b["name"].as_str().is_some_and(|n| EDIT_TOOLS.contains(&n)) {
-                    continue;
+                if let Some(p) = edited_path(b) {
+                    add_file(turn, p, cwd);
                 }
-                let Some(p) = b["input"]["file_path"].as_str().or(b["input"]["notebook_path"].as_str()) else { continue };
-                add_file(turn, p, cwd);
             }
         }
         _ => {}
     }
+}
+
+/// The file a tool_use block changes, if it is an edit.
+fn edited_path(b: &Value) -> Option<&str> {
+    if !b["name"].as_str().is_some_and(|n| EDIT_TOOLS.contains(&n)) {
+        return None;
+    }
+    b["input"]["file_path"].as_str().or(b["input"]["notebook_path"].as_str())
 }
 
 /// Tools that wait on something else by design: calling them again and again is polling, not a loop.
@@ -758,7 +796,7 @@ impl Chronicle {
     /// Folds what one read found: events out, tokens and busy time into the Tithe of `s` and its department.
     fn absorb(&mut self, s: &Session, found: Found, events: &mut Vec<Event>) {
         let dept = &s.dept;
-        let (ev, usage, turns) = found;
+        let (ev, usage, turns, edits) = found;
         events.extend(ev);
         for u in usage {
             self.add_session_usage(s, &u);
@@ -766,6 +804,13 @@ impl Chronicle {
         for t in turns {
             if let Some(tithe) = self.tithe_at(t.ts) {
                 tithe.add_busy(dept, t.ms, hour_of(t.ts));
+                tithe.by_project.entry(dept.clone()).or_default().turns += 1;
+                self.dirty = true;
+            }
+        }
+        for (ts, p) in edits {
+            if let Some(tithe) = self.tithe_at(ts) {
+                tithe.by_project.entry(dept.clone()).or_default().add_file(relative(&p, &s.cwd));
                 self.dirty = true;
             }
         }
@@ -1093,7 +1138,7 @@ mod tests {
     fn turn_durations_are_working_time_of_main_sessions_only() {
         let line = |ms: u64, side: bool| serde_json::json!({"isSidechain":side,"type":"system","subtype":"turn_duration","durationMs":ms,"timestamp":iso(7_000)}).to_string();
         let text = [line(42_000, false), line(9_000, true)].join("\n");
-        let (_, _, turns) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
+        let (_, _, turns, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
         assert_eq!(turns, [Turn { ts: 7_000, ms: 42_000 }], "a sidechain turn overlaps its parent's");
         let sub = Src { helper: Some("Explore"), ..SRC };
         assert!(extract(&mut Cursor::default(), &line(5_000, false), i64::MIN, &sub, 0).2.is_empty(), "subagent transcript");
@@ -1107,8 +1152,8 @@ mod tests {
                 "usage":{"input_tokens":2,"cache_creation_input_tokens":100,"cache_read_input_tokens":1000,"output_tokens":out}}})
             .to_string()
         };
-        let (_, a, _) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
-        let (_, b, _) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
+        let (_, a, _, _) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
+        let (_, b, _, _) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
         let sum: u64 = a.iter().chain(&b).map(|u| u.tokens.total()).sum();
         assert_eq!(sum, (2 + 100 + 1000 + 589) + (2 + 100 + 1000 + 10));
         assert_eq!(a[0].tokens, Tokens { input: 2, output: 5, cache_read: 1000, cache_write: 100 });
@@ -1126,7 +1171,7 @@ mod tests {
             .to_string()
         };
         let text = [line("parent", "m1"), result("a", "[main 1a2b3c4] x".into(), Some(false), 0), line("s1", "m2")].join("\n");
-        let (ev, usage, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
+        let (ev, usage, _, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
         assert_eq!(usage.iter().map(|u| u.tokens.total()).sum::<u64>(), 7, "only the fork's own message");
         assert!(ev.is_empty(), "the parent's commit is the parent's event");
     }
@@ -1193,11 +1238,11 @@ mod tests {
         c.add_busy(&[s("a", "Terra", "busy"), s("b", "Terra", "shell"), s("c", "Geneseed", "waiting"), s("d", "Geneseed", "idle")], 1000, ts);
         let t = tithe_of(&c.dir, &c.tithe, &day_of(ts));
         assert_eq!(t.tokens, Tokens { input: 2, output: 11, cache_read: 20, cache_write: 200 });
-        assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000 });
-        assert_eq!(t.by_project["Geneseed"], Share { tokens: 117, busy_ms: 0 });
+        assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000, ..Default::default() });
+        assert_eq!(t.by_project["Geneseed"], Share { tokens: 117, busy_ms: 0, ..Default::default() });
         assert_eq!(t.by_model["claude-opus-5-5"], 233);
         assert_eq!(t.busy_ms, 2000);
-        assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 233, busy_ms: 2000 });
+        assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 233, busy_ms: 2000, ..Default::default() });
         assert_eq!(t.hourly.len(), 24);
         let json = serde_json::to_value(&t).unwrap();
         assert_eq!(json["tokens"]["cacheRead"], 20);
@@ -1207,6 +1252,41 @@ mod tests {
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
         assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
         assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+    }
+
+    #[test]
+    fn day_counts_turns_and_files() {
+        let mut c = Chronicle::open(temp_dir("day-files"), now(), true);
+        let ts = now();
+        let s = Session { cwd: r"C:\git\Terra".into(), ..crate::registry::tests_session("a") };
+        let edit = |p: &str| (ts, p.to_string());
+        let found: Found = (vec![], vec![], vec![Turn { ts, ms: 10 }, Turn { ts, ms: 20 }], vec![edit(r"C:\git\Terra\src\a.rs"), edit(r"C:\git\Terra\src\a.rs"), edit(r"D:\x.md")]);
+        c.absorb(&s, found, &mut vec![]);
+        let t = &c.tithe.by_project["Terra"];
+        assert_eq!((t.turns, t.busy_ms), (2, 30));
+        assert_eq!(t.files, [r"D:\x.md", "src/a.rs"], "relative inside the cwd, once, sorted");
+        let json = serde_json::to_value(&c.tithe).unwrap();
+        assert!(json["hourly"][0].get("files").is_none(), "empty lists stay out of the day file");
+    }
+
+    #[test]
+    fn day_files_cap_counts_the_rest() {
+        let mut sh = Share::default();
+        for i in 0..=MAX_DAY_FILES {
+            sh.add_file(format!("f{i:03}"));
+        }
+        sh.add_file("f000".into());
+        assert_eq!((sh.files.len(), sh.more_files), (MAX_DAY_FILES, 1));
+    }
+
+    #[test]
+    fn edits_are_found_in_main_and_subagent_transcripts() {
+        let line = serde_json::json!({"type":"assistant","timestamp":iso(5_000),"message":{"id":"m","content":[
+            {"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"C:/git/Terra/a.rs"}},
+            {"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"C:/git/Terra/b.rs"}}]}})
+        .to_string();
+        let sub = Src { helper: Some("Explore"), ..SRC };
+        assert_eq!(extract(&mut Cursor::default(), &line, i64::MIN, &sub, 0).3, [(5_000, "C:/git/Terra/a.rs".to_string())]);
     }
 
     #[test]
@@ -1426,7 +1506,7 @@ mod tests {
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
         let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
-        assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
+        assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000, turns: 1, ..Default::default() }, "subagent tokens go to the parent's project, its turns add no time");
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
         assert!(files(&mut c).is_empty(), "nothing new");
         for e in &ev {
@@ -1485,7 +1565,7 @@ mod tests {
             let id = format!("t{i}");
             let claude = run(&mut Cursor::default(), &[bash_use(&id, cmd, 5), result(&id, (*text).into(), Some(*exit != 0), 5)]);
             let row = (1, "assistant".to_string(), oc_assistant("msg_a", 5, Some(5), vec![oc_shell(&id, cmd, text, *exit)], None));
-            let ((ev, _, _), next) = oc_feed(&mut OcCursor::default(), &[row], 0);
+            let ((ev, _, _, _), next) = oc_feed(&mut OcCursor::default(), &[row], 0);
             assert_eq!(kinds(&ev), kinds(&claude), "{cmd}");
             assert!(!ev.is_empty(), "{cmd}: the case must yield an event");
             assert_eq!(next, 1);
@@ -1527,7 +1607,7 @@ mod tests {
             (4, "assistant".into(), oc_assistant("msg_b", 5_000, Some(6_000), vec![], Some(oc_tokens(1, 1, 0, 0, 0)))),
             (5, "idle".into(), serde_json::json!({"type":"idle","outcome":"succeeded","time":{"created":61_000}})),
         ];
-        let ((ev, usage, turns), next) = oc_feed(&mut st, &rows, 0);
+        let ((ev, usage, turns, _), next) = oc_feed(&mut st, &rows, 0);
         assert!(ev.is_empty());
         assert_eq!(next, 5);
         assert_eq!(
@@ -1554,19 +1634,19 @@ mod tests {
         let user: Msg = (1, "user".into(), serde_json::json!({"type":"user","text":"go","time":{"created":1_000}}));
         let running = oc_tool("t", "shell", serde_json::json!({"command":"cargo test"}), serde_json::json!({"status":"running","metadata":{}}));
         let partial: Msg = (2, "assistant".into(), oc_assistant("msg_a", 2_000, None, vec![running], None));
-        let ((ev, usage, _), next) = oc_feed(&mut st, &[user, partial], 0);
+        let ((ev, usage, _, _), next) = oc_feed(&mut st, &[user, partial], 0);
         assert_eq!((ev.len(), usage.len(), next), (0, 0, 1), "the row being written is not consumed");
         // the same seq rewritten: completed, with its usage and the finished tool
         let done: Msg =
             (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(9_000), vec![oc_shell("t", "cargo test", "test result: ok. 1 passed; 0 failed;", 0)], Some(oc_tokens(3, 4, 0, 0, 0))));
-        let ((ev, usage, _), next) = oc_feed(&mut st, &[done], next);
+        let ((ev, usage, _, _), next) = oc_feed(&mut st, &[done], next);
         assert_eq!((kinds(&ev), usage.len(), next), (vec![("tests-pass", "cargo test")], 1, 2));
         assert_eq!(usage[0].tokens.total(), 7);
         // a row that never finished (a crash) does not hold back the turn's end
         let stuck: Msg = (3, "assistant".into(), oc_assistant("msg_c", 3_000, None, vec![], Some(oc_tokens(1, 0, 0, 0, 0))));
         let idle: Msg = (4, "idle".into(), serde_json::json!({"type":"idle","outcome":"interrupted","time":{"created":10_000}}));
         assert_eq!(oc_feed(&mut st, std::slice::from_ref(&stuck), 2).1, 2);
-        let ((_, usage, turns), next) = oc_feed(&mut st, &[stuck, idle], 2);
+        let ((_, usage, turns, _), next) = oc_feed(&mut st, &[stuck, idle], 2);
         assert_eq!((usage.len(), turns, next), (1, vec![Turn { ts: 10_000, ms: 9_000 }], 4));
         // malformed rows are skipped, never a panic
         let junk: Msg = (5, "assistant".into(), serde_json::json!({"content":"x","time":{"created":"soon","completed":1}}));

@@ -57,6 +57,9 @@ export function sumTithes(list) {
   return out;
 }
 
+// The day report as the Chronicon shows it: its markdown without the frontmatter (that is for the file).
+export const reportText = md => md.replace(/^---\n[\s\S]*?\n---\n+/, '');
+
 const LIVE_CAP = 500; // newest live rows kept in an open day's log
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
@@ -109,12 +112,15 @@ export function initChronicon(colorOf = () => null) {
     wait.setAttribute('role', 'status');
     wait.prepend(h('span', 'seal'));
     body.replaceChildren(wait);
-    const [events, tithe] = await Promise.all([invoke('chronicle_day', { day }).catch(() => null), invoke('tithe_day', { day }).catch(() => null)]);
+    const [events, tithe, report] = await Promise.all([invoke('chronicle_day', { day }).catch(() => null), invoke('tithe_day', { day }).catch(() => null),
+      invoke('day_report', { day }).catch(() => null)]); // the remote view has no day_report: no report section
     if (my !== seq || !isOpen()) return;
     cur = { day, events: (events ?? []).slice().sort((a, b) => b.ts - a.ts), filter: cur?.day === day ? cur.filter : '' };
     body.replaceChildren();
     if (!events && !tithe) { body.append(h('p', 'quiet', say('log.silent'))); return; }
-    body.append(summary(tithe, day === dayKey()), logSection());
+    body.append(summary(tithe, day === dayKey()));
+    if (report?.markdown) body.append(reportSection(report.markdown));
+    body.append(logSection());
     body.scrollTop = 0;
   }
 
@@ -176,6 +182,22 @@ export function initChronicon(colorOf = () => null) {
     return sec;
   }
 
+  // The day report (backend chronicle/report.rs, the same text the Night Vigil can write to a folder), folded.
+  function reportSection(md) {
+    const box = h('details', 'report');
+    const copy = h('button', 'copy', 'Copy as markdown');
+    copy.type = 'button';
+    copy.onclick = e => {
+      e.preventDefault();
+      navigator.clipboard.writeText(md).then(() => { copy.textContent = 'Copied'; }, () => { copy.textContent = 'Copy failed'; });
+      setTimeout(() => { copy.textContent = 'Copy as markdown'; }, 2000);
+    };
+    const sum = h('summary', null, 'Day report');
+    sum.append(copy);
+    box.append(sum, h('pre', null, reportText(md)));
+    return box;
+  }
+
   function bars(title, rows, swatch) {
     const box = h('div', 'bars');
     box.append(h('h3', null, title));
@@ -202,6 +224,7 @@ export function initChronicon(colorOf = () => null) {
     const at = i => (labels ? labels[i] : `${pad2(i)}h`);
     box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} ${labels ? 'on' : 'at'} ${at(peak)}` : 'none'));
     const plot = h('div', 'plot');
+    if (labels) plot.style.gridTemplateColumns = `repeat(${vals.length}, 1fr)`;
     plot.setAttribute('role', 'img');
     plot.setAttribute('aria-label', `${title}: ${vals.map((v, i) => `${at(i)} ${fmt(v)}`).join(', ')}`);
     vals.forEach((v, i) => {
