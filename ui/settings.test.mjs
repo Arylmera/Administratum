@@ -11,7 +11,7 @@ Object.assign(replies, {
   firewall_status: ({ port }) => ({ detail: `rule for ${port}`, rule: 'on', network: 'private' }),
 });
 await import('./themes.js'); // every world's styles, as app.js loads them
-const { settings, store, view, quiet, place, initSettings } = await import('./settings.js');
+const { settings, store, view, quiet, place, initSettings, MONITOR } = await import('./settings.js');
 const { T } = await import('./theme.js');
 
 // Loading: out-of-range values are clamped, unknown choices fall back to the default.
@@ -187,6 +187,29 @@ assert.equal(field('tokenAlert').value, '1000000');
 change('tokenAlert', 'junk');
 assert.equal(store.get('adm.tokenAlert'), '');
 
+// Monitoring checkboxes are stored as '1' / '0'; the stuck options follow "Flag stuck sessions", the folder follows the report.
+const stuckOpts = ['stuckToast', 'stuckMin', 'stuckRepeat'];
+assert.ok(stuckOpts.every(n => !field(n).disabled), 'stuck detection starts on');
+assert.equal(field('reportDir').disabled, true, 'report starts off');
+change('stuck', false);
+assert.equal(store.get('adm.stuck'), '0');
+assert.ok(stuckOpts.every(n => field(n).disabled), 'stuck detection off: the options are greyed');
+change('stuck', true);
+assert.equal(store.get('adm.stuck'), '1');
+assert.ok(stuckOpts.every(n => !field(n).disabled));
+change('stuckToast', false);
+assert.equal(store.get('adm.stuckToast'), '0');
+change('reportOn', true);
+assert.equal(store.get('adm.reportOn'), '1');
+assert.equal(field('reportDir').disabled, false);
+change('reportDir', 'D:\Notes');
+assert.equal(store.get('adm.reportDir'), 'D:\Notes');
+change('reportOn', false);
+assert.equal(store.get('adm.reportOn'), '0');
+assert.equal(field('reportDir').disabled, true);
+change('stuck', false);
+change('reportOn', true);
+
 // Reset: every value back to its default, theme and view included.
 seen.length = 0;
 form.querySelector('.reset').click();
@@ -199,3 +222,11 @@ assert.equal(store.get('adm.view'), 'flat');
 assert.deepEqual(last('set_stale_minutes'), { minutes: 5 });
 assert.deepEqual(seen.filter(s => s[0] === 'mode' || s[0] === 'muted'), [['mode', 'auto'], ['muted', false]]);
 console.log('settings ok');
+
+// Reset restores the Monitoring defaults, and the panel shows them.
+for (const k in MONITOR) assert.equal(store.get(`adm.${k}`), MONITOR[k], k);
+assert.equal(field('stuck').checked, true);
+assert.equal(field('stuckMin').value, '15');
+assert.equal(field('reportOn').checked, false);
+assert.equal(field('reportDir').value, '');
+assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disabled);
