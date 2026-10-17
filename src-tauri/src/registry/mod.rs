@@ -11,7 +11,7 @@ mod testutil;
 mod tracker;
 
 #[cfg(test)]
-pub(crate) use files::slug; // only chronicle.rs's tests reach it from outside
+pub(crate) use files::slug; // only chronicle/mod.rs's tests reach it from outside
 pub use files::{direct_transcript, file_tail, find_transcript, fork_parent, list_subagents, stat, FileStat};
 pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
@@ -55,7 +55,7 @@ pub struct Session {
     pub branch: Option<String>,
     /// Stopped on a subscription usage limit (newest assistant line `"error":"rate_limit"`, no prompt since).
     pub limit: Option<Limit>,
-    /// The current or last turn (chronicle.rs), filled by the poll loop.
+    /// The current or last turn (chronicle/mod.rs), filled by the poll loop.
     pub turn: Option<TurnSummary>,
     /// The agent it runs in: Claude Code (this module) or OpenCode 2.x (`opencode/`).
     pub source: Agent,
