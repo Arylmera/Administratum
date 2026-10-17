@@ -297,6 +297,26 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   sync();
 }
 
+// Reset: every setting back to its default, the backend told, the panel refreshed.
+function resetAll(hooks, setPlace) {
+  Object.assign(settings, DEFAULTS);
+  setPlace(NaN, NaN);
+  setPerf(12, true);
+  setQuestions(true, true);
+  setQuiet(false, 1320, 480);
+  store.set('adm.openWith', 'explorer');
+  store.set('adm.updateCheck', '1');
+  store.set('adm.vigilDeadline', '');
+  for (const k in MONITOR) store.set(`adm.${k}`, MONITOR[k]);
+  setScale('auto'); hooks.rescaled();
+  save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
+  hooks.setMode('auto'); hooks.setMuted(false);
+  pickTheme('tier2');
+  pickView('flat');
+  sync();
+  hooks.quieted?.();
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -351,24 +371,7 @@ export function initSettings(hooks) {
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
   form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
-  form.querySelector('.reset').onclick = () => {
-    Object.assign(settings, DEFAULTS);
-    setPlace(NaN, NaN);
-    setPerf(12, true);
-    setQuestions(true, true);
-    setQuiet(false, 1320, 480);
-    store.set('adm.openWith', 'explorer');
-    store.set('adm.updateCheck', '1');
-    store.set('adm.vigilDeadline', '');
-    for (const k in MONITOR) store.set(`adm.${k}`, MONITOR[k]);
-    setScale('auto'); hooks.rescaled();
-    save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
-    hooks.setMode('auto'); hooks.setMuted(false);
-    pickTheme('tier2');
-    pickView('flat');
-    sync();
-    hooks.quieted?.();
-  };
+  form.querySelector('.reset').onclick = () => resetAll(hooks, setPlace);
 
   onView(() => sync()); // the tray or the handle switched the view under an open panel
   panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); } sync(); } }); // readLogin: the tray may have changed it
