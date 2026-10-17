@@ -119,8 +119,11 @@ for t in ui/*.test.mjs; do node "$t" || echo "FAIL $t"; done
 node tools/art_gate.mjs                           # from a clean tree: every art sheet and gallery is current
 ```
 
-CI runs all four on every push and PR (`.github/workflows/check.yml`; `cargo fmt --check` is `fmt.yml`). The art gate
-reruns every generator (`watch_art`, `breakout_art`, `suzerain_art`: one run per module under `tools/<gen>/`) and
+CI runs all four on every push and PR (`.github/workflows/check.yml`; `cargo fmt --check` is `fmt.yml`). The Rust tests
+and clippy run twice, on Ubuntu and on `windows-latest` (the `#[cfg(windows)]` code is only built there); the node
+checks and the art gate run on Ubuntu only. The art gate
+reruns every generator (each `tools/<gen>_art.mjs` that has a `tools/<gen>_art/` folder, found by listing `tools/`, so a new
+one joins the gate by existing: one run per world module in that folder) and
 `sprite_sheet.mjs` (the default theme, plus `--theme` for every folder under `ui/art/`), then fails if
 `git status --porcelain ui/art docs/sprites` is not empty: commit the regenerated files with the art change.
 

@@ -31,6 +31,23 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
         working-directory: src-tauri
 
+  # Windows is the main platform: the #[cfg(windows)] code (firewall, strip, toast) is compiled, tested and linted
+  # only here. WebView2 ships with the runner image, so no system libraries are installed.
+  rust-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+      - run: cargo test
+        working-directory: src-tauri
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: src-tauri
+
   ui:
     runs-on: ubuntu-22.04
     steps:
