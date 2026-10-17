@@ -400,7 +400,7 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
     let mut w = stream;
     let head = match read_head(&mut r) {
         Ok(h) => h,
-        Err(code) => return respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
+        Err(code) => return respond_status(&mut w, code),
     };
     let token = crate::lock(&TOKEN).clone();
     let decision = if valid_token(&token) {
@@ -413,7 +413,7 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
         Err(e) => respond(w, 400, "application/json", serde_json::json!({ "error": e }).to_string().as_bytes(), &[]),
     };
     match decision {
-        Route::Status(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
+        Route::Status(code) => respond_status(&mut w, code),
         Route::Unauthorized => respond(&mut w, 401, "text/html; charset=utf-8", UNAUTHORIZED.as_bytes(), &[]),
         Route::Pair => {
             let cookie = format!("{COOKIE}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000");
@@ -425,7 +425,7 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
         Route::Asset(p) => match (backend.asset)(&p) {
             Some((bytes, mime)) if mime.starts_with("text/html") => respond(&mut w, 200, &mime, &inject_flag(&bytes), &[]),
             Some((bytes, mime)) => respond(&mut w, 200, &mime, &bytes, &[]),
-            None => respond(&mut w, 404, TEXT, status_text(404).as_bytes(), &[]),
+            None => respond_status(&mut w, 404),
         },
         Route::Events => match subscribe() {
             Some(rx) => {
@@ -435,19 +435,19 @@ fn handle(stream: TcpStream, peer: Option<IpAddr>, backend: &Backend) {
             None => respond(&mut w, 503, TEXT, b"too many event streams", &[]),
         },
         Route::Call(c) => json(&mut w, (backend.call)(c)),
-        Route::Answer => match read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY).and_then(|b| answer_call(&b)) {
+        Route::Answer => match body_of(&mut r, &head).and_then(|b| answer_call(&b)) {
             Ok(call) => json(&mut w, (backend.call)(call)),
-            Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
+            Err(code) => respond_status(&mut w, code),
         },
         Route::Vigil => {
             #[derive(serde::Deserialize)]
             struct Arm {
                 arm: bool,
             }
-            let parsed = read_body(&mut r, header(&head.headers, "content-length"), MAX_BODY).and_then(|b| serde_json::from_slice::<Arm>(&b).map_err(|_| 400));
+            let parsed = body_of(&mut r, &head).and_then(|b| serde_json::from_slice::<Arm>(&b).map_err(|_| 400));
             match parsed {
                 Ok(a) => json(&mut w, (backend.call)(Call::Vigil { arm: a.arm })),
-                Err(code) => respond(&mut w, code, TEXT, status_text(code).as_bytes(), &[]),
+                Err(code) => respond_status(&mut w, code),
             }
         }
     }
@@ -474,6 +474,14 @@ fn answer_call(body: &[u8]) -> Result<Call, u16> {
 
 const TEXT: &str = "text/plain; charset=utf-8";
 const COMMON: &str = "Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nX-Adm-Remote: 1\r\nConnection: close\r\n";
+
+fn respond_status(w: &mut impl Write, code: u16) {
+    respond(w, code, TEXT, status_text(code).as_bytes(), &[]);
+}
+
+fn body_of(r: &mut impl Read, head: &Head) -> Result<Vec<u8>, u16> {
+    read_body(r, header(&head.headers, "content-length"), MAX_BODY)
+}
 
 fn respond(w: &mut impl Write, status: u16, ctype: &str, body: &[u8], extra: &[(&str, &str)]) {
     let mut head = format!("HTTP/1.1 {status} {}\r\nContent-Type: {ctype}\r\nContent-Length: {}\r\n{COMMON}", status_text(status), body.len());

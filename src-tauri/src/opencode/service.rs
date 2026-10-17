@@ -48,8 +48,7 @@ pub struct Permission {
 /// `$XDG_STATE_HOME/opencode/service.json` (when set and non-empty), else `~/.local/state/opencode/service.json`:
 /// OpenCode's rule on every OS, Windows included.
 pub fn registration_path() -> PathBuf {
-    let state = std::env::var_os("XDG_STATE_HOME").filter(|v| !v.is_empty()).map(PathBuf::from);
-    state.unwrap_or_else(|| std::env::home_dir().unwrap_or_default().join(".local").join("state")).join("opencode").join("service.json")
+    super::xdg_dir("XDG_STATE_HOME", "state").join("opencode").join("service.json")
 }
 
 #[derive(Deserialize)]

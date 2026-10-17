@@ -70,7 +70,7 @@ impl Poller {
                 let empty = HashMap::new();
                 let completed = main.as_ref().map_or(&empty, |m| completions.scan(id, m));
                 let hs = registry::active_helpers(&subs, now_ms, completed, |f, hid| memo(helpers, f, || registry::read_helper(f, hid)));
-                files.insert(id.to_string(), main.into_iter().map(|m| (m, false)).chain(subs.into_iter().map(|f| (f, true))).collect());
+                files.insert(id.to_string(), listing(main, subs));
                 (tail, hs)
             },
             |pid| orca_handle(sys, orca_cache, pid),
@@ -91,7 +91,7 @@ impl Poller {
         for s in &roster {
             if !files.contains_key(&s.id) {
                 let (main, subs) = locate(projects, found, &s.id, &s.cwd, Instant::now());
-                files.insert(s.id.clone(), main.into_iter().map(|m| (m, false)).chain(subs.into_iter().map(|f| (f, true))).collect());
+                files.insert(s.id.clone(), listing(main, subs));
             }
         }
         for s in roster.iter_mut() {
@@ -137,6 +137,10 @@ fn locate(projects: &Path, found: &mut HashMap<String, (Instant, Option<PathBuf>
 }
 
 /// `read()` once per (len, mtime) of `f`; the cached value otherwise.
+fn listing(main: Option<FileStat>, subs: Vec<FileStat>) -> Vec<(FileStat, bool)> {
+    main.into_iter().map(|m| (m, false)).chain(subs.into_iter().map(|f| (f, true))).collect()
+}
+
 fn memo<T: Clone>(m: &mut Memo<T>, f: &FileStat, read: impl FnOnce() -> T) -> T {
     if let Some((len, mtime, v)) = m.get(&f.path) {
         if (*len, *mtime) == (f.len, f.mtime_ms) {

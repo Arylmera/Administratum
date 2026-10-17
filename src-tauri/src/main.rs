@@ -429,7 +429,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
         }
         if QUESTION_TOAST.load(Ordering::Relaxed) && !quiet {
             let q = s.question.clone().unwrap_or_default();
-            let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
+            let q = registry::clip_to(&q, 120);
             let _ = app.notification().builder().title(toast::fill(&words.question, &s.name)).body(format!("{} · {q}", s.dept)).show();
         }
         emit(app, "question", &s);

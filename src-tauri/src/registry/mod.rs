@@ -17,7 +17,10 @@ pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
 pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
 pub use sessions::{adopt, dept_of, merge, scan, temp_dept, track_compaction};
-pub(crate) use tail::{clip, iso_utc_ms};
+pub(crate) use tail::{clip, clip_to, iso_utc_ms};
+
+/// The kind a helper reports when its meta names none.
+pub const DEFAULT_HELPER_KIND: &str = "agent";
 pub use tail::{read_tail, Tail};
 pub use tracker::{Tracker, STALE_MS};
 

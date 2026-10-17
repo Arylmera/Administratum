@@ -72,7 +72,7 @@ pub fn build(rows: &[Shown], live: Option<&Live>, now_ms: i64) -> Vec<Session> {
             .filter(|c| c.row.parent_id.as_deref() == Some(r.id.as_str()) && claimed(&c.row))
             .map(|c| Helper {
                 id: c.row.id.clone(),
-                kind: c.row.agent.clone().unwrap_or_else(|| "agent".into()),
+                kind: c.row.agent.clone().unwrap_or_else(|| registry::DEFAULT_HELPER_KIND.into()),
                 task: c.row.title.clone().unwrap_or_else(|| c.task.clone()),
                 model: c.row.model.clone(),
                 context: c.context.clone(),
@@ -150,9 +150,13 @@ fn scan_tuis(sys: &mut System) -> HashSet<String> {
 /// `$OPENCODE_DB` (resolved against the data dir), else `<data>/opencode/opencode.db`, the data dir being
 /// `$XDG_DATA_HOME` (when set and non-empty) or `~/.local/share`: OpenCode's rule on every OS. Default channel only.
 fn db_path() -> PathBuf {
-    let base = std::env::var_os("XDG_DATA_HOME").filter(|v| !v.is_empty()).map(PathBuf::from);
-    let data = base.unwrap_or_else(|| std::env::home_dir().unwrap_or_default().join(".local").join("share")).join("opencode");
+    let data = xdg_dir("XDG_DATA_HOME", "share").join("opencode");
     data.join(std::env::var_os("OPENCODE_DB").filter(|v| !v.is_empty()).unwrap_or_else(|| "opencode.db".into()))
+}
+
+/// `$<var>` when set and non-empty, else `~/.local/<sub>`.
+fn xdg_dir(var: &str, sub: &str) -> PathBuf {
+    std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from).unwrap_or_else(|| std::env::home_dir().unwrap_or_default().join(".local").join(sub))
 }
 
 /// Whether `pid` is a running process (a one-pid sysinfo refresh, no snapshot).
@@ -293,7 +297,7 @@ impl Source {
     /// land as they finish), as (id, top-level session id, helper kind for a child).
     pub fn family(&self) -> Vec<(String, String, Option<String>)> {
         let parent = parents(&self.rows);
-        let kind = |s: &Shown| s.row.parent_id.as_ref().map(|_| s.row.agent.clone().unwrap_or_else(|| "agent".into()));
+        let kind = |s: &Shown| s.row.parent_id.as_ref().map(|_| s.row.agent.clone().unwrap_or_else(|| registry::DEFAULT_HELPER_KIND.into()));
         self.rows.iter().map(|s| (s.row.id.clone(), root_of(&parent, &s.row.id).to_string(), kind(s))).collect()
     }
 

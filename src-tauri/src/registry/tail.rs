@@ -123,14 +123,14 @@ pub fn ends_with_question(tail: &str) -> Option<String> {
     if !last.contains(['?', '？']) {
         return None;
     }
-    Some(if last.chars().count() <= 200 { last.to_string() } else { format!("{}…", last.chars().take(199).collect::<String>()) })
+    Some(clip_to(last, 200))
 }
 
 pub(crate) fn clip(s: &str) -> String {
     clip_to(s, 60)
 }
 
-fn clip_to(s: &str, n: usize) -> String {
+pub(crate) fn clip_to(s: &str, n: usize) -> String {
     if s.chars().count() <= n {
         s.to_string()
     } else {

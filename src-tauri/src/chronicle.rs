@@ -810,7 +810,7 @@ impl Chronicle {
                         return;
                     }
                     if !cursors.contains_key(path) {
-                        cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into()))));
+                        cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| registry::DEFAULT_HELPER_KIND.into()))));
                     }
                     let Some((cur, helper)) = cursors.get_mut(path) else { return };
                     if turn {
