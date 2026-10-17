@@ -128,6 +128,8 @@
   #card .title { font-style: italic; margin-top: -.2em; }
   #card .title[hidden] { display: none; }
   #card .meta, #card .ctx, #card .path { color: var(--paper-ink-2); }
+  #card .kin[hidden] { display: none; }
+  #card .kin button { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
   #card .links, #card .answer { display: flex; gap: .5em; margin-top: .25em; }
   #card .links[hidden], #card .links button[hidden], #card .answer[hidden], #card .answer button[hidden], #card .q[hidden], #card .err[hidden] { display: none; }
   #card .answer button[data-choice="yes"] { background: var(--yes); border-color: var(--yes-deep); }
@@ -346,6 +348,7 @@
     <ul class="files" hidden></ul>
     <div class="asks" hidden></div>
     <div class="path"></div>
+    <div class="kin" hidden></div>
     <div class="q" hidden></div>
     <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
     <div class="note reject" data-t="rejectAll" hidden>Deny also refuses this session's other pending requests</div>

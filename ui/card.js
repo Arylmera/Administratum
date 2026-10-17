@@ -41,6 +41,7 @@ export function renderCard() {
     renderAnswer(card, null);
     card.querySelector('.noact').hidden = actions; // remote, actions off: no Cancel, the note says why
     renderLinks(card, null);
+    card.querySelector('.kin').hidden = true;
     return;
   }
   if (a?.h) {
@@ -56,6 +57,7 @@ export function renderCard() {
     renderTurn(card, null);
     renderAnswer(card, null);
     renderLinks(card, owner);
+    card.querySelector('.kin').hidden = true;
     return;
   }
   card.hidden = !s;
@@ -73,6 +75,28 @@ export function renderCard() {
   renderTurn(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
+  renderKin(card, s);
+}
+
+// A forked session's parent, or a Suzerain's children: each name selects that session's card.
+function renderKin(card, s) {
+  const kin = card.querySelector('.kin'), roster = rosterOf();
+  const parent = roster.find(r => r.id === s.parent), children = roster.filter(r => r.parent === s.id);
+  kin.replaceChildren();
+  const line = (label, list) => {
+    if (!list.length) return;
+    const row = document.createElement('div');
+    row.append(`${t(label)}: `);
+    list.forEach((r, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = r.name; b.onclick = () => select(r.id);
+      row.append(...(i ? [', ', b] : [b]));
+    });
+    kin.append(row);
+  };
+  line('summonedBy', parent ? [parent] : []);
+  line('summoned', children);
+  kin.hidden = !kin.childElementCount;
 }
 
 // The Watchman's card: a Cancel button (made once, after the answer row), under the same remote-actions flag.
