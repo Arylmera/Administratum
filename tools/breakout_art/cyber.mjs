@@ -1,8 +1,6 @@
 // Neon Grid's Sandbox: a void floor under a cyan wireframe mesh, hot-pink laser beams strung between chrome emitter
 // posts with lit lenses, a gate of stacked lasers locked by a cyan padlock glyph that powers down when it opens.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 
 // The padlock glyph on its glass panel, 8x9 ('c' lit, 'C' panel, 'k' bezel).
 const LOCK = [

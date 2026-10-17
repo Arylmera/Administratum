@@ -12,6 +12,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod opencode;
+pub use opencode::{feed_opencode, Msg, OcCursor, OPENCODE_BATCH};
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Event {
@@ -23,6 +26,13 @@ pub struct Event {
     /// Subagent kind when the event comes from a subagent transcript.
     pub helper: Option<String>,
     pub detail: String,
+}
+
+impl Event {
+    /// A session's own event (no helper).
+    pub fn for_session(ts: i64, kind: &str, s: &Session, detail: String) -> Self {
+        Event { ts, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
@@ -203,67 +213,65 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     if v["sessionId"].as_str().is_some_and(|id| id != src.session_id) {
         return;
     }
-    {
-        let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
-        if min_ts > i64::MIN && ts.is_none_or(|t| t < min_ts) {
-            return;
+    let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
+    if min_ts > i64::MIN && ts.is_none_or(|t| t < min_ts) {
+        return;
+    }
+    let ts = ts.unwrap_or(now_ms);
+    let mut emit = |kind: &str, detail: String| {
+        events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail })
+    };
+    let msg = &v["message"];
+    match v["type"].as_str() {
+        Some("assistant") => {
+            for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
+                if cur.pending.len() >= CAP {
+                    cur.pending.clear();
+                }
+                let p = Pending { name: b["name"].as_str().unwrap_or("tool").into(), command: b["input"]["command"].as_str().unwrap_or("").into() };
+                cur.pending.insert(b["id"].as_str().unwrap_or("").into(), p);
+            }
+            let model = msg["model"].as_str().unwrap_or("");
+            let u = &msg["usage"];
+            if u.is_null() || model.is_empty() || model == "<synthetic>" {
+                return;
+            }
+            let f = |k: &str| u[k].as_u64().unwrap_or(0);
+            let t = Tokens { input: f("input_tokens"), output: f("output_tokens"), cache_read: f("cache_read_input_tokens"), cache_write: f("cache_creation_input_tokens") };
+            // One line per content block of the same message: count each message id once, at its last usage.
+            let seen = match msg["id"].as_str() {
+                Some(id) => {
+                    if cur.msgs.len() >= CAP && !cur.msgs.contains_key(id) {
+                        cur.msgs.clear();
+                    }
+                    cur.msgs.insert(id.into(), t.clone()).unwrap_or_default()
+                }
+                None => Tokens::default(),
+            };
+            let d = t.minus(&seen);
+            if d.total() > 0 {
+                usage.push(Usage { ts, model: model.into(), tokens: d });
+            }
         }
-        let ts = ts.unwrap_or(now_ms);
-        let mut emit = |kind: &str, detail: String| {
-            events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail })
-        };
-        let msg = &v["message"];
-        match v["type"].as_str() {
-            Some("assistant") => {
-                for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
-                    if cur.pending.len() >= CAP {
-                        cur.pending.clear();
-                    }
-                    let p = Pending { name: b["name"].as_str().unwrap_or("tool").into(), command: b["input"]["command"].as_str().unwrap_or("").into() };
-                    cur.pending.insert(b["id"].as_str().unwrap_or("").into(), p);
-                }
-                let model = msg["model"].as_str().unwrap_or("");
-                let u = &msg["usage"];
-                if u.is_null() || model.is_empty() || model == "<synthetic>" {
-                    return;
-                }
-                let f = |k: &str| u[k].as_u64().unwrap_or(0);
-                let t = Tokens { input: f("input_tokens"), output: f("output_tokens"), cache_read: f("cache_read_input_tokens"), cache_write: f("cache_creation_input_tokens") };
-                // One line per content block of the same message: count each message id once, at its last usage.
-                let seen = match msg["id"].as_str() {
-                    Some(id) => {
-                        if cur.msgs.len() >= CAP && !cur.msgs.contains_key(id) {
-                            cur.msgs.clear();
-                        }
-                        cur.msgs.insert(id.into(), t.clone()).unwrap_or_default()
-                    }
-                    None => Tokens::default(),
-                };
-                let d = t.minus(&seen);
-                if d.total() > 0 {
-                    usage.push(Usage { ts, model: model.into(), tokens: d });
+        Some("user") => {
+            for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_result") {
+                let p = b["tool_use_id"].as_str().and_then(|id| cur.pending.remove(id));
+                for (kind, detail) in classify(p.as_ref(), b, src.branch) {
+                    emit(kind, detail);
                 }
             }
-            Some("user") => {
-                for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_result") {
-                    let p = b["tool_use_id"].as_str().and_then(|id| cur.pending.remove(id));
-                    for (kind, detail) in classify(p.as_ref(), b, src.branch) {
-                        emit(kind, detail);
-                    }
-                }
-            }
-            Some("system") if v["subtype"] == "turn_duration" => {
-                let ms = v["durationMs"].as_u64().unwrap_or(0);
-                // A subagent's (sidechain) turn runs inside its parent's turn: counting it would double count.
-                if src.helper.is_none() && v["isSidechain"] != true {
-                    turns.push(Turn { ts, ms });
-                }
-                if ms >= TASK_DONE_MS {
-                    emit("task-done", fmt_duration(ms));
-                }
-            }
-            _ => {}
         }
+        Some("system") if v["subtype"] == "turn_duration" => {
+            let ms = v["durationMs"].as_u64().unwrap_or(0);
+            // A subagent's (sidechain) turn runs inside its parent's turn: counting it would double count.
+            if src.helper.is_none() && v["isSidechain"] != true {
+                turns.push(Turn { ts, ms });
+            }
+            if ms >= TASK_DONE_MS {
+                emit("task-done", fmt_duration(ms));
+            }
+        }
+        _ => {}
     }
 }
 
@@ -494,141 +502,10 @@ fn fmt_duration(ms: u64) -> String {
     }
 }
 
-// ---- OpenCode messages (pure) -----------------------------------------------------------------
-
-/// An OpenCode `session_message` row: (seq, type, data).
-pub type Msg = (i64, String, Value);
-
-/// How many rows of one OpenCode session are read per poll.
-pub const OPENCODE_BATCH: u32 = 500;
-
-/// Per OpenCode session memory carried between polls: a transcript's pairing and turn state, the open turn's first
-/// prompt, and whether its first read (today's rows only, like a transcript's first scan) is still going.
-#[derive(Default)]
-pub struct OcCursor {
-    cur: Cursor,
-    open: Option<i64>,
-    backfill: bool,
-    /// A hall session's own log, not a helper's: its turn is the card's.
-    main: bool,
-}
-
-fn ms_of(v: &Value) -> Option<i64> {
-    v.as_f64().map(|x| x as i64)
-}
-
-fn iso_of(ms: i64) -> String {
-    chrono::DateTime::from_timestamp_millis(ms).unwrap_or_default().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-}
-
-/// The paths of an OpenCode `patch` (`*** Add File: <path>`, `Update`, `Delete`; tool/patch.txt).
-fn patch_files(text: &str) -> Vec<&str> {
-    text.lines().filter_map(|l| ["*** Add File: ", "*** Update File: ", "*** Delete File: "].iter().find_map(|p| l.strip_prefix(p)).map(str::trim)).collect()
-}
-
-/// Whether OpenCode is done writing a row: it rewrites an assistant row (same seq) until `time.completed`, a shell
-/// or compaction row while `running`. Its own projector copies a session by the same rule (session/projector.ts).
-fn finished(kind: &str, d: &Value) -> bool {
-    match kind {
-        "assistant" => !d["time"]["completed"].is_null(),
-        "shell" | "compaction" => d["status"] != "running",
-        _ => true,
-    }
-}
-
-/// One OpenCode row as the Claude transcript lines `extract_line` and `track_turn` read, so events come from the
-/// same code: the turn's first prompt (OpenCode's turn runs to its `idle` row, prompts steered in meanwhile
-/// included), an assistant message with its usage and tool calls (`shell` -> Bash, `edit` / `patch` -> Edit,
-/// `write` -> Write) and then their results, and at `idle` the turn's duration.
-fn claude_lines(st: &mut OcCursor, kind: &str, d: &Value) -> Vec<String> {
-    use serde_json::json;
-    let Some(created) = ms_of(&d["time"]["created"]) else { return vec![] };
-    match kind {
-        "user" if st.open.is_none() => {
-            st.open = Some(created);
-            vec![json!({"type": "user", "timestamp": iso_of(created), "message": {"content": d["text"].as_str().unwrap_or("")}}).to_string()]
-        }
-        "idle" => st
-            .open
-            .take()
-            .map(|start| json!({"type": "system", "subtype": "turn_duration", "durationMs": created.saturating_sub(start).max(0), "timestamp": iso_of(created)}).to_string())
-            .into_iter()
-            .collect(),
-        "assistant" => {
-            let ts = iso_of(ms_of(&d["time"]["completed"]).unwrap_or(created));
-            let (mut uses, mut results) = (vec![], vec![]);
-            for t in d["content"].as_array().into_iter().flatten().filter(|c| c["type"] == "tool") {
-                let (id, s, input) = (t["id"].as_str().unwrap_or(""), &t["state"], &t["state"]["input"]);
-                let (name, input) = match t["name"].as_str().unwrap_or("tool") {
-                    "shell" => ("Bash", json!({"command": input["command"]})),
-                    "edit" => ("Edit", json!({"file_path": input["path"]})),
-                    "write" => ("Write", json!({"file_path": input["path"]})),
-                    "patch" => ("Edit", json!({"file_path": patch_files(input["patchText"].as_str().unwrap_or("")).first()})),
-                    n => (n, input.clone()),
-                };
-                uses.push(json!({"type": "tool_use", "id": id, "name": name, "input": input}));
-                // No result: still running, declined by the operator or cut off by an interruption (`aborted`,
-                // runner/step.ts), or a shell moved to the background (its outcome is never this tool's).
-                let done = s["status"] == "completed" || s["status"] == "error";
-                if !done || s["error"]["type"] == "aborted" || s["metadata"]["status"] == "running" {
-                    continue;
-                }
-                let mut text: Vec<&str> = s["error"]["message"].as_str().into_iter().collect();
-                text.extend(s["content"].as_array().into_iter().flatten().filter_map(|c| c["text"].as_str()));
-                // A failing shell command still completes: its exit code says (shell/result.ts metadata).
-                let is_error = if s["status"] == "error" { Some(true) } else { ms_of(&s["metadata"]["exit"]).map(|e| e != 0) };
-                results.push(json!({"type": "tool_result", "tool_use_id": id, "content": text.join("\n"), "is_error": is_error}));
-            }
-            let n = |v: &Value| ms_of(v).unwrap_or(0).max(0);
-            let t = &d["tokens"];
-            let usage = t.is_object().then(|| {
-                json!({"input_tokens": n(&t["input"]), "output_tokens": n(&t["output"]).saturating_add(n(&t["reasoning"])), "cache_read_input_tokens": n(&t["cache"]["read"]), "cache_creation_input_tokens": n(&t["cache"]["write"])})
-            });
-            let mut out = vec![json!({"type": "assistant", "timestamp": ts, "message": {"id": d["id"], "model": d["model"]["id"], "content": uses, "usage": usage}}).to_string()];
-            if !results.is_empty() {
-                out.push(json!({"type": "user", "timestamp": ts, "message": {"content": results}}).to_string());
-            }
-            out
-        }
-        _ => vec![],
-    }
-}
-
-/// Folds an OpenCode session's rows after seq `after` into `out` (events, usage, turns) and its card's turn, like
-/// transcript lines; returns the seq to read after next time. A row OpenCode is still rewriting (`finished`) stops
-/// the read before it, so its tokens count once and no tool result is missed; unless an `idle` row follows it in the
-/// batch: the turn is over and that row will never finish (a crash).
-// shortcut: an unfinished row with no idle within OPENCODE_BATCH rows after it holds the session back until one comes.
-pub fn feed_opencode(st: &mut OcCursor, rows: &[Msg], after: i64, min_ts: i64, src: &Src, cwd: &str, out: &mut Found) -> i64 {
-    let mut next = after;
-    for (i, (seq, kind, d)) in rows.iter().enumerate() {
-        if !finished(kind, d) && !rows[i + 1..].iter().any(|(_, k, _)| k == "idle") {
-            break;
-        }
-        next = *seq;
-        for line in claude_lines(st, kind, d) {
-            if st.main && turn_wanted(&line) {
-                track_turn(&mut st.cur.turn, &line, cwd);
-            }
-            if wanted(&line) {
-                extract_line(&mut st.cur, &line, min_ts, src, 0, out); // every line carries its timestamp: no "now" needed
-            }
-        }
-        if st.main && kind == "assistant" {
-            // track_turn saw a patch's first file; the others are the turn's too
-            let patches = d["content"].as_array().into_iter().flatten().filter(|t| t["type"] == "tool" && t["name"] == "patch");
-            for p in patches.flat_map(|t| patch_files(t["state"]["input"]["patchText"].as_str().unwrap_or("")).into_iter().skip(1)) {
-                add_file(&mut st.cur.turn, p, cwd);
-            }
-        }
-    }
-    next
-}
-
 /// Lifecycle events between two rosters: arrived, left, petition, petition-answered, compaction
 /// (none of arrived, left, compaction for the break-out room's temp sessions).
 pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
-    let ev = |s: &Session, kind: &str, detail: String| Event { ts: now_ms, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail };
+    let ev = |s: &Session, kind: &str, detail: String| Event::for_session(now_ms, kind, s, detail);
     let ask = |s: &Session| s.waiting_for.clone().unwrap_or_else(|| "input needed".into());
     let mut out = vec![];
     for s in now {
@@ -732,6 +609,16 @@ fn write_atomic(path: &Path, text: &str) {
     }
 }
 
+fn load_json<T: serde::de::DeserializeOwned + Default>(p: &Path) -> T {
+    fs::read_to_string(p).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+}
+
+fn save_json<T: Serialize>(p: &Path, v: &T) {
+    if let Ok(t) = serde_json::to_string(v) {
+        write_atomic(p, &t);
+    }
+}
+
 fn load_tithe(dir: &Path, day: &str) -> Option<Tithe> {
     let t: Tithe = serde_json::from_str(&fs::read_to_string(dir.join(format!("{day}.tithe.json"))).ok()?).ok()?;
     (t.hourly.len() == 24).then_some(t)
@@ -762,9 +649,9 @@ impl Chronicle {
         let _ = fs::create_dir_all(&dir);
         retain_days(&dir, now_ms);
         let today_start = midnight_ms(now_ms);
-        let mut offsets: HashMap<String, u64> = fs::read_to_string(dir.join("offsets.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+        let mut offsets: HashMap<String, u64> = load_json(&dir.join("offsets.json"));
         prune_offsets(&mut offsets, today_start);
-        let mut seqs: HashMap<String, (i64, i64)> = fs::read_to_string(dir.join(SEQS)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+        let mut seqs: HashMap<String, (i64, i64)> = load_json(&dir.join(SEQS));
         prune_seqs(&mut seqs, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
@@ -795,7 +682,7 @@ impl Chronicle {
                         return;
                     }
                     if !cursors.contains_key(path) {
-                        cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| "agent".into()))));
+                        cursors.insert(path.clone(), (Cursor::default(), sub.then(|| registry::helper_meta(path).agent_type.unwrap_or_else(|| registry::DEFAULT_HELPER_KIND.into()))));
                     }
                     let Some((cur, helper)) = cursors.get_mut(path) else { return };
                     if turn {
@@ -811,21 +698,26 @@ impl Chronicle {
                 if self.offsets.insert(key, offset) != Some(offset) {
                     self.dirty = true;
                 }
-                let (ev, usage, turns) = found;
-                events.extend(ev);
-                for u in usage {
-                    self.add_usage(&s.dept, &u); // subagent tokens count toward the parent's project
-                }
-                for t in turns {
-                    if let Some(tithe) = self.tithe_at(t.ts) {
-                        tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
-                        self.dirty = true;
-                    }
-                }
+                self.absorb(&s.dept, found, &mut events); // subagent tokens count toward the parent's project
             }
         }
         self.cursors.retain(|p, _| seen.contains(p));
         events
+    }
+
+    /// Folds what one read found: events out, tokens and busy time into the Tithe of `dept`.
+    fn absorb(&mut self, dept: &str, found: Found, events: &mut Vec<Event>) {
+        let (ev, usage, turns) = found;
+        events.extend(ev);
+        for u in usage {
+            self.add_usage(dept, &u);
+        }
+        for t in turns {
+            if let Some(tithe) = self.tithe_at(t.ts) {
+                tithe.add_busy(dept, t.ms, hour_of(t.ts));
+                self.dirty = true;
+            }
+        }
     }
 
     /// Each live session's current turn (from its main transcript's cursor), by session id; none before a first prompt
@@ -836,7 +728,7 @@ impl Chronicle {
             .filter_map(|(id, fs)| {
                 let (f, _) = fs.iter().find(|(_, sub)| !sub)?;
                 let (cur, _) = self.cursors.get(&f.path)?;
-                (cur.turn.started_ms.is_some() || cur.turn.tools > 0).then(|| (id.clone(), cur.turn.clone()))
+                cur.turn.started().then(|| (id.clone(), cur.turn.clone()))
             })
             .collect()
     }
@@ -865,17 +757,7 @@ impl Chronicle {
                 self.seqs.insert(id.clone(), (next, now_ms));
                 self.dirty = true;
             }
-            let (ev, usage, turns) = found;
-            events.extend(ev);
-            for u in usage {
-                self.add_usage(&s.dept, &u); // a helper's tokens count toward its hall session's project
-            }
-            for t in turns {
-                if let Some(tithe) = self.tithe_at(t.ts) {
-                    tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
-                    self.dirty = true;
-                }
-            }
+            self.absorb(&s.dept, found, &mut events); // a helper's tokens count toward its hall session's project
         }
         self.oc.retain(|id, _| family.iter().any(|(f, _, _)| f == id));
         events
@@ -883,7 +765,7 @@ impl Chronicle {
 
     /// Each OpenCode hall session's current turn, by session id (as `turns`).
     pub fn opencode_turns(&self) -> impl Iterator<Item = (String, TurnSummary)> + '_ {
-        self.oc.iter().filter(|(_, st)| st.main && (st.cur.turn.started_ms.is_some() || st.cur.turn.tools > 0)).map(|(id, st)| (id.clone(), st.cur.turn.clone()))
+        self.oc.iter().filter(|(_, st)| st.main && st.cur.turn.started()).map(|(id, st)| (id.clone(), st.cur.turn.clone()))
     }
 
     /// The Tithe of `ts`'s day, rolling over (flushing the old one, dropping offsets of files
@@ -941,15 +823,9 @@ impl Chronicle {
     }
 
     pub fn flush(&self) {
-        if let Ok(t) = serde_json::to_string(&self.tithe) {
-            write_atomic(&self.dir.join(format!("{}.tithe.json", self.tithe.day)), &t);
-        }
-        if let Ok(t) = serde_json::to_string(&self.offsets) {
-            write_atomic(&self.dir.join("offsets.json"), &t);
-        }
-        if let Ok(t) = serde_json::to_string(&self.seqs) {
-            write_atomic(&self.dir.join(SEQS), &t);
-        }
+        save_json(&self.dir.join(format!("{}.tithe.json", self.tithe.day)), &self.tithe);
+        save_json(&self.dir.join("offsets.json"), &self.offsets);
+        save_json(&self.dir.join(SEQS), &self.seqs);
     }
 
     /// The dir and the live Tithe, so day files are read after the lock is released.

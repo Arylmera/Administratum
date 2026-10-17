@@ -1,9 +1,7 @@
 // Corpo Tower's Temp Pool: grey carpet tiles laid in alternating pile, glass hot-desk partitions (frosted privacy band,
 // a red brand stripe, an aluminium cap), aluminium posts with a red badge light, and a glass door with a "TEMPS"
 // lanyard sign that swings out of the doorway when it opens.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const glass = (x, y) => ((x + y) % 9 === 0 ? 'c' : 'C'); // smoked pane with a glint
 
 // "TEMPS" on the lanyard card, 12x5, letters alternating black and red so they read without gaps.

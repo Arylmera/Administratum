@@ -12,7 +12,7 @@ import { settings, store, place, perf, quiet, initSettings, renderSettings } fro
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
 import { buildHall39 } from './isohall.js';
 import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
-import { quietAt, hhmmOf } from './quiet.js';
+import { quietAt, hhmmOf, pad2 } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
@@ -152,7 +152,7 @@ function renderModes() {
   const now = new Date(), hour = now.getHours(), s = sunToday(now);
   level = lightLevel(state.mode, hour, autoPhase(now));
   const auto = document.querySelector('#prefs select[name="mode"] option[value="auto"]'); // the lighting choice lives in Settings
-  auto.textContent = `Auto · ${String(hour).padStart(2, '0')}h ${lightLevel('auto', hour, autoPhase(now)).phase}`;
+  auto.textContent = `Auto · ${pad2(hour)}h ${lightLevel('auto', hour, autoPhase(now)).phase}`;
   auto.title = s ? sunLine(s) : '';
   renderQuiet();
   renderSettings();

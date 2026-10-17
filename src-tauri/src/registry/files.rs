@@ -82,7 +82,7 @@ const HEAD_CAP: u64 = 16 << 20;
 /// without that call (a CLI `--fork-session`) is no child. `None` while the file ends inside the copy: the
 /// answer is not known yet; otherwise the answer is final.
 pub fn fork_parent(head: impl std::io::BufRead, own: &str) -> Option<Option<String>> {
-    use std::io::{BufRead, Read};
+    use std::io::BufRead;
     let (mut parent, mut summoned, mut read) = (None, false, 0);
     for line in head.take(HEAD_CAP).lines() {
         let Ok(line) = line else { return None }; // a write cut inside a character: read again next poll

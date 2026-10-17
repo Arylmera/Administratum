@@ -1,8 +1,6 @@
 // Ordo Xenos' Containment Cell: a black deck under a glowing teal grid, rails of humming stasis field slung between
 // silver emitter bars, stasis-field pylons with a lit core, a field gate sealed by the Inquisitorial I.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const shimmer = (x, y) => (x + 2 * y) % 5 === 0; // slanted flicker lines through a live field
 
 // The Inquisitorial I, 6x11 ('O' glint, 'k' its outline).

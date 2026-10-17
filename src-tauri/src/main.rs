@@ -137,7 +137,6 @@ $s.Save()"
     }
 }
 
-/// The header's close button: quits like the tray's Quit.
 /// Subscription usage as claude-deck last fetched it (~/.claude/claude-deck/usage-last.json: session and weekly
 /// percent and resetsAt), for the strip's banner; None when claude-deck isn't installed or the file is unreadable.
 #[tauri::command]
@@ -145,6 +144,7 @@ fn usage() -> Option<serde_json::Value> {
     std::fs::read_to_string(claude_dir().join("claude-deck").join("usage-last.json")).ok().and_then(|t| serde_json::from_str(&t).ok())
 }
 
+/// The header's close button: quits like the tray's Quit.
 #[tauri::command]
 fn quit(app: AppHandle) {
     app.exit(0);
@@ -341,20 +341,19 @@ fn poll_loop(app: AppHandle, demo: bool) {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
         let tick = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let now = now_ms();
             let mut roster = if demo {
                 demo::roster(start.elapsed().as_secs())
             } else {
-                let mut roster = poller.roster(&prev, now_ms());
-                let mut theirs = opencode.roster(now_ms());
-                registry::track_compaction(&prev, &mut theirs, now_ms()); // the poller ran it on Claude's sessions
+                let mut roster = poller.roster(&prev, now);
+                let mut theirs = opencode.roster(now);
+                registry::track_compaction(&prev, &mut theirs, now); // the poller ran it on Claude's sessions
                 roster.extend(theirs);
                 roster
             };
-            let now_ms = now_ms();
-            let limit_events = notify(&app, &mut tracker, &roster, first, now_ms);
+            let limit_events = notify(&app, &mut tracker, &roster, first, now);
             let mut turns = std::collections::HashMap::new();
             {
-                let now = now_ms;
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
                 last_tick = Instant::now();
                 let chron = app.state::<Chron>();
@@ -396,8 +395,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
             }
             // Night Vigil: newest transcript write among the files the poller already stats (subagents included).
             let last_write = poller.files.values().flatten().map(|(f, _)| f.mtime_ms).max().unwrap_or(0);
-            vigil::app::tick(&app, &roster, last_write, now_ms, demo);
-            *lock(&app.state::<Live>()) = roster.clone();
+            vigil::app::tick(&app, &roster, last_write, now, demo);
+            lock(&app.state::<Live>()).clone_from(&roster);
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
             prev = roster;
@@ -430,7 +429,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
         }
         if QUESTION_TOAST.load(Ordering::Relaxed) && !quiet {
             let q = s.question.clone().unwrap_or_default();
-            let q = if q.chars().count() > 120 { format!("{}…", q.chars().take(119).collect::<String>()) } else { q };
+            let q = registry::clip_to(&q, 120);
             let _ = app.notification().builder().title(toast::fill(&words.question, &s.name)).body(format!("{} · {q}", s.dept)).show();
         }
         emit(app, "question", &s);
@@ -464,7 +463,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
                 emit(app, "limit", loud.len());
             }
             for s in &wave {
-                limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
+                limit_events.push(Event::for_session(now_ms, "limit", s, time.clone()));
             }
         }
     }

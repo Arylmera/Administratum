@@ -29,7 +29,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `poller.rs` | Builds the live roster each tick: liveness of each session pid via Win32, the Orca handle per pid, transcript location, memoised tails and subagents |
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell |
 | `opencode/` | OpenCode 2.x, a second source beside `registry/`. `db.rs` reads its SQLite database read-only (only while its `-wal` exists, so no file is created in OpenCode's folder; one short transaction per read), `service.rs` its service registration (`~/.local/state/opencode/service.json`, loopback URLs and version 2+ only, the password never leaves the module) and a small `std::net` client for `/api/session/active`, pending permissions and replies, `mod.rs` the sessions it adds to the roster (running, waiting, idle while a TUI runs in its folder, 15 min at most), the rows the Chronicon reads, and `answer_opencode` |
-| `chronicle.rs` | Incremental transcript reader: Chronicon events, the token and working-time Tithe, day files, retention |
+| `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe, day files, retention; `opencode.rs` turns OpenCode rows into transcript lines |
 | `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS: tauri-plugin-notification's actions (`toast::mac`, one `on_action` handler registered at setup, routed by toast id; two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first; only the bundled app has the right notification identity, `tauri dev` posts as Terminal). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
@@ -179,7 +179,7 @@ sprite over the contact shadow it gets in the hall.
 ```sh
 node ui/art.test.mjs && node ui/sprites.test.mjs
 node tools/sprite_sheet.mjs                     # regenerates docs/sprites/
-node tools/sprite_sheet.mjs --theme cyber       # and orbital, tower, vault, darwin: each theme with its own art
+node tools/sprite_sheet.mjs --theme cyber       # and each other theme with its own art folder under ui/art/
 ```
 
 `docs/sprites/` is the committed gallery used to discuss sprites one by one: one GitHub issue per family (Sprite
@@ -189,7 +189,7 @@ board), each sprite linking to a prefilled new issue. Design notes:
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
 `watch_art.mjs` / `suzerain_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/` and
-`suzerain_art/`) the generators of the break-out room, Watchman and Suzerain (dais and link) art, `map_to_art.mjs` / `sheet_writer.mjs` / `png_write.mjs` art conversion helpers, `adm.mjs` the
+`suzerain_art/`, each with a shared `kit.mjs` of the drawing helpers) the generators of the break-out room, Watchman and Suzerain (dais and link) art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
 command-line client of the running app, `make_icon.py` the app icon.
 
 ---

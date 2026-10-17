@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
+import { blit, sprite, half, rect, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt, halfOf } from './room.js';
 import { WIN_Y, wallArt } from './wallart.js';
@@ -15,8 +15,6 @@ const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
 // Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES). The room's structure is tiles
 // (room.js, ui/art/room-*.png); what stays drawn here is weathering and effects, in theme colours.
-function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
-const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
 // Static props [map, x, y] on the measured hall (layout.js: 346x226, 40 px wall), by what they move with as the scene
 // grows (hallOf): w the scriptorium's west end, c its centre (gate, cogitator bank: + dx), e its east wall (+ sw - 200),
@@ -834,7 +832,7 @@ const STRIP_SHADE = 0.75;
 // it (a bench's plain seat between its legs, not a pedestal), so any theme's bench stretches without new art; cached
 // per sprite and width (the sprite cache keys on it).
 const wide = new WeakMap();
-export function widened(map, w) {
+function widened(map, w) {
   const extra = w - map[0].length;
   if (extra <= 0) return map;
   const byW = wide.get(map) ?? wide.set(map, new Map()).get(map);
@@ -1008,17 +1006,18 @@ export function stepAlarm(actors, now) {
   lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
   return { on, who, BEACON, x: skull.x, y0: skull.y, y, hover: on && d <= step, lights };
 }
+// The skull's red cone from its eye (bx, by) down to the petitioner's feet (fx, fy), both views.
+export function searchlight(g, t, bx, by, fx, fy) {
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.fillStyle = hexA(I.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
+  g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(fx + 8, fy + 1); g.lineTo(fx - 8, fy + 1); g.closePath(); g.fill();
+  g.restore();
+}
 function drawAlarm(g, actors, now) {
   const t = now / 1000, { on, who, BEACON, y, hover, lights } = stepAlarm(actors, now);
   drawBeacon(g, t, on, BEACON);
-  if (hover) { // hovering: a red searchlight down onto the petitioner
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    g.fillStyle = hexA(I.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
-    const by = y - SK.centre[1] + SK.beam[1], bx = skull.x - SK.centre[0] + SK.beam[0];
-    g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
-    g.restore();
-  }
+  if (hover) searchlight(g, t, skull.x - SK.centre[0] + SK.beam[0], y - SK.centre[1] + SK.beam[1], who.x, who.y); // hovering: a red searchlight down onto the petitioner
   flyShadow(g, skull.x, skull.y);
   blit(g, MAPS.SKULL, half(skull.x) - SK.centre[0], half(y) - SK.centre[1], on ? skullRed() : undefined);
   return lights;
@@ -1048,5 +1047,5 @@ function fromArt() {
 fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
-export { KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
+export { MAG, KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
   newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, doorFrame, near, skullRed };

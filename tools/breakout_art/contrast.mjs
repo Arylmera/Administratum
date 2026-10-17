@@ -1,8 +1,6 @@
 // Ordo Hereticus' Penitent Cage: worn sandstone flagstones in black mortar, a cage of iron bars under a red-leaded
 // crossbar studded with gold rivets, spiked iron posts, a barred gate with a red-bound tome chained across it.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 
 // The chained tome, 8x9: red leather with a lit spine edge, gold corner bosses and clasp, the page block on the right.
 const TOME = [

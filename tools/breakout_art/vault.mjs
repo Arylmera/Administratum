@@ -1,9 +1,7 @@
 // Vault 111's Test Chamber: white lab tiles with a yellow test-grid cross, Vault-Tec blue riveted frames holding dark
 // observation glass over a yellow kick band, blue columns with a red "in progress" lamp, and a blue bulkhead under a
 // red TEST placard lit while the experiment runs, dark when the door stands open.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const glass = (x, y) => ((x - y + 32) % 9 === 0 ? 'b' : (x - y + 32) % 9 === 1 ? 'l' : 'N'); // dark pane, a glint
 
 // Vault-Tec column: a red test lamp on a yellow cap, riveted blue steel, a yellow band, a steel foot.

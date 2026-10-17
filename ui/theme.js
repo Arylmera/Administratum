@@ -182,6 +182,13 @@ export function themed(make) {
   let gen = -1, v;
   return () => (gen === T.gen ? v : (gen = T.gen, v = make(T)));
 }
+const rgbs = new Map();
+// '#rrggbb' -> [r, g, b], memoised.
+export const rgb = hex => rgbs.get(hex) ?? rgbs.set(hex, [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))).get(hex);
+// Writes pixel i of ImageData bytes D: [r, g, b] blended toward shadow [sr, sg, sb] by a, opaque.
+export function blendInto(D, i, [r, g, b], a, [sr, sg, sb]) {
+  D[4 * i] = r + (sr - r) * a; D[4 * i + 1] = g + (sg - g) * a; D[4 * i + 2] = b + (sb - b) * a; D[4 * i + 3] = 255;
+}
 // '#rrggbb' + alpha -> 'rgba(r,g,b,a)'.
 export const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 

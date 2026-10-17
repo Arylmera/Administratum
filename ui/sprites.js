@@ -13,6 +13,8 @@ export const rankOf = model => (/opus|fable/i.test(model ?? '') ? 'high' : /haik
 export const RANKS = ['high', 'standard', 'novice'];
 
 export const RES = 2; // art pixels per logical pixel
+export const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
+export const rect = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
 
 // Cached per map, then by the override object's identity (callers keep their overrides as constants, or themed()),
 // so a blit costs no JSON; a new object with the same overrides still finds the canvas by its JSON key.

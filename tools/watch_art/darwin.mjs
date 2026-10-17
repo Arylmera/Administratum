@@ -6,21 +6,12 @@
 // nape, the coat's back seam and vent. ring: he rings a brass hand bell (h/g/G, wooden handle w/W) raised in his
 // frame-left hand. 32x36 art px: rows 0..11 the head, 12..28 the coat (hem 28), 29..35 legs and boots.
 
-const stamp = (rows, patch, x, y) => rows.map((r, j) => {
-  const p = patch[j - y];
-  if (!p) return r;
-  const a = [...r];
-  [...p].forEach((c, i) => { if (c !== '.') a[x + i] = c; });
-  return a.join('');
-});
-const frame = (body, legs, ...patches) => patches.reduce((rows, [p, x, y]) => stamp(rows, p, x, y), [...body, ...legs]);
-const rev = s => [...s].reverse().join('');
+import { stamp, frame, rev, put } from './kit.mjs';
+import { WATCH_SIZE } from '../../ui/layout.js';
 // 16-px left halves mirrored into 32-px rows, the coat's lit side (u) turned to shade (n) along the right edge.
 const sym = half => half.map(h => h + rev(h));
-// Columns x0.. of rows y0..y1 set to str (unlike stamp, it can write '.').
-const put = (rows, y0, y1, x0, str) => rows.map((r, j) => (j < y0 || j > y1 ? r : r.slice(0, x0) + str + r.slice(x0 + str.length)));
 // Rows shifted by n columns (positive: right), blank filled.
-const shift = (rows, n) => rows.map(r => (n > 0 ? '.'.repeat(n) + r.slice(0, 32 - n) : r.slice(-n) + '.'.repeat(-n)));
+const shift = (rows, n) => rows.map(r => (n > 0 ? '.'.repeat(n) + r.slice(0, WATCH_SIZE[0] - n) : r.slice(-n) + '.'.repeat(-n)));
 
 // Heads, rows 0..11. Front: the cap square on, the badge in the middle, the moustache across.
 const HEAD_DOWN = stamp(sym([

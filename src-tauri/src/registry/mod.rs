@@ -11,15 +11,18 @@ mod testutil;
 mod tracker;
 
 #[cfg(test)]
-pub(crate) use files::slug; // only chronicle.rs's tests reach it from outside
+pub(crate) use files::slug; // only chronicle/mod.rs's tests reach it from outside
 pub use files::{direct_transcript, file_tail, find_transcript, fork_parent, list_subagents, stat, FileStat};
 pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
 pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
 pub use sessions::{adopt, dept_of, merge, scan, temp_dept, track_compaction};
-pub(crate) use tail::{clip, iso_utc_ms};
+pub(crate) use tail::{clip, clip_to, iso_utc_ms};
 pub use tail::{read_tail, Tail};
 pub use tracker::{Tracker, STALE_MS};
+
+/// The kind a helper reports when its meta names none.
+pub const DEFAULT_HELPER_KIND: &str = "agent";
 
 #[derive(Serialize, Clone, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
@@ -52,7 +55,7 @@ pub struct Session {
     pub branch: Option<String>,
     /// Stopped on a subscription usage limit (newest assistant line `"error":"rate_limit"`, no prompt since).
     pub limit: Option<Limit>,
-    /// The current or last turn (chronicle.rs), filled by the poll loop.
+    /// The current or last turn (chronicle/mod.rs), filled by the poll loop.
     pub turn: Option<TurnSummary>,
     /// The agent it runs in: Claude Code (this module) or OpenCode 2.x (`opencode/`).
     pub source: Agent,
@@ -110,6 +113,13 @@ pub struct TurnSummary {
     pub tools: u32,
     pub files: Vec<String>,
     pub more_files: u32,
+}
+
+impl TurnSummary {
+    /// Whether a prompt or tool call has been read for this turn.
+    pub fn started(&self) -> bool {
+        self.started_ms.is_some() || self.tools > 0
+    }
 }
 
 /// A plain idle session for other modules' tests.

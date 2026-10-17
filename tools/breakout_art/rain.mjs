@@ -1,9 +1,7 @@
 // Rain City's Back Alley: wet asphalt with a rain-ruffled puddle holding the sign's amber glow, a chain-link fence
 // on galvanised pipe, galvanised posts with a rain cap, and a chain-link gate under a flickering neon OUT sign (one
 // letter guttering while it is shut, the whole sign lit when it swings open).
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const mesh = (x, y) => ((x + y) % 4 === 0 || (x - y + 64) % 4 === 0 ? 'l' : '.'); // chain-link diamonds, 4 px
 
 // "OUT" in neon tubes, 11x5; the U is the guttering letter.

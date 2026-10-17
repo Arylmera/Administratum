@@ -1,9 +1,7 @@
 // Green Code's Construct: the loading program's bare white void (a faint dotted grid, nothing else), floating white
 // light-bar rails on thin struts, white monolith posts with a blinking green cursor, and a plain white door that
 // opens onto green code rain, the one place the black-and-green world shows through.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 
 // Code rain: falling columns, a bright head, a fading trail, black between.
 const rain = (x, y) => {

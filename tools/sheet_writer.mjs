@@ -18,7 +18,10 @@ export function keyPalette() {
   return key;
 }
 
-// frames: name -> rows of palette chars ('.' transparent); rows: [[name, ...], ...] the layout (a row wraps past 512
+// A row of frames wraps past this many art px.
+const SHEET_W = 512;
+
+// frames: name -> rows of palette chars ('.' transparent); rows: [[name, ...], ...] the layout (a row wraps past SHEET_W
 // art px, frames 1 px apart); meta: { anchors?, tiles? }.
 export function writeSheet(family, frames, rows, meta = {}) {
   const key = keyPalette();
@@ -27,7 +30,7 @@ export function writeSheet(family, frames, rows, meta = {}) {
     let w = 0;
     for (const n of row) {
       const fw = Math.max(...frames[n].map(r => r.length));
-      if (w && w + fw > 512) { out.push([]); w = 0; }
+      if (w && w + fw > SHEET_W) { out.push([]); w = 0; }
       out.at(-1).push(n); w += fw + 1;
     }
     return out;
@@ -58,4 +61,13 @@ export function writeSheet(family, frames, rows, meta = {}) {
       anchors: meta.anchors ?? {}, ...(meta.tiles && { tiles: meta.tiles }) } };
   fs.writeFileSync(path.join(artDir, `${family}.json`), JSON.stringify(json, null, 2) + '\n');
   return { W, H, frames: Object.keys(rect).length };
+}
+
+// A one-row sheet of fixed-size frames: check each of `sizes` ({ name: [w, h] }) is there at that size, then write it.
+export function sizedSheet(family, id, frames, sizes) {
+  for (const [n, [w, h]] of Object.entries(sizes)) {
+    const f = frames[n];
+    if (!f || f.length !== h || f.some(r => r.length !== w)) throw new Error(`${id} ${n}: want ${w}x${h}`);
+  }
+  return writeSheet(family, frames, [Object.keys(sizes)]);
 }

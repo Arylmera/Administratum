@@ -62,4 +62,36 @@ assert.equal(new Set(Object.values(got)).size, 8, 'each hall, theme and light dr
   assert.notDeepEqual(drawn(g => dozing(g, 50, 50, 1)), before[1], 'the Zs read their art');
   [MAPS.SHELL_COG_0, MAPS.DOZE_Z] = keep;
 }
+
+// The alarm's searchlight (both views draw it): a stale petitioner at the head of the queue, the servo-skull flown to it,
+// its red cone drawn 'lighter' from the skull's eye down to the petitioner's feet. The cone's calls are pinned in each view.
+{
+  const { drawScene } = await import('./scene.js'), { drawScene39, use } = await import('./scene39.js'), { setView, sceneSize } = await import('./view.js');
+  setTheme('tier2');
+  const hall = hallOf(0), q = hall.queue[0], layout = { hall, blocks: [], desks: [], consoles: [], level: { dark: 0.18 } };
+  const petitioner = { id: 'p', x: q.x, y: q.y, pose: 'queue', dir: 'up', t: 0, s: { status: 'waiting', sinceMs: 1, name: 'p', context: 0 } }; // stale since the epoch
+  const actors = new Map([['p', petitioner]]);
+  let now = 1000;
+  const pixels = k => k === 'getImageData' || k === 'createImageData', pixelled = () => { // 39's buffers read and write pixels: a canvas that has some
+    const cv = fakeCanvas(), ctx = cv.getContext('2d');
+    const g = new Proxy(ctx, { get: (t, k) => (pixels(k) ? (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(4 * w * h) }) : t[k]) });
+    cv.getContext = () => g;
+    return cv;
+  };
+  const make = document.createElement;
+  document.createElement = pixelled;
+  const cone = draw => { // 400 frames: the skull flies over and hovers; the last frame's cone
+    const g0 = pixelled(), g = g0.getContext('2d');
+    for (let i = 0; i < 400; i++) draw(g, layout, actors, () => 0, now + i * 100);
+    now += 40000;
+    const L = g0.log, j = L.findLastIndex((l, k) => l === 'globalCompositeOperation=lighter' && L[k + 2] === 'beginPath()');
+    return L.slice(j - 1, j + 9);
+  };
+  assert.deepEqual(cone(drawScene), ['save()', 'globalCompositeOperation=lighter', 'fillStyle=rgba(255,50,30,0.11827091153071882)', 'beginPath()',
+    'moveTo(308.5,193)', 'lineTo(311.5,193)', 'lineTo(284,210)', 'lineTo(268,210)', 'closePath()', 'fill()'], "the flat view's searchlight");
+  setView('39'); sceneSize(hall); use(hall);
+  assert.deepEqual(cone(drawScene39), ['save()', 'globalCompositeOperation=lighter', 'fillStyle=rgba(255,50,30,0.1012763177473833)', 'beginPath()',
+    'moveTo(346.5,214)', 'lineTo(349.5,214)', 'lineTo(315.5,215)', 'lineTo(299.5,215)', 'closePath()', 'fill()'], "the 39 degree view's searchlight");
+  document.createElement = make;
+}
 console.log('flathall ok');

@@ -1,4 +1,4 @@
-import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, sprite, marked } from './sprites.js';
+import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, sprite, marked, half } from './sprites.js';
 import { T, onTheme, hexA } from './theme.js';
 import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
@@ -17,7 +17,7 @@ const STALE_MS = () => settings.staleMin * 60_000; // a petition waiting longer 
 export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now() - s.sinceMs > STALE_MS();
 // A turn that ended on a question (backend `question`, idle only) queues like a petition, behind the real ones.
 export const isQuestion = s => questions.on && !!s.question && s.status !== 'waiting';
-export const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
+const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
@@ -322,7 +322,7 @@ export function pipeOf(a, face) {
 }
 // The pipe at (x, y), the frame's top-left: a wood stem (lit top, shaded underside), the bowl with a glowing ember, and
 // puffs of pale smoke (theme smoke lifted toward white) rising ~14 px and drifting outward, now and then a ring.
-const half = v => Math.round(v * 2) / 2, PUFFS = 5, RISE_S = 5;
+const PUFFS = 5, RISE_S = 5;
 const pale = c => `${[1, 3, 5].map(i => Math.round((parseInt(c.slice(i, i + 2), 16) + 255 * 1.5) / 2.5)).join(',')}`;
 export function pipe(g, x, y, P, t) {
   const at = ([i, j, w, h], c) => { g.fillStyle = c; g.fillRect(x + i / RES, y + j / RES, w / RES, h / RES); };

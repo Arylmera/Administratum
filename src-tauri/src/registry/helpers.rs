@@ -59,7 +59,7 @@ pub fn read_helper(f: &FileStat, id: &str) -> Helper {
     let meta = helper_meta(&f.path);
     Helper {
         id: id.to_string(),
-        kind: meta.agent_type.unwrap_or_else(|| "agent".to_string()),
+        kind: meta.agent_type.unwrap_or_else(|| super::DEFAULT_HELPER_KIND.to_string()),
         task: meta.description.map(|d| clip(&d)).unwrap_or_default(),
         model: meta.model,
         context: file_tail(&f.path, TAIL_BYTES).and_then(|t| context_of(&t)),
