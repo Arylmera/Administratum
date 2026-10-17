@@ -6,7 +6,7 @@
 //    cells: frames, each with its palette overrides; anim: the cells are animation frames (else variants side by side).
 import {
   MAPS, PROP_AT, SCRIBE, ADEPT, ADEPT_AT, marked, MAGOS, MAGOS_AT, WATCH, RES, RANKS, rankOf, SHEET_OF, ROOM, ROOM_SHEET_OF, ART,
-  SCRIBE39, ADEPT39, ADEPT39_AT, MAGOS39, SKULL39, WATCH39, REQ39,
+  SCRIBE39, ADEPT39, ADEPT39_AT, MAGOS39, SKULL39, WATCH39, REQ39, OPT39,
 } from '../ui/sprites.js';
 import { T } from '../ui/theme.js';
 import { cellFrame, halfOf } from '../ui/room.js';
@@ -15,7 +15,7 @@ import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
-  ARM: 'Scribe\'s right arm at the desk (raised with the scroll when a long turn finishes)', ARM_L: 'Scribe\'s left arm at the desk',
+  ARM: 'Scribe\'s right arm at its side, seated or standing (a body without arms of its own: the 40k robe)', ARM_L: 'Scribe\'s left arm at its side',
   SCROLL: 'Sealed petition scroll, held while queued in the Sanctum', SCROLL_HELD: 'The finished scroll a scribe raises when a long turn is done',
   COMMIT_SEAL: 'Purity seal hung on the desk for each commit (up to 3)', COMMIT_TAG: 'The seal\'s strips before the wax lands', COMMIT_STAMP: 'The stamp that seals a commit', QSCROLL: 'Question scroll: the turn ended with a question',
   DESK: 'Scribe\'s desk: screen and candle lit while busy', LECTERN: 'Compact desk once the hall is full (6 a row)',
@@ -76,7 +76,7 @@ export function catalog() {
 
   // 39° characters (wave 2): one generic section, listing every frame present for the active theme. Empty until an
   // art agent's PNG exists (sprites.js checkComplete39), so the viewer shows a world's frames the moment they land.
-  // The frame names come from REQ39 (sprites.js), not repeated here: a walk frame is '<dir> <n>', everything else
+  // The frame names come from OPT39 and REQ39 (sprites.js), not repeated here: a walk frame is '<dir> <n>', everything else
   // ('arm', 'armL', 'scroll', 'body', 'skull'...) is a static extra.
   const CH39 = [
     { name: 'SCRIBE39', family: 'scribe39', obj: SCRIBE39 },
@@ -87,9 +87,10 @@ export function catalog() {
   ];
   for (const { name, family, obj } of CH39) {
     if (!Object.keys(obj).length) continue;
-    const src = srcOf(family), extra = REQ39[family].frames.filter(n => !/^[EWSN] \d$/.test(n));
+    const src = srcOf(family), extra = [...(OPT39[family] ?? []), ...REQ39[family].frames.filter(n => !/^[EWSN] \d$/.test(n))];
     for (const d of ['E', 'W', 'S', 'N']) if (obj[d]) add(`${name}.${d}`, '39° characters', src, obj[d].map(rows => ({ rows, over: {} })), true, `${name}, 39° view, walking ${d}, 3 frames`);
-    for (const n of extra) add(`${name}.${n}`, '39° characters', src, [{ rows: obj[n], over: {} }], false, `${name}, ${n}`);
+    // an optional extra a world leaves out (the arms of a body that has its own) has no row
+    for (const n of extra) if (obj[n]) add(`${name}.${n}`, '39° characters', src, [{ rows: obj[n], over: {} }], false, `${name}, ${n}`);
     if (name === 'ADEPT39') kinds(name, obj, ADEPT39_AT, ['S', 'E', 'N', 'W'], src);
   }
 

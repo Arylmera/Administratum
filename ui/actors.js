@@ -225,6 +225,28 @@ const robeOf = (rank, sash) => {
 // kinds' own, any other kind (a custom agent) the generic one. Exact names in any case, so 'code-explorer' is custom.
 const KIND_MARK = { explore: 'explore', plan: 'plan', 'general-purpose': 'general' };
 export const markOf = kind => KIND_MARK[String(kind ?? '').toLowerCase()] ?? 'custom';
+// A long turn just finished at the desk: the scroll held up over the scribe, eased up, held, back down (art px / RES).
+export function liftOf(a) {
+  const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
+  return { done, lift: done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0 };
+}
+// What a scribe carries over its body, in either view (V: its art, CARRIED / CARRIED39): its arms hanging at its sides
+// when its body has none of its own (the 40k robe), in the body's colours; the petition scroll on its way to and in
+// the queue; a finished turn's scroll held up; the dozing Z. Feet-relative top-left (fx, fy), as drawActor.
+export function drawCarried(g, a, V, fx, fy, over) {
+  const A = V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll;
+  if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); return; }
+  const { done, lift } = liftOf(a);
+  if (V.arm) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y, over); }
+  if (done) V.held(g, fx, fy - lift);
+  if (a.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y);
+  if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+}
+// The two views' art for it, read live (a theme switch refills the maps in place).
+const CARRIED = { get at() { return SCRIBE_AT; }, get arm() { return MAPS.ARM; }, get armL() { return MAPS.ARM_L; }, get scroll() { return MAPS.SCROLL; },
+  held: (g, x, y) => heldScroll(g, x + 2, y - 3) };
+export const CARRIED39 = { get at() { return SCRIBE39_AT; }, get arm() { return SCRIBE39.arm; }, get armL() { return SCRIBE39.armL; }, get scroll() { return SCRIBE39.scroll; },
+  held: (g, x, y) => blit(g, MAPS.SCROLL_HELD, x + 1.5, y - 4) };
 // The body frame an actor is drawn with and its top-left (feet at a.x, a.y), for drawActor and its floor shadow
 // (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing.
 export function bodyOf(a) {
@@ -279,21 +301,9 @@ export function drawActor(g, a) {
     blit(g, b.map, b.x, b.y - bobOf(b) + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;
   }
-  const A = SCRIBE_AT, fx = b.x, fy = b.y - bobOf(b), P = pipeOf(a, a.pose === 'burn' ? 'down' : a.pose === 'walk' ? a.dir : 'up');
+  const fx = b.x, fy = b.y - bobOf(b), P = pipeOf(a, a.pose === 'burn' ? 'down' : a.pose === 'walk' ? a.dir : 'up');
   blit(g, b.map, fx, fy, b.over);
-  if (a.pose === 'burn') { if (P) pipe(g, fx, fy, P, a.t); return; } // standing over the brazier (bundle + flare: scene.js)
-  if (a.pose === 'walk') {
-    if (a.target?.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
-    if (P) pipe(g, fx, fy, P, a.t);
-    return;
-  }
-  const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
-  const lift = done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0; // eased up, held, back down
-  blit(g, MAPS.ARM, fx + A.arm.x, fy + A.arm.y - lift);
-  blit(g, MAPS.ARM_L, fx + A.armL.x, fy + A.armL.y - lift);
-  if (done) heldScroll(g, fx + 2, fy - 3 - lift); // task done: the finished scroll held up in both hands
-  if (a.pose === 'queue') blit(g, isQuestion(a.s) ? MAPS.QSCROLL : MAPS.SCROLL, fx + A.scroll.x, fy + A.scroll.y);
-  if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+  if (a.pose !== 'burn') drawCarried(g, a, CARRIED, fx, fy, b.over); // burning: standing over the brazier (bundle + flare: scene.js)
   if (P) pipe(g, fx, fy, P, a.t);
 }
 

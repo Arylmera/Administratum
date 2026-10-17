@@ -71,14 +71,6 @@
         "w": 32,
         "h": 34
       }
-    },
-    "arm": {
-      "frame": {
-        "x": 297,
-        "y": 0,
-        "w": 8,
-        "h": 16
-      }
     }
   },
   "meta": {
@@ -86,19 +78,10 @@
     "image": "scribe.png",
     "format": "RGBA8888",
     "size": {
-      "w": 305,
+      "w": 296,
       "h": 34
     },
     "palette": "key.gpl",
-    "anchors": {
-      "arm": [
-        24,
-        12
-      ],
-      "armL": [
-        0,
-        12
-      ]
-    }
+    "anchors": {}
   }
 }

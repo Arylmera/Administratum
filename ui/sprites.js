@@ -122,12 +122,15 @@ const walk39 = (sheet, d) => [0, 1, 2].map(i => sheet.frames[`${d} ${i}`]);
 // the art agents follow; also the shape tools/sprite_catalog.mjs builds its listing from). Checked by
 // checkComplete39 below.
 export const REQ39 = {
-  scribe39: { frames: [...WALK39, 'arm', 'armL', 'scroll'], anchors: ['feet', 'arm', 'armL', 'scroll'] },
+  scribe39: { frames: [...WALK39, 'scroll'], anchors: ['feet', 'scroll'] },
   adept39: { frames: WALK39, anchors: ['feet'] },
   magos39: { frames: ['body', 'arm'], anchors: ['arm', 'chest', 'eyeL', 'eyeR'] },
   skull39: { frames: ['skull'], anchors: ['centre', 'carry', 'beam'] },
   watch39: { frames: [...WALK39, 'ring'], anchors: ['feet', 'light'] },
 };
+// Frames a 39° family may carry, listed before its required extras (tools/sprite_catalog.mjs): the arms of a body
+// without arms of its own (the 40k robe), at the arm and armL anchors.
+export const OPT39 = { scribe39: ['arm', 'armL'] };
 // A 39° family's sheet is either wholly absent (no frames: not drawn yet) or complete (every frame and anchor the
 // brief names present); anything in between is a bug in a committed art file. This throws loudly (used by the
 // tests, which check every committed scribe39/adept39/magos39/skull39 file this way, base and every theme folder,
@@ -202,21 +205,27 @@ const EXPORT39 = { scribe39: [SCRIBE39, SCRIBE39_AT], adept39: [ADEPT39, ADEPT39
 function useArt(id) {
   const S = Object.fromEntries(FAMILIES.map(f => [f, sheetOf(id, f)]));
   const dir = dirOf(id), src = (f, n) => (themed[id]?.[f]?.frames[n] ? `${id}/${f}` : themed[dir]?.[f]?.frames[n] ? `${dir}/${f}` : f);
+  // a frame drawn over a body (a glyph, the claw, the arms) only with the body it was drawn for: never the base art's
+  // over a world's own body
+  const own = (f, n, body) => src(f, n) === src(f, body);
   refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
-  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => src('adept', n) === src('adept', 'down 0')) }); refill(ADEPT_AT, anchorsOf(S.adept));
-  refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: src('magos', 'claw') === src('magos', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
+  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => own('adept', n, 'down 0')) }); refill(ADEPT_AT, anchorsOf(S.adept));
+  refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: own('magos', 'claw', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
   refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));
   for (const f of FAMILIES39) {
     const sheet = resolve39(f, themed[dir]?.[f], base[f], `theme '${id}'`), [obj, at] = EXPORT39[f], complete = Object.keys(sheet.frames).length > 0;
     refill(obj, complete ? BUILD39[f](sheet) : {});
     refill(at, complete ? anchorsOf(sheet) : {});
   }
-  refill(MAPS, Object.assign({ ARM: S.scribe.frames.arm, ARM_L: mirror(S.scribe.frames.arm) }, ...PROP_SHEETS.map(f => S[f].frames)));
+  // the arms (actors.js drawCarried): a world's own scribe has them in its body; the 40k robe has none, so its art draws
+  // them (the left one the right mirrored)
+  const arm = own('scribe', 'arm', 'up 0') ? S.scribe.frames.arm : undefined;
+  refill(MAPS, Object.assign({}, arm && { ARM: arm, ARM_L: mirror(arm) }, ...PROP_SHEETS.map(f => S[f].frames)));
   refill(PROP_AT, Object.assign({}, ...PROP_SHEETS.map(f => logical(S[f].anchors ?? {}))));
   refill(ROOM.frames, Object.assign({}, ...ROOM_SHEETS.map(f => S[f].frames)));
   refill(ROOM.tiles, Object.assign({}, ...ROOM_SHEETS.map(f => S[f].tiles)));
   refill(ROOM.anchors, Object.assign({}, ...ROOM_SHEETS.map(f => logical(S[f].anchors))));
-  refill(SHEET_OF, { ARM: src('scribe', 'arm'), ARM_L: src('scribe', 'arm'), ...Object.fromEntries(PROP_SHEETS.flatMap(f => Object.keys(S[f].frames).map(n => [n, src(f, n)]))) });
+  refill(SHEET_OF, { ...(arm && { ARM: src('scribe', 'arm'), ARM_L: src('scribe', 'arm') }), ...Object.fromEntries(PROP_SHEETS.flatMap(f => Object.keys(S[f].frames).map(n => [n, src(f, n)]))) });
   refill(ROOM_SHEET_OF, Object.fromEntries(ROOM_SHEETS.flatMap(f => Object.keys(S[f].frames).map(n => [n, src(f, n)]))));
   // A tile's mix only from its own art: a world that redraws the floor but not its variants keeps the one tile.
   for (const [n, t] of Object.entries(ROOM.tiles)) if (t.mix) ROOM.tiles[n] = { ...t, mix: t.mix.filter(v => ROOM_SHEET_OF[v] === ROOM_SHEET_OF[n]) };

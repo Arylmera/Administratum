@@ -3,10 +3,10 @@ import { order, depthSort } from './iso.js';
 import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39, pipeOf } from './actors.js';
-import { use, pin, placeOf, actorFoot, actorAt39, seatShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
+import { use, pin, placeOf, actorFoot, actorAt39, frontShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf, doorFrame } from './scene.js';
-import { SCRIBE, SCRIBE39, SCRIBE39_AT, RES } from './sprites.js';
+import { SCRIBE, SCRIBE39 } from './sprites.js';
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
 const cast = new Cast();
@@ -67,30 +67,37 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
   assert.equal(actorAt39(fx, fy + 1.5, new Map([['a', a], ['b', b]]).values())?.id, 'a', `${tag}: a's shadow, from an iterator`);
   assert.equal(actorAt39(...pin(a.x, a.y + 1), [{ ...a, leaving: true }]), null, `${tag}: a leaving actor is not picked`);
 }
-// seated 39° scribes, every world: drawn north of the seat (never into the desk) so the hands (the arm frame's first
-// opaque row) land on the desk top, between its back and front edges at the hands' column
+// seated 39° scribes, every world: drawn just south of the desk's front (frontShift), never into it, the contact
+// shadow under the drawn feet (the floor point the body stands on), not the seat
 {
   const hall = hallOf(0); sceneSize(hall);
-  for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault']) {
+  for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault', 'darwin']) {
     setTheme(id); use(hall);
-    if (!SCRIBE39.arm) continue; // a world without 39° scribes yet: flat frames, no shift
     for (const kind of ['desk', 'lectern']) {
-      const desk = { x: 40, y: 90, compact: kind === 'lectern' }, p = placeOf(kind, desk), a = { id: 's', x: desk.x + 11, y: desk.y + 30 };
-      const s = seatShift(p, a), A = SCRIBE39_AT, hand = SCRIBE39.arm.findIndex(r => /[^.]/.test(r)) / RES;
-      assert.ok(s >= 0 && a.y - s > p.yb, `${id} ${kind}: shift ${s} keeps the scribe in front of the desk`);
-      const hx = a.x - A.feet.x + A.arm.x, hands = pin(a.x, a.y - s)[1] - A.feet.y + A.arm.y + hand;
-      const back = pin(hx, p.yb - p.k.d / 2, p.k.top / 2)[1], front = pin(hx, p.yb, p.k.top / 2)[1];
-      // its contact shadow lies under the drawn feet (the floor point the body stands on), not the seat
+      const desk = { x: 40, y: 90, compact: kind === 'lectern' }, p = placeOf(kind, desk), a = { id: 's', x: desk.x + 11, y: desk.y + 30 }, s = frontShift(p, a);
       const r = spriteOf({ ...a, pose: 'desk', dir: 'up', t: 0, wait: 0, path: [], s: { status: 'busy', context: null }, sash: '#ff0000' }, s);
       const e = actorShadow(a, r), [fx, fy] = feetOf(a, r);
-      assert.equal(fy, a.y - s, `${id} ${kind}: the drawn feet are the shifted floor point`);
+      assert.ok(fy - p.yb > 0 && fy - p.yb <= 2, `${id} ${kind}: feet at ${fy}, just south of the front ${p.yb}`);
       // cx: the frame's foot span (its bottom rows), a px or two off the feet anchor; cy: exactly the feet's floor line
       assert.ok(Math.abs(e.cy - fy) <= 0.5 && Math.abs(e.cx - fx) <= 3, `${id} ${kind}: shadow at (${e.cx}, ${e.cy}) under the feet (${fx}, ${fy})`);
-      if (p.k.top < 12) { assert.equal(s, 0, `${id} ${kind}: a pedestal (its surface a detail): the scribe stays at the seat`); continue; }
-      assert.ok(hands >= back - 0.5 && hands <= front - 1, `${id} ${kind}: hands at ${hands} on the top ${back}..${front}`);
     }
   }
   setTheme('tier2');
+}
+// adepts at a 2x2 console group (layout.js): drawn at their own console's front, never against the back of the console
+// south of it (the upper row's seat is 3 px from it), compact and normal grids
+{
+  const hall = hallOf(0); sceneSize(hall); use(hall);
+  for (const compact of [false, true]) {
+    const L = layoutDepartments([{ name: 'T', ids: ['s1'], helpers: ['a', 'b', 'c', 'd'] }], { compact });
+    const place = new Map(L.consoles.map(c => [c.id, placeOf('console', c)]));
+    for (const c of L.consoles) {
+      const p = place.get(c.id), a = { id: c.id, ...L.consoleSeats.get(c.id) }, fy = a.y - frontShift(p, a);
+      assert.ok(fy > p.yb && fy - p.yb <= 2, `${c.id}: feet at ${fy}, just south of its console's front ${p.yb}`);
+      for (const [id, q] of place) if (id !== c.id && q.yb > p.yb && Math.abs(q.foot.u0 - p.foot.u0) < 4) // the console south of it
+        assert.ok(2 * (q.yb - WALL) - q.k.d - 2 * (fy - WALL) >= 8, `${c.id}: clear of console ${id}'s back`);
+    }
+  }
 }
 // sitting down and standing up ease the same way (SIT_MS = 300): halfway at 150 ms both ways, a turn mid-ease goes
 // on from where it is (no jump), and it settles at 0 / 1

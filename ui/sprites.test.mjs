@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import {
   BASE, MAPS, SCRIBE, ADEPT, MAGOS, WATCH, RES, ART,
-  FAMILIES39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, WATCH39, WATCH39_AT, checkComplete39, resolve39,
+  FAMILIES39, OPT39, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, WATCH39, WATCH39_AT, checkComplete39, resolve39,
 } from './sprites.js';
 import { TIER_II } from './theme.js';
 
 // [width, height] in logical px of every sprite (the art is RES times that). The drawing code places them by these
 // sizes, so a redraw in ui/art/ keeps them unless the code moves too (design note: depth C).
 const LOW = {
-  ARM: [4, 8], ARM_L: [4, 8], SCROLL: [6, 7], QSCROLL: [6, 7], DESK: [32, 21], LECTERN: [22, 21], SHELF: [32, 21], SHELF_B: [32, 21], SKULL: [10, 10],
+  ARM: [4, 6], ARM_L: [4, 6], SCROLL: [6, 7], QSCROLL: [6, 7], DESK: [32, 21], LECTERN: [22, 21], SHELF: [32, 21], SHELF_B: [32, 21], SKULL: [10, 10],
   COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], BRAZIER_FIRE_1: [5, 4.5], BRAZIER_FIRE_2: [5, 4.5], CANDLES_FIRE_1: [12, 4], CANDLES_FIRE_2: [12, 4], THRONE: [20, 20], LORD_DESK: [44, 13], BRAZIER: [10, 13],
   RECAFF: [16, 18], COGITATOR: [82, 50], CONSOLE: [14, 10], WINDOW: [16, 17], BANNER: [12, 15], WINDOW_TALL: [18, 42], HANGING: [13, 50], HANGING_B: [13, 50], CRATE: [14, 12], PAPER_STACK: [8, 12],
   SCROLL_PILE: [18, 7], BOOKS: [10, 9], LOOSE_A: [5, 4], LOOSE_B: [4, 5], GAUGE: [6, 6], CENSER: [5, 10],
@@ -59,7 +59,7 @@ for (const [f, obj, at] of [['scribe39', SCRIBE39, SCRIBE39_AT], ['adept39', ADE
 }
 // Any 39 family that does land (e.g. once an art agent has run) must be complete: every row still a key-palette char.
 const dirRows = (obj, name) => ['E', 'W', 'S', 'N'].flatMap(d => (obj[d] ?? []).map((rows, i) => [`${name}.${d}[${i}]`, rows]));
-for (const [name, obj, extra] of [['SCRIBE39', SCRIBE39, ['arm', 'armL', 'scroll']], ['ADEPT39', ADEPT39, []], ['MAGOS39', MAGOS39, ['body', 'arm']], ['SKULL39', SKULL39, ['skull']], ['WATCH39', WATCH39, ['ring']]]) {
+for (const [name, obj, extra] of [['SCRIBE39', SCRIBE39, [...OPT39.scribe39.filter(n => SCRIBE39[n]), 'scroll']], ['ADEPT39', ADEPT39, []], ['MAGOS39', MAGOS39, ['body', 'arm']], ['SKULL39', SKULL39, ['skull']], ['WATCH39', WATCH39, ['ring']]]) {
   if (!Object.keys(obj).length) continue;
   for (const [label, rows] of [...dirRows(obj, name), ...extra.map(n => [`${name}.${n}`, obj[n]])]) {
     for (const row of rows) for (const c of row) assert.ok(c === '.' || c in BASE, `${label}: bad char '${c}'`);
