@@ -102,7 +102,7 @@ export const TEXT = {
     background: 'Idle · background shell running', napping: 'Idle · dozing in the Refectorium' },
   petitions: ['{n} petition', '{n} petitions'], questions: ['{n} question', '{n} questions'], petitioning: '{n} petitioning',
   petitionLabel: '{name}, petition: {want}', adeptOf: '{kind} · adept of {owner}',
-  summonedBy: 'Summoned by', summoned: 'Suzerain of',
+  summonedBy: 'Summoned by', summoned: 'Suzerain of', lineage: 'Lineage today',
   rejectAll: "Deny also refuses this session's other pending requests", // an OpenCode petition's card (OpenCode's rule)
   overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen',
   limitLabel: 'sealed · resets {time}', limitSealed: 'sealed',
