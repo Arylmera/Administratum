@@ -832,9 +832,10 @@ impl Chronicle {
         save_json(&self.dir.join(SEQS), &self.seqs);
     }
 
-    /// Today's tokens of a hall session (`Tithe::by_session`).
-    pub fn tokens_today(&self, session: &str) -> Option<u64> {
-        self.tithe.by_session.get(session).copied()
+    /// Today's tokens of a hall session (`Tithe::by_session`); none while the live Tithe is still yesterday's
+    /// (it rolls over on the new day's first token).
+    pub fn tokens_today(&self, session: &str, now_ms: i64) -> Option<u64> {
+        (self.tithe.day == day_of(now_ms)).then(|| self.tithe.by_session.get(session).copied()).flatten()
     }
 
     /// The dir and the live Tithe, so day files are read after the lock is released.
@@ -1143,6 +1144,8 @@ mod tests {
         assert_eq!(t.by_project["Geneseed"], Share { tokens: 229, busy_ms: 0 });
         assert_eq!(t.by_model["claude-opus-5-5"], 345);
         assert_eq!(t.by_session, BTreeMap::from([("s1".into(), 116), ("s2".into(), 229)]));
+        assert_eq!(c.tokens_today("s1", ts), Some(116));
+        assert_eq!(c.tokens_today("s1", ts + 86_400_000), None, "after midnight, before any new token: not yesterday's");
         assert_eq!(t.busy_ms, 2000);
         assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 345, busy_ms: 2000 });
         assert_eq!(t.hourly.len(), 24);
