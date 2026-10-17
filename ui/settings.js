@@ -218,6 +218,55 @@ function initCategories(root, form) {
   };
 }
 
+// The panel's fields from the live values (sync); a field being typed in keeps its text. login: on, off, or null (unknown).
+function syncForm(form, field, hooks, login) {
+  field('onTop').checked = settings.onTop;
+  const auto = view.scale === 'auto';
+  field('scaleAuto').checked = auto; field('scale').disabled = auto;
+  for (const b of form.querySelectorAll('.step')) b.disabled = auto;
+  if (!auto) field('scale').value = view.scale;
+  field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
+  field('mode').value = hooks.mode();
+  const world = THEMES[T.id]?.world ?? 'w40k';
+  field('world').value = world;
+  field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
+  field('theme').value = T.id;
+  field('view').value = viewName();
+  for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
+  field('stripSize').value = settings.stripSize;
+  field('stripBackdrop').checked = settings.stripBackdrop;
+  for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
+  field('isoBackdrop').checked = settings.isoBackdrop;
+  field('chime').checked = !hooks.muted();
+  for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
+  for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
+  field('idleFps').value = String(perf.idleFps);
+  field('pauseHidden').checked = perf.pauseHidden;
+  field('openWith').value = store.get('adm.openWith', 'explorer');
+  if (document.activeElement !== field('openCmd')) field('openCmd').value = store.get('adm.openCmd', '');
+  field('openCmd').disabled = field('openWith').value !== 'custom';
+  field('questions').checked = questions.on;
+  field('questionToast').checked = questions.toast;
+  field('questionToast').disabled = !questions.on;
+  field('quietOn').checked = quiet.on;
+  for (const k of ['quietFrom', 'quietTo']) {
+    if (document.activeElement !== field(k)) field(k).value = hhmmOf(quiet[k === 'quietFrom' ? 'from' : 'to']);
+    field(k).disabled = !quiet.on;
+  }
+  const dl = minutes(store.get('adm.vigilDeadline', ''), null);
+  if (document.activeElement !== field('vigilDeadline')) field('vigilDeadline').value = dl === null ? '' : hhmmOf(dl);
+  field('login').checked = !!login;
+  field('login').disabled = login === null;
+  field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
+  for (const k in MONITOR) {
+    const el = field(k);
+    if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
+    else if (document.activeElement !== el) el.value = monitorGet(k);
+  }
+  field('stuckToast').disabled = field('stuckMin').disabled = field('stuckRepeat').disabled = monitorGet('stuck') !== '1';
+  field('reportDir').disabled = monitorGet('reportOn') !== '1';
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -244,53 +293,7 @@ export function initSettings(hooks) {
     }, () => {});
   }
 
-  sync = () => {
-    field('onTop').checked = settings.onTop;
-    const auto = view.scale === 'auto';
-    field('scaleAuto').checked = auto; field('scale').disabled = auto;
-    for (const b of form.querySelectorAll('.step')) b.disabled = auto;
-    if (!auto) field('scale').value = view.scale;
-    field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
-    field('mode').value = hooks.mode();
-    const world = THEMES[T.id]?.world ?? 'w40k';
-    field('world').value = world;
-    field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
-    field('theme').value = T.id;
-    field('view').value = viewName();
-    for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
-    field('stripSize').value = settings.stripSize;
-    field('stripBackdrop').checked = settings.stripBackdrop;
-    for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
-    field('isoBackdrop').checked = settings.isoBackdrop;
-    field('chime').checked = !hooks.muted();
-    for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
-    for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
-    field('idleFps').value = String(perf.idleFps);
-    field('pauseHidden').checked = perf.pauseHidden;
-    field('openWith').value = store.get('adm.openWith', 'explorer');
-    if (document.activeElement !== field('openCmd')) field('openCmd').value = store.get('adm.openCmd', '');
-    field('openCmd').disabled = field('openWith').value !== 'custom';
-    field('questions').checked = questions.on;
-    field('questionToast').checked = questions.toast;
-    field('questionToast').disabled = !questions.on;
-    field('quietOn').checked = quiet.on;
-    for (const k of ['quietFrom', 'quietTo']) {
-      if (document.activeElement !== field(k)) field(k).value = hhmmOf(quiet[k === 'quietFrom' ? 'from' : 'to']);
-      field(k).disabled = !quiet.on;
-    }
-    const dl = minutes(store.get('adm.vigilDeadline', ''), null);
-    if (document.activeElement !== field('vigilDeadline')) field('vigilDeadline').value = dl === null ? '' : hhmmOf(dl);
-    field('login').checked = !!login;
-    field('login').disabled = login === null;
-    field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
-    for (const k in MONITOR) {
-      const el = field(k);
-      if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
-      else if (document.activeElement !== el) el.value = monitorGet(k);
-    }
-    field('stuckToast').disabled = field('stuckMin').disabled = field('stuckRepeat').disabled = monitorGet('stuck') !== '1';
-    field('reportDir').disabled = monitorGet('reportOn') !== '1';
-  };
+  sync = () => syncForm(form, field, hooks, login);
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
   listen('autostart', e => { login = e.payload; sync(); });
