@@ -16,7 +16,8 @@ const OPUS: &str = "claude-opus-5-5";
 const SONNET: &str = "claude-sonnet-5";
 const HAIKU: &str = "claude-haiku-4-5-20251001";
 
-fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str, tokens: u64, model: &str) -> Session {
+/// `context`: (tokens, model).
+fn scribe(name: &str, dept: &str, status: &str, waiting_for: Option<&str>, since_ms: i64, task: &str, (tokens, model): (u64, &str)) -> Session {
     Session {
         id: name.into(),
         pid: 0,
@@ -52,10 +53,10 @@ pub fn roster(t: u64) -> Vec<Session> {
     // terra-77's context climbs the whole cycle so the UI shows every stage, light to blown-out.
     let terra_77_tokens = 50_000 + phase * ((950_000 - 50_000) / 60);
     let mut v = vec![
-        scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md", terra_77_tokens, OPUS),
-        scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”", 120_000, SONNET),
-        scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", 400_000, HAIKU),
-        scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", 520_000, SONNET),
+        scribe("terra-77", "Terra", if (20..30).contains(&phase) { "shell" } else { "busy" }, None, epoch, "Edit · Hera/NAS/Reference/Hololith.md", (terra_77_tokens, OPUS)),
+        scribe("terra-27", "Terra", "idle", None, epoch, "“home command playlist names”", (120_000, SONNET)),
+        scribe("geneseed-51", "Geneseed", if (10..40).contains(&phase) { "waiting" } else { "idle" }, Some("approve Bash"), epoch + 10_000, "Bash · cargo test", (400_000, HAIKU)),
+        scribe("token-dashboard-af", "Token-Dashboard", if phase >= 25 { "waiting" } else { "busy" }, Some("input needed"), epoch + 25_000, "Edit · app.js", (520_000, SONNET)),
     ];
     v[0].title = Some("Hololith: link the NAS services".into());
     v[2].title = Some("Permission test for the SDD loop".into());
@@ -71,7 +72,7 @@ pub fn roster(t: u64) -> Vec<Session> {
     }
     // An OpenCode session (no Orca handle, no claude.ai link): it works, then asks a permission.
     let mut brave =
-        scribe("brave-tiger", "Administratum", if (35..50).contains(&phase) { "waiting" } else { "busy" }, Some("permission"), epoch + 35_000, "“wire the OpenCode source”", 180_000, SONNET);
+        scribe("brave-tiger", "Administratum", if (35..50).contains(&phase) { "waiting" } else { "busy" }, Some("permission"), epoch + 35_000, "“wire the OpenCode source”", (180_000, SONNET));
     brave.source = Agent::OpenCode;
     brave.web = None;
     if brave.status == "waiting" {
@@ -80,7 +81,7 @@ pub fn roster(t: u64) -> Vec<Session> {
     }
     v.push(brave);
     if phase >= 45 {
-        v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", 20_000, HAIKU));
+        v.push(scribe("drop-pod-1", "Drop-Pod", "busy", None, epoch + 45_000, "Write · README.md", (20_000, HAIKU)));
     }
     if (0..20).contains(&phase) {
         v[0].helpers = vec![helper("a1", "general-purpose", "Implement Task 3", 30_000, OPUS), helper("a2", "Explore", "find callers", 80_000, SONNET)];
@@ -124,13 +125,13 @@ pub fn chronicle(from: u64, to: u64, roster: &[Session], now_ms: i64) -> Vec<Eve
 }
 
 /// One tick of token spend for every working scribe, so the demo Tithe grows.
-pub fn usage(roster: &[Session], now_ms: i64) -> Vec<(String, String, Usage)> {
+pub fn usage(roster: &[Session], now_ms: i64) -> Vec<(String, Usage)> {
     roster
         .iter()
         .filter(|s| s.status == "busy" || s.status == "shell")
         .map(|s| {
             let model = s.context.as_ref().map_or(OPUS.to_string(), |c| c.model.clone());
-            (s.dept.clone(), s.id.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 } })
+            (s.dept.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 } })
         })
         .collect()
 }
@@ -214,7 +215,7 @@ mod tests {
     #[test]
     fn demo_usage_comes_from_working_scribes() {
         let u = usage(&roster(5), 7);
-        assert!(u.iter().any(|(dept, _, _)| dept == "Terra"));
-        assert!(u.iter().all(|(dept, _, _)| dept != "Geneseed"), "idle/waiting scribes spend nothing");
+        assert!(u.iter().any(|(dept, _)| dept == "Terra"));
+        assert!(u.iter().all(|(dept, _)| dept != "Geneseed"), "idle/waiting scribes spend nothing");
     }
 }

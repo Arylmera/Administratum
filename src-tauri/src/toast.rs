@@ -22,6 +22,10 @@ pub struct Text {
     pub limit: String,
     pub limit_many: String,
     pub failed: String,
+    /// A session past the daily token alert: {name}, {count} its new tokens.
+    pub tokens: String,
+    /// A stuck session (monitor.rs): {name}.
+    pub stuck: String,
 }
 
 impl Default for Text {
@@ -34,6 +38,8 @@ impl Default for Text {
             limit: "{name} sealed until {time}".into(),
             limit_many: "{n} sessions sealed until {time}".into(),
             failed: "{name}: answer not sent — answer it in the session".into(),
+            tokens: "{name} passed {count} tokens today".into(),
+            stuck: "{name} looks stuck".into(),
         }
     }
 }
@@ -55,6 +61,8 @@ pub fn set(new: Text) {
         limit: pick(new.limit, d.limit),
         limit_many: pick(new.limit_many, d.limit_many),
         failed: pick(new.failed, d.failed),
+        tokens: pick(new.tokens, d.tokens),
+        stuck: pick(new.stuck, d.stuck),
     };
     *crate::lock(&TEXT) = Some(t);
 }

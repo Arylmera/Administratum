@@ -25,7 +25,8 @@ RemoteStatus = {
 
 Applied at once (start, stop, port change), no restart. Stored in `settings.json` as `remote.enabled`,
 `remote.port`, `remote.actions`, `remote.token`. Those `remote.*` keys never appear in `settings_load`
-(local or remote) and `settings_save` cannot change or drop them.
+(local or remote) and `settings_save` cannot change or drop them. The remote `settings_load` also leaves out
+`adm.open*` (the program that opens a folder) and `adm.reportDir` (the day report's folder).
 
 ## Server
 

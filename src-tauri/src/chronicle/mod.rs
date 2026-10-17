@@ -1,7 +1,7 @@
 //! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code transcripts and
 //! OpenCode's message rows (fed in as transcript lines). Read-only on `~/.claude` and OpenCode; everything it
 //! writes lives in the app data dir.
-use crate::registry::{self, Agent, FileStat, Session, TurnSummary};
+use crate::registry::{self, Agent, FileStat, Repeat, Session, TurnSummary};
 use chrono::{Local, NaiveDate, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,6 +14,8 @@ use std::{
 
 mod opencode;
 pub use opencode::{feed_opencode, Msg, OcCursor, OPENCODE_BATCH};
+mod report;
+pub use report::{report, write_capture};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -48,6 +50,10 @@ impl Tokens {
     pub fn total(&self) -> u64 {
         self.input + self.output + self.cache_read + self.cache_write
     }
+    /// Everything but cache reads: what the token alert compares (cache reads are cheap and dwarf the rest).
+    pub fn fresh(&self) -> u64 {
+        self.input + self.output + self.cache_write
+    }
     fn minus(&self, o: &Tokens) -> Tokens {
         Tokens {
             input: self.input.saturating_sub(o.input),
@@ -63,6 +69,42 @@ impl Tokens {
 pub struct Share {
     pub tokens: u64,
     pub busy_ms: u64,
+    /// Finished main-session turns (a department's day; zero in `hourly`). Added after 0.6.5, as the next two.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub turns: u32,
+    /// Files changed (Edit, Write, MultiEdit, NotebookEdit; subagents included), relative to the session's cwd
+    /// when inside it, sorted, at most MAX_DAY_FILES; the rest counted in `more_files`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files: Vec<String>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub more_files: u32,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
+}
+
+pub const MAX_DAY_FILES: usize = 200;
+
+impl Share {
+    fn add_file(&mut self, p: String) {
+        match self.files.binary_search(&p) {
+            Ok(_) => {}
+            // ponytail: past the cap a file edited twice counts twice in more_files; the report only says "+N more".
+            Err(_) if self.files.len() >= MAX_DAY_FILES => self.more_files += 1,
+            Err(i) => self.files.insert(i, p),
+        }
+    }
+}
+
+/// One session's tokens of the day (subagents included), for the token alert and the Chronicon.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionTithe {
+    pub name: String,
+    pub dept: String,
+    pub fresh: u64,
+    pub total: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -72,18 +114,18 @@ pub struct Tithe {
     pub tokens: Tokens,
     pub by_project: BTreeMap<String, Share>,
     pub by_model: BTreeMap<String, u64>,
-    /// Tokens per hall session id (its subagents and helpers included): a Suzerain's lineage total (card.js).
-    #[serde(default)]
-    pub by_session: BTreeMap<String, u64>,
     pub busy_ms: u64,
     pub hourly: Vec<Share>,
+    /// By session id. Added after 0.6.5: older day files have none.
+    #[serde(default)]
+    pub by_session: BTreeMap<String, SessionTithe>,
 }
 
 impl Tithe {
     pub fn new(day: &str) -> Self {
-        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), by_session: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24] }
+        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24], by_session: BTreeMap::new() }
     }
-    fn add_tokens(&mut self, dept: &str, session: &str, model: &str, t: &Tokens, hour: usize) {
+    fn add_tokens(&mut self, dept: &str, model: &str, t: &Tokens, hour: usize) {
         let n = t.total();
         self.tokens.input += t.input;
         self.tokens.output += t.output;
@@ -91,8 +133,14 @@ impl Tithe {
         self.tokens.cache_write += t.cache_write;
         self.by_project.entry(dept.into()).or_default().tokens += n;
         *self.by_model.entry(model.into()).or_default() += n;
-        *self.by_session.entry(session.into()).or_default() += n;
         self.hourly[hour].tokens += n;
+    }
+    fn add_session(&mut self, s: &Session, t: &Tokens) {
+        let e = self.by_session.entry(s.id.clone()).or_default();
+        e.name.clone_from(&s.name);
+        e.dept.clone_from(&s.dept);
+        e.fresh += t.fresh();
+        e.total += t.total();
     }
     fn add_busy(&mut self, dept: &str, ms: u64, hour: usize) {
         self.busy_ms += ms;
@@ -189,7 +237,8 @@ pub struct Turn {
 }
 
 /// Events, token deltas and turn durations found in transcript lines.
-pub type Found = (Vec<Event>, Vec<Usage>, Vec<Turn>);
+/// ..., and the files edited (timestamp, path as written).
+pub type Found = (Vec<Event>, Vec<Usage>, Vec<Turn>, Vec<(i64, String)>);
 
 /// `extract_line` over every line of `text`.
 #[cfg(test)]
@@ -211,7 +260,7 @@ pub fn wanted(line: &str) -> bool {
 /// stamped before `min_ts` are skipped (first scan: today only); tool_use -> tool_result pairing
 /// spans calls via `cur`.
 pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms: i64, out: &mut Found) {
-    let (events, usage, turns) = out;
+    let (events, usage, turns, edits) = out;
     let Ok(v) = serde_json::from_str::<Value>(line) else { return };
     // A fork's file opens with a copy of its parent's history, still under the parent's id: the parent counts it.
     if v["sessionId"].as_str().is_some_and(|id| id != src.session_id) {
@@ -229,6 +278,9 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     match v["type"].as_str() {
         Some("assistant") => {
             for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
+                if let Some(p) = edited_path(b) {
+                    edits.push((ts, p.into()));
+                }
                 if cur.pending.len() >= CAP {
                     cur.pending.clear();
                 }
@@ -307,16 +359,48 @@ pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
         }
         Some("assistant") => {
             turn.last_ms = ts.or(turn.last_ms);
+            let msg = v["message"]["id"].as_str().unwrap_or("");
             for b in content.as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
                 turn.tools += 1;
-                if !b["name"].as_str().is_some_and(|n| EDIT_TOOLS.contains(&n)) {
-                    continue;
+                track_repeat(&mut turn.repeat, b, msg);
+                if let Some(p) = edited_path(b) {
+                    add_file(turn, p, cwd);
                 }
-                let Some(p) = b["input"]["file_path"].as_str().or(b["input"]["notebook_path"].as_str()) else { continue };
-                add_file(turn, p, cwd);
             }
         }
         _ => {}
+    }
+}
+
+/// The file a tool_use block changes, if it is an edit.
+fn edited_path(b: &Value) -> Option<&str> {
+    if !b["name"].as_str().is_some_and(|n| EDIT_TOOLS.contains(&n)) {
+        return None;
+    }
+    b["input"]["file_path"].as_str().or(b["input"]["notebook_path"].as_str())
+}
+
+/// Tools that wait on something else by design: calling them again and again is polling, not a loop.
+const POLLING_TOOLS: [&str; 3] = ["BashOutput", "TaskOutput", "KillShell"];
+
+/// Folds one tool call into the run of identical calls: the same call again adds one (once per message), any other
+/// call starts a new run, a polling call (a polling tool, a bare `sleep` or `watch`) ends it.
+fn track_repeat(run: &mut Option<Repeat>, b: &Value, msg: &str) {
+    let name = b["name"].as_str().unwrap_or("tool");
+    let cmd = b["input"]["command"].as_str().unwrap_or("").trim();
+    if POLLING_TOOLS.contains(&name) || (name == "Bash" && (cmd == "sleep" || cmd.starts_with("sleep ") || cmd.starts_with("watch "))) {
+        *run = None;
+        return;
+    }
+    let key = format!("{name}{}", b["input"]);
+    match run {
+        Some(r) if r.key == key => {
+            if r.msg != msg || msg.is_empty() {
+                r.count += 1;
+                r.msg = msg.into();
+            }
+        }
+        _ => *run = Some(Repeat { tool: name.into(), key, count: 1, msg: msg.into() }),
     }
 }
 
@@ -702,23 +786,31 @@ impl Chronicle {
                 if self.offsets.insert(key, offset) != Some(offset) {
                     self.dirty = true;
                 }
-                self.absorb(&s.dept, &s.id, found, &mut events); // subagent tokens count toward the parent's project and session
+                self.absorb(s, found, &mut events); // subagent tokens count toward the parent session and its project
             }
         }
         self.cursors.retain(|p, _| seen.contains(p));
         events
     }
 
-    /// Folds what one read found: events out, tokens and busy time into the Tithe of `dept` (tokens also of `session`).
-    fn absorb(&mut self, dept: &str, session: &str, found: Found, events: &mut Vec<Event>) {
-        let (ev, usage, turns) = found;
+    /// Folds what one read found: events out, tokens and busy time into the Tithe of `s` and its department.
+    fn absorb(&mut self, s: &Session, found: Found, events: &mut Vec<Event>) {
+        let dept = &s.dept;
+        let (ev, usage, turns, edits) = found;
         events.extend(ev);
         for u in usage {
-            self.add_usage(dept, session, &u);
+            self.add_session_usage(s, &u);
         }
         for t in turns {
             if let Some(tithe) = self.tithe_at(t.ts) {
                 tithe.add_busy(dept, t.ms, hour_of(t.ts));
+                tithe.by_project.entry(dept.clone()).or_default().turns += 1;
+                self.dirty = true;
+            }
+        }
+        for (ts, p) in edits {
+            if let Some(tithe) = self.tithe_at(ts) {
+                tithe.by_project.entry(dept.clone()).or_default().add_file(relative(&p, &s.cwd));
                 self.dirty = true;
             }
         }
@@ -761,7 +853,7 @@ impl Chronicle {
                 self.seqs.insert(id.clone(), (next, now_ms));
                 self.dirty = true;
             }
-            self.absorb(&s.dept, &s.id, found, &mut events); // a helper's tokens count toward its hall session and its project
+            self.absorb(s, found, &mut events); // a helper's tokens count toward its hall session and its project
         }
         self.oc.retain(|id, _| family.iter().any(|(f, _, _)| f == id));
         events
@@ -789,10 +881,18 @@ impl Chronicle {
         }
     }
 
-    pub fn add_usage(&mut self, dept: &str, session: &str, u: &Usage) {
+    pub fn add_usage(&mut self, dept: &str, u: &Usage) {
         if let Some(t) = self.tithe_at(u.ts) {
-            t.add_tokens(dept, session, &u.model, &u.tokens, hour_of(u.ts));
+            t.add_tokens(dept, &u.model, &u.tokens, hour_of(u.ts));
             self.dirty = true;
+        }
+    }
+
+    /// `add_usage` of `s`'s department, and the same tokens on `s` itself.
+    pub fn add_session_usage(&mut self, s: &Session, u: &Usage) {
+        self.add_usage(&s.dept, u);
+        if let Some(t) = self.tithe_at(u.ts) {
+            t.add_session(s, &u.tokens);
         }
     }
 
@@ -832,10 +932,15 @@ impl Chronicle {
         save_json(&self.dir.join(SEQS), &self.seqs);
     }
 
-    /// Today's tokens of a hall session (`Tithe::by_session`); none while the live Tithe is still yesterday's
-    /// (it rolls over on the new day's first token).
+    /// Today's live Tithe.
+    pub fn tithe(&self) -> &Tithe {
+        &self.tithe
+    }
+
+    /// Today's tokens of a hall session (`Tithe::by_session`, card.js lineage); none while the live Tithe is still
+    /// yesterday's (it rolls over on the new day's first token).
     pub fn tokens_today(&self, session: &str, now_ms: i64) -> Option<u64> {
-        (self.tithe.day == day_of(now_ms)).then(|| self.tithe.by_session.get(session).copied()).flatten()
+        (self.tithe.day == day_of(now_ms)).then(|| self.tithe.by_session.get(session).map(|s| s.total)).flatten()
     }
 
     /// The dir and the live Tithe, so day files are read after the lock is released.
@@ -1039,7 +1144,7 @@ mod tests {
     fn turn_durations_are_working_time_of_main_sessions_only() {
         let line = |ms: u64, side: bool| serde_json::json!({"isSidechain":side,"type":"system","subtype":"turn_duration","durationMs":ms,"timestamp":iso(7_000)}).to_string();
         let text = [line(42_000, false), line(9_000, true)].join("\n");
-        let (_, _, turns) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
+        let (_, _, turns, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
         assert_eq!(turns, [Turn { ts: 7_000, ms: 42_000 }], "a sidechain turn overlaps its parent's");
         let sub = Src { helper: Some("Explore"), ..SRC };
         assert!(extract(&mut Cursor::default(), &line(5_000, false), i64::MIN, &sub, 0).2.is_empty(), "subagent transcript");
@@ -1053,8 +1158,8 @@ mod tests {
                 "usage":{"input_tokens":2,"cache_creation_input_tokens":100,"cache_read_input_tokens":1000,"output_tokens":out}}})
             .to_string()
         };
-        let (_, a, _) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
-        let (_, b, _) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
+        let (_, a, _, _) = extract(&mut cur, &[line("m1", 5), line("m1", 5)].join("\n"), i64::MIN, &SRC, 0);
+        let (_, b, _, _) = extract(&mut cur, &[line("m1", 589), line("m2", 10)].join("\n"), i64::MIN, &SRC, 0);
         let sum: u64 = a.iter().chain(&b).map(|u| u.tokens.total()).sum();
         assert_eq!(sum, (2 + 100 + 1000 + 589) + (2 + 100 + 1000 + 10));
         assert_eq!(a[0].tokens, Tokens { input: 2, output: 5, cache_read: 1000, cache_write: 100 });
@@ -1072,7 +1177,7 @@ mod tests {
             .to_string()
         };
         let text = [line("parent", "m1"), result("a", "[main 1a2b3c4] x".into(), Some(false), 0), line("s1", "m2")].join("\n");
-        let (ev, usage, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
+        let (ev, usage, _, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
         assert_eq!(usage.iter().map(|u| u.tokens.total()).sum::<u64>(), 7, "only the fork's own message");
         assert!(ev.is_empty(), "the parent's commit is the parent's event");
     }
@@ -1133,36 +1238,93 @@ mod tests {
         let mut c = Chronicle::open(temp_dir("tithe"), now(), true);
         let ts = now();
         let u = |out| Usage { ts, model: "claude-opus-5-5".into(), tokens: Tokens { input: 1, output: out, cache_read: 10, cache_write: 100 } };
-        c.add_usage("Terra", "s1", &u(5));
-        c.add_usage("Geneseed", "s2", &u(6));
-        c.add_usage("Geneseed", "s2", &u(1));
+        c.add_usage("Terra", &u(5));
+        c.add_usage("Geneseed", &u(6));
         let s = |id: &str, dept: &str, status: &str| Session { dept: dept.into(), status: status.into(), ..crate::registry::tests_session(id) };
         c.add_busy(&[s("a", "Terra", "busy"), s("b", "Terra", "shell"), s("c", "Geneseed", "waiting"), s("d", "Geneseed", "idle")], 1000, ts);
         let t = tithe_of(&c.dir, &c.tithe, &day_of(ts));
-        assert_eq!(t.tokens, Tokens { input: 3, output: 12, cache_read: 30, cache_write: 300 });
-        assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000 });
-        assert_eq!(t.by_project["Geneseed"], Share { tokens: 229, busy_ms: 0 });
-        assert_eq!(t.by_model["claude-opus-5-5"], 345);
-        assert_eq!(t.by_session, BTreeMap::from([("s1".into(), 116), ("s2".into(), 229)]));
-        assert_eq!(c.tokens_today("s1", ts), Some(116));
-        assert_eq!(c.tokens_today("s1", ts + 86_400_000), None, "after midnight, before any new token: not yesterday's");
+        assert_eq!(t.tokens, Tokens { input: 2, output: 11, cache_read: 20, cache_write: 200 });
+        assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000, ..Default::default() });
+        assert_eq!(t.by_project["Geneseed"], Share { tokens: 117, busy_ms: 0, ..Default::default() });
+        assert_eq!(t.by_model["claude-opus-5-5"], 233);
         assert_eq!(t.busy_ms, 2000);
-        assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 345, busy_ms: 2000 });
+        assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 233, busy_ms: 2000, ..Default::default() });
         assert_eq!(t.hourly.len(), 24);
         let json = serde_json::to_value(&t).unwrap();
-        assert_eq!(json["tokens"]["cacheRead"], 30);
+        assert_eq!(json["tokens"]["cacheRead"], 20);
         assert_eq!(json["byProject"]["Terra"]["busyMs"], 2000);
-        assert_eq!(json["bySession"]["s2"], 229);
         // Persisted and resumed by the next open of the same day.
         c.flush();
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
         assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
-        assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 345, busy_ms: 2000 });
-        // A day file written before per-session counts still loads.
-        let mut old = serde_json::to_value(&t).unwrap();
-        old.as_object_mut().unwrap().remove("bySession");
-        fs::write(c.dir().join(format!("{}.tithe.json", day_of(ts))), old.to_string()).unwrap();
-        assert!(load_tithe(c.dir(), &day_of(ts)).is_some_and(|t| t.by_session.is_empty()));
+        assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+    }
+
+    #[test]
+    fn day_counts_turns_and_files() {
+        let mut c = Chronicle::open(temp_dir("day-files"), now(), true);
+        let ts = now();
+        let s = Session { cwd: r"C:\git\Terra".into(), ..crate::registry::tests_session("a") };
+        let edit = |p: &str| (ts, p.to_string());
+        let found: Found = (vec![], vec![], vec![Turn { ts, ms: 10 }, Turn { ts, ms: 20 }], vec![edit(r"C:\git\Terra\src\a.rs"), edit(r"C:\git\Terra\src\a.rs"), edit(r"D:\x.md")]);
+        c.absorb(&s, found, &mut vec![]);
+        let t = &c.tithe.by_project["Terra"];
+        assert_eq!((t.turns, t.busy_ms), (2, 30));
+        assert_eq!(t.files, [r"D:\x.md", "src/a.rs"], "relative inside the cwd, once, sorted");
+        let json = serde_json::to_value(&c.tithe).unwrap();
+        assert!(json["hourly"][0].get("files").is_none(), "empty lists stay out of the day file");
+    }
+
+    #[test]
+    fn day_files_cap_counts_the_rest() {
+        let mut sh = Share::default();
+        for i in 0..=MAX_DAY_FILES {
+            sh.add_file(format!("f{i:03}"));
+        }
+        sh.add_file("f000".into());
+        assert_eq!((sh.files.len(), sh.more_files), (MAX_DAY_FILES, 1));
+    }
+
+    #[test]
+    fn edits_are_found_in_main_and_subagent_transcripts() {
+        let line = serde_json::json!({"type":"assistant","timestamp":iso(5_000),"message":{"id":"m","content":[
+            {"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"C:/git/Terra/a.rs"}},
+            {"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"C:/git/Terra/b.rs"}}]}})
+        .to_string();
+        let sub = Src { helper: Some("Explore"), ..SRC };
+        assert_eq!(extract(&mut Cursor::default(), &line, i64::MIN, &sub, 0).3, [(5_000, "C:/git/Terra/a.rs".to_string())]);
+    }
+
+    #[test]
+    fn old_tithe_files_still_load() {
+        let d = temp_dir("old-tithe");
+        let _ = fs::create_dir_all(&d);
+        let hourly = vec![serde_json::json!({"tokens": 0, "busyMs": 0}); 24];
+        let old = serde_json::json!({"day": "2026-10-16", "tokens": {"input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4},
+            "byProject": {"A": {"tokens": 10, "busyMs": 2}}, "byModel": {"m": 10}, "busyMs": 2, "hourly": hourly});
+        fs::write(d.join("2026-10-16.tithe.json"), old.to_string()).unwrap();
+        let t = load_tithe(&d, "2026-10-16").expect("a 0.6.5 day file loads");
+        assert_eq!((t.tokens.total(), t.by_project["A"].tokens, t.by_project["A"].busy_ms, t.by_model["m"], t.busy_ms), (10, 10, 2, 10, 2));
+        assert!(t.by_session.is_empty());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn usage_counts_per_session() {
+        let mut c = Chronicle::open(temp_dir("by-session"), now(), true);
+        let ts = now();
+        let u = |out| Usage { ts, model: "m".into(), tokens: Tokens { input: 1, output: out, cache_read: 1000, cache_write: 10 } };
+        let a = Session { name: "terra-77".into(), ..crate::registry::tests_session("a") };
+        c.add_session_usage(&a, &u(5));
+        c.add_session_usage(&a, &u(5));
+        c.add_session_usage(&crate::registry::tests_session("b"), &u(1));
+        let t = &c.tithe;
+        assert_eq!(t.by_session["a"], SessionTithe { name: "terra-77".into(), dept: "Terra".into(), fresh: 32, total: 2032 });
+        assert_eq!(t.by_session["b"].fresh, 12);
+        assert_eq!(t.by_project["Terra"].tokens, 3044, "the department still counts everything");
+        assert_eq!(c.tokens_today("a", ts), Some(2032));
+        assert_eq!(c.tokens_today("a", ts + 86_400_000), None, "after midnight, before any new token: not yesterday's");
+        assert_eq!(c.tokens_today("z", ts), None);
     }
 
     #[test]
@@ -1173,7 +1335,7 @@ mod tests {
         let saved = d.join("offsets.json");
         c.maybe_flush(t + FLUSH_MS, true);
         assert!(!saved.exists(), "idle: no write, even after events");
-        c.add_usage("Terra", "s1", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
         c.maybe_flush(t + 2 * FLUSH_MS, false);
         assert!(saved.exists());
         fs::remove_file(&saved).unwrap();
@@ -1187,7 +1349,7 @@ mod tests {
         let t = now();
         let mut c = Chronicle::open(d.clone(), t, true);
         let saved = d.join("offsets.json");
-        c.add_usage("Terra", "s1", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
         c.maybe_flush(t + 1_000, false);
         assert!(!saved.exists(), "tokens only: wait for the 30 s");
         c.maybe_flush(t + 2_000, true);
@@ -1246,6 +1408,48 @@ mod tests {
         let j = serde_json::to_value(&e).unwrap();
         assert_eq!(j["sessionId"], "s");
         assert_eq!(j["helper"], "Explore");
+    }
+
+    /// An assistant line of message `msg` with one tool call per (name, input).
+    fn calls(msg: &str, uses: &[(&str, Value)]) -> String {
+        let content: Vec<Value> = uses.iter().enumerate().map(|(i, (n, inp))| serde_json::json!({"type":"tool_use","id":format!("{msg}_{i}"),"name":n,"input":inp})).collect();
+        serde_json::json!({"type":"assistant","timestamp":"2026-10-06T11:00:00.000Z","message":{"id":msg,"content":content}}).to_string()
+    }
+
+    fn repeat_after(lines: &[String]) -> Option<(String, u32)> {
+        let mut t = TurnSummary::default();
+        for l in lines {
+            track_turn(&mut t, l, r"C:\git\Terra");
+        }
+        t.repeat.map(|r| (r.tool, r.count))
+    }
+
+    #[test]
+    fn repeat_counts_identical_calls() {
+        let read = |m: &str, f: &str| calls(m, &[("Read", serde_json::json!({"file_path": f}))]);
+        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), read("m3", "a")]), Some(("Read".into(), 3)));
+        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), read("m3", "b")]), Some(("Read".into(), 1)), "another input breaks the run");
+        let prompt = r#"{"type":"user","timestamp":"2026-10-06T11:00:00.000Z","message":{"content":"go on"}}"#.to_string();
+        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), prompt]), None, "a new prompt resets it");
+    }
+
+    #[test]
+    fn repeat_parallel_calls_count_once() {
+        let read = serde_json::json!({"file_path": "a"});
+        // Claude Code writes one line per block of the same message.
+        let one = calls("m1", &[("Read", read.clone())]);
+        assert_eq!(repeat_after(&[one.clone(), one.clone()]), Some(("Read".into(), 1)));
+        assert_eq!(repeat_after(&[calls("m1", &[("Read", read.clone()), ("Read", read)])]), Some(("Read".into(), 1)));
+    }
+
+    #[test]
+    fn polling_tools_never_count() {
+        let poll = |m: &str| calls(m, &[("BashOutput", serde_json::json!({"bash_id": "b1"}))]);
+        assert_eq!(repeat_after(&(1..=6).map(|i| poll(&format!("m{i}"))).collect::<Vec<_>>()), None);
+        let sleep = |m: &str| calls(m, &[("Bash", serde_json::json!({"command": "sleep 30"}))]);
+        assert_eq!(repeat_after(&(1..=6).map(|i| sleep(&format!("m{i}"))).collect::<Vec<_>>()), None);
+        let test = |m: &str| calls(m, &[("Bash", serde_json::json!({"command": "cargo test"}))]);
+        assert_eq!(repeat_after(&(1..=6).map(|i| test(&format!("m{i}"))).collect::<Vec<_>>()), Some(("Bash".into(), 6)));
     }
 
     #[test]
@@ -1311,8 +1515,7 @@ mod tests {
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
         let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
-        assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
-        assert_eq!(tithe.by_session["s1"], 7, "and to the parent session");
+        assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000, turns: 1, ..Default::default() }, "subagent tokens go to the parent's project, its turns add no time");
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
         assert!(files(&mut c).is_empty(), "nothing new");
         for e in &ev {
@@ -1371,7 +1574,7 @@ mod tests {
             let id = format!("t{i}");
             let claude = run(&mut Cursor::default(), &[bash_use(&id, cmd, 5), result(&id, (*text).into(), Some(*exit != 0), 5)]);
             let row = (1, "assistant".to_string(), oc_assistant("msg_a", 5, Some(5), vec![oc_shell(&id, cmd, text, *exit)], None));
-            let ((ev, _, _), next) = oc_feed(&mut OcCursor::default(), &[row], 0);
+            let ((ev, _, _, _), next) = oc_feed(&mut OcCursor::default(), &[row], 0);
             assert_eq!(kinds(&ev), kinds(&claude), "{cmd}");
             assert!(!ev.is_empty(), "{cmd}: the case must yield an event");
             assert_eq!(next, 1);
@@ -1413,7 +1616,7 @@ mod tests {
             (4, "assistant".into(), oc_assistant("msg_b", 5_000, Some(6_000), vec![], Some(oc_tokens(1, 1, 0, 0, 0)))),
             (5, "idle".into(), serde_json::json!({"type":"idle","outcome":"succeeded","time":{"created":61_000}})),
         ];
-        let ((ev, usage, turns), next) = oc_feed(&mut st, &rows, 0);
+        let ((ev, usage, turns, _), next) = oc_feed(&mut st, &rows, 0);
         assert!(ev.is_empty());
         assert_eq!(next, 5);
         assert_eq!(
@@ -1440,19 +1643,19 @@ mod tests {
         let user: Msg = (1, "user".into(), serde_json::json!({"type":"user","text":"go","time":{"created":1_000}}));
         let running = oc_tool("t", "shell", serde_json::json!({"command":"cargo test"}), serde_json::json!({"status":"running","metadata":{}}));
         let partial: Msg = (2, "assistant".into(), oc_assistant("msg_a", 2_000, None, vec![running], None));
-        let ((ev, usage, _), next) = oc_feed(&mut st, &[user, partial], 0);
+        let ((ev, usage, _, _), next) = oc_feed(&mut st, &[user, partial], 0);
         assert_eq!((ev.len(), usage.len(), next), (0, 0, 1), "the row being written is not consumed");
         // the same seq rewritten: completed, with its usage and the finished tool
         let done: Msg =
             (2, "assistant".into(), oc_assistant("msg_a", 2_000, Some(9_000), vec![oc_shell("t", "cargo test", "test result: ok. 1 passed; 0 failed;", 0)], Some(oc_tokens(3, 4, 0, 0, 0))));
-        let ((ev, usage, _), next) = oc_feed(&mut st, &[done], next);
+        let ((ev, usage, _, _), next) = oc_feed(&mut st, &[done], next);
         assert_eq!((kinds(&ev), usage.len(), next), (vec![("tests-pass", "cargo test")], 1, 2));
         assert_eq!(usage[0].tokens.total(), 7);
         // a row that never finished (a crash) does not hold back the turn's end
         let stuck: Msg = (3, "assistant".into(), oc_assistant("msg_c", 3_000, None, vec![], Some(oc_tokens(1, 0, 0, 0, 0))));
         let idle: Msg = (4, "idle".into(), serde_json::json!({"type":"idle","outcome":"interrupted","time":{"created":10_000}}));
         assert_eq!(oc_feed(&mut st, std::slice::from_ref(&stuck), 2).1, 2);
-        let ((_, usage, turns), next) = oc_feed(&mut st, &[stuck, idle], 2);
+        let ((_, usage, turns, _), next) = oc_feed(&mut st, &[stuck, idle], 2);
         assert_eq!((usage.len(), turns, next), (1, vec![Turn { ts: 10_000, ms: 9_000 }], 4));
         // malformed rows are skipped, never a panic
         let junk: Msg = (5, "assistant".into(), serde_json::json!({"content":"x","time":{"created":"soon","completed":1}}));

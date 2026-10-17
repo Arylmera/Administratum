@@ -29,7 +29,8 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `poller.rs` | Builds the live roster each tick: liveness of each session pid via Win32, the Orca handle per pid, transcript location, memoised tails and subagents |
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell |
 | `opencode/` | OpenCode 2.x, a second source beside `registry/`. `db.rs` reads its SQLite database read-only (only while its `-wal` exists, so no file is created in OpenCode's folder; one short transaction per read), `service.rs` its service registration (`~/.local/state/opencode/service.json`, loopback URLs and version 2+ only, the password never leaves the module) and a small `std::net` client for `/api/session/active`, pending permissions and replies, `mod.rs` the sessions it adds to the roster (running, waiting, idle while a TUI runs in its folder, 15 min at most), the rows the Chronicon reads, and `answer_opencode` |
-| `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe (also per hall session, `by_session`, on the roster as `tokensToday`), day files, retention; `opencode.rs` turns OpenCode rows into transcript lines |
+| `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe (per department, model, hour and session (a session's total is on the roster as `tokensToday`, card.js lineage), and per department its turns and edited files; fields added later are `serde(default)` so older day files still load), day files, retention; `opencode.rs` turns OpenCode rows into transcript lines; `report.rs` the end-of-day report (`day_report` command), its markdown, and `write_capture`, the only write outside the app data dir (only with `adm.reportOn` and an existing absolute `adm.reportDir`) |
+| `monitor.rs` | Monitoring rules, pure: the config (`adm.tokenAlert`, ... read from `settings.json` at setup and after each `settings_save`, so the UI pushes nothing) and the per-session daily token alert (new tokens, cache reads left out; one toast and a `token-alert` event per session per day, seeded on the first tick). The app cannot see the subscription quota: the threshold is a count the user picks. Stuck sessions (`stuck_of`): busy (never at the shell) and either silent (no write to its transcripts, subagents' included, for `adm.stuckMin`, default 15 min; OpenCode sessions have no files and are never silent) or looping (`adm.stuckRepeat`, default 5, identical tool calls in a row, counted by `chronicle::track_turn`; polling tools and bare `sleep` / `watch` never count); one toast and a `stuck` event per episode |
 | `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS: tauri-plugin-notification's actions (`toast::mac`, one `on_action` handler registered at setup, routed by toast id; two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first; only the bundled app has the right notification identity, `tauri dev` posts as Terminal). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
@@ -38,10 +39,10 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
 | `strip/` | The desktop strip window: placement on the taskbar or above the Dock, click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
-| `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown); `app.rs` arming, its tick, toast and Chronicon events, the shutdown itself |
+| `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown) and `report_day` (armed before 04:00: the day before); `app.rs` arming, its tick, toast and Chronicon events, the day report capture on arm and on fire, the shutdown itself |
 
 **Events.** Each second the poll loop emits `roster` (every session with its status, petition, task, context,
-subagents, Orca handle, claude.ai URL, compaction time), `petition` and `petition-stale` (these also fire the
+subagents, Orca handle, claude.ai URL, compaction time, `stuck`), `petition` and `petition-stale` (these also fire the
 toasts), and `chronicle` for each new event. Events older than 2 min are recorded but not played in the scene. The
 UI fetches Chronicon history on demand through the `chronicle_*` commands.
 
@@ -56,14 +57,14 @@ do not know which.
 | `index.html` | Markup and styles: header, card, Chronicon and Settings panels |
 | `app.js` | Wiring: roster → layout → cast, render loop, hit test, header buttons, chime |
 | `viewport.js` | The view: scale and scene size for the window, pan (drag, glide, coast, arrow keys), parallax lag |
-| `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags, edge arrows, hover tip |
+| `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server |
 | `card.js` | The selected character's card, and answering permission petitions; a Suzerain's lineage (`lineageOf`) |
 | `mobile.html` / `mobile.js` | The remote view's phone page (index.html's head redirects a narrow remote screen to it, `/?hall` stays): read-only petitions, Night Vigil, sessions, today's totals |
 | `chrome.js` | The page follows the theme: CSS colours, marked texts, toast wording |
 | `settings.js` | Settings panel and the persisted store (`settings.json`, localStorage as cache) |
 | `panel.js` | Open/close behaviour shared by the parchment panels |
-| `chronicon.js` | Chronicon: day tabs, Tithe charts, event log |
+| `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log |
 | `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
@@ -113,10 +114,20 @@ python -m http.server 8123        # from the repo root
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml   # every backend module has its own tests
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 for t in ui/*.test.mjs; do node "$t" || echo "FAIL $t"; done
+node tools/art_gate.mjs                           # from a clean tree: every art sheet and gallery is current
 ```
 
-The node checks are plain `assert` scripts with no framework. One file per module:
+CI runs all four on every push and PR (`.github/workflows/check.yml`; `cargo fmt --check` is `fmt.yml`). The art gate
+reruns every generator (`watch_art`, `breakout_art`, `suzerain_art`: one run per module under `tools/<gen>/`) and
+`sprite_sheet.mjs` (the default theme, plus `--theme` for every folder under `ui/art/`), then fails if
+`git status --porcelain ui/art docs/sprites` is not empty: commit the regenerated files with the art change.
+
+The node checks are plain `assert` scripts with no framework. The panel tests (settings, Chronicon) run on
+`ui/testdom.mjs`: a minimal DOM parsed from the real `ui/index.html`, fake timers and clock (UTC), and a fake backend
+that records every `invoke`. Import the module under test after `install()`, since `settings.js` reads the backend
+when it loads. One file per module:
 
 | File | Checks |
 |---|---|
@@ -137,7 +148,10 @@ The node checks are plain `assert` scripts with no framework. One file per modul
 | `strip.test.mjs` | Strip geometry |
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
+| `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter |
 | `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls |
+| `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, reset |
+| `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped |
 
 ---
 
@@ -181,6 +195,7 @@ sprite over the contact shadow it gets in the hall.
 node ui/art.test.mjs && node ui/sprites.test.mjs
 node tools/sprite_sheet.mjs                     # regenerates docs/sprites/
 node tools/sprite_sheet.mjs --theme cyber       # and each other theme with its own art folder under ui/art/
+node tools/art_gate.mjs                         # or all of it at once: fails on whatever is still stale (CI runs it)
 ```
 
 `docs/sprites/` is the committed gallery used to discuss sprites one by one: one GitHub issue per family (Sprite

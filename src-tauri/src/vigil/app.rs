@@ -1,5 +1,5 @@
 //! The Night Vigil in the app: arming (tray, commands, toast, remote), its Chronicon events, its toast, the shutdown.
-use crate::{chronicle::Event, emit, now_ms, registry::Session, settings, settings_path, toast, vigil, Chron};
+use crate::{chronicle, chronicle::Event, emit, monitor, now_ms, registry::Session, settings, settings_path, toast, vigil, Chron};
 use std::{process::Command, sync::Mutex};
 use tauri::{menu::CheckMenuItem, AppHandle, Manager};
 
@@ -29,9 +29,35 @@ pub fn vigil_set(app: &AppHandle, arm: bool) {
     };
     if changed {
         vigil_event(app, now, if arm { "armed" } else { "cancelled" });
+        if arm {
+            use chrono::Timelike;
+            let n = chrono::Local::now();
+            *crate::lock(&REPORT_DAY) = Some(vigil::report_day(n.date_naive(), n.hour()));
+            capture(app, now);
+        }
     }
     if let Some(item) = app.try_state::<VigilItem>() {
         let _ = item.0.set_checked(arm);
+    }
+}
+
+/// The day the end-of-day report covers, fixed when the vigil arms (`report_day`) and reused when it fires.
+static REPORT_DAY: Mutex<Option<String>> = Mutex::new(None);
+
+/// Writes the day report into the folder the user chose, only when they turned it on (monitor.rs `report_dir`).
+/// A failure is logged and recorded in the Chronicon; nothing else is written anywhere.
+fn capture(app: &AppHandle, now: i64) {
+    let (Some(dir), Some(day)) = (monitor::get().report_dir, crate::lock(&REPORT_DAY).clone()) else { return };
+    let chron = app.state::<Chron>();
+    let (cdir, live) = {
+        let c = crate::lock(&chron);
+        c.flush();
+        c.snapshot()
+    };
+    let r = chronicle::report(&day, &chronicle::tithe_of(&cdir, &live, &day), &chronicle::read_events(&cdir, &day));
+    if let Err(e) = chronicle::write_capture(&dir, &r) {
+        eprintln!("night vigil: day report: {e}");
+        vigil_event(app, now, &format!("report not written: {e}"));
     }
 }
 
@@ -90,6 +116,7 @@ pub fn tick(app: &AppHandle, roster: &[Session], last_write: i64, now_ms: i64, d
         vigil::Step::Resumed => vigil_event(app, now_ms, "resumed"),
         vigil::Step::Fire { last } => {
             vigil_event(app, now_ms, &last.map_or_else(|| "fired".to_string(), |n| format!("fired · {n}")));
+            capture(app, now_ms); // flushes the chronicle too
             crate::lock(&app.state::<Chron>()).flush();
             if let Some(item) = app.try_state::<VigilItem>() {
                 let _ = item.0.set_checked(false);

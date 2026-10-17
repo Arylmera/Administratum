@@ -68,6 +68,19 @@ pub struct Session {
     pub parent: Option<String>,
     /// Tokens it spent today, its subagents included (the Chronicon's `Tithe::by_session`), filled by the poll loop.
     pub tokens_today: Option<u64>,
+    /// Busy but making no progress (monitor.rs `stuck_of`), filled by the poll loop.
+    pub stuck: Option<Stuck>,
+}
+
+/// Why a busy session looks stuck: `"silent"` (no transcript write since `since_ms`) or `"loop"` (`count` identical
+/// calls of `tool` in a row, in the turn started at `since_ms`).
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Stuck {
+    pub kind: String,
+    pub since_ms: i64,
+    pub tool: Option<String>,
+    pub count: u32,
 }
 
 /// The agent a session runs in, serialized `"claude"` / `"opencode"`.
@@ -115,6 +128,19 @@ pub struct TurnSummary {
     pub tools: u32,
     pub files: Vec<String>,
     pub more_files: u32,
+    /// The run of identical tool calls ending the turn so far (monitor.rs: a loop). Backend only.
+    #[serde(skip)]
+    pub repeat: Option<Repeat>,
+}
+
+/// Identical tool calls in a row: the tool, its call (name + input JSON), how many, and the message of the last one
+/// (parallel identical calls in one message count once).
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct Repeat {
+    pub tool: String,
+    pub key: String,
+    pub count: u32,
+    pub msg: String,
 }
 
 impl TurnSummary {

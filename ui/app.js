@@ -20,7 +20,7 @@ import { glide, gliding, clearGlides } from './glide.js';
 import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard, actionsOn, noActions } from './card.js';
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
-import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
+import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
 import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
@@ -250,6 +250,7 @@ function frame(now) {
   renderPlaques(view.blocks);
   syncLabels();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
+  syncTags(stuckTags, 'stuck', stuckText, 0, -18);
   syncTags(sheetTags, 'sheets', sheetText, 10, -2);
   syncTags(watchTags, 'petition', watchText, 0, -22);
   syncHover();

@@ -106,19 +106,21 @@ export const TEXT = {
   rejectAll: "Deny also refuses this session's other pending requests", // an OpenCode petition's card (OpenCode's rule)
   overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen',
   limitLabel: 'sealed · resets {time}', limitSealed: 'sealed',
+  stuckSilent: 'stalled · {min}m', stuckLoop: 'looping · {tool} ×{count}', // monitor.rs: busy, no progress
   modes: { full: 'Full light', candles: 'Candles' },
   log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.' },
   tithe: { hint: 'Tithe today: tokens and working time', day: 'Tithe today: {tokens} tokens, {time} of work' },
   event: { commit: 'Commit sealed', push: 'Pushed', 'tests-pass': 'Tests pass', 'tests-fail': 'Tests fail', 'tool-error': 'Tool error',
     'task-done': 'Long task done', arrived: 'Arrived', left: 'Left', petition: 'Petition', 'petition-answered': 'Petition answered',
-    compaction: 'Context compacted', limit: 'Usage limit' },
+    compaction: 'Context compacted', limit: 'Usage limit', 'token-alert': 'Token alert', stuck: 'Stuck' },
   prefs: { theme: 'Theme', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
     stale: 'Petition turns stale after', nap: 'Idle to the Refectorium after', cog: 'Stay at the cogitator for',
     pauseHint: 'Near-zero CPU when unseen; petitions still alert.',
     cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',
-    limit: '{name} sealed until {time}', limitMany: '{n} sessions sealed until {time}', failed: '{name}: answer not sent — answer it in the session' },
+    limit: '{name} sealed until {time}', limitMany: '{n} sessions sealed until {time}', failed: '{name}: answer not sent — answer it in the session',
+    tokens: '{name} passed {count} tokens today', stuck: '{name} looks stuck' },
   // Night Vigil (vigil.js): the night watchman's name, the header moon's title
   watch: { name: 'Inquisitor', button: 'Night Vigil: the Inquisitor shuts the PC down once every session waits on you' },
 };

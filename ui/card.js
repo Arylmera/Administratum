@@ -73,6 +73,9 @@ export function renderCard() {
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
   card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.limit ? s.limit.text : s.task;
+  const stuck = card.querySelector('.stuck');
+  stuck.textContent = stuckLine(s.stuck);
+  stuck.hidden = !s.stuck;
   card.querySelector('.path').textContent = s.cwd;
   renderAsks(card, s);
   renderTurn(card, s);
@@ -132,6 +135,10 @@ function renderAsks(card, s) {
 // The turn in progress (or the last one, frozen at its newest answer): length, tool calls, files changed (backend `turn`).
 const expanded = new Set(); // session ids whose file list is shown in full
 const span = ms => { const m = Math.floor(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${pad2(m % 60)}`; };
+// A stuck session's line (monitor.rs `Stuck`), for the card and the tag over the scribe; '' when not stuck.
+export const stuckLine = (st, now = Date.now()) => (!st ? ''
+  : st.kind === 'loop' ? t('stuckLoop', { tool: st.tool, count: st.count })
+  : t('stuckSilent', { min: Math.max(0, Math.floor((now - st.sinceMs) / 60_000)) }));
 export const filesOf = tr => (tr ? tr.files.length + tr.moreFiles : 0);
 function renderTurn(card, s) {
   const line = card.querySelector('.turn'), list = card.querySelector('.files'), tr = s?.turn;
