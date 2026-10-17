@@ -50,8 +50,8 @@ lineage as a small tree with each child's state and the lineage's tokens spent t
   redirects.
 - Data, all existing remote endpoints through `bridge.js`:
   - `roster` and `vigil` events on `/events` (live, every second).
-  - `tithe_day` for today on load and every 60 s: tokens and busy time.
-  - `chronicle_day` for today on load and every 60 s: event count.
+  - `chronicle_days` on load and every 60 s: today's tokens, busy time and event count in one call (built
+    with this instead of `tithe_day` + `chronicle_day`).
   - `settings_load` once: `adm.theme`, applied with `setTheme` + `applyChrome`.
 - Sections, top to bottom:
   1. Header: title, link "Full hall" (`/?hall`), reconnecting badge (bridge.js's existing one).

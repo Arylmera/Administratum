@@ -73,7 +73,7 @@ async function start() {
   function renderRoster() {
     $('count').textContent = String(roster.length);
     $('roster').replaceChildren(...treeOrder(roster).map(({ s, depth }) => {
-      const li = el('li', `row ${s.status}`);
+      const li = el('li', `row ${['waiting', 'busy', 'shell'].includes(s.status) ? s.status : ''}`);
       li.style.paddingLeft = `${8 + 14 * Math.min(depth, 4)}px`;
       const top = el('div');
       top.append(el('b', null, `${depth ? '↳ ' : ''}${s.name}`), el('span', 'dim', ` · ${s.dept}`));
