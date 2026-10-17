@@ -41,6 +41,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept-novice-up"></a>`ADEPT.novice.up` | 12×14 | Apprentice adept, walking up, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.up.png" height="112"> |
 | <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Apprentice adept, walking right, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.right.png" height="112"> |
 | <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Apprentice adept, walking left, 3 frames. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.novice.left.png" height="112"> |
+| <a id="adept-kinds"></a>`ADEPT.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing down, then up. Source: `ui/art/tower/adept.png` | <img src="tower/ADEPT.kinds.png" height="112"> |
 
 ## Watchman (Night Vigil, while armed)
 
@@ -67,13 +68,12 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.W.png" height="136"> |
 | <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.S.png" height="136"> |
 | <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.N.png" height="136"> |
-| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.arm.png" height="64"> |
-| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.armL.png" height="64"> |
 | <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/tower/scribe39.png` | <img src="tower/SCRIBE39.scroll.png" height="56"> |
 | <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.E.png" height="112"> |
 | <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.W.png" height="112"> |
 | <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.S.png" height="112"> |
 | <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.N.png" height="112"> |
+| <a id="adept39-kinds"></a>`ADEPT39.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing S, then E, then N, then W. Source: `ui/art/tower/adept39.png` | <img src="tower/ADEPT39.kinds.png" height="112"> |
 | <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/tower/magos39.png` | <img src="tower/MAGOS39.body.png" height="160"> |
 | <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/tower/magos39.png` | <img src="tower/MAGOS39.arm.png" height="160"> |
 | <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/tower/skull39.png` | <img src="tower/SKULL39.skull.png" height="80"> |
@@ -87,8 +87,6 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/tower/scribe.png`, drawn by actors.js | <img src="tower/ARM.png" height="64"> |
-| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/tower/scribe.png`, drawn by actors.js | <img src="tower/ARM_L.png" height="64"> |
 | <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/tower/workstations.png`, drawn by scene.js | <img src="tower/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/tower/workstations.png` | <img src="tower/DESK.unlit.png" height="160"> |
 | <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/tower/workstations.png`, drawn by scene.js | <img src="tower/LECTERN.png" height="160"> |
@@ -142,7 +140,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/tower/breakout.png`, drawn by (not referenced by name) | <img src="tower/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/tower/breakout.png`, drawn by scene.js, scene39.js | <img src="tower/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/tower/breakout.png`, drawn by scene.js | <img src="tower/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
-| <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/refectorium.png`, drawn by actors.js | <img src="tower/DOZE_Z.png" height="28"> |
+| <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/tower/refectorium.png`, drawn by actors.js | <img src="tower/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/tower/workstations.png`, drawn by (not referenced by name) | <img src="tower/SHELL_COG.png" height="48"> |
 
 ## Room tiles
