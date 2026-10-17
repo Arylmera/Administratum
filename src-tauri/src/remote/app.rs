@@ -29,6 +29,18 @@ fn remote_conf(path: &std::path::Path) -> Result<(bool, u16, bool, String), Stri
     Ok(out)
 }
 
+/// A Tithe as the remote (LAN) view gets it. Per-session counts (old sessions' ids included) stay local: the remote
+/// reads tokensToday on the roster. So do the edited files' paths; their count stays.
+fn remote_tithe(mut v: serde_json::Value) -> serde_json::Value {
+    if let Some(o) = v.as_object_mut() {
+        o.remove("bySession");
+        let drop_files = |s: &mut serde_json::Value| _ = s.as_object_mut().map(|s| s.remove("files"));
+        o.get_mut("byProject").and_then(|p| p.as_object_mut()).into_iter().flat_map(|p| p.values_mut()).for_each(drop_files);
+        o.get_mut("hourly").and_then(|h| h.as_array_mut()).into_iter().flatten().for_each(drop_files);
+    }
+    v
+}
+
 /// The app as the remote view reaches it: the read commands, answer_petition and answer_opencode
 /// (gated by the server), and the embedded UI files. open_session and every settings write stay local.
 fn remote_backend(app: &AppHandle) -> remote::Backend {
@@ -39,13 +51,7 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
     remote::Backend {
         call: Box::new(move |c| match c {
             remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
-            remote::Call::TitheDay(day) => json(tithe_day(day, a.state())).map(|mut v| {
-                // Per-session counts (old sessions' ids included) stay local: the remote reads tokensToday on the roster.
-                if let Some(o) = v.as_object_mut() {
-                    o.remove("bySession");
-                }
-                v
-            }),
+            remote::Call::TitheDay(day) => json(tithe_day(day, a.state())).map(remote_tithe),
             remote::Call::ChronicleDays => json(chronicle_days(a.state())),
             remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
                 // The remote (LAN) view never learns the local "open folder" program/path or the day report's folder.
@@ -160,5 +166,24 @@ pub fn start_saved(app: &AppHandle) {
                 eprintln!("remote view: {e}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::remote_tithe;
+    use serde_json::json;
+
+    #[test]
+    fn the_remote_tithe_carries_no_session_map_and_no_file_paths() {
+        let share = json!({"tokens": 5, "busyMs": 1, "turns": 2, "files": ["src/secret.rs"], "moreFiles": 3});
+        let v = remote_tithe(json!({
+            "day": "2026-10-17", "bySession": {"a": {"name": "terra-1"}},
+            "byProject": {"Terra": share.clone()}, "hourly": [share],
+        }));
+        let s = v.to_string();
+        assert!(!s.contains("bySession") && !s.contains("secret.rs"), "{s}");
+        assert_eq!(v["byProject"]["Terra"]["tokens"], 5, "the counts stay");
+        assert_eq!(v["byProject"]["Terra"]["moreFiles"], 3, "a count, not a path");
     }
 }

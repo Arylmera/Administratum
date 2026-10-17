@@ -78,7 +78,7 @@ Query values are percent-decoded.
 | Endpoint | Tauri equivalent |
 |---|---|
 | `GET /api/chronicle_day?day=YYYY-MM-DD` | `chronicle_day` -> `Event[]` |
-| `GET /api/tithe_day?day=YYYY-MM-DD` | `tithe_day` -> `Tithe`, without `bySession` (per-session counts stay local; the roster carries `tokensToday`) |
+| `GET /api/tithe_day?day=YYYY-MM-DD` | `tithe_day` -> `Tithe`, without `bySession` (per-session counts stay local; the roster carries `tokensToday`) and without the edited files' paths (`files`; the `moreFiles` count stays) |
 | `GET /api/chronicle_days` | `chronicle_days` -> `DaySummary[]` |
 | `GET /api/settings_load` | `settings_load` -> object (read only; there is no remote save) |
 | `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}` |
