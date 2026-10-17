@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The remote view on a phone opens the light page (mobile.html); its "Full hall" link (/?hall) stays here. -->
+<script>if (window.ADM_REMOTE && matchMedia('(max-width: 640px)').matches && !new URLSearchParams(location.search).has('hall')) location.replace('/mobile.html');</script>
 <title>Administratum</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">

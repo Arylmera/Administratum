@@ -30,6 +30,8 @@ export function invoke(name, args = {}) {
 // Remote only: are actions allowed on the PC? The server checks that gate first (403), and an empty body
 // fails validation (400) before any action is taken, so this probe answers without acting.
 export const remoteActions = () => post('answer_petition', {}).then(r => r.status !== 403, () => false);
+// The same probe on the vigil route (an empty body is a 400 there too): the mobile page never touches petitions.
+export const remoteVigil = () => post('vigil', {}).then(r => r.status !== 403, () => false);
 
 const handlers = {}; // event -> Set of callbacks
 let es = null, started = false, wait = 1000, badge = null;
