@@ -86,12 +86,14 @@ export function renderCard() {
 
 // A forked session's parent, or a Suzerain's children: each name selects that session's card.
 export const kinOf = (s, roster) => ({ parent: roster.find(r => r.id === s.parent), children: roster.filter(r => r.parent === s.id) });
-// The tree a card shows: s's own when it forks, else its parent's; immediate links only. Tokens: today's, summed.
+// The tree a card shows: s's own when it forks, else its parent's; immediate links listed. Tokens: today's, summed over all descendants.
 export function lineageOf(s, roster) {
   const own = kinOf(s, roster), root = own.children.length ? s : own.parent;
   if (!root) return null;
   const children = root === s ? own.children : kinOf(root, roster).children;
-  return { root, children, tokens: [root, ...children].reduce((n, r) => n + (r.tokensToday ?? 0), 0) };
+  const seen = new Set([root.id]), all = [root], walk = r => { for (const c of roster) if (c.parent === r.id && !seen.has(c.id)) { seen.add(c.id); all.push(c); walk(c); } };
+  walk(root); // the total covers every descendant; the list shows immediate children only
+  return { root, children, tokens: all.reduce((n, r) => n + (r.tokensToday ?? 0), 0) };
 }
 function renderKin(card, s) {
   const kin = card.querySelector('.kin'), roster = rosterOf(), { parent } = kinOf(s, roster), tree = lineageOf(s, roster);
