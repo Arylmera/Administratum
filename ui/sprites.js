@@ -68,7 +68,7 @@ export function marked(map, F, A, face, mark) {
 const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
-const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits', 'breakout'];
+const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits', 'breakout', 'suzerain'];
 // The room's structure: tiles with fill rules (room.js).
 const ROOM_SHEETS = ['room-floor', 'room-walls', 'room-pipes', 'room-doors'];
 // The 39° character families (wave 2): optional, drawn by separate art agents one world at a time. A missing base

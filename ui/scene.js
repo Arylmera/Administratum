@@ -329,48 +329,41 @@ export function drawRugs(g, blocks) {
   }
 }
 
-// A Suzerain (a session with live forked children, registry adopt) holds its desk on a plinth: a raised slab under
-// the desk and its seat, drawn on the floor like the rugs (both views). Stays inside the desk's slot.
+// A Suzerain (a session with live forked children, registry adopt) holds its desk on a dais drawn on the floor like
+// the rugs (both views), inside the desk's slot, and a link runs on the floor from it to each forked child's feet.
+// Each world draws its own (the suzerain family, tools/suzerain_art.mjs): a Mechanicus plinth and data cable, a neon
+// plate and optic fibre, a command deck and umbilical, a rune circle and arcane thread, the Overseer's diamond plate
+// and a Vault-Tec pipe, a Persian rug and a hemp rope. A pulse runs down the link while the parent works.
 export function drawPlinths(g, desks, actors) {
   const lords = new Set([...actors.values()].map(a => a.s?.parent).filter(Boolean));
-  for (const d of desks) {
-    if (!lords.has(d.id)) continue;
-    const w = (d.compact ? 22 : 32) + 8, x = d.x - 4, y = d.y + 6, h = 27, face = 3;
-    rect(g, x, y, w, h, I.outline);
-    rect(g, x + 1, y + 1, w - 2, h - face - 1, I.iron);
-    rect(g, x + 1, y + h - face, w - 2, face - 1, I.ironDark);
-    g.strokeStyle = I.brass; g.lineWidth = 1; g.strokeRect(x + 2.5, y + 2.5, w - 5, h - face - 4);
-    for (const [sx, sy] of [[x + 2, y + 2], [x + w - 3, y + 2], [x + 2, y + h - face - 2], [x + w - 3, y + h - face - 2]]) rect(g, sx, sy, 1, 1, I.brassLit);
-  }
+  for (const d of desks) if (lords.has(d.id)) blit(g, MAPS[d.compact ? 'DAIS_C' : 'DAIS'], d.x - 4, d.y + 6);
 }
 
-// A data cable on the floor from a Suzerain's plinth to each forked child's feet: down to the lane under the
-// parent's seat, along the slot edges, then up to the child. While the parent works, a pulse runs down it.
+// The link: down to the lane under the parent's seat, along the slot edges, then up to the child's feet; its tiles
+// (LINK_H / LINK_V, 4 px long, 3 px thick) centred on the path.
 export function drawLinks(g, desks, actors, now) {
-  const at = new Map(desks.filter(d => d.id).map(d => [d.id, d]));
+  const at = new Map(desks.filter(d => d.id).map(d => [d.id, d])), { LINK_H: H, LINK_V: V, LINK_END: E } = MAPS;
   for (const a of actors.values()) {
     const p = at.get(a.s?.parent), c = at.get(a.id);
     if (!p || !c || a.leaving) continue;
     const lane = d => d.y + 37, mid = d => d.x + (d.compact ? 11 : 16), edge = d => d.x - 5;
     const pts = [[mid(p), p.y + 33], [mid(p), lane(p)]];
     if (lane(p) !== lane(c)) pts.push([edge(c), lane(p)], [edge(c), lane(c)]);
-    pts.push([mid(c), lane(c)], [mid(c), c.y + 35]);
-    const segs = pts.slice(1).map((q, i) => [pts[i], q, Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1])]);
+    pts.push([mid(c), lane(c)], [mid(c), c.y + 34]);
+    const segs = pts.slice(1).map((q, i) => [pts[i], q, Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1])]).filter(s => s[2]);
     for (const [[x0, y0], [x1, y1]] of segs) {
-      const x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0) + 2, h = Math.abs(y1 - y0) + 2;
-      rect(g, x - 1, y - 1, w + 2, h + 2, I.outline);
-      rect(g, x, y, w, h, I.brassDark);
-      rect(g, x, y, y0 === y1 ? w : 1, y0 === y1 ? 1 : h, I.brass); // lit from the north-west
+      const x = Math.min(x0, x1) - 1.5, y = Math.min(y0, y1) - 1.5, w = Math.abs(x1 - x0) + 3, h = Math.abs(y1 - y0) + 3, T = y0 === y1 ? H : V;
+      clipped(g, x, y, w, h, g2 => { for (let ty = y; ty < y + h; ty += artH(T)) for (let tx = x; tx < x + w; tx += artW(T)) blit(g2, T, tx, ty); });
     }
-    rect(g, mid(c) - 2, c.y + 33, 6, 3, I.outline); rect(g, mid(c) - 1, c.y + 34, 4, 1, I.brassLit); // the socket at the child's feet
+    blit(g, E, mid(c) - artW(E) / 2, c.y + 34 - artH(E) / 2);
     if (actors.get(p.id)?.s?.status !== 'busy') continue;
     const len = segs.reduce((n, s) => n + s[2], 0);
-    let k = ((now / 40) % (len + 12)), hit = null;
+    let k = (now / 40) % (len + 12), hit = null;
     for (const [[x0, y0], [x1, y1], l] of segs) {
       if (k <= l) { hit = [x0 + Math.sign(x1 - x0) * k, y0 + Math.sign(y1 - y0) * k]; break; }
       k -= l;
     }
-    if (hit) rect(g, Math.round(hit[0]), Math.round(hit[1]), 2, 2, I.phosphor);
+    if (hit) { rect(g, hit[0] - 1, hit[1] - 1, 2, 2, I.phosphor); rect(g, hit[0] - 0.5, hit[1] - 0.5, 1, 1, I.glint); }
   }
 }
 
