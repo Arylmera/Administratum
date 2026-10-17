@@ -16,7 +16,8 @@ export function applyChrome() {
   for (const el of document.querySelectorAll('[data-t-aria]')) el.setAttribute('aria-label', t(el.dataset.tAria));
   document.title = t('title');
   if (!REMOTE) invoke('set_toast_text', { petition: t('toast.petition'), question: t('toast.question'), stale: t('toast.stale'), needed: t('toast.needed'),
-    limit: t('toast.limit'), limitMany: t('toast.limitMany'), failed: t('toast.failed') }).catch(() => {});
+    limit: t('toast.limit'), limitMany: t('toast.limitMany'), failed: t('toast.failed'),
+    tokens: t('toast.tokens'), stuck: t('toast.stuck') }).catch(() => {});
 }
 
 // Riveted iron plates behind the scene instead of plain black (40x40 art px tile), redrawn per theme.

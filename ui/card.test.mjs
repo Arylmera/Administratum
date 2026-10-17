@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { answerable, answerCall, kinOf } from './card.js';
+import { answerable, answerCall, kinOf, stuckLine } from './card.js';
 
 // Claude Code: a permission prompt in an Orca terminal.
 const claude = { id: 's1', status: 'waiting', source: 'claude', orca: 'term_ab', waitingFor: 'approve Bash' };
@@ -24,3 +24,8 @@ assert.deepEqual(kinOf(lord, roster), { parent: undefined, children: kids });
 assert.deepEqual(kinOf(kids[0], roster), { parent: lord, children: [] });
 assert.deepEqual(kinOf(other, roster), { parent: undefined, children: [] });
 console.log('card ok');
+
+// A stuck session (monitor.rs): silent since its last write, or looping on one call.
+assert.equal(stuckLine({ kind: 'silent', sinceMs: 0, tool: null, count: 0 }, 16 * 60_000 + 5), 'stalled · 16m');
+assert.equal(stuckLine({ kind: 'loop', sinceMs: 0, tool: 'Bash', count: 5 }, 0), 'looping · Bash ×5');
+assert.equal(stuckLine(null, 0), '');

@@ -44,6 +44,13 @@ pub fn vigil_ready(sessions: &[Session], last_write: i64, calm_since: i64, now: 
     sessions.iter().all(|s| phase(s) != Phase::Working) && now - calm_since.max(last_write) >= QUIET_MS
 }
 
+/// The day an end-of-day report covers when the vigil arms at local `date` and `hour`: before 04:00 the night still
+/// belongs to the day before.
+pub fn report_day(date: chrono::NaiveDate, hour: u32) -> String {
+    let d = if hour < 4 { date.pred_opt().unwrap_or(date) } else { date };
+    d.format("%Y-%m-%d").to_string()
+}
+
 /// The next time the local clock reads `target_min` (minutes after midnight), strictly after this minute.
 pub fn deadline_after(now_ms: i64, now_local_min: u16, target_min: u16) -> i64 {
     let delta = (target_min as i64 - now_local_min as i64).rem_euclid(1440);
@@ -170,6 +177,14 @@ impl Vigil {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn report_day_cutoff_is_4am() {
+        let d = chrono::NaiveDate::from_ymd_opt(2026, 10, 17).unwrap();
+        assert_eq!(report_day(d, 3), "2026-10-16", "03:59: still last night");
+        assert_eq!(report_day(d, 4), "2026-10-17");
+        assert_eq!(report_day(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), 0), "2025-12-31");
+    }
     use crate::registry::{Helper, Limit};
 
     fn s(id: &str, status: &str) -> Session {

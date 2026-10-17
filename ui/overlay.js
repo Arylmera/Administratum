@@ -4,7 +4,7 @@ import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion } from './actors.js';
 import { invoke, REMOTE } from './bridge.js';
-import { sel, ago, filesOf, canAnswer, answer, pick } from './card.js';
+import { sel, ago, filesOf, stuckLine, canAnswer, answer, pick } from './card.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
@@ -171,6 +171,10 @@ export function syncTags(tags, cls, textOf, dx, dy) {
 export const sealTags = new Map();
 export const sealText = a => (!a.h && !a.leaving && a.s?.limit && !labels.has(a.id)
   ? (a.s.limit.resetMs ? t('limitLabel', { time: hhmm(new Date(a.s.limit.resetMs)) }) : t('limitSealed')) : '');
+
+// A busy scribe making no progress (backend `stuck`); a seal or a petition label says more, so it yields to them.
+export const stuckTags = new Map();
+export const stuckText = a => (!a.h && !a.leaving && a.s?.stuck && !a.s.limit && !labels.has(a.id) ? stuckLine(a.s.stuck) : '');
 
 // The Watchman at the gate: the countdown's seconds over him.
 export const watchTags = new Map();

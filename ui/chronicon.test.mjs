@@ -35,12 +35,14 @@ tick(30_000);
 assert.equal(invoked('tithe_day').length, 2);
 document.documentElement.classList.remove('paused');
 
-// Opening: 7 day tabs, today first; a past day with nothing recorded is dimmed.
+// Opening: 7 day tabs, today first, then the Week tab; a past day with nothing recorded is dimmed.
 const root = document.getElementById('chron'), body = root.querySelector('.body'), tabs = root.querySelector('.tabs');
 document.getElementById('chron-open').click();
 await flush();
-const tab = [...tabs.children];
-assert.equal(tab.length, 7);
+const tab = [...tabs.children].slice(0, 7);
+assert.equal(tabs.children.length, 8);
+assert.equal(tabs.children[7].dataset.day, 'week');
+assert.equal(tabs.children[7].getAttribute('aria-selected'), 'false');
 assert.equal(tab[0].textContent, 'Today');
 assert.deepEqual(tab.map(b => b.dataset.day), ['2026-10-17', '2026-10-16', '2026-10-15', '2026-10-14', '2026-10-13', '2026-10-12', '2026-10-11']);
 assert.equal(tab[0].getAttribute('aria-selected'), 'true');
@@ -132,4 +134,24 @@ slow();
 await flush();
 assert.equal(tabs.children[2].getAttribute('aria-selected'), 'true');
 assert.equal(body.querySelector('ol.events').textContent, 'No events recorded');
+
+// Pure helpers (sumTithes, reportText): the module is already loaded above.
+const { sumTithes, reportText } = await import('./chronicon.js');
+
+const day = (n, sessions) => ({
+  tokens: { input: n, output: 2 * n, cacheRead: 10 * n, cacheWrite: n }, busyMs: 1000 * n,
+  byProject: { Terra: { tokens: 14 * n, busyMs: 1000 * n } }, byModel: { 'claude-opus-5-5': 14 * n }, ...(sessions ? { bySession: sessions } : {}),
+});
+const week = sumTithes([day(1, { a: { name: 'terra-77', dept: 'Terra', fresh: 4, total: 14 } }), day(2, { a: { name: 'terra-77', dept: 'Terra', fresh: 8, total: 28 } }), null]);
+assert.deepEqual(week.tokens, { input: 3, output: 6, cacheRead: 30, cacheWrite: 3 });
+assert.equal(week.busyMs, 3000);
+assert.deepEqual(week.byProject.Terra, { tokens: 42, busyMs: 3000 });
+assert.equal(week.byModel['claude-opus-5-5'], 42);
+assert.deepEqual(week.bySession.a, { name: 'terra-77', dept: 'Terra', fresh: 12, total: 42 });
+
+// A 0.6.5 day file has no bySession; a missing day is null.
+assert.deepEqual(sumTithes([day(1)]).bySession, {});
+assert.deepEqual(sumTithes([]), { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, busyMs: 0, byProject: {}, byModel: {}, bySession: {} });
+assert.equal(reportText('---\ndate: 2026-10-16\nsource: Administratum\n---\n\n# Day report — 2026-10-16\n\nx\n'), '# Day report — 2026-10-16\n\nx\n');
+assert.equal(reportText('# no frontmatter'), '# no frontmatter');
 console.log('chronicon ok');

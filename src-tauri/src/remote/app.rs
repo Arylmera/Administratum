@@ -42,9 +42,9 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
             remote::Call::TitheDay(day) => json(tithe_day(day, a.state())),
             remote::Call::ChronicleDays => json(chronicle_days(a.state())),
             remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
-                // The remote (LAN) view never learns the local "open folder" program/path; the local UI keeps them.
+                // The remote (LAN) view never learns the local "open folder" program/path or the day report's folder.
                 if let Some(o) = v.as_object_mut() {
-                    o.retain(|k, _| !k.starts_with("adm.open"));
+                    o.retain(|k, _| !k.starts_with("adm.open") && k != "adm.reportDir");
                 }
                 v
             }),

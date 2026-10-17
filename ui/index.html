@@ -100,6 +100,7 @@
   .lbl .ans button:hover { background: var(--blood); }
   .lbl.tag { pointer-events: none; cursor: default; }
   .lbl.sealed { border-width: 3px; border-style: double; }
+  .lbl.stuck { border-style: dashed; border-color: var(--flame); }
   .lbl.sheets { font-size: calc(8px * var(--k, 1)); border-color: var(--green); }
   .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: color-mix(in srgb, var(--outline) 85%, transparent); border: 1px solid var(--edge); border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
   .tip[hidden] { display: none; }
@@ -121,7 +122,8 @@
   #card[hidden], #card .asks[hidden] { display: none; }
   #card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: var(--blood); }
   #card .turn { color: var(--paper-ink-2); }
-  #card .turn[hidden], #card .files[hidden] { display: none; }
+  #card .turn[hidden], #card .files[hidden], #card .stuck[hidden] { display: none; }
+  #card .stuck { color: var(--blood); font-weight: bold; }
   #card .files { margin: 0; padding: 0 0 0 1em; font-family: ui-monospace, Consolas, monospace; font-size: .85em; max-height: 9em; overflow-y: auto; overflow-wrap: anywhere; }
   #card .files .more { padding: 0; background: none; border: none; color: var(--paper-accent); font: inherit; cursor: pointer; text-decoration: underline; }
   #card .name { font-size: 1.17em; font-weight: 600; }
@@ -193,6 +195,10 @@
   #chron .plot i { display: block; width: 100%; background: var(--c-new); }
   #chron .busy .plot i { background: var(--c-busy); }
   #chron .axis { display: flex; justify-content: space-between; font-size: .8em; color: var(--pm); }
+  #chron .report { margin-bottom: .8em; border-top: 1px solid var(--paper-line); padding-top: .4em; }
+  #chron .report summary { cursor: pointer; font-size: .85em; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
+  #chron .report .copy { margin-left: 1em; padding: 0 .4em; background: var(--paper-tab); border: 1px solid var(--paper-line); border-radius: 2px; color: var(--pm); font: inherit; font-size: .9em; letter-spacing: 0; text-transform: none; cursor: pointer; }
+  #chron .report pre { margin: .4em 0 0; white-space: pre-wrap; font: inherit; }
   #chron .logbar { display: flex; align-items: center; gap: .8em; border-top: 1px solid var(--paper-line); padding-top: .5em; }
   #chron .logbar h3 { margin: 0; }
   #chron select { margin-left: auto; padding: .1em .3em; background: var(--paper-hi); color: var(--pk); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; }
@@ -344,6 +350,7 @@
     <div class="meta"></div>
     <div class="ctx"></div>
     <div class="task"></div>
+    <div class="stuck" hidden></div>
     <div class="turn" hidden></div>
     <ul class="files" hidden></ul>
     <div class="asks" hidden></div>
@@ -424,6 +431,18 @@
           <fieldset data-host><legend>Night Vigil</legend>
             <label class="wide"><span>Night Vigil deadline</span><input type="time" name="vigilDeadline"></label>
             <p class="hint">At this time an armed vigil starts its two-minute countdown to shutdown, even if a session is still working. Read when the vigil is armed. Empty: no deadline.</p>
+          </fieldset>
+          <fieldset data-host><legend>Monitoring</legend>
+            <label class="wide"><span>Token alert: one session past</span><input type="number" name="tokenAlert" min="0" step="100000" placeholder="off"><span class="unit">new tokens a day</span></label>
+            <p class="hint">New tokens leave out cache reads. A count you choose: the app cannot see your subscription's quota. Empty: no alert.</p>
+            <label class="wide"><span>Flag stuck sessions</span><input type="checkbox" name="stuck"></label>
+            <label class="wide"><span>Toast when a session gets stuck</span><input type="checkbox" name="stuckToast"></label>
+            <label class="wide"><span>Stuck when busy with no writing for</span><input type="number" name="stuckMin" min="5" max="120" step="1"><span class="unit">min</span></label>
+            <label class="wide"><span>Stuck after identical tool calls in a row</span><input type="number" name="stuckRepeat" min="3" max="20" step="1"></label>
+            <p class="hint">A running shell command is never stuck. Polling (BashOutput, sleep, watch) never counts as a loop.</p>
+            <label class="wide"><span>Also write the day report to a folder</span><input type="checkbox" name="reportOn"></label>
+            <label class="wide"><span>Folder</span><input type="text" name="reportDir" spellcheck="false" placeholder="D:\Notes\Inbox"></label>
+            <p class="hint">When the Night Vigil arms and when it fires, the day report is written there as YYYY-MM-DD-administratum-day.md (replacing that day's file). An absolute folder that exists; it is never created. Off: nothing is written.</p>
           </fieldset>
         </section>
         <section data-cat="scribes" hidden>

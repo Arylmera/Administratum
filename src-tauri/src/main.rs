@@ -4,6 +4,7 @@ mod demo;
 #[cfg(windows)]
 mod firewall;
 mod git;
+mod monitor;
 mod opencode;
 mod orca;
 mod poller;
@@ -80,6 +81,17 @@ fn tithe_day(day: String, chron: State<Chron>) -> Result<Tithe, String> {
     Ok(chronicle::tithe_of(&dir, &live, &day))
 }
 
+/// The day report of one local day ("YYYY-MM-DD"), with its markdown (the Chronicon's Copy button).
+#[tauri::command(async)]
+fn day_report(day: String, chron: State<Chron>) -> Result<serde_json::Value, String> {
+    if !chronicle::valid_day(&day) {
+        return Err("invalid day".into());
+    }
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    let r = chronicle::report(&day, &chronicle::tithe_of(&dir, &live, &day), &chronicle::read_events(&dir, &day));
+    Ok(serde_json::json!({ "markdown": r.markdown(), "report": r }))
+}
+
 /// Today and the 6 previous days, newest first.
 #[tauri::command(async)]
 fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
@@ -114,8 +126,8 @@ fn set_quiet(enabled: bool, from_min: u16, to_min: u16) {
 /// The toasts' wording from the active theme (toast.rs; chrome.js pushes it on start and on a theme change).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
-fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String) {
-    toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed });
+fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String, tokens: Option<String>, stuck: Option<String>) {
+    toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed, tokens: tokens.unwrap_or_default(), stuck: stuck.unwrap_or_default() });
 }
 
 /// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh). Windows only.
@@ -178,7 +190,10 @@ fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
 
 #[tauri::command(async)]
 fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
-    settings::update(&settings_path(&app)?, |old| settings::merge_ui(&old, &values))
+    let path = settings_path(&app)?;
+    settings::update(&path, |old| settings::merge_ui(&old, &values))?;
+    monitor::set(monitor::config_from(&settings::load(&path)));
+    Ok(())
 }
 
 /// Settings > System > Updates: the installed version and the newer one on GitHub Releases, if any.
@@ -253,6 +268,7 @@ fn main() {
             chronicle_day,
             tithe_day,
             chronicle_days,
+            day_report,
             set_stale_minutes,
             set_question_prefs,
             set_quiet,
@@ -300,6 +316,7 @@ fn main() {
             let saved = settings_path(app.handle()).map(|p| settings::load(&p)).unwrap_or_default();
             let (on, from, to) = settings::quiet_from_settings(&saved);
             quiet::set(on, from, to);
+            monitor::set(monitor::config_from(&saved));
             #[cfg(target_os = "macos")]
             toast::mac::hook(app.handle()); // before the first toast: toasts shown earlier report no click
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
@@ -352,9 +369,12 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut poller = poller::Poller::new(&claude_dir());
     let mut opencode = opencode::Source::new();
     let mut tracker = Tracker::default();
+    let mut alerts = monitor::Alerts::default();
+    let mut episodes = monitor::Episodes::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
     let mut first = true;
+    let mut first_stuck = true; // like `first`: a session already stuck before this start toasts no more
     let mut last_tick = Instant::now();
     let mut last_t = 0;
     loop {
@@ -403,12 +423,32 @@ fn poll_loop(app: AppHandle, demo: bool) {
                         emit(&app, "chronicle", e);
                     }
                 }
+                // The first tick seeds the alerts: a session already past the mark before this start toasts no more.
+                let over = alerts.over(c.tithe(), monitor::get().token_alert);
+                if !first {
+                    for e in token_alerts(&app, over, now) {
+                        c.record(&e);
+                        emit(&app, "chronicle", &e);
+                    }
+                }
                 c.maybe_flush(now, from_transcripts);
                 first = false;
             }
+            let cfg = monitor::get();
             for s in roster.iter_mut() {
                 s.turn = turns.remove(&s.id);
+                // Newest write among its transcripts, subagents' included: a working subagent is progress.
+                let last_write = poller.files.get(&s.id).and_then(|fs| fs.iter().map(|(f, _)| f.mtime_ms).max());
+                s.stuck = monitor::stuck_of(s, last_write, &cfg, now);
             }
+            let fresh_stuck = episodes.fresh(&roster);
+            if !first_stuck {
+                for e in stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now) {
+                    lock(&app.state::<Chron>()).record(&e);
+                    emit(&app, "chronicle", &e);
+                }
+            }
+            first_stuck = false;
             // Night Vigil: the newest transcript write.
             let last_write = last_write(&poller.files);
             vigil::app::tick(&app, &roster, last_write, now, demo);
@@ -424,6 +464,39 @@ fn poll_loop(app: AppHandle, demo: bool) {
         }
         thread::sleep(Duration::from_secs(1));
     }
+}
+
+/// The token alert's toasts (quiet hours respected) and their Chronicon events.
+fn token_alerts(app: &AppHandle, over: Vec<(String, chronicle::SessionTithe)>, now_ms: i64) -> Vec<Event> {
+    let words = toast::get();
+    let quiet = quiet::active();
+    over.into_iter()
+        .map(|(id, s)| {
+            let count = monitor::fmt_tokens(s.fresh);
+            if !quiet {
+                let title = toast::fill(&words.tokens, &s.name).replace("{count}", &count);
+                let _ = app.notification().builder().title(title).body(format!("{} · {count} new tokens today", s.dept)).show();
+            }
+            Event { ts: now_ms, kind: "token-alert".into(), session_id: id, name: s.name, dept: s.dept, helper: None, detail: count }
+        })
+        .collect()
+}
+
+/// New stuck episodes: a toast each when wanted (quiet hours respected; never for the break-out room), and their
+/// Chronicon events.
+fn stuck_toasts(app: &AppHandle, fresh: &[&Session], toast_on: bool, now_ms: i64) -> Vec<Event> {
+    let words = toast::get();
+    let quiet = quiet::active();
+    fresh
+        .iter()
+        .filter_map(|s| {
+            let detail = monitor::stuck_detail(s.stuck.as_ref()?, now_ms);
+            if toast_on && !quiet && !s.temp {
+                let _ = app.notification().builder().title(toast::fill(&words.stuck, &s.name)).body(format!("{} · {detail}", s.dept)).show();
+            }
+            Some(Event::for_session(now_ms, "stuck", s, detail))
+        })
+        .collect()
 }
 
 /// This tick's toasts and UI events: new petitions, questions, stale petitions, and usage-limit waves. Returns the

@@ -36,6 +36,30 @@ const icon = kind => {
   return `<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
 };
 
+// The Week tab: several days' Tithes added up (hourly dropped: the week charts tokens by day). Old day files have no
+// bySession.
+export function sumTithes(list) {
+  const out = { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, busyMs: 0, byProject: {}, byModel: {}, bySession: {} };
+  for (const t of list) {
+    if (!t) continue;
+    for (const k in out.tokens) out.tokens[k] += t.tokens?.[k] || 0;
+    out.busyMs += t.busyMs || 0;
+    for (const [k, v] of Object.entries(t.byProject ?? {})) {
+      const p = (out.byProject[k] ??= { tokens: 0, busyMs: 0 });
+      p.tokens += projTok(v); p.busyMs += v?.busyMs || 0;
+    }
+    for (const [k, v] of Object.entries(t.byModel ?? {})) out.byModel[k] = (out.byModel[k] || 0) + (v || 0);
+    for (const [k, v] of Object.entries(t.bySession ?? {})) {
+      const s = (out.bySession[k] ??= { name: v.name, dept: v.dept, fresh: 0, total: 0 });
+      s.fresh += v.fresh || 0; s.total += v.total || 0;
+    }
+  }
+  return out;
+}
+
+// The day report as the Chronicon shows it: its markdown without the frontmatter (that is for the file).
+export const reportText = md => md.replace(/^---\n[\s\S]*?\n---\n+/, '');
+
 const LIVE_CAP = 500; // newest live rows kept in an open day's log
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
@@ -63,6 +87,11 @@ export function initChronicon(colorOf = () => null) {
     for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
     let info = [];
     try { info = await invoke('chronicle_days'); } catch { /* tabs still work, without counts */ }
+    const week = h('button', 'week', 'Week');
+    week.type = 'button'; week.setAttribute('role', 'tab'); week.dataset.day = 'week';
+    week.setAttribute('aria-selected', String((cur?.day ?? active) === 'week'));
+    week.title = 'The last 7 days added up';
+    week.onclick = () => show('week');
     tabs.replaceChildren(...days.map((d, i) => {
       const key = dayKey(d), s = info.find(x => x.day === key);
       const b = h('button', null, i ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : 'Today');
@@ -72,31 +101,49 @@ export function initChronicon(colorOf = () => null) {
       b.title = s ? `${key}: ${s.events} events · ${fmtTok(s.tokens)} tokens · ${fmtDur(s.busyMs)}` : key;
       b.onclick = () => show(key);
       return b;
-    }));
+    }), week);
   }
 
   async function show(day) {
+    if (day === 'week') return showWeek();
     const my = ++seq;
     for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.day === day));
     const wait = h('p', 'loading', 'Unrolling the scroll');
     wait.setAttribute('role', 'status');
     wait.prepend(h('span', 'seal'));
     body.replaceChildren(wait);
-    const [events, tithe] = await Promise.all([invoke('chronicle_day', { day }).catch(() => null), invoke('tithe_day', { day }).catch(() => null)]);
+    const [events, tithe, report] = await Promise.all([invoke('chronicle_day', { day }).catch(() => null), invoke('tithe_day', { day }).catch(() => null),
+      invoke('day_report', { day }).catch(() => null)]); // the remote view has no day_report: no report section
     if (my !== seq || !isOpen()) return;
     cur = { day, events: (events ?? []).slice().sort((a, b) => b.ts - a.ts), filter: cur?.day === day ? cur.filter : '' };
     body.replaceChildren();
     if (!events && !tithe) { body.append(h('p', 'quiet', say('log.silent'))); return; }
-    body.append(summary(tithe, day === dayKey()), logSection());
+    body.append(summary(tithe, day === dayKey()));
+    if (report?.markdown) body.append(reportSection(report.markdown));
+    body.append(logSection());
     body.scrollTop = 0;
   }
 
-  function summary(t, today) {
+  async function showWeek() {
+    const my = ++seq;
+    for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.day === 'week'));
+    const keys = [];
+    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); keys.push(dayKey(d)); }
+    const list = await Promise.all(keys.map(day => invoke('tithe_day', { day }).catch(() => null)));
+    if (my !== seq || !isOpen()) return;
+    cur = { day: 'week', events: [], filter: '' };
+    const byDay = keys.map((k, i) => [new Date(`${k}T12:00`).toLocaleDateString('en-GB', { weekday: 'short' }), total(list[i])]);
+    body.replaceChildren(summary(sumTithes(list), false, byDay));
+    body.scrollTop = 0;
+  }
+
+  function summary(t, today, byDay = null) {
     const sec = h('section', 'summary'); // not 'tithe': that is the header plaque's class (light ink on hover, hidden < 600px)
     const tk = t?.tokens ?? {}, fresh = (tk.input || 0) + (tk.output || 0) + (tk.cacheWrite || 0), cache = tk.cacheRead || 0, all = fresh + cache;
     const head = h('div', 'stats');
     const stat = (v, l) => { const d = h('div', 'stat'); d.append(h('b', null, v), h('span', null, l)); return d; };
-    head.append(stat(fmtTok(all), 'tokens'), stat(fmtDur(t?.busyMs), 'working time'), stat(String(cur.events.length), 'events'));
+    head.append(stat(fmtTok(all), 'tokens'), stat(fmtDur(t?.busyMs), 'working time'));
+    if (!byDay) head.append(stat(String(cur.events.length), 'events'));
     sec.append(head);
 
     // New vs cache: one stacked bar, both parts labelled directly.
@@ -116,6 +163,15 @@ export function initChronicon(colorOf = () => null) {
     const models = Object.entries(t?.byModel ?? {}).map(([k, v]) => [k.replace(/^claude-/, ''), projTok(v)]).sort((a, b) => b[1] - a[1]);
     grid.append(bars('By department', projects, true), bars('By model', models, false));
     sec.append(grid);
+    // The sessions behind the numbers: top 10 by new tokens (the measure of the token alert).
+    const sessions = Object.values(t?.bySession ?? {}).map(s => [`${s.name} · ${s.dept}`, s.fresh || 0]).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    if (sessions.length) { const one = h('div', 'cols'); one.append(bars('By session (new tokens)', sessions, false)); sec.append(one); }
+    if (byDay) {
+      const week = h('div', 'cols');
+      week.append(hourly('Tokens by day', byDay.map(d => d[1]), fmtTok, 'tok', byDay.length - 1, byDay.map(d => d[0])));
+      sec.append(week);
+      return sec;
+    }
 
     const hours = Array.from({ length: 24 }, (_, i) => t?.hourly?.[i] ?? { tokens: 0, busyMs: 0 });
     const now = today ? new Date().getHours() : -1;
@@ -124,6 +180,22 @@ export function initChronicon(colorOf = () => null) {
       hourly('Working minutes by hour', hours.map(x => Math.round((x.busyMs || 0) / 60000)), v => `${v}m`, 'busy', now));
     sec.append(charts);
     return sec;
+  }
+
+  // The day report (backend chronicle/report.rs, the same text the Night Vigil can write to a folder), folded.
+  function reportSection(md) {
+    const box = h('details', 'report');
+    const copy = h('button', 'copy', 'Copy as markdown');
+    copy.type = 'button';
+    copy.onclick = e => {
+      e.preventDefault();
+      navigator.clipboard.writeText(md).then(() => { copy.textContent = 'Copied'; }, () => { copy.textContent = 'Copy failed'; });
+      setTimeout(() => { copy.textContent = 'Copy as markdown'; }, 2000);
+    };
+    const sum = h('summary', null, 'Day report');
+    sum.append(copy);
+    box.append(sum, h('pre', null, reportText(md)));
+    return box;
   }
 
   function bars(title, rows, swatch) {
@@ -146,21 +218,24 @@ export function initChronicon(colorOf = () => null) {
   }
 
   // 24 bars, one per hour; peak labelled directly, every bar has a hover title.
-  function hourly(title, vals, fmt, cls, now) {
+  // `labels`: one per bar (the week's days); none: 24 hours.
+  function hourly(title, vals, fmt, cls, now, labels = null) {
     const box = h('div', `hours ${cls}`), max = Math.max(...vals), peak = vals.indexOf(max);
-    box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} at ${pad2(peak)}h` : 'none'));
+    const at = i => (labels ? labels[i] : `${pad2(i)}h`);
+    box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} ${labels ? 'on' : 'at'} ${at(peak)}` : 'none'));
     const plot = h('div', 'plot');
+    if (labels) plot.style.gridTemplateColumns = `repeat(${vals.length}, 1fr)`;
     plot.setAttribute('role', 'img');
-    plot.setAttribute('aria-label', `${title}: ${vals.map((v, i) => `${i}h ${fmt(v)}`).join(', ')}`);
+    plot.setAttribute('aria-label', `${title}: ${vals.map((v, i) => `${at(i)} ${fmt(v)}`).join(', ')}`);
     vals.forEach((v, i) => {
       const col = h('span', i === now ? 'now' : null), fill = h('i');
       fill.style.height = `${max ? (100 * v) / max : 0}%`;
-      col.title = `${pad2(i)}:00 · ${fmt(v)}`;
+      col.title = `${labels ? labels[i] : `${pad2(i)}:00`} · ${fmt(v)}`;
       col.append(fill);
       plot.append(col);
     });
     const axis = h('div', 'axis');
-    for (const l of ['00', '06', '12', '18', '24']) axis.append(h('span', null, l));
+    for (const l of labels ?? ['00', '06', '12', '18', '24']) axis.append(h('span', null, l));
     box.append(plot, axis);
     return box;
   }

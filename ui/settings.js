@@ -93,6 +93,11 @@ const setQuiet = (on, from, to) => {
 };
 // Night Vigil deadline (adm.vigilDeadline, minutes after midnight, '' = none): the backend reads it when the vigil is armed.
 
+// Monitoring (monitor.rs reads these adm.* strings from settings.json at start and after each save): checkboxes are
+// '1' / '0', the rest is kept as typed (empty token alert: off); the backend clamps.
+export const MONITOR = { tokenAlert: '', stuck: '1', stuckToast: '1', stuckMin: '15', stuckRepeat: '5', reportOn: '0', reportDir: '' };
+const monitorGet = k => store.get(`adm.${k}`, MONITOR[k]);
+
 // Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by viewport.js's fit().
 const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
 export const view = { scale: okScale(store.get('adm.scale')) };
@@ -177,6 +182,13 @@ export function initSettings(hooks) {
     field('login').checked = !!login;
     field('login').disabled = login === null;
     field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
+    for (const k in MONITOR) {
+      const el = field(k);
+      if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
+      else if (document.activeElement !== el) el.value = monitorGet(k);
+    }
+    field('stuckToast').disabled = field('stuckMin').disabled = field('stuckRepeat').disabled = monitorGet('stuck') !== '1';
+    field('reportDir').disabled = monitorGet('reportOn') !== '1';
   };
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
@@ -298,6 +310,7 @@ export function initSettings(hooks) {
     else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
     else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
     else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
+    else if (k in MONITOR) store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value.trim());
     else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
     sync();
@@ -320,6 +333,7 @@ export function initSettings(hooks) {
     store.set('adm.openWith', 'explorer');
     store.set('adm.updateCheck', '1');
     store.set('adm.vigilDeadline', '');
+    for (const k in MONITOR) store.set(`adm.${k}`, MONITOR[k]);
     setScale('auto'); hooks.rescaled();
     save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
     hooks.setMode('auto'); hooks.setMuted(false);
