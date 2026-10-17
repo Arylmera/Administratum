@@ -13,7 +13,7 @@ use std::{
 #[serde(rename_all = "camelCase")]
 pub struct DayReport {
     pub day: String,
-    /// Sessions seen in the day's events.
+    /// Sessions seen in the day's events or its token counts.
     pub sessions: u32,
     /// Sessions that left the hall (`left` events; the break-out room's temp sessions have none).
     pub finished: u32,
@@ -50,7 +50,8 @@ pub fn report(day: &str, t: &Tithe, events: &[Event]) -> DayReport {
     depts.sort_by(|a, b| b.tokens.cmp(&a.tokens).then_with(|| a.name.cmp(&b.name)));
     DayReport {
         day: day.into(),
-        sessions: events.iter().map(|e| e.session_id.as_str()).filter(|id| !id.is_empty()).collect::<HashSet<_>>().len() as u32,
+        // A session that only spent tokens has no event; older day files have no by_session.
+        sessions: events.iter().map(|e| e.session_id.as_str()).filter(|id| !id.is_empty()).chain(t.by_session.keys().map(String::as_str)).collect::<HashSet<_>>().len() as u32,
         finished: count("left"),
         long_tasks: count("task-done"),
         turns: depts.iter().map(|d| d.turns).sum(),
@@ -154,6 +155,10 @@ mod tests {
         assert_eq!((r.sessions, r.finished, r.long_tasks, r.turns, r.fresh, r.total, r.busy_ms), (2, 1, 1, 4, 35, 1035, 7_500_000));
         assert_eq!(r.depts.iter().map(|d| d.name.as_str()).collect::<Vec<_>>(), ["Terra", "Geneseed"], "most tokens first");
         assert_eq!(r.notable, BTreeMap::from([("commit".to_string(), 2)]));
+        let mut t = Tithe::new("2026-10-16");
+        t.by_session.insert("a".into(), Default::default());
+        t.by_session.insert("quiet".into(), Default::default());
+        assert_eq!(report("2026-10-16", &t, &[ev("commit", "a")]).sessions, 2, "a session with tokens but no event counts");
     }
 
     #[test]
@@ -172,7 +177,11 @@ mod tests {
         let missing = std::env::temp_dir().join(format!("adm-report-missing-{}", std::process::id()));
         assert!(write_capture(&missing, &day()).is_err());
         assert!(!missing.exists(), "never created");
-        assert!(write_capture(Path::new("relative"), &day()).is_err());
+        // An existing folder given relative (cargo runs tests in src-tauri/, where target/ exists): refused, not written.
+        let rel = Path::new("target");
+        assert!(rel.is_dir(), "the fixture folder exists");
+        assert!(write_capture(rel, &day()).is_err());
+        assert!(!rel.join("2026-10-16-administratum-day.md").exists());
     }
 
     #[test]

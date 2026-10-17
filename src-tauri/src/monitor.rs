@@ -24,7 +24,7 @@ pub struct Config {
 pub fn config_from(v: &Value) -> Config {
     let s = |k: &str| v[k].as_str().unwrap_or("").trim();
     let num = |k: &str, default: u32, lo: u32, hi: u32| s(k).parse().map_or(default, |n: u32| n.clamp(lo, hi));
-    let dir = s("adm.reportDir");
+    let dir = s("adm.reportDir").trim_matches('"').trim(); // Explorer's "Copy as path" adds quotes
     Config {
         token_alert: s("adm.tokenAlert").parse().ok().filter(|n| *n > 0),
         stuck: s("adm.stuck") != "0",
@@ -140,6 +140,7 @@ mod tests {
         assert_eq!(config_from(&json!({"adm.reportOn": "1", "adm.reportDir": r"D:\x"})).report_dir, Some(PathBuf::from(r"D:\x")));
         assert_eq!(config_from(&json!({"adm.reportOn": "0", "adm.reportDir": r"D:\x"})).report_dir, None, "off: never written");
         assert_eq!(config_from(&json!({"adm.reportOn": "1", "adm.reportDir": " "})).report_dir, None);
+        assert_eq!(config_from(&json!({"adm.reportOn": "1", "adm.reportDir": r#""D:\Notes\Inbox""#})).report_dir, Some(PathBuf::from(r"D:\Notes\Inbox")), "pasted with quotes");
     }
 
     fn tithe(day: &str, fresh: &[(&str, u64)]) -> Tithe {
