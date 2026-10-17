@@ -197,6 +197,22 @@ function logSection(cur) {
   return sec;
 }
 
+// The day report (backend chronicle/report.rs, the same text the Night Vigil can write to a folder), folded.
+function reportSection(md) {
+  const box = h('details', 'report');
+  const copy = h('button', 'copy', 'Copy as markdown');
+  copy.type = 'button';
+  copy.onclick = e => {
+    e.preventDefault();
+    navigator.clipboard.writeText(md).then(() => { copy.textContent = 'Copied'; }, () => { copy.textContent = 'Copy failed'; });
+    setTimeout(() => { copy.textContent = 'Copy as markdown'; }, 2000);
+  };
+  const sum = h('summary', null, 'Day report');
+  sum.append(copy);
+  box.append(sum, h('pre', null, reportText(md)));
+  return box;
+}
+
 export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
@@ -269,22 +285,6 @@ export function initChronicon(colorOf = () => null) {
     const byDay = keys.map((k, i) => [new Date(`${k}T12:00`).toLocaleDateString('en-GB', { weekday: 'short' }), total(list[i])]);
     body.replaceChildren(summary(sumTithes(list), false, byDay, null, colorOf));
     body.scrollTop = 0;
-  }
-
-  // The day report (backend chronicle/report.rs, the same text the Night Vigil can write to a folder), folded.
-  function reportSection(md) {
-    const box = h('details', 'report');
-    const copy = h('button', 'copy', 'Copy as markdown');
-    copy.type = 'button';
-    copy.onclick = e => {
-      e.preventDefault();
-      navigator.clipboard.writeText(md).then(() => { copy.textContent = 'Copied'; }, () => { copy.textContent = 'Copy failed'; });
-      setTimeout(() => { copy.textContent = 'Copy as markdown'; }, 2000);
-    };
-    const sum = h('summary', null, 'Day report');
-    sum.append(copy);
-    box.append(sum, h('pre', null, reportText(md)));
-    return box;
   }
 
   listen('chronicle', ({ payload: e }) => {
