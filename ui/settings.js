@@ -197,6 +197,15 @@ function initUpdates(form, opener) {
   }
 }
 
+// Categories: a side button shows its section of the form, one at a time.
+function initCategories(root, form) {
+  const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
+  for (const b of cats) b.onclick = () => {
+    for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
+    for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
+  };
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -331,12 +340,7 @@ export function initSettings(hooks) {
     else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
     sync();
   };
-  // Categories: a side button shows its section of the form, one at a time.
-  const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
-  for (const b of cats) b.onclick = () => {
-    for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
-    for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
-  };
+  initCategories(root, form);
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
   form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
