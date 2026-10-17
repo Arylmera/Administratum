@@ -179,7 +179,7 @@ sprite over the contact shadow it gets in the hall.
 ```sh
 node ui/art.test.mjs && node ui/sprites.test.mjs
 node tools/sprite_sheet.mjs                     # regenerates docs/sprites/
-node tools/sprite_sheet.mjs --theme cyber       # and orbital, tower, vault, darwin: each theme with its own art
+node tools/sprite_sheet.mjs --theme cyber       # and each other theme with its own art folder under ui/art/
 ```
 
 `docs/sprites/` is the committed gallery used to discuss sprites one by one: one GitHub issue per family (Sprite
@@ -189,7 +189,7 @@ board), each sprite linking to a prefilled new issue. Design notes:
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
 `watch_art.mjs` / `suzerain_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/` and
-`suzerain_art/`) the generators of the break-out room, Watchman and Suzerain (dais and link) art, `map_to_art.mjs` / `sheet_writer.mjs` / `png_write.mjs` art conversion helpers, `adm.mjs` the
+`suzerain_art/`, each with a shared `kit.mjs` of the stamping helpers) the generators of the break-out room, Watchman and Suzerain (dais and link) art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
 command-line client of the running app, `make_icon.py` the app icon.
 
 ---
