@@ -188,8 +188,8 @@ board), each sprite linking to a prefilled new issue. Design notes:
 
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
-`watch_art.mjs` (one module per theme or world under `breakout_art/` and `watch_art/`) the generators of the
-break-out room and Watchman art, `map_to_art.mjs` / `sheet_writer.mjs` / `png_write.mjs` art conversion helpers, `adm.mjs` the
+`watch_art.mjs` / `suzerain_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/` and
+`suzerain_art/`) the generators of the break-out room, Watchman and Suzerain (dais and link) art, `map_to_art.mjs` / `sheet_writer.mjs` / `png_write.mjs` art conversion helpers, `adm.mjs` the
 command-line client of the running app, `make_icon.py` the app icon.
 
 ---

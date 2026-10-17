@@ -125,8 +125,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/orbital/skull.png`, drawn by scene.js, scene39.js | <img src="orbital/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/orbital/skull.png` | <img src="orbital/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/orbital/petitions.png`, drawn by actors.js | <img src="orbital/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/orbital/petitions.png`, drawn by actors.js, scene39.js | <img src="orbital/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/orbital/petitions.png`, drawn by actors.js, scene39.js | <img src="orbital/SCROLL_HELD.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/orbital/petitions.png`, drawn by actors.js | <img src="orbital/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/orbital/petitions.png`, drawn by actors.js | <img src="orbital/SCROLL_HELD.png" height="56"> |
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/orbital/fire.png`, drawn by scene.js, scene39.js | <img src="orbital/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/orbital/fire.png`, drawn by scene.js | <img src="orbital/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/orbital/commits.png`, drawn by scene.js | <img src="orbital/COMMIT_SEAL.png" height="60"> |
@@ -140,6 +140,11 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/orbital/breakout.png`, drawn by (not referenced by name) | <img src="orbital/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/orbital/breakout.png`, drawn by scene.js, scene39.js | <img src="orbital/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/orbital/breakout.png`, drawn by scene.js | <img src="orbital/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
+| <a id="dais"></a>`DAIS` | 40×27 | Suzerain dais under a desk: a session that forked live child sessions. Source: `ui/art/orbital/suzerain.png`, drawn by scene.js | <img src="orbital/DAIS.png" height="160"> |
+| <a id="dais_c"></a>`DAIS_C` | 30×27 | Suzerain dais under a lectern (crowded hall). Source: `ui/art/orbital/suzerain.png`, drawn by scene.js | <img src="orbital/DAIS_C.png" height="160"> |
+| <a id="link_h"></a>`LINK_H` | 4×3 | Suzerain link tile, across: from the dais to a forked child. Source: `ui/art/orbital/suzerain.png`, drawn by (not referenced by name) | <img src="orbital/LINK_H.png" height="24"> |
+| <a id="link_v"></a>`LINK_V` | 3×4 | Suzerain link tile, down. Source: `ui/art/orbital/suzerain.png`, drawn by (not referenced by name) | <img src="orbital/LINK_V.png" height="32"> |
+| <a id="link_end"></a>`LINK_END` | 5×4 | Suzerain link end at the child's feet. Source: `ui/art/orbital/suzerain.png`, drawn by (not referenced by name) | <img src="orbital/LINK_END.png" height="32"> |
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/orbital/refectorium.png`, drawn by actors.js | <img src="orbital/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/orbital/workstations.png`, drawn by (not referenced by name) | <img src="orbital/SHELL_COG.png" height="48"> |
 

@@ -190,6 +190,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe queued behind the petitioners with a question scroll, parchment label `question` | **Question**: the turn ended on a question to you. It queues like a petition, behind the real ones, with a toast and a softer chime; the header counter turns parchment-coloured when only questions wait. Both can be turned off in Settings > Petitions |
 | Beacon on the Sanctum wall sweeping red, servo-skull hovering by the petitioner, header counter flashing | The petition has waited past the stale mark (5 min). You get a second toast and a different chime |
 | Small grey figures at consoles in the department | **Adepts**: the session's active subagents, four consoles per desk slot. One leaves when the parent transcript reports it completed, or when its own transcript has been quiet for 10 min |
+| Desk on a dais, a cable on the floor from it to other scribes' feet | **Suzerain**: a session that forked real child sessions (Claude Code desktop's `start_session`). Its children sit in its department, wherever their own folder is, and the cable runs to each; a pulse runs down it while the Suzerain works. Each world draws its own: a Mechanicus plinth and data cable, a neon plate and optic fibre, a command deck and umbilical, a rune circle and arcane thread, the Overseer's platform and a Vault-Tec pipe, a Persian rug and a hemp rope. Plain subagents stay adepts |
 | Paper piled on the desk | The session's context. The desk is full at 50 % of the model's window. Past that, sheets fall around the desk and spread over the department floor. Red sheets from 90 % |
 | Scribe carrying its pile to a brazier at the gate and burning it | **Compaction**: the session's context was compacted. If the scribe is away from its desk, the pile goes up in a puff instead |
 | Gilded robe / plain red robe / faded robe | **Model rank**: Opus or Fable = *Magos*, Sonnet and others = *Tech-priest*, Haiku = *Novice*. Adepts carry the same marks |
@@ -271,7 +272,8 @@ drag the header.
 - The card shows the scribe's name and department, state and time in state, context (`184k / 200k (92%)`),
   model and rank, the last task line, the turn (`Turn · 4 min · 23 tools · 5 files`, then the files it changed),
   and the project path. An adept's card shows its subagent type, its owner,
-  model, context and task.
+  model, context and task. A Suzerain's card lists its forked children (`Suzerain of: …`), a child's names its
+  parent (`Summoned by …`); click a name to open that session's card.
 - **Open in Orca** switches Orca to the session's terminal. It is shown only for sessions started inside Orca,
   which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process.
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
