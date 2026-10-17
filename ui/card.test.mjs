@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { answerable, answerCall, kinOf, stuckLine } from './card.js';
+import { answerable, answerCall, kinOf, lineageOf, stuckLine } from './card.js';
 
 // Claude Code: a permission prompt in an Orca terminal.
 const claude = { id: 's1', status: 'waiting', source: 'claude', orca: 'term_ab', waitingFor: 'approve Bash' };
@@ -23,6 +23,14 @@ const roster = [lord, ...kids, other];
 assert.deepEqual(kinOf(lord, roster), { parent: undefined, children: kids });
 assert.deepEqual(kinOf(kids[0], roster), { parent: lord, children: [] });
 assert.deepEqual(kinOf(other, roster), { parent: undefined, children: [] });
+// The lineage: the Suzerain and its live children, with today's tokens summed (a missing count is 0).
+const tok = [{ id: 'p', tokensToday: 100 }, { id: 'a', parent: 'p', tokensToday: 20 }, { id: 'b', parent: 'p' }, { id: 'c', parent: 'a', tokensToday: 5 }, other];
+assert.deepEqual(lineageOf(tok[0], tok), { root: tok[0], children: [tok[1], tok[2]], tokens: 120 });
+assert.deepEqual(lineageOf(tok[2], tok), { root: tok[0], children: [tok[1], tok[2]], tokens: 120 }, "a child's card shows its parent's lineage");
+assert.deepEqual(lineageOf(tok[3], tok), { root: tok[1], children: [tok[3]], tokens: 25 }, 'immediate links only: a grandchild sees its own parent');
+assert.deepEqual(lineageOf(tok[1], tok), { root: tok[1], children: [tok[3]], tokens: 25 }, 'a child that forks shows its own tree');
+assert.equal(lineageOf(other, tok), null, 'orphan: no lineage');
+assert.equal(lineageOf({ id: 'z' }, tok), null, 'a plain scribe');
 console.log('card ok');
 
 // A stuck session (monitor.rs): silent since its last write, or looping on one call.

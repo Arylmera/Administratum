@@ -433,6 +433,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 }
                 c.maybe_flush(now, from_transcripts);
                 first = false;
+                for s in roster.iter_mut() {
+                    s.tokens_today = c.tokens_today(&s.id, now);
+                }
             }
             let cfg = monitor::get();
             for s in roster.iter_mut() {

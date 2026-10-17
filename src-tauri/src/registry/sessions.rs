@@ -168,6 +168,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             opencode_request: None,
             opencode_asker: None,
             parent: None,
+            tokens_today: None,
             stuck: None,
         });
     }

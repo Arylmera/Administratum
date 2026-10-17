@@ -272,8 +272,9 @@ drag the header.
 - The card shows the scribe's name and department, state and time in state, context (`184k / 200k (92%)`),
   model and rank, the last task line, the turn (`Turn · 4 min · 23 tools · 5 files`, then the files it changed),
   and the project path. An adept's card shows its subagent type, its owner,
-  model, context and task. A Suzerain's card lists its forked children (`Suzerain of: …`), a child's names its
-  parent (`Summoned by …`); click a name to open that session's card.
+  model, context and task. A Suzerain's card lists its forked children (`Suzerain of: …`), each with its state
+  and the tokens it spent today, a child's names its parent (`Summoned by …`); both end with the lineage's total
+  (`Lineage today: 6.1M tokens`, the parent and its live children). Click a name to open that session's card.
 - **Open in Orca** switches Orca to the session's terminal. It is shown only for sessions started inside Orca,
   which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process.
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
@@ -335,6 +336,11 @@ Watch the hall from a tablet or phone on the same network, in its browser:
    see [macOS](#what-differs-on-macos).
 3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
    the link is then remembered in a cookie.
+
+On a phone (a screen 640 px wide or less) the link opens a light page instead: the petitions waiting (read only:
+answer them on the PC), the Night Vigil (with Arm / Cancel when remote actions are allowed), every session with
+its state and tokens today (forked children under their Suzerain), and today's Chronicon totals, in the theme's
+colours. Its **Full hall** link opens the hall.
 
 The remote page shows the same hall, cards and Chronicon, live. It keeps its own lighting, scale, theme, view and
 chime; the PC's settings are shown read only. **Allow remote actions** (off by default) lets a paired device approve

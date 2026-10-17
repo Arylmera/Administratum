@@ -54,6 +54,15 @@ Applied at once (start, stop, port change), no restart. Stored in `settings.json
 - `GET /remote.js` is `window.ADM_REMOTE = true;` so the UI knows it is remote before `app.js` runs.
   (`X-Adm-Remote: 1` is also on every response.)
 
+## Phone page
+
+`GET /mobile.html` (with `mobile.js`): an ordinary embedded file, so the same pairing and checks. `index.html`
+redirects there (`location.replace`) when it runs remote (`window.ADM_REMOTE`) on a screen 640 px wide or less,
+unless the URL has `?hall` (the page's "Full hall" link). It reads `settings_load`, `chronicle_days` and the
+`roster` / `vigil` events, and never answers or peeks at a petition (`ui/mobile.test.mjs` checks its source).
+It probes whether actions are allowed with `POST /api/vigil` and an empty body `{}` (403 when not allowed,
+else 400, never acting) and shows Arm / Cancel only then.
+
 ## Static files
 
 `GET /<path>`: the app's embedded `ui/` files (Tauri asset resolver), with their mime type. Paths are
@@ -69,7 +78,7 @@ Query values are percent-decoded.
 | Endpoint | Tauri equivalent |
 |---|---|
 | `GET /api/chronicle_day?day=YYYY-MM-DD` | `chronicle_day` -> `Event[]` |
-| `GET /api/tithe_day?day=YYYY-MM-DD` | `tithe_day` -> `Tithe` |
+| `GET /api/tithe_day?day=YYYY-MM-DD` | `tithe_day` -> `Tithe`, without `bySession` (per-session counts stay local; the roster carries `tokensToday`) |
 | `GET /api/chronicle_days` | `chronicle_days` -> `DaySummary[]` |
 | `GET /api/settings_load` | `settings_load` -> object (read only; there is no remote save) |
 | `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}` |

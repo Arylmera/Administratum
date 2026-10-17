@@ -98,6 +98,7 @@ pub fn build(rows: &[Shown], live: Option<&Live>, now_ms: i64) -> Vec<Session> {
             opencode_request: pending.map(|(p, _)| p.id.clone()),
             opencode_asker: pending.map(|(p, _)| p.session_id.clone()),
             parent: None,
+            tokens_today: None,
             ..Default::default()
         });
     }

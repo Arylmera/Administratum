@@ -39,7 +39,13 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
     remote::Backend {
         call: Box::new(move |c| match c {
             remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
-            remote::Call::TitheDay(day) => json(tithe_day(day, a.state())),
+            remote::Call::TitheDay(day) => json(tithe_day(day, a.state())).map(|mut v| {
+                // Per-session counts (old sessions' ids included) stay local: the remote reads tokensToday on the roster.
+                if let Some(o) = v.as_object_mut() {
+                    o.remove("bySession");
+                }
+                v
+            }),
             remote::Call::ChronicleDays => json(chronicle_days(a.state())),
             remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
                 // The remote (LAN) view never learns the local "open folder" program/path or the day report's folder.

@@ -66,6 +66,8 @@ pub struct Session {
     pub opencode_asker: Option<String>,
     /// The live session that forked it through Claude Code desktop (`fork_parent`), filled by the poll loop.
     pub parent: Option<String>,
+    /// Tokens it spent today, its subagents included (the Chronicon's `Tithe::by_session`), filled by the poll loop.
+    pub tokens_today: Option<u64>,
     /// Busy but making no progress (monitor.rs `stuck_of`), filled by the poll loop.
     pub stuck: Option<Stuck>,
 }

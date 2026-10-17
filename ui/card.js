@@ -17,6 +17,8 @@ const contextLine = ctx => `Context · ${ctx ? `${kM(ctx.tokens)} / ${kM(windowO
 const modelName = model => { const m = /opus|sonnet|haiku|fable/i.exec(model ?? '')?.[0].toLowerCase(); return m ? m[0].toUpperCase() + m.slice(1) : model ?? 'unrecorded'; };
 const rankLine = model => `${modelName(model)} · ${t(`rank.${rankOf(model)}`)}`;
 
+const statusOf = s => (s.background ? t('status.background') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status);
+
 export let sel = null;
 export const ago = ms => {
   if (!ms) return '—'; // missing statusUpdatedAt, not a huge elapsed time
@@ -67,7 +69,7 @@ export function renderCard() {
   const title = card.querySelector('.title');
   title.textContent = s.title ?? '';
   title.hidden = !s.title;
-  const status = s.background ? t('status.background') : a?.target?.pose === 'nap' ? t('status.napping') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status;
+  const status = a?.target?.pose === 'nap' && !s.background ? t('status.napping') : statusOf(s);
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
   card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.limit ? s.limit.text : s.task;
@@ -84,22 +86,24 @@ export function renderCard() {
 
 // A forked session's parent, or a Suzerain's children: each name selects that session's card.
 export const kinOf = (s, roster) => ({ parent: roster.find(r => r.id === s.parent), children: roster.filter(r => r.parent === s.id) });
+// The tree a card shows: s's own when it forks, else its parent's; immediate links only. Tokens: today's, summed.
+export function lineageOf(s, roster) {
+  const own = kinOf(s, roster), root = own.children.length ? s : own.parent;
+  if (!root) return null;
+  const children = root === s ? own.children : kinOf(root, roster).children;
+  return { root, children, tokens: [root, ...children].reduce((n, r) => n + (r.tokensToday ?? 0), 0) };
+}
 function renderKin(card, s) {
-  const kin = card.querySelector('.kin'), { parent, children } = kinOf(s, rosterOf());
+  const kin = card.querySelector('.kin'), roster = rosterOf(), { parent } = kinOf(s, roster), tree = lineageOf(s, roster);
   kin.replaceChildren();
-  const line = (label, list) => {
-    if (!list.length) return;
-    const row = document.createElement('div');
-    row.append(`${t(label)}: `);
-    list.forEach((r, i) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.textContent = r.name; b.onclick = () => select(r.id);
-      row.append(...(i ? [', ', b] : [b]));
-    });
-    kin.append(row);
-  };
-  line('summonedBy', parent ? [parent] : []);
-  line('summoned', children);
+  const row = (...parts) => { const d = document.createElement('div'); d.append(...parts); kin.append(d); return d; };
+  const link = r => { const b = document.createElement('button'); b.type = 'button'; b.textContent = r.name; b.onclick = () => select(r.id); return b; };
+  if (parent) row(`${t('summonedBy')}: `, link(parent));
+  if (tree?.root === s) { // a Suzerain: each child, its state and today's tokens
+    row(`${t('summoned')}:`);
+    for (const c of tree.children) row('· ', link(c), ` · ${statusOf(c)} · ${kM(c.tokensToday ?? 0)}`).className = 'child';
+  }
+  if (tree) row(`${t('lineage')}: ${kM(tree.tokens)} tokens`);
   kin.hidden = !kin.childElementCount;
 }
 

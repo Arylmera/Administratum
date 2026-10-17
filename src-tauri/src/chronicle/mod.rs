@@ -937,6 +937,12 @@ impl Chronicle {
         &self.tithe
     }
 
+    /// Today's tokens of a hall session (`Tithe::by_session`, card.js lineage); none while the live Tithe is still
+    /// yesterday's (it rolls over on the new day's first token).
+    pub fn tokens_today(&self, session: &str, now_ms: i64) -> Option<u64> {
+        (self.tithe.day == day_of(now_ms)).then(|| self.tithe.by_session.get(session).map(|s| s.total)).flatten()
+    }
+
     /// The dir and the live Tithe, so day files are read after the lock is released.
     pub fn snapshot(&self) -> (PathBuf, Tithe) {
         (self.dir.clone(), self.tithe.clone())
@@ -1316,6 +1322,9 @@ mod tests {
         assert_eq!(t.by_session["a"], SessionTithe { name: "terra-77".into(), dept: "Terra".into(), fresh: 32, total: 2032 });
         assert_eq!(t.by_session["b"].fresh, 12);
         assert_eq!(t.by_project["Terra"].tokens, 3044, "the department still counts everything");
+        assert_eq!(c.tokens_today("a", ts), Some(2032));
+        assert_eq!(c.tokens_today("a", ts + 86_400_000), None, "after midnight, before any new token: not yesterday's");
+        assert_eq!(c.tokens_today("z", ts), None);
     }
 
     #[test]

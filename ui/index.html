@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The remote view on a phone opens the light page (mobile.html); its "Full hall" link (/?hall) stays here. -->
+<script>if (window.ADM_REMOTE && matchMedia('(max-width: 640px)').matches && !new URLSearchParams(location.search).has('hall')) location.replace('/mobile.html');</script>
 <title>Administratum</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -130,7 +132,7 @@
   #card .title { font-style: italic; margin-top: -.2em; }
   #card .title[hidden] { display: none; }
   #card .meta, #card .ctx, #card .path { color: var(--paper-ink-2); }
-  #card .kin[hidden] { display: none; }
+  #card .kin[hidden] { display: none; } #card .kin .child { padding-left: 8px; }
   #card .kin button { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
   #card .links, #card .answer { display: flex; gap: .5em; margin-top: .25em; }
   #card .links[hidden], #card .links button[hidden], #card .answer[hidden], #card .answer button[hidden], #card .q[hidden], #card .err[hidden] { display: none; }

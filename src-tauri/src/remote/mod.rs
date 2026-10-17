@@ -744,8 +744,10 @@ mod tests {
     fn serves_over_http() {
         set_token(TOK);
         set_actions(false);
-        let backend =
-            || Backend { call: Box::new(|c| Ok(serde_json::json!(format!("{c:?}")))), asset: Box::new(|p| (p == "index.html").then(|| (b"<html><head></head></html>".to_vec(), "text/html".into()))) };
+        let backend = || Backend {
+            call: Box::new(|c| Ok(serde_json::json!(format!("{c:?}")))),
+            asset: Box::new(|p| (p == "index.html" || p == "mobile.html").then(|| (b"<html><head></head></html>".to_vec(), "text/html".into()))),
+        };
         let port = start("127.0.0.1:0".parse().unwrap(), backend()).unwrap();
         let send = |raw: String| {
             let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
@@ -781,6 +783,23 @@ mod tests {
         let oc = answer(r#"{"session":"ses_x","request":"per_y","choice":"yes"}"#);
         assert!(oc.starts_with("HTTP/1.1 200") && oc.contains("AnswerOpenCode"), "{oc}");
         assert!(answer(r#"{"session":"ses_x/../y","request":"per_y","choice":"yes"}"#).starts_with("HTTP/1.1 400"), "a bad id never reaches the app");
+        // The phone page's probe (ui/bridge.js remoteVigil): an empty vigil body is refused before the app is called.
+        let probe = send(format!(
+            "POST /api/vigil HTTP/1.1
+Host: 127.0.0.1:{port}
+Cookie: adm_t={TOK}
+X-Adm: 1
+Origin: http://127.0.0.1:{port}
+Content-Type: application/json
+Content-Length: 2
+Connection: close
+
+{{}}"
+        ));
+        assert!(probe.starts_with("HTTP/1.1 400") && !probe.contains("Vigil"), "{probe}");
+        // The phone page: an embedded file like the rest, flagged remote, and only with the cookie.
+        assert!(get("/mobile.html", false).starts_with("HTTP/1.1 401"));
+        assert!(get("/mobile.html", true).contains("<head><script src=\"/remote.js\"></script>"));
         // SSE: a published event reaches the stream; a new token ends it.
         let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
         s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
