@@ -90,8 +90,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="forge/ARM.png" height="64"> |
-| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="forge/ARM_L.png" height="64"> |
+| <a id="arm"></a>`ARM` | 4×8 | Scribe's right mechadendrite over the desk, lifted with the scroll when a long turn finishes (a body without arms of its own: the 40k robe). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="forge/ARM.png" height="64"> |
+| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left mechadendrite. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="forge/ARM_L.png" height="64"> |
 | <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="forge/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/workstations.png` | <img src="forge/DESK.unlit.png" height="160"> |
 | <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/workstations.png`, drawn by scene.js | <img src="forge/LECTERN.png" height="160"> |
@@ -132,8 +132,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/skull.png`, drawn by scene.js, scene39.js | <img src="forge/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/skull.png` | <img src="forge/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="forge/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js, scene39.js | <img src="forge/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js, scene39.js | <img src="forge/SCROLL_HELD.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="forge/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="forge/SCROLL_HELD.png" height="56"> |
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/fire.png`, drawn by scene.js, scene39.js | <img src="forge/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/fire.png`, drawn by scene.js | <img src="forge/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/commits.png`, drawn by scene.js | <img src="forge/COMMIT_SEAL.png" height="60"> |
@@ -147,8 +147,15 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/forge/breakout.png`, drawn by (not referenced by name) | <img src="forge/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/forge/breakout.png`, drawn by scene.js, scene39.js | <img src="forge/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/forge/breakout.png`, drawn by scene.js | <img src="forge/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
+| <a id="dais"></a>`DAIS` | 40×27 | Suzerain dais under a desk: a session that forked live child sessions. Source: `ui/art/suzerain.png`, drawn by scene.js | <img src="forge/DAIS.png" height="160"> |
+| <a id="dais_c"></a>`DAIS_C` | 30×27 | Suzerain dais under a lectern (crowded hall). Source: `ui/art/suzerain.png`, drawn by scene.js | <img src="forge/DAIS_C.png" height="160"> |
+| <a id="link_h"></a>`LINK_H` | 4×3 | Suzerain link tile, across: from the dais to a forked child. Source: `ui/art/suzerain.png`, drawn by (not referenced by name) | <img src="forge/LINK_H.png" height="24"> |
+| <a id="link_v"></a>`LINK_V` | 3×4 | Suzerain link tile, down. Source: `ui/art/suzerain.png`, drawn by (not referenced by name) | <img src="forge/LINK_V.png" height="32"> |
+| <a id="link_end"></a>`LINK_END` | 5×4 | Suzerain link end at the child's feet. Source: `ui/art/suzerain.png`, drawn by (not referenced by name) | <img src="forge/LINK_END.png" height="32"> |
 | <a id="brazier-fire"></a>`BRAZIER.fire` | 10×14 | BRAZIER: the flame licking, 4 frames (still, BRAZIER_FIRE_1 over it, still, BRAZIER_FIRE_2). Source: `ui/art/fire.png` | <img src="forge/BRAZIER.fire.png" height="112"> |
 | <a id="candles-fire"></a>`CANDLES.fire` | 12×9.5 | CANDLES: the flame licking, 4 frames (still, CANDLES_FIRE_1 over it, still, CANDLES_FIRE_2). Source: `ui/art/fire.png` | <img src="forge/CANDLES.fire.png" height="76"> |
+| <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/refectorium.png`, drawn by actors.js | <img src="forge/DOZE_Z.png" height="28"> |
+| <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/workstations.png`, drawn by (not referenced by name) | <img src="forge/SHELL_COG.png" height="48"> |
 
 ## Room tiles
 
