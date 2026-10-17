@@ -35,6 +35,8 @@ const ABOUT = {
   BREAKOUT_SIDE: 'Break-out room side rail, seen from above', BREAKOUT_POST: 'Break-out room post: corners and beside each gate',
   BREAKOUT_GATE: 'Break-out room gate, closed, in the side', BREAKOUT_GATE_OPEN: 'Break-out room gate leaf, swung open',
   BREAKOUT_GATE_FRONT: 'Break-out room gate facing the viewer (strip, 39° view)', BREAKOUT_GATE_FRONT_OPEN: 'Break-out room gate facing the viewer, open',
+  DAIS: 'Suzerain dais under a desk: a session that forked live child sessions', DAIS_C: 'Suzerain dais under a lectern (crowded hall)',
+  LINK_H: 'Suzerain link tile, across: from the dais to a forked child', LINK_V: 'Suzerain link tile, down', LINK_END: "Suzerain link end at the child's feet",
 };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
 
