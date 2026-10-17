@@ -12,7 +12,7 @@ import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
 import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, blit, sprite, half, rect } from './sprites.js';
-import { T, onTheme, hexA, rgb } from './theme.js';
+import { T, onTheme, hexA, rgb, blendInto } from './theme.js';
 import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
@@ -60,15 +60,14 @@ function bake(corners, build) {
 const box = (u0, u1, v0, v1, z0, z1) => [u0, u1].flatMap(u => [v0, v1].flatMap(v => [[u, v, z0], [u, v, z1]]));
 // The buffer in the theme's colours (over: a palette override, null hides a colour), side faces shaded as the hall's.
 function paint(buf, over) {
-  const pal = { ...T.px, ...over }, [sr, sg, sb] = T.light.shadow.split(',').map(Number);
+  const pal = { ...T.px, ...over }, shadow = T.light.shadow.split(',').map(Number);
   const cv = document.createElement('canvas');
   cv.width = buf.w; cv.height = buf.h;
   const g = cv.getContext('2d'), img = g.createImageData(buf.w, buf.h), D = img.data;
   for (let i = 0; i < buf.ch.length; i++) {
     const c = pal[buf.ch[i]];
     if (!c) continue;
-    const [r, gg, b] = rgb(c), a = buf.face[i] === 2 ? 0.2 : 0;
-    D[4 * i] = r + (sr - r) * a; D[4 * i + 1] = gg + (sg - gg) * a; D[4 * i + 2] = b + (sb - b) * a; D[4 * i + 3] = 255;
+    blendInto(D, i, rgb(c), buf.face[i] === 2 ? 0.2 : 0, shadow);
   }
   g.putImageData(img, 0, 0);
   return cv;

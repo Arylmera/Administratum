@@ -10,7 +10,7 @@ import { cellFrame } from './room.js';
 import { MAPS, PROP_AT, ROOM, RES } from './sprites.js';
 import { sheetOf, build39 } from './faces.js';
 import { aoBands } from './depth.js';
-import { T, rgb } from './theme.js';
+import { T, rgb, blendInto } from './theme.js';
 
 const SLAB_Z = 8; // a cutaway inner wall: 4 logical px, walls down (the rooms behind stay in view)
 const FOOT = 8; // the wall foot, art rows (flat: 4 logical px)
@@ -226,15 +226,14 @@ export function buildHall39(hall, day = true) {
   const { buf, shade, ox, oy, anchors } = renderHall39(hall, day);
   const pal = { ...T.px }, win = { ...T.px, ...(day ? T.ink.windowDay : T.ink.windowNight) }, RGB = new Map(), GLASS = new Map();
   const colour = (c, glass) => { const m = glass ? GLASS : RGB; let v = m.get(c); if (!v) m.set(c, v = rgb((glass ? win : pal)[c] ?? '#000000')); return v; };
-  const [sr, sg, sb] = T.light.shadow.split(',').map(Number);
+  const shadow = T.light.shadow.split(',').map(Number);
   const cv = document.createElement('canvas');
   cv.width = buf.w; cv.height = buf.h;
   const g = cv.getContext('2d'), img = g.createImageData(buf.w, buf.h), D = img.data;
   for (let i = 0; i < buf.ch.length; i++) {
     const c = buf.ch[i];
     if (c === '.' || !pal[c]) continue;
-    const [r, gg, b] = colour(c, buf.id[i] === ID.window), a = shade[i];
-    D[4 * i] = r + (sr - r) * a; D[4 * i + 1] = gg + (sg - gg) * a; D[4 * i + 2] = b + (sb - b) * a; D[4 * i + 3] = 255;
+    blendInto(D, i, colour(c, buf.id[i] === ID.window), shade[i], shadow);
   }
   g.putImageData(img, 0, 0);
   return { canvas: cv, ox, oy, anchors };
