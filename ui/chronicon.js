@@ -186,16 +186,14 @@ export function initChronicon(colorOf = () => null) {
     sec.append(bar, list);
     cur.live = e => {
       cur.events.unshift(e);
-      if (cur.events.length > LIVE_CAP) { // an always-open log stays bounded: the oldest rows go
-        cur.events.length = LIVE_CAP;
-        while (list.children.length > LIVE_CAP) list.lastElementChild.remove();
-      }
+      if (cur.events.length > LIVE_CAP) cur.events.length = LIVE_CAP; // an always-open log stays bounded: the oldest rows go
       if (![...sel.options].some(o => o.value === e.dept)) fill();
       if (cur.filter && e.dept !== cur.filter) return;
       list.querySelector('li.quiet')?.remove();
       const li = row(e);
       li.classList.add('fresh');
       list.prepend(li);
+      while (list.children.length > LIVE_CAP) list.lastElementChild.remove();
     };
     return sec;
   }
