@@ -425,6 +425,10 @@
             <label class="wide"><span>Night Vigil deadline</span><input type="time" name="vigilDeadline"></label>
             <p class="hint">At this time an armed vigil starts its two-minute countdown to shutdown, even if a session is still working. Read when the vigil is armed. Empty: no deadline.</p>
           </fieldset>
+          <fieldset data-host><legend>Monitoring</legend>
+            <label class="wide"><span>Token alert: one session past</span><input type="number" name="tokenAlert" min="0" step="100000" placeholder="off"><span class="unit">new tokens a day</span></label>
+            <p class="hint">New tokens leave out cache reads. A count you choose: the app cannot see your subscription's quota. Empty: no alert.</p>
+          </fieldset>
         </section>
         <section data-cat="scribes" hidden>
           <fieldset data-host><legend>Timing</legend>

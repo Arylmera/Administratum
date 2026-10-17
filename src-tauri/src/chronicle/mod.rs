@@ -48,6 +48,10 @@ impl Tokens {
     pub fn total(&self) -> u64 {
         self.input + self.output + self.cache_read + self.cache_write
     }
+    /// Everything but cache reads: what the token alert compares (cache reads are cheap and dwarf the rest).
+    pub fn fresh(&self) -> u64 {
+        self.input + self.output + self.cache_write
+    }
     fn minus(&self, o: &Tokens) -> Tokens {
         Tokens {
             input: self.input.saturating_sub(o.input),
@@ -65,6 +69,16 @@ pub struct Share {
     pub busy_ms: u64,
 }
 
+/// One session's tokens of the day (subagents included), for the token alert and the Chronicon.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionTithe {
+    pub name: String,
+    pub dept: String,
+    pub fresh: u64,
+    pub total: u64,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Tithe {
@@ -74,11 +88,14 @@ pub struct Tithe {
     pub by_model: BTreeMap<String, u64>,
     pub busy_ms: u64,
     pub hourly: Vec<Share>,
+    /// By session id. Added after 0.6.5: older day files have none.
+    #[serde(default)]
+    pub by_session: BTreeMap<String, SessionTithe>,
 }
 
 impl Tithe {
     pub fn new(day: &str) -> Self {
-        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24] }
+        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24], by_session: BTreeMap::new() }
     }
     fn add_tokens(&mut self, dept: &str, model: &str, t: &Tokens, hour: usize) {
         let n = t.total();
@@ -89,6 +106,13 @@ impl Tithe {
         self.by_project.entry(dept.into()).or_default().tokens += n;
         *self.by_model.entry(model.into()).or_default() += n;
         self.hourly[hour].tokens += n;
+    }
+    fn add_session(&mut self, s: &Session, t: &Tokens) {
+        let e = self.by_session.entry(s.id.clone()).or_default();
+        e.name.clone_from(&s.name);
+        e.dept.clone_from(&s.dept);
+        e.fresh += t.fresh();
+        e.total += t.total();
     }
     fn add_busy(&mut self, dept: &str, ms: u64, hour: usize) {
         self.busy_ms += ms;
@@ -698,19 +722,20 @@ impl Chronicle {
                 if self.offsets.insert(key, offset) != Some(offset) {
                     self.dirty = true;
                 }
-                self.absorb(&s.dept, found, &mut events); // subagent tokens count toward the parent's project
+                self.absorb(s, found, &mut events); // subagent tokens count toward the parent session and its project
             }
         }
         self.cursors.retain(|p, _| seen.contains(p));
         events
     }
 
-    /// Folds what one read found: events out, tokens and busy time into the Tithe of `dept`.
-    fn absorb(&mut self, dept: &str, found: Found, events: &mut Vec<Event>) {
+    /// Folds what one read found: events out, tokens and busy time into the Tithe of `s` and its department.
+    fn absorb(&mut self, s: &Session, found: Found, events: &mut Vec<Event>) {
+        let dept = &s.dept;
         let (ev, usage, turns) = found;
         events.extend(ev);
         for u in usage {
-            self.add_usage(dept, &u);
+            self.add_session_usage(s, &u);
         }
         for t in turns {
             if let Some(tithe) = self.tithe_at(t.ts) {
@@ -757,7 +782,7 @@ impl Chronicle {
                 self.seqs.insert(id.clone(), (next, now_ms));
                 self.dirty = true;
             }
-            self.absorb(&s.dept, found, &mut events); // a helper's tokens count toward its hall session's project
+            self.absorb(s, found, &mut events); // a helper's tokens count toward its hall session and its project
         }
         self.oc.retain(|id, _| family.iter().any(|(f, _, _)| f == id));
         events
@@ -789,6 +814,14 @@ impl Chronicle {
         if let Some(t) = self.tithe_at(u.ts) {
             t.add_tokens(dept, &u.model, &u.tokens, hour_of(u.ts));
             self.dirty = true;
+        }
+    }
+
+    /// `add_usage` of `s`'s department, and the same tokens on `s` itself.
+    pub fn add_session_usage(&mut self, s: &Session, u: &Usage) {
+        self.add_usage(&s.dept, u);
+        if let Some(t) = self.tithe_at(u.ts) {
+            t.add_session(s, &u.tokens);
         }
     }
 
@@ -826,6 +859,11 @@ impl Chronicle {
         save_json(&self.dir.join(format!("{}.tithe.json", self.tithe.day)), &self.tithe);
         save_json(&self.dir.join("offsets.json"), &self.offsets);
         save_json(&self.dir.join(SEQS), &self.seqs);
+    }
+
+    /// Today's live Tithe.
+    pub fn tithe(&self) -> &Tithe {
+        &self.tithe
     }
 
     /// The dir and the live Tithe, so day files are read after the lock is released.
@@ -1143,6 +1181,35 @@ mod tests {
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
         assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
         assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+    }
+
+    #[test]
+    fn old_tithe_files_still_load() {
+        let d = temp_dir("old-tithe");
+        let _ = fs::create_dir_all(&d);
+        let hourly = vec![serde_json::json!({"tokens": 0, "busyMs": 0}); 24];
+        let old = serde_json::json!({"day": "2026-10-16", "tokens": {"input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4},
+            "byProject": {"A": {"tokens": 10, "busyMs": 2}}, "byModel": {"m": 10}, "busyMs": 2, "hourly": hourly});
+        fs::write(d.join("2026-10-16.tithe.json"), old.to_string()).unwrap();
+        let t = load_tithe(&d, "2026-10-16").expect("a 0.6.5 day file loads");
+        assert_eq!((t.tokens.total(), t.by_project["A"].tokens, t.by_project["A"].busy_ms, t.by_model["m"], t.busy_ms), (10, 10, 2, 10, 2));
+        assert!(t.by_session.is_empty());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn usage_counts_per_session() {
+        let mut c = Chronicle::open(temp_dir("by-session"), now(), true);
+        let ts = now();
+        let u = |out| Usage { ts, model: "m".into(), tokens: Tokens { input: 1, output: out, cache_read: 1000, cache_write: 10 } };
+        let a = Session { name: "terra-77".into(), ..crate::registry::tests_session("a") };
+        c.add_session_usage(&a, &u(5));
+        c.add_session_usage(&a, &u(5));
+        c.add_session_usage(&crate::registry::tests_session("b"), &u(1));
+        let t = &c.tithe;
+        assert_eq!(t.by_session["a"], SessionTithe { name: "terra-77".into(), dept: "Terra".into(), fresh: 32, total: 2032 });
+        assert_eq!(t.by_session["b"].fresh, 12);
+        assert_eq!(t.by_project["Terra"].tokens, 3044, "the department still counts everything");
     }
 
     #[test]

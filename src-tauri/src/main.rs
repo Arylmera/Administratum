@@ -4,6 +4,7 @@ mod demo;
 #[cfg(windows)]
 mod firewall;
 mod git;
+mod monitor;
 mod opencode;
 mod orca;
 mod poller;
@@ -114,8 +115,8 @@ fn set_quiet(enabled: bool, from_min: u16, to_min: u16) {
 /// The toasts' wording from the active theme (toast.rs; chrome.js pushes it on start and on a theme change).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
-fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String) {
-    toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed });
+fn set_toast_text(petition: String, question: String, stale: String, needed: String, limit: String, limit_many: String, failed: String, tokens: Option<String>, stuck: Option<String>) {
+    toast::set(toast::Text { petition, question, stale, needed, limit, limit_many, failed, tokens: tokens.unwrap_or_default(), stuck: stuck.unwrap_or_default() });
 }
 
 /// "Add a desktop icon" in the settings: the installer no longer makes one (src-tauri/installer-hooks.nsh). Windows only.
@@ -178,7 +179,10 @@ fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
 
 #[tauri::command(async)]
 fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
-    settings::update(&settings_path(&app)?, |old| settings::merge_ui(&old, &values))
+    let path = settings_path(&app)?;
+    settings::update(&path, |old| settings::merge_ui(&old, &values))?;
+    monitor::set(monitor::config_from(&settings::load(&path)));
+    Ok(())
 }
 
 /// Settings > System > Updates: the installed version and the newer one on GitHub Releases, if any.
@@ -300,6 +304,7 @@ fn main() {
             let saved = settings_path(app.handle()).map(|p| settings::load(&p)).unwrap_or_default();
             let (on, from, to) = settings::quiet_from_settings(&saved);
             quiet::set(on, from, to);
+            monitor::set(monitor::config_from(&saved));
             #[cfg(target_os = "macos")]
             toast::mac::hook(app.handle()); // before the first toast: toasts shown earlier report no click
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
@@ -332,6 +337,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut poller = poller::Poller::new(&claude_dir());
     let mut opencode = opencode::Source::new();
     let mut tracker = Tracker::default();
+    let mut alerts = monitor::Alerts::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
     let mut first = true;
@@ -387,6 +393,14 @@ fn poll_loop(app: AppHandle, demo: bool) {
                         emit(&app, "chronicle", e);
                     }
                 }
+                // The first tick seeds the alerts: a session already past the mark before this start toasts no more.
+                let over = alerts.over(c.tithe(), monitor::get().token_alert);
+                if !first {
+                    for e in token_alerts(&app, over, now) {
+                        c.record(&e);
+                        emit(&app, "chronicle", &e);
+                    }
+                }
                 c.maybe_flush(now, from_transcripts);
                 first = false;
             }
@@ -408,6 +422,22 @@ fn poll_loop(app: AppHandle, demo: bool) {
         }
         thread::sleep(Duration::from_secs(1));
     }
+}
+
+/// The token alert's toasts (quiet hours respected) and their Chronicon events.
+fn token_alerts(app: &AppHandle, over: Vec<(String, chronicle::SessionTithe)>, now_ms: i64) -> Vec<Event> {
+    let words = toast::get();
+    let quiet = quiet::active();
+    over.into_iter()
+        .map(|(id, s)| {
+            let count = monitor::fmt_tokens(s.fresh);
+            if !quiet {
+                let title = toast::fill(&words.tokens, &s.name).replace("{count}", &count);
+                let _ = app.notification().builder().title(title).body(format!("{} · {count} new tokens today", s.dept)).show();
+            }
+            Event { ts: now_ms, kind: "token-alert".into(), session_id: id, name: s.name, dept: s.dept, helper: None, detail: count }
+        })
+        .collect()
 }
 
 /// This tick's toasts and UI events: new petitions, questions, stale petitions, and usage-limit waves. Returns the
