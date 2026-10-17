@@ -2,7 +2,7 @@
   "frames": {
     "RECAFF": {
       "frame": {
-        "x": 2,
+        "x": 0,
         "y": 0,
         "w": 32,
         "h": 36
@@ -10,7 +10,7 @@
     },
     "TABLE": {
       "frame": {
-        "x": 35,
+        "x": 33,
         "y": 0,
         "w": 92,
         "h": 16
@@ -18,10 +18,18 @@
     },
     "BENCH": {
       "frame": {
-        "x": 128,
+        "x": 126,
         "y": 0,
         "w": 92,
         "h": 8
+      }
+    },
+    "DOZE_Z": {
+      "frame": {
+        "x": 0,
+        "y": 37,
+        "w": 7,
+        "h": 7
       }
     }
   },
@@ -30,8 +38,8 @@
     "image": "refectorium.png",
     "format": "RGBA8888",
     "size": {
-      "w": 220,
-      "h": 36
+      "w": 218,
+      "h": 44
     },
     "palette": "key.gpl",
     "anchors": {}

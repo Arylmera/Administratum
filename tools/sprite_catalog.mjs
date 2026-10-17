@@ -54,7 +54,7 @@ export function catalog() {
   add('SCRIBE.sashes', 'Scribe (one per session)', srcOf('scribe'), theme.sash.map(y => ({ rows: SCRIBE.down[0], over: { y } })), false, 'Department colours (theme sash), one per project');
   for (const r of RANKS) for (const dir of ['down', 'up', 'right', 'left']) add(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', srcOf('adept'), ADEPT[dir].map(rows => ({ rows, over: theme.rank[r].adept })), true, `${theme.text.rank[r]} adept, walking ${dir}, 3 frames`);
 
-  // The subagent kind's mark (sprites.js marked), base adept only: chest screen from the front, back plate from behind.
+  // The subagent kind's mark (sprites.js marked), where the adept's own sheet draws glyphs: seen from the front and from behind.
   const KINDS = ['explore', 'plan', 'general', 'custom'], kinds = (name, F, A, faces, src) => {
     if (Object.keys(F.marks ?? {}).length) add(`${name}.kinds`, name === 'ADEPT' ? 'Adept (one per subagent)' : '39° characters', src, faces.flatMap(f => KINDS.map(k => ({ rows: marked(F[f][0], F, A, f, k), over: name === 'ADEPT' ? theme.rank.standard.adept : {} }))), false, `Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing ${faces.join(', then ')}`);
   };

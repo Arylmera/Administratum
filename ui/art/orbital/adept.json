@@ -71,6 +71,38 @@
         "w": 24,
         "h": 28
       }
+    },
+    "glyph explore": {
+      "frame": {
+        "x": 0,
+        "y": 29,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "glyph plan": {
+      "frame": {
+        "x": 11,
+        "y": 29,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "glyph general": {
+      "frame": {
+        "x": 22,
+        "y": 29,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "glyph custom": {
+      "frame": {
+        "x": 33,
+        "y": 29,
+        "w": 10,
+        "h": 5
+      }
     }
   },
   "meta": {
@@ -79,9 +111,18 @@
     "format": "RGBA8888",
     "size": {
       "w": 224,
-      "h": 28
+      "h": 34
     },
     "palette": "key.gpl",
-    "anchors": {}
+    "anchors": {
+      "glyph down": [
+        7,
+        13
+      ],
+      "glyph up": [
+        7,
+        13
+      ]
+    }
   }
 }

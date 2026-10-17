@@ -165,22 +165,24 @@ assert.ok(MAGOS.claw && MAGOS39.claw, 'the base Magos has its claw in both views
 assert.deepEqual(['Explore', 'explore', 'PLAN', 'general-purpose', 'code-explorer', 'my-agent', 'agent', undefined, null].map(markOf),
   ['explore', 'explore', 'plan', 'general', 'custom', 'custom', 'custom', 'custom', 'custom']);
 const KINDS = ['explore', 'plan', 'general', 'custom'];
-for (const [F, A, faces] of [[ADEPT, ADEPT_AT, ['down', 'up']], [ADEPT39, ADEPT39_AT, ['S', 'E', 'N', 'W']]]) for (const f of faces) {
+const kindsDrawn = tag => { for (const [F, A, faces] of [[ADEPT, ADEPT_AT, ['down', 'up']], [ADEPT39, ADEPT39_AT, ['S', 'E', 'N', 'W']]]) for (const f of faces) {
   const by = KINDS.map(k => marked(F[f][0], F, A, f, k)), at = A[`glyph ${f}`], g = F.marks['glyph plan'];
-  assert.equal(new Set([F[f][0], ...by].map(m => m.join('|'))).size, 5, `${f}: each kind its own glyph, none the plain frame`);
-  assert.equal(marked(F[f][0], F, A, f, 'explore'), by[0], `${f}: one map per frame and kind (the sprite cache's identity)`);
-  g.forEach((row, j) => assert.equal(by[1][at.y * RES + j].slice(at.x * RES, at.x * RES + row.length), row, `${f}: the plan glyph at its anchor`));
-}
+  assert.equal(new Set([F[f][0], ...by].map(m => m.join('|'))).size, 5, `${tag} ${f}: each kind its own glyph, none the plain frame`);
+  assert.equal(marked(F[f][0], F, A, f, 'explore'), by[0], `${tag} ${f}: one map per frame and kind (the sprite cache's identity)`);
+  g.forEach((row, j) => [...row].forEach((c, i) => c === '.' || assert.equal(by[1][at.y * RES + j][at.x * RES + i], c, `${tag} ${f}: the plan glyph at its anchor`))); // '.' leaves the body
+} };
+kindsDrawn('tier2');
+const basePlan = [ADEPT.marks['glyph plan'], ADEPT39.marks['glyph plan']];
 assert.equal(marked(ADEPT.right[0], ADEPT, ADEPT_AT, 'right', 'explore'), ADEPT.right[0], 'the side view: no glyph');
 const adept = kind => ({ h: { kind }, x: 50, y: 50, pose: 'console', target: { dir: 'up' } }); // at its console, its back to us
 assert.equal(bodyOf(adept('Plan')).map, marked(ADEPT.up[0], ADEPT, ADEPT_AT, 'up', 'plan'), 'a Plan adept wears the plan glyph');
 assert.equal(bodyOf39(adept('reviewer')).map, marked(ADEPT39.N[0], ADEPT39, ADEPT39_AT, 'N', 'custom'), 'a custom agent the generic one (39°)');
 setTheme('forge');
 assert.equal(Object.keys(ADEPT.marks).length, 4, 'forge: a palette-only theme wears the base glyphs');
-for (const id of ['cyber', 'orbital', 'tower', 'vault']) { // a world's own adept is never marked with the 40k glyphs
+for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin']) { // a world's own adept wears its own glyphs, never the 40k ones
   setTheme(id);
-  assert.deepEqual([Object.keys(ADEPT.marks), Object.keys(ADEPT39.marks ?? {})], [[], []], `${id}: no base glyphs`);
-  assert.equal(marked(ADEPT.down[0], ADEPT, ADEPT_AT, 'down', 'explore'), ADEPT.down[0], `${id}: its own adept as drawn`);
+  assert.notDeepEqual([ADEPT.marks['glyph plan'], ADEPT39.marks['glyph plan']], basePlan, `${id}: its own glyphs`);
+  kindsDrawn(id);
 }
 setTheme('tier2');
 // the floor's grate variants likewise: mixed in where the floor is the base one, dropped where a world redraws its floor
