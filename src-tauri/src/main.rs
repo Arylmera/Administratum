@@ -360,8 +360,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 let mut c = lock(&chron);
                 let mut events = if demo {
                     let t = start.elapsed().as_secs();
-                    for (dept, u) in demo::usage(&roster, now) {
-                        c.add_usage(&dept, &u);
+                    for (dept, id, u) in demo::usage(&roster, now) {
+                        c.add_usage(&dept, &id, &u);
                     }
                     c.add_busy(&roster, elapsed, now);
                     let ev = demo::chronicle(last_t, t, &roster, now);
@@ -389,6 +389,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 }
                 c.maybe_flush(now, from_transcripts);
                 first = false;
+                for s in roster.iter_mut() {
+                    s.tokens_today = c.tokens_today(&s.id);
+                }
             }
             for s in roster.iter_mut() {
                 s.turn = turns.remove(&s.id);

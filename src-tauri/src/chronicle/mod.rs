@@ -72,15 +72,18 @@ pub struct Tithe {
     pub tokens: Tokens,
     pub by_project: BTreeMap<String, Share>,
     pub by_model: BTreeMap<String, u64>,
+    /// Tokens per hall session id (its subagents and helpers included): a Suzerain's lineage total (card.js).
+    #[serde(default)]
+    pub by_session: BTreeMap<String, u64>,
     pub busy_ms: u64,
     pub hourly: Vec<Share>,
 }
 
 impl Tithe {
     pub fn new(day: &str) -> Self {
-        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24] }
+        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), by_session: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24] }
     }
-    fn add_tokens(&mut self, dept: &str, model: &str, t: &Tokens, hour: usize) {
+    fn add_tokens(&mut self, dept: &str, session: &str, model: &str, t: &Tokens, hour: usize) {
         let n = t.total();
         self.tokens.input += t.input;
         self.tokens.output += t.output;
@@ -88,6 +91,7 @@ impl Tithe {
         self.tokens.cache_write += t.cache_write;
         self.by_project.entry(dept.into()).or_default().tokens += n;
         *self.by_model.entry(model.into()).or_default() += n;
+        *self.by_session.entry(session.into()).or_default() += n;
         self.hourly[hour].tokens += n;
     }
     fn add_busy(&mut self, dept: &str, ms: u64, hour: usize) {
@@ -698,19 +702,19 @@ impl Chronicle {
                 if self.offsets.insert(key, offset) != Some(offset) {
                     self.dirty = true;
                 }
-                self.absorb(&s.dept, found, &mut events); // subagent tokens count toward the parent's project
+                self.absorb(&s.dept, &s.id, found, &mut events); // subagent tokens count toward the parent's project and session
             }
         }
         self.cursors.retain(|p, _| seen.contains(p));
         events
     }
 
-    /// Folds what one read found: events out, tokens and busy time into the Tithe of `dept`.
-    fn absorb(&mut self, dept: &str, found: Found, events: &mut Vec<Event>) {
+    /// Folds what one read found: events out, tokens and busy time into the Tithe of `dept` (tokens also of `session`).
+    fn absorb(&mut self, dept: &str, session: &str, found: Found, events: &mut Vec<Event>) {
         let (ev, usage, turns) = found;
         events.extend(ev);
         for u in usage {
-            self.add_usage(dept, &u);
+            self.add_usage(dept, session, &u);
         }
         for t in turns {
             if let Some(tithe) = self.tithe_at(t.ts) {
@@ -757,7 +761,7 @@ impl Chronicle {
                 self.seqs.insert(id.clone(), (next, now_ms));
                 self.dirty = true;
             }
-            self.absorb(&s.dept, found, &mut events); // a helper's tokens count toward its hall session's project
+            self.absorb(&s.dept, &s.id, found, &mut events); // a helper's tokens count toward its hall session and its project
         }
         self.oc.retain(|id, _| family.iter().any(|(f, _, _)| f == id));
         events
@@ -785,9 +789,9 @@ impl Chronicle {
         }
     }
 
-    pub fn add_usage(&mut self, dept: &str, u: &Usage) {
+    pub fn add_usage(&mut self, dept: &str, session: &str, u: &Usage) {
         if let Some(t) = self.tithe_at(u.ts) {
-            t.add_tokens(dept, &u.model, &u.tokens, hour_of(u.ts));
+            t.add_tokens(dept, session, &u.model, &u.tokens, hour_of(u.ts));
             self.dirty = true;
         }
     }
@@ -826,6 +830,11 @@ impl Chronicle {
         save_json(&self.dir.join(format!("{}.tithe.json", self.tithe.day)), &self.tithe);
         save_json(&self.dir.join("offsets.json"), &self.offsets);
         save_json(&self.dir.join(SEQS), &self.seqs);
+    }
+
+    /// Today's tokens of a hall session (`Tithe::by_session`).
+    pub fn tokens_today(&self, session: &str) -> Option<u64> {
+        self.tithe.by_session.get(session).copied()
     }
 
     /// The dir and the live Tithe, so day files are read after the lock is released.
@@ -1123,26 +1132,34 @@ mod tests {
         let mut c = Chronicle::open(temp_dir("tithe"), now(), true);
         let ts = now();
         let u = |out| Usage { ts, model: "claude-opus-5-5".into(), tokens: Tokens { input: 1, output: out, cache_read: 10, cache_write: 100 } };
-        c.add_usage("Terra", &u(5));
-        c.add_usage("Geneseed", &u(6));
+        c.add_usage("Terra", "s1", &u(5));
+        c.add_usage("Geneseed", "s2", &u(6));
+        c.add_usage("Geneseed", "s2", &u(1));
         let s = |id: &str, dept: &str, status: &str| Session { dept: dept.into(), status: status.into(), ..crate::registry::tests_session(id) };
         c.add_busy(&[s("a", "Terra", "busy"), s("b", "Terra", "shell"), s("c", "Geneseed", "waiting"), s("d", "Geneseed", "idle")], 1000, ts);
         let t = tithe_of(&c.dir, &c.tithe, &day_of(ts));
-        assert_eq!(t.tokens, Tokens { input: 2, output: 11, cache_read: 20, cache_write: 200 });
+        assert_eq!(t.tokens, Tokens { input: 3, output: 12, cache_read: 30, cache_write: 300 });
         assert_eq!(t.by_project["Terra"], Share { tokens: 116, busy_ms: 2000 });
-        assert_eq!(t.by_project["Geneseed"], Share { tokens: 117, busy_ms: 0 });
-        assert_eq!(t.by_model["claude-opus-5-5"], 233);
+        assert_eq!(t.by_project["Geneseed"], Share { tokens: 229, busy_ms: 0 });
+        assert_eq!(t.by_model["claude-opus-5-5"], 345);
+        assert_eq!(t.by_session, BTreeMap::from([("s1".into(), 116), ("s2".into(), 229)]));
         assert_eq!(t.busy_ms, 2000);
-        assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 233, busy_ms: 2000 });
+        assert_eq!(t.hourly[hour_of(ts)], Share { tokens: 345, busy_ms: 2000 });
         assert_eq!(t.hourly.len(), 24);
         let json = serde_json::to_value(&t).unwrap();
-        assert_eq!(json["tokens"]["cacheRead"], 20);
+        assert_eq!(json["tokens"]["cacheRead"], 30);
         assert_eq!(json["byProject"]["Terra"]["busyMs"], 2000);
+        assert_eq!(json["bySession"]["s2"], 229);
         // Persisted and resumed by the next open of the same day.
         c.flush();
         let again = Chronicle::open(c.dir().to_path_buf(), now(), false);
         assert_eq!(tithe_of(&again.dir, &again.tithe, &day_of(ts)), t);
-        assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 233, busy_ms: 2000 });
+        assert_eq!(days(&again.dir, &again.tithe, ts)[0], DaySummary { day: day_of(ts), events: 0, tokens: 345, busy_ms: 2000 });
+        // A day file written before per-session counts still loads.
+        let mut old = serde_json::to_value(&t).unwrap();
+        old.as_object_mut().unwrap().remove("bySession");
+        fs::write(c.dir().join(format!("{}.tithe.json", day_of(ts))), old.to_string()).unwrap();
+        assert!(load_tithe(c.dir(), &day_of(ts)).is_some_and(|t| t.by_session.is_empty()));
     }
 
     #[test]
@@ -1153,7 +1170,7 @@ mod tests {
         let saved = d.join("offsets.json");
         c.maybe_flush(t + FLUSH_MS, true);
         assert!(!saved.exists(), "idle: no write, even after events");
-        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.add_usage("Terra", "s1", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
         c.maybe_flush(t + 2 * FLUSH_MS, false);
         assert!(saved.exists());
         fs::remove_file(&saved).unwrap();
@@ -1167,7 +1184,7 @@ mod tests {
         let t = now();
         let mut c = Chronicle::open(d.clone(), t, true);
         let saved = d.join("offsets.json");
-        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.add_usage("Terra", "s1", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
         c.maybe_flush(t + 1_000, false);
         assert!(!saved.exists(), "tokens only: wait for the 30 s");
         c.maybe_flush(t + 2_000, true);
@@ -1292,6 +1309,7 @@ mod tests {
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
         let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
         assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000 }, "subagent tokens go to the parent's project, its turns add no time");
+        assert_eq!(tithe.by_session["s1"], 7, "and to the parent session");
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
         assert!(files(&mut c).is_empty(), "nothing new");
         for e in &ev {

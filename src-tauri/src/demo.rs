@@ -124,13 +124,13 @@ pub fn chronicle(from: u64, to: u64, roster: &[Session], now_ms: i64) -> Vec<Eve
 }
 
 /// One tick of token spend for every working scribe, so the demo Tithe grows.
-pub fn usage(roster: &[Session], now_ms: i64) -> Vec<(String, Usage)> {
+pub fn usage(roster: &[Session], now_ms: i64) -> Vec<(String, String, Usage)> {
     roster
         .iter()
         .filter(|s| s.status == "busy" || s.status == "shell")
         .map(|s| {
             let model = s.context.as_ref().map_or(OPUS.to_string(), |c| c.model.clone());
-            (s.dept.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 } })
+            (s.dept.clone(), s.id.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 } })
         })
         .collect()
 }
@@ -214,7 +214,7 @@ mod tests {
     #[test]
     fn demo_usage_comes_from_working_scribes() {
         let u = usage(&roster(5), 7);
-        assert!(u.iter().any(|(dept, _)| dept == "Terra"));
-        assert!(u.iter().all(|(dept, _)| dept != "Geneseed"), "idle/waiting scribes spend nothing");
+        assert!(u.iter().any(|(dept, _, _)| dept == "Terra"));
+        assert!(u.iter().all(|(dept, _, _)| dept != "Geneseed"), "idle/waiting scribes spend nothing");
     }
 }
