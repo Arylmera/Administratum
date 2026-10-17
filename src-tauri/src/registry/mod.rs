@@ -112,6 +112,13 @@ pub struct TurnSummary {
     pub more_files: u32,
 }
 
+impl TurnSummary {
+    /// Whether a prompt or tool call has been read for this turn.
+    pub fn started(&self) -> bool {
+        self.started_ms.is_some() || self.tools > 0
+    }
+}
+
 /// A plain idle session for other modules' tests.
 #[cfg(test)]
 pub fn tests_session(id: &str) -> Session {

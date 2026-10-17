@@ -463,7 +463,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
                 emit(app, "limit", loud.len());
             }
             for s in &wave {
-                limit_events.push(Event { ts: now_ms, kind: "limit".into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail: time.clone() });
+                limit_events.push(Event::for_session(now_ms, "limit", s, time.clone()));
             }
         }
     }

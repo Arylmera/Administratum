@@ -25,6 +25,13 @@ pub struct Event {
     pub detail: String,
 }
 
+impl Event {
+    /// A session's own event (no helper).
+    pub fn for_session(ts: i64, kind: &str, s: &Session, detail: String) -> Self {
+        Event { ts, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Tokens {
@@ -626,7 +633,7 @@ pub fn feed_opencode(st: &mut OcCursor, rows: &[Msg], after: i64, min_ts: i64, s
 /// Lifecycle events between two rosters: arrived, left, petition, petition-answered, compaction
 /// (none of arrived, left, compaction for the break-out room's temp sessions).
 pub fn lifecycle(prev: &[Session], now: &[Session], now_ms: i64) -> Vec<Event> {
-    let ev = |s: &Session, kind: &str, detail: String| Event { ts: now_ms, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail };
+    let ev = |s: &Session, kind: &str, detail: String| Event::for_session(now_ms, kind, s, detail);
     let ask = |s: &Session| s.waiting_for.clone().unwrap_or_else(|| "input needed".into());
     let mut out = vec![];
     for s in now {
@@ -730,6 +737,16 @@ fn write_atomic(path: &Path, text: &str) {
     }
 }
 
+fn load_json<T: serde::de::DeserializeOwned + Default>(p: &Path) -> T {
+    fs::read_to_string(p).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+}
+
+fn save_json<T: Serialize>(p: &Path, v: &T) {
+    if let Ok(t) = serde_json::to_string(v) {
+        write_atomic(p, &t);
+    }
+}
+
 fn load_tithe(dir: &Path, day: &str) -> Option<Tithe> {
     let t: Tithe = serde_json::from_str(&fs::read_to_string(dir.join(format!("{day}.tithe.json"))).ok()?).ok()?;
     (t.hourly.len() == 24).then_some(t)
@@ -760,9 +777,9 @@ impl Chronicle {
         let _ = fs::create_dir_all(&dir);
         retain_days(&dir, now_ms);
         let today_start = midnight_ms(now_ms);
-        let mut offsets: HashMap<String, u64> = fs::read_to_string(dir.join("offsets.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+        let mut offsets: HashMap<String, u64> = load_json(&dir.join("offsets.json"));
         prune_offsets(&mut offsets, today_start);
-        let mut seqs: HashMap<String, (i64, i64)> = fs::read_to_string(dir.join(SEQS)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+        let mut seqs: HashMap<String, (i64, i64)> = load_json(&dir.join(SEQS));
         prune_seqs(&mut seqs, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
@@ -809,21 +826,26 @@ impl Chronicle {
                 if self.offsets.insert(key, offset) != Some(offset) {
                     self.dirty = true;
                 }
-                let (ev, usage, turns) = found;
-                events.extend(ev);
-                for u in usage {
-                    self.add_usage(&s.dept, &u); // subagent tokens count toward the parent's project
-                }
-                for t in turns {
-                    if let Some(tithe) = self.tithe_at(t.ts) {
-                        tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
-                        self.dirty = true;
-                    }
-                }
+                self.absorb(&s.dept, found, &mut events); // subagent tokens count toward the parent's project
             }
         }
         self.cursors.retain(|p, _| seen.contains(p));
         events
+    }
+
+    /// Folds what one read found: events out, tokens and busy time into the Tithe of `dept`.
+    fn absorb(&mut self, dept: &str, found: Found, events: &mut Vec<Event>) {
+        let (ev, usage, turns) = found;
+        events.extend(ev);
+        for u in usage {
+            self.add_usage(dept, &u);
+        }
+        for t in turns {
+            if let Some(tithe) = self.tithe_at(t.ts) {
+                tithe.add_busy(dept, t.ms, hour_of(t.ts));
+                self.dirty = true;
+            }
+        }
     }
 
     /// Each live session's current turn (from its main transcript's cursor), by session id; none before a first prompt
@@ -834,7 +856,7 @@ impl Chronicle {
             .filter_map(|(id, fs)| {
                 let (f, _) = fs.iter().find(|(_, sub)| !sub)?;
                 let (cur, _) = self.cursors.get(&f.path)?;
-                (cur.turn.started_ms.is_some() || cur.turn.tools > 0).then(|| (id.clone(), cur.turn.clone()))
+                cur.turn.started().then(|| (id.clone(), cur.turn.clone()))
             })
             .collect()
     }
@@ -863,17 +885,7 @@ impl Chronicle {
                 self.seqs.insert(id.clone(), (next, now_ms));
                 self.dirty = true;
             }
-            let (ev, usage, turns) = found;
-            events.extend(ev);
-            for u in usage {
-                self.add_usage(&s.dept, &u); // a helper's tokens count toward its hall session's project
-            }
-            for t in turns {
-                if let Some(tithe) = self.tithe_at(t.ts) {
-                    tithe.add_busy(&s.dept, t.ms, hour_of(t.ts));
-                    self.dirty = true;
-                }
-            }
+            self.absorb(&s.dept, found, &mut events); // a helper's tokens count toward its hall session's project
         }
         self.oc.retain(|id, _| family.iter().any(|(f, _, _)| f == id));
         events
@@ -881,7 +893,7 @@ impl Chronicle {
 
     /// Each OpenCode hall session's current turn, by session id (as `turns`).
     pub fn opencode_turns(&self) -> impl Iterator<Item = (String, TurnSummary)> + '_ {
-        self.oc.iter().filter(|(_, st)| st.main && (st.cur.turn.started_ms.is_some() || st.cur.turn.tools > 0)).map(|(id, st)| (id.clone(), st.cur.turn.clone()))
+        self.oc.iter().filter(|(_, st)| st.main && st.cur.turn.started()).map(|(id, st)| (id.clone(), st.cur.turn.clone()))
     }
 
     /// The Tithe of `ts`'s day, rolling over (flushing the old one, dropping offsets of files
@@ -939,15 +951,9 @@ impl Chronicle {
     }
 
     pub fn flush(&self) {
-        if let Ok(t) = serde_json::to_string(&self.tithe) {
-            write_atomic(&self.dir.join(format!("{}.tithe.json", self.tithe.day)), &t);
-        }
-        if let Ok(t) = serde_json::to_string(&self.offsets) {
-            write_atomic(&self.dir.join("offsets.json"), &t);
-        }
-        if let Ok(t) = serde_json::to_string(&self.seqs) {
-            write_atomic(&self.dir.join(SEQS), &t);
-        }
+        save_json(&self.dir.join(format!("{}.tithe.json", self.tithe.day)), &self.tithe);
+        save_json(&self.dir.join("offsets.json"), &self.offsets);
+        save_json(&self.dir.join(SEQS), &self.seqs);
     }
 
     /// The dir and the live Tithe, so day files are read after the lock is released.
