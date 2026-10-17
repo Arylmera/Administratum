@@ -267,6 +267,36 @@ function syncForm(form, field, hooks, login) {
   field('reportDir').disabled = monitorGet('reportOn') !== '1';
 }
 
+// A changed field: store it, apply it, tell the backend, then refresh the panel.
+function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
+  const el = e.target, k = el.name;
+  if (k.startsWith('remote')) { applyRemote(); return; }
+  if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
+  else if (k === 'scaleAuto') { setScale(el.checked ? 'auto' : field('scale').value); hooks.rescaled(); }
+  else if (k === 'mode') hooks.setMode(el.value);
+  else if (k === 'world') pickTheme(styles(el.value)[0].id);
+  else if (k === 'theme') pickTheme(el.value);
+  else if (k === 'view') pickView(el.value);
+  else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
+  else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
+  else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
+  else if (k === 'chime') hooks.setMuted(!el.checked);
+  else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
+  else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
+  else if (k === 'quietOn' || k === 'quietFrom' || k === 'quietTo') {
+    setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
+    pushQuiet(); hooks.quieted?.();
+  }
+  else if (k === 'vigilDeadline') store.set('adm.vigilDeadline', String(minutesOf(el.value) ?? '')); // read by the backend at arm time
+  else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
+  else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
+  else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
+  else if (k in MONITOR) store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value.trim());
+  else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
+  else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
+  sync();
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -316,34 +346,7 @@ export function initSettings(hooks) {
     const s = field('scale'); s.value = Math.min(+s.max, Math.max(+s.min, +s.value + b.dataset.step * s.step));
     setScale(s.value); hooks.rescaled(); sync();
   };
-  form.onchange = e => {
-    const el = e.target, k = el.name;
-    if (k.startsWith('remote')) { applyRemote(); return; }
-    if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
-    else if (k === 'scaleAuto') { setScale(el.checked ? 'auto' : field('scale').value); hooks.rescaled(); }
-    else if (k === 'mode') hooks.setMode(el.value);
-    else if (k === 'world') pickTheme(styles(el.value)[0].id);
-    else if (k === 'theme') pickTheme(el.value);
-    else if (k === 'view') pickView(el.value);
-    else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
-    else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
-    else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
-    else if (k === 'chime') hooks.setMuted(!el.checked);
-    else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
-    else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
-    else if (k === 'quietOn' || k === 'quietFrom' || k === 'quietTo') {
-      setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
-      pushQuiet(); hooks.quieted?.();
-    }
-    else if (k === 'vigilDeadline') store.set('adm.vigilDeadline', String(minutesOf(el.value) ?? '')); // read by the backend at arm time
-    else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
-    else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
-    else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
-    else if (k in MONITOR) store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value.trim());
-    else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
-    else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
-    sync();
-  };
+  form.onchange = e => onChange(e, { field, hooks, setPlace, readLogin, applyRemote });
   initCategories(root, form);
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
