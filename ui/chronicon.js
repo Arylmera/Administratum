@@ -82,6 +82,29 @@ function bars(title, rows, colorOf) { // colorOf: a swatch per row (dept => colo
   return box;
 }
 
+// 24 bars, one per hour; peak labelled directly, every bar has a hover title.
+// `labels`: one per bar (the week's days); none: 24 hours.
+function hourly(title, vals, fmt, cls, now, labels = null) {
+  const box = h('div', `hours ${cls}`), max = Math.max(...vals), peak = vals.indexOf(max);
+  const at = i => (labels ? labels[i] : `${pad2(i)}h`);
+  box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} ${labels ? 'on' : 'at'} ${at(peak)}` : 'none'));
+  const plot = h('div', 'plot');
+  if (labels) plot.style.gridTemplateColumns = `repeat(${vals.length}, 1fr)`;
+  plot.setAttribute('role', 'img');
+  plot.setAttribute('aria-label', `${title}: ${vals.map((v, i) => `${at(i)} ${fmt(v)}`).join(', ')}`);
+  vals.forEach((v, i) => {
+    const col = h('span', i === now ? 'now' : null), fill = h('i');
+    fill.style.height = `${max ? (100 * v) / max : 0}%`;
+    col.title = `${labels ? labels[i] : `${pad2(i)}:00`} · ${fmt(v)}`;
+    col.append(fill);
+    plot.append(col);
+  });
+  const axis = h('div', 'axis');
+  for (const l of labels ?? ['00', '06', '12', '18', '24']) axis.append(h('span', null, l));
+  box.append(plot, axis);
+  return box;
+}
+
 export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
@@ -214,29 +237,6 @@ export function initChronicon(colorOf = () => null) {
     const sum = h('summary', null, 'Day report');
     sum.append(copy);
     box.append(sum, h('pre', null, reportText(md)));
-    return box;
-  }
-
-  // 24 bars, one per hour; peak labelled directly, every bar has a hover title.
-  // `labels`: one per bar (the week's days); none: 24 hours.
-  function hourly(title, vals, fmt, cls, now, labels = null) {
-    const box = h('div', `hours ${cls}`), max = Math.max(...vals), peak = vals.indexOf(max);
-    const at = i => (labels ? labels[i] : `${pad2(i)}h`);
-    box.append(h('h3', null, title), h('span', 'peak', max ? `peak ${fmt(max)} ${labels ? 'on' : 'at'} ${at(peak)}` : 'none'));
-    const plot = h('div', 'plot');
-    if (labels) plot.style.gridTemplateColumns = `repeat(${vals.length}, 1fr)`;
-    plot.setAttribute('role', 'img');
-    plot.setAttribute('aria-label', `${title}: ${vals.map((v, i) => `${at(i)} ${fmt(v)}`).join(', ')}`);
-    vals.forEach((v, i) => {
-      const col = h('span', i === now ? 'now' : null), fill = h('i');
-      fill.style.height = `${max ? (100 * v) / max : 0}%`;
-      col.title = `${labels ? labels[i] : `${pad2(i)}:00`} · ${fmt(v)}`;
-      col.append(fill);
-      plot.append(col);
-    });
-    const axis = h('div', 'axis');
-    for (const l of labels ?? ['00', '06', '12', '18', '24']) axis.append(h('span', null, l));
-    box.append(plot, axis);
     return box;
   }
 
