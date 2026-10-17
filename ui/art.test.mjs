@@ -76,7 +76,7 @@ for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.f
 for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);
 assert.deepEqual(Object.keys(owner).sort(), Object.keys(MAPS).filter(n => SHEET_OF[n] !== 'scribe').sort(), 'every prop frame is a MAPS sprite');
 for (const fam of ['scribe', 'adept', 'watch']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
-assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 9.5 }, armL: { x: 0, y: 9.5 }, scroll: { x: 14, y: 8 } }); // the arms from the shoulder seam
+assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 9 }, armL: { x: 0, y: 9 }, scroll: { x: 14, y: 8 } }); // the mechadendrites hang from under the hood
 assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 }, 'glyph down': { x: 3, y: 7 }, 'glyph up': { x: 3.5, y: 7 } });
 assert.deepEqual(WATCH_AT, { feet: { x: 8, y: 18 }, light: { x: 14, y: 14 } });
 assert.ok(sheets.watch.frames.ring, 'watch ring');
@@ -159,9 +159,9 @@ assert.equal(SHEET_OF.BANNER, 'walls');
 setTheme('tower');
 assert.equal(MAGOS.claw, undefined, 'tower: no base claw over its own Magos');
 assert.equal(MAGOS39.claw, undefined, 'tower: no base claw over its own 39° Magos');
-// A scribe's arms hang at its sides in every pose (actors.js drawCarried): a world's own body has them, so no separate
-// arms (never the 40k's lent over it), in both views; the 40k robe has none, so its art draws them; a finished turn's
-// scroll alone rises (liftOf), eased up over 0.3 s
+// A scribe's arms (actors.js drawCarried): a world's own body has them, so no separate arms (never the 40k's lent over
+// it), in both views; the 40k robe has none, so its art draws mechadendrites; a finished turn's scroll rises (liftOf),
+// eased up over 0.3 s
 const desk = status => ({ s: { status, context: null }, pose: 'desk', x: 50, y: 50, dir: 'up', wait: 0, fx: [] });
 for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin']) {
   setTheme(id);

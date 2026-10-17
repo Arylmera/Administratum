@@ -230,14 +230,15 @@ export function liftOf(a) {
   const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
   return { done, lift: done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0 };
 }
-// What a scribe carries over its body, in either view (V: its art, CARRIED / CARRIED39): its arms hanging at its sides
-// when its body has none of its own (the 40k robe), in the body's colours; the petition scroll on its way to and in
-// the queue; a finished turn's scroll held up; the dozing Z. Feet-relative top-left (fx, fy), as drawActor.
+// What a scribe carries over its body, in either view (V: its art, CARRIED / CARRIED39): its arms when its body has
+// none of its own (the 40k robe: two mechadendrites raised over the desk, lifted with a finished turn's scroll), in
+// the body's colours; the petition scroll on its way to and in the queue; that scroll held up; the dozing Z.
+// Feet-relative top-left (fx, fy), as drawActor.
 export function drawCarried(g, a, V, fx, fy, over) {
   const A = V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll;
   if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); return; }
   const { done, lift } = liftOf(a);
-  if (V.arm) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y, over); }
+  if (V.arm) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift, over); }
   if (done) V.held(g, fx, fy - lift);
   if (a.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y);
   if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);

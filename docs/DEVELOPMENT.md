@@ -153,9 +153,9 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
   one of its themes as the **style**.
 - A theme with its own art lists the families it redraws in its `art` field; the files sit in `ui/art/<theme>/`
   (`cyber`, `orbital`, `tower`, `vault`, `darwin`). Every other family falls back to the base art.
-- A scribe's arms hang at its sides in every pose, seated included (`actors.js` `drawCarried`): a world's own body has
-  them; the 40k robe has none, so the base art draws them (`arm`, mirrored for the left) at the shoulder seam, never
-  lent to a world's own scribe. A finished long turn raises the scroll alone (`liftOf`).
+- A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
+  has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
+  world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).
 
 **Live viewer.** Every sprite of every theme side by side, read straight from `ui/art/`, walk cycles animated,
 zoom, pixel grid, backgrounds and a filter:

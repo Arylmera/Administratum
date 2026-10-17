@@ -218,7 +218,7 @@ function useArt(id) {
     refill(at, complete ? anchorsOf(sheet) : {});
   }
   // the arms (actors.js drawCarried): a world's own scribe has them in its body; the 40k robe has none, so its art draws
-  // them (the left one the right mirrored)
+  // two mechadendrites (the left one the right mirrored)
   const arm = own('scribe', 'arm', 'up 0') ? S.scribe.frames.arm : undefined;
   refill(MAPS, Object.assign({}, arm && { ARM: arm, ARM_L: mirror(arm) }, ...PROP_SHEETS.map(f => S[f].frames)));
   refill(PROP_AT, Object.assign({}, ...PROP_SHEETS.map(f => logical(S[f].anchors ?? {}))));

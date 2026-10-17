@@ -85,9 +85,8 @@ const FAMILIES = {
     const { SCRIBE, MAPS } = await import('../ui/sprites.js');
     const frames = { arm: MAPS.ARM };
     walkFrames(SCRIBE, frames);
-    // feet: where the actor's position sits; arm / armL: the arms hanging from the shoulder seam (the robe has none of
-    // its own); scroll: the petition scroll in hand.
-    return { frames, rows: [...WALK, ['arm']], anchors: { feet: [16, 34], arm: [28, 19], armL: [0, 19], scroll: [28, 16] } };
+    // feet: where the actor's position sits; arm / armL: the mechadendrites over the desk; scroll: the petition scroll in hand.
+    return { frames, rows: [...WALK, ['arm']], anchors: { feet: [16, 34], arm: [28, 4], armL: [0, 4], scroll: [28, 16] } };
   },
   // The seated Magos: the body, and the drill forearm (art cols 0..9 of the old map) as its own frame so it can swing.
   // claw: the right pincer shut, drawn over the open one. Anchors: where each frame's top-left sits on the body frame

@@ -15,7 +15,7 @@ import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
-  ARM: 'Scribe\'s right arm at its side, seated or standing (a body without arms of its own: the 40k robe)', ARM_L: 'Scribe\'s left arm at its side',
+  ARM: 'Scribe\'s right mechadendrite over the desk, lifted with the scroll when a long turn finishes (a body without arms of its own: the 40k robe)', ARM_L: 'Scribe\'s left mechadendrite',
   SCROLL: 'Sealed petition scroll, held while queued in the Sanctum', SCROLL_HELD: 'The finished scroll a scribe raises when a long turn is done',
   COMMIT_SEAL: 'Purity seal hung on the desk for each commit (up to 3)', COMMIT_TAG: 'The seal\'s strips before the wax lands', COMMIT_STAMP: 'The stamp that seals a commit', QSCROLL: 'Question scroll: the turn ended with a question',
   DESK: 'Scribe\'s desk: screen and candle lit while busy', LECTERN: 'Compact desk once the hall is full (6 a row)',

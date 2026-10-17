@@ -69,8 +69,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.W.png" height="136"> |
 | <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.S.png" height="136"> |
 | <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.N.png" height="136"> |
-| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 4×6 | SCRIBE39, arm. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.arm.png" height="48"> |
-| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×6 | SCRIBE39, armL. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.armL.png" height="48"> |
+| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.arm.png" height="64"> |
+| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.armL.png" height="64"> |
 | <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/scribe39.png` | <img src="tier2/SCRIBE39.scroll.png" height="56"> |
 | <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.E.png" height="112"> |
 | <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="tier2/ADEPT39.W.png" height="112"> |
@@ -90,8 +90,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="arm"></a>`ARM` | 4×6 | Scribe's right arm at its side, seated or standing (a body without arms of its own: the 40k robe). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="tier2/ARM.png" height="48"> |
-| <a id="arm_l"></a>`ARM_L` | 4×6 | Scribe's left arm at its side. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="tier2/ARM_L.png" height="48"> |
+| <a id="arm"></a>`ARM` | 4×8 | Scribe's right mechadendrite over the desk, lifted with the scroll when a long turn finishes (a body without arms of its own: the 40k robe). Source: `ui/art/scribe.png`, drawn by actors.js | <img src="tier2/ARM.png" height="64"> |
+| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left mechadendrite. Source: `ui/art/scribe.png`, drawn by actors.js | <img src="tier2/ARM_L.png" height="64"> |
 | <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tier2/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/workstations.png` | <img src="tier2/DESK.unlit.png" height="160"> |
 | <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/workstations.png`, drawn by scene.js | <img src="tier2/LECTERN.png" height="160"> |
@@ -132,8 +132,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/skull.png`, drawn by scene.js, scene39.js | <img src="tier2/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/skull.png` | <img src="tier2/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="tier2/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js, scene39.js | <img src="tier2/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js, scene39.js | <img src="tier2/SCROLL_HELD.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="tier2/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/petitions.png`, drawn by actors.js | <img src="tier2/SCROLL_HELD.png" height="56"> |
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/fire.png`, drawn by scene.js, scene39.js | <img src="tier2/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/fire.png`, drawn by scene.js | <img src="tier2/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/commits.png`, drawn by scene.js | <img src="tier2/COMMIT_SEAL.png" height="60"> |
