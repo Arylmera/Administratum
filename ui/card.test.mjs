@@ -25,10 +25,12 @@ assert.deepEqual(kinOf(kids[0], roster), { parent: lord, children: [] });
 assert.deepEqual(kinOf(other, roster), { parent: undefined, children: [] });
 // The lineage: the Suzerain and its live children, with today's tokens summed (a missing count is 0).
 const tok = [{ id: 'p', tokensToday: 100 }, { id: 'a', parent: 'p', tokensToday: 20 }, { id: 'b', parent: 'p' }, { id: 'c', parent: 'a', tokensToday: 5 }, other];
-assert.deepEqual(lineageOf(tok[0], tok), { root: tok[0], children: [tok[1], tok[2]], tokens: 120 });
-assert.deepEqual(lineageOf(tok[2], tok), { root: tok[0], children: [tok[1], tok[2]], tokens: 120 }, "a child's card shows its parent's lineage");
+assert.deepEqual(lineageOf(tok[0], tok), { root: tok[0], children: [tok[1], tok[2]], tokens: 125 }, 'the total includes the grandchild; the list stays immediate');
+assert.deepEqual(lineageOf(tok[2], tok), { root: tok[0], children: [tok[1], tok[2]], tokens: 125 }, "a child's card shows its parent's lineage");
 assert.deepEqual(lineageOf(tok[3], tok), { root: tok[1], children: [tok[3]], tokens: 25 }, 'immediate links only: a grandchild sees its own parent');
 assert.deepEqual(lineageOf(tok[1], tok), { root: tok[1], children: [tok[3]], tokens: 25 }, 'a child that forks shows its own tree');
+const cyc = [{ id: 'x', parent: 'y', tokensToday: 1 }, { id: 'y', parent: 'x', tokensToday: 2 }];
+assert.equal(lineageOf(cyc[0], cyc).tokens, 3, 'a cycle is summed once and terminates');
 assert.equal(lineageOf(other, tok), null, 'orphan: no lineage');
 assert.equal(lineageOf({ id: 'z' }, tok), null, 'a plain scribe');
 console.log('card ok');
