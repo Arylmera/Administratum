@@ -171,6 +171,32 @@ function initFirewall(form, field, isWin) {
   return readFw;
 }
 
+// Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
+function initUpdates(form, opener) {
+  const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
+  const upCheck = up.querySelector('.up-check'), upInstall = up.querySelector('.up-install');
+  const showUpdate = st => {
+    upLine.textContent = st.available ? `Version ${st.current}. Version ${st.available} is available.` : `Version ${st.current}, up to date.`;
+    upInstall.hidden = !st.available;
+    opener.classList.toggle('update', !!st.available);
+  };
+  const checkUpdate = () => {
+    upCheck.disabled = true;
+    return invoke('check_update').then(showUpdate, err => { upLine.textContent = `Update check failed: ${err}`; })
+      .finally(() => { upCheck.disabled = false; });
+  };
+  upCheck.onclick = checkUpdate;
+  upInstall.onclick = () => {
+    upInstall.disabled = upCheck.disabled = true;
+    upLine.textContent = 'Downloading the update…';
+    invoke('install_update').catch(err => { upLine.textContent = `Update failed: ${err}`; upInstall.disabled = upCheck.disabled = false; });
+  };
+  if (!REMOTE) {
+    tauri()?.app?.getVersion().then(v => { upLine.textContent = `Version ${v}`; }).catch(() => {});
+    if (store.get('adm.updateCheck', '1') !== '0') checkUpdate();
+  }
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -262,29 +288,7 @@ export function initSettings(hooks) {
   const { readRemote, applyRemote } = initRemote(form, root, field);
   const readFw = initFirewall(form, field, () => isWin);
 
-  // Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
-  const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
-  const upCheck = up.querySelector('.up-check'), upInstall = up.querySelector('.up-install');
-  const showUpdate = st => {
-    upLine.textContent = st.available ? `Version ${st.current}. Version ${st.available} is available.` : `Version ${st.current}, up to date.`;
-    upInstall.hidden = !st.available;
-    opener.classList.toggle('update', !!st.available);
-  };
-  const checkUpdate = () => {
-    upCheck.disabled = true;
-    return invoke('check_update').then(showUpdate, err => { upLine.textContent = `Update check failed: ${err}`; })
-      .finally(() => { upCheck.disabled = false; });
-  };
-  upCheck.onclick = checkUpdate;
-  upInstall.onclick = () => {
-    upInstall.disabled = upCheck.disabled = true;
-    upLine.textContent = 'Downloading the update…';
-    invoke('install_update').catch(err => { upLine.textContent = `Update failed: ${err}`; upInstall.disabled = upCheck.disabled = false; });
-  };
-  if (!REMOTE) {
-    tauri()?.app?.getVersion().then(v => { upLine.textContent = `Version ${v}`; }).catch(() => {});
-    if (store.get('adm.updateCheck', '1') !== '0') checkUpdate();
-  }
+  initUpdates(form, opener);
 
   const setPlace = (lat, lon) => {
     Object.assign(place, { lat, lon });
