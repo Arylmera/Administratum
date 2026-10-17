@@ -115,7 +115,10 @@ cargo test --manifest-path src-tauri/Cargo.toml   # every backend module has its
 for t in ui/*.test.mjs; do node "$t" || echo "FAIL $t"; done
 ```
 
-The node checks are plain `assert` scripts with no framework. One file per module:
+The node checks are plain `assert` scripts with no framework. The panel tests (settings, Chronicon) run on
+`ui/testdom.mjs`: a minimal DOM parsed from the real `ui/index.html`, fake timers and clock (UTC), and a fake backend
+that records every `invoke`. Import the module under test after `install()`, since `settings.js` reads the backend
+when it loads. One file per module:
 
 | File | Checks |
 |---|---|
@@ -137,6 +140,8 @@ The node checks are plain `assert` scripts with no framework. One file per modul
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
 | `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls |
+| `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, reset |
+| `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped |
 
 ---
 

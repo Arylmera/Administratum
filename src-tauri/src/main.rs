@@ -328,6 +328,26 @@ fn main() {
         });
 }
 
+/// One tick's Chronicon events once the sources are read: theirs, then the roster's lifecycle (arrived, left,
+/// petitions; not on the first scan, which only backfills today), then the rate-limit notices.
+fn tick_events(mut events: Vec<Event>, prev: &[Session], roster: &[Session], first: bool, limits: Vec<Event>, now: i64) -> Vec<Event> {
+    if !first {
+        events.extend(chronicle::lifecycle(prev, roster, now));
+    }
+    events.extend(limits);
+    events
+}
+
+/// The first scan backfills today; only fresh events (under 2 min old) play live in the scene.
+fn is_live(e: &Event, now: i64) -> bool {
+    now - e.ts < 120_000
+}
+
+/// Newest transcript write among the files the poller already stats (subagents included), 0 when none.
+fn last_write(files: &poller::Files) -> i64 {
+    files.values().flatten().map(|(f, _)| f.mtime_ms).max().unwrap_or(0)
+}
+
 fn poll_loop(app: AppHandle, demo: bool) {
     let mut poller = poller::Poller::new(&claude_dir());
     let mut opencode = opencode::Source::new();
@@ -358,7 +378,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 last_tick = Instant::now();
                 let chron = app.state::<Chron>();
                 let mut c = lock(&chron);
-                let mut events = if demo {
+                let events = if demo {
                     let t = start.elapsed().as_secs();
                     for (dept, u) in demo::usage(&roster, now) {
                         c.add_usage(&dept, &u);
@@ -376,14 +396,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     ev
                 };
                 let from_transcripts = !demo && !events.is_empty();
-                if !first {
-                    events.extend(chronicle::lifecycle(&prev, &roster, now));
-                }
-                events.extend(limit_events);
+                let events = tick_events(events, &prev, &roster, first, limit_events, now);
                 for e in &events {
                     c.record(e);
-                    // The first scan backfills today; only fresh events play live in the scene.
-                    if now - e.ts < 120_000 {
+                    if is_live(e, now) {
                         emit(&app, "chronicle", e);
                     }
                 }
@@ -393,8 +409,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
             for s in roster.iter_mut() {
                 s.turn = turns.remove(&s.id);
             }
-            // Night Vigil: newest transcript write among the files the poller already stats (subagents included).
-            let last_write = poller.files.values().flatten().map(|(f, _)| f.mtime_ms).max().unwrap_or(0);
+            // Night Vigil: the newest transcript write.
+            let last_write = last_write(&poller.files);
             vigil::app::tick(&app, &roster, last_write, now, demo);
             lock(&app.state::<Live>()).clone_from(&roster);
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
@@ -468,4 +484,57 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
         }
     }
     limit_events
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use registry::FileStat;
+
+    fn session(id: &str, status: &str) -> Session {
+        Session { id: id.into(), name: id.into(), dept: "Terra".into(), status: status.into(), waiting_for: Some("approve Bash".into()), ..Default::default() }
+    }
+    fn event(ts: i64, kind: &str) -> Event {
+        Event { ts, kind: kind.into(), session_id: "s".into(), name: "s".into(), dept: "Terra".into(), helper: None, detail: String::new() }
+    }
+    fn kinds(ev: &[Event]) -> Vec<&str> {
+        ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn the_first_scan_only_backfills() {
+        let roster = [session("a", "waiting")];
+        let ev = tick_events(vec![event(1, "commit")], &[], &roster, true, vec![event(2, "limit")], 10);
+        assert_eq!(kinds(&ev), ["commit", "limit"]);
+    }
+
+    #[test]
+    fn later_ticks_add_the_lifecycle_between_sources_and_limits() {
+        let prev = [session("a", "busy"), session("gone", "idle")];
+        let roster = [session("a", "waiting"), session("b", "busy")];
+        let ev = tick_events(vec![event(1, "commit")], &prev, &roster, false, vec![event(2, "limit")], 10);
+        assert_eq!(kinds(&ev), ["commit", "petition", "arrived", "left", "limit"]);
+        assert!(ev[1..4].iter().all(|e| e.ts == 10), "lifecycle events are stamped now");
+        assert_eq!(kinds(&tick_events(vec![], &roster, &roster, false, vec![], 10)), Vec::<&str>::new(), "no change, no event");
+    }
+
+    #[test]
+    fn only_fresh_events_play_live() {
+        let now = 1_000_000;
+        assert!(is_live(&event(now, "commit"), now));
+        assert!(is_live(&event(now - 119_999, "commit"), now));
+        assert!(!is_live(&event(now - 120_000, "commit"), now));
+        assert!(!is_live(&event(0, "commit"), now), "a backfilled morning event");
+    }
+
+    #[test]
+    fn last_write_is_the_newest_mtime_or_zero() {
+        let f = |mtime_ms| (FileStat { path: "t.jsonl".into(), len: 1, mtime_ms }, false);
+        let mut files = poller::Files::new();
+        assert_eq!(last_write(&files), 0);
+        files.insert("a".into(), vec![f(5), f(30)]);
+        files.insert("b".into(), vec![f(20)]);
+        files.insert("c".into(), vec![]);
+        assert_eq!(last_write(&files), 30);
+    }
 }
