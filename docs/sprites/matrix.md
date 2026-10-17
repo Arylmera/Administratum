@@ -41,6 +41,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="adept-novice-up"></a>`ADEPT.novice.up` | 12×14 | Script kiddie adept, walking up, 3 frames. Source: `ui/art/cyber/adept.png` | <img src="matrix/ADEPT.novice.up.png" height="112"> |
 | <a id="adept-novice-right"></a>`ADEPT.novice.right` | 12×14 | Script kiddie adept, walking right, 3 frames. Source: `ui/art/cyber/adept.png` | <img src="matrix/ADEPT.novice.right.png" height="112"> |
 | <a id="adept-novice-left"></a>`ADEPT.novice.left` | 12×14 | Script kiddie adept, walking left, 3 frames. Source: `ui/art/cyber/adept.png` | <img src="matrix/ADEPT.novice.left.png" height="112"> |
+| <a id="adept-kinds"></a>`ADEPT.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing down, then up. Source: `ui/art/cyber/adept.png` | <img src="matrix/ADEPT.kinds.png" height="112"> |
 
 ## Watchman (Night Vigil, while armed)
 
@@ -67,13 +68,12 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="scribe39-w"></a>`SCRIBE39.W` | 16×17 | SCRIBE39, 39° view, walking W, 3 frames. Source: `ui/art/cyber/scribe39.png` | <img src="matrix/SCRIBE39.W.png" height="136"> |
 | <a id="scribe39-s"></a>`SCRIBE39.S` | 16×17 | SCRIBE39, 39° view, walking S, 3 frames. Source: `ui/art/cyber/scribe39.png` | <img src="matrix/SCRIBE39.S.png" height="136"> |
 | <a id="scribe39-n"></a>`SCRIBE39.N` | 16×17 | SCRIBE39, 39° view, walking N, 3 frames. Source: `ui/art/cyber/scribe39.png` | <img src="matrix/SCRIBE39.N.png" height="136"> |
-| <a id="scribe39-arm"></a>`SCRIBE39.arm` | 5×8 | SCRIBE39, arm. Source: `ui/art/cyber/scribe39.png` | <img src="matrix/SCRIBE39.arm.png" height="64"> |
-| <a id="scribe39-arml"></a>`SCRIBE39.armL` | 4×8 | SCRIBE39, armL. Source: `ui/art/cyber/scribe39.png` | <img src="matrix/SCRIBE39.armL.png" height="64"> |
 | <a id="scribe39-scroll"></a>`SCRIBE39.scroll` | 5×7 | SCRIBE39, scroll. Source: `ui/art/cyber/scribe39.png` | <img src="matrix/SCRIBE39.scroll.png" height="56"> |
 | <a id="adept39-e"></a>`ADEPT39.E` | 12×14 | ADEPT39, 39° view, walking E, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="matrix/ADEPT39.E.png" height="112"> |
 | <a id="adept39-w"></a>`ADEPT39.W` | 12×14 | ADEPT39, 39° view, walking W, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="matrix/ADEPT39.W.png" height="112"> |
 | <a id="adept39-s"></a>`ADEPT39.S` | 12×14 | ADEPT39, 39° view, walking S, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="matrix/ADEPT39.S.png" height="112"> |
 | <a id="adept39-n"></a>`ADEPT39.N` | 12×14 | ADEPT39, 39° view, walking N, 3 frames. Source: `ui/art/cyber/adept39.png` | <img src="matrix/ADEPT39.N.png" height="112"> |
+| <a id="adept39-kinds"></a>`ADEPT39.kinds` | 12×14 | Subagent kind glyphs (Explore, Plan, general-purpose, any other agent), facing S, then E, then N, then W. Source: `ui/art/cyber/adept39.png` | <img src="matrix/ADEPT39.kinds.png" height="112"> |
 | <a id="magos39-body"></a>`MAGOS39.body` | 24×24 | MAGOS39, body. Source: `ui/art/cyber/magos39.png` | <img src="matrix/MAGOS39.body.png" height="160"> |
 | <a id="magos39-arm"></a>`MAGOS39.arm` | 5×24 | MAGOS39, arm. Source: `ui/art/cyber/magos39.png` | <img src="matrix/MAGOS39.arm.png" height="160"> |
 | <a id="skull39-skull"></a>`SKULL39.skull` | 10×10 | SKULL39, skull. Source: `ui/art/cyber/skull39.png` | <img src="matrix/SKULL39.skull.png" height="80"> |
@@ -87,8 +87,6 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="arm"></a>`ARM` | 4×8 | Scribe's right arm at the desk (raised with the scroll when a long turn finishes). Source: `ui/art/cyber/scribe.png`, drawn by actors.js | <img src="matrix/ARM.png" height="64"> |
-| <a id="arm_l"></a>`ARM_L` | 4×8 | Scribe's left arm at the desk. Source: `ui/art/cyber/scribe.png`, drawn by actors.js | <img src="matrix/ARM_L.png" height="64"> |
 | <a id="desk"></a>`DESK` | 32×21 | Scribe's desk: screen and candle lit while busy. Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="matrix/DESK.png" height="160"> |
 | <a id="desk-unlit"></a>`DESK.unlit` | 32×21 | DESK, unlit. Source: `ui/art/cyber/workstations.png` | <img src="matrix/DESK.unlit.png" height="160"> |
 | <a id="lectern"></a>`LECTERN` | 22×21 | Compact desk once the hall is full (6 a row). Source: `ui/art/cyber/workstations.png`, drawn by scene.js | <img src="matrix/LECTERN.png" height="160"> |
@@ -127,8 +125,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/cyber/skull.png`, drawn by scene.js, scene39.js | <img src="matrix/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/cyber/skull.png` | <img src="matrix/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="matrix/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/cyber/petitions.png`, drawn by actors.js, scene39.js | <img src="matrix/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/cyber/petitions.png`, drawn by actors.js, scene39.js | <img src="matrix/SCROLL_HELD.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="matrix/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="matrix/SCROLL_HELD.png" height="56"> |
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/cyber/fire.png`, drawn by scene.js, scene39.js | <img src="matrix/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="matrix/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="matrix/COMMIT_SEAL.png" height="60"> |
@@ -142,6 +140,13 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/matrix/breakout.png`, drawn by (not referenced by name) | <img src="matrix/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/matrix/breakout.png`, drawn by scene.js, scene39.js | <img src="matrix/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/matrix/breakout.png`, drawn by scene.js | <img src="matrix/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
+| <a id="dais"></a>`DAIS` | 40×27 | Suzerain dais under a desk: a session that forked live child sessions. Source: `ui/art/cyber/suzerain.png`, drawn by scene.js | <img src="matrix/DAIS.png" height="160"> |
+| <a id="dais_c"></a>`DAIS_C` | 30×27 | Suzerain dais under a lectern (crowded hall). Source: `ui/art/cyber/suzerain.png`, drawn by scene.js | <img src="matrix/DAIS_C.png" height="160"> |
+| <a id="link_h"></a>`LINK_H` | 4×3 | Suzerain link tile, across: from the dais to a forked child. Source: `ui/art/cyber/suzerain.png`, drawn by (not referenced by name) | <img src="matrix/LINK_H.png" height="24"> |
+| <a id="link_v"></a>`LINK_V` | 3×4 | Suzerain link tile, down. Source: `ui/art/cyber/suzerain.png`, drawn by (not referenced by name) | <img src="matrix/LINK_V.png" height="32"> |
+| <a id="link_end"></a>`LINK_END` | 5×4 | Suzerain link end at the child's feet. Source: `ui/art/cyber/suzerain.png`, drawn by (not referenced by name) | <img src="matrix/LINK_END.png" height="32"> |
+| <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/cyber/refectorium.png`, drawn by actors.js | <img src="matrix/DOZE_Z.png" height="28"> |
+| <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/cyber/workstations.png`, drawn by (not referenced by name) | <img src="matrix/SHELL_COG.png" height="48"> |
 
 ## Room tiles
 
