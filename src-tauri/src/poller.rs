@@ -136,11 +136,12 @@ fn locate(projects: &Path, found: &mut HashMap<String, (Instant, Option<PathBuf>
     (main, registry::list_subagents(&dir))
 }
 
-/// `read()` once per (len, mtime) of `f`; the cached value otherwise.
+/// The main transcript (paired with `false`) followed by the subagent files (paired with `true`).
 fn listing(main: Option<FileStat>, subs: Vec<FileStat>) -> Vec<(FileStat, bool)> {
     main.into_iter().map(|m| (m, false)).chain(subs.into_iter().map(|f| (f, true))).collect()
 }
 
+/// `read()` once per (len, mtime) of `f`; the cached value otherwise.
 fn memo<T: Clone>(m: &mut Memo<T>, f: &FileStat, read: impl FnOnce() -> T) -> T {
     if let Some((len, mtime, v)) = m.get(&f.path) {
         if (*len, *mtime) == (f.len, f.mtime_ms) {
