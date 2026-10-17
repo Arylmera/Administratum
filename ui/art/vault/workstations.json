@@ -162,6 +162,19 @@
       "h": 55
     },
     "palette": "key.gpl",
-    "anchors": {}
+    "anchors": {
+      "DESK": {
+        "cog": [
+          4,
+          7
+        ]
+      },
+      "LECTERN": {
+        "cog": [
+          30,
+          14
+        ]
+      }
+    }
   }
 }

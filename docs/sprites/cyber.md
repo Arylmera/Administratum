@@ -125,8 +125,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="skull"></a>`SKULL` | 10×10 | Servo-skull: perched by the Magos, courier on git push, red-eyed over a stale petition. Source: `ui/art/cyber/skull.png`, drawn by scene.js, scene39.js | <img src="cyber/SKULL.png" height="80"> |
 | <a id="skull-alarm"></a>`SKULL.alarm` | 10×10 | SKULL, alarm. Source: `ui/art/cyber/skull.png` | <img src="cyber/SKULL.alarm.png" height="80"> |
 | <a id="scroll"></a>`SCROLL` | 6×7 | Sealed petition scroll, held while queued in the Sanctum. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL.png" height="56"> |
-| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/cyber/petitions.png`, drawn by actors.js, scene39.js | <img src="cyber/QSCROLL.png" height="56"> |
-| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/cyber/petitions.png`, drawn by actors.js, scene39.js | <img src="cyber/SCROLL_HELD.png" height="56"> |
+| <a id="qscroll"></a>`QSCROLL` | 6×7 | Question scroll: the turn ended with a question. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/QSCROLL.png" height="56"> |
+| <a id="scroll_held"></a>`SCROLL_HELD` | 14×7 | The finished scroll a scribe raises when a long turn is done. Source: `ui/art/cyber/petitions.png`, drawn by actors.js | <img src="cyber/SCROLL_HELD.png" height="56"> |
 | <a id="brazier"></a>`BRAZIER` | 10×13 | Brazier at the gate and in the Sanctum; compaction burns here. Source: `ui/art/cyber/fire.png`, drawn by scene.js, scene39.js | <img src="cyber/BRAZIER.png" height="104"> |
 | <a id="candles"></a>`CANDLES` | 12×9 | Candle cluster. Source: `ui/art/cyber/fire.png`, drawn by scene.js | <img src="cyber/CANDLES.png" height="72"> |
 | <a id="commit_seal"></a>`COMMIT_SEAL` | 4×7.5 | Purity seal hung on the desk for each commit (up to 3). Source: `ui/art/cyber/commits.png`, drawn by scene.js | <img src="cyber/COMMIT_SEAL.png" height="60"> |

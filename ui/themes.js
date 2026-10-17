@@ -379,7 +379,7 @@ defineTheme({
     '@': '#05060a', $: '#3a2a10', '%': '#5a4018', '*': '#4a0a0e', '-': '#2a0608', '=': '#8a3a3e', '&': '#d8202a',
     '(': '#d8202a', ')': '#ff6a6a', '[': '#4a0a0e', ']': '#2a2e32',
   },
-  sash: ['#f2c23a', '#5aff7a', '#2e66b8', '#d8202a', '#9aa0a8', '#ffd890', '#8a4a24', '#d9cf9a'],
+  sash: ['#e8ff5a', '#5aff7a', '#3ad8e8', '#d8202a', '#9aa0a8', '#f08a1a', '#c84ab8', '#f4f2e8'], // each far from the jumpsuit's blues, the collar's yellow and the others
   rank: {
     high: { robe: { r: '#1a3e78', R: '#2a5aa6', d: '#0e2852', z: '#9aa0a8', j: '#6a7078', t: '#9aa0a8', T: '#3a3e44', g: '#9aa0a8', G: '#3a3e44' },
       adept: { x: '#9aa0a8', b: '#d8dce0', J: '#ffc83a', I: '#fff2b8' } }, // Overseer's robots: Vault-Tec yellow eyes
