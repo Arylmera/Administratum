@@ -203,67 +203,65 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     if v["sessionId"].as_str().is_some_and(|id| id != src.session_id) {
         return;
     }
-    {
-        let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
-        if min_ts > i64::MIN && ts.is_none_or(|t| t < min_ts) {
-            return;
+    let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
+    if min_ts > i64::MIN && ts.is_none_or(|t| t < min_ts) {
+        return;
+    }
+    let ts = ts.unwrap_or(now_ms);
+    let mut emit = |kind: &str, detail: String| {
+        events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail })
+    };
+    let msg = &v["message"];
+    match v["type"].as_str() {
+        Some("assistant") => {
+            for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
+                if cur.pending.len() >= CAP {
+                    cur.pending.clear();
+                }
+                let p = Pending { name: b["name"].as_str().unwrap_or("tool").into(), command: b["input"]["command"].as_str().unwrap_or("").into() };
+                cur.pending.insert(b["id"].as_str().unwrap_or("").into(), p);
+            }
+            let model = msg["model"].as_str().unwrap_or("");
+            let u = &msg["usage"];
+            if u.is_null() || model.is_empty() || model == "<synthetic>" {
+                return;
+            }
+            let f = |k: &str| u[k].as_u64().unwrap_or(0);
+            let t = Tokens { input: f("input_tokens"), output: f("output_tokens"), cache_read: f("cache_read_input_tokens"), cache_write: f("cache_creation_input_tokens") };
+            // One line per content block of the same message: count each message id once, at its last usage.
+            let seen = match msg["id"].as_str() {
+                Some(id) => {
+                    if cur.msgs.len() >= CAP && !cur.msgs.contains_key(id) {
+                        cur.msgs.clear();
+                    }
+                    cur.msgs.insert(id.into(), t.clone()).unwrap_or_default()
+                }
+                None => Tokens::default(),
+            };
+            let d = t.minus(&seen);
+            if d.total() > 0 {
+                usage.push(Usage { ts, model: model.into(), tokens: d });
+            }
         }
-        let ts = ts.unwrap_or(now_ms);
-        let mut emit = |kind: &str, detail: String| {
-            events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail })
-        };
-        let msg = &v["message"];
-        match v["type"].as_str() {
-            Some("assistant") => {
-                for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
-                    if cur.pending.len() >= CAP {
-                        cur.pending.clear();
-                    }
-                    let p = Pending { name: b["name"].as_str().unwrap_or("tool").into(), command: b["input"]["command"].as_str().unwrap_or("").into() };
-                    cur.pending.insert(b["id"].as_str().unwrap_or("").into(), p);
-                }
-                let model = msg["model"].as_str().unwrap_or("");
-                let u = &msg["usage"];
-                if u.is_null() || model.is_empty() || model == "<synthetic>" {
-                    return;
-                }
-                let f = |k: &str| u[k].as_u64().unwrap_or(0);
-                let t = Tokens { input: f("input_tokens"), output: f("output_tokens"), cache_read: f("cache_read_input_tokens"), cache_write: f("cache_creation_input_tokens") };
-                // One line per content block of the same message: count each message id once, at its last usage.
-                let seen = match msg["id"].as_str() {
-                    Some(id) => {
-                        if cur.msgs.len() >= CAP && !cur.msgs.contains_key(id) {
-                            cur.msgs.clear();
-                        }
-                        cur.msgs.insert(id.into(), t.clone()).unwrap_or_default()
-                    }
-                    None => Tokens::default(),
-                };
-                let d = t.minus(&seen);
-                if d.total() > 0 {
-                    usage.push(Usage { ts, model: model.into(), tokens: d });
+        Some("user") => {
+            for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_result") {
+                let p = b["tool_use_id"].as_str().and_then(|id| cur.pending.remove(id));
+                for (kind, detail) in classify(p.as_ref(), b, src.branch) {
+                    emit(kind, detail);
                 }
             }
-            Some("user") => {
-                for b in msg["content"].as_array().into_iter().flatten().filter(|b| b["type"] == "tool_result") {
-                    let p = b["tool_use_id"].as_str().and_then(|id| cur.pending.remove(id));
-                    for (kind, detail) in classify(p.as_ref(), b, src.branch) {
-                        emit(kind, detail);
-                    }
-                }
-            }
-            Some("system") if v["subtype"] == "turn_duration" => {
-                let ms = v["durationMs"].as_u64().unwrap_or(0);
-                // A subagent's (sidechain) turn runs inside its parent's turn: counting it would double count.
-                if src.helper.is_none() && v["isSidechain"] != true {
-                    turns.push(Turn { ts, ms });
-                }
-                if ms >= TASK_DONE_MS {
-                    emit("task-done", fmt_duration(ms));
-                }
-            }
-            _ => {}
         }
+        Some("system") if v["subtype"] == "turn_duration" => {
+            let ms = v["durationMs"].as_u64().unwrap_or(0);
+            // A subagent's (sidechain) turn runs inside its parent's turn: counting it would double count.
+            if src.helper.is_none() && v["isSidechain"] != true {
+                turns.push(Turn { ts, ms });
+            }
+            if ms >= TASK_DONE_MS {
+                emit("task-done", fmt_duration(ms));
+            }
+        }
+        _ => {}
     }
 }
 

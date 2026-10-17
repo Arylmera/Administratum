@@ -54,10 +54,13 @@ pub enum Call {
     },
 }
 
+/// Looks up an embedded UI file by path: (bytes, mime).
+pub type AssetFn = Box<dyn Fn(&str) -> Option<(Vec<u8>, String)> + Send + Sync>;
+
 /// What the server needs from the app: its commands, and its embedded UI files (bytes, mime).
 pub struct Backend {
     pub call: Box<dyn Fn(Call) -> Result<Value, String> + Send + Sync>,
-    pub asset: Box<dyn Fn(&str) -> Option<(Vec<u8>, String)> + Send + Sync>,
+    pub asset: AssetFn,
 }
 
 // ---- policy (pure) ----

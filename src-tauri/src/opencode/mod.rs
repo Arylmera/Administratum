@@ -139,7 +139,11 @@ fn keep_idle(sessions: &mut Vec<Session>, tuis: Option<&HashSet<String>>) {
 fn scan_tuis(sys: &mut System) -> HashSet<String> {
     let refresh = ProcessRefreshKind::nothing().with_cmd(UpdateKind::OnlyIfNotSet).with_cwd(UpdateKind::OnlyIfNotSet);
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, refresh);
-    let tuis = sys.processes().values().filter(|p| is_tui(&p.name().to_string_lossy(), &p.cmd().iter().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>()));
+    let tuis = sys.processes().values().filter(|p| {
+        let name = p.name().to_string_lossy();
+        // Build the command line only for an opencode process.
+        name.to_ascii_lowercase().starts_with("opencode") && is_tui(&name, &p.cmd().iter().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>())
+    });
     tuis.filter_map(|p| p.cwd()).map(|c| folder_key(&c.to_string_lossy())).collect()
 }
 
@@ -242,8 +246,7 @@ impl Source {
         }
         let mut out = build(&self.rows, live.as_ref(), now_ms);
         if out.iter().any(|s| s.status == "idle") {
-            let tuis = self.tui_folders().clone();
-            keep_idle(&mut out, Some(&tuis));
+            keep_idle(&mut out, Some(self.tui_folders()));
         } else {
             self.tuis = None; // nothing idle to keep: no process scan
         }
