@@ -105,6 +105,52 @@ function hourly(title, vals, fmt, cls, now, labels = null) {
   return box;
 }
 
+// events: the day's event count (a day only); byDay: [label, tokens] per day (the Week view).
+function summary(t, today, byDay, events, colorOf) {
+  const sec = h('section', 'summary'); // not 'tithe': that is the header plaque's class (light ink on hover, hidden < 600px)
+  const tk = t?.tokens ?? {}, fresh = (tk.input || 0) + (tk.output || 0) + (tk.cacheWrite || 0), cache = tk.cacheRead || 0, all = fresh + cache;
+  const head = h('div', 'stats');
+  const stat = (v, l) => { const d = h('div', 'stat'); d.append(h('b', null, v), h('span', null, l)); return d; };
+  head.append(stat(fmtTok(all), 'tokens'), stat(fmtDur(t?.busyMs), 'working time'));
+  if (!byDay) head.append(stat(String(events), 'events'));
+  sec.append(head);
+
+  // New vs cache: one stacked bar, both parts labelled directly.
+  const split = h('div', 'split');
+  split.setAttribute('role', 'img');
+  split.setAttribute('aria-label', `${fmtTok(fresh)} new tokens, ${fmtTok(cache)} read from cache`);
+  const bar = h('div', 'stack');
+  if (all) for (const [cls, v] of [['new', fresh], ['cache', cache]]) if (v) { const s = h('i', cls); s.style.flexGrow = v; bar.append(s); }
+  split.append(bar, h('div', 'legend', null));
+  split.lastChild.innerHTML = '<span><i class="new"></i>new </span><span><i class="cache"></i>cache </span>';
+  split.lastChild.children[0].append(`${fmtTok(fresh)} (in ${fmtTok(tk.input || 0)} · out ${fmtTok(tk.output || 0)} · write ${fmtTok(tk.cacheWrite || 0)})`);
+  split.lastChild.children[1].append(fmtTok(cache));
+  sec.append(split);
+
+  const grid = h('div', 'cols');
+  const projects = Object.entries(t?.byProject ?? {}).map(([k, v]) => [k, projTok(v), v?.busyMs]).sort((a, b) => b[1] - a[1]);
+  const models = Object.entries(t?.byModel ?? {}).map(([k, v]) => [k.replace(/^claude-/, ''), projTok(v)]).sort((a, b) => b[1] - a[1]);
+  grid.append(bars('By department', projects, colorOf), bars('By model', models, false));
+  sec.append(grid);
+  // The sessions behind the numbers: top 10 by new tokens (the measure of the token alert).
+  const sessions = Object.values(t?.bySession ?? {}).map(s => [`${s.name} · ${s.dept}`, s.fresh || 0]).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (sessions.length) { const one = h('div', 'cols'); one.append(bars('By session (new tokens)', sessions, false)); sec.append(one); }
+  if (byDay) {
+    const week = h('div', 'cols');
+    week.append(hourly('Tokens by day', byDay.map(d => d[1]), fmtTok, 'tok', byDay.length - 1, byDay.map(d => d[0])));
+    sec.append(week);
+    return sec;
+  }
+
+  const hours = Array.from({ length: 24 }, (_, i) => t?.hourly?.[i] ?? { tokens: 0, busyMs: 0 });
+  const now = today ? new Date().getHours() : -1;
+  const charts = h('div', 'cols');
+  charts.append(hourly('Tokens by hour', hours.map(x => x.tokens || 0), fmtTok, 'tok', now),
+    hourly('Working minutes by hour', hours.map(x => Math.round((x.busyMs || 0) / 60000)), v => `${v}m`, 'busy', now));
+  sec.append(charts);
+  return sec;
+}
+
 export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
@@ -160,7 +206,7 @@ export function initChronicon(colorOf = () => null) {
     cur = { day, events: (events ?? []).slice().sort((a, b) => b.ts - a.ts), filter: cur?.day === day ? cur.filter : '' };
     body.replaceChildren();
     if (!events && !tithe) { body.append(h('p', 'quiet', say('log.silent'))); return; }
-    body.append(summary(tithe, day === dayKey()));
+    body.append(summary(tithe, day === dayKey(), null, cur.events.length, colorOf));
     if (report?.markdown) body.append(reportSection(report.markdown));
     body.append(logSection());
     body.scrollTop = 0;
@@ -175,53 +221,8 @@ export function initChronicon(colorOf = () => null) {
     if (my !== seq || !isOpen()) return;
     cur = { day: 'week', events: [], filter: '' };
     const byDay = keys.map((k, i) => [new Date(`${k}T12:00`).toLocaleDateString('en-GB', { weekday: 'short' }), total(list[i])]);
-    body.replaceChildren(summary(sumTithes(list), false, byDay));
+    body.replaceChildren(summary(sumTithes(list), false, byDay, null, colorOf));
     body.scrollTop = 0;
-  }
-
-  function summary(t, today, byDay = null) {
-    const sec = h('section', 'summary'); // not 'tithe': that is the header plaque's class (light ink on hover, hidden < 600px)
-    const tk = t?.tokens ?? {}, fresh = (tk.input || 0) + (tk.output || 0) + (tk.cacheWrite || 0), cache = tk.cacheRead || 0, all = fresh + cache;
-    const head = h('div', 'stats');
-    const stat = (v, l) => { const d = h('div', 'stat'); d.append(h('b', null, v), h('span', null, l)); return d; };
-    head.append(stat(fmtTok(all), 'tokens'), stat(fmtDur(t?.busyMs), 'working time'));
-    if (!byDay) head.append(stat(String(cur.events.length), 'events'));
-    sec.append(head);
-
-    // New vs cache: one stacked bar, both parts labelled directly.
-    const split = h('div', 'split');
-    split.setAttribute('role', 'img');
-    split.setAttribute('aria-label', `${fmtTok(fresh)} new tokens, ${fmtTok(cache)} read from cache`);
-    const bar = h('div', 'stack');
-    if (all) for (const [cls, v] of [['new', fresh], ['cache', cache]]) if (v) { const s = h('i', cls); s.style.flexGrow = v; bar.append(s); }
-    split.append(bar, h('div', 'legend', null));
-    split.lastChild.innerHTML = '<span><i class="new"></i>new </span><span><i class="cache"></i>cache </span>';
-    split.lastChild.children[0].append(`${fmtTok(fresh)} (in ${fmtTok(tk.input || 0)} · out ${fmtTok(tk.output || 0)} · write ${fmtTok(tk.cacheWrite || 0)})`);
-    split.lastChild.children[1].append(fmtTok(cache));
-    sec.append(split);
-
-    const grid = h('div', 'cols');
-    const projects = Object.entries(t?.byProject ?? {}).map(([k, v]) => [k, projTok(v), v?.busyMs]).sort((a, b) => b[1] - a[1]);
-    const models = Object.entries(t?.byModel ?? {}).map(([k, v]) => [k.replace(/^claude-/, ''), projTok(v)]).sort((a, b) => b[1] - a[1]);
-    grid.append(bars('By department', projects, colorOf), bars('By model', models, false));
-    sec.append(grid);
-    // The sessions behind the numbers: top 10 by new tokens (the measure of the token alert).
-    const sessions = Object.values(t?.bySession ?? {}).map(s => [`${s.name} · ${s.dept}`, s.fresh || 0]).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    if (sessions.length) { const one = h('div', 'cols'); one.append(bars('By session (new tokens)', sessions, false)); sec.append(one); }
-    if (byDay) {
-      const week = h('div', 'cols');
-      week.append(hourly('Tokens by day', byDay.map(d => d[1]), fmtTok, 'tok', byDay.length - 1, byDay.map(d => d[0])));
-      sec.append(week);
-      return sec;
-    }
-
-    const hours = Array.from({ length: 24 }, (_, i) => t?.hourly?.[i] ?? { tokens: 0, busyMs: 0 });
-    const now = today ? new Date().getHours() : -1;
-    const charts = h('div', 'cols');
-    charts.append(hourly('Tokens by hour', hours.map(x => x.tokens || 0), fmtTok, 'tok', now),
-      hourly('Working minutes by hour', hours.map(x => Math.round((x.busyMs || 0) / 60000)), v => `${v}m`, 'busy', now));
-    sec.append(charts);
-    return sec;
   }
 
   // The day report (backend chronicle/report.rs, the same text the Night Vigil can write to a folder), folded.
