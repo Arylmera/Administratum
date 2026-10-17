@@ -221,6 +221,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const Z = H.strip ? breakoutOfStrip(layout.blocks) : breakoutOf(layout.blocks, H);
   if (Z) breakoutFloor(g, Z);
   drawRugs(g, layout.blocks);
+  drawPlinths(g, layout.desks, actors);
   if (!H.strip) drawDoors(g, all, now);
   const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
   if (Z) (H.strip ? stripBreakout : breakoutFence)(Z, all, items);
@@ -324,6 +325,21 @@ export function drawRugs(g, blocks) {
     const [fill, line] = rugOf(b.color);
     g.fillStyle = fill; g.fillRect(b.x, b.y, b.w, b.h);
     g.strokeStyle = line; g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+  }
+}
+
+// A Suzerain (a session with live forked children, registry adopt) holds its desk on a plinth: a raised slab under
+// the desk and its seat, drawn on the floor like the rugs (both views). Stays inside the desk's slot.
+export function drawPlinths(g, desks, actors) {
+  const lords = new Set([...actors.values()].map(a => a.s?.parent).filter(Boolean));
+  for (const d of desks) {
+    if (!lords.has(d.id)) continue;
+    const w = (d.compact ? 22 : 32) + 8, x = d.x - 4, y = d.y + 6, h = 27, face = 3;
+    rect(g, x, y, w, h, I.outline);
+    rect(g, x + 1, y + 1, w - 2, h - face - 1, I.iron);
+    rect(g, x + 1, y + h - face, w - 2, face - 1, I.ironDark);
+    g.strokeStyle = I.brass; g.lineWidth = 1; g.strokeRect(x + 2.5, y + 2.5, w - 5, h - face - 4);
+    for (const [sx, sy] of [[x + 2, y + 2], [x + w - 3, y + 2], [x + 2, y + h - face - 2], [x + w - 3, y + h - face - 2]]) rect(g, sx, sy, 1, 1, I.brassLit);
   }
 }
 

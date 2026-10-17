@@ -79,9 +79,9 @@ export function renderCard() {
 }
 
 // A forked session's parent, or a Suzerain's children: each name selects that session's card.
+export const kinOf = (s, roster) => ({ parent: roster.find(r => r.id === s.parent), children: roster.filter(r => r.parent === s.id) });
 function renderKin(card, s) {
-  const kin = card.querySelector('.kin'), roster = rosterOf();
-  const parent = roster.find(r => r.id === s.parent), children = roster.filter(r => r.parent === s.id);
+  const kin = card.querySelector('.kin'), { parent, children } = kinOf(s, rosterOf());
   kin.replaceChildren();
   const line = (label, list) => {
     if (!list.length) return;

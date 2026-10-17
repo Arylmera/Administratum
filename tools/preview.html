@@ -33,6 +33,7 @@ const fake = `
     helpers: i % 3 === 0 ? [{ id: 'h' + i, kind: 'Explore', task: 'grep', model: 'haiku', context: { tokens: 20000, model: MODELS[2] } }] : [],
     context: { tokens: 60000 + 90000 * i, model: MODELS[i % 3] }, orca: null, web: null, background: false, compactedAt: null,
     question: null, branch: 'main', limit: null, turn: null, temp: TEMP && i % 4 === 3,
+    parent: i === 4 || i === 8 ? 's0' : null, // s0 forked s4 and s8: a Suzerain on its plinth
   }));
   setInterval(() => (H.roster ?? []).forEach(cb => cb({ payload: roster() })), 1000);
 `;
