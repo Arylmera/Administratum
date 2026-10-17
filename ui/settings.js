@@ -95,7 +95,7 @@ const setQuiet = (on, from, to) => {
 
 // Monitoring (monitor.rs reads these adm.* strings from settings.json at start and after each save): checkboxes are
 // '1' / '0', the rest is kept as typed (empty token alert: off); the backend clamps.
-export const MONITOR = { tokenAlert: '' };
+export const MONITOR = { tokenAlert: '', stuck: '1', stuckToast: '1', stuckMin: '15', stuckRepeat: '5' };
 const monitorGet = k => store.get(`adm.${k}`, MONITOR[k]);
 
 // Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by viewport.js's fit().
@@ -187,6 +187,7 @@ export function initSettings(hooks) {
       if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
       else if (document.activeElement !== el) el.value = monitorGet(k);
     }
+    field('stuckToast').disabled = field('stuckMin').disabled = field('stuckRepeat').disabled = monitorGet('stuck') !== '1';
   };
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);

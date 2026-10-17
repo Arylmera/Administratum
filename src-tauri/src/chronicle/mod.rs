@@ -1,7 +1,7 @@
 //! Chronicon: events and Tithe (tokens + working time) read incrementally from Claude Code transcripts and
 //! OpenCode's message rows (fed in as transcript lines). Read-only on `~/.claude` and OpenCode; everything it
 //! writes lives in the app data dir.
-use crate::registry::{self, Agent, FileStat, Session, TurnSummary};
+use crate::registry::{self, Agent, FileStat, Repeat, Session, TurnSummary};
 use chrono::{Local, NaiveDate, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -327,8 +327,10 @@ pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
         }
         Some("assistant") => {
             turn.last_ms = ts.or(turn.last_ms);
+            let msg = v["message"]["id"].as_str().unwrap_or("");
             for b in content.as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
                 turn.tools += 1;
+                track_repeat(&mut turn.repeat, b, msg);
                 if !b["name"].as_str().is_some_and(|n| EDIT_TOOLS.contains(&n)) {
                     continue;
                 }
@@ -337,6 +339,30 @@ pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
             }
         }
         _ => {}
+    }
+}
+
+/// Tools that wait on something else by design: calling them again and again is polling, not a loop.
+const POLLING_TOOLS: [&str; 3] = ["BashOutput", "TaskOutput", "KillShell"];
+
+/// Folds one tool call into the run of identical calls: the same call again adds one (once per message), any other
+/// call starts a new run, a polling call (a polling tool, a bare `sleep` or `watch`) ends it.
+fn track_repeat(run: &mut Option<Repeat>, b: &Value, msg: &str) {
+    let name = b["name"].as_str().unwrap_or("tool");
+    let cmd = b["input"]["command"].as_str().unwrap_or("").trim();
+    if POLLING_TOOLS.contains(&name) || (name == "Bash" && (cmd == "sleep" || cmd.starts_with("sleep ") || cmd.starts_with("watch "))) {
+        *run = None;
+        return;
+    }
+    let key = format!("{name}{}", b["input"]);
+    match run {
+        Some(r) if r.key == key => {
+            if r.msg != msg || msg.is_empty() {
+                r.count += 1;
+                r.msg = msg.into();
+            }
+        }
+        _ => *run = Some(Repeat { tool: name.into(), key, count: 1, msg: msg.into() }),
     }
 }
 
@@ -1293,6 +1319,48 @@ mod tests {
         let j = serde_json::to_value(&e).unwrap();
         assert_eq!(j["sessionId"], "s");
         assert_eq!(j["helper"], "Explore");
+    }
+
+    /// An assistant line of message `msg` with one tool call per (name, input).
+    fn calls(msg: &str, uses: &[(&str, Value)]) -> String {
+        let content: Vec<Value> = uses.iter().enumerate().map(|(i, (n, inp))| serde_json::json!({"type":"tool_use","id":format!("{msg}_{i}"),"name":n,"input":inp})).collect();
+        serde_json::json!({"type":"assistant","timestamp":"2026-10-06T11:00:00.000Z","message":{"id":msg,"content":content}}).to_string()
+    }
+
+    fn repeat_after(lines: &[String]) -> Option<(String, u32)> {
+        let mut t = TurnSummary::default();
+        for l in lines {
+            track_turn(&mut t, l, r"C:\git\Terra");
+        }
+        t.repeat.map(|r| (r.tool, r.count))
+    }
+
+    #[test]
+    fn repeat_counts_identical_calls() {
+        let read = |m: &str, f: &str| calls(m, &[("Read", serde_json::json!({"file_path": f}))]);
+        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), read("m3", "a")]), Some(("Read".into(), 3)));
+        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), read("m3", "b")]), Some(("Read".into(), 1)), "another input breaks the run");
+        let prompt = r#"{"type":"user","timestamp":"2026-10-06T11:00:00.000Z","message":{"content":"go on"}}"#.to_string();
+        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), prompt]), None, "a new prompt resets it");
+    }
+
+    #[test]
+    fn repeat_parallel_calls_count_once() {
+        let read = serde_json::json!({"file_path": "a"});
+        // Claude Code writes one line per block of the same message.
+        let one = calls("m1", &[("Read", read.clone())]);
+        assert_eq!(repeat_after(&[one.clone(), one.clone()]), Some(("Read".into(), 1)));
+        assert_eq!(repeat_after(&[calls("m1", &[("Read", read.clone()), ("Read", read)])]), Some(("Read".into(), 1)));
+    }
+
+    #[test]
+    fn polling_tools_never_count() {
+        let poll = |m: &str| calls(m, &[("BashOutput", serde_json::json!({"bash_id": "b1"}))]);
+        assert_eq!(repeat_after(&(1..=6).map(|i| poll(&format!("m{i}"))).collect::<Vec<_>>()), None);
+        let sleep = |m: &str| calls(m, &[("Bash", serde_json::json!({"command": "sleep 30"}))]);
+        assert_eq!(repeat_after(&(1..=6).map(|i| sleep(&format!("m{i}"))).collect::<Vec<_>>()), None);
+        let test = |m: &str| calls(m, &[("Bash", serde_json::json!({"command": "cargo test"}))]);
+        assert_eq!(repeat_after(&(1..=6).map(|i| test(&format!("m{i}"))).collect::<Vec<_>>()), Some(("Bash".into(), 6)));
     }
 
     #[test]

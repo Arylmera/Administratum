@@ -338,9 +338,11 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut opencode = opencode::Source::new();
     let mut tracker = Tracker::default();
     let mut alerts = monitor::Alerts::default();
+    let mut episodes = monitor::Episodes::default();
     let mut prev: Vec<Session> = Vec::new();
     let start = Instant::now();
     let mut first = true;
+    let mut first_stuck = true; // like `first`: a session already stuck before this start toasts no more
     let mut last_tick = Instant::now();
     let mut last_t = 0;
     loop {
@@ -404,9 +406,21 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 c.maybe_flush(now, from_transcripts);
                 first = false;
             }
+            let cfg = monitor::get();
             for s in roster.iter_mut() {
                 s.turn = turns.remove(&s.id);
+                // Newest write among its transcripts, subagents' included: a working subagent is progress.
+                let last_write = poller.files.get(&s.id).and_then(|fs| fs.iter().map(|(f, _)| f.mtime_ms).max());
+                s.stuck = monitor::stuck_of(s, last_write, &cfg, now);
             }
+            let fresh_stuck = episodes.fresh(&roster);
+            if !first_stuck {
+                for e in stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now) {
+                    lock(&app.state::<Chron>()).record(&e);
+                    emit(&app, "chronicle", &e);
+                }
+            }
+            first_stuck = false;
             // Night Vigil: newest transcript write among the files the poller already stats (subagents included).
             let last_write = poller.files.values().flatten().map(|(f, _)| f.mtime_ms).max().unwrap_or(0);
             vigil::app::tick(&app, &roster, last_write, now, demo);
@@ -436,6 +450,23 @@ fn token_alerts(app: &AppHandle, over: Vec<(String, chronicle::SessionTithe)>, n
                 let _ = app.notification().builder().title(title).body(format!("{} · {count} new tokens today", s.dept)).show();
             }
             Event { ts: now_ms, kind: "token-alert".into(), session_id: id, name: s.name, dept: s.dept, helper: None, detail: count }
+        })
+        .collect()
+}
+
+/// New stuck episodes: a toast each when wanted (quiet hours respected; never for the break-out room), and their
+/// Chronicon events.
+fn stuck_toasts(app: &AppHandle, fresh: &[&Session], toast_on: bool, now_ms: i64) -> Vec<Event> {
+    let words = toast::get();
+    let quiet = quiet::active();
+    fresh
+        .iter()
+        .filter_map(|s| {
+            let detail = monitor::stuck_detail(s.stuck.as_ref()?, now_ms);
+            if toast_on && !quiet && !s.temp {
+                let _ = app.notification().builder().title(toast::fill(&words.stuck, &s.name)).body(format!("{} · {detail}", s.dept)).show();
+            }
+            Some(Event::for_session(now_ms, "stuck", s, detail))
         })
         .collect()
 }

@@ -30,7 +30,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell |
 | `opencode/` | OpenCode 2.x, a second source beside `registry/`. `db.rs` reads its SQLite database read-only (only while its `-wal` exists, so no file is created in OpenCode's folder; one short transaction per read), `service.rs` its service registration (`~/.local/state/opencode/service.json`, loopback URLs and version 2+ only, the password never leaves the module) and a small `std::net` client for `/api/session/active`, pending permissions and replies, `mod.rs` the sessions it adds to the roster (running, waiting, idle while a TUI runs in its folder, 15 min at most), the rows the Chronicon reads, and `answer_opencode` |
 | `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe (per department, model, hour and session; fields added later are `serde(default)` so older day files still load), day files, retention; `opencode.rs` turns OpenCode rows into transcript lines |
-| `monitor.rs` | Monitoring rules, pure: the config (`adm.tokenAlert`, ... read from `settings.json` at setup and after each `settings_save`, so the UI pushes nothing) and the per-session daily token alert (new tokens, cache reads left out; one toast and a `token-alert` event per session per day, seeded on the first tick). The app cannot see the subscription quota: the threshold is a count the user picks |
+| `monitor.rs` | Monitoring rules, pure: the config (`adm.tokenAlert`, ... read from `settings.json` at setup and after each `settings_save`, so the UI pushes nothing) and the per-session daily token alert (new tokens, cache reads left out; one toast and a `token-alert` event per session per day, seeded on the first tick). The app cannot see the subscription quota: the threshold is a count the user picks. Stuck sessions (`stuck_of`): busy (never at the shell) and either silent (no write to its transcripts, subagents' included, for `adm.stuckMin`, default 15 min; OpenCode sessions have no files and are never silent) or looping (`adm.stuckRepeat`, default 5, identical tool calls in a row, counted by `chronicle::track_turn`; polling tools and bare `sleep` / `watch` never count); one toast and a `stuck` event per episode |
 | `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS: tauri-plugin-notification's actions (`toast::mac`, one `on_action` handler registered at setup, routed by toast id; two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first; only the bundled app has the right notification identity, `tauri dev` posts as Terminal). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
@@ -42,7 +42,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown); `app.rs` arming, its tick, toast and Chronicon events, the shutdown itself |
 
 **Events.** Each second the poll loop emits `roster` (every session with its status, petition, task, context,
-subagents, Orca handle, claude.ai URL, compaction time), `petition` and `petition-stale` (these also fire the
+subagents, Orca handle, claude.ai URL, compaction time, `stuck`), `petition` and `petition-stale` (these also fire the
 toasts), and `chronicle` for each new event. Events older than 2 min are recorded but not played in the scene. The
 UI fetches Chronicon history on demand through the `chronicle_*` commands.
 
@@ -57,7 +57,7 @@ do not know which.
 | `index.html` | Markup and styles: header, card, Chronicon and Settings panels |
 | `app.js` | Wiring: roster → layout → cast, render loop, hit test, header buttons, chime |
 | `viewport.js` | The view: scale and scene size for the window, pan (drag, glide, coast, arrow keys), parallax lag |
-| `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags, edge arrows, hover tip |
+| `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server |
 | `card.js` | The selected character's card, and answering permission petitions |
 | `chrome.js` | The page follows the theme: CSS colours, marked texts, toast wording |
