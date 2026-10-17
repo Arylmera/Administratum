@@ -424,18 +424,14 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     }
                 }
                 // The first tick seeds the alerts: a session already past the mark before this start toasts no more.
-                let over = alerts.over(c.tithe(), monitor::get().token_alert);
-                if !first {
-                    for e in token_alerts(&app, over, now) {
-                        c.record(&e);
-                        emit(&app, "chronicle", &e);
-                    }
+                let over = alerts_after_seed(&mut alerts, c.tithe(), monitor::get().token_alert, first);
+                for e in token_alerts(&app, over, now) {
+                    c.record(&e);
+                    emit(&app, "chronicle", &e);
                 }
                 c.maybe_flush(now, from_transcripts);
                 first = false;
-                for s in roster.iter_mut() {
-                    s.tokens_today = c.tokens_today(&s.id, now);
-                }
+                fill_tokens_today(&mut roster, &c, now);
             }
             let cfg = monitor::get();
             for s in roster.iter_mut() {
@@ -444,12 +440,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 let last_write = poller.files.get(&s.id).and_then(|fs| fs.iter().map(|(f, _)| f.mtime_ms).max());
                 s.stuck = monitor::stuck_of(s, last_write, &cfg, now);
             }
-            let fresh_stuck = episodes.fresh(&roster);
-            if !first_stuck {
-                for e in stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now) {
-                    lock(&app.state::<Chron>()).record(&e);
-                    emit(&app, "chronicle", &e);
-                }
+            let fresh_stuck = episodes_after_seed(&mut episodes, &roster, first_stuck);
+            for e in stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now) {
+                lock(&app.state::<Chron>()).record(&e);
+                emit(&app, "chronicle", &e);
             }
             first_stuck = false;
             // Night Vigil: the newest transcript write.
@@ -466,6 +460,35 @@ fn poll_loop(app: AppHandle, demo: bool) {
             app.state::<vigil::app::VigilBox>().clear_poison();
         }
         thread::sleep(Duration::from_secs(1));
+    }
+}
+
+/// Sessions newly past the token alert. The first tick only seeds `alerts`: a session already past the mark
+/// before this start toasts no more.
+fn alerts_after_seed(alerts: &mut monitor::Alerts, tithe: &Tithe, limit: Option<u64>, first: bool) -> Vec<(String, chronicle::SessionTithe)> {
+    let over = alerts.over(tithe, limit);
+    if first {
+        vec![]
+    } else {
+        over
+    }
+}
+
+/// Sessions with a new stuck episode. The first tick only seeds `episodes`: a session already stuck before this
+/// start toasts no more.
+fn episodes_after_seed<'a>(episodes: &mut monitor::Episodes, roster: &'a [Session], first: bool) -> Vec<&'a Session> {
+    let fresh = episodes.fresh(roster);
+    if first {
+        vec![]
+    } else {
+        fresh
+    }
+}
+
+/// Each session's tokens of the live day (none after midnight until the new day's first token).
+fn fill_tokens_today(roster: &mut [Session], c: &Chronicle, now: i64) {
+    for s in roster.iter_mut() {
+        s.tokens_today = c.tokens_today(&s.id, now);
     }
 }
 
@@ -601,6 +624,53 @@ mod tests {
         assert!(is_live(&event(now - 119_999, "commit"), now));
         assert!(!is_live(&event(now - 120_000, "commit"), now));
         assert!(!is_live(&event(0, "commit"), now), "a backfilled morning event");
+    }
+
+    fn tithe(day: &str, fresh: &[(&str, u64)]) -> Tithe {
+        let mut t = Tithe::new(day);
+        for (id, n) in fresh {
+            t.by_session.insert((*id).into(), chronicle::SessionTithe { name: (*id).into(), dept: "Terra".into(), fresh: *n, total: *n });
+        }
+        t
+    }
+
+    #[test]
+    fn the_first_tick_seeds_the_token_alerts() {
+        let mut alerts = monitor::Alerts::default();
+        let ids = |v: Vec<(String, chronicle::SessionTithe)>| v.into_iter().map(|(id, _)| id).collect::<Vec<_>>();
+        let t = tithe("2026-10-17", &[("a", 500), ("b", 10)]);
+        assert!(alerts_after_seed(&mut alerts, &t, Some(100), true).is_empty(), "already over at start: no toast");
+        assert!(alerts_after_seed(&mut alerts, &t, Some(100), false).is_empty(), "and none on the next tick either");
+        let t = tithe("2026-10-17", &[("a", 600), ("b", 150)]);
+        assert_eq!(ids(alerts_after_seed(&mut alerts, &t, Some(100), false)), ["b"], "a later crossing toasts");
+    }
+
+    #[test]
+    fn the_first_tick_seeds_the_stuck_episodes() {
+        let mut episodes = monitor::Episodes::default();
+        let stuck = Some(registry::Stuck { kind: "silent".into(), since_ms: 5, tool: None, count: 0 });
+        let a = Session { stuck: stuck.clone(), ..session("a", "busy") };
+        let ids = |v: Vec<&Session>| v.into_iter().map(|s| s.id.clone()).collect::<Vec<_>>();
+        assert!(episodes_after_seed(&mut episodes, std::slice::from_ref(&a), true).is_empty(), "already stuck at start: no toast");
+        assert!(episodes_after_seed(&mut episodes, std::slice::from_ref(&a), false).is_empty(), "and none on the next tick either");
+        let roster = [a, Session { stuck, ..session("b", "busy") }];
+        assert_eq!(ids(episodes_after_seed(&mut episodes, &roster, false)), ["b"], "a later episode toasts");
+    }
+
+    #[test]
+    fn the_roster_gets_each_sessions_tokens_today() {
+        let dir = std::env::temp_dir().join(format!("adm-main-tokens-{}", std::process::id()));
+        let day_ms = 86_400_000;
+        let ts = 1_792_000_000_000; // mid-October 2026; +24 h is always the next local day
+        let mut c = Chronicle::open(dir.clone(), ts, true);
+        let u = chronicle::Usage { ts, model: "m".into(), tokens: chronicle::Tokens { input: 7, output: 3, cache_read: 0, cache_write: 0 } };
+        c.add_session_usage(&session("a", "busy"), &u);
+        let mut roster = vec![session("a", "busy"), session("b", "busy")];
+        fill_tokens_today(&mut roster, &c, ts);
+        assert_eq!((roster[0].tokens_today, roster[1].tokens_today), (Some(10), None), "a session with no token yet has none");
+        fill_tokens_today(&mut roster, &c, ts + day_ms);
+        assert_eq!(roster[0].tokens_today, None, "after midnight, before the new day's first token");
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

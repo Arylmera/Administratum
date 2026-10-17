@@ -125,6 +125,25 @@ tab[4].click();
 await flush();
 assert.equal(body.textContent, say('log.silent'));
 
+// The day report is a folded section when day_report answers, and absent (no error) when it rejects, as on the remote view.
+// "By session" lists the sessions behind the numbers, by new tokens.
+tithe.bySession = { a: { name: 'terra-77', dept: 'Terra', fresh: 40, total: 400 }, b: { name: 'gs-1', dept: 'Geneseed', fresh: 90, total: 900 } };
+replies.day_report = new Error('unknown command');
+tab[0].click();
+await flush();
+assert.equal(body.querySelector('details.report'), null, 'no day_report: no report section');
+assert.equal(body.querySelector('ol.events').children.length > 0, true, 'the rest of the day still renders');
+const sessionBars = [...body.querySelectorAll('.bars')].find(b => b.querySelector('h3').textContent === 'By session (new tokens)');
+assert.deepEqual([...sessionBars.querySelectorAll('.row .n')].map(n => n.textContent), ['gs-1 · Geneseed', 'terra-77 · Terra'], 'biggest first, with the department');
+assert.equal(sessionBars.querySelectorAll('.row .track i')[1].style.width, `${(100 * 40) / 90}%`);
+replies.day_report = { markdown: ['---', 'date: 2026-10-17', '---', '', '# Day report — 2026-10-17', '', 'x', ''].join(String.fromCharCode(10)) };
+tab[0].click();
+await flush();
+const report = body.querySelector('details.report');
+assert.equal(report.querySelector('summary').textContent.startsWith('Day report'), true);
+assert.equal(report.querySelector('pre').textContent, ['# Day report — 2026-10-17', '', 'x', ''].join(String.fromCharCode(10)));
+delete tithe.bySession;
+
 // Only the last day clicked is shown, whatever order the replies arrive in.
 let slow;
 replies.chronicle_day = ({ day }) => (day === TODAY ? new Promise(r => { slow = () => r(events); }) : []);

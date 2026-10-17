@@ -74,6 +74,7 @@ export class El {
   get offsetHeight() { return 0; }
   #adopt(n) { if (typeof n === 'string') n = new Text(n); n.parent?.childNodes.splice(n.parent.childNodes.indexOf(n), 1); n.parent = this; return n; }
   append(...ns) { for (const n of ns) this.childNodes.push(this.#adopt(n)); }
+  appendChild(n) { this.append(n); return n; }
   prepend(...ns) { this.childNodes.unshift(...ns.map(n => this.#adopt(n))); }
   replaceChildren(...ns) { for (const n of this.childNodes) n.parent = null; this.childNodes = []; this._none = false; this.append(...ns); }
   remove() { if (this.parent) { this.parent.childNodes.splice(this.parent.childNodes.indexOf(this), 1); this.parent = null; } }

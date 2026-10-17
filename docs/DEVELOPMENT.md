@@ -151,9 +151,10 @@ when it loads. One file per module:
 | `strip.test.mjs` | Strip geometry |
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
-| `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter |
+| `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars |
+| `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label |
 | `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls |
-| `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, reset |
+| `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, Monitoring fields, reset |
 | `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped |
 
 ---
