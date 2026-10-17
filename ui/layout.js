@@ -203,6 +203,8 @@ export const BREAKOUT_SIZES = {
 // A Suzerain's sheet (tools/suzerain_art.mjs, scene.js drawPlinths/drawLinks), art px: its dais under a desk or a
 // lectern (logical 40x27 / 30x27, from 4 px west and 6 px south of the desk), the link tiled across and down, its end.
 export const SUZERAIN_SIZES = { DAIS: [80, 54], DAIS_C: [60, 54], LINK_H: [8, 6], LINK_V: [6, 8], LINK_END: [10, 8] };
+// A Watchman frame (tools/watch_art.mjs, ui/art/<world>/watch.*), art px: w, h.
+export const WATCH_SIZE = [32, 36];
 
 // The break-out room: the rectangle fencing the temp blocks (packed last, from a fresh row) and its gates, null without
 // any. West and top 2 px inside the blocks (the lane above stays outside), east 2 px out but west of the corridor,

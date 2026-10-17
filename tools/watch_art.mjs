@@ -3,8 +3,9 @@
 // ring }, flatAnchors: { feet, light }, isoAnchors: { feet, light } }, anchors in art px); base writes ui/art/watch.* and
 // watch39.*, every other world ui/art/<world>/watch.* and watch39.*. Every frame is 32x36 art px of ui/art/key.gpl chars.
 import { writeSheet, keyPalette } from './sheet_writer.mjs';
+import { WATCH_SIZE } from '../ui/layout.js';
 
-const W = 32, H = 36, WORLDS = ['base', 'cyber', 'orbital', 'tower', 'vault', 'darwin'];
+const [W, H] = WATCH_SIZE, WORLDS = ['base', 'cyber', 'orbital', 'tower', 'vault', 'darwin'];
 const walk = dirs => dirs.flatMap(d => [0, 1, 2].map(i => `${d} ${i}`));
 const FLAT = [...walk(['up', 'down', 'right']), 'ring'], ISO = [...walk(['E', 'W', 'S', 'N']), 'ring'];
 

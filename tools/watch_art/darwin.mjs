@@ -7,10 +7,11 @@
 // frame-left hand. 32x36 art px: rows 0..11 the head, 12..28 the coat (hem 28), 29..35 legs and boots.
 
 import { stamp, frame, rev, put } from './kit.mjs';
+import { WATCH_SIZE } from '../../ui/layout.js';
 // 16-px left halves mirrored into 32-px rows, the coat's lit side (u) turned to shade (n) along the right edge.
 const sym = half => half.map(h => h + rev(h));
 // Rows shifted by n columns (positive: right), blank filled.
-const shift = (rows, n) => rows.map(r => (n > 0 ? '.'.repeat(n) + r.slice(0, 32 - n) : r.slice(-n) + '.'.repeat(-n)));
+const shift = (rows, n) => rows.map(r => (n > 0 ? '.'.repeat(n) + r.slice(0, WATCH_SIZE[0] - n) : r.slice(-n) + '.'.repeat(-n)));
 
 // Heads, rows 0..11. Front: the cap square on, the badge in the middle, the moustache across.
 const HEAD_DOWN = stamp(sym([
