@@ -182,6 +182,9 @@ export function themed(make) {
   let gen = -1, v;
   return () => (gen === T.gen ? v : (gen = T.gen, v = make(T)));
 }
+const rgbs = new Map();
+// '#rrggbb' -> [r, g, b], memoised.
+export const rgb = hex => rgbs.get(hex) ?? rgbs.set(hex, [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))).get(hex);
 // '#rrggbb' + alpha -> 'rgba(r,g,b,a)'.
 export const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 

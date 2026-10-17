@@ -9,17 +9,15 @@
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
 import { WALL, WALL_DY, breakoutOf } from './layout.js';
 import { toFloor } from './view.js';
-import { bounds, placeProps, gateOf } from './isohall.js';
+import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
-import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, blit, sprite } from './sprites.js';
-import { T, onTheme, hexA } from './theme.js';
+import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, blit, sprite, half, rect } from './sprites.js';
+import { T, onTheme, hexA, rgb } from './theme.js';
 import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
 
 const fl = Math.floor;
-const half = v => Math.round(v * 2) / 2;
-const rect = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
 
 // The hall drawn: its art-px offset on the canvas (bounds: the same as view.js toScreen's) and its placed props.
 let H = null, B = { ox: 0, oy: 0 }, key = '', placed = [];
@@ -60,8 +58,6 @@ function bake(corners, build) {
   return buf;
 }
 const box = (u0, u1, v0, v1, z0, z1) => [u0, u1].flatMap(u => [v0, v1].flatMap(v => [[u, v, z0], [u, v, z1]]));
-const rgbs = new Map();
-const rgb = hex => rgbs.get(hex) ?? rgbs.set(hex, [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))).get(hex);
 // The buffer in the theme's colours (over: a palette override, null hides a colour), side faces shaded as the hall's.
 function paint(buf, over) {
   const pal = { ...T.px, ...over }, [sr, sg, sb] = T.light.shadow.split(',').map(Number);
@@ -102,7 +98,7 @@ function art(k) {
 // A piece of furniture at its flat top-left (x, y): its frame's column 0 at u = 2x, its front on the flat frame's
 // bottom row (the floor line yb), its back d further; foot: its floor footprint (the depth sort's).
 export function placeOf(kind, at) {
-  const k = furnitureKit()[kind], yb = at.y + k.fh / RES, u0 = Math.round(2 * at.x), v0 = Math.round(2 * (yb - WALL)) - k.d;
+  const k = furnitureKit()[kind], yb = at.y + k.fh / RES, u0 = fx(at.x), v0 = fy(yb) - k.d;
   return { k, u0, v0, yb, foot: { u0: u0 + k.x0, u1: u0 + k.x0 + k.w, v0, v1: v0 + k.d } };
 }
 // An actor's floor footprint: a small box at its feet.
@@ -148,22 +144,22 @@ function fenceBox(axis, len, frame) {
   return k;
 }
 function fenceItems(Z, actors) {
-  const out = [], U = x => Math.round(2 * x), V = y => Math.round(2 * (y - WALL));
-  const add = (axis, x, y, len, frame = 'BREAKOUT_RAIL', u0 = U(x)) => {
+  const out = [];
+  const add = (axis, x, y, len, frame = 'BREAKOUT_RAIL', u0 = fx(x)) => {
     if (len <= 0) return;
-    const k = fenceBox(axis, len, frame), v0 = axis === 'u' ? V(y) - 2 : V(y);
+    const k = fenceBox(axis, len, frame), v0 = axis === 'u' ? fy(y) - 2 : fy(y);
     out.push({ foot: axis === 'u' ? { u0, u1: u0 + len, v0, v1: v0 + 2 } : { u0, u1: u0 + 2, v0, v1: v0 + len }, draw: g2 => drawBuf(g2, k.buf, k.cv, u0, v0) });
   };
-  const x1 = Z.x + Z.w, y1 = Z.y + Z.h, L = U(x1) - U(Z.x), uE = U(x1) - 2; // the east rail sits inside the pen, flush with north/south's ends, like the west rail
+  const x1 = Z.x + Z.w, y1 = Z.y + Z.h, L = fx(x1) - fx(Z.x), uE = fx(x1) - 2; // the east rail sits inside the pen, flush with north/south's ends, like the west rail
   add('u', Z.x, Z.y, L); add('u', Z.x, y1, L);
-  add('v', Z.x, Z.y, V(y1) - V(Z.y));
+  add('v', Z.x, Z.y, fy(y1) - fy(Z.y));
   let y = Z.y;
   for (const q of Z.gates) {
-    add('v', x1, y, V(q.y - 4) - V(y), 'BREAKOUT_RAIL', uE);
-    if (!S.near(actors, x1 - 4, q.y - 4, x1 + 4, q.y + 4)) add('v', x1, q.y - 4, V(q.y + 4) - V(q.y - 4), 'BREAKOUT_GATE_FRONT', uE);
+    add('v', x1, y, fy(q.y - 4) - fy(y), 'BREAKOUT_RAIL', uE);
+    if (!S.near(actors, x1 - 4, q.y - 4, x1 + 4, q.y + 4)) add('v', x1, q.y - 4, fy(q.y + 4) - fy(q.y - 4), 'BREAKOUT_GATE_FRONT', uE);
     y = q.y + 4;
   }
-  add('v', x1, y, V(y1) - V(y), 'BREAKOUT_RAIL', uE);
+  add('v', x1, y, fy(y1) - fy(y), 'BREAKOUT_RAIL', uE);
   return out;
 }
 
@@ -390,7 +386,7 @@ function gateItems(all, dt) {
 // screen scans, the optics pulse. Upright, its bottom centre where the hall's throne seats it.
 function magos(t, dt) {
   const own = MAGOS39.body, body = own ?? MAGOS.body, arm = own ? MAGOS39.arm : MAGOS.arm, claw = own ? MAGOS39.claw : MAGOS.claw, A = own ? MAGOS39_AT : MAGOS_AT;
-  const MX = 264 + H.ox, MY = 120 + H.sd, fw = MAGOS.body[0].length, u = Math.round(2 * MX) + (fw >> 1), v = Math.round(2 * (MY + 24 - WALL)) - 12, SEAT = 4; // seated mid-seat, raised SEAT art px: his lap on the seat, his shins over its front
+  const MX = S.MAG.x + H.ox, MY = S.MAG.y + H.sd, fw = MAGOS.body[0].length, u = fx(MX) + (fw >> 1), v = fy(MY + 24) - 12, SEAT = 4; // seated mid-seat, raised SEAT art px: his lap on the seat, his shins over its front
   const bx = MX + (fw - body[0].length) / (2 * RES), by = MY + (MAGOS.body.length - body.length) / RES; // the frame, bottom centre kept
   return { foot: { u0: u - 8, u1: u + 8, v0: v - 4, v1: v + 2 }, draw: g => save(g, g2 => upright(g2, MX + fw / (2 * RES), MY + MAGOS.body.length / RES, cont(u, v, SEAT).map(half)), g2 => {
     const sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;

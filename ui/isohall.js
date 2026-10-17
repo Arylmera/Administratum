@@ -10,7 +10,7 @@ import { cellFrame } from './room.js';
 import { MAPS, PROP_AT, ROOM, RES } from './sprites.js';
 import { sheetOf, build39 } from './faces.js';
 import { aoBands } from './depth.js';
-import { T } from './theme.js';
+import { T, rgb } from './theme.js';
 
 const SLAB_Z = 8; // a cutaway inner wall: 4 logical px, walls down (the rooms behind stay in view)
 const FOOT = 8; // the wall foot, art rows (flat: 4 logical px)
@@ -18,7 +18,7 @@ const STRIP = Math.ceil(4 * VS39); // a 4-row floor strip (channel, sill) across
 const WALL_V0 = 4; // props against the back wall stand in front of the pipe run (v 1..4)
 const CAP = '7'; // the top of a full-height wall
 const cut = (i, j, U, J) => (i === 0 || j === 0 || i === U - 1 || j === J - 1 ? 'l' : 'm'); // a cutaway wall's lit top, its rim lighter
-const fx = x => Math.round(2 * x), fy = y => Math.round(2 * (y - WALL));
+export const fx = x => Math.round(2 * x), fy = y => Math.round(2 * (y - WALL));
 
 // Every surface of the hall in world coords. kind: floor (a top at z = 0), strip (a floor band over it: channels,
 // sills), wall (full height, 1 unit thick, inside the hall's box: north at v 0, west at u 0), slab (a cutaway inner
@@ -222,7 +222,6 @@ export function renderHall39(hall, day = true) {
 // of what the dynamic layer draws into it (world coords): doors [{ name, tex, u0, u1, v0, v1, z0, z1 }] (each
 // doorway's leaves). Painted in
 // the theme's px colours, the shading blended in; the windows' glass in the day or night colours (T.ink.window*).
-const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 export function buildHall39(hall, day = true) {
   const { buf, shade, ox, oy, anchors } = renderHall39(hall, day);
   const pal = { ...T.px }, win = { ...T.px, ...(day ? T.ink.windowDay : T.ink.windowNight) }, RGB = new Map(), GLASS = new Map();

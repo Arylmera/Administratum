@@ -1,4 +1,4 @@
-import { blit, sprite, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
+import { blit, sprite, half, rect, MAPS, MAGOS, MAGOS_AT, PROP_AT, RES, ROOM, SHEET_OF } from './sprites.js';
 import { T, onTheme, themed, hexA } from './theme.js';
 import { tile, roomAt, halfOf } from './room.js';
 import { WIN_Y, wallArt } from './wallart.js';
@@ -15,8 +15,6 @@ const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
 
 // Half-pixel detail: 0.5 logical = 1 art px (the background canvas is drawn at RES). The room's structure is tiles
 // (room.js, ui/art/room-*.png); what stays drawn here is weathering and effects, in theme colours.
-function rect(g, x, y, w, h, color) { g.fillStyle = color; g.fillRect(x, y, w, h); }
-const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
 
 // Static props [map, x, y] on the measured hall (layout.js: 346x226, 40 px wall), by what they move with as the scene
 // grows (hallOf): w the scriptorium's west end, c its centre (gate, cogitator bank: + dx), e its east wall (+ sw - 200),
@@ -1048,5 +1046,5 @@ function fromArt() {
 fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
-export { KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
+export { MAG, KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
   newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, doorFrame, near, skullRed };
