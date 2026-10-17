@@ -94,8 +94,16 @@ const setQuiet = (on, from, to) => {
 // Night Vigil deadline (adm.vigilDeadline, minutes after midnight, '' = none): the backend reads it when the vigil is armed.
 
 // Monitoring (monitor.rs reads these adm.* strings from settings.json at start and after each save): checkboxes are
-// '1' / '0', the rest is kept as typed (empty token alert: off); the backend clamps.
+// '1' / '0', the numbers are clamped like monitor.rs does, the rest is kept as typed (empty token alert: off).
 export const MONITOR = { tokenAlert: '', stuck: '1', stuckToast: '1', stuckMin: '15', stuckRepeat: '5', reportOn: '0', reportDir: '' };
+// The numbers as monitor.rs config_from uses them: [default, min, max]. The token alert is a plain integer string (0 or empty: off).
+const MON_NUM = { stuckMin: [15, 5, 120], stuckRepeat: [5, 3, 20] };
+const monitorNorm = (k, v) => {
+  if (k === 'tokenAlert') { const n = Math.floor(Math.min(+v, Number.MAX_SAFE_INTEGER)); return n > 0 ? String(n) : ''; }
+  if (!(k in MON_NUM)) return v;
+  const [d, lo, hi] = MON_NUM[k], n = Math.round(+v);
+  return String(Number.isFinite(n) && v !== '' ? Math.min(hi, Math.max(lo, n)) : d);
+};
 const monitorGet = k => store.get(`adm.${k}`, MONITOR[k]);
 
 // Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by viewport.js's fit().
@@ -291,7 +299,10 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
   else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
   else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
-  else if (k in MONITOR) store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value.trim());
+  else if (k in MONITOR) {
+    store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : monitorNorm(k, el.value.trim()));
+    if (el.type !== 'checkbox') el.value = monitorGet(k); // show what is used, even while focused
+  }
   else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
   else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
   sync();

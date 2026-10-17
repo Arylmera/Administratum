@@ -175,6 +175,18 @@ assert.equal(T.id, Object.values(THEMES).find(th => th.world === 'cyber').id);
 assert.ok(Object.values(THEMES).filter(th => th.world === 'cyber').length > 1, 'a world with several styles');
 assert.equal(field('theme').value, T.id);
 
+// Monitoring numbers show what the backend uses (monitor.rs ranges): clamped, and the token alert a plain integer.
+change('stuckMin', '2');
+assert.equal(store.get('adm.stuckMin'), '5');
+assert.equal(field('stuckMin').value, '5');
+change('stuckRepeat', '99');
+assert.equal(store.get('adm.stuckRepeat'), '20');
+change('tokenAlert', '1e6');
+assert.equal(store.get('adm.tokenAlert'), '1000000');
+assert.equal(field('tokenAlert').value, '1000000');
+change('tokenAlert', 'junk');
+assert.equal(store.get('adm.tokenAlert'), '');
+
 // Reset: every value back to its default, theme and view included.
 seen.length = 0;
 form.querySelector('.reset').click();

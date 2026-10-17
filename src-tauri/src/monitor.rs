@@ -26,7 +26,7 @@ pub fn config_from(v: &Value) -> Config {
     let num = |k: &str, default: u32, lo: u32, hi: u32| s(k).parse().map_or(default, |n: u32| n.clamp(lo, hi));
     let dir = s("adm.reportDir").trim_matches('"').trim(); // Explorer's "Copy as path" adds quotes
     Config {
-        token_alert: s("adm.tokenAlert").parse().ok().filter(|n| *n > 0),
+        token_alert: s("adm.tokenAlert").parse().ok().or_else(|| s("adm.tokenAlert").parse::<f64>().ok().map(|f| f as u64)).filter(|n| *n > 0),
         stuck: s("adm.stuck") != "0",
         stuck_toast: s("adm.stuckToast") != "0",
         stuck_ms: i64::from(num("adm.stuckMin", 15, 5, 120)) * 60_000,
@@ -134,6 +134,7 @@ mod tests {
         assert_eq!(config_from(&json!({"adm.stuckMin": "oops"})).stuck_ms, 900_000);
         assert_eq!(config_from(&json!({"adm.stuckRepeat": "99"})).stuck_repeat, 20);
         assert_eq!(config_from(&json!({"adm.tokenAlert": "5000000"})).token_alert, Some(5_000_000));
+        assert_eq!(config_from(&json!({"adm.tokenAlert": "1e6"})).token_alert, Some(1_000_000), "a float string is truncated");
         assert_eq!(config_from(&json!({"adm.tokenAlert": "0"})).token_alert, None);
         assert_eq!(config_from(&json!({"adm.tokenAlert": ""})).token_alert, None);
         assert!(!config_from(&json!({"adm.stuck": "0"})).stuck);
