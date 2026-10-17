@@ -1,0 +1,48 @@
+name: check
+
+# The full gate on every push and PR (docs/DEVELOPMENT.md, Tests): backend tests and clippy, the node checks, and the
+# art gate. Formatting stays in fmt.yml; release.yml builds the installers on a version bump.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      # Tauri v2's Linux build dependencies (tauri docs, Prerequisites, Debian/Ubuntu); release.yml builds no Linux leg.
+      - name: Tauri system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+      - run: cargo test
+        working-directory: src-tauri
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: src-tauri
+
+  ui:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      # Pinned: the art gate compares PNG bytes, and those come from node's bundled zlib.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.17.0
+      - name: Node checks
+        run: |
+          fail=0
+          for t in ui/*.test.mjs; do node "$t" || { echo "::error::FAIL $t"; fail=1; }; done
+          exit $fail
+      # Every generator and gallery rerun; fails if a committed sheet or gallery is stale.
+      - run: node tools/art_gate.mjs

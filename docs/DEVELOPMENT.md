@@ -112,8 +112,15 @@ python -m http.server 8123        # from the repo root
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml   # every backend module has its own tests
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 for t in ui/*.test.mjs; do node "$t" || echo "FAIL $t"; done
+node tools/art_gate.mjs                           # from a clean tree: every art sheet and gallery is current
 ```
+
+CI runs all four on every push and PR (`.github/workflows/check.yml`; `cargo fmt --check` is `fmt.yml`). The art gate
+reruns every generator (`watch_art`, `breakout_art`, `suzerain_art`: one run per module under `tools/<gen>/`) and
+`sprite_sheet.mjs` (the default theme, plus `--theme` for every folder under `ui/art/`), then fails if
+`git status --porcelain ui/art docs/sprites` is not empty: commit the regenerated files with the art change.
 
 The node checks are plain `assert` scripts with no framework. The panel tests (settings, Chronicon) run on
 `ui/testdom.mjs`: a minimal DOM parsed from the real `ui/index.html`, fake timers and clock (UTC), and a fake backend
@@ -185,6 +192,7 @@ sprite over the contact shadow it gets in the hall.
 node ui/art.test.mjs && node ui/sprites.test.mjs
 node tools/sprite_sheet.mjs                     # regenerates docs/sprites/
 node tools/sprite_sheet.mjs --theme cyber       # and each other theme with its own art folder under ui/art/
+node tools/art_gate.mjs                         # or all of it at once: fails on whatever is still stale (CI runs it)
 ```
 
 `docs/sprites/` is the committed gallery used to discuss sprites one by one: one GitHub issue per family (Sprite
