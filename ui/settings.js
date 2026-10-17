@@ -103,98 +103,23 @@ const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
 export const view = { scale: okScale(store.get('adm.scale')) };
 const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', view.scale); };
 
+// The panel's writes: the theme and view pickers, the saved settings, and what the backend is told.
+const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
+const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
+const pickView = mode => {
+  if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
+  store.set('adm.view', mode); setView(mode);
+};
+const save = () => store.set('adm.settings', JSON.stringify(settings));
+const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
+const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
+const pushQuiet = () => invoke('set_quiet', { enabled: quiet.on, fromMin: quiet.from, toMin: quiet.to }).catch(() => {});
+
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
-// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
-export function initSettings(hooks) {
-  const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
-  const field = name => form.elements[name];
-  field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
-  const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
-  const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
-  const pickView = mode => {
-    if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
-    store.set('adm.view', mode); setView(mode);
-  };
-  let login = null;
-
-  const save = () => store.set('adm.settings', JSON.stringify(settings));
-  const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
-  const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
-  const pushQuiet = () => invoke('set_quiet', { enabled: quiet.on, fromMin: quiet.from, toMin: quiet.to }).catch(() => {});
-  let isWin = true; // the backend's OS (platform): the firewall rule and the desktop icon are Windows-only
-  if (REMOTE) {
-    // The PC's settings, read only; window, login, remote view and reset belong to the PC.
-    for (const f of form.querySelectorAll('[data-host]')) f.disabled = true;
-    for (const e of form.querySelectorAll('.host-only')) e.hidden = true;
-    form.querySelector('.remote-only').hidden = false;
-  } else {
-    applyTop(); // tauri.conf.json starts on top; restore the saved choice
-    pushStale(); pushQuestions(); pushQuiet();
-    // Desktop strip: offered only where the backend can place it (Windows, macOS).
-    invoke('strip_supported').then(ok => { if (ok) form.querySelector('[value="strip"]').hidden = false; }, () => {});
-    invoke('platform').then(os => {
-      isWin = os === 'windows';
-      if (isWin) return;
-      for (const e of form.querySelectorAll('.win-only')) e.hidden = true;
-      if (os === 'macos') form.querySelector('[name="openWith"] [value="explorer"]').textContent = 'Finder';
-      field('openCmd').placeholder = '/path/to/app {path}';
-    }, () => {});
-  }
-
-  sync = () => {
-    field('onTop').checked = settings.onTop;
-    const auto = view.scale === 'auto';
-    field('scaleAuto').checked = auto; field('scale').disabled = auto;
-    for (const b of form.querySelectorAll('.step')) b.disabled = auto;
-    if (!auto) field('scale').value = view.scale;
-    field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
-    field('mode').value = hooks.mode();
-    const world = THEMES[T.id]?.world ?? 'w40k';
-    field('world').value = world;
-    field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
-    field('theme').value = T.id;
-    field('view').value = viewName();
-    for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
-    field('stripSize').value = settings.stripSize;
-    field('stripBackdrop').checked = settings.stripBackdrop;
-    for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
-    field('isoBackdrop').checked = settings.isoBackdrop;
-    field('chime').checked = !hooks.muted();
-    for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
-    for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
-    field('idleFps').value = String(perf.idleFps);
-    field('pauseHidden').checked = perf.pauseHidden;
-    field('openWith').value = store.get('adm.openWith', 'explorer');
-    if (document.activeElement !== field('openCmd')) field('openCmd').value = store.get('adm.openCmd', '');
-    field('openCmd').disabled = field('openWith').value !== 'custom';
-    field('questions').checked = questions.on;
-    field('questionToast').checked = questions.toast;
-    field('questionToast').disabled = !questions.on;
-    field('quietOn').checked = quiet.on;
-    for (const k of ['quietFrom', 'quietTo']) {
-      if (document.activeElement !== field(k)) field(k).value = hhmmOf(quiet[k === 'quietFrom' ? 'from' : 'to']);
-      field(k).disabled = !quiet.on;
-    }
-    const dl = minutes(store.get('adm.vigilDeadline', ''), null);
-    if (document.activeElement !== field('vigilDeadline')) field('vigilDeadline').value = dl === null ? '' : hhmmOf(dl);
-    field('login').checked = !!login;
-    field('login').disabled = login === null;
-    field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
-    for (const k in MONITOR) {
-      const el = field(k);
-      if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
-      else if (document.activeElement !== el) el.value = monitorGet(k);
-    }
-    field('stuckToast').disabled = field('stuckMin').disabled = field('stuckRepeat').disabled = monitorGet('stuck') !== '1';
-    field('reportDir').disabled = monitorGet('reportOn') !== '1';
-  };
-  const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
-    .then(on => { login = on; }, () => { login = null; }).finally(sync);
-  listen('autostart', e => { login = e.payload; sync(); });
-
-  // Remote view (host only): serve on the LAN, allow actions, port, pairing QR (remote_status / remote_set).
+// Remote view (host only): serve on the LAN, allow actions, port, pairing QR (remote_status / remote_set).
+function initRemote(form, root, field) {
   const rv = form.querySelector('#remote'), rvErr = rv.querySelector('.rv-err'), regen = rv.querySelector('.rv-regen');
   const showRemote = st => {
     rvErr.hidden = true;
@@ -216,7 +141,24 @@ export function initSettings(hooks) {
   };
   const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; root.querySelector('.cats [data-cat="remote"]').hidden = true; });
   const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
-  // Firewall rule for the port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
+
+  let armed;
+  regen.onclick = () => {
+    if (!armed) { // confirm first: a second click within 4 s
+      regen.textContent = 'Click again: unpair every device';
+      armed = setTimeout(() => { armed = null; regen.textContent = 'Regenerate token'; }, 4000);
+      return;
+    }
+    clearTimeout(armed); armed = null; regen.textContent = 'Regenerate token';
+    rvCall('remote_regenerate_token');
+  };
+  return { readRemote, applyRemote };
+}
+
+// Firewall rule for the remote view's port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
+// isWin: a getter, the backend's OS arrives after init.
+function initFirewall(form, field, isWin) {
+  const rv = form.querySelector('#remote');
   const fwLine = rv.querySelector('.rv-fw'), fwPublic = rv.querySelector('.rv-public'), fwBtns = rv.querySelectorAll('.rv-fw-btn');
   const fwPort = () => { const p = +field('remotePort').value; return Number.isInteger(p) && p >= 1024 && p <= 65535 ? p : null; };
   const showFw = st => { fwLine.textContent = st.detail; fwLine.dataset.rule = st.rule; fwPublic.hidden = st.network !== 'public'; };
@@ -224,7 +166,7 @@ export function initSettings(hooks) {
   let fwBusy = false, fwTimer;
   const readFw = () => {
     const port = fwPort();
-    if (fwBusy || !isWin) return;
+    if (fwBusy || !isWin()) return;
     if (port === null) { fwErr('Port must be between 1024 and 65535.'); return; }
     invoke('firewall_status', { port }).then(st => { if (!fwBusy && port === fwPort()) showFw(st); }, fwErr);
   };
@@ -238,19 +180,11 @@ export function initSettings(hooks) {
       .finally(() => { fwBusy = false; for (const x of fwBtns) x.disabled = false; });
   };
   field('remotePort').addEventListener('input', () => { clearTimeout(fwTimer); fwTimer = setTimeout(readFw, 600); });
+  return readFw;
+}
 
-  let armed;
-  regen.onclick = () => {
-    if (!armed) { // confirm first: a second click within 4 s
-      regen.textContent = 'Click again: unpair every device';
-      armed = setTimeout(() => { armed = null; regen.textContent = 'Regenerate token'; }, 4000);
-      return;
-    }
-    clearTimeout(armed); armed = null; regen.textContent = 'Regenerate token';
-    rvCall('remote_regenerate_token');
-  };
-
-  // Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
+// Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
+function initUpdates(form, opener) {
   const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
   const upCheck = up.querySelector('.up-check'), upInstall = up.querySelector('.up-install');
   const showUpdate = st => {
@@ -273,6 +207,151 @@ export function initSettings(hooks) {
     tauri()?.app?.getVersion().then(v => { upLine.textContent = `Version ${v}`; }).catch(() => {});
     if (store.get('adm.updateCheck', '1') !== '0') checkUpdate();
   }
+}
+
+// Categories: a side button shows its section of the form, one at a time.
+function initCategories(root, form) {
+  const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
+  for (const b of cats) b.onclick = () => {
+    for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
+    for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
+  };
+}
+
+// The panel's fields from the live values (sync); a field being typed in keeps its text. login: on, off, or null (unknown).
+function syncForm(form, field, hooks, login) {
+  field('onTop').checked = settings.onTop;
+  const auto = view.scale === 'auto';
+  field('scaleAuto').checked = auto; field('scale').disabled = auto;
+  for (const b of form.querySelectorAll('.step')) b.disabled = auto;
+  if (!auto) field('scale').value = view.scale;
+  field('scaleOut').value = auto ? 'Auto' : `${view.scale}x`;
+  field('mode').value = hooks.mode();
+  const world = THEMES[T.id]?.world ?? 'w40k';
+  field('world').value = world;
+  field('theme').replaceChildren(...styles(world).map(th => new Option(th.name, th.id)));
+  field('theme').value = T.id;
+  field('view').value = viewName();
+  for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
+  field('stripSize').value = settings.stripSize;
+  field('stripBackdrop').checked = settings.stripBackdrop;
+  for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
+  field('isoBackdrop').checked = settings.isoBackdrop;
+  field('chime').checked = !hooks.muted();
+  for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
+  for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
+  field('idleFps').value = String(perf.idleFps);
+  field('pauseHidden').checked = perf.pauseHidden;
+  field('openWith').value = store.get('adm.openWith', 'explorer');
+  if (document.activeElement !== field('openCmd')) field('openCmd').value = store.get('adm.openCmd', '');
+  field('openCmd').disabled = field('openWith').value !== 'custom';
+  field('questions').checked = questions.on;
+  field('questionToast').checked = questions.toast;
+  field('questionToast').disabled = !questions.on;
+  field('quietOn').checked = quiet.on;
+  for (const k of ['quietFrom', 'quietTo']) {
+    if (document.activeElement !== field(k)) field(k).value = hhmmOf(quiet[k === 'quietFrom' ? 'from' : 'to']);
+    field(k).disabled = !quiet.on;
+  }
+  const dl = minutes(store.get('adm.vigilDeadline', ''), null);
+  if (document.activeElement !== field('vigilDeadline')) field('vigilDeadline').value = dl === null ? '' : hhmmOf(dl);
+  field('login').checked = !!login;
+  field('login').disabled = login === null;
+  field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
+  for (const k in MONITOR) {
+    const el = field(k);
+    if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
+    else if (document.activeElement !== el) el.value = monitorGet(k);
+  }
+  field('stuckToast').disabled = field('stuckMin').disabled = field('stuckRepeat').disabled = monitorGet('stuck') !== '1';
+  field('reportDir').disabled = monitorGet('reportOn') !== '1';
+}
+
+// A changed field: store it, apply it, tell the backend, then refresh the panel.
+function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
+  const el = e.target, k = el.name;
+  if (k.startsWith('remote')) { applyRemote(); return; }
+  if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
+  else if (k === 'scaleAuto') { setScale(el.checked ? 'auto' : field('scale').value); hooks.rescaled(); }
+  else if (k === 'mode') hooks.setMode(el.value);
+  else if (k === 'world') pickTheme(styles(el.value)[0].id);
+  else if (k === 'theme') pickTheme(el.value);
+  else if (k === 'view') pickView(el.value);
+  else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
+  else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
+  else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
+  else if (k === 'chime') hooks.setMuted(!el.checked);
+  else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
+  else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
+  else if (k === 'quietOn' || k === 'quietFrom' || k === 'quietTo') {
+    setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
+    pushQuiet(); hooks.quieted?.();
+  }
+  else if (k === 'vigilDeadline') store.set('adm.vigilDeadline', String(minutesOf(el.value) ?? '')); // read by the backend at arm time
+  else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
+  else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
+  else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
+  else if (k in MONITOR) store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value.trim());
+  else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
+  else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
+  sync();
+}
+
+// Reset: every setting back to its default, the backend told, the panel refreshed.
+function resetAll(hooks, setPlace) {
+  Object.assign(settings, DEFAULTS);
+  setPlace(NaN, NaN);
+  setPerf(12, true);
+  setQuestions(true, true);
+  setQuiet(false, 1320, 480);
+  store.set('adm.openWith', 'explorer');
+  store.set('adm.updateCheck', '1');
+  store.set('adm.vigilDeadline', '');
+  for (const k in MONITOR) store.set(`adm.${k}`, MONITOR[k]);
+  setScale('auto'); hooks.rescaled();
+  save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
+  hooks.setMode('auto'); hooks.setMuted(false);
+  pickTheme('tier2');
+  pickView('flat');
+  sync();
+  hooks.quieted?.();
+}
+
+// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
+export function initSettings(hooks) {
+  const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
+  const field = name => form.elements[name];
+  field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
+  let login = null;
+  let isWin = true; // the backend's OS (platform): the firewall rule and the desktop icon are Windows-only
+  if (REMOTE) {
+    // The PC's settings, read only; window, login, remote view and reset belong to the PC.
+    for (const f of form.querySelectorAll('[data-host]')) f.disabled = true;
+    for (const e of form.querySelectorAll('.host-only')) e.hidden = true;
+    form.querySelector('.remote-only').hidden = false;
+  } else {
+    applyTop(); // tauri.conf.json starts on top; restore the saved choice
+    pushStale(); pushQuestions(); pushQuiet();
+    // Desktop strip: offered only where the backend can place it (Windows, macOS).
+    invoke('strip_supported').then(ok => { if (ok) form.querySelector('[value="strip"]').hidden = false; }, () => {});
+    invoke('platform').then(os => {
+      isWin = os === 'windows';
+      if (isWin) return;
+      for (const e of form.querySelectorAll('.win-only')) e.hidden = true;
+      if (os === 'macos') form.querySelector('[name="openWith"] [value="explorer"]').textContent = 'Finder';
+      field('openCmd').placeholder = '/path/to/app {path}';
+    }, () => {});
+  }
+
+  sync = () => syncForm(form, field, hooks, login);
+  const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
+    .then(on => { login = on; }, () => { login = null; }).finally(sync);
+  listen('autostart', e => { login = e.payload; sync(); });
+
+  const { readRemote, applyRemote } = initRemote(form, root, field);
+  const readFw = initFirewall(form, field, () => isWin);
+
+  initUpdates(form, opener);
 
   const setPlace = (lat, lon) => {
     Object.assign(place, { lat, lon });
@@ -287,61 +366,12 @@ export function initSettings(hooks) {
     const s = field('scale'); s.value = Math.min(+s.max, Math.max(+s.min, +s.value + b.dataset.step * s.step));
     setScale(s.value); hooks.rescaled(); sync();
   };
-  form.onchange = e => {
-    const el = e.target, k = el.name;
-    if (k.startsWith('remote')) { applyRemote(); return; }
-    if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
-    else if (k === 'scaleAuto') { setScale(el.checked ? 'auto' : field('scale').value); hooks.rescaled(); }
-    else if (k === 'mode') hooks.setMode(el.value);
-    else if (k === 'world') pickTheme(styles(el.value)[0].id);
-    else if (k === 'theme') pickTheme(el.value);
-    else if (k === 'view') pickView(el.value);
-    else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
-    else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
-    else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
-    else if (k === 'chime') hooks.setMuted(!el.checked);
-    else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
-    else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
-    else if (k === 'quietOn' || k === 'quietFrom' || k === 'quietTo') {
-      setQuiet(field('quietOn').checked, minutesOf(field('quietFrom').value) ?? quiet.from, minutesOf(field('quietTo').value) ?? quiet.to);
-      pushQuiet(); hooks.quieted?.();
-    }
-    else if (k === 'vigilDeadline') store.set('adm.vigilDeadline', String(minutesOf(el.value) ?? '')); // read by the backend at arm time
-    else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
-    else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
-    else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
-    else if (k in MONITOR) store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value.trim());
-    else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
-    else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
-    sync();
-  };
-  // Categories: a side button shows its section of the form, one at a time.
-  const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
-  for (const b of cats) b.onclick = () => {
-    for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
-    for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
-  };
+  form.onchange = e => onChange(e, { field, hooks, setPlace, readLogin, applyRemote });
+  initCategories(root, form);
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
   form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
-  form.querySelector('.reset').onclick = () => {
-    Object.assign(settings, DEFAULTS);
-    setPlace(NaN, NaN);
-    setPerf(12, true);
-    setQuestions(true, true);
-    setQuiet(false, 1320, 480);
-    store.set('adm.openWith', 'explorer');
-    store.set('adm.updateCheck', '1');
-    store.set('adm.vigilDeadline', '');
-    for (const k in MONITOR) store.set(`adm.${k}`, MONITOR[k]);
-    setScale('auto'); hooks.rescaled();
-    save(); applyTop(); pushStale(); pushQuestions(); pushQuiet();
-    hooks.setMode('auto'); hooks.setMuted(false);
-    pickTheme('tier2');
-    pickView('flat');
-    sync();
-    hooks.quieted?.();
-  };
+  form.querySelector('.reset').onclick = () => resetAll(hooks, setPlace);
 
   onView(() => sync()); // the tray or the handle switched the view under an open panel
   panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); } sync(); } }); // readLogin: the tray may have changed it
