@@ -63,6 +63,25 @@ export const reportText = md => md.replace(/^---\n[\s\S]*?\n---\n+/, '');
 const LIVE_CAP = 500; // newest live rows kept in an open day's log
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
+function bars(title, rows, colorOf) { // colorOf: a swatch per row (dept => colour or null), or none
+  const box = h('div', 'bars');
+  box.append(h('h3', null, title));
+  if (!rows.length) { box.append(h('p', 'quiet', 'Nothing tithed')); return box; }
+  const max = Math.max(...rows.map(r => r[1]), 1);
+  for (const [name, v, busy] of rows) {
+    const row = h('div', 'row');
+    const n = h('span', 'n', name);
+    if (colorOf) { const c = colorOf(name); if (c) n.style.setProperty('--sw', c); n.classList.add('sw'); }
+    const track = h('span', 'track'), fill = h('i');
+    fill.style.width = `${(100 * v) / max}%`;
+    track.append(fill);
+    row.append(n, track, h('span', 'v', busy != null ? `${fmtTok(v)} · ${fmtDur(busy)}` : fmtTok(v)));
+    row.title = `${name}: ${fmtTok(v)} tokens${busy != null ? `, ${fmtDur(busy)} working` : ''}`;
+    box.append(row);
+  }
+  return box;
+}
+
 export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
@@ -161,7 +180,7 @@ export function initChronicon(colorOf = () => null) {
     const grid = h('div', 'cols');
     const projects = Object.entries(t?.byProject ?? {}).map(([k, v]) => [k, projTok(v), v?.busyMs]).sort((a, b) => b[1] - a[1]);
     const models = Object.entries(t?.byModel ?? {}).map(([k, v]) => [k.replace(/^claude-/, ''), projTok(v)]).sort((a, b) => b[1] - a[1]);
-    grid.append(bars('By department', projects, true), bars('By model', models, false));
+    grid.append(bars('By department', projects, colorOf), bars('By model', models, false));
     sec.append(grid);
     // The sessions behind the numbers: top 10 by new tokens (the measure of the token alert).
     const sessions = Object.values(t?.bySession ?? {}).map(s => [`${s.name} · ${s.dept}`, s.fresh || 0]).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -195,25 +214,6 @@ export function initChronicon(colorOf = () => null) {
     const sum = h('summary', null, 'Day report');
     sum.append(copy);
     box.append(sum, h('pre', null, reportText(md)));
-    return box;
-  }
-
-  function bars(title, rows, swatch) {
-    const box = h('div', 'bars');
-    box.append(h('h3', null, title));
-    if (!rows.length) { box.append(h('p', 'quiet', 'Nothing tithed')); return box; }
-    const max = Math.max(...rows.map(r => r[1]), 1);
-    for (const [name, v, busy] of rows) {
-      const row = h('div', 'row');
-      const n = h('span', 'n', name);
-      if (swatch) { const c = colorOf(name); if (c) n.style.setProperty('--sw', c); n.classList.add('sw'); }
-      const track = h('span', 'track'), fill = h('i');
-      fill.style.width = `${(100 * v) / max}%`;
-      track.append(fill);
-      row.append(n, track, h('span', 'v', busy != null ? `${fmtTok(v)} · ${fmtDur(busy)}` : fmtTok(v)));
-      row.title = `${name}: ${fmtTok(v)} tokens${busy != null ? `, ${fmtDur(busy)} working` : ''}`;
-      box.append(row);
-    }
     return box;
   }
 
