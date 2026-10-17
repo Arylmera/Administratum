@@ -394,7 +394,8 @@ mod tests {
     #[test]
     fn adopt_keeps_live_parents_and_seats_children_with_their_root() {
         let s = |id: &str, parent: Option<&str>, dept: &str| Session { parent: parent.map(Into::into), dept: dept.into(), ..crate::registry::tests_session(id) };
-        let mut roster = [s("root", None, "Geneseed"), s("kid", Some("root"), "kid-tree"), s("grand", Some("kid"), "x"), s("orphan", Some("gone"), "Terra"), s("a", Some("b"), "A"), s("b", Some("a"), "B")];
+        let mut roster =
+            [s("root", None, "Geneseed"), s("kid", Some("root"), "kid-tree"), s("grand", Some("kid"), "x"), s("orphan", Some("gone"), "Terra"), s("a", Some("b"), "A"), s("b", Some("a"), "B")];
         adopt(&mut roster);
         let got: Vec<_> = roster.iter().map(|s| (s.id.as_str(), s.parent.as_deref(), s.dept.as_str())).collect();
         assert_eq!(got, [("root", None, "Geneseed"), ("kid", Some("root"), "Geneseed"), ("grand", Some("kid"), "Geneseed"), ("orphan", None, "Terra"), ("a", Some("b"), "B"), ("b", Some("a"), "A")]);
