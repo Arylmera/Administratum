@@ -151,6 +151,52 @@ function summary(t, today, byDay, events, colorOf) {
   return sec;
 }
 
+function row(e) {
+  const li = h('li', e.kind);
+  const ico = h('span', 'k');
+  ico.innerHTML = icon(e.kind); // static markup from PIX, no event data
+  ico.title = kindName(e.kind);
+  const who = h('span', 'who', e.name);
+  if (e.helper) who.append(h('small', null, ` › ${e.helper}`));
+  li.append(h('time', null, hhmm(e.ts)), ico, who, h('span', 'dept', e.dept), h('span', 'd', e.detail || kindName(e.kind)));
+  li.setAttribute('aria-label', `${hhmm(e.ts)} ${kindName(e.kind)}: ${e.name}, ${e.dept}. ${e.detail ?? ''}`);
+  return li;
+}
+
+// The day's log, filtered by department; cur.live (set here) prepends a live event.
+function logSection(cur) {
+  const sec = h('section', 'log');
+  const bar = h('div', 'logbar');
+  bar.append(h('h3', null, 'Chronicle'));
+  const sel = h('select');
+  sel.setAttribute('aria-label', 'Filter by department');
+  const fill = () => {
+    const depts = [...new Set(cur.events.map(e => e.dept))].sort();
+    sel.replaceChildren(h('option', null, 'All departments'), ...depts.map(d => h('option', null, d)));
+    sel.options[0].value = '';
+    sel.value = cur.filter;
+  };
+  fill();
+  sel.onchange = () => { cur.filter = sel.value; list.replaceChildren(...rows()); };
+  bar.append(sel);
+  const list = h('ol', 'events');
+  const rows = () => { const r = cur.events.filter(e => !cur.filter || e.dept === cur.filter).map(row); return r.length ? r : [h('li', 'quiet', 'No events recorded')]; };
+  list.replaceChildren(...rows());
+  sec.append(bar, list);
+  cur.live = e => {
+    cur.events.unshift(e);
+    if (cur.events.length > LIVE_CAP) cur.events.length = LIVE_CAP; // an always-open log stays bounded: the oldest rows go
+    if (![...sel.options].some(o => o.value === e.dept)) fill();
+    if (cur.filter && e.dept !== cur.filter) return;
+    list.querySelector('li.quiet')?.remove();
+    const li = row(e);
+    li.classList.add('fresh');
+    list.prepend(li);
+    while (list.children.length > LIVE_CAP) list.lastElementChild.remove();
+  };
+  return sec;
+}
+
 export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
@@ -208,7 +254,7 @@ export function initChronicon(colorOf = () => null) {
     if (!events && !tithe) { body.append(h('p', 'quiet', say('log.silent'))); return; }
     body.append(summary(tithe, day === dayKey(), null, cur.events.length, colorOf));
     if (report?.markdown) body.append(reportSection(report.markdown));
-    body.append(logSection());
+    body.append(logSection(cur));
     body.scrollTop = 0;
   }
 
@@ -239,51 +285,6 @@ export function initChronicon(colorOf = () => null) {
     sum.append(copy);
     box.append(sum, h('pre', null, reportText(md)));
     return box;
-  }
-
-  function logSection() {
-    const sec = h('section', 'log');
-    const bar = h('div', 'logbar');
-    bar.append(h('h3', null, 'Chronicle'));
-    const sel = h('select');
-    sel.setAttribute('aria-label', 'Filter by department');
-    const fill = () => {
-      const depts = [...new Set(cur.events.map(e => e.dept))].sort();
-      sel.replaceChildren(h('option', null, 'All departments'), ...depts.map(d => h('option', null, d)));
-      sel.options[0].value = '';
-      sel.value = cur.filter;
-    };
-    fill();
-    sel.onchange = () => { cur.filter = sel.value; list.replaceChildren(...rows()); };
-    bar.append(sel);
-    const list = h('ol', 'events');
-    const rows = () => { const r = cur.events.filter(e => !cur.filter || e.dept === cur.filter).map(row); return r.length ? r : [h('li', 'quiet', 'No events recorded')]; };
-    list.replaceChildren(...rows());
-    sec.append(bar, list);
-    cur.live = e => {
-      cur.events.unshift(e);
-      if (cur.events.length > LIVE_CAP) cur.events.length = LIVE_CAP; // an always-open log stays bounded: the oldest rows go
-      if (![...sel.options].some(o => o.value === e.dept)) fill();
-      if (cur.filter && e.dept !== cur.filter) return;
-      list.querySelector('li.quiet')?.remove();
-      const li = row(e);
-      li.classList.add('fresh');
-      list.prepend(li);
-      while (list.children.length > LIVE_CAP) list.lastElementChild.remove();
-    };
-    return sec;
-  }
-
-  function row(e) {
-    const li = h('li', e.kind);
-    const ico = h('span', 'k');
-    ico.innerHTML = icon(e.kind); // static markup from PIX, no event data
-    ico.title = kindName(e.kind);
-    const who = h('span', 'who', e.name);
-    if (e.helper) who.append(h('small', null, ` › ${e.helper}`));
-    li.append(h('time', null, hhmm(e.ts)), ico, who, h('span', 'dept', e.dept), h('span', 'd', e.detail || kindName(e.kind)));
-    li.setAttribute('aria-label', `${hhmm(e.ts)} ${kindName(e.kind)}: ${e.name}, ${e.dept}. ${e.detail ?? ''}`);
-    return li;
   }
 
   listen('chronicle', ({ payload: e }) => {
