@@ -103,6 +103,18 @@ const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
 export const view = { scale: okScale(store.get('adm.scale')) };
 const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', view.scale); };
 
+// The panel's writes: the theme and view pickers, the saved settings, and what the backend is told.
+const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
+const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
+const pickView = mode => {
+  if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
+  store.set('adm.view', mode); setView(mode);
+};
+const save = () => store.set('adm.settings', JSON.stringify(settings));
+const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
+const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
+const pushQuiet = () => invoke('set_quiet', { enabled: quiet.on, fromMin: quiet.from, toMin: quiet.to }).catch(() => {});
+
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
@@ -211,18 +223,7 @@ export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
   field('world').replaceChildren(...Object.entries(WORLDS).map(([id, name]) => new Option(name, id)));
-  const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
-  const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
-  const pickView = mode => {
-    if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
-    store.set('adm.view', mode); setView(mode);
-  };
   let login = null;
-
-  const save = () => store.set('adm.settings', JSON.stringify(settings));
-  const pushStale = () => invoke('set_stale_minutes', { minutes: settings.staleMin }).catch(() => {});
-  const pushQuestions = () => invoke('set_question_prefs', { enabled: questions.on, toast: questions.toast }).catch(() => {});
-  const pushQuiet = () => invoke('set_quiet', { enabled: quiet.on, fromMin: quiet.from, toMin: quiet.to }).catch(() => {});
   let isWin = true; // the backend's OS (platform): the firewall rule and the desktop icon are Windows-only
   if (REMOTE) {
     // The PC's settings, read only; window, login, remote view and reset belong to the PC.
