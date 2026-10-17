@@ -2,7 +2,7 @@
 use super::tail::{is_shell_call, Tail};
 use super::{Agent, Helper, Session};
 use serde::Deserialize;
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -167,6 +167,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             source: Agent::Claude,
             opencode_request: None,
             opencode_asker: None,
+            parent: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -182,6 +183,26 @@ pub fn merge(prev: &[Session], scan: Scan) -> Vec<Session> {
     }
     out.sort_by(|a, b| a.name.cmp(&b.name));
     out
+}
+
+/// Keeps each `parent` (raw, from `fork_parent`) only while that session is live, and seats a child in its
+/// root ancestor's department, whatever its own cwd. A chain is followed at most 8 links (a cycle stops there).
+pub fn adopt(roster: &mut [Session]) {
+    let live: HashMap<String, (Option<String>, String, bool)> = roster.iter().map(|s| (s.id.clone(), (s.parent.clone(), s.dept.clone(), s.temp))).collect();
+    for s in roster.iter_mut() {
+        s.parent = s.parent.take().filter(|p| live.contains_key(p));
+        let mut root = s.parent.clone();
+        for _ in 0..8 {
+            let Some((Some(up), ..)) = root.as_ref().and_then(|r| live.get(r)) else { break };
+            if !live.contains_key(up) {
+                break;
+            }
+            root = Some(up.clone());
+        }
+        if let Some((_, dept, temp)) = root.and_then(|r| live.get(&r)) {
+            (s.dept, s.temp) = (dept.clone(), *temp);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -368,5 +389,14 @@ mod tests {
         let mut r = vec![with_ctx("a", 50_000, Some(990_000))];
         track_compaction(&[with_ctx("a", 500_000, Some(990_000))], &mut r, 1_000_000);
         assert_eq!(r[0].compacted_at, Some(990_000));
+    }
+
+    #[test]
+    fn adopt_keeps_live_parents_and_seats_children_with_their_root() {
+        let s = |id: &str, parent: Option<&str>, dept: &str| Session { parent: parent.map(Into::into), dept: dept.into(), ..crate::registry::tests_session(id) };
+        let mut roster = [s("root", None, "Geneseed"), s("kid", Some("root"), "kid-tree"), s("grand", Some("kid"), "x"), s("orphan", Some("gone"), "Terra"), s("a", Some("b"), "A"), s("b", Some("a"), "B")];
+        adopt(&mut roster);
+        let got: Vec<_> = roster.iter().map(|s| (s.id.as_str(), s.parent.as_deref(), s.dept.as_str())).collect();
+        assert_eq!(got, [("root", None, "Geneseed"), ("kid", Some("root"), "Geneseed"), ("grand", Some("kid"), "Geneseed"), ("orphan", None, "Terra"), ("a", Some("b"), "B"), ("b", Some("a"), "A")]);
     }
 }

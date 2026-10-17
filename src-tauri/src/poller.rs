@@ -33,6 +33,8 @@ pub struct Poller {
     found: HashMap<String, (Instant, Option<PathBuf>)>,
     tails: Memo<Option<Tail>>,
     helpers: Memo<Helper>,
+    /// Session id -> the session that forked it (`registry::fork_parent`), once the head gave a final answer.
+    forks: HashMap<String, Option<String>>,
     /// Branch per cwd, re-read from `.git/HEAD` at most every BRANCH_EVERY.
     branches: HashMap<String, (Instant, Option<String>)>,
     /// This tick's transcript files, for the chronicle.
@@ -50,13 +52,14 @@ impl Poller {
             found: HashMap::new(),
             tails: HashMap::new(),
             helpers: HashMap::new(),
+            forks: HashMap::new(),
             branches: HashMap::new(),
             files: HashMap::new(),
         }
     }
 
     pub fn roster(&mut self, prev: &[Session], now_ms: i64) -> Vec<Session> {
-        let Poller { sessions, projects, sys, completions, orca_cache, found, tails, helpers, branches, files } = self;
+        let Poller { sessions, projects, sys, completions, orca_cache, found, tails, helpers, forks, branches, files } = self;
         files.clear();
         let scanned = registry::scan(
             sessions,
@@ -91,6 +94,17 @@ impl Poller {
                 files.insert(s.id.clone(), main.into_iter().map(|m| (m, false)).chain(subs.into_iter().map(|f| (f, true))).collect());
             }
         }
+        for s in roster.iter_mut() {
+            if !forks.contains_key(&s.id) {
+                let main = files.get(&s.id).and_then(|fs| fs.iter().find(|(_, sub)| !sub));
+                let head = main.and_then(|(f, _)| std::fs::File::open(&f.path).ok());
+                if let Some(parent) = head.and_then(|h| registry::fork_parent(std::io::BufReader::new(h), &s.id)) {
+                    forks.insert(s.id.clone(), parent);
+                }
+            }
+            s.parent = forks.get(&s.id).cloned().flatten();
+        }
+        registry::adopt(&mut roster);
         // Everything cached is evicted with its session or file.
         let ids: HashSet<String> = roster.iter().map(|s| s.id.clone()).collect();
         let pids: HashSet<u32> = roster.iter().map(|s| s.pid).collect();
@@ -98,6 +112,7 @@ impl Poller {
         let mains: HashSet<String> = files.values().flatten().filter(|(_, sub)| !sub).map(|(f, _)| f.path.to_string_lossy().into_owned()).collect();
         orca_cache.retain(|pid, _| pids.contains(pid));
         found.retain(|id, _| ids.contains(id));
+        forks.retain(|id, _| ids.contains(id));
         tails.retain(|p, _| paths.contains(p));
         helpers.retain(|p, _| paths.contains(p));
         completions.retain(&ids, &mains);

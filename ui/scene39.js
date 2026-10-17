@@ -198,6 +198,8 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   const Z = breakoutOf(layout.blocks, H);
   if (Z) floor.push(g2 => S.breakoutFloor(g2, Z)); // under the rugs, as in the flat view
   floor.push(g2 => S.drawRugs(g2, layout.blocks));
+  floor.push(g2 => S.drawPlinths(g2, layout.desks, actors));
+  floor.push(g2 => S.drawLinks(g2, layout.desks, actors, now));
 
   const furniture = (kind, at, pile, lit, fill, a, bgShell, block) => {
     const p = placeOf(kind, at), AT = S.KIND[kind].at, front = g2 => onFace(g2, p.v0 + p.k.d - 1, p.yb), slate = g2 => onFace(g2, p.v0 + 4, p.yb);

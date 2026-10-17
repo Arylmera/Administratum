@@ -10,7 +10,7 @@ sessions (`mcp__ccd_session__start_session`), and set that parent apart from a s
 - The child's transcript **opens with a copy of the parent's history**, every copied line still stamped
   with the parent's `sessionId`; the child's own lines follow under its own id. The copied part ends with the
   parent's `mcp__ccd_session__start_session` tool_use(s). The copy can be large (~800 KB seen).
-- A grandchild's copy holds the grandparent's lines, then the parent's: the parent is the `sessionId` of the
+- *(inferred, no real grandchild seen yet)* A grandchild's copy holds the grandparent's lines, then the parent's: the parent is the `sessionId` of the
   **last** foreign line before the first own line, not the first.
 - The parent's transcript gets a tool_result `Started session "<title>" (session_id: local_<uuid>, name: ...)`.
 - The Chronicon already skips the copied lines (commit 8cdafe3).
@@ -35,6 +35,8 @@ sessions (`mcp__ccd_session__start_session`), and set that parent apart from a s
 - **D11** Token double count fixed first (done, 8cdafe3).
 - **D12** *(my call)* Adjacency (D5) is best effort: children join the parent's department and take desks in
   arrival order, which puts them next to the parent when they are spawned together. No desk reshuffle.
+- **D14** *(my call)* A child seated in its root's department also counts its Chronicon tokens there
+  (`add_usage` uses `dept`): one tree, one project.
 - **D13** *(my call)* Dais art: one base design (all Ordo worlds) plus one per world that owns its furniture:
   cyber (Neon Grid, and the corpo/rain/matrix/synth worlds that use its art), orbital, tower, vault, darwin.
   Six designs, each new (never a recolour), in Flat and 39°.

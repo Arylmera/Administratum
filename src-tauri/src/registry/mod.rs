@@ -12,11 +12,11 @@ mod tracker;
 
 #[cfg(test)]
 pub(crate) use files::slug; // only chronicle.rs's tests reach it from outside
-pub use files::{direct_transcript, file_tail, find_transcript, list_subagents, stat, FileStat};
+pub use files::{direct_transcript, file_tail, find_transcript, fork_parent, list_subagents, stat, FileStat};
 pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
 pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
-pub use sessions::{dept_of, merge, scan, temp_dept, track_compaction};
+pub use sessions::{adopt, dept_of, merge, scan, temp_dept, track_compaction};
 pub(crate) use tail::{clip, iso_utc_ms};
 pub use tail::{read_tail, Tail};
 pub use tracker::{Tracker, STALE_MS};
@@ -61,6 +61,8 @@ pub struct Session {
     /// The OpenCode session that asked it: a helper's own id when a helper asked (the reply goes there). Backend only.
     #[serde(skip)]
     pub opencode_asker: Option<String>,
+    /// The live session that forked it through Claude Code desktop (`fork_parent`), filled by the poll loop.
+    pub parent: Option<String>,
 }
 
 /// The agent a session runs in, serialized `"claude"` / `"opencode"`.
