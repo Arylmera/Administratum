@@ -106,6 +106,43 @@ const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', 
 let sync = () => {};
 export const renderSettings = () => sync(); // the header controls changed: refresh the panel's copy
 
+// Remote view (host only): serve on the LAN, allow actions, port, pairing QR (remote_status / remote_set).
+function initRemote(form, root, field) {
+  const rv = form.querySelector('#remote'), rvErr = rv.querySelector('.rv-err'), regen = rv.querySelector('.rv-regen');
+  const showRemote = st => {
+    rvErr.hidden = true;
+    field('remoteOn').checked = st.enabled;
+    field('remoteActions').checked = st.actions_allowed;
+    if (document.activeElement !== field('remotePort')) field('remotePort').value = st.port;
+    rv.querySelector('.rv-on').hidden = !st.enabled;
+    const urls = rv.querySelector('.rv-urls');
+    urls.replaceChildren(...(st.urls.length ? st.urls : ['No private network address found on this PC.']).map(u => { const li = document.createElement('li'); li.textContent = u; return li; }));
+    const qr = rv.querySelector('.rv-qr');
+    qr.hidden = !st.qr_svg;
+    if (st.qr_svg) qr.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(st.qr_svg)}`;
+  };
+  const rvCall = (cmd, args) => {
+    const els = rv.querySelectorAll('input, button:not(.rv-fw-btn)');
+    for (const el of els) el.disabled = true;
+    return invoke(cmd, args).then(showRemote, err => { rvErr.textContent = String(err); readRemote(true); })
+      .finally(() => { for (const el of els) el.disabled = false; });
+  };
+  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; root.querySelector('.cats [data-cat="remote"]').hidden = true; });
+  const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
+
+  let armed;
+  regen.onclick = () => {
+    if (!armed) { // confirm first: a second click within 4 s
+      regen.textContent = 'Click again: unpair every device';
+      armed = setTimeout(() => { armed = null; regen.textContent = 'Regenerate token'; }, 4000);
+      return;
+    }
+    clearTimeout(armed); armed = null; regen.textContent = 'Regenerate token';
+    rvCall('remote_regenerate_token');
+  };
+  return { readRemote, applyRemote };
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -194,28 +231,8 @@ export function initSettings(hooks) {
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
   listen('autostart', e => { login = e.payload; sync(); });
 
-  // Remote view (host only): serve on the LAN, allow actions, port, pairing QR (remote_status / remote_set).
-  const rv = form.querySelector('#remote'), rvErr = rv.querySelector('.rv-err'), regen = rv.querySelector('.rv-regen');
-  const showRemote = st => {
-    rvErr.hidden = true;
-    field('remoteOn').checked = st.enabled;
-    field('remoteActions').checked = st.actions_allowed;
-    if (document.activeElement !== field('remotePort')) field('remotePort').value = st.port;
-    rv.querySelector('.rv-on').hidden = !st.enabled;
-    const urls = rv.querySelector('.rv-urls');
-    urls.replaceChildren(...(st.urls.length ? st.urls : ['No private network address found on this PC.']).map(u => { const li = document.createElement('li'); li.textContent = u; return li; }));
-    const qr = rv.querySelector('.rv-qr');
-    qr.hidden = !st.qr_svg;
-    if (st.qr_svg) qr.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(st.qr_svg)}`;
-  };
-  const rvCall = (cmd, args) => {
-    const els = rv.querySelectorAll('input, button:not(.rv-fw-btn)');
-    for (const el of els) el.disabled = true;
-    return invoke(cmd, args).then(showRemote, err => { rvErr.textContent = String(err); readRemote(true); })
-      .finally(() => { for (const el of els) el.disabled = false; });
-  };
-  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; root.querySelector('.cats [data-cat="remote"]').hidden = true; });
-  const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
+  const { readRemote, applyRemote } = initRemote(form, root, field);
+  const rv = form.querySelector('#remote');
   // Firewall rule for the port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
   const fwLine = rv.querySelector('.rv-fw'), fwPublic = rv.querySelector('.rv-public'), fwBtns = rv.querySelectorAll('.rv-fw-btn');
   const fwPort = () => { const p = +field('remotePort').value; return Number.isInteger(p) && p >= 1024 && p <= 65535 ? p : null; };
@@ -238,17 +255,6 @@ export function initSettings(hooks) {
       .finally(() => { fwBusy = false; for (const x of fwBtns) x.disabled = false; });
   };
   field('remotePort').addEventListener('input', () => { clearTimeout(fwTimer); fwTimer = setTimeout(readFw, 600); });
-
-  let armed;
-  regen.onclick = () => {
-    if (!armed) { // confirm first: a second click within 4 s
-      regen.textContent = 'Click again: unpair every device';
-      armed = setTimeout(() => { armed = null; regen.textContent = 'Regenerate token'; }, 4000);
-      return;
-    }
-    clearTimeout(armed); armed = null; regen.textContent = 'Regenerate token';
-    rvCall('remote_regenerate_token');
-  };
 
   // Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
   const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
