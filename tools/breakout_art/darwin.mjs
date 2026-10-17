@@ -1,9 +1,7 @@
 // Darwin's Monkey House, the laboratory's cage room: black-and-white tiles strewn with straw, iron cage bars between
 // two rails, iron posts under brass finials, and a barred cage gate under an enamel plate with a banana on it, lit
 // while the monkeys are shut in, dark when the gate stands open.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { row, grid, edge } from './kit.mjs';
 // An iron bar seen from the front, 2 px: lit left, shaded right; a bar every 4 px (x % 4 === 1, 2).
 const bar = x => (x % 4 === 1 ? 'l' : x % 4 === 2 ? 'm' : null);
 

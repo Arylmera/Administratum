@@ -1,8 +1,6 @@
 // Ordo Administratum's Menial Pen: a grated iron floor, a low brass-capped rail on iron balusters, a red-latched gate
 // with a slate tally board.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { row, grid, edge } from './kit.mjs';
 
 export default () => {
   const rail = grid(16, 10, (x, y) => (y < 2 ? 'g' : y === 2 ? 'G' : y === 9 ? 'k' : y === 8 ? 'M' : x % 4 === 1 ? 'm' : x % 4 === 2 ? 'M' : '.'));

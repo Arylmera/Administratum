@@ -1,9 +1,7 @@
 // Orbital Station's Quarantine Bay: a dark airlock deck with an orange-and-black hazard band, white-framed glass
 // partitions with cyan glints on a hazard-striped kick plate, white bulkhead posts with a red quarantine lamp, and an
 // airlock hatch under a red lamp that turns green when it slides open.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const hazard = (x, y) => (((x + y) >> 1) & 1 ? 'X' : 'k'); // airlock stripes, 2 px wide, slanted
 const glass = (x, y) => ((x + y) % 7 === 0 ? 'c' : (x + y) % 7 === 1 ? 'O' : '!'); // tinted pane with a glint
 

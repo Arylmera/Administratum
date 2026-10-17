@@ -1,8 +1,6 @@
 // Ordo Machinum's Servitor Pen: hazard-chevron deck plates, a fence of sagging power cables slung from brass clamps,
 // amber-lamped cable pylons, a striped barrier gate bearing the Mechanicus cog.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const hazard = (x, y) => (x + y) % 6 < 3; // diagonal stripe, 3 px wide
 
 // The cog sigil, 10x10 ('h' lit, 'g' brass, 'G' shade, 'n' its hub).

@@ -1,8 +1,6 @@
 // Ordo Malleus' Warded Circle: slate flagstones each inlaid with a hexagrammic ward in blue, a silver warding bar hung
 // with red-waxed purity seals, witch-candle posts burning pale violet on silver stands, a gate sealed by the hexagram.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 
 // The hexagram around (cx, cy), radius r, drawn as two pixel triangles: 'tip' on its six points, 'line' on its edges.
 const hexagram = (cx, cy, r) => {

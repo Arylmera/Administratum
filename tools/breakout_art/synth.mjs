@@ -1,9 +1,7 @@
 // Sunset Drive's Arcade Corner: a lilac-and-black checkered floor, magenta velvet ropes swagged between brass
 // stanchions, and a marquee gate: a "PLAY" sign in a ring of chasing bulbs over brass jambs, the rope hooked across
 // the doorway when closed and dropped to hang from the jamb when open.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { row, grid, edge } from './kit.mjs';
 
 // "PLAY", 14x5 ('#' lit neon).
 const PLAY = [

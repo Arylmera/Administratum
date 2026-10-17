@@ -1,9 +1,7 @@
 // The Arcane Tower's Summoning Circle: warm sandstone flagstones with chalk rings drawn across their joints, a low
 // kerb of coursed stone with violet runes glowing in it, rune-stone menhirs at the corners, an oak wicket on gold
 // hinges with a chalk ward drawn on it.
-const row = (w, f) => Array.from({ length: w }, (_, x) => f(x)).join('');
-const grid = (w, h, f) => Array.from({ length: h }, (_, y) => row(w, x => f(x, y)));
-const edge = (x, w) => x === 0 || x === w - 1;
+import { grid, edge } from './kit.mjs';
 const ring = (dx, dy, r) => Math.round(Math.hypot(dx, dy)) === r;
 
 // The rune-stone: a rounded menhir, lit on its left, a violet rune glowing down its face, set in a dark socket.
