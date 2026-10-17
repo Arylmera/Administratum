@@ -99,13 +99,13 @@ sel.value = 'Drop-Pod'; sel.dispatch('change');
 assert.deepEqual(names(), ['14:30 dp-1']);
 sel.value = ''; sel.dispatch('change');
 assert.equal(list.children.length, 6);
-// An always-open log stays bounded. Known off-by-one: cur.live trims to LIVE_CAP (500) before it prepends, so 501 rows.
+// An always-open log stays bounded: never more than LIVE_CAP (500) rows.
 for (let i = 0; i < 600; i++) emit('chronicle', ev(at(14, 30), 'commit', `s${i}`, 'Terra'));
-assert.equal(list.children.length, 501);
+assert.equal(list.children.length, 500);
 for (let i = 600; i < 700; i++) emit('chronicle', ev(at(14, 30), 'commit', `s${i}`, 'Terra'));
-assert.equal(list.children.length, 501, 'does not grow');
+assert.equal(list.children.length, 500, 'does not grow');
 assert.equal(list.children[0].querySelector('.who').textContent, 's699');
-assert.equal(list.children[500].querySelector('.who').textContent, 's199', 'the oldest rows went');
+assert.equal(list.children[499].querySelector('.who').textContent, 's200', 'the oldest rows went');
 sel.value = 'Terra'; sel.dispatch('change'); sel.value = ''; sel.dispatch('change'); // re-rendered from the kept events
 assert.equal(list.children.length, 500);
 
