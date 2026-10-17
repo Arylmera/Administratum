@@ -1,2706 +1,4241 @@
 {
- "frames": {
-  "DESK side": {
-   "frame": {
-    "x": 0,
-    "y": 0,
-    "w": 10,
-    "h": 16
-   }
-  },
-  "DESK top": {
-   "frame": {
-    "x": 11,
-    "y": 0,
-    "w": 64,
-    "h": 10
-   }
-  },
-  "DESK typewriter front": {
-   "frame": {
-    "x": 76,
-    "y": 0,
-    "w": 28,
-    "h": 11
-   }
-  },
-  "DESK typewriter side": {
-   "frame": {
-    "x": 105,
-    "y": 0,
-    "w": 5,
-    "h": 11
-   }
-  },
-  "DESK typewriter top": {
-   "frame": {
-    "x": 111,
-    "y": 0,
-    "w": 28,
-    "h": 5
-   }
-  },
-  "DESK inkwell front": {
-   "frame": {
-    "x": 140,
-    "y": 0,
-    "w": 6,
-    "h": 6
-   }
-  },
-  "DESK inkwell top": {
-   "frame": {
-    "x": 147,
-    "y": 0,
-    "w": 6,
-    "h": 3
-   }
-  },
-  "DESK pages front": {
-   "frame": {
-    "x": 154,
-    "y": 0,
-    "w": 11,
-    "h": 7
-   }
-  },
-  "DESK pages side": {
-   "frame": {
-    "x": 166,
-    "y": 0,
-    "w": 5,
-    "h": 7
-   }
-  },
-  "DESK pages top": {
-   "frame": {
-    "x": 172,
-    "y": 0,
-    "w": 11,
-    "h": 5
-   }
-  },
-  "DESK lantern top": {
-   "frame": {
-    "x": 184,
-    "y": 0,
-    "w": 12,
-    "h": 5
-   }
-  },
-  "LECTERN side": {
-   "frame": {
-    "x": 0,
-    "y": 17,
-    "w": 9,
-    "h": 17
-   }
-  },
-  "LECTERN top": {
-   "frame": {
-    "x": 10,
-    "y": 17,
-    "w": 44,
-    "h": 9
-   }
-  },
-  "LECTERN book rest side": {
-   "frame": {
-    "x": 55,
-    "y": 17,
-    "w": 2,
-    "h": 16
-   }
-  },
-  "LECTERN book rest top": {
-   "frame": {
-    "x": 58,
-    "y": 17,
-    "w": 23,
-    "h": 2
-   }
-  },
-  "LECTERN bottle top": {
-   "frame": {
-    "x": 82,
-    "y": 17,
-    "w": 9,
-    "h": 4
-   }
-  },
-  "CONSOLE crate front": {
-   "frame": {
-    "x": 0,
-    "y": 35,
-    "w": 22,
-    "h": 8
-   }
-  },
-  "CONSOLE crate side": {
-   "frame": {
-    "x": 23,
-    "y": 35,
-    "w": 6,
-    "h": 8
-   }
-  },
-  "CONSOLE crate top": {
-   "frame": {
-    "x": 30,
-    "y": 35,
-    "w": 22,
-    "h": 6
-   }
-  },
-  "CONSOLE typewriter front": {
-   "frame": {
-    "x": 53,
-    "y": 35,
-    "w": 22,
-    "h": 10
-   }
-  },
-  "CONSOLE typewriter side": {
-   "frame": {
-    "x": 76,
-    "y": 35,
-    "w": 4,
-    "h": 10
-   }
-  },
-  "CONSOLE typewriter top": {
-   "frame": {
-    "x": 81,
-    "y": 35,
-    "w": 22,
-    "h": 4
-   }
-  },
-  "CONSOLE page front": {
-   "frame": {
-    "x": 104,
-    "y": 35,
-    "w": 13,
-    "h": 6
-   }
-  },
-  "SHELF board 1 top": {
-   "frame": {
-    "x": 0,
-    "y": 46,
-    "w": 64,
-    "h": 5
-   }
-  },
-  "SHELF board 1 side": {
-   "frame": {
-    "x": 65,
-    "y": 46,
-    "w": 5,
-    "h": 3
-   }
-  },
-  "SHELF board 2 top": {
-   "frame": {
-    "x": 71,
-    "y": 46,
-    "w": 64,
-    "h": 5
-   }
-  },
-  "SHELF board 2 side": {
-   "frame": {
-    "x": 136,
-    "y": 46,
-    "w": 5,
-    "h": 3
-   }
-  },
-  "COGITATOR side": {
-   "frame": {
-    "x": 0,
-    "y": 52,
-    "w": 9,
-    "h": 83
-   }
-  },
-  "COGITATOR top": {
-   "frame": {
-    "x": 10,
-    "y": 52,
-    "w": 164,
-    "h": 9
-   }
-  },
-  "COGITATOR awning side": {
-   "frame": {
-    "x": 175,
-    "y": 52,
-    "w": 14,
-    "h": 18
-   }
-  },
-  "COGITATOR awning top": {
-   "frame": {
-    "x": 190,
-    "y": 52,
-    "w": 164,
-    "h": 14
-   }
-  },
-  "COGITATOR pipe L top": {
-   "frame": {
-    "x": 355,
-    "y": 52,
-    "w": 7,
-    "h": 3
-   }
-  },
-  "COGITATOR pipe R top": {
-   "frame": {
-    "x": 363,
-    "y": 52,
-    "w": 7,
-    "h": 3
-   }
-  },
-  "COGITATOR rope 1 rim": {
-   "frame": {
-    "x": 371,
-    "y": 52,
-    "w": 17,
-    "h": 17
-   }
-  },
-  "COGITATOR rope 2 rim": {
-   "frame": {
-    "x": 389,
-    "y": 52,
-    "w": 17,
-    "h": 17
-   }
-  },
-  "COGITATOR rope 3 rim": {
-   "frame": {
-    "x": 407,
-    "y": 52,
-    "w": 17,
-    "h": 17
-   }
-  },
-  "COGITATOR rope 4 rim": {
-   "frame": {
-    "x": 425,
-    "y": 52,
-    "w": 17,
-    "h": 17
-   }
-  },
-  "COGITATOR screen wall": {
-   "frame": {
-    "x": 443,
-    "y": 52,
-    "w": 2,
-    "h": 33
-   }
-  },
-  "COGITATOR screen floor": {
-   "frame": {
-    "x": 446,
-    "y": 52,
-    "w": 32,
-    "h": 2
-   }
-  },
-  "COGITATOR wave wall": {
-   "frame": {
-    "x": 479,
-    "y": 52,
-    "w": 1,
-    "h": 17
-   }
-  },
-  "COGITATOR wave floor": {
-   "frame": {
-    "x": 481,
-    "y": 52,
-    "w": 22,
-    "h": 1
-   }
-  },
-  "COGITATOR bars wall": {
-   "frame": {
-    "x": 504,
-    "y": 52,
-    "w": 2,
-    "h": 17
-   }
-  },
-  "COGITATOR bars floor": {
-   "frame": {
-    "x": 0,
-    "y": 136,
-    "w": 22,
-    "h": 2
-   }
-  },
-  "CRATE side": {
-   "frame": {
-    "x": 0,
-    "y": 139,
-    "w": 9,
-    "h": 18
-   }
-  },
-  "CRATE top": {
-   "frame": {
-    "x": 10,
-    "y": 139,
-    "w": 28,
-    "h": 9
-   }
-  },
-  "CRATE lid top": {
-   "frame": {
-    "x": 39,
-    "y": 139,
-    "w": 28,
-    "h": 9
-   }
-  },
-  "BOOKS volume 1 side": {
-   "frame": {
-    "x": 0,
-    "y": 158,
-    "w": 6,
-    "h": 6
-   }
-  },
-  "BOOKS volume 1 top": {
-   "frame": {
-    "x": 7,
-    "y": 158,
-    "w": 20,
-    "h": 6
-   }
-  },
-  "BOOKS volume 2 side": {
-   "frame": {
-    "x": 28,
-    "y": 158,
-    "w": 5,
-    "h": 3
-   }
-  },
-  "BOOKS volume 2 top": {
-   "frame": {
-    "x": 34,
-    "y": 158,
-    "w": 20,
-    "h": 5
-   }
-  },
-  "BOOKS volume 3 side": {
-   "frame": {
-    "x": 55,
-    "y": 158,
-    "w": 5,
-    "h": 6
-   }
-  },
-  "BOOKS volume 3 top": {
-   "frame": {
-    "x": 61,
-    "y": 158,
-    "w": 20,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 1 side": {
-   "frame": {
-    "x": 0,
-    "y": 165,
-    "w": 5,
-    "h": 3
-   }
-  },
-  "PAPER_STACK sheaf 1 top": {
-   "frame": {
-    "x": 6,
-    "y": 165,
-    "w": 16,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 2 side": {
-   "frame": {
-    "x": 23,
-    "y": 165,
-    "w": 5,
-    "h": 7
-   }
-  },
-  "PAPER_STACK sheaf 2 top": {
-   "frame": {
-    "x": 29,
-    "y": 165,
-    "w": 14,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 3 side": {
-   "frame": {
-    "x": 44,
-    "y": 165,
-    "w": 5,
-    "h": 2
-   }
-  },
-  "PAPER_STACK sheaf 3 top": {
-   "frame": {
-    "x": 50,
-    "y": 165,
-    "w": 14,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 4 side": {
-   "frame": {
-    "x": 65,
-    "y": 165,
-    "w": 5,
-    "h": 3
-   }
-  },
-  "PAPER_STACK sheaf 4 top": {
-   "frame": {
-    "x": 71,
-    "y": 165,
-    "w": 14,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 5 side": {
-   "frame": {
-    "x": 86,
-    "y": 165,
-    "w": 5,
-    "h": 4
-   }
-  },
-  "PAPER_STACK sheaf 5 top": {
-   "frame": {
-    "x": 92,
-    "y": 165,
-    "w": 13,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 6 side": {
-   "frame": {
-    "x": 106,
-    "y": 165,
-    "w": 5,
-    "h": 5
-   }
-  },
-  "PAPER_STACK sheaf 6 top": {
-   "frame": {
-    "x": 112,
-    "y": 165,
-    "w": 14,
-    "h": 5
-   }
-  },
-  "SCROLL_PILE ball 1 top": {
-   "frame": {
-    "x": 0,
-    "y": 173,
-    "w": 10,
-    "h": 5
-   }
-  },
-  "SCROLL_PILE ball 2 top": {
-   "frame": {
-    "x": 11,
-    "y": 173,
-    "w": 12,
-    "h": 5
-   }
-  },
-  "SCROLL_PILE ball 3 top": {
-   "frame": {
-    "x": 24,
-    "y": 173,
-    "w": 16,
-    "h": 7
-   }
-  },
-  "SCROLL_PILE ball 4 top": {
-   "frame": {
-    "x": 41,
-    "y": 173,
-    "w": 14,
-    "h": 6
-   }
-  },
-  "SCROLL_PILE ball 5 top": {
-   "frame": {
-    "x": 56,
-    "y": 173,
-    "w": 14,
-    "h": 6
-   }
-  },
-  "TABLE leg 1 front": {
-   "frame": {
-    "x": 0,
-    "y": 181,
-    "w": 4,
-    "h": 12
-   }
-  },
-  "TABLE leg 2 front": {
-   "frame": {
-    "x": 5,
-    "y": 181,
-    "w": 4,
-    "h": 12
-   }
-  },
-  "TABLE leg 3 front": {
-   "frame": {
-    "x": 10,
-    "y": 181,
-    "w": 4,
-    "h": 12
-   }
-  },
-  "TABLE leg 4 front": {
-   "frame": {
-    "x": 15,
-    "y": 181,
-    "w": 4,
-    "h": 12
-   }
-  },
-  "TABLE leg 5 front": {
-   "frame": {
-    "x": 20,
-    "y": 181,
-    "w": 4,
-    "h": 12
-   }
-  },
-  "TABLE leg 6 front": {
-   "frame": {
-    "x": 25,
-    "y": 181,
-    "w": 4,
-    "h": 12
-   }
-  },
-  "TABLE board front": {
-   "frame": {
-    "x": 30,
-    "y": 181,
-    "w": 92,
-    "h": 4
-   }
-  },
-  "TABLE board side": {
-   "frame": {
-    "x": 123,
-    "y": 181,
-    "w": 9,
-    "h": 4
-   }
-  },
-  "TABLE board top": {
-   "frame": {
-    "x": 133,
-    "y": 181,
-    "w": 92,
-    "h": 9
-   }
-  },
-  "TABLE mug 1 top": {
-   "frame": {
-    "x": 226,
-    "y": 181,
-    "w": 7,
-    "h": 3
-   }
-  },
-  "TABLE mug 2 top": {
-   "frame": {
-    "x": 234,
-    "y": 181,
-    "w": 7,
-    "h": 3
-   }
-  },
-  "TABLE mug 3 top": {
-   "frame": {
-    "x": 242,
-    "y": 181,
-    "w": 7,
-    "h": 3
-   }
-  },
-  "TABLE loaf top": {
-   "frame": {
-    "x": 250,
-    "y": 181,
-    "w": 13,
-    "h": 6
-   }
-  },
-  "TABLE kettle top": {
-   "frame": {
-    "x": 264,
-    "y": 181,
-    "w": 10,
-    "h": 5
-   }
-  },
-  "BENCH leg 1 front": {
-   "frame": {
-    "x": 0,
-    "y": 194,
-    "w": 8,
-    "h": 4
-   }
-  },
-  "BENCH leg 2 front": {
-   "frame": {
-    "x": 9,
-    "y": 194,
-    "w": 8,
-    "h": 4
-   }
-  },
-  "BENCH leg 3 front": {
-   "frame": {
-    "x": 18,
-    "y": 194,
-    "w": 8,
-    "h": 4
-   }
-  },
-  "BENCH seat front": {
-   "frame": {
-    "x": 27,
-    "y": 194,
-    "w": 92,
-    "h": 4
-   }
-  },
-  "BENCH seat side": {
-   "frame": {
-    "x": 120,
-    "y": 194,
-    "w": 5,
-    "h": 4
-   }
-  },
-  "BENCH seat top": {
-   "frame": {
-    "x": 126,
-    "y": 194,
-    "w": 92,
-    "h": 5
-   }
-  },
-  "RECAFF barrel top": {
-   "frame": {
-    "x": 0,
-    "y": 200,
-    "w": 18,
-    "h": 8
-   }
-  },
-  "RECAFF kettle top": {
-   "frame": {
-    "x": 19,
-    "y": 200,
-    "w": 13,
-    "h": 6
-   }
-  },
-  "RECAFF stones top": {
-   "frame": {
-    "x": 33,
-    "y": 200,
-    "w": 15,
-    "h": 5
-   }
-  },
-  "LORD_DESK board top": {
-   "frame": {
-    "x": 0,
-    "y": 209,
-    "w": 88,
-    "h": 11
-   }
-  },
-  "LORD_DESK board side": {
-   "frame": {
-    "x": 89,
-    "y": 209,
-    "w": 11,
-    "h": 4
-   }
-  },
-  "LORD_DESK beetles top": {
-   "frame": {
-    "x": 101,
-    "y": 209,
-    "w": 23,
-    "h": 5
-   }
-  },
-  "LORD_DESK journals top": {
-   "frame": {
-    "x": 125,
-    "y": 209,
-    "w": 19,
-    "h": 5
-   }
-  },
-  "LORD_DESK microscope top": {
-   "frame": {
-    "x": 145,
-    "y": 209,
-    "w": 9,
-    "h": 4
-   }
-  },
-  "THRONE seat top": {
-   "frame": {
-    "x": 0,
-    "y": 221,
-    "w": 26,
-    "h": 8
-   }
-  },
-  "THRONE arm L top": {
-   "frame": {
-    "x": 27,
-    "y": 221,
-    "w": 10,
-    "h": 9
-   }
-  },
-  "THRONE arm R top": {
-   "frame": {
-    "x": 38,
-    "y": 221,
-    "w": 10,
-    "h": 9
-   }
-  },
-  "COG_MECH slab rim": {
-   "frame": {
-    "x": 0,
-    "y": 231,
-    "w": 40,
-    "h": 31
-   }
-  },
-  "SEAL token rim": {
-   "frame": {
-    "x": 0,
-    "y": 263,
-    "w": 12,
-    "h": 12
-   }
-  },
-  "GAUGE dial rim": {
-   "frame": {
-    "x": 0,
-    "y": 276,
-    "w": 12,
-    "h": 12
-   }
-  },
-  "CENSER globe top": {
-   "frame": {
-    "x": 0,
-    "y": 289,
-    "w": 10,
-    "h": 5
-   }
-  },
-  "CENSER tank top": {
-   "frame": {
-    "x": 11,
-    "y": 289,
-    "w": 10,
-    "h": 5
-   }
-  },
-  "CANDLES crate side": {
-   "frame": {
-    "x": 0,
-    "y": 295,
-    "w": 5,
-    "h": 6
-   }
-  },
-  "CANDLES crate top": {
-   "frame": {
-    "x": 6,
-    "y": 295,
-    "w": 24,
-    "h": 5
-   }
-  },
-  "CANDLES tank top": {
-   "frame": {
-    "x": 31,
-    "y": 295,
-    "w": 13,
-    "h": 6
-   }
-  },
-  "CANDLES globe top": {
-   "frame": {
-    "x": 45,
-    "y": 295,
-    "w": 13,
-    "h": 6
-   }
-  },
-  "CANDLES oil can top": {
-   "frame": {
-    "x": 59,
-    "y": 295,
-    "w": 9,
-    "h": 4
-   }
-  },
-  "BRAZIER stones top": {
-   "frame": {
-    "x": 0,
-    "y": 302,
-    "w": 20,
-    "h": 7
-   }
-  },
-  "BRAZIER stones side": {
-   "frame": {
-    "x": 21,
-    "y": 302,
-    "w": 7,
-    "h": 9
-   }
-  },
-  "GATE sill top": {
-   "frame": {
-    "x": 0,
-    "y": 312,
-    "w": 64,
-    "h": 13
-   }
-  },
-  "GATE sill side": {
-   "frame": {
-    "x": 65,
-    "y": 312,
-    "w": 13,
-    "h": 4
-   }
-  },
-  "GATE post L side": {
-   "frame": {
-    "x": 79,
-    "y": 312,
-    "w": 6,
-    "h": 49
-   }
-  },
-  "GATE post L top": {
-   "frame": {
-    "x": 86,
-    "y": 312,
-    "w": 16,
-    "h": 6
-   }
-  },
-  "GATE post R side": {
-   "frame": {
-    "x": 103,
-    "y": 312,
-    "w": 6,
-    "h": 49
-   }
-  },
-  "GATE post R top": {
-   "frame": {
-    "x": 110,
-    "y": 312,
-    "w": 16,
-    "h": 6
-   }
-  },
-  "GATE lintel side": {
-   "frame": {
-    "x": 127,
-    "y": 312,
-    "w": 5,
-    "h": 4
-   }
-  },
-  "GATE lintel top": {
-   "frame": {
-    "x": 133,
-    "y": 312,
-    "w": 64,
-    "h": 5
-   }
-  },
-  "GATE roof side": {
-   "frame": {
-    "x": 198,
-    "y": 312,
-    "w": 9,
-    "h": 8
-   }
-  },
-  "GATE roof top": {
-   "frame": {
-    "x": 208,
-    "y": 312,
-    "w": 64,
-    "h": 9
-   }
+  "frames": {
+    "DESK side": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 10,
+        "h": 16
+      }
+    },
+    "DESK top": {
+      "frame": {
+        "x": 11,
+        "y": 0,
+        "w": 64,
+        "h": 10
+      }
+    },
+    "DESK typewriter front": {
+      "frame": {
+        "x": 76,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "LECTERN side": {
+      "frame": {
+        "x": 0,
+        "y": 21,
+        "w": 9,
+        "h": 16
+      }
+    },
+    "LECTERN top": {
+      "frame": {
+        "x": 10,
+        "y": 21,
+        "w": 44,
+        "h": 9
+      }
+    },
+    "SHELF board 1 top": {
+      "frame": {
+        "x": 0,
+        "y": 38,
+        "w": 64,
+        "h": 5
+      }
+    },
+    "SHELF board 1 side": {
+      "frame": {
+        "x": 65,
+        "y": 38,
+        "w": 5,
+        "h": 3
+      }
+    },
+    "SHELF board 2 top": {
+      "frame": {
+        "x": 71,
+        "y": 38,
+        "w": 64,
+        "h": 5
+      }
+    },
+    "SHELF board 2 side": {
+      "frame": {
+        "x": 136,
+        "y": 38,
+        "w": 5,
+        "h": 3
+      }
+    },
+    "COGITATOR side": {
+      "frame": {
+        "x": 0,
+        "y": 44,
+        "w": 9,
+        "h": 83
+      }
+    },
+    "COGITATOR top": {
+      "frame": {
+        "x": 10,
+        "y": 44,
+        "w": 164,
+        "h": 9
+      }
+    },
+    "COGITATOR screen wall": {
+      "frame": {
+        "x": 175,
+        "y": 44,
+        "w": 2,
+        "h": 33
+      }
+    },
+    "COGITATOR screen floor": {
+      "frame": {
+        "x": 178,
+        "y": 44,
+        "w": 32,
+        "h": 2
+      }
+    },
+    "COGITATOR wave wall": {
+      "frame": {
+        "x": 211,
+        "y": 44,
+        "w": 1,
+        "h": 17
+      }
+    },
+    "COGITATOR wave floor": {
+      "frame": {
+        "x": 213,
+        "y": 44,
+        "w": 22,
+        "h": 1
+      }
+    },
+    "COGITATOR bars wall": {
+      "frame": {
+        "x": 236,
+        "y": 44,
+        "w": 2,
+        "h": 17
+      }
+    },
+    "COGITATOR bars floor": {
+      "frame": {
+        "x": 0,
+        "y": 128,
+        "w": 22,
+        "h": 2
+      }
+    },
+    "CRATE side": {
+      "frame": {
+        "x": 0,
+        "y": 131,
+        "w": 9,
+        "h": 18
+      }
+    },
+    "CRATE top": {
+      "frame": {
+        "x": 10,
+        "y": 131,
+        "w": 28,
+        "h": 9
+      }
+    },
+    "CRATE lid top": {
+      "frame": {
+        "x": 39,
+        "y": 131,
+        "w": 28,
+        "h": 9
+      }
+    },
+    "BOOKS volume 1 side": {
+      "frame": {
+        "x": 0,
+        "y": 150,
+        "w": 6,
+        "h": 5
+      }
+    },
+    "BOOKS volume 1 top": {
+      "frame": {
+        "x": 7,
+        "y": 150,
+        "w": 20,
+        "h": 6
+      }
+    },
+    "BOOKS volume 2 side": {
+      "frame": {
+        "x": 28,
+        "y": 150,
+        "w": 5,
+        "h": 5
+      }
+    },
+    "BOOKS volume 2 top": {
+      "frame": {
+        "x": 34,
+        "y": 150,
+        "w": 17,
+        "h": 5
+      }
+    },
+    "BOOKS volume 3 side": {
+      "frame": {
+        "x": 52,
+        "y": 150,
+        "w": 6,
+        "h": 5
+      }
+    },
+    "BOOKS volume 3 top": {
+      "frame": {
+        "x": 59,
+        "y": 150,
+        "w": 19,
+        "h": 6
+      }
+    },
+    "TABLE leg 1 front": {
+      "frame": {
+        "x": 0,
+        "y": 157,
+        "w": 4,
+        "h": 12
+      }
+    },
+    "TABLE leg 2 front": {
+      "frame": {
+        "x": 5,
+        "y": 157,
+        "w": 4,
+        "h": 12
+      }
+    },
+    "TABLE leg 3 front": {
+      "frame": {
+        "x": 10,
+        "y": 157,
+        "w": 4,
+        "h": 12
+      }
+    },
+    "TABLE leg 4 front": {
+      "frame": {
+        "x": 15,
+        "y": 157,
+        "w": 4,
+        "h": 12
+      }
+    },
+    "TABLE leg 5 front": {
+      "frame": {
+        "x": 20,
+        "y": 157,
+        "w": 4,
+        "h": 12
+      }
+    },
+    "TABLE leg 6 front": {
+      "frame": {
+        "x": 25,
+        "y": 157,
+        "w": 4,
+        "h": 12
+      }
+    },
+    "TABLE board front": {
+      "frame": {
+        "x": 30,
+        "y": 157,
+        "w": 92,
+        "h": 4
+      }
+    },
+    "TABLE board side": {
+      "frame": {
+        "x": 123,
+        "y": 157,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "TABLE board top": {
+      "frame": {
+        "x": 133,
+        "y": 157,
+        "w": 92,
+        "h": 9
+      }
+    },
+    "BENCH leg 1 front": {
+      "frame": {
+        "x": 0,
+        "y": 170,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "BENCH leg 2 front": {
+      "frame": {
+        "x": 9,
+        "y": 170,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "BENCH leg 3 front": {
+      "frame": {
+        "x": 18,
+        "y": 170,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "BENCH seat front": {
+      "frame": {
+        "x": 27,
+        "y": 170,
+        "w": 92,
+        "h": 4
+      }
+    },
+    "BENCH seat side": {
+      "frame": {
+        "x": 120,
+        "y": 170,
+        "w": 5,
+        "h": 4
+      }
+    },
+    "BENCH seat top": {
+      "frame": {
+        "x": 126,
+        "y": 170,
+        "w": 92,
+        "h": 5
+      }
+    },
+    "RECAFF kettle top": {
+      "frame": {
+        "x": 0,
+        "y": 176,
+        "w": 11,
+        "h": 5
+      }
+    },
+    "LORD_DESK board top": {
+      "frame": {
+        "x": 0,
+        "y": 182,
+        "w": 88,
+        "h": 11
+      }
+    },
+    "LORD_DESK microscope top": {
+      "frame": {
+        "x": 89,
+        "y": 182,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "THRONE seat top": {
+      "frame": {
+        "x": 0,
+        "y": 194,
+        "w": 26,
+        "h": 7
+      }
+    },
+    "THRONE arm L top": {
+      "frame": {
+        "x": 27,
+        "y": 194,
+        "w": 10,
+        "h": 9
+      }
+    },
+    "THRONE arm R top": {
+      "frame": {
+        "x": 38,
+        "y": 194,
+        "w": 10,
+        "h": 9
+      }
+    },
+    "GAUGE dial rim": {
+      "frame": {
+        "x": 0,
+        "y": 204,
+        "w": 12,
+        "h": 12
+      }
+    },
+    "CENSER globe top": {
+      "frame": {
+        "x": 0,
+        "y": 217,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "CENSER tank top": {
+      "frame": {
+        "x": 11,
+        "y": 217,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "GATE lintel side": {
+      "frame": {
+        "x": 0,
+        "y": 223,
+        "w": 5,
+        "h": 6
+      }
+    },
+    "GATE lintel top": {
+      "frame": {
+        "x": 6,
+        "y": 223,
+        "w": 60,
+        "h": 5
+      }
+    },
+    "LORD_DESK pages top": {
+      "frame": {
+        "x": 0,
+        "y": 230,
+        "w": 16,
+        "h": 5
+      }
+    },
+    "LORD_DESK letters top": {
+      "frame": {
+        "x": 17,
+        "y": 230,
+        "w": 13,
+        "h": 5
+      }
+    },
+    "LORD_DESK microscope base top": {
+      "frame": {
+        "x": 31,
+        "y": 230,
+        "w": 12,
+        "h": 4
+      }
+    },
+    "LORD_DESK inkwell top": {
+      "frame": {
+        "x": 44,
+        "y": 230,
+        "w": 6,
+        "h": 3
+      }
+    },
+    "LORD_DESK jar 1 top": {
+      "frame": {
+        "x": 51,
+        "y": 230,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "LORD_DESK jar 2 top": {
+      "frame": {
+        "x": 60,
+        "y": 230,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "THRONE back top": {
+      "frame": {
+        "x": 68,
+        "y": 230,
+        "w": 30,
+        "h": 3
+      }
+    },
+    "THRONE wing L top": {
+      "frame": {
+        "x": 99,
+        "y": 230,
+        "w": 8,
+        "h": 6
+      }
+    },
+    "THRONE wing R top": {
+      "frame": {
+        "x": 108,
+        "y": 230,
+        "w": 8,
+        "h": 6
+      }
+    },
+    "COG_MECH medallion rim": {
+      "frame": {
+        "x": 117,
+        "y": 230,
+        "w": 40,
+        "h": 29
+      }
+    },
+    "SEAL wax rim": {
+      "frame": {
+        "x": 158,
+        "y": 230,
+        "w": 12,
+        "h": 13
+      }
+    },
+    "SHELF jar 1 top": {
+      "frame": {
+        "x": 0,
+        "y": 260,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "SHELF jar 2 top": {
+      "frame": {
+        "x": 10,
+        "y": 260,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "SHELF jar 3 top": {
+      "frame": {
+        "x": 18,
+        "y": 260,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "SHELF jar 4 top": {
+      "frame": {
+        "x": 23,
+        "y": 260,
+        "w": 11,
+        "h": 5
+      }
+    },
+    "SHELF jar 5 top": {
+      "frame": {
+        "x": 35,
+        "y": 260,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "DESK microscope front": {
+      "frame": {
+        "x": 0,
+        "y": 266,
+        "w": 11,
+        "h": 20
+      }
+    },
+    "DESK rack front": {
+      "frame": {
+        "x": 12,
+        "y": 266,
+        "w": 9,
+        "h": 10
+      }
+    },
+    "DESK stand front": {
+      "frame": {
+        "x": 22,
+        "y": 266,
+        "w": 11,
+        "h": 20
+      }
+    },
+    "LECTERN rack front": {
+      "frame": {
+        "x": 34,
+        "y": 266,
+        "w": 9,
+        "h": 10
+      }
+    },
+    "LECTERN typewriter front": {
+      "frame": {
+        "x": 44,
+        "y": 266,
+        "w": 24,
+        "h": 20
+      }
+    },
+    "LECTERN stand front": {
+      "frame": {
+        "x": 69,
+        "y": 266,
+        "w": 11,
+        "h": 20
+      }
+    },
+    "CONSOLE side": {
+      "frame": {
+        "x": 81,
+        "y": 266,
+        "w": 6,
+        "h": 5
+      }
+    },
+    "CONSOLE top": {
+      "frame": {
+        "x": 88,
+        "y": 266,
+        "w": 26,
+        "h": 6
+      }
+    },
+    "CONSOLE rack front": {
+      "frame": {
+        "x": 115,
+        "y": 266,
+        "w": 13,
+        "h": 10
+      }
+    },
+    "CONSOLE bottle front": {
+      "frame": {
+        "x": 129,
+        "y": 266,
+        "w": 5,
+        "h": 11
+      }
+    },
+    "CONSOLE jar front": {
+      "frame": {
+        "x": 135,
+        "y": 266,
+        "w": 5,
+        "h": 7
+      }
+    },
+    "CONSOLE bottle top": {
+      "frame": {
+        "x": 141,
+        "y": 266,
+        "w": 5,
+        "h": 3
+      }
+    },
+    "CONSOLE jar top": {
+      "frame": {
+        "x": 147,
+        "y": 266,
+        "w": 5,
+        "h": 3
+      }
+    },
+    "COGITATOR gauge 1 rim": {
+      "frame": {
+        "x": 153,
+        "y": 266,
+        "w": 15,
+        "h": 15
+      }
+    },
+    "COGITATOR gauge 2 rim": {
+      "frame": {
+        "x": 169,
+        "y": 266,
+        "w": 15,
+        "h": 15
+      }
+    },
+    "COGITATOR gauge 3 rim": {
+      "frame": {
+        "x": 185,
+        "y": 266,
+        "w": 15,
+        "h": 15
+      }
+    },
+    "COGITATOR gauge 4 rim": {
+      "frame": {
+        "x": 201,
+        "y": 266,
+        "w": 15,
+        "h": 15
+      }
+    },
+    "COGITATOR bell jar front": {
+      "frame": {
+        "x": 217,
+        "y": 266,
+        "w": 23,
+        "h": 17
+      }
+    },
+    "COGITATOR boiler front": {
+      "frame": {
+        "x": 241,
+        "y": 266,
+        "w": 18,
+        "h": 17
+      }
+    },
+    "COGITATOR receiver front": {
+      "frame": {
+        "x": 260,
+        "y": 266,
+        "w": 16,
+        "h": 17
+      }
+    },
+    "COGITATOR condenser front": {
+      "frame": {
+        "x": 277,
+        "y": 266,
+        "w": 61,
+        "h": 17
+      }
+    },
+    "COGITATOR balance front": {
+      "frame": {
+        "x": 339,
+        "y": 266,
+        "w": 25,
+        "h": 17
+      }
+    },
+    "COGITATOR condenser top": {
+      "frame": {
+        "x": 365,
+        "y": 266,
+        "w": 61,
+        "h": 1
+      }
+    },
+    "COGITATOR condenser side": {
+      "frame": {
+        "x": 427,
+        "y": 266,
+        "w": 1,
+        "h": 17
+      }
+    },
+    "BOOKS volume 2 front": {
+      "frame": {
+        "x": 0,
+        "y": 287,
+        "w": 17,
+        "h": 5
+      }
+    },
+    "BOOKS volume 4 front": {
+      "frame": {
+        "x": 18,
+        "y": 287,
+        "w": 15,
+        "h": 5
+      }
+    },
+    "BOOKS volume 4 side": {
+      "frame": {
+        "x": 34,
+        "y": 287,
+        "w": 5,
+        "h": 5
+      }
+    },
+    "BOOKS volume 4 top": {
+      "frame": {
+        "x": 40,
+        "y": 287,
+        "w": 15,
+        "h": 5
+      }
+    },
+    "BOOKS clasp side": {
+      "frame": {
+        "x": 56,
+        "y": 287,
+        "w": 1,
+        "h": 1
+      }
+    },
+    "BOOKS clasp top": {
+      "frame": {
+        "x": 58,
+        "y": 287,
+        "w": 3,
+        "h": 1
+      }
+    },
+    "PAPER_STACK bundle 1 front": {
+      "frame": {
+        "x": 62,
+        "y": 287,
+        "w": 16,
+        "h": 9
+      }
+    },
+    "PAPER_STACK bundle 1 side": {
+      "frame": {
+        "x": 79,
+        "y": 287,
+        "w": 6,
+        "h": 9
+      }
+    },
+    "PAPER_STACK bundle 1 top": {
+      "frame": {
+        "x": 86,
+        "y": 287,
+        "w": 16,
+        "h": 6
+      }
+    },
+    "PAPER_STACK bundle 2 front": {
+      "frame": {
+        "x": 103,
+        "y": 287,
+        "w": 14,
+        "h": 8
+      }
+    },
+    "PAPER_STACK bundle 2 side": {
+      "frame": {
+        "x": 118,
+        "y": 287,
+        "w": 5,
+        "h": 8
+      }
+    },
+    "PAPER_STACK bundle 2 top": {
+      "frame": {
+        "x": 124,
+        "y": 287,
+        "w": 14,
+        "h": 5
+      }
+    },
+    "PAPER_STACK bundle 3 front": {
+      "frame": {
+        "x": 139,
+        "y": 287,
+        "w": 14,
+        "h": 9
+      }
+    },
+    "PAPER_STACK bundle 3 side": {
+      "frame": {
+        "x": 154,
+        "y": 287,
+        "w": 5,
+        "h": 9
+      }
+    },
+    "PAPER_STACK bundle 3 top": {
+      "frame": {
+        "x": 160,
+        "y": 287,
+        "w": 14,
+        "h": 5
+      }
+    },
+    "PAPER_STACK bow side": {
+      "frame": {
+        "x": 175,
+        "y": 287,
+        "w": 1,
+        "h": 1
+      }
+    },
+    "PAPER_STACK bow top": {
+      "frame": {
+        "x": 177,
+        "y": 287,
+        "w": 4,
+        "h": 1
+      }
+    },
+    "SCROLL_PILE roll 1 front": {
+      "frame": {
+        "x": 182,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 2 front": {
+      "frame": {
+        "x": 190,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 3 front": {
+      "frame": {
+        "x": 198,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 4 front": {
+      "frame": {
+        "x": 206,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 5 front": {
+      "frame": {
+        "x": 214,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 6 front": {
+      "frame": {
+        "x": 222,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 7 front": {
+      "frame": {
+        "x": 230,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 8 front": {
+      "frame": {
+        "x": 238,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 9 front": {
+      "frame": {
+        "x": 246,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 1 rim": {
+      "frame": {
+        "x": 254,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 2 rim": {
+      "frame": {
+        "x": 262,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 3 rim": {
+      "frame": {
+        "x": 270,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 4 rim": {
+      "frame": {
+        "x": 278,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 5 rim": {
+      "frame": {
+        "x": 286,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 6 rim": {
+      "frame": {
+        "x": 294,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 7 rim": {
+      "frame": {
+        "x": 302,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 8 rim": {
+      "frame": {
+        "x": 310,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "SCROLL_PILE roll 9 rim": {
+      "frame": {
+        "x": 318,
+        "y": 287,
+        "w": 7,
+        "h": 7
+      }
+    },
+    "TABLE leg 1 side": {
+      "frame": {
+        "x": 326,
+        "y": 287,
+        "w": 2,
+        "h": 12
+      }
+    },
+    "TABLE leg 1 top": {
+      "frame": {
+        "x": 329,
+        "y": 287,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "TABLE leg 2 side": {
+      "frame": {
+        "x": 334,
+        "y": 287,
+        "w": 2,
+        "h": 12
+      }
+    },
+    "TABLE leg 2 top": {
+      "frame": {
+        "x": 337,
+        "y": 287,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "TABLE leg 3 side": {
+      "frame": {
+        "x": 342,
+        "y": 287,
+        "w": 2,
+        "h": 12
+      }
+    },
+    "TABLE leg 3 top": {
+      "frame": {
+        "x": 345,
+        "y": 287,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "TABLE leg 4 side": {
+      "frame": {
+        "x": 350,
+        "y": 287,
+        "w": 2,
+        "h": 12
+      }
+    },
+    "TABLE leg 4 top": {
+      "frame": {
+        "x": 353,
+        "y": 287,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "TABLE leg 5 side": {
+      "frame": {
+        "x": 358,
+        "y": 287,
+        "w": 2,
+        "h": 12
+      }
+    },
+    "TABLE leg 5 top": {
+      "frame": {
+        "x": 361,
+        "y": 287,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "TABLE leg 6 side": {
+      "frame": {
+        "x": 366,
+        "y": 287,
+        "w": 2,
+        "h": 12
+      }
+    },
+    "TABLE leg 6 top": {
+      "frame": {
+        "x": 369,
+        "y": 287,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "TABLE cup 1 front": {
+      "frame": {
+        "x": 374,
+        "y": 287,
+        "w": 7,
+        "h": 4
+      }
+    },
+    "TABLE cup 1 top": {
+      "frame": {
+        "x": 382,
+        "y": 287,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "TABLE cup 2 front": {
+      "frame": {
+        "x": 390,
+        "y": 287,
+        "w": 7,
+        "h": 4
+      }
+    },
+    "TABLE cup 2 top": {
+      "frame": {
+        "x": 398,
+        "y": 287,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "TABLE teapot front": {
+      "frame": {
+        "x": 406,
+        "y": 287,
+        "w": 12,
+        "h": 8
+      }
+    },
+    "TABLE teapot top": {
+      "frame": {
+        "x": 419,
+        "y": 287,
+        "w": 12,
+        "h": 5
+      }
+    },
+    "TABLE cup 3 front": {
+      "frame": {
+        "x": 432,
+        "y": 287,
+        "w": 7,
+        "h": 4
+      }
+    },
+    "TABLE cup 3 top": {
+      "frame": {
+        "x": 440,
+        "y": 287,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "TABLE bananas front": {
+      "frame": {
+        "x": 448,
+        "y": 287,
+        "w": 10,
+        "h": 6
+      }
+    },
+    "TABLE cup 4 front": {
+      "frame": {
+        "x": 459,
+        "y": 287,
+        "w": 7,
+        "h": 4
+      }
+    },
+    "TABLE cup 4 top": {
+      "frame": {
+        "x": 467,
+        "y": 287,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "TABLE sugar front": {
+      "frame": {
+        "x": 475,
+        "y": 287,
+        "w": 7,
+        "h": 5
+      }
+    },
+    "TABLE sugar top": {
+      "frame": {
+        "x": 483,
+        "y": 287,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "TABLE saucer 1 front": {
+      "frame": {
+        "x": 491,
+        "y": 287,
+        "w": 9,
+        "h": 2
+      }
+    },
+    "TABLE saucer 1 top": {
+      "frame": {
+        "x": 501,
+        "y": 287,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "TABLE saucer 2 front": {
+      "frame": {
+        "x": 0,
+        "y": 300,
+        "w": 9,
+        "h": 2
+      }
+    },
+    "TABLE saucer 2 top": {
+      "frame": {
+        "x": 10,
+        "y": 300,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "TABLE saucer 3 front": {
+      "frame": {
+        "x": 20,
+        "y": 300,
+        "w": 9,
+        "h": 2
+      }
+    },
+    "TABLE saucer 3 top": {
+      "frame": {
+        "x": 30,
+        "y": 300,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "TABLE saucer 4 front": {
+      "frame": {
+        "x": 40,
+        "y": 300,
+        "w": 9,
+        "h": 2
+      }
+    },
+    "TABLE saucer 4 top": {
+      "frame": {
+        "x": 50,
+        "y": 300,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "BENCH leg 1 side": {
+      "frame": {
+        "x": 60,
+        "y": 300,
+        "w": 3,
+        "h": 4
+      }
+    },
+    "BENCH leg 1 top": {
+      "frame": {
+        "x": 64,
+        "y": 300,
+        "w": 8,
+        "h": 3
+      }
+    },
+    "BENCH leg 2 side": {
+      "frame": {
+        "x": 73,
+        "y": 300,
+        "w": 3,
+        "h": 4
+      }
+    },
+    "BENCH leg 2 top": {
+      "frame": {
+        "x": 77,
+        "y": 300,
+        "w": 8,
+        "h": 3
+      }
+    },
+    "BENCH leg 3 side": {
+      "frame": {
+        "x": 86,
+        "y": 300,
+        "w": 3,
+        "h": 4
+      }
+    },
+    "BENCH leg 3 top": {
+      "frame": {
+        "x": 90,
+        "y": 300,
+        "w": 8,
+        "h": 3
+      }
+    },
+    "RECAFF side": {
+      "frame": {
+        "x": 99,
+        "y": 300,
+        "w": 7,
+        "h": 14
+      }
+    },
+    "RECAFF top": {
+      "frame": {
+        "x": 107,
+        "y": 300,
+        "w": 32,
+        "h": 7
+      }
+    },
+    "RECAFF plate front": {
+      "frame": {
+        "x": 140,
+        "y": 300,
+        "w": 9,
+        "h": 6
+      }
+    },
+    "RECAFF kettle front": {
+      "frame": {
+        "x": 150,
+        "y": 300,
+        "w": 11,
+        "h": 8
+      }
+    },
+    "RECAFF urn foot front": {
+      "frame": {
+        "x": 162,
+        "y": 300,
+        "w": 9,
+        "h": 3
+      }
+    },
+    "RECAFF urn foot top": {
+      "frame": {
+        "x": 172,
+        "y": 300,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "RECAFF urn neck front": {
+      "frame": {
+        "x": 182,
+        "y": 300,
+        "w": 7,
+        "h": 1
+      }
+    },
+    "RECAFF urn neck top": {
+      "frame": {
+        "x": 190,
+        "y": 300,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "RECAFF urn body front": {
+      "frame": {
+        "x": 198,
+        "y": 300,
+        "w": 12,
+        "h": 7
+      }
+    },
+    "RECAFF urn body top": {
+      "frame": {
+        "x": 211,
+        "y": 300,
+        "w": 12,
+        "h": 5
+      }
+    },
+    "RECAFF urn lid front": {
+      "frame": {
+        "x": 224,
+        "y": 300,
+        "w": 10,
+        "h": 2
+      }
+    },
+    "RECAFF urn lid top": {
+      "frame": {
+        "x": 235,
+        "y": 300,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "RECAFF urn knob top": {
+      "frame": {
+        "x": 246,
+        "y": 300,
+        "w": 6,
+        "h": 3
+      }
+    },
+    "RECAFF spout front": {
+      "frame": {
+        "x": 253,
+        "y": 300,
+        "w": 6,
+        "h": 6
+      }
+    },
+    "RECAFF spout side": {
+      "frame": {
+        "x": 260,
+        "y": 300,
+        "w": 1,
+        "h": 6
+      }
+    },
+    "RECAFF spout top": {
+      "frame": {
+        "x": 262,
+        "y": 300,
+        "w": 6,
+        "h": 1
+      }
+    },
+    "RECAFF handle front": {
+      "frame": {
+        "x": 269,
+        "y": 300,
+        "w": 8,
+        "h": 5
+      }
+    },
+    "RECAFF handle side": {
+      "frame": {
+        "x": 278,
+        "y": 300,
+        "w": 1,
+        "h": 5
+      }
+    },
+    "RECAFF handle top": {
+      "frame": {
+        "x": 280,
+        "y": 300,
+        "w": 8,
+        "h": 1
+      }
+    },
+    "CANDLES foot 1 top": {
+      "frame": {
+        "x": 289,
+        "y": 300,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "CANDLES stem 1 top": {
+      "frame": {
+        "x": 299,
+        "y": 300,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "CANDLES pan 1 top": {
+      "frame": {
+        "x": 307,
+        "y": 300,
+        "w": 9,
+        "h": 4
+      }
+    },
+    "CANDLES candle 1 top": {
+      "frame": {
+        "x": 317,
+        "y": 300,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "CANDLES candle 2 top": {
+      "frame": {
+        "x": 325,
+        "y": 300,
+        "w": 6,
+        "h": 3
+      }
+    },
+    "CANDLES dish 3 top": {
+      "frame": {
+        "x": 332,
+        "y": 300,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "CANDLES candle 3 top": {
+      "frame": {
+        "x": 343,
+        "y": 300,
+        "w": 5,
+        "h": 3
+      }
+    },
+    "CANDLES foot 2 front": {
+      "frame": {
+        "x": 349,
+        "y": 300,
+        "w": 8,
+        "h": 3
+      }
+    },
+    "CANDLES foot 2 top": {
+      "frame": {
+        "x": 358,
+        "y": 300,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "CANDLES stem 2 front": {
+      "frame": {
+        "x": 367,
+        "y": 300,
+        "w": 6,
+        "h": 2
+      }
+    },
+    "CANDLES stem 2 top": {
+      "frame": {
+        "x": 374,
+        "y": 300,
+        "w": 6,
+        "h": 3
+      }
+    },
+    "CANDLES pan 2 top": {
+      "frame": {
+        "x": 381,
+        "y": 300,
+        "w": 8,
+        "h": 4
+      }
+    },
+    "CANDLES dish 3 front": {
+      "frame": {
+        "x": 390,
+        "y": 300,
+        "w": 10,
+        "h": 5
+      }
+    },
+    "CANDLES foot 1 front": {
+      "frame": {
+        "x": 401,
+        "y": 300,
+        "w": 9,
+        "h": 3
+      }
+    },
+    "CANDLES stem 1 front": {
+      "frame": {
+        "x": 411,
+        "y": 300,
+        "w": 7,
+        "h": 2
+      }
+    },
+    "CANDLES pan 1 front": {
+      "frame": {
+        "x": 419,
+        "y": 300,
+        "w": 9,
+        "h": 2
+      }
+    },
+    "CANDLES candle 1 front": {
+      "frame": {
+        "x": 429,
+        "y": 300,
+        "w": 7,
+        "h": 6
+      }
+    },
+    "CANDLES pan 2 front": {
+      "frame": {
+        "x": 437,
+        "y": 300,
+        "w": 8,
+        "h": 1
+      }
+    },
+    "CANDLES candle 2 front": {
+      "frame": {
+        "x": 446,
+        "y": 300,
+        "w": 6,
+        "h": 6
+      }
+    },
+    "CANDLES candle 3 front": {
+      "frame": {
+        "x": 453,
+        "y": 300,
+        "w": 5,
+        "h": 6
+      }
+    },
+    "BRAZIER tripod front": {
+      "frame": {
+        "x": 459,
+        "y": 300,
+        "w": 17,
+        "h": 15
+      }
+    },
+    "BRAZIER tripod side": {
+      "frame": {
+        "x": 477,
+        "y": 300,
+        "w": 1,
+        "h": 15
+      }
+    },
+    "BRAZIER ring top": {
+      "frame": {
+        "x": 479,
+        "y": 300,
+        "w": 13,
+        "h": 6
+      }
+    },
+    "BRAZIER base top": {
+      "frame": {
+        "x": 493,
+        "y": 300,
+        "w": 11,
+        "h": 5
+      }
+    },
+    "BRAZIER tube front": {
+      "frame": {
+        "x": 505,
+        "y": 300,
+        "w": 7,
+        "h": 2
+      }
+    },
+    "BRAZIER tube top": {
+      "frame": {
+        "x": 0,
+        "y": 316,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "BRAZIER collar top": {
+      "frame": {
+        "x": 8,
+        "y": 316,
+        "w": 7,
+        "h": 3
+      }
+    },
+    "BRAZIER mouth front": {
+      "frame": {
+        "x": 16,
+        "y": 316,
+        "w": 5,
+        "h": 5
+      }
+    },
+    "BRAZIER mouth top": {
+      "frame": {
+        "x": 22,
+        "y": 316,
+        "w": 5,
+        "h": 3
+      }
+    },
+    "BRAZIER ring front": {
+      "frame": {
+        "x": 28,
+        "y": 316,
+        "w": 13,
+        "h": 2
+      }
+    },
+    "BRAZIER collar front": {
+      "frame": {
+        "x": 42,
+        "y": 316,
+        "w": 7,
+        "h": 2
+      }
+    },
+    "GATE step side": {
+      "frame": {
+        "x": 50,
+        "y": 316,
+        "w": 13,
+        "h": 6
+      }
+    },
+    "GATE step top": {
+      "frame": {
+        "x": 64,
+        "y": 316,
+        "w": 64,
+        "h": 13
+      }
+    },
+    "GATE pilaster L side": {
+      "frame": {
+        "x": 129,
+        "y": 316,
+        "w": 4,
+        "h": 44
+      }
+    },
+    "GATE pilaster L top": {
+      "frame": {
+        "x": 134,
+        "y": 316,
+        "w": 10,
+        "h": 4
+      }
+    },
+    "GATE pilaster R side": {
+      "frame": {
+        "x": 145,
+        "y": 316,
+        "w": 4,
+        "h": 44
+      }
+    },
+    "GATE pilaster R top": {
+      "frame": {
+        "x": 150,
+        "y": 316,
+        "w": 10,
+        "h": 4
+      }
+    },
+    "GATE casing L side": {
+      "frame": {
+        "x": 161,
+        "y": 316,
+        "w": 2,
+        "h": 44
+      }
+    },
+    "GATE casing L top": {
+      "frame": {
+        "x": 164,
+        "y": 316,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "GATE casing R side": {
+      "frame": {
+        "x": 169,
+        "y": 316,
+        "w": 2,
+        "h": 44
+      }
+    },
+    "GATE casing R top": {
+      "frame": {
+        "x": 172,
+        "y": 316,
+        "w": 4,
+        "h": 2
+      }
+    },
+    "GATE lintel front": {
+      "frame": {
+        "x": 177,
+        "y": 316,
+        "w": 60,
+        "h": 6
+      }
+    },
+    "GATE cornice side": {
+      "frame": {
+        "x": 238,
+        "y": 316,
+        "w": 6,
+        "h": 4
+      }
+    },
+    "GATE cornice top": {
+      "frame": {
+        "x": 245,
+        "y": 316,
+        "w": 64,
+        "h": 6
+      }
+    }
+  },
+  "meta": {
+    "app": "face sheets (ui/faces.js)",
+    "image": "faces.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 512,
+      "h": 360
+    },
+    "palette": "key.gpl",
+    "anchors": {},
+    "note": "darwin: generated by Claude's scratch scripts, then kept as hand-edited source (no generator in the repo). The Victorian laboratory's own volumes: oak lab benches with the microscope, typewriter and glassware, the capuchins' sample stand, the apparatus wall, specimen shelves, Darwin's desk and wing armchair, the brass medallion, the Bunsen burner and candlesticks, journals and rolled charts, the tea sideboard, the lab's double doors, with this world's side, top, rim, bezel and drawn-front faces in faces.png (key palette, the darwin colours); faces left out are derived from the front. Format: ui/faces.js header.",
+    "objects": {
+      "DESK": {
+        "front": [
+          0,
+          26,
+          64,
+          16
+        ],
+        "d": 24,
+        "details": [
+          {
+            "name": "microscope",
+            "rect": [
+              1,
+              0,
+              11,
+              20
+            ],
+            "kind": "bill",
+            "u": 6,
+            "v": 6,
+            "z": 16
+          },
+          {
+            "name": "rack",
+            "rect": [
+              11,
+              10,
+              9,
+              10
+            ],
+            "kind": "bill",
+            "u": 15,
+            "v": 6,
+            "z": 16
+          },
+          {
+            "name": "typewriter",
+            "rect": [
+              20,
+              0,
+              24,
+              20
+            ],
+            "kind": "bill",
+            "u": 32,
+            "v": 10,
+            "z": 16
+          },
+          {
+            "name": "stand",
+            "rect": [
+              43,
+              0,
+              11,
+              20
+            ],
+            "kind": "bill",
+            "u": 48,
+            "v": 8,
+            "z": 16
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "bench top",
+            "rect": [
+              0,
+              17,
+              64,
+              9
+            ]
+          }
+        ]
+      },
+      "LECTERN": {
+        "front": [
+          0,
+          26,
+          44,
+          16
+        ],
+        "d": 22,
+        "details": [
+          {
+            "name": "rack",
+            "rect": [
+              1,
+              10,
+              9,
+              10
+            ],
+            "kind": "bill",
+            "u": 5,
+            "v": 6,
+            "z": 16
+          },
+          {
+            "name": "typewriter",
+            "rect": [
+              10,
+              0,
+              24,
+              20
+            ],
+            "kind": "bill",
+            "u": 22,
+            "v": 10,
+            "z": 16
+          },
+          {
+            "name": "stand",
+            "rect": [
+              33,
+              0,
+              11,
+              20
+            ],
+            "kind": "bill",
+            "u": 38,
+            "v": 8,
+            "z": 16
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "bench top",
+            "rect": [
+              0,
+              17,
+              44,
+              9
+            ]
+          }
+        ]
+      },
+      "CONSOLE": {
+        "front": [
+          1,
+          15,
+          26,
+          5
+        ],
+        "d": 14,
+        "details": [
+          {
+            "name": "rack",
+            "rect": [
+              5,
+              3,
+              13,
+              10
+            ],
+            "kind": "bill",
+            "u": 11,
+            "v": 6,
+            "z": 5
+          },
+          {
+            "name": "bottle",
+            "rect": [
+              20,
+              1,
+              5,
+              11
+            ],
+            "kind": "cyl",
+            "v": 5,
+            "z": 5
+          },
+          {
+            "name": "jar",
+            "rect": [
+              0,
+              6,
+              5,
+              7
+            ],
+            "kind": "cyl",
+            "v": 9,
+            "z": 5
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "table top",
+            "rect": [
+              0,
+              10,
+              28,
+              5
+            ]
+          }
+        ]
+      },
+      "SHELF": {
+        "details": [
+          {
+            "name": "pole L",
+            "rect": [
+              0,
+              0,
+              6,
+              42
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 4
+          },
+          {
+            "name": "pole R",
+            "rect": [
+              58,
+              0,
+              6,
+              42
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 4
+          },
+          {
+            "name": "board 1",
+            "rect": [
+              0,
+              16,
+              64,
+              3
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 12
+          },
+          {
+            "name": "board 2",
+            "rect": [
+              0,
+              35,
+              64,
+              3
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 12
+          },
+          {
+            "name": "jar 1",
+            "rect": [
+              7,
+              4,
+              9,
+              12
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "books 1",
+            "rect": [
+              17,
+              5,
+              12,
+              11
+            ],
+            "kind": "box",
+            "v": 3,
+            "d": 7
+          },
+          {
+            "name": "jar 2",
+            "rect": [
+              30,
+              3,
+              7,
+              13
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "skull",
+            "rect": [
+              38,
+              8,
+              9,
+              8
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "flask",
+            "rect": [
+              48,
+              8,
+              6,
+              8
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "jar 3",
+            "rect": [
+              54,
+              10,
+              4,
+              6
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "books 2",
+            "rect": [
+              6,
+              26,
+              13,
+              9
+            ],
+            "kind": "box",
+            "v": 2,
+            "d": 8
+          },
+          {
+            "name": "jar 4",
+            "rect": [
+              20,
+              20,
+              11,
+              15
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "books 3",
+            "rect": [
+              32,
+              24,
+              9,
+              11
+            ],
+            "kind": "box",
+            "v": 3,
+            "d": 7
+          },
+          {
+            "name": "finch",
+            "rect": [
+              42,
+              24,
+              8,
+              11
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "jar 5",
+            "rect": [
+              51,
+              25,
+              7,
+              10
+            ],
+            "kind": "cyl",
+            "v": 5
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "frame",
+            "rect": [
+              0,
+              0,
+              64,
+              42
+            ]
+          }
+        ]
+      },
+      "COGITATOR": {
+        "front": [
+          0,
+          17,
+          164,
+          83
+        ],
+        "d": 22,
+        "recess": [
+          {
+            "name": "screen",
+            "rect": [
+              66,
+              27,
+              32,
+              33
+            ],
+            "depth": 3,
+            "wall": "G"
+          },
+          {
+            "name": "wave",
+            "rect": [
+              34,
+              27,
+              22,
+              17
+            ],
+            "depth": 2,
+            "wall": "U"
+          },
+          {
+            "name": "bars",
+            "rect": [
+              108,
+              27,
+              22,
+              17
+            ],
+            "depth": 3,
+            "wall": "k"
+          }
+        ],
+        "details": [
+          {
+            "name": "gauge 1",
+            "rect": [
+              11,
+              25,
+              15,
+              15
+            ],
+            "kind": "disc",
+            "v": 22,
+            "t": 3,
+            "rim": "G",
+            "round": true
+          },
+          {
+            "name": "gauge 2",
+            "rect": [
+              11,
+              47,
+              15,
+              15
+            ],
+            "kind": "disc",
+            "v": 22,
+            "t": 3,
+            "rim": "G",
+            "round": true
+          },
+          {
+            "name": "gauge 3",
+            "rect": [
+              138,
+              25,
+              15,
+              15
+            ],
+            "kind": "disc",
+            "v": 22,
+            "t": 3,
+            "rim": "G",
+            "round": true
+          },
+          {
+            "name": "gauge 4",
+            "rect": [
+              138,
+              47,
+              15,
+              15
+            ],
+            "kind": "disc",
+            "v": 22,
+            "t": 3,
+            "rim": "G",
+            "round": true
+          },
+          {
+            "name": "bell jar",
+            "rect": [
+              4,
+              0,
+              23,
+              17
+            ],
+            "kind": "bill",
+            "u": 15,
+            "v": 11,
+            "z": 83
+          },
+          {
+            "name": "boiler",
+            "rect": [
+              34,
+              0,
+              18,
+              17
+            ],
+            "kind": "bill",
+            "u": 43,
+            "v": 11,
+            "z": 83
+          },
+          {
+            "name": "receiver",
+            "rect": [
+              112,
+              0,
+              16,
+              17
+            ],
+            "kind": "bill",
+            "u": 120,
+            "v": 11,
+            "z": 83
+          },
+          {
+            "name": "condenser",
+            "rect": [
+              51,
+              0,
+              61,
+              17
+            ],
+            "kind": "box",
+            "v": 10,
+            "d": 2,
+            "z": 83
+          },
+          {
+            "name": "balance",
+            "rect": [
+              136,
+              0,
+              25,
+              17
+            ],
+            "kind": "bill",
+            "u": 148,
+            "v": 11,
+            "z": 83
+          }
+        ]
+      },
+      "CRATE": {
+        "front": [
+          0,
+          6,
+          28,
+          18
+        ],
+        "d": 20,
+        "details": [
+          {
+            "name": "straw",
+            "rect": [
+              0,
+              4,
+              28,
+              2
+            ],
+            "kind": "box",
+            "v": 2,
+            "d": 16
+          },
+          {
+            "name": "lid",
+            "rect": [
+              0,
+              0,
+              28,
+              4
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 20
+          }
+        ]
+      },
+      "BOOKS": {
+        "details": [
+          {
+            "name": "volume 1",
+            "rect": [
+              0,
+              13,
+              20,
+              5
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 14
+          },
+          {
+            "name": "volume 2",
+            "rect": [
+              2,
+              9,
+              17,
+              5
+            ],
+            "kind": "box",
+            "v": 1,
+            "d": 12
+          },
+          {
+            "name": "volume 3",
+            "rect": [
+              0,
+              5,
+              19,
+              5
+            ],
+            "kind": "box",
+            "v": 1,
+            "d": 13
+          },
+          {
+            "name": "volume 4",
+            "rect": [
+              3,
+              1,
+              15,
+              5
+            ],
+            "kind": "box",
+            "v": 2,
+            "d": 11
+          },
+          {
+            "name": "clasp",
+            "rect": [
+              9,
+              0,
+              3,
+              1
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 2
+          }
+        ]
+      },
+      "PAPER_STACK": {
+        "details": [
+          {
+            "name": "bundle 1",
+            "rect": [
+              0,
+              15,
+              16,
+              9
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 14
+          },
+          {
+            "name": "bundle 2",
+            "rect": [
+              2,
+              9,
+              14,
+              8
+            ],
+            "kind": "box",
+            "v": 1,
+            "d": 12
+          },
+          {
+            "name": "bundle 3",
+            "rect": [
+              1,
+              1,
+              14,
+              9
+            ],
+            "kind": "box",
+            "v": 1,
+            "d": 12
+          },
+          {
+            "name": "bow",
+            "rect": [
+              6,
+              0,
+              4,
+              1
+            ],
+            "kind": "box",
+            "v": 4,
+            "d": 2
+          }
+        ]
+      },
+      "SCROLL_PILE": {
+        "details": [
+          {
+            "name": "roll 1",
+            "rect": [
+              0,
+              7,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 14,
+            "rim": "P",
+            "round": true
+          },
+          {
+            "name": "roll 2",
+            "rect": [
+              7,
+              7,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 14,
+            "rim": "B",
+            "round": true
+          },
+          {
+            "name": "roll 3",
+            "rect": [
+              14,
+              7,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 14,
+            "rim": "P",
+            "round": true
+          },
+          {
+            "name": "roll 4",
+            "rect": [
+              21,
+              7,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 14,
+            "rim": "B",
+            "round": true
+          },
+          {
+            "name": "roll 5",
+            "rect": [
+              28,
+              7,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 14,
+            "rim": "P",
+            "round": true
+          },
+          {
+            "name": "roll 6",
+            "rect": [
+              3,
+              1,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 1,
+            "t": 12,
+            "rim": "B",
+            "round": true
+          },
+          {
+            "name": "roll 7",
+            "rect": [
+              10,
+              1,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 1,
+            "t": 12,
+            "rim": "P",
+            "round": true
+          },
+          {
+            "name": "roll 8",
+            "rect": [
+              18,
+              1,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 1,
+            "t": 12,
+            "rim": "B",
+            "round": true
+          },
+          {
+            "name": "roll 9",
+            "rect": [
+              25,
+              1,
+              7,
+              7
+            ],
+            "kind": "disc",
+            "v": 1,
+            "t": 12,
+            "rim": "P",
+            "round": true
+          },
+          {
+            "name": "seal",
+            "rect": [
+              12,
+              9,
+              3,
+              2
+            ],
+            "kind": "disc",
+            "v": 14,
+            "t": 1
+          }
+        ]
+      },
+      "LOOSE_A": {
+        "details": [
+          {
+            "name": "page",
+            "rect": [
+              0,
+              0,
+              10,
+              8
+            ],
+            "kind": "top",
+            "v": 0,
+            "z": 0
+          }
+        ]
+      },
+      "LOOSE_B": {
+        "details": [
+          {
+            "name": "page",
+            "rect": [
+              0,
+              0,
+              8,
+              10
+            ],
+            "kind": "top",
+            "v": 0,
+            "z": 0
+          }
+        ]
+      },
+      "TABLE": {
+        "details": [
+          {
+            "name": "leg 1",
+            "rect": [
+              2,
+              0,
+              4,
+              12
+            ],
+            "kind": "box",
+            "u": 2,
+            "v": 1,
+            "z": 0,
+            "d": 3,
+            "only39": true
+          },
+          {
+            "name": "leg 2",
+            "rect": [
+              2,
+              0,
+              4,
+              12
+            ],
+            "kind": "box",
+            "u": 2,
+            "v": 16,
+            "z": 0,
+            "d": 3,
+            "only39": true
+          },
+          {
+            "name": "leg 3",
+            "rect": [
+              44,
+              0,
+              4,
+              12
+            ],
+            "kind": "box",
+            "u": 44,
+            "v": 1,
+            "z": 0,
+            "d": 3,
+            "only39": true
+          },
+          {
+            "name": "leg 4",
+            "rect": [
+              44,
+              0,
+              4,
+              12
+            ],
+            "kind": "box",
+            "u": 44,
+            "v": 16,
+            "z": 0,
+            "d": 3,
+            "only39": true
+          },
+          {
+            "name": "leg 5",
+            "rect": [
+              86,
+              0,
+              4,
+              12
+            ],
+            "kind": "box",
+            "u": 86,
+            "v": 1,
+            "z": 0,
+            "d": 3,
+            "only39": true
+          },
+          {
+            "name": "leg 6",
+            "rect": [
+              86,
+              0,
+              4,
+              12
+            ],
+            "kind": "box",
+            "u": 86,
+            "v": 16,
+            "z": 0,
+            "d": 3,
+            "only39": true
+          },
+          {
+            "name": "board",
+            "rect": [
+              0,
+              12,
+              92,
+              4
+            ],
+            "kind": "box",
+            "u": 0,
+            "v": 0,
+            "z": 12,
+            "d": 20,
+            "only39": true
+          },
+          {
+            "name": "saucer 1",
+            "rect": [
+              8,
+              5,
+              9,
+              2
+            ],
+            "kind": "cyl",
+            "v": 6,
+            "z": 16
+          },
+          {
+            "name": "cup 1",
+            "rect": [
+              9,
+              1,
+              7,
+              4
+            ],
+            "kind": "cyl",
+            "v": 6,
+            "z": 18
+          },
+          {
+            "name": "saucer 2",
+            "rect": [
+              32,
+              8,
+              9,
+              2
+            ],
+            "kind": "cyl",
+            "v": 12,
+            "z": 16
+          },
+          {
+            "name": "cup 2",
+            "rect": [
+              33,
+              4,
+              7,
+              4
+            ],
+            "kind": "cyl",
+            "v": 12,
+            "z": 18
+          },
+          {
+            "name": "teapot",
+            "rect": [
+              43,
+              0,
+              12,
+              8
+            ],
+            "kind": "cyl",
+            "v": 8,
+            "z": 16
+          },
+          {
+            "name": "saucer 3",
+            "rect": [
+              55,
+              5,
+              9,
+              2
+            ],
+            "kind": "cyl",
+            "v": 6,
+            "z": 16
+          },
+          {
+            "name": "cup 3",
+            "rect": [
+              56,
+              1,
+              7,
+              4
+            ],
+            "kind": "cyl",
+            "v": 6,
+            "z": 18
+          },
+          {
+            "name": "bananas",
+            "rect": [
+              64,
+              2,
+              10,
+              6
+            ],
+            "kind": "top",
+            "v": 6,
+            "z": 16
+          },
+          {
+            "name": "saucer 4",
+            "rect": [
+              78,
+              8,
+              9,
+              2
+            ],
+            "kind": "cyl",
+            "v": 12,
+            "z": 16
+          },
+          {
+            "name": "cup 4",
+            "rect": [
+              79,
+              4,
+              7,
+              4
+            ],
+            "kind": "cyl",
+            "v": 12,
+            "z": 18
+          },
+          {
+            "name": "sugar",
+            "rect": [
+              23,
+              3,
+              7,
+              5
+            ],
+            "kind": "cyl",
+            "v": 10,
+            "z": 16
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "frame",
+            "rect": [
+              0,
+              0,
+              92,
+              16
+            ]
+          },
+          {
+            "name": "saucer 1 rim",
+            "rect": [
+              8,
+              5,
+              9,
+              2
+            ]
+          },
+          {
+            "name": "cup 1 rim",
+            "rect": [
+              9,
+              1,
+              7,
+              4
+            ]
+          },
+          {
+            "name": "saucer 2 rim",
+            "rect": [
+              32,
+              8,
+              9,
+              2
+            ]
+          },
+          {
+            "name": "cup 2 rim",
+            "rect": [
+              33,
+              4,
+              7,
+              4
+            ]
+          },
+          {
+            "name": "teapot rim",
+            "rect": [
+              43,
+              0,
+              12,
+              8
+            ]
+          },
+          {
+            "name": "saucer 3 rim",
+            "rect": [
+              55,
+              5,
+              9,
+              2
+            ]
+          },
+          {
+            "name": "cup 3 rim",
+            "rect": [
+              56,
+              1,
+              7,
+              4
+            ]
+          },
+          {
+            "name": "saucer 4 rim",
+            "rect": [
+              78,
+              8,
+              9,
+              2
+            ]
+          },
+          {
+            "name": "cup 4 rim",
+            "rect": [
+              79,
+              4,
+              7,
+              4
+            ]
+          },
+          {
+            "name": "sugar rim",
+            "rect": [
+              23,
+              3,
+              7,
+              5
+            ]
+          }
+        ]
+      },
+      "BENCH": {
+        "details": [
+          {
+            "name": "leg 1",
+            "rect": [
+              3,
+              0,
+              8,
+              4
+            ],
+            "kind": "box",
+            "u": 3,
+            "v": 2,
+            "z": 0,
+            "d": 6,
+            "only39": true
+          },
+          {
+            "name": "leg 2",
+            "rect": [
+              42,
+              0,
+              8,
+              4
+            ],
+            "kind": "box",
+            "u": 42,
+            "v": 2,
+            "z": 0,
+            "d": 6,
+            "only39": true
+          },
+          {
+            "name": "leg 3",
+            "rect": [
+              80,
+              0,
+              8,
+              4
+            ],
+            "kind": "box",
+            "u": 80,
+            "v": 2,
+            "z": 0,
+            "d": 6,
+            "only39": true
+          },
+          {
+            "name": "seat",
+            "rect": [
+              0,
+              0,
+              92,
+              4
+            ],
+            "kind": "box",
+            "u": 0,
+            "v": 0,
+            "z": 4,
+            "d": 10,
+            "only39": true
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "frame",
+            "rect": [
+              0,
+              0,
+              92,
+              8
+            ]
+          }
+        ]
+      },
+      "RECAFF": {
+        "front": [
+          0,
+          22,
+          32,
+          14
+        ],
+        "d": 16,
+        "details": [
+          {
+            "name": "plate",
+            "rect": [
+              23,
+              17,
+              9,
+              6
+            ],
+            "kind": "top",
+            "v": 6,
+            "z": 14
+          },
+          {
+            "name": "urn foot",
+            "rect": [
+              4,
+              17,
+              9,
+              3
+            ],
+            "kind": "cyl",
+            "v": 7,
+            "z": 14
+          },
+          {
+            "name": "urn neck",
+            "rect": [
+              6,
+              16,
+              7,
+              1
+            ],
+            "kind": "cyl",
+            "v": 7,
+            "z": 17
+          },
+          {
+            "name": "urn body",
+            "rect": [
+              3,
+              9,
+              12,
+              7
+            ],
+            "kind": "cyl",
+            "v": 7,
+            "z": 18
+          },
+          {
+            "name": "urn lid",
+            "rect": [
+              4,
+              7,
+              10,
+              2
+            ],
+            "kind": "cyl",
+            "v": 7,
+            "z": 25
+          },
+          {
+            "name": "urn knob",
+            "rect": [
+              6,
+              5,
+              6,
+              2
+            ],
+            "kind": "cyl",
+            "v": 7,
+            "z": 27
+          },
+          {
+            "name": "spout",
+            "rect": [
+              24,
+              14,
+              6,
+              6
+            ],
+            "kind": "box",
+            "v": 10,
+            "d": 1
+          },
+          {
+            "name": "kettle",
+            "rect": [
+              15,
+              14,
+              11,
+              8
+            ],
+            "kind": "cyl",
+            "v": 10,
+            "z": 14
+          },
+          {
+            "name": "handle",
+            "rect": [
+              17,
+              11,
+              8,
+              5
+            ],
+            "kind": "box",
+            "v": 10,
+            "d": 1
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "top",
+            "rect": [
+              0,
+              18,
+              32,
+              4
+            ]
+          },
+          {
+            "name": "urn foot rim",
+            "rect": [
+              4,
+              17,
+              9,
+              3
+            ]
+          },
+          {
+            "name": "urn neck rim",
+            "rect": [
+              6,
+              16,
+              7,
+              1
+            ]
+          },
+          {
+            "name": "urn body rim",
+            "rect": [
+              3,
+              9,
+              12,
+              7
+            ]
+          },
+          {
+            "name": "urn lid rim",
+            "rect": [
+              4,
+              7,
+              10,
+              2
+            ]
+          },
+          {
+            "name": "kettle rim",
+            "rect": [
+              15,
+              14,
+              11,
+              8
+            ]
+          }
+        ]
+      },
+      "LORD_DESK": {
+        "details": [
+          {
+            "name": "pedestal L",
+            "rect": [
+              0,
+              13,
+              24,
+              13
+            ],
+            "kind": "box",
+            "v": 4,
+            "d": 20
+          },
+          {
+            "name": "pedestal R",
+            "rect": [
+              64,
+              13,
+              24,
+              13
+            ],
+            "kind": "box",
+            "v": 4,
+            "d": 20
+          },
+          {
+            "name": "drawer",
+            "rect": [
+              22,
+              13,
+              44,
+              5
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 18
+          },
+          {
+            "name": "board",
+            "rect": [
+              0,
+              9,
+              88,
+              5
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 26
+          },
+          {
+            "name": "pages",
+            "rect": [
+              2,
+              3,
+              16,
+              7
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 10
+          },
+          {
+            "name": "inkwell",
+            "rect": [
+              18,
+              4,
+              6,
+              6
+            ],
+            "kind": "cyl",
+            "v": 14
+          },
+          {
+            "name": "quill",
+            "rect": [
+              22,
+              0,
+              8,
+              6
+            ],
+            "kind": "bill",
+            "v": 14
+          },
+          {
+            "name": "notebook",
+            "rect": [
+              25,
+              7,
+              19,
+              3
+            ],
+            "kind": "top",
+            "v": 12
+          },
+          {
+            "name": "jar 1",
+            "rect": [
+              44,
+              1,
+              8,
+              9
+            ],
+            "kind": "cyl",
+            "v": 10
+          },
+          {
+            "name": "jar 2",
+            "rect": [
+              52,
+              3,
+              7,
+              7
+            ],
+            "kind": "cyl",
+            "v": 16
+          },
+          {
+            "name": "microscope base",
+            "rect": [
+              61,
+              7,
+              12,
+              3
+            ],
+            "kind": "box",
+            "v": 10,
+            "d": 8
+          },
+          {
+            "name": "microscope",
+            "rect": [
+              62,
+              0,
+              9,
+              7
+            ],
+            "kind": "cyl",
+            "v": 14
+          },
+          {
+            "name": "letters",
+            "rect": [
+              74,
+              5,
+              13,
+              5
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 10
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "frame",
+            "rect": [
+              0,
+              0,
+              88,
+              26
+            ]
+          }
+        ]
+      },
+      "THRONE": {
+        "details": [
+          {
+            "name": "leg 1",
+            "rect": [
+              2,
+              35,
+              6,
+              5
+            ],
+            "kind": "box",
+            "v": 18,
+            "d": 4
+          },
+          {
+            "name": "leg 2",
+            "rect": [
+              32,
+              35,
+              6,
+              5
+            ],
+            "kind": "box",
+            "v": 18,
+            "d": 4
+          },
+          {
+            "name": "leg 3",
+            "rect": [
+              2,
+              35,
+              6,
+              5
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 4,
+            "only39": true
+          },
+          {
+            "name": "leg 4",
+            "rect": [
+              32,
+              35,
+              6,
+              5
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 4,
+            "only39": true
+          },
+          {
+            "name": "apron",
+            "rect": [
+              0,
+              29,
+              40,
+              6
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 16
+          },
+          {
+            "name": "back",
+            "rect": [
+              5,
+              0,
+              30,
+              27
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 6
+          },
+          {
+            "name": "seat",
+            "rect": [
+              7,
+              23,
+              26,
+              7
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 16
+          },
+          {
+            "name": "arm L",
+            "rect": [
+              0,
+              16,
+              10,
+              15
+            ],
+            "kind": "box",
+            "v": 2,
+            "d": 20
+          },
+          {
+            "name": "arm R",
+            "rect": [
+              30,
+              16,
+              10,
+              15
+            ],
+            "kind": "box",
+            "v": 2,
+            "d": 20
+          },
+          {
+            "name": "wing L",
+            "rect": [
+              0,
+              3,
+              8,
+              13
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 14
+          },
+          {
+            "name": "wing R",
+            "rect": [
+              32,
+              3,
+              8,
+              13
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 14
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "frame",
+            "rect": [
+              0,
+              0,
+              40,
+              40
+            ]
+          }
+        ]
+      },
+      "COG_MECH": {
+        "details": [
+          {
+            "name": "ring",
+            "rect": [
+              18,
+              0,
+              4,
+              2
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 1,
+            "rim": "G"
+          },
+          {
+            "name": "medallion",
+            "rect": [
+              0,
+              0,
+              40,
+              29
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 3,
+            "round": true
+          },
+          {
+            "name": "stand",
+            "rect": [
+              11,
+              28,
+              18,
+              8
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 4,
+            "rim": "G"
+          }
+        ]
+      },
+      "SEAL": {
+        "details": [
+          {
+            "name": "ribbon",
+            "rect": [
+              4,
+              0,
+              4,
+              5
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 1,
+            "rim": "C"
+          },
+          {
+            "name": "wax",
+            "rect": [
+              0,
+              3,
+              12,
+              13
+            ],
+            "kind": "disc",
+            "v": 1,
+            "t": 2,
+            "round": true
+          },
+          {
+            "name": "tails",
+            "rect": [
+              2,
+              15,
+              8,
+              5
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 1,
+            "rim": "C"
+          }
+        ]
+      },
+      "GAUGE": {
+        "details": [
+          {
+            "name": "dial",
+            "rect": [
+              0,
+              0,
+              12,
+              12
+            ],
+            "kind": "disc",
+            "v": 0,
+            "t": 3,
+            "rim": "G",
+            "round": true
+          }
+        ]
+      },
+      "CENSER": {
+        "details": [
+          {
+            "name": "hook",
+            "rect": [
+              0,
+              0,
+              10,
+              6
+            ],
+            "kind": "cyl",
+            "v": 4
+          },
+          {
+            "name": "globe",
+            "rect": [
+              0,
+              6,
+              10,
+              9
+            ],
+            "kind": "cyl",
+            "v": 5
+          },
+          {
+            "name": "tank",
+            "rect": [
+              0,
+              15,
+              10,
+              5
+            ],
+            "kind": "cyl",
+            "v": 5
+          }
+        ]
+      },
+      "CANDLES": {
+        "details": [
+          {
+            "name": "foot 1",
+            "rect": [
+              0,
+              15,
+              9,
+              3
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "stem 1",
+            "rect": [
+              1,
+              13,
+              7,
+              2
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "pan 1",
+            "rect": [
+              0,
+              11,
+              9,
+              2
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "candle 1",
+            "rect": [
+              1,
+              5,
+              7,
+              6
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "foot 2",
+            "rect": [
+              8,
+              15,
+              8,
+              3
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "stem 2",
+            "rect": [
+              9,
+              13,
+              6,
+              2
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "pan 2",
+            "rect": [
+              8,
+              12,
+              8,
+              1
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "candle 2",
+            "rect": [
+              9,
+              6,
+              6,
+              6
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "dish 3",
+            "rect": [
+              14,
+              13,
+              10,
+              5
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "candle 3",
+            "rect": [
+              17,
+              7,
+              5,
+              6
+            ],
+            "kind": "cyl",
+            "v": 6
+          },
+          {
+            "name": "flame 1",
+            "rect": [
+              2,
+              0,
+              5,
+              5
+            ],
+            "kind": "bill",
+            "v": 6
+          },
+          {
+            "name": "flame 2",
+            "rect": [
+              9,
+              1,
+              5,
+              5
+            ],
+            "kind": "bill",
+            "v": 6
+          },
+          {
+            "name": "flame 3",
+            "rect": [
+              18,
+              3,
+              3,
+              4
+            ],
+            "kind": "bill",
+            "v": 6
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "foot 1 rim",
+            "rect": [
+              0,
+              15,
+              9,
+              3
+            ]
+          },
+          {
+            "name": "stem 1 rim",
+            "rect": [
+              1,
+              13,
+              7,
+              2
+            ]
+          },
+          {
+            "name": "pan 1 rim",
+            "rect": [
+              0,
+              11,
+              9,
+              2
+            ]
+          },
+          {
+            "name": "candle 1 rim",
+            "rect": [
+              1,
+              5,
+              7,
+              6
+            ]
+          },
+          {
+            "name": "foot 2 rim",
+            "rect": [
+              8,
+              15,
+              8,
+              3
+            ]
+          },
+          {
+            "name": "stem 2 rim",
+            "rect": [
+              9,
+              13,
+              6,
+              2
+            ]
+          },
+          {
+            "name": "pan 2 rim",
+            "rect": [
+              8,
+              12,
+              8,
+              1
+            ]
+          },
+          {
+            "name": "candle 2 rim",
+            "rect": [
+              9,
+              6,
+              6,
+              6
+            ]
+          },
+          {
+            "name": "dish 3 rim",
+            "rect": [
+              14,
+              13,
+              10,
+              5
+            ]
+          },
+          {
+            "name": "candle 3 rim",
+            "rect": [
+              17,
+              7,
+              5,
+              6
+            ]
+          }
+        ]
+      },
+      "BRAZIER": {
+        "details": [
+          {
+            "name": "tripod",
+            "rect": [
+              3,
+              11,
+              17,
+              15
+            ],
+            "kind": "box",
+            "v": 7,
+            "d": 2
+          },
+          {
+            "name": "ring",
+            "rect": [
+              3,
+              15,
+              13,
+              2
+            ],
+            "kind": "cyl",
+            "v": 8
+          },
+          {
+            "name": "base",
+            "rect": [
+              4,
+              14,
+              11,
+              1
+            ],
+            "kind": "cyl",
+            "v": 8
+          },
+          {
+            "name": "tube",
+            "rect": [
+              6,
+              12,
+              7,
+              2
+            ],
+            "kind": "cyl",
+            "v": 8
+          },
+          {
+            "name": "collar",
+            "rect": [
+              6,
+              10,
+              7,
+              2
+            ],
+            "kind": "cyl",
+            "v": 8
+          },
+          {
+            "name": "mouth",
+            "rect": [
+              7,
+              5,
+              5,
+              5
+            ],
+            "kind": "cyl",
+            "v": 8
+          },
+          {
+            "name": "flame",
+            "rect": [
+              6,
+              0,
+              7,
+              6
+            ],
+            "kind": "bill",
+            "v": 8
+          }
+        ],
+        "flatOnly": [
+          {
+            "name": "ring rim",
+            "rect": [
+              3,
+              15,
+              13,
+              2
+            ]
+          },
+          {
+            "name": "tube rim",
+            "rect": [
+              6,
+              12,
+              7,
+              2
+            ]
+          },
+          {
+            "name": "collar rim",
+            "rect": [
+              6,
+              10,
+              7,
+              2
+            ]
+          },
+          {
+            "name": "mouth rim",
+            "rect": [
+              7,
+              5,
+              5,
+              5
+            ]
+          }
+        ]
+      },
+      "GATE": {
+        "details": [
+          {
+            "name": "step",
+            "rect": [
+              0,
+              54,
+              64,
+              6
+            ],
+            "kind": "box",
+            "v": 0,
+            "d": 30
+          },
+          {
+            "name": "pilaster L",
+            "rect": [
+              2,
+              10,
+              10,
+              44
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 8
+          },
+          {
+            "name": "pilaster R",
+            "rect": [
+              52,
+              10,
+              10,
+              44
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 8
+          },
+          {
+            "name": "casing L",
+            "rect": [
+              12,
+              10,
+              4,
+              44
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 4
+          },
+          {
+            "name": "casing R",
+            "rect": [
+              48,
+              10,
+              4,
+              44
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 4
+          },
+          {
+            "name": "lintel",
+            "rect": [
+              2,
+              4,
+              60,
+              6
+            ],
+            "kind": "box",
+            "v": 6,
+            "d": 10
+          },
+          {
+            "name": "cornice",
+            "rect": [
+              0,
+              0,
+              64,
+              4
+            ],
+            "kind": "box",
+            "v": 4,
+            "d": 14
+          },
+          {
+            "name": "plate",
+            "rect": [
+              22,
+              5,
+              20,
+              4
+            ],
+            "kind": "disc",
+            "v": 16,
+            "t": 1
+          },
+          {
+            "name": "leaves",
+            "rect": [
+              16,
+              10,
+              32,
+              44
+            ],
+            "kind": "box",
+            "v": 8,
+            "d": 2
+          }
+        ]
+      }
+    }
   }
- },
- "meta": {
-  "app": "face sheets (ui/faces.js)",
-  "image": "faces.png",
-  "format": "RGBA8888",
-  "size": {
-   "w": 506,
-   "h": 361
-  },
-  "palette": "key.gpl",
-  "anchors": {},
-  "note": "darwin: generated by Claude's scratch script, then kept as hand-edited source (no generator in the repo). The savanna camp's own volumes: planks, stumps, crates, the station under its thatch, the rattan chair, lanterns, the camp gate, with this world's side, top, rim, bezel and drawn-front faces in faces.png (key palette, the darwin colours); faces left out are derived from the front. Format: ui/faces.js header.",
-  "objects": {
-   "DESK": {
-    "front": [
-     0,
-     26,
-     64,
-     16
-    ],
-    "d": 24,
-    "details": [
-     {
-      "name": "typewriter",
-      "rect": [
-       9,
-       11,
-       28,
-       11
-      ],
-      "kind": "box",
-      "v": 7,
-      "d": 12,
-      "z": 16
-     },
-     {
-      "name": "page",
-      "rect": [
-       16,
-       4,
-       16,
-       9
-      ],
-      "kind": "box",
-      "v": 8,
-      "d": 1,
-      "z": 22
-     },
-     {
-      "name": "inkwell",
-      "rect": [
-       3,
-       11,
-       6,
-       6
-      ],
-      "kind": "cyl",
-      "v": 9,
-      "z": 16
-     },
-     {
-      "name": "pages",
-      "rect": [
-       36,
-       11,
-       11,
-       7
-      ],
-      "kind": "box",
-      "v": 8,
-      "d": 10,
-      "z": 16
-     },
-     {
-      "name": "lantern",
-      "rect": [
-       45,
-       0,
-       12,
-       17
-      ],
-      "kind": "cyl",
-      "v": 12,
-      "z": 16
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "plank top",
-      "rect": [
-       0,
-       16,
-       64,
-       10
-      ]
-     }
-    ]
-   },
-   "LECTERN": {
-    "front": [
-     0,
-     25,
-     44,
-     17
-    ],
-    "d": 22,
-    "details": [
-     {
-      "name": "book rest",
-      "rect": [
-       1,
-       2,
-       23,
-       16
-      ],
-      "kind": "box",
-      "v": 3,
-      "d": 4,
-      "z": 17
-     },
-     {
-      "name": "bottle",
-      "rect": [
-       31,
-       0,
-       9,
-       18
-      ],
-      "kind": "cyl",
-      "v": 10,
-      "z": 17
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "stump top",
-      "rect": [
-       0,
-       15,
-       44,
-       10
-      ]
-     }
-    ]
-   },
-   "CONSOLE": {
-    "d": 14,
-    "details": [
-     {
-      "name": "crate",
-      "rect": [
-       3,
-       12,
-       22,
-       8
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 14,
-      "z": 0,
-      "only39": true
-     },
-     {
-      "name": "typewriter",
-      "rect": [
-       2,
-       7,
-       22,
-       10
-      ],
-      "kind": "box",
-      "v": 3,
-      "d": 9,
-      "z": 8,
-      "only39": true
-     },
-     {
-      "name": "page",
-      "rect": [
-       7,
-       2,
-       13,
-       6
-      ],
-      "kind": "box",
-      "v": 4,
-      "d": 1,
-      "z": 13,
-      "only39": true
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "console",
-      "rect": [
-       0,
-       0,
-       28,
-       20
-      ]
-     }
-    ]
-   },
-   "SHELF": {
-    "details": [
-     {
-      "name": "pole L",
-      "rect": [
-       0,
-       0,
-       6,
-       42
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 4
-     },
-     {
-      "name": "pole R",
-      "rect": [
-       58,
-       0,
-       6,
-       42
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 4
-     },
-     {
-      "name": "board 1",
-      "rect": [
-       0,
-       16,
-       64,
-       3
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 12
-     },
-     {
-      "name": "board 2",
-      "rect": [
-       0,
-       35,
-       64,
-       3
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 12
-     },
-     {
-      "name": "calabash",
-      "rect": [
-       6,
-       5,
-       11,
-       11
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 26
-     },
-     {
-      "name": "seed jar",
-      "rect": [
-       17,
-       5,
-       8,
-       11
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 26
-     },
-     {
-      "name": "maps",
-      "rect": [
-       23,
-       9,
-       17,
-       7
-      ],
-      "kind": "box",
-      "v": 3,
-      "d": 6,
-      "z": 26
-     },
-     {
-      "name": "tin box",
-      "rect": [
-       40,
-       7,
-       14,
-       9
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 7,
-      "z": 26
-     },
-     {
-      "name": "pot",
-      "rect": [
-       52,
-       9,
-       7,
-       7
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 26
-     },
-     {
-      "name": "gourd",
-      "rect": [
-       5,
-       21,
-       9,
-       14
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 7
-     },
-     {
-      "name": "leaf jar",
-      "rect": [
-       14,
-       21,
-       10,
-       14
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 7
-     },
-     {
-      "name": "bottle",
-      "rect": [
-       25,
-       20,
-       6,
-       15
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 7
-     },
-     {
-      "name": "rope",
-      "rect": [
-       31,
-       26,
-       15,
-       9
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 7
-     },
-     {
-      "name": "gourd 2",
-      "rect": [
-       46,
-       22,
-       11,
-       13
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 7
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "frame",
-      "rect": [
-       0,
-       0,
-       64,
-       42
-      ]
-     }
-    ]
-   },
-   "COGITATOR": {
-    "front": [
-     0,
-     17,
-     164,
-     83
-    ],
-    "d": 22,
-    "recess": [
-     {
-      "name": "screen",
-      "rect": [
-       66,
-       27,
-       32,
-       33
-      ],
-      "depth": 3,
-      "wall": "w"
-     },
-     {
-      "name": "wave",
-      "rect": [
-       34,
-       27,
-       22,
-       17
-      ],
-      "depth": 2,
-      "wall": "P"
-     },
-     {
-      "name": "bars",
-      "rect": [
-       108,
-       27,
-       22,
-       17
-      ],
-      "depth": 3,
-      "wall": "e"
-     }
-    ],
-    "details": [
-     {
-      "name": "awning",
-      "rect": [
-       0,
-       1,
-       164,
-       18
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 32
-     },
-     {
-      "name": "pipe L",
-      "rect": [
-       41,
-       5,
-       7,
-       10
-      ],
-      "kind": "cyl",
-      "v": 14,
-      "z": 86
-     },
-     {
-      "name": "pipe R",
-      "rect": [
-       116,
-       5,
-       7,
-       10
-      ],
-      "kind": "cyl",
-      "v": 14,
-      "z": 86
-     },
-     {
-      "name": "rope 1",
-      "rect": [
-       10,
-       24,
-       17,
-       17
-      ],
-      "kind": "disc",
-      "v": 22,
-      "t": 3,
-      "rim": "Z",
-      "round": true
-     },
-     {
-      "name": "rope 2",
-      "rect": [
-       10,
-       46,
-       17,
-       17
-      ],
-      "kind": "disc",
-      "v": 22,
-      "t": 3,
-      "rim": "Z",
-      "round": true
-     },
-     {
-      "name": "rope 3",
-      "rect": [
-       136,
-       24,
-       17,
-       17
-      ],
-      "kind": "disc",
-      "v": 22,
-      "t": 3,
-      "rim": "Z",
-      "round": true
-     },
-     {
-      "name": "rope 4",
-      "rect": [
-       136,
-       46,
-       17,
-       17
-      ],
-      "kind": "disc",
-      "v": 22,
-      "t": 3,
-      "rim": "Z",
-      "round": true
-     }
-    ]
-   },
-   "CRATE": {
-    "front": [
-     0,
-     6,
-     28,
-     18
-    ],
-    "d": 20,
-    "details": [
-     {
-      "name": "straw",
-      "rect": [
-       0,
-       4,
-       28,
-       2
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 16
-     },
-     {
-      "name": "lid",
-      "rect": [
-       0,
-       0,
-       28,
-       4
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 20
-     }
-    ]
-   },
-   "BOOKS": {
-    "details": [
-     {
-      "name": "volume 1",
-      "rect": [
-       0,
-       12,
-       20,
-       6
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 14
-     },
-     {
-      "name": "volume 2",
-      "rect": [
-       0,
-       9,
-       20,
-       3
-      ],
-      "kind": "box",
-      "v": 1,
-      "d": 12
-     },
-     {
-      "name": "volume 3",
-      "rect": [
-       0,
-       3,
-       20,
-       6
-      ],
-      "kind": "box",
-      "v": 1,
-      "d": 12
-     },
-     {
-      "name": "open book",
-      "rect": [
-       2,
-       0,
-       16,
-       4
-      ],
-      "kind": "top",
-      "v": 3,
-      "z": 14
-     }
-    ]
-   },
-   "PAPER_STACK": {
-    "details": [
-     {
-      "name": "sheaf 1",
-      "rect": [
-       0,
-       21,
-       16,
-       3
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 12
-     },
-     {
-      "name": "sheaf 2",
-      "rect": [
-       0,
-       14,
-       14,
-       7
-      ],
-      "kind": "box",
-      "v": 1,
-      "d": 10
-     },
-     {
-      "name": "sheaf 3",
-      "rect": [
-       1,
-       12,
-       14,
-       2
-      ],
-      "kind": "box",
-      "v": 1,
-      "d": 10
-     },
-     {
-      "name": "sheaf 4",
-      "rect": [
-       2,
-       9,
-       14,
-       3
-      ],
-      "kind": "box",
-      "v": 1,
-      "d": 10
-     },
-     {
-      "name": "sheaf 5",
-      "rect": [
-       3,
-       5,
-       13,
-       4
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 10
-     },
-     {
-      "name": "sheaf 6",
-      "rect": [
-       2,
-       0,
-       14,
-       5
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 10
-     }
-    ]
-   },
-   "SCROLL_PILE": {
-    "details": [
-     {
-      "name": "ball 1",
-      "rect": [
-       0,
-       5,
-       10,
-       9
-      ],
-      "kind": "cyl",
-      "v": 6
-     },
-     {
-      "name": "ball 2",
-      "rect": [
-       9,
-       4,
-       12,
-       10
-      ],
-      "kind": "cyl",
-      "v": 7
-     },
-     {
-      "name": "ball 3",
-      "rect": [
-       20,
-       3,
-       16,
-       11
-      ],
-      "kind": "cyl",
-      "v": 8
-     },
-     {
-      "name": "ball 4",
-      "rect": [
-       3,
-       0,
-       14,
-       6
-      ],
-      "kind": "cyl",
-      "v": 6,
-      "z": 6
-     },
-     {
-      "name": "ball 5",
-      "rect": [
-       17,
-       0,
-       14,
-       4
-      ],
-      "kind": "cyl",
-      "v": 6,
-      "z": 6
-     }
-    ]
-   },
-   "LOOSE_A": {
-    "details": [
-     {
-      "name": "page",
-      "rect": [
-       0,
-       0,
-       10,
-       8
-      ],
-      "kind": "top",
-      "v": 0,
-      "z": 0
-     }
-    ]
-   },
-   "LOOSE_B": {
-    "details": [
-     {
-      "name": "page",
-      "rect": [
-       0,
-       0,
-       8,
-       10
-      ],
-      "kind": "top",
-      "v": 0,
-      "z": 0
-     }
-    ]
-   },
-   "TABLE": {
-    "d": 20,
-    "details": [
-     {
-      "name": "leg 1",
-      "rect": [
-       2,
-       0,
-       4,
-       12
-      ],
-      "kind": "box",
-      "u": 2,
-      "v": 1,
-      "z": 0,
-      "d": 3,
-      "only39": true
-     },
-     {
-      "name": "leg 2",
-      "rect": [
-       2,
-       0,
-       4,
-       12
-      ],
-      "kind": "box",
-      "u": 2,
-      "v": 16,
-      "z": 0,
-      "d": 3,
-      "only39": true
-     },
-     {
-      "name": "leg 3",
-      "rect": [
-       44,
-       0,
-       4,
-       12
-      ],
-      "kind": "box",
-      "u": 44,
-      "v": 1,
-      "z": 0,
-      "d": 3,
-      "only39": true
-     },
-     {
-      "name": "leg 4",
-      "rect": [
-       44,
-       0,
-       4,
-       12
-      ],
-      "kind": "box",
-      "u": 44,
-      "v": 16,
-      "z": 0,
-      "d": 3,
-      "only39": true
-     },
-     {
-      "name": "leg 5",
-      "rect": [
-       86,
-       0,
-       4,
-       12
-      ],
-      "kind": "box",
-      "u": 86,
-      "v": 1,
-      "z": 0,
-      "d": 3,
-      "only39": true
-     },
-     {
-      "name": "leg 6",
-      "rect": [
-       86,
-       0,
-       4,
-       12
-      ],
-      "kind": "box",
-      "u": 86,
-      "v": 16,
-      "z": 0,
-      "d": 3,
-      "only39": true
-     },
-     {
-      "name": "board",
-      "rect": [
-       0,
-       12,
-       92,
-       4
-      ],
-      "kind": "box",
-      "u": 0,
-      "v": 0,
-      "z": 12,
-      "d": 20,
-      "only39": true
-     },
-     {
-      "name": "plate 1",
-      "rect": [
-       3,
-       2,
-       11,
-       9
-      ],
-      "kind": "top",
-      "v": 4,
-      "z": 16
-     },
-     {
-      "name": "plate 2",
-      "rect": [
-       35,
-       2,
-       11,
-       9
-      ],
-      "kind": "top",
-      "v": 4,
-      "z": 16
-     },
-     {
-      "name": "plate 3",
-      "rect": [
-       67,
-       2,
-       11,
-       9
-      ],
-      "kind": "top",
-      "v": 4,
-      "z": 16
-     },
-     {
-      "name": "mug 1",
-      "rect": [
-       15,
-       1,
-       7,
-       7
-      ],
-      "kind": "cyl",
-      "v": 10,
-      "z": 16
-     },
-     {
-      "name": "mug 2",
-      "rect": [
-       47,
-       1,
-       7,
-       7
-      ],
-      "kind": "cyl",
-      "v": 10,
-      "z": 16
-     },
-     {
-      "name": "mug 3",
-      "rect": [
-       79,
-       1,
-       7,
-       7
-      ],
-      "kind": "cyl",
-      "v": 10,
-      "z": 16
-     },
-     {
-      "name": "bananas",
-      "rect": [
-       24,
-       6,
-       9,
-       6
-      ],
-      "kind": "top",
-      "v": 12,
-      "z": 16
-     },
-     {
-      "name": "loaf",
-      "rect": [
-       54,
-       2,
-       13,
-       9
-      ],
-      "kind": "cyl",
-      "v": 10,
-      "z": 16
-     },
-     {
-      "name": "kettle",
-      "rect": [
-       27,
-       0,
-       10,
-       6
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 16
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "frame",
-      "rect": [
-       0,
-       0,
-       92,
-       16
-      ]
-     }
-    ]
-   },
-   "BENCH": {
-    "d": 10,
-    "details": [
-     {
-      "name": "leg 1",
-      "rect": [
-       3,
-       0,
-       8,
-       4
-      ],
-      "kind": "box",
-      "u": 3,
-      "v": 2,
-      "z": 0,
-      "d": 6,
-      "only39": true
-     },
-     {
-      "name": "leg 2",
-      "rect": [
-       42,
-       0,
-       8,
-       4
-      ],
-      "kind": "box",
-      "u": 42,
-      "v": 2,
-      "z": 0,
-      "d": 6,
-      "only39": true
-     },
-     {
-      "name": "leg 3",
-      "rect": [
-       80,
-       0,
-       8,
-       4
-      ],
-      "kind": "box",
-      "u": 80,
-      "v": 2,
-      "z": 0,
-      "d": 6,
-      "only39": true
-     },
-     {
-      "name": "seat",
-      "rect": [
-       0,
-       0,
-       92,
-       4
-      ],
-      "kind": "box",
-      "u": 0,
-      "v": 0,
-      "z": 4,
-      "d": 10,
-      "only39": true
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "frame",
-      "rect": [
-       0,
-       0,
-       92,
-       8
-      ]
-     }
-    ]
-   },
-   "RECAFF": {
-    "details": [
-     {
-      "name": "barrel",
-      "rect": [
-       0,
-       11,
-       18,
-       25
-      ],
-      "kind": "cyl",
-      "v": 10,
-      "z": 0
-     },
-     {
-      "name": "bananas",
-      "rect": [
-       1,
-       3,
-       13,
-       9
-      ],
-      "kind": "box",
-      "v": 6,
-      "d": 8,
-      "z": 25
-     },
-     {
-      "name": "stones",
-      "rect": [
-       17,
-       28,
-       15,
-       8
-      ],
-      "kind": "box",
-      "v": 8,
-      "d": 12,
-      "z": 0
-     },
-     {
-      "name": "kettle",
-      "rect": [
-       19,
-       14,
-       13,
-       15
-      ],
-      "kind": "cyl",
-      "v": 14,
-      "z": 7
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "frame",
-      "rect": [
-       0,
-       0,
-       32,
-       36
-      ]
-     }
-    ]
-   },
-   "LORD_DESK": {
-    "details": [
-     {
-      "name": "board",
-      "rect": [
-       0,
-       11,
-       88,
-       4
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 26
-     },
-     {
-      "name": "leg 1",
-      "rect": [
-       1,
-       15,
-       7,
-       11
-      ],
-      "kind": "box",
-      "v": 20,
-      "d": 5
-     },
-     {
-      "name": "leg 2",
-      "rect": [
-       25,
-       15,
-       7,
-       11
-      ],
-      "kind": "box",
-      "v": 20,
-      "d": 5
-     },
-     {
-      "name": "leg 3",
-      "rect": [
-       57,
-       15,
-       7,
-       11
-      ],
-      "kind": "box",
-      "v": 20,
-      "d": 5
-     },
-     {
-      "name": "leg 4",
-      "rect": [
-       81,
-       15,
-       7,
-       11
-      ],
-      "kind": "box",
-      "v": 20,
-      "d": 5
-     },
-     {
-      "name": "trunk",
-      "rect": [
-       32,
-       17,
-       16,
-       9
-      ],
-      "kind": "box",
-      "v": 10,
-      "d": 10
-     },
-     {
-      "name": "rope",
-      "rect": [
-       47,
-       19,
-       11,
-       7
-      ],
-      "kind": "cyl",
-      "v": 12
-     },
-     {
-      "name": "journals",
-      "rect": [
-       3,
-       1,
-       19,
-       10
-      ],
-      "kind": "box",
-      "v": 6,
-      "d": 10,
-      "z": 15
-     },
-     {
-      "name": "inkwell",
-      "rect": [
-       21,
-       6,
-       7,
-       5
-      ],
-      "kind": "cyl",
-      "v": 12,
-      "z": 15
-     },
-     {
-      "name": "quill",
-      "rect": [
-       24,
-       0,
-       8,
-       7
-      ],
-      "kind": "bill",
-      "v": 12,
-      "z": 18
-     },
-     {
-      "name": "map",
-      "rect": [
-       31,
-       6,
-       18,
-       5
-      ],
-      "kind": "top",
-      "v": 14,
-      "z": 15
-     },
-     {
-      "name": "microscope base",
-      "rect": [
-       50,
-       8,
-       12,
-       3
-      ],
-      "kind": "box",
-      "v": 8,
-      "d": 8,
-      "z": 15
-     },
-     {
-      "name": "microscope",
-      "rect": [
-       52,
-       0,
-       9,
-       8
-      ],
-      "kind": "cyl",
-      "v": 12,
-      "z": 18
-     },
-     {
-      "name": "beetles",
-      "rect": [
-       63,
-       2,
-       23,
-       9
-      ],
-      "kind": "box",
-      "v": 6,
-      "d": 12,
-      "z": 15
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "frame",
-      "rect": [
-       0,
-       0,
-       88,
-       26
-      ]
-     }
-    ]
-   },
-   "THRONE": {
-    "details": [
-     {
-      "name": "base",
-      "rect": [
-       3,
-       31,
-       34,
-       9
-      ],
-      "kind": "cyl",
-      "v": 12,
-      "z": 0
-     },
-     {
-      "name": "seat",
-      "rect": [
-       7,
-       27,
-       26,
-       6
-      ],
-      "kind": "box",
-      "v": 4,
-      "d": 18
-     },
-     {
-      "name": "arm L",
-      "rect": [
-       0,
-       20,
-       10,
-       11
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 20
-     },
-     {
-      "name": "arm R",
-      "rect": [
-       30,
-       20,
-       10,
-       11
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 20
-     },
-     {
-      "name": "back",
-      "rect": [
-       0,
-       0,
-       40,
-       28
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 5
-     }
-    ],
-    "flatOnly": [
-     {
-      "name": "frame",
-      "rect": [
-       0,
-       0,
-       40,
-       40
-      ]
-     }
-    ]
-   },
-   "COG_MECH": {
-    "details": [
-     {
-      "name": "rope",
-      "rect": [
-       5,
-       0,
-       30,
-       6
-      ],
-      "kind": "disc",
-      "v": 0,
-      "t": 1,
-      "rim": "Z"
-     },
-     {
-      "name": "slab",
-      "rect": [
-       0,
-       5,
-       40,
-       31
-      ],
-      "kind": "disc",
-      "v": 0,
-      "t": 4,
-      "rim": "W",
-      "round": true
-     }
-    ]
-   },
-   "SEAL": {
-    "details": [
-     {
-      "name": "thong",
-      "rect": [
-       4,
-       0,
-       4,
-       4
-      ],
-      "kind": "disc",
-      "v": 0,
-      "t": 1,
-      "rim": "W"
-     },
-     {
-      "name": "token",
-      "rect": [
-       0,
-       3,
-       12,
-       12
-      ],
-      "kind": "disc",
-      "v": 1,
-      "t": 2,
-      "rim": "W",
-      "round": true
-     },
-     {
-      "name": "tassel",
-      "rect": [
-       2,
-       15,
-       8,
-       5
-      ],
-      "kind": "disc",
-      "v": 0,
-      "t": 1,
-      "rim": "Z"
-     }
-    ]
-   },
-   "GAUGE": {
-    "details": [
-     {
-      "name": "dial",
-      "rect": [
-       0,
-       0,
-       12,
-       12
-      ],
-      "kind": "disc",
-      "v": 0,
-      "t": 3,
-      "rim": "Z",
-      "round": true
-     }
-    ]
-   },
-   "CENSER": {
-    "details": [
-     {
-      "name": "hook",
-      "rect": [
-       0,
-       0,
-       10,
-       6
-      ],
-      "kind": "cyl",
-      "v": 4
-     },
-     {
-      "name": "globe",
-      "rect": [
-       0,
-       6,
-       10,
-       9
-      ],
-      "kind": "cyl",
-      "v": 5
-     },
-     {
-      "name": "tank",
-      "rect": [
-       0,
-       15,
-       10,
-       5
-      ],
-      "kind": "cyl",
-      "v": 5
-     }
-    ]
-   },
-   "CANDLES": {
-    "details": [
-     {
-      "name": "crate",
-      "rect": [
-       0,
-       12,
-       24,
-       6
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 12,
-      "z": 0
-     },
-     {
-      "name": "tank",
-      "rect": [
-       0,
-       9,
-       13,
-       4
-      ],
-      "kind": "cyl",
-      "v": 6,
-      "z": 5
-     },
-     {
-      "name": "globe",
-      "rect": [
-       0,
-       0,
-       13,
-       9
-      ],
-      "kind": "cyl",
-      "v": 6,
-      "z": 9
-     },
-     {
-      "name": "oil can",
-      "rect": [
-       13,
-       2,
-       9,
-       11
-      ],
-      "kind": "cyl",
-      "v": 5,
-      "z": 5
-     }
-    ]
-   },
-   "BRAZIER": {
-    "details": [
-     {
-      "name": "stones",
-      "rect": [
-       0,
-       17,
-       20,
-       9
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 16,
-      "z": 0
-     },
-     {
-      "name": "tripod",
-      "rect": [
-       0,
-       0,
-       20,
-       17
-      ],
-      "kind": "bill",
-      "u": 10,
-      "v": 8,
-      "z": 4
-     }
-    ]
-   },
-   "GATE": {
-    "details": [
-     {
-      "name": "sill",
-      "rect": [
-       0,
-       56,
-       64,
-       4
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 30
-     },
-     {
-      "name": "stakes L",
-      "rect": [
-       0,
-       18,
-       4,
-       39
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 3
-     },
-     {
-      "name": "stakes R",
-      "rect": [
-       60,
-       20,
-       4,
-       37
-      ],
-      "kind": "box",
-      "v": 2,
-      "d": 3
-     },
-     {
-      "name": "post L",
-      "rect": [
-       2,
-       8,
-       16,
-       49
-      ],
-      "kind": "box",
-      "v": 3,
-      "d": 14
-     },
-     {
-      "name": "post R",
-      "rect": [
-       46,
-       8,
-       16,
-       49
-      ],
-      "kind": "box",
-      "v": 3,
-      "d": 14
-     },
-     {
-      "name": "lintel",
-      "rect": [
-       0,
-       7,
-       64,
-       4
-      ],
-      "kind": "box",
-      "v": 4,
-      "d": 12
-     },
-     {
-      "name": "roof",
-      "rect": [
-       0,
-       0,
-       64,
-       8
-      ],
-      "kind": "box",
-      "v": 0,
-      "d": 22
-     },
-     {
-      "name": "leaves",
-      "rect": [
-       16,
-       10,
-       32,
-       44
-      ],
-      "kind": "box",
-      "v": 8,
-      "d": 2
-     }
-    ]
-   }
-  }
- }
 }

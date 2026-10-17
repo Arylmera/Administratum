@@ -116,12 +116,12 @@
     "palette": "key.gpl",
     "anchors": {
       "glyph down": [
-        10,
-        11
+        9,
+        13
       ],
       "glyph up": [
         9,
-        14
+        13
       ]
     }
   }

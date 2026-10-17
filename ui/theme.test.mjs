@@ -114,5 +114,9 @@ assert.equal(t('no.such.key'), 'no.such.key');
 setTheme('xenos');
 assert.equal(t('motto'), 'Suffer not the alien to live');
 assert.equal(t('rank.high'), 'Magos', 'a theme keeps the wording it does not change');
+// Darwin's apes wear a lab collar whose tag (t T z) is the same at every rank: ranks recolour the fur alone, never the
+// tag (the base ranks gild t T z, a robe's trim)
+setTheme('darwin');
+assert.deepEqual(['high', 'novice'].map(r => ['t', 'T', 'z'].map(k => ({ ...T.px, ...T.rank[r].robe })[k])), [['t', 'T', 'z'].map(k => T.px[k]), ['t', 'T', 'z'].map(k => T.px[k])], 'darwin: one collar tag at every rank');
 setTheme('tier2');
 console.log('theme ok');

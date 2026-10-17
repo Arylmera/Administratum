@@ -15,7 +15,7 @@
 A Windows and macOS desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
 office, and calls you when one of them needs an answer. Pick your world: a tech-priest scribe in a Warhammer 40k
 scriptorium, a netrunner in a cyberpunk den, crew on an orbital station, an apprentice in a wizard's tower, a
-dweller in a Fallout vault or an ape at a typewriter in Darwin's savanna camp ([Worlds and themes](#worlds-and-themes)).
+dweller in a Fallout vault or a chimpanzee at a typewriter in Darwin's Victorian laboratory ([Worlds and themes](#worlds-and-themes)).
 
 ![The hall: departments of scribes at their desks, adepts at their consoles, a petition queued before the Magos](docs/img/hall.png)
 
@@ -163,9 +163,10 @@ door and a Nuka-Cola machine. Style: <i>Vault 111</i>.</td>
 a phone can show a different world than the PC.</td>
 </tr>
 <tr>
-<td><img src="docs/img/world-darwin.png" alt="Darwin: apes at their typewriters in a savanna expedition camp"><br>
-<b>Darwin</b>: monkeys at their typewriters (the infinite monkey theorem), capuchin subagents, the old orang-utan Professor
-with his magnifying glass, trestle desks under bamboo and thatch, and a Galapagos finch. Style: <i>Darwin</i>.</td>
+<td><img src="docs/img/world-darwin.png" alt="Darwin: chimpanzees at their typewriters in a Victorian laboratory"><br>
+<b>Darwin</b>: chimpanzees at their typewriters (the infinite monkey theorem) on oak lab benches, capuchin lab assistants
+for subagents, Charles Darwin himself checking the work with his magnifying glass, specimen jars, brass microscopes and
+gaslight, and a Galapagos finch. Style: <i>Darwin</i>.</td>
 <td></td>
 </tr>
 </table>

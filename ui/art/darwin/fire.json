@@ -15,6 +15,38 @@
         "w": 24,
         "h": 18
       }
+    },
+    "BRAZIER_FIRE_1": {
+      "frame": {
+        "x": 0,
+        "y": 27,
+        "w": 10,
+        "h": 9
+      }
+    },
+    "BRAZIER_FIRE_2": {
+      "frame": {
+        "x": 11,
+        "y": 27,
+        "w": 10,
+        "h": 9
+      }
+    },
+    "CANDLES_FIRE_1": {
+      "frame": {
+        "x": 22,
+        "y": 27,
+        "w": 24,
+        "h": 8
+      }
+    },
+    "CANDLES_FIRE_2": {
+      "frame": {
+        "x": 47,
+        "y": 27,
+        "w": 24,
+        "h": 8
+      }
     }
   },
   "meta": {
@@ -22,10 +54,23 @@
     "image": "fire.png",
     "format": "RGBA8888",
     "size": {
-      "w": 45,
-      "h": 26
+      "w": 71,
+      "h": 36
     },
     "palette": "key.gpl",
-    "anchors": {}
+    "anchors": {
+      "BRAZIER": {
+        "fire": [
+          4,
+          -2
+        ]
+      },
+      "CANDLES": {
+        "fire": [
+          0,
+          -1
+        ]
+      }
+    }
   }
 }

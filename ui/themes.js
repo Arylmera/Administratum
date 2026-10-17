@@ -434,32 +434,36 @@ defineTheme({
   },
 });
 
-// Darwin, a naturalist's expedition camp in the African savanna, not 40k: red earth, straw and thatch, woven reed
-// walls, raw wood, acacia green, ivory paper, lantern amber; monkeys at typewriters (the infinite monkey theorem).
-// Ranks are colour only: fur in r R d (ginger orang-utan, dark-brown chimpanzee, pale young monkey). Real apes, no
-// clothes: the department colour y is a ringed tag on the right ankle; the capuchin's rank is a ribbon on its tail (J I).
+// Darwin, his Victorian laboratory (docs/superpowers/specs/2026-10-17-darwin-lab-design.md), not 40k: oak, walnut and
+// brass, specimen glass, gaslight, green plaster, a dim black-and-white checker floor, ivory paper; chimpanzees at
+// typewriters (the infinite monkey theorem) and Charles Darwin checking the work. Ranks are colour only: fur in r R d
+// (ginger orang-utan, dark-brown chimpanzee, pale young monkey). Real apes, no clothes: the department colour y is the
+// band of a lab collar with a numbered tag (t T); the capuchin's rank is a ribbon on its tail (J I).
 defineTheme({
-  id: 'darwin', world: 'darwin', name: 'Darwin', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium', 'room-floor', 'room-walls', 'room-doors', 'room-pipes', 'scribe39', 'adept39', 'magos39', 'skull39', 'breakout', 'watch', 'watch39'], // ui/art/darwin/: real apes, no clothes: hunched, long-armed, a bare face with a heavy brow and muzzle, knuckle-walking in profile, a department ribbon tied round the upper arm; white-faced capuchins (black cap, cream face ring, a curled tail with the rank ribbon) hurrying with typed pages; the Professor, an old flanged orang-utan (wide grey cheek pads, throat sac, long shaggy ginger-red fur), a typed page on his lap and a brass magnifying glass in his long hanging arm, in a rattan peacock chair; the savanna camp: a plank table on log legs (field journals, ink and quill, a map, the brass microscope, a box of pinned beetles, a tin trunk and rope underneath), a carved tree-of-life on a log slab hung by a rope, a carved wooden finch token on a thong; rough planks on lashed sawhorses with a black typewriter and a hurricane lantern, a sawn stump with the field notebook on a plank book rest and a candle in a bottle, a portable typewriter on a slatted supply crate, a globe turning on a wooden tripod for a background shell; the camp station under a thatch awning (a slate, a pinned map, bamboo rain gauges, seven little oil lamps, coiled ropes on pegs, pinned butterflies and feathers, jars and gourds on planks, two tin stovepipes); openings in the woven walls between bamboo poles, a reed blind rolled up, onto the savanna (golden grass, acacias, a big sun; stars and a moon by night), a map of Africa hung from a stick, a long woven mat on a pole, plank shelves on lashed poles with calabashes, jars and gourds, a felt water canteen, a hurricane lantern on a hook; a Galapagos finch flying; a camp gate of lashed log posts under a thatch roof, stick-panel leaves, onto the savanna at dusk; a stone-ringed fire pit under a stick tripod with a billy can, a hurricane lantern on an upturned crate by an oil can; a leaning tower of typed pages, crumpled failed pages, field journals tied with twine, loose pages, a supply crate stencilled BEAGLE; typed pages with a red query mark or a brass tag, a page held up; a page of Shakespeare with a quill flourish, a specimen label, a brass hand stamp; a hooped water barrel with bananas and a kettle on three stones, a plank table of tin plates and enamel mugs, split-log benches; packed red earth with dry grass tufts and pebbles, woven reed mats for the channels, the Professor's ochre kilim, a log threshold, basket-woven reed walls between bamboo poles under a thatch eave (ochre and red in the Professor's hut), bamboo pillars, lashed log pilasters, woven reed sliding screens, lashed bamboo poles for the pipes, a hand bell on a peg for the beacon; in 39°: the same apes, capuchins, orang-utan Professor and finch in their four facings, the camp's furniture in volumes (faces: plank and stump tops, bark sides, the station's thatch awning, the rattan chair, the gate's posts under their thatch); the Monkey House (straw on planks, a bamboo fence, a banana-crate gate under a banana placard); the Watchman (a museum night keeper in a navy peaked cap and greatcoat, a ring of keys, a hurricane lantern; he rings a brass hand bell)
+  id: 'darwin', world: 'darwin', name: 'Darwin', art: ['scribe', 'adept', 'magos', 'sanctum', 'workstations', 'cogitator', 'walls', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium', 'room-floor', 'room-walls', 'room-doors', 'room-pipes', 'scribe39', 'adept39', 'magos39', 'skull39', 'breakout', 'watch', 'watch39'], // ui/art/darwin/: Darwin's Victorian laboratory (docs/superpowers/specs/2026-10-17-darwin-lab-design.md): bare chimpanzees in a lab collar with a numbered tag at oak lab benches, capuchin lab assistants, Charles Darwin himself checking the work from his armchair; brass microscopes, specimen jars, distilling apparatus, gas lamps, black-and-white tiles; the finch, the museum night keeper
   px: {
     k: '#120c08', e: '#1e140c', n: '#0c0806',
-    r: '#4a3020', R: '#6a4630', d: '#2a1a10', t: '#5a5e66', T: '#3a3e44', z: '#d8a83a', j: '#d8a83a', // chimpanzee fur (t T z j: unused, the apes wear nothing)
+    r: '#4a3020', R: '#6a4630', d: '#2a1a10', t: '#e8d8a8', T: '#2a1e14', z: '#d8a83a', j: '#d8a83a', // chimpanzee fur; the lab collar's tag (t enamel, T its number, z the brass ring; j spare)
     g: '#c8963a', G: '#7a5418', h: '#f0c870', U: '#4a3010', // brass
-    m: '#3a3a3c', M: '#1e1e20', l: '#6a6a6e', V: '#b4521c', // black typewriter enamel; V: the Professor's ginger-red orang-utan fur
-    p: '#e8dcc0', P: '#b8a888', b: '#ddd0b0', B: '#a8987a', s: '#c0a068', ':': '#d8a888', ';': '#a07058', // ivory paper, pink-tan faces
+    m: '#3a3a3c', M: '#1e1e20', l: '#6a6a6e', V: '#2a2830', // black typewriter enamel; V: Darwin's black frock coat
+    p: '#e8dcc0', P: '#b8a888', b: '#ddd0b0', B: '#a8987a', s: '#b89a70', ':': '#d8a888', ';': '#a07058', // ivory paper, pink-tan faces
     q: '#d8c8a0', Q: '#9a8868', J: '#a8281e', I: '#e0b040', // capuchin cream face ring and throat; its tail ribbon, red with a gold knot
-    w: '#5a3820', W: '#34200e', L: '#7a5232', u: '#24304a', v: '#5a7a2e', // raw wood (walnut browns), acacia green
-    c: '#8aa848', C: '#2a3a16', o: '#f0c060', O: '#fff4d0', f: '#f0a840', F: '#ffe8b0', x: '#8a2a1e', a: '#d83a20', // acacia leaf, lantern flame
-    1: '#9a5232', 2: '#6a3420', 3: '#b4683e', 4: '#9a7a44', 5: '#86683a', 6: '#5a4220', 7: '#b8945a', 8: '#a48450', 9: '#d0b070', 0: '#2a1408', A: '#1a0c06', // red earth, woven reed walls
-    D: '#7a4a28', E: '#4a2a14', H: '#9a6438', K: '#c08850', N: '#8a3a1e', S: '#6a5428', // the Professor's hut, ochre kilim, bamboo
-    X: '#c89a48', Y: '#e8c070', Z: '#8a6428', i: '#5a4018', '!': '#7a5a28', '+': '#b8904a', // straw and thatch, reed mats
-    '@': '#1a1020', $: '#5a2a30', '%': '#c8603a', '*': '#8a6420', '-': '#4a3010', '=': '#ffe8a0', '&': '#f0c870', // the savanna at dusk beyond the gate, the camp bell
+    w: '#5a3820', W: '#34200e', L: '#7a5232', u: '#24304a', v: '#2e4a2e', // walnut, green baize
+    c: '#5a9a5a', C: '#1a3a20', o: '#f0c060', O: '#fff4d0', f: '#f0a840', F: '#ffe8b0', x: '#8a2a1e', a: '#d83a20', // specimen glass, gas lamp
+    1: '#6a4428', 2: '#2a180c', 3: '#8a5a34', // the gate's sill
+    4: '#544e42', 5: '#1e1a16', 6: '#463f35', // black-and-white floor tiles, aged and dim (a hall floor stays dark): ivory, black, the ivory's shade
+    0: '#6c7a52', A: '#5a6844', S: '#465236', // green-painted plaster: light, base, shade
+    D: '#6a1e18', E: '#3a100c', N: '#9a3a26', // Darwin's carpet: crimson, dark, rose
+    7: '#ece8dc', 8: '#a8a294', 9: '#5a2016', H: '#9a6438', K: '#c08850', // Darwin's white beard and its shade, his oxblood armchair; H K: the benches
+    X: '#c8963a', Y: '#f0c870', Z: '#8a6420', i: '#4a3010', '!': '#98a496', '+': '#c8d0c2', // brass gas pipes; frosted glass
+    '@': '#060404', $: '#1a0e08', '%': '#3a2010', '*': '#8a8474', '-': '#5e5a4e', '=': '#fff4d0', '&': '#f8d48a', // the gas lamp: cold globe, its shade; flame, lit globe
     '(': '#a8281e', ')': '#e05a40', '[': '#5a1008', ']': '#2a1e14',
   },
   sash: ['#a8281e', '#2e6a3a', '#2a4a8a', '#d8a83a', '#7a3a7a', '#e8dcc0', '#d06a2a', '#3a8a8a'],
   rank: {
-    high: { robe: { r: '#a04a18', R: '#d06a28', d: '#5a2408' }, // orang-utan ginger
+    high: { robe: { r: '#a04a18', R: '#d06a28', d: '#5a2408', t: '#e8d8a8', T: '#2a1e14', z: '#d8a83a' }, // orang-utan ginger; the collar tag as every rank's (the base ranks gild t T z)
       adept: { x: '#8a2a1e', b: '#ddd0b0', J: '#2a5a3a', I: '#ffd870' } }, // green tail ribbon
-    novice: { robe: { r: '#8a7e68', R: '#a89c84', d: '#5a5040' }, // young monkey, pale grey-brown
+    novice: { robe: { r: '#8a7e68', R: '#a89c84', d: '#5a5040', t: '#e8d8a8', T: '#2a1e14', z: '#d8a83a' }, // young monkey, pale grey-brown; the same collar tag
       adept: { x: '#8a2a1e', q: '#d8c8a0', Q: '#9a8868', b: '#ddd0b0', J: '#8a7e68', I: '#a89c84' } }, // grey tail ribbon
   },
   ink: {
@@ -467,44 +471,45 @@ defineTheme({
     cant: 'rgba(0,0,0,0)', grime: 'rgba(16,10,6,.25)', scratchSheen: 'rgba(255,240,220,.08)',
     parchmentWarn: '#d09060',
     smoke: '#c8c0b0', sparkSmoke: '#d0c8c0', steam: '#dcd4c8', alarmGlow: '#f0c870', beaconSweep: '#f0c870', searchlight: '#f0c060',
-    // the hut's openings onto the savanna: by day a pale sky, golden grass, acacias, a big sun; by night stars and a moon
-    windowDay: { u: '#a8d0e8', a: '#c8b48a', v: '#d4a850', c: '#ecc870', C: '#3a4418', g: '#fff4c0', h: '#fffae0', x: '#a8d0e8' },
-    windowNight: { u: '#121830', a: '#1c2234', v: '#2e2814', c: '#3e3620', C: '#080c06', g: '#e8e4c8', h: '#121830', x: '#d8d4b8' },
+    // the sash window: an English garden by day (blue sky, green lawn, sun); by night a moon over dark trees
+    // (u sky, x its haze over the trees, g the sun or moon, h its halo, v the lawn, c C the trees lit and shaded)
+    windowDay: { u: '#8ab4d8', v: '#6a9a48', g: '#fff0b0', h: '#ffe890', x: '#c0d8e8', c: '#3e7232', C: '#264a20' },
+    windowNight: { u: '#141a2a', v: '#0e1a10', g: '#e8e4c8', h: '#283044', x: '#1c2438', c: '#1a2c1e', C: '#0c160e' },
     backdrop: '#1a120c', backdropLit: '#2a1e14', backdropEdge: '#241810', backdropDark: '#0e0906', backdropSeam: '#140c08', backdropSeamLit: '#2a1c10',
     backdropRivet: '#7a5418', overflowPlaque: '#a8987a',
   },
-  light: { amber: 'rgba(248,176,72,.28)', green: 'rgba(138,168,72,.18)', red: 'rgba(216,58,32,.22)', lampOn: 'rgba(240,192,96,.5)',
+  light: { amber: 'rgba(240,168,64,.26)', green: 'rgba(90,154,90,.18)', red: 'rgba(216,58,32,.22)', lampOn: 'rgba(240,192,96,.5)',
     glint: 'rgba(240,200,112,.6)', spark: 'rgba(255,232,160,.8)', night: '10,6,4', beam: '255,220,160' },
   ui: {
-    '--bg': '#160e08', '--bar': '#2a1a0c', '--ink': '#e8dcc0', '--dim': '#9a8a70', '--light': '#f4ecd8', '--edge': '#4a3018', '--btn': '#301e0e',
+    '--bg': '#140e0a', '--bar': '#24180e', '--ink': '#e8dcc0', '--dim': '#9a8a70', '--light': '#f4ecd8', '--edge': '#3e2a18', '--btn': '#2a1c10',
     '--copper': '#c8963a', '--outline': '#120c08', '--bone': '#ddd0b0', '--iron': '#3a3a3c', '--green': '#5a9a5a',
     '--red': '#d83a20', '--pink': '#e8a088', '--blood': '#5a1008', '--glow': '#f0c060', '--wax': '#a8281e', '--wax-deep': '#3a0a06',
     '--alarm': '#d83a20', '--flame': '#ffe8b0', '--label': '#1e140c', '--label-sel': '#34220e', '--label-btn': '#2a1c10', '--plaque': '#1a120c',
     '--yes': '#5a9a5a', '--yes-deep': '#1a3a20',
-    // ivory typed pages over the raw-wood camp bar
+    // ivory typed pages over the walnut bar
     '--card': '#e8dcc0', '--paper': '#efe4c8', '--paper-edge': '#b8a888', '--paper-hi': '#f8f0dc', '--paper-tab': '#ddd0b0', '--paper-q': '#e8dcbc',
     '--paper-shade': '#b8a888', '--paper-line': '#8a7a5a', '--paper-ink': '#1e160e', '--paper-ink-2': '#3e3020', '--paper-ink-3': '#6a5a40',
     '--paper-err': '#a8281e', '--leather': '#4a2418', '--leather-deep': '#24100a', '--chart-new': '#c8963a', '--chart-cache': '#5a9a5a',
     '--rod-hi': '#f0c870', '--rod': '#c8963a', '--rod-lo': '#7a5418', '--rod-edge': '#4a3010', '--rod-cap': '#fff4d0',
-    // typewriter type for titles, acacia-green accent over the ivory page
-    '--display': "'VT323', monospace", '--paper-accent': '#4a6a26',
+    // typewriter type for titles, green baize accent over the ivory page
+    '--display': "'VT323', monospace", '--paper-accent': '#2e4a2e',
   },
   text: {
     watch: { name: 'Night Keeper', button: 'Night Vigil: the Night Keeper shuts the PC down once every session waits on you' },
-    subtitle: 'Darwin · Savanna Camp', motto: 'To be or not to be… eventually', breakout: 'Monkey House',
+    subtitle: 'Darwin · The Laboratory', motto: 'To be or not to be… eventually', breakout: 'Monkey House',
     rank: { high: 'Orang-utan', standard: 'Chimpanzee', novice: 'Young monkey' },
-    status: { busy: 'Typing', shell: 'At the camp board', idle: 'Page done, awaiting input', waiting: 'Holding up a page',
+    status: { busy: 'Typing', shell: 'At the specimen cabinet', idle: 'Page done, awaiting input', waiting: 'Holding up a page',
       background: 'Idle · capuchin on errands', napping: 'Idle · asleep on the typewriter' },
     petitions: ['{n} query', '{n} queries'], petitioning: '{n} querying', petitionLabel: '{name}, query: {want}',
     adeptOf: '{kind} · capuchin of {owner}', overflow: '+{n} in the monkey house', empty: 'No monkeys at the keys',
-    modes: { full: 'Daylight', candles: 'Lantern light' },
+    modes: { full: 'Daylight', candles: 'Gaslight' },
     log: { title: 'Field notebook', open: 'Open the field notebook', close: 'Close the field notebook', silent: 'The field notebook is blank: no record could be read for this day.' },
     tithe: { hint: 'Typed today: tokens and time at the keys', day: 'Typed today: {tokens} tokens, {time} at the keys' },
     event: { commit: 'A page of Shakespeare', petition: 'Query', 'petition-answered': 'Query answered', compaction: 'Pages bound', limit: 'Out of bananas' },
     prefs: { chime: 'Query bell', petitions: 'Queries', questions: 'A question at the end of a turn counts as a query',
-      stale: 'Query goes stale after', nap: 'Idle to a nap on the typewriter after', cog: 'Stay at the camp board for',
+      stale: 'Query goes stale after', nap: 'Idle to a nap on the typewriter after', cog: 'Stay at the specimen cabinet for',
       pauseHint: 'Near-zero CPU when unseen; queries still alert.',
-      cat: { hall: 'Camp', petitions: 'Queries', scribes: 'Monkeys', system: 'System', remote: 'Remote access' } },
+      cat: { hall: 'Laboratory', petitions: 'Queries', scribes: 'Monkeys', system: 'System', remote: 'Remote access' } },
     limitLabel: 'out of bananas · back at {time}', limitSealed: 'out of bananas',
     toast: { petition: 'Query from {name}', stale: 'Query still waiting: {name}', limit: '{name} out of bananas until {time}', limitMany: '{n} monkeys out of bananas until {time}' },
   },
