@@ -222,6 +222,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   if (Z) breakoutFloor(g, Z);
   drawRugs(g, layout.blocks);
   drawPlinths(g, layout.desks, actors);
+  drawLinks(g, layout.desks, actors, now);
   if (!H.strip) drawDoors(g, all, now);
   const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
   if (Z) (H.strip ? stripBreakout : breakoutFence)(Z, all, items);
@@ -340,6 +341,36 @@ export function drawPlinths(g, desks, actors) {
     rect(g, x + 1, y + h - face, w - 2, face - 1, I.ironDark);
     g.strokeStyle = I.brass; g.lineWidth = 1; g.strokeRect(x + 2.5, y + 2.5, w - 5, h - face - 4);
     for (const [sx, sy] of [[x + 2, y + 2], [x + w - 3, y + 2], [x + 2, y + h - face - 2], [x + w - 3, y + h - face - 2]]) rect(g, sx, sy, 1, 1, I.brassLit);
+  }
+}
+
+// A data cable on the floor from a Suzerain's plinth to each forked child's feet: down to the lane under the
+// parent's seat, along the slot edges, then up to the child. While the parent works, a pulse runs down it.
+export function drawLinks(g, desks, actors, now) {
+  const at = new Map(desks.filter(d => d.id).map(d => [d.id, d]));
+  for (const a of actors.values()) {
+    const p = at.get(a.s?.parent), c = at.get(a.id);
+    if (!p || !c || a.leaving) continue;
+    const lane = d => d.y + 37, mid = d => d.x + (d.compact ? 11 : 16), edge = d => d.x - 5;
+    const pts = [[mid(p), p.y + 33], [mid(p), lane(p)]];
+    if (lane(p) !== lane(c)) pts.push([edge(c), lane(p)], [edge(c), lane(c)]);
+    pts.push([mid(c), lane(c)], [mid(c), c.y + 35]);
+    const segs = pts.slice(1).map((q, i) => [pts[i], q, Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1])]);
+    for (const [[x0, y0], [x1, y1]] of segs) {
+      const x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0) + 2, h = Math.abs(y1 - y0) + 2;
+      rect(g, x - 1, y - 1, w + 2, h + 2, I.outline);
+      rect(g, x, y, w, h, I.brassDark);
+      rect(g, x, y, y0 === y1 ? w : 1, y0 === y1 ? 1 : h, I.brass); // lit from the north-west
+    }
+    rect(g, mid(c) - 2, c.y + 33, 6, 3, I.outline); rect(g, mid(c) - 1, c.y + 34, 4, 1, I.brassLit); // the socket at the child's feet
+    if (actors.get(p.id)?.s?.status !== 'busy') continue;
+    const len = segs.reduce((n, s) => n + s[2], 0);
+    let k = ((now / 40) % (len + 12)), hit = null;
+    for (const [[x0, y0], [x1, y1], l] of segs) {
+      if (k <= l) { hit = [x0 + Math.sign(x1 - x0) * k, y0 + Math.sign(y1 - y0) * k]; break; }
+      k -= l;
+    }
+    if (hit) rect(g, Math.round(hit[0]), Math.round(hit[1]), 2, 2, I.phosphor);
   }
 }
 
