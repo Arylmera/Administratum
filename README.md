@@ -353,7 +353,9 @@ and the 6 previous days. Each day shows:
   long tasks finished, arrivals, departures, petitions opened and answered, compactions and usage limits. You can filter it
   by department. While the Chronicon is open, new events appear at the top.
 
-Tokens are counted once per assistant message. Subagent tokens count toward the parent's project. On first sight
+Tokens are counted once per assistant message. Subagent tokens count toward the parent's project. A forked session
+(Claude Code desktop's child sessions) opens with a copy of its parent's history; that copy is skipped, the parent
+already counted it. On first sight
 of a transcript, only today's entries are read. Earlier days are not reconstructed.
 
 To close the Chronicon, click ✕, press **Escape**, or click outside it.

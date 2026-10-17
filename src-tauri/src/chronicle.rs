@@ -199,6 +199,10 @@ pub fn wanted(line: &str) -> bool {
 pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms: i64, out: &mut Found) {
     let (events, usage, turns) = out;
     let Ok(v) = serde_json::from_str::<Value>(line) else { return };
+    // A fork's file opens with a copy of its parent's history, still under the parent's id: the parent counts it.
+    if v["sessionId"].as_str().is_some_and(|id| id != src.session_id) {
+        return;
+    }
     {
         let ts = v["timestamp"].as_str().and_then(registry::iso_utc_ms);
         if min_ts > i64::MIN && ts.is_none_or(|t| t < min_ts) {
@@ -1171,6 +1175,20 @@ mod tests {
         assert_eq!(b[0].tokens, Tokens { input: 0, output: 584, cache_read: 0, cache_write: 0 });
         let synthetic = r#"{"type":"assistant","message":{"model":"<synthetic>","id":"m3","usage":{"input_tokens":9}}}"#;
         assert!(extract(&mut cur, synthetic, i64::MIN, &SRC, 0).1.is_empty());
+    }
+
+    #[test]
+    fn a_fork_skips_the_history_it_copied_from_its_parent() {
+        // A forked session's file opens with its parent's lines, still stamped with the parent's sessionId.
+        let line = |sid: &str, id: &str| {
+            serde_json::json!({"sessionId":sid,"type":"assistant","timestamp":iso(0),"message":{"model":"claude-opus-5-5","id":id,
+                "content":[{"type":"tool_use","id":"a","name":"Bash","input":{"command":"git commit -m x"}}],"usage":{"input_tokens":7}}})
+            .to_string()
+        };
+        let text = [line("parent", "m1"), result("a", "[main 1a2b3c4] x".into(), Some(false), 0), line("s1", "m2")].join("\n");
+        let (ev, usage, _) = extract(&mut Cursor::default(), &text, i64::MIN, &SRC, 0);
+        assert_eq!(usage.iter().map(|u| u.tokens.total()).sum::<u64>(), 7, "only the fork's own message");
+        assert!(ev.is_empty(), "the parent's commit is the parent's event");
     }
 
     #[test]
