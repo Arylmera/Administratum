@@ -5,15 +5,7 @@
 // and stays put in every frame, ring included. From behind: the back of the hood with its seam, no face. ring: he
 // holds the hourglass up in his other hand. 32x36 art px: rows 0..13 the hood, 14..31 the cloak (hem 31), 32..35 boots.
 
-const stamp = (rows, patch, x, y) => rows.map((r, j) => {
-  const p = patch[j - y];
-  if (!p) return r;
-  const a = [...r];
-  [...p].forEach((c, i) => { if (c !== '.') a[x + i] = c; });
-  return a.join('');
-});
-const frame = (body, legs, ...patches) => patches.reduce((rows, [p, x, y]) => stamp(rows, p, x, y), [...body, ...legs]);
-const rev = s => [...s].reverse().join('');
+import { frame, rev } from './kit.mjs';
 // 16-px left halves mirrored into 32-px rows, the lit edge (L) turned to shade (W) on the right.
 const sym = half => half.map(h => h + rev(h).replace(/L/g, 'W'));
 const pad = (n, rows) => rows.map(r => '.'.repeat(n) + r + '.'.repeat(32 - n - r.length));

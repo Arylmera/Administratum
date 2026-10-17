@@ -3,14 +3,7 @@
 // a brass lantern (flame f/F) held out to the right in every facing, so the glow anchor stays put. 32x36 art px.
 // Bodies are rows 0..32 (the coat's hem outline on 32), feet rows 33..35; patches are stamped over a body.
 
-const stamp = (rows, patch, x, y) => rows.map((r, j) => {
-  const p = patch[j - y];
-  if (!p) return r;
-  const a = [...r];
-  [...p].forEach((c, i) => { if (c !== '.') a[x + i] = c; });
-  return a.join('');
-});
-const frame = (body, feet, ...patches) => patches.reduce((rows, [p, x, y]) => stamp(rows, p, x, y), [...body, ...feet]);
+import { frame } from './kit.mjs';
 
 // The hat, the same from the front and the back.
 const HAT = [

@@ -6,19 +6,9 @@
 // light anchor stays put. Ring: he blows a whistle (l/b), the frame-left arm bent up, a yellow glove (h/g) at his mouth. 32x36 art px.
 // Bodies are rows 0..26 (helmet 0..11, jumpsuit 12..26), legs rows 27..35 (they carry the walk); patches stamped over.
 
-const stamp = (rows, patch, x, y) => rows.map((r, j) => {
-  const p = patch[j - y];
-  if (!p) return r;
-  const a = [...r];
-  [...p].forEach((c, i) => { if (c !== '.') a[x + i] = c; });
-  return a.join('');
-});
-const frame = (body, legs, ...patches) => patches.reduce((rows, [p, x, y]) => stamp(rows, p, x, y), [...body, ...legs]);
-const rev = s => [...s].reverse().join('');
+import { stamp, frame, rev, put } from './kit.mjs';
 // 16-px left halves mirrored into 32-px rows, the lit blue (R) turned to shade (d) on the right.
 const sym = half => half.map(h => h + rev(h).replace(/R/g, 'd'));
-// Columns x0.. of rows y0..y1 set to str (unlike stamp, it can write '.').
-const put = (rows, y0, y1, x0, str) => rows.map((r, j) => (j < y0 || j > y1 ? r : r.slice(0, x0) + str + r.slice(x0 + str.length)));
 
 // Helmets, rows 0..11. Front: visor down over the eyes, mouth and chin bare under it, cheek guards (d).
 const HEAD_DOWN = stamp(sym([
