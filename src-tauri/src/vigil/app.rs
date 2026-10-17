@@ -57,8 +57,13 @@ fn capture(app: &AppHandle, now: i64) {
     let r = chronicle::report(&day, &chronicle::tithe_of(&cdir, &live, &day), &chronicle::read_events(&cdir, &day));
     if let Err(e) = chronicle::write_capture(&dir, &r) {
         eprintln!("night vigil: day report: {e}");
-        vigil_event(app, now, &format!("report not written: {e}"));
+        vigil_event(app, now, &report_failed_detail(&e));
     }
+}
+
+/// The Chronicon event for a failed report. Events reach paired remote devices, so it must carry no folder path.
+fn report_failed_detail(_e: &str) -> String {
+    "report not written (folder missing or not writable)".into()
 }
 
 fn vigil_event(app: &AppHandle, now: i64, detail: &str) {
@@ -145,5 +150,12 @@ mod tests {
         assert!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "240"}), 0).is_some_and(|d| d > 0 && d <= 1440 * 60_000));
         assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "oops"}), 0), None);
         assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "-5"}), 0), None);
+    }
+
+    #[test]
+    fn report_failure_event_leaks_no_path() {
+        let e = r"not an existing absolute folder: C:\Users\secret\reports"; // write_capture's error
+        let d = report_failed_detail(e);
+        assert!(!d.contains("secret"), "{d}");
     }
 }
