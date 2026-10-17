@@ -1006,17 +1006,18 @@ export function stepAlarm(actors, now) {
   lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
   return { on, who, BEACON, x: skull.x, y0: skull.y, y, hover: on && d <= step, lights };
 }
+// The skull's red cone from its eye (bx, by) down to the petitioner's feet (fx, fy), both views.
+export function searchlight(g, t, bx, by, fx, fy) {
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.fillStyle = hexA(I.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
+  g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(fx + 8, fy + 1); g.lineTo(fx - 8, fy + 1); g.closePath(); g.fill();
+  g.restore();
+}
 function drawAlarm(g, actors, now) {
   const t = now / 1000, { on, who, BEACON, y, hover, lights } = stepAlarm(actors, now);
   drawBeacon(g, t, on, BEACON);
-  if (hover) { // hovering: a red searchlight down onto the petitioner
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    g.fillStyle = hexA(I.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
-    const by = y - SK.centre[1] + SK.beam[1], bx = skull.x - SK.centre[0] + SK.beam[0];
-    g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(who.x + 8, who.y + 1); g.lineTo(who.x - 8, who.y + 1); g.closePath(); g.fill();
-    g.restore();
-  }
+  if (hover) searchlight(g, t, skull.x - SK.centre[0] + SK.beam[0], y - SK.centre[1] + SK.beam[1], who.x, who.y); // hovering: a red searchlight down onto the petitioner
   flyShadow(g, skull.x, skull.y);
   blit(g, MAPS.SKULL, half(skull.x) - SK.centre[0], half(y) - SK.centre[1], on ? skullRed() : undefined);
   return lights;

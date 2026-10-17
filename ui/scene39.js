@@ -12,7 +12,7 @@ import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
 import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, blit, sprite, half, rect } from './sprites.js';
-import { T, onTheme, hexA, rgb, blendInto } from './theme.js';
+import { T, onTheme, rgb, blendInto } from './theme.js';
 import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
@@ -435,11 +435,7 @@ function alarm(g, all, now) {
   if (hover) { // hovering: the searchlight from its eye down onto the petitioner's feet
     const own = SKULL39.skull, c = own ? [SKULL39_AT.centre.x, SKULL39_AT.centre.y] : PROP_AT.SKULL.centre, b = own ? [SKULL39_AT.beam.x, SKULL39_AT.beam.y] : PROP_AT.SKULL.beam;
     const [hx, hy] = pin(x, y0 + FLY_H), bx = hx - c[0] + b[0], by = hy - FLY_H + bob - c[1] + b[1], [fx, fy] = pin(who.x, who.y);
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    g.fillStyle = hexA(T.ink.searchlight, 0.1 + 0.04 * Math.sin(t * 8));
-    g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(fx + 8, fy + 1); g.lineTo(fx - 8, fy + 1); g.closePath(); g.fill();
-    g.restore();
+    S.searchlight(g, t, bx, by, fx, fy);
   }
   skullAt(g, x, y0, bob, on ? S.skullRed() : undefined);
   return lights;
