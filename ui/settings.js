@@ -143,6 +143,34 @@ function initRemote(form, root, field) {
   return { readRemote, applyRemote };
 }
 
+// Firewall rule for the remote view's port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
+// isWin: a getter, the backend's OS arrives after init.
+function initFirewall(form, field, isWin) {
+  const rv = form.querySelector('#remote');
+  const fwLine = rv.querySelector('.rv-fw'), fwPublic = rv.querySelector('.rv-public'), fwBtns = rv.querySelectorAll('.rv-fw-btn');
+  const fwPort = () => { const p = +field('remotePort').value; return Number.isInteger(p) && p >= 1024 && p <= 65535 ? p : null; };
+  const showFw = st => { fwLine.textContent = st.detail; fwLine.dataset.rule = st.rule; fwPublic.hidden = st.network !== 'public'; };
+  const fwErr = err => { fwLine.textContent = String(err); delete fwLine.dataset.rule; };
+  let fwBusy = false, fwTimer;
+  const readFw = () => {
+    const port = fwPort();
+    if (fwBusy || !isWin()) return;
+    if (port === null) { fwErr('Port must be between 1024 and 65535.'); return; }
+    invoke('firewall_status', { port }).then(st => { if (!fwBusy && port === fwPort()) showFw(st); }, fwErr);
+  };
+  for (const b of fwBtns) b.onclick = () => {
+    const port = fwPort();
+    if (port === null) { readFw(); return; }
+    fwBusy = true;
+    for (const x of fwBtns) x.disabled = true;
+    fwLine.textContent = 'Waiting for Windows…'; delete fwLine.dataset.rule;
+    invoke(b.dataset.cmd, { port }).then(showFw, fwErr)
+      .finally(() => { fwBusy = false; for (const x of fwBtns) x.disabled = false; });
+  };
+  field('remotePort').addEventListener('input', () => { clearTimeout(fwTimer); fwTimer = setTimeout(readFw, 600); });
+  return readFw;
+}
+
 // hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
@@ -232,29 +260,7 @@ export function initSettings(hooks) {
   listen('autostart', e => { login = e.payload; sync(); });
 
   const { readRemote, applyRemote } = initRemote(form, root, field);
-  const rv = form.querySelector('#remote');
-  // Firewall rule for the port (firewall_status, read-only; firewall_allow / firewall_remove, elevated: UAC).
-  const fwLine = rv.querySelector('.rv-fw'), fwPublic = rv.querySelector('.rv-public'), fwBtns = rv.querySelectorAll('.rv-fw-btn');
-  const fwPort = () => { const p = +field('remotePort').value; return Number.isInteger(p) && p >= 1024 && p <= 65535 ? p : null; };
-  const showFw = st => { fwLine.textContent = st.detail; fwLine.dataset.rule = st.rule; fwPublic.hidden = st.network !== 'public'; };
-  const fwErr = err => { fwLine.textContent = String(err); delete fwLine.dataset.rule; };
-  let fwBusy = false, fwTimer;
-  const readFw = () => {
-    const port = fwPort();
-    if (fwBusy || !isWin) return;
-    if (port === null) { fwErr('Port must be between 1024 and 65535.'); return; }
-    invoke('firewall_status', { port }).then(st => { if (!fwBusy && port === fwPort()) showFw(st); }, fwErr);
-  };
-  for (const b of fwBtns) b.onclick = () => {
-    const port = fwPort();
-    if (port === null) { readFw(); return; }
-    fwBusy = true;
-    for (const x of fwBtns) x.disabled = true;
-    fwLine.textContent = 'Waiting for Windows…'; delete fwLine.dataset.rule;
-    invoke(b.dataset.cmd, { port }).then(showFw, fwErr)
-      .finally(() => { fwBusy = false; for (const x of fwBtns) x.disabled = false; });
-  };
-  field('remotePort').addEventListener('input', () => { clearTimeout(fwTimer); fwTimer = setTimeout(readFw, 600); });
+  const readFw = initFirewall(form, field, () => isWin);
 
   // Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
   const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
