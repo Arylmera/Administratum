@@ -1,0 +1,79 @@
+{
+  "frames": {
+    "BREAKOUT_FLOOR": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      }
+    },
+    "BREAKOUT_RAIL": {
+      "frame": {
+        "x": 17,
+        "y": 0,
+        "w": 16,
+        "h": 10
+      }
+    },
+    "BREAKOUT_SIDE": {
+      "frame": {
+        "x": 34,
+        "y": 0,
+        "w": 4,
+        "h": 16
+      }
+    },
+    "BREAKOUT_POST": {
+      "frame": {
+        "x": 39,
+        "y": 0,
+        "w": 6,
+        "h": 14
+      }
+    },
+    "BREAKOUT_GATE": {
+      "frame": {
+        "x": 46,
+        "y": 0,
+        "w": 4,
+        "h": 16
+      }
+    },
+    "BREAKOUT_GATE_OPEN": {
+      "frame": {
+        "x": 51,
+        "y": 0,
+        "w": 16,
+        "h": 10
+      }
+    },
+    "BREAKOUT_GATE_FRONT": {
+      "frame": {
+        "x": 68,
+        "y": 0,
+        "w": 16,
+        "h": 20
+      }
+    },
+    "BREAKOUT_GATE_FRONT_OPEN": {
+      "frame": {
+        "x": 85,
+        "y": 0,
+        "w": 16,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "breakout.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 101,
+      "h": 20
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
