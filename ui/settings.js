@@ -9,6 +9,7 @@ import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
 import { view as viewMode, viewName, setView, onView, stripKind } from './view.js';
+import { rooms, roomsOf, setRooms, MAX_ROOMS } from './rooms.js';
 
 const mem = {};
 let saved = null;
@@ -107,6 +108,98 @@ const monitorNorm = (k, v) => {
   return String(Number.isFinite(n) && v !== '' ? Math.min(hi, Math.max(lo, n)) : d);
 };
 const monitorGet = k => store.get(`adm.${k}`, MONITOR[k]);
+
+// Custom rooms (adm.rooms, one JSON string; rooms.rs reads it at start and after each save): in force from the start.
+// Reset to defaults leaves them alone.
+rooms.list = roomsOf(store.get('adm.rooms', '[]'));
+
+// Settings > Rooms: per rule its name, pattern, colour, order and delete, and a live line. A pattern is checked by the
+// backend (rooms_test, 200 ms after typing stops): an error turns it red (the message in its title) and is never saved,
+// the last valid pattern staying in force; a new rule enters adm.rooms once its pattern first compiles. The live line at
+// rest names the departments whose sessions are in the room now; while the pattern is typed, every department it would
+// match, "(→ room)" where an earlier rule takes it, "(break-out)" for a temp folder. The remote view: read only, at rest.
+// The row inputs have no name: onChange (the form's) only refreshes the panel, never rebuilds the rows.
+function initRooms(form, hooks) {
+  const box = form.querySelector('.rooms'), add = form.querySelector('.room-add');
+  const rows = rooms.list.map(r => ({ ...r, saved: true })); // + drafts, in rule order
+  const commit = () => { store.set('adm.rooms', setRooms(rows.filter(r => r.saved).map(({ id, name, pattern, color }) => ({ id, name, pattern, color })))); hooks.roomsChanged?.(); };
+  const roster = () => hooks.roster?.() ?? [];
+  const nameOf = id => { const r = rooms.list.find(q => q.id === id); return r ? r.name || r.pattern : ''; };
+  const list = depts => (depts.length ? depts.join(', ') : 'No session here now');
+  const atRest = r => list([...new Set(roster().filter(s => s.room === r.id).map(s => s.dept))]);
+  // the raw hits of a pattern being typed: each department once, with where its sessions really go
+  const typed = (r, hits, ss) => { // ss: the roster the hits were asked for
+    const i = rows.indexOf(r), by = new Map();
+    ss.forEach((s, k) => {
+      if (!hits[k]) return;
+      const j = rows.findIndex(q => q.id === s.room), earlier = j >= 0 && j < i;
+      by.set(s.dept, s.temp ? `${s.dept} (break-out)` : earlier ? `${s.dept} (→ ${nameOf(s.room)})` : s.dept);
+    });
+    return list([...by.values()]);
+  };
+  // an invalid pattern keeps its red line until fixed; while typing the hits stay
+  const live = (r, el) => { if (!r.typing && !r.err) { el.textContent = r.saved ? atRest(r) : 'Not saved: no valid pattern yet'; el.classList.remove('bad'); } };
+  let views = [];
+  const render = () => {
+    views = rows.map((r, i) => {
+      const row = document.createElement('div'); row.className = 'room-row'; row.style.setProperty('--room', r.color);
+      const input = (type, cls, label, value, max) => {
+        const el = document.createElement('input'); el.type = type; el.className = cls; el.value = value; el.setAttribute('aria-label', label);
+        if (max) el.setAttribute('maxlength', max);
+        if (type === 'text') el.setAttribute('spellcheck', 'false');
+        el.disabled = REMOTE; row.appendChild(el); return el;
+      };
+      const button = (cls, text, label, off) => { const b = document.createElement('button'); b.type = 'button'; b.className = `step ${cls}`; b.textContent = text; b.title = label; b.setAttribute('aria-label', label); b.disabled = REMOTE || off; row.appendChild(b); return b; };
+      const name = input('text', 'room-name', 'Room name', r.name, 32), pattern = input('text', 'room-pattern', 'Folder pattern', r.draft ?? r.pattern, 200);
+      pattern.placeholder = '**/git/Terra/**';
+      const color = input('color', 'room-color', 'Room colour', r.color);
+      const up = button('room-up', '↑', 'Move up', i === 0), down = button('room-down', '↓', 'Move down', i === rows.length - 1), del = button('room-del', '✕', 'Delete room');
+      const line = document.createElement('p'); line.className = 'room-live'; row.appendChild(line);
+      if (r.err) { pattern.classList.add('bad'); pattern.title = r.err; }
+      name.addEventListener('input', () => { r.name = name.value.slice(0, 32); if (r.saved) commit(); });
+      color.addEventListener('input', () => { r.color = color.value; row.style.setProperty('--room', r.color); if (r.saved) commit(); });
+      let timer;
+      pattern.addEventListener('input', () => {
+        r.draft = pattern.value; r.typing = true; clearTimeout(timer);
+        timer = setTimeout(() => {
+          const asked = pattern.value;
+          const ss = roster(); // the hits answer this roster, not the next tick's
+          invoke('rooms_test', { pattern: asked, cwds: ss.map(s => s.cwd) }).then(hits => {
+            if (pattern.value !== asked) return; // typed on since
+            r.err = null; pattern.classList.remove('bad'); pattern.title = '';
+            const fresh = !r.saved || r.pattern !== asked;
+            Object.assign(r, { pattern: asked, saved: true });
+            if (fresh) commit();
+            if (r.typing) { line.textContent = typed(r, hits, ss); line.classList.remove('bad'); }
+          }, err => {
+            if (pattern.value !== asked) return;
+            r.err = String(err); pattern.classList.add('bad'); pattern.title = r.err;
+            line.textContent = r.saved ? `Invalid, not saved: the room keeps ${r.pattern}` : 'Invalid, not saved'; line.classList.add('bad');
+          });
+        }, 200);
+      });
+      pattern.addEventListener('change', () => { r.typing = false; if (!r.err) live(r, line); });
+      up.onclick = () => { rows.splice(i - 1, 0, rows.splice(i, 1)[0]); commit(); render(); };
+      down.onclick = () => { rows.splice(i + 1, 0, rows.splice(i, 1)[0]); commit(); render(); };
+      del.onclick = () => { rows.splice(i, 1); commit(); render(); };
+      live(r, line);
+      return { r, line, row };
+    });
+    box.replaceChildren(...views.map(v => v.row));
+    add.disabled = REMOTE || rows.length >= MAX_ROOMS;
+  };
+  add.onclick = () => {
+    if (rows.length >= MAX_ROOMS) return;
+    const used = new Set(rows.map(r => r.color.toLowerCase()));
+    const color = T.sash.find(c => !used.has(c.toLowerCase())) ?? T.sash[rows.length % T.sash.length];
+    let n = Date.now();
+    while (rows.some(r => r.id === 'r' + n.toString(36))) n++; // set once; two in the same ms stay apart
+    rows.push({ id: 'r' + n.toString(36), name: `Room ${rows.length + 1}`, pattern: '', color, saved: false });
+    render();
+  };
+  render();
+  return () => { for (const { r, line } of views) live(r, line); }; // the live lines at rest (sync)
+}
 
 // Scale (adm.scale): CSS px per logical px (1-3, the slider), or 'auto' (app.js); read live by viewport.js's fit().
 const okScale = v => (v === 'auto' || (+v >= 1 && +v <= 3) ? v : 'auto');
@@ -334,7 +427,7 @@ function resetAll(hooks, setPlace) {
   hooks.quieted?.();
 }
 
-// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted() } from app.js.
+// hooks: { mode(), setMode(m), muted(), setMuted(b), placed(), rescaled(), quieted(), sided(), roster(), roomsChanged() } from app.js.
 export function initSettings(hooks) {
   const root = document.getElementById('prefs'), form = root.querySelector('form'), opener = document.getElementById('prefs-open');
   const field = name => form.elements[name];
@@ -360,7 +453,9 @@ export function initSettings(hooks) {
     }, () => {});
   }
 
-  sync = () => syncForm(form, field, hooks, login);
+  const syncRooms = initRooms(form, hooks);
+  setInterval(syncRooms, 2000); // the live lines follow the roster
+  sync = () => { syncForm(form, field, hooks, login); syncRooms(); };
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
   listen('autostart', e => { login = e.payload; sync(); });

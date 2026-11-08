@@ -127,6 +127,7 @@
   .plaque.open { pointer-events: auto; cursor: pointer; }
   .plaque.open:hover { filter: brightness(1.25); }
   .plaque.err { border-style: dashed; }
+  .plaque.dim { opacity: .5; } /* an empty custom room: its place kept, dimly lit */
   .plaque.usage { z-index: 1; } /* the strip's usage banner stays readable over the petition labels under it */
   .plaque .branch { display: block; font-size: .8em; letter-spacing: 1px; text-transform: none; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
   /* the Hall of Honours over its plaque (overlay.js syncHonours): each field placed and sized in JS, flat in 39° too */
@@ -303,6 +304,14 @@
   #prefs .rv-err { color: var(--wax); font-weight: 600; }
   #prefs .rv-fw:not([data-rule="allowed"]) { color: var(--wax); }
   #prefs .reset:hover { filter: brightness(1.2); }
+  #prefs .rooms { display: grid; gap: .4em; }
+  #prefs .room-row { display: grid; grid-template-columns: minmax(0, 8em) minmax(0, 1fr) 2.2em repeat(3, 1.6em); gap: .3em; align-items: center; padding: .3em .5em; background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-left: 4px solid var(--room, var(--paper-line)); border-radius: 3px; }
+  #prefs .room-row input[type="text"] { min-width: 0; box-sizing: border-box; padding: .1em .3em; background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: 2px; font: inherit; }
+  #prefs .room-row input.bad { border: 2px solid var(--wax); color: var(--wax); }
+  #prefs .room-row input[type="color"] { width: 2.2em; height: 1.6em; padding: 0; border: 1px solid var(--paper-line); background: none; }
+  #prefs .room-live { grid-column: 1 / -1; margin: 0; font-size: .85em; color: var(--paper-ink-2); overflow-wrap: anywhere; }
+  #prefs .room-live.bad { color: var(--wax); }
+  #prefs code { font-size: .95em; }
   #prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid var(--paper-accent); outline-offset: 1px; }
   /* narrow: the categories become a row of tabs, one column of settings */
   @media (max-width: 600px) {
@@ -410,6 +419,7 @@
           <button type="button" data-cat="hall" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-5h4v5"></path></svg><span data-t="prefs.cat.hall">Hall</span></button>
           <button type="button" data-cat="petitions"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg><span data-t="prefs.cat.petitions">Petitions</span></button>
           <button type="button" data-cat="scribes"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span data-t="prefs.cat.scribes">Scribes</span></button>
+          <button type="button" data-cat="rooms"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18"></rect><path d="M3 12h7M14 12h7M12 3v6M12 15v6"></path></svg><span data-t="prefs.cat.rooms">Rooms</span></button>
           <button type="button" data-cat="system"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"></rect><path d="M8 20h8M12 16v4"></path></svg><span data-t="prefs.cat.system">System</span></button>
           <button type="button" data-cat="remote" class="host-only"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0"></path><circle cx="12" cy="20" r="1"></circle></svg><span data-t="prefs.cat.remote">Remote view</span></button>
           <button type="button" class="reset host-only">Reset to defaults</button>
@@ -483,6 +493,13 @@
           <fieldset data-host><legend>Context window</legend>
             <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
             <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
+          </fieldset>
+        </section>
+        <section data-cat="rooms" hidden>
+          <fieldset><legend>Rooms</legend>
+            <div class="rooms wide"></div>
+            <button type="button" class="clear room-add" data-host>Add room</button>
+            <p class="hint">A room groups every department whose sessions work in a folder matching its pattern, fenced, in rule order before the rest of the hall. Glob: <code>**/git/Terra/**</code> (any case, \ and / alike); <code>re:</code> before a regex, matched anywhere in the folder path written with <code>/</code> separators (<code>re:git/terra$</code>). The first matching rule wins; a temp folder stays in the break-out room.</p>
           </fieldset>
         </section>
         <section data-cat="system" hidden>

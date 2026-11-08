@@ -20,6 +20,9 @@ const LOW = {
   ...Object.fromEntries(Array.from({ length: 16 }, (_, k) => [`SHELL_COG_${k}`, [6, 6]])), // the shell cog's turn (scene.js spinCog), centred on its anchor
   BREAKOUT_FLOOR: [8, 8], BREAKOUT_RAIL: [8, 5], BREAKOUT_SIDE: [2, 8], BREAKOUT_POST: [3, 7],
   BREAKOUT_GATE: [2, 8], BREAKOUT_GATE_OPEN: [8, 5], BREAKOUT_GATE_FRONT: [8, 10], BREAKOUT_GATE_FRONT_OPEN: [8, 10],
+  // a custom room (O10): the break-out room's sizes
+  ENCLAVE_FLOOR: [8, 8], ENCLAVE_RAIL: [8, 5], ENCLAVE_SIDE: [2, 8], ENCLAVE_POST: [3, 7],
+  ENCLAVE_GATE: [2, 8], ENCLAVE_GATE_OPEN: [8, 5], ENCLAVE_GATE_FRONT: [8, 10], ENCLAVE_GATE_FRONT_OPEN: [8, 10],
 };
 
 assert.equal(RES, 2);

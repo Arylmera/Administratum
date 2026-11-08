@@ -35,6 +35,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
 | `settings.rs` | `settings.json`: load, shape checks, atomic save; readers of saved `adm.*` values the backend needs (quiet hours, open-folder program) |
+| `rooms.rs` | Custom rooms: `adm.rooms` rules (glob or `re:` regex, first match wins) compiled at setup and after each `settings_save`; `assign` sets each session's `room` once per tick after the roster merge (never for a temp session); `rooms_test` checks a pattern for the Settings tab |
 | `remote/` | The LAN remote view. `mod.rs` the HTTP server, pairing token and policy, with no Tauri in it; `app.rs` its settings, the backend it calls and the settings panel's commands (remote view, firewall rule). Its API: [remote-api.md](remote-api.md) |
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
 | `strip/` | The desktop strip window: placement on the taskbar or above the Dock, or as the desktop column on a screen edge (`Shape`: `Bar` or `Column`, `place_strip` / `place_column`, `column_rect`; the watcher replays the last shape each second), click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) |
@@ -42,7 +43,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown) and `report_day` (armed before 04:00: the day before); `app.rs` arming, its tick, toast and Chronicon events, the day report capture on arm and on fire, the shutdown itself |
 
 **Events.** Each second the poll loop emits `roster` (every session with its status, petition, task, context,
-subagents, Orca handle, claude.ai URL, compaction time, `stuck`), `petition` and `petition-stale` (these also fire the
+subagents, Orca handle, claude.ai URL, compaction time, `stuck`, `room`: the custom room its cwd falls in), `petition` and `petition-stale` (these also fire the
 toasts), and `chronicle` for each new event. Events older than 2 min are recorded but not played in the scene. The
 UI fetches Chronicon history on demand through the `chronicle_*` commands.
 
@@ -65,7 +66,8 @@ do not know which.
 | `settings.js` | Settings panel and the persisted store (`settings.json`, localStorage as cache) |
 | `panel.js` | Open/close behaviour shared by the parchment panels |
 | `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log; the plaque's usage-window bar (`windowGauge`) and today's window line (`windowLine`); `openWeek` (the Hall of Honours' click) |
-| `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases |
+| `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases; `zoneSequence` (custom rooms in rule order, the open hall, the break-out room) and `zonesOf` (each fenced zone and its gates) |
+| `rooms.js` | Custom rooms in force (`adm.rooms`): `roomsOf` (the lenient parse, `rooms.rs`'s caps), `setRooms`, `tintOf` (a rule's colour on the sash slot `y`) |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
 | `scene.js` | Canvas drawing of the flat hall: the static background and each frame |
@@ -210,9 +212,9 @@ board), each sprite linking to a prefilled new issue. Design notes:
 [sprite themes](superpowers/specs/2026-10-06-sprite-themes-design.md).
 
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
-sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
-`watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` / `lift_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/`,
-`suzerain_art/`, `honours_art/` and `lift_art/`, each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, Watchman, Suzerain (dais and link), Hall of Honours plaque and desktop column lift art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
+sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` / `enclave_art.mjs` /
+`watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` / `lift_art.mjs` (one module per theme or world under `breakout_art/`, `enclave_art/` (on `breakout_art/kit.mjs`), `watch_art/`,
+`suzerain_art/`, `honours_art/` and `lift_art/`, each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, custom room, Watchman, Suzerain (dais and link), Hall of Honours plaque and desktop column lift art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
 command-line client of the running app, `make_icon.py` the app icon.
 
 ---

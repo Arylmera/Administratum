@@ -278,3 +278,83 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   shown('strip-menu', 0);
   setView('flat');
 }
+
+// Settings > Rooms (O10): roomsOf reads adm.rooms as rooms.rs does; a pattern is checked by the backend (rooms_test,
+// debounced 200 ms), red and never written while invalid; the live line; the 6-room cap; order and delete.
+{
+  const { roomsOf, rooms, MAX_ROOMS } = await import('./rooms.js');
+  assert.deepEqual(roomsOf('{oops'), []);
+  assert.deepEqual(roomsOf('{}'), []);
+  const ok = (id, extra) => ({ id, name: id, pattern: '**', color: '#d9a84e', ...extra });
+  const mixed = [1, ok(''), ok('c', { color: 'red' }), ok('n', { name: 'x'.repeat(33) }), ok('p', { pattern: ' ' }), ok('b'), ok('b', { pattern: 'dup' }), ok('a', { extra: 1 })];
+  assert.deepEqual(roomsOf(JSON.stringify(mixed)), [ok('b'), ok('a')], 'bad entries and a duplicate id dropped, the rest in order, unknown keys gone');
+  assert.equal(roomsOf(JSON.stringify(Array.from({ length: 8 }, (_, i) => ok(`r${i}`)))).length, MAX_ROOMS);
+
+  replies.rooms_test = ({ pattern, cwds }) => (pattern === 're:(' ? new Error('regex parse error: unclosed group') : cwds.map(c => /terra/i.test(c)));
+  const changed = [];
+  let inRoom = null;
+  hooks.roster = () => [{ dept: 'Terra', cwd: 'C:\\git\\Terra', room: inRoom }, { dept: 'Terra', cwd: 'C:\\git\\Terra\\ui', room: inRoom },
+    { dept: 'scratch', cwd: 'C:\\Temp\\terra-x', temp: true, room: null }, { dept: 'Geneseed', cwd: 'C:\\git\\Geneseed', room: null }];
+  hooks.roomsChanged = () => changed.push(rooms.list.map(r => r.id).join());
+  const sec = form.querySelector('section[data-cat="rooms"]'), add = sec.querySelector('.room-add');
+  const rowsNow = () => sec.querySelectorAll('.room-row');
+  const before = store.get('adm.rooms', '[]');
+  add.click();
+  let row = rowsNow()[0];
+  const pat = () => row.querySelector('.room-pattern'), line = () => row.querySelector('.room-live').textContent;
+  const type = v => { pat().value = v; pat().dispatch('input'); };
+  assert.equal(row.querySelector('.room-color').value, T.sash[0], 'a new rule takes the first unused sash colour');
+  type('re:(');
+  tick(200); await flush();
+  assert.ok(pat().classList.contains('bad'), 'red');
+  assert.match(pat().title, /unclosed group/, 'the message in its title');
+  assert.equal(store.get('adm.rooms', '[]'), before, 'an invalid draft is never written');
+  assert.deepEqual(rooms.list, []);
+  type('**/terra/**');
+  tick(199); await flush();
+  assert.deepEqual(rooms.list, [], 'debounced');
+  tick(1); await flush();
+  assert.ok(!pat().classList.contains('bad'));
+  assert.equal(JSON.parse(store.get('adm.rooms')).length, 1, 'saved once its pattern compiles');
+  const first = rooms.list[0];
+  assert.deepEqual([first.pattern, first.name, first.color, /^r[0-9a-z]+$/.test(first.id)], ['**/terra/**', 'Room 1', T.sash[0], true]);
+  assert.equal(changed.at(-1), first.id, 'the hall told');
+  assert.equal(line(), 'Terra, scratch (break-out)', 'while typing: the raw hits, a temp folder marked');
+  pat().dispatch('change');
+  assert.equal(line(), 'No session here now', 'at rest: the sessions in the room now');
+  inRoom = first.id;
+  tick(2000);
+  assert.equal(line(), 'Terra', 'the live line follows the roster');
+  type('re:(');
+  tick(200); await flush();
+  assert.equal(rooms.list[0].pattern, '**/terra/**', 'invalid: the last valid pattern stays in force');
+  assert.match(line(), /not saved/);
+  pat().dispatch('change'); tick(2000);
+  assert.match(line(), /not saved/, 'the red line stays while the pattern is invalid, at rest too');
+  // a second rule: an earlier rule takes Terra
+  add.click();
+  row = rowsNow()[1];
+  assert.equal(row.querySelector('.room-color').value, T.sash[1]);
+  type('re:git');
+  tick(200);
+  const asked = hooks.roster;
+  hooks.roster = () => [{ dept: 'Late', cwd: 'C:\\git\\Late', room: null }, ...asked()]; // a tick lands before the answer
+  await flush();
+  assert.equal(line(), 'Terra (→ Room 1), scratch (break-out)', 'the hits read against the roster they were asked for');
+  hooks.roster = asked;
+  const second = rooms.list[1].id;
+  // order and delete
+  rowsNow()[0].querySelector('.room-down').click();
+  assert.deepEqual(rooms.list.map(r => r.id), [second, first.id], 'moved down');
+  assert.deepEqual(JSON.parse(store.get('adm.rooms')).map(r => r.id), [second, first.id]);
+  rowsNow()[1].querySelector('.room-del').click();
+  assert.deepEqual(rooms.list.map(r => r.id), [second], 'deleted');
+  // the cap: "Add room" off at six rules
+  while (rowsNow().length < MAX_ROOMS) add.click();
+  assert.equal(add.disabled, true);
+  add.click();
+  assert.equal(rowsNow().length, MAX_ROOMS);
+  // Reset to defaults leaves the rooms alone
+  form.querySelector('.reset').click();
+  assert.deepEqual(rooms.list.map(r => r.id), [second]);
+}

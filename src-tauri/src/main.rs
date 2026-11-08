@@ -11,6 +11,7 @@ mod poller;
 mod quiet;
 mod registry;
 mod remote;
+mod rooms;
 mod settings;
 mod strip;
 mod toast;
@@ -199,7 +200,9 @@ fn settings_load(app: AppHandle) -> Result<serde_json::Value, String> {
 fn settings_save(values: serde_json::Value, app: AppHandle) -> Result<(), String> {
     let path = settings_path(&app)?;
     settings::update(&path, |old| settings::merge_ui(&old, &values))?;
-    monitor::set(monitor::config_from(&settings::load(&path)));
+    let saved = settings::load(&path);
+    monitor::set(monitor::config_from(&saved));
+    rooms::set(rooms::rules_from(&saved));
     Ok(())
 }
 
@@ -291,6 +294,7 @@ fn main() {
             desktop_shortcut,
             settings_load,
             settings_save,
+            rooms::rooms_test,
             remote::app::remote_status,
             remote::app::remote_set,
             remote::app::remote_regenerate_token,
@@ -326,6 +330,7 @@ fn main() {
             let (on, from, to) = settings::quiet_from_settings(&saved);
             quiet::set(on, from, to);
             monitor::set(monitor::config_from(&saved));
+            rooms::set(rooms::rules_from(&saved));
             #[cfg(target_os = "macos")]
             toast::mac::hook(app.handle()); // before the first toast: toasts shown earlier report no click
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
@@ -400,6 +405,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 roster.extend(theirs);
                 roster
             };
+            rooms::assign(&mut roster, &rooms::get()); // before anything reads the roster: toasts, the remote view, prev
             let limit_events = notify(&app, &mut tracker, &roster, first, now);
             let mut turns = std::collections::HashMap::new();
             {

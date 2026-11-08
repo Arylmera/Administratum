@@ -79,6 +79,8 @@ const GRID = {
 // d.desks (optional, from planLayout): desk slots { key, id, was, freeSince }, id null for an empty desk; else d.ids.
 // d.cons (optional): console slots to reserve, at least what the helpers need.
 // clearCog: the 39° view keeps the floor before the cogitator bank (x 116..198 + dx) free of desks in the first row.
+// Zones (zoneSequence: a custom room's departments, its placeholder d.empty, the break-out room's d.temp): each starts on a
+// fresh slot row and the row after it is fresh too, so a zone's bounding box (zonesOf) never takes in a neighbour.
 export function layoutDepartments(depts, { compact = false, bays = 0, size = SCENE, clearCog = false } = {}) {
   const G = compact ? GRID.compact : GRID.normal, COLS = G.cols, SLOT_W = G.w, CONSOLE_CELL = G.cell;
   const { x0, x1, y0, y1, corridorX, dx } = hallOf(bays, size);
@@ -87,22 +89,30 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
   const seats = new Map();
   const consoles = [];
   const consoleSeats = new Map();
-  let x = x0, y = y0, rowH = 0, overflow = 0, full = false, inZone = false;
-  for (const d of depts) {
-    const helpers = d.helpers ?? [], slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id }));
-    const n = slotsOf.length, live = slotsOf.filter(k => k.id).length;
-    const slots = n + Math.max(d.cons ?? 0, Math.ceil(helpers.length / 4));
-    const cols = Math.min(COLS, slots);
-    const rows = Math.ceil(slots / COLS);
-    const w = cols * SLOT_W + 2;
-    const h = rows * SLOT_H - 8;
-    // the break-out room (temp departments, packed last by planLayout) starts on a row of its own
-    if (d.temp && !inZone) { inZone = true; if (x > x0) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } }
+  const geom = d => { // an empty room's placeholder: one slot, no desk
+    const helpers = d.helpers ?? [], slotsOf = d.desks ?? d.ids.map(id => ({ key: id, id })), n = slotsOf.length;
+    const slots = d.empty ? 1 : n + Math.max(d.cons ?? 0, Math.ceil(helpers.length / 4));
+    return { helpers, slotsOf, n, w: Math.min(COLS, slots) * SLOT_W + 2, h: Math.ceil(slots / COLS) * SLOT_H - 8 };
+  };
+  const all = depts.map(geom);
+  let x = x0, y = y0, rowH = 0, overflow = 0, full = false, prevKey = null;
+  depts.forEach((d, i) => {
+    const { helpers, slotsOf, n, w, h } = all[i], live = slotsOf.filter(k => k.id).length, key = zoneKey(d);
+    if (key !== prevKey && x > x0) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // a zone begins or ends: a fresh row
+    // 39°: a zone never straddles the cogitator bank: east of it when the whole zone fits in the first row, else from row 1
+    if (clearCog && key != null && key !== prevKey && y === y0) {
+      let zw = -4;
+      for (let j = i; j < depts.length && zoneKey(depts[j]) === key; j++) zw += all[j].w + 4;
+      const east = 200 + dx;
+      if (east + zw <= x1 + 1 && !(compact && east + zw - 6 > corridorX - 5)) x = Math.max(x, east);
+      else { x = x0; y += SLOT_H; rowH = 0; }
+    }
+    prevKey = key;
     if (clearCog && y === y0 && x < 200 + dx && x + w > 114 + dx) x = 200 + dx; // past the bank (wraps below if it no longer fits)
     // a block wraps past the hall's east edge, or when its last lectern would stand in the corridor (a 6-wide row never does)
     if (!full && x > x0 && (x + w > x1 + 1 || (compact && x + w - 6 > corridorX - 5))) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // rowH 0: the first block skipped the cogitator
-    if (full || y + h > y1) { full = true; overflow += live; continue; }
-    blocks.push({ name: d.name, color: d.color, x, y, w, h, ...(d.temp && { temp: true }) });
+    if (full || y + h > y1) { full = true; overflow += live; return; }
+    blocks.push({ name: d.name, color: d.color, x, y, w, h, ...(d.temp && { temp: true }), ...(d.room && !d.temp && { room: d.room, roomColor: d.roomColor }), ...(d.empty && { empty: true }) });
     const slot = i => ({ x: x + (i % COLS) * SLOT_W, y: y + Math.floor(i / COLS) * SLOT_H });
     slotsOf.forEach((k, i) => {
       const s = slot(i), desk = { ...k, dept: d.name, x: s.x + 5, y: s.y + 8, ...(compact && { compact }) };
@@ -121,8 +131,24 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
     });
     x += w + 4;
     rowH = Math.max(rowH, h);
-  }
+  });
   return { blocks, desks, seats, consoles, consoleSeats, overflow };
+}
+
+// A department's (or a block's) zone: 'temp' (the break-out room), 'room:<id>' (a custom room), null (the open hall).
+const zoneKey = d => (d.temp ? 'temp' : d.room ? `room:${d.room}` : null);
+
+// The packing order: per custom room in rule order (rooms.js rooms.list) its departments (d.room, by arrival), or one
+// placeholder for an empty room (it keeps the room's place), then the departments in no known room, then the break-out
+// room's (temp). A room member carries the rule's colour (roomColor); a stale room id (rule deleted) counts as none.
+export function zoneSequence(depts, rooms = []) {
+  const known = new Set(rooms.map(r => r.id)), roomOf = d => (!d.temp && known.has(d.room) ? d.room : null);
+  const plain = d => (d.room ? { ...d, room: null } : d);
+  return rooms.flatMap(r => {
+    const inside = depts.filter(d => roomOf(d) === r.id);
+    return inside.length ? inside.map(d => ({ ...d, room: r.id, roomColor: r.color }))
+      : [{ name: `room:${r.id}`, room: r.id, roomColor: r.color, empty: true, ids: [], desks: [] }];
+  }).concat(depts.filter(d => !d.temp && !roomOf(d)).map(plain), depts.filter(d => d.temp).map(plain));
 }
 
 export const DESK_GRACE_MS = 180_000; // an empty desk waits this long for a newcomer of its department
@@ -141,7 +167,9 @@ const MAX_LEVEL = 1 + MAX_BAYS;
 // Space: past capacity the hall goes compact, then grows bays (result `level`, `compact`, `bays`); it steps back
 // once the level below would still fit with one more department for SHRINK_MS, straight down to the smallest such level.
 // The "+N in the stacks" overflow only remains past MAX_BAYS. lay: the layout function (layoutStrip in the desktop strip).
-export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = layoutDepartments) {
+// rooms: the custom rooms in force (rooms.js rooms.list; d.room their id): lay() gets zoneSequence(plan, rooms), never the plan.
+export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = layoutDepartments, rooms = []) {
+  const zoned = list => zoneSequence(list, rooms);
   const deskG = grace.desk ?? DESK_GRACE_MS, deptG = grace.dept ?? DEPT_GRACE_MS, shrinkG = grace.shrink ?? SHRINK_MS;
   const live = new Map(depts.map(d => [d.name, d]));
   let seq = prev?.seq ?? 0;
@@ -151,6 +179,7 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
     const d = live.get(p.name), ids = d?.ids ?? [];
     p.color = d?.color ?? p.color;
     p.temp = d?.temp ?? p.temp ?? false;
+    p.room = d ? d.room ?? null : p.room ?? null; // a waiting block stays in its room
     p.helpers = d?.helpers ?? [];
     for (const k of p.desks) if (k.id && !ids.includes(k.id)) Object.assign(k, { id: null, was: k.id, freeSince: now });
     for (const id of ids) {
@@ -169,23 +198,25 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
   plan = plan.filter(p => p.emptySince == null || now - p.emptySince < deptG);
   plan.sort((p, q) => p.temp - q.temp); // stable: arrival order, the break-out room's departments last
   let level = prev?.level ?? 0, shrinkSince = prev?.shrinkSince ?? null;
-  let L = lay(plan, { ...levelOpt(level), size });
+  let L = lay(zoned(plan), { ...levelOpt(level), size });
   if (L.overflow) { // capacity forces it: drop the waiting empties now
     plan = plan.filter(p => p.emptySince == null);
     for (const p of plan) { p.desks = p.desks.filter(k => k.id); p.cons = Math.ceil(p.helpers.length / 4); p.consFreeSince = null; }
-    L = lay(plan, { ...levelOpt(level), size });
+    L = lay(zoned(plan), { ...levelOpt(level), size });
   }
   if (L.overflow) shrinkSince = null;
-  while (L.overflow && level < MAX_LEVEL) L = lay(plan, { ...levelOpt(++level), size }); // still full: compact, then grow
+  while (L.overflow && level < MAX_LEVEL) L = lay(zoned(plan), { ...levelOpt(++level), size }); // still full: compact, then grow
+  // past MAX_BAYS an empty room's placeholder is not drawn: it never takes a live department's place
+  if (L.overflow) L = lay(zoned(plan).filter(d => !d.empty), { ...levelOpt(level), size });
   if (level > 0 && !L.overflow) { // hysteresis: the level below must still hold a newcomer's department, for a while
-    // the probe goes before any temp (break-out room) block, where a real newcomer would land, not after it
-    const i = plan.findIndex(p => p.temp), plus = { name: '+', desks: [{ key: '+', id: '+' }] };
-    const probe = i < 0 ? plan.concat(plus) : [...plan.slice(0, i), plus, ...plan.slice(i)];
+    // the probe lands where a real newcomer would: after the rooms and the open hall, before any temp (break-out room)
+    // block, not after it
+    const probe = zoned(plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }));
     const roomy = l => !lay(probe, { ...levelOpt(l), size }).overflow;
     if (!roomy(level - 1)) shrinkSince = null;
     else if (now - (shrinkSince ??= now) >= shrinkG) { // straight down to the smallest roomy level, not a minute per bay
       do level--; while (level > 0 && roomy(level - 1));
-      L = lay(plan, { ...levelOpt(level), size });
+      L = lay(zoned(plan), { ...levelOpt(level), size });
       shrinkSince = null;
     }
   }
@@ -200,41 +231,51 @@ export const BREAKOUT_SIZES = {
   BREAKOUT_FLOOR: [16, 16], BREAKOUT_RAIL: [16, 10], BREAKOUT_SIDE: [4, 16], BREAKOUT_POST: [6, 14],
   BREAKOUT_GATE: [4, 16], BREAKOUT_GATE_OPEN: [16, 10], BREAKOUT_GATE_FRONT: [16, 20], BREAKOUT_GATE_FRONT_OPEN: [16, 20],
 };
+// A custom room's art contract (ui/art/enclave.*, ui/art/<world>/enclave.*): the same frames and sizes, ENCLAVE_ for
+// BREAKOUT_; the sash slot y (ui/art/key.gpl) is the dyed part, drawn in the rule's colour (rooms.js tintOf).
+export const ENCLAVE_SIZES = Object.fromEntries(Object.entries(BREAKOUT_SIZES).map(([n, s]) => [n.replace('BREAKOUT_', 'ENCLAVE_'), s]));
 // A Suzerain's sheet (tools/suzerain_art.mjs, scene.js drawPlinths/drawLinks), art px: its dais under a desk or a
 // lectern (logical 40x27 / 30x27, from 4 px west and 6 px south of the desk), the link tiled across and down, its end.
 export const SUZERAIN_SIZES = { DAIS: [80, 54], DAIS_C: [60, 54], LINK_H: [8, 6], LINK_V: [6, 8], LINK_END: [10, 8] };
 // A Watchman frame (tools/watch_art.mjs, ui/art/<world>/watch.*), art px: w, h.
 export const WATCH_SIZE = [32, 36];
 
-// The break-out room: the rectangle fencing the temp blocks (packed last, from a fresh row) and its gates, null without
-// any. West and top 2 px inside the blocks (the lane above stays outside), east 2 px out but west of the corridor,
-// bottom 6 px under the last row so its lane is inside. A gate where each lane inside it meets the east (corridor) side.
-export function breakoutOf(blocks, H) {
-  const tb = blocks.filter(b => b.temp);
-  if (!tb.length || H.strip) return null;
-  const x = Math.min(...tb.map(b => b.x)) - 2, y = Math.min(...tb.map(b => b.y)) + 2;
-  const x1 = Math.min(Math.max(...tb.map(b => b.x + b.w)) + 2, H.corridorX - 1), y1 = Math.max(...tb.map(b => b.y + b.h)) + 6;
-  return { x, y, w: x1 - x, h: y1 - y, gates: H.lanes.filter(l => l > y && l < y1).map(l => ({ x: x1, y: l })) };
+// The fenced zones, in packing order: each custom room (its blocks, room id) and the break-out room (the temp blocks),
+// each from a fresh row (layoutDepartments). Per zone the rectangle fencing its blocks: west and top 2 px inside them
+// (the lane above stays outside), east 2 px out but west of the corridor, bottom 6 px under the last row so its lane is
+// inside; a gate where each lane inside it meets the east (corridor) side. kind 'temp' | 'room', id the rule's (temp:
+// 'temp'), color the rule's, empty: only the room's placeholder. None in the strip (strip.js zonesOfStrip) or the column.
+export function zonesOf(blocks, H) {
+  if (H.strip || H.column) return [];
+  const groups = new Map();
+  for (const b of blocks) { const k = zoneKey(b); if (k) (groups.get(k) ?? groups.set(k, []).get(k)).push(b); }
+  return [...groups.values()].map(zb => {
+    const x = Math.min(...zb.map(b => b.x)) - 2, y = Math.min(...zb.map(b => b.y)) + 2;
+    const x1 = Math.min(Math.max(...zb.map(b => b.x + b.w)) + 2, H.corridorX - 1), y1 = Math.max(...zb.map(b => b.y + b.h)) + 6;
+    const temp = !!zb[0].temp;
+    return { kind: temp ? 'temp' : 'room', id: temp ? 'temp' : zb[0].room, color: zb[0].roomColor, empty: zb.every(b => b.empty),
+      x, y, w: x1 - x, h: y1 - y, gates: H.lanes.filter(l => l > y && l < y1).map(l => ({ x: x1, y: l })) };
+  });
 }
 
 // Rooms east of the scriptorium's east wall: the refectorium above the sanctum. Each opens onto the scriptorium.
 export const roomOf = (p, H = hallOf(0)) => (p.x <= H.sw ? 'hall' : p.y < H.split - 6 ? 'ref' : 'sanct');
 
-// A block is solid row by row: the 8 px gap under each of its slot rows holds a lane and is open. A `solid` one (the
-// break-out room, to anyone outside it) is solid all through.
+// A block is solid row by row: the 8 px gap under each of its slot rows holds a lane and is open. A `solid` one (a
+// zone, to anyone outside it) is solid all through.
 const crosses = (x, y0, y1, blocks) => blocks.some(b => x > b.x && x < b.x + b.w && (b.solid ? y0 < b.y + b.h && y1 > b.y :
   Array.from({ length: (b.h + 8) / SLOT_H }, (_, k) => b.y + k * SLOT_H).some(ry => y0 < ry + SLOT_H - 8 && y1 > ry)));
 // Lanes a hall point can step onto straight up or down without walking through a department block.
 // Going down, the stretch to the first lane below is always clear (it's the point's own slot gap).
-// Z (breakoutOf): a point inside the break-out room takes only its own lane in there (it leaves along it, through
-// that lane's gate); a point outside sees the room as solid, so never steps onto one of its lanes.
-function lanesOf(p, blocks, LANES, corridorX, Z) {
+// Zs (zonesOf): a point inside a zone takes only its own lane in there (it leaves along it, through that lane's gate);
+// every other zone is solid to it, so it never steps onto one of their lanes.
+function lanesOf(p, blocks, LANES, corridorX, Zs = []) {
   if (p.x === corridorX) return [p.y];
-  const inside = Z && p.x > Z.x && p.x < Z.x + Z.w && p.y > Z.y && p.y < Z.y + Z.h;
-  const B = Z && !inside ? blocks.concat({ ...Z, solid: true }) : blocks;
+  const mine = Zs.find(Z => p.x > Z.x && p.x < Z.x + Z.w && p.y > Z.y && p.y < Z.y + Z.h);
+  const B = blocks.concat(Zs.filter(Z => Z !== mine).map(Z => ({ ...Z, solid: true })));
   const first = LANES.find(y => y >= p.y);
   const out = LANES.filter(y => (y < p.y ? !crosses(p.x, y, p.y, B) : !crosses(p.x, first, y, B)));
-  return inside ? out.filter(y => y > Z.y && y < Z.y + Z.h).slice(0, 1) : out;
+  return mine ? out.filter(y => y > mine.y && y < mine.y + mine.h).slice(0, 1) : out;
 }
 const lengthOf = pts => pts.reduce((s, p, i) => s + (i ? Math.abs(p.x - pts[i - 1].x) + Math.abs(p.y - pts[i - 1].y) : 0), 0);
 
@@ -248,9 +289,9 @@ export function route(a, b, blocks = [], H = hallOf(0)) {
   const head = ra === 'hall' ? [a].concat(a.via ?? []) : [a, DOORWAY[ra][1], DOORWAY[ra][0]];
   const tail = rb === 'hall' ? [].concat(b.via ?? [], b) : [DOORWAY[rb][0], DOORWAY[rb][1], b];
   const p = head.at(-1), q = tail[0];
-  const Z = breakoutOf(blocks, H);
+  const Zs = zonesOf(blocks, H);
   let best = null;
-  for (const la of lanesOf(p, blocks, LANES, CORRIDOR_X, Z)) for (const lb of lanesOf(q, blocks, LANES, CORRIDOR_X, Z)) {
+  for (const la of lanesOf(p, blocks, LANES, CORRIDOR_X, Zs)) for (const lb of lanesOf(q, blocks, LANES, CORRIDOR_X, Zs)) {
     const mid = la === lb ? [{ x: p.x, y: la }, { x: q.x, y: la }]
       : [{ x: p.x, y: la }, { x: CORRIDOR_X, y: la }, { x: CORRIDOR_X, y: lb }, { x: q.x, y: lb }];
     const pts = head.concat(mid, tail);

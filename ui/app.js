@@ -22,6 +22,7 @@ import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
 import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
+import { rooms } from './rooms.js';
 import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
@@ -287,15 +288,24 @@ initCard({ cast, roster: () => roster });
 const colorOf = dept => T.sash[deptOrder.indexOf(dept) % T.sash.length];
 
 const layIso = (plan, o) => layoutDepartments(plan, { ...o, clearCog: true });
+// A department's custom room (Settings > Rooms; each session's `room`, rooms.rs): the earliest rule among its sessions'
+// rooms; none once any of its sessions is a temp one (the break-out room wins).
+function roomOfDept(name) {
+  const ss = roster.filter(s => s.dept === name);
+  if (ss.some(s => s.temp)) return null;
+  const i = Math.min(...ss.map(s => rooms.list.findIndex(r => r.id === s.room)).filter(k => k >= 0));
+  return rooms.list[i]?.id ?? null;
+}
 function onRoster(next) {
   if (paused()) { pending = next; return; } // ponytail: the newest roster wins; wake() applies it
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
   const napping = cast.napping(roster, (column() ? columnHall() : strip() ? stripOf(size.w) : hallOf(0, size)).refectory); // the column's: by its height alone
   const depts = deptOrder
-    .map(name => ({ name, color: colorOf(name), temp: roster.some(s => s.dept === name && s.temp), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
+    .map(name => ({ name, color: colorOf(name), temp: roster.some(s => s.dept === name && s.temp), room: roomOfDept(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
-  layout = planLayout(layout, depts, Date.now(), GRACE, size, column() ? layColumn : strip() ? layoutStrip : iso() ? layIso : layoutDepartments);
+  // the column has no rooms yet: a room's departments are ordinary floors there
+  layout = planLayout(layout, depts, Date.now(), GRACE, size, column() ? layColumn : strip() ? layoutStrip : iso() ? layIso : layoutDepartments, column() ? [] : rooms.list);
   hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays, size);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   // the column: a petitioner from a hidden floor still queues in the Sanctum (the petition is what the column is for)
@@ -389,7 +399,8 @@ renderMute();
 
 let refreshTithe = null;
 initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet,
-  sided: () => { if (!column()) return; resetCast(); settleNext = true; applyColumn(); fit(); relayout(); growStrip(); } }); // the column's side: mirrored at once
+  sided: () => { if (!column()) return; resetCast(); settleNext = true; applyColumn(); fit(); relayout(); growStrip(); }, // the column's side: mirrored at once
+  roster: () => roster, roomsChanged: () => relayout() }); // Settings > Rooms: its live line, a rule saved
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;

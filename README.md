@@ -404,7 +404,7 @@ To close the Chronicon, click ✕, press **Escape**, or click outside it.
 
 ![The settings panel](docs/img/settings.png)
 
-Open Settings with the gear in the header. Changes apply immediately. The panel has five tabs.
+Open Settings with the gear in the header. Changes apply immediately. The panel has six tabs.
 
 **Hall**
 
@@ -444,6 +444,22 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Context window: Haiku | 200 k tokens | Window used for the context fill of Haiku sessions |
 | Context window: Other models | 1000 k tokens | Window for every other model |
 
+**Rooms**
+
+Custom rooms group a work domain (several repositories under one name) and give it a fixed place in the hall. Each
+rule has a name, a folder pattern, a colour, ↑ / ↓ to order it and ✕ to delete it; at most 6. A pattern is a glob,
+any case, `\` and `/` alike: `**/git/Terra/**` matches the Terra folder and everything under it; `*` stays within one
+folder, `?` is one character. `re:` before a regular expression matches anywhere in the folder path, written with `/` separators on every OS (`re:git/(terra|geneseed)$`).
+A pattern that does not compile turns red (its message on hover) and is not saved; the room keeps its last valid one.
+The line under each rule names the departments in the room now, and while you type, every department the pattern
+would take, `(→ room)` where an earlier rule takes it first and `(break-out)` for a temp folder.
+
+In the hall each room is a fenced zone in its rule's colour, before the other departments, in rule order; it stays
+(dim, one empty slot) while no session matches. A department whose sessions match several rules goes to the first
+one; a temp folder stays in the break-out room. Flat and 2.5D: a fence with a gate where each walk lane leaves it; the
+desktop strip: a bay with the room's plaque first. The desktop column shows a room's departments as ordinary floors
+for now. Reset to defaults leaves the rooms alone. The remote view shows them read only.
+
 **System**
 
 | Setting | Default | Effect |
@@ -457,7 +473,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 
 **Remote view**: see [Remote view](#remote-view).
 
-**Reset to defaults** restores every value above except *Start at login*.
+**Reset to defaults** restores every value above except *Start at login* and the rooms.
 
 ### Tray menu
 

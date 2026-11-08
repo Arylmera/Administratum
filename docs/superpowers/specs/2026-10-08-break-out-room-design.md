@@ -3,6 +3,12 @@
 *2026-10-08. Sessions running in a temp folder get their own closed, strongly themed zone of the hall, shown only
 while such sessions exist.*
 
+> **Note (2026-11-08, custom rooms O10).** The single zone below became one zone kind among several:
+> `breakoutOf` / `breakoutOfStrip` are now `zonesOf` / `zonesOfStrip` (`kind: 'temp'` is this room), the drawing is
+> `zoneFloor` / `zoneFence` / `stripZone`, and the packing order is `zoneSequence` (custom rooms, the open hall, then
+> this room, still last). In 39° no zone straddles the cogitator bank any more, this room included. See
+> `2026-11-08-custom-rooms-design.md`.
+
 ## Why
 
 Throwaway sessions (Geneseed's `tests/skill_triggers.mjs` runs `claude -p` four at a time in

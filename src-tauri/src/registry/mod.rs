@@ -70,6 +70,9 @@ pub struct Session {
     pub tokens_today: Option<u64>,
     /// Busy but making no progress (monitor.rs `stuck_of`), filled by the poll loop.
     pub stuck: Option<Stuck>,
+    /// The custom room (Settings > Rooms) its cwd falls in: the first matching rule's id (rooms.rs `assign`), never
+    /// for a temp session; filled by the poll loop.
+    pub room: Option<String>,
 }
 
 /// Why a busy session looks stuck: `"silent"` (no transcript write since `since_ms`) or `"loop"` (`count` identical

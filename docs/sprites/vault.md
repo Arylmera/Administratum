@@ -133,11 +133,11 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="commit_tag"></a>`COMMIT_TAG` | 4×7.5 | The seal's strips before the wax lands. Source: `ui/art/vault/commits.png`, drawn by scene.js | <img src="vault/COMMIT_TAG.png" height="60"> |
 | <a id="commit_stamp"></a>`COMMIT_STAMP` | 4×6 | The stamp that seals a commit. Source: `ui/art/vault/commits.png`, drawn by scene.js | <img src="vault/COMMIT_STAMP.png" height="48"> |
 | <a id="breakout_floor"></a>`BREAKOUT_FLOOR` | 8×8 | Break-out room floor tile (temp-folder sessions). Source: `ui/art/vault/breakout.png`, drawn by scene.js | <img src="vault/BREAKOUT_FLOOR.png" height="64"> |
-| <a id="breakout_rail"></a>`BREAKOUT_RAIL` | 8×5 | Break-out room rail, front and back edges. Source: `ui/art/vault/breakout.png`, drawn by scene39.js | <img src="vault/BREAKOUT_RAIL.png" height="40"> |
-| <a id="breakout_side"></a>`BREAKOUT_SIDE` | 2×8 | Break-out room side rail, seen from above. Source: `ui/art/vault/breakout.png`, drawn by (not referenced by name) | <img src="vault/BREAKOUT_SIDE.png" height="64"> |
-| <a id="breakout_post"></a>`BREAKOUT_POST` | 3×7 | Break-out room post: corners and beside each gate. Source: `ui/art/vault/breakout.png`, drawn by (not referenced by name) | <img src="vault/BREAKOUT_POST.png" height="56"> |
-| <a id="breakout_gate"></a>`BREAKOUT_GATE` | 2×8 | Break-out room gate, closed, in the side. Source: `ui/art/vault/breakout.png`, drawn by (not referenced by name) | <img src="vault/BREAKOUT_GATE.png" height="64"> |
-| <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/vault/breakout.png`, drawn by (not referenced by name) | <img src="vault/BREAKOUT_GATE_OPEN.png" height="40"> |
+| <a id="breakout_rail"></a>`BREAKOUT_RAIL` | 8×5 | Break-out room rail, front and back edges. Source: `ui/art/vault/breakout.png`, drawn by scene.js, scene39.js | <img src="vault/BREAKOUT_RAIL.png" height="40"> |
+| <a id="breakout_side"></a>`BREAKOUT_SIDE` | 2×8 | Break-out room side rail, seen from above. Source: `ui/art/vault/breakout.png`, drawn by scene.js | <img src="vault/BREAKOUT_SIDE.png" height="64"> |
+| <a id="breakout_post"></a>`BREAKOUT_POST` | 3×7 | Break-out room post: corners and beside each gate. Source: `ui/art/vault/breakout.png`, drawn by scene.js | <img src="vault/BREAKOUT_POST.png" height="56"> |
+| <a id="breakout_gate"></a>`BREAKOUT_GATE` | 2×8 | Break-out room gate, closed, in the side. Source: `ui/art/vault/breakout.png`, drawn by scene.js | <img src="vault/BREAKOUT_GATE.png" height="64"> |
+| <a id="breakout_gate_open"></a>`BREAKOUT_GATE_OPEN` | 8×5 | Break-out room gate leaf, swung open. Source: `ui/art/vault/breakout.png`, drawn by scene.js | <img src="vault/BREAKOUT_GATE_OPEN.png" height="40"> |
 | <a id="breakout_gate_front"></a>`BREAKOUT_GATE_FRONT` | 8×10 | Break-out room gate facing the viewer (strip, 39° view). Source: `ui/art/vault/breakout.png`, drawn by scene.js, scene39.js | <img src="vault/BREAKOUT_GATE_FRONT.png" height="80"> |
 | <a id="breakout_gate_front_open"></a>`BREAKOUT_GATE_FRONT_OPEN` | 8×10 | Break-out room gate facing the viewer, open. Source: `ui/art/vault/breakout.png`, drawn by scene.js | <img src="vault/BREAKOUT_GATE_FRONT_OPEN.png" height="80"> |
 | <a id="dais"></a>`DAIS` | 40×27 | Suzerain dais under a desk: a session that forked live child sessions. Source: `ui/art/vault/suzerain.png`, drawn by scene.js | <img src="vault/DAIS.png" height="160"> |
@@ -227,3 +227,16 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="slab_r"></a>`SLAB_R` | 4×6 | Desktop column: the floor slab, right end. Source: `ui/art/vault/lift.png` | <img src="vault/SLAB_R.png" height="48"> |
 | <a id="lamp-off"></a>`LAMP.off` | 3×3 | Desktop column: the call lamp by a landing, dark. Source: `ui/art/vault/lift.png` | <img src="vault/LAMP.off.png" height="24"> |
 | <a id="lamp-on"></a>`LAMP.on` | 3×3 | Desktop column: the call lamp, lit while someone waits there or the car stands open. Source: `ui/art/vault/lift.png` | <img src="vault/LAMP.on.png" height="24"> |
+
+## Custom rooms
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="enclave_floor"></a>`ENCLAVE_FLOOR` | 8×8 | Custom room floor tile (Settings > Rooms); its sash parts take the rule colour. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_FLOOR.png" height="64"> |
+| <a id="enclave_rail"></a>`ENCLAVE_RAIL` | 8×5 | Custom room rail, front and back edges. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_RAIL.png" height="40"> |
+| <a id="enclave_side"></a>`ENCLAVE_SIDE` | 2×8 | Custom room side rail, seen from above. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_SIDE.png" height="64"> |
+| <a id="enclave_post"></a>`ENCLAVE_POST` | 3×7 | Custom room post: corners and beside each gate. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_POST.png" height="56"> |
+| <a id="enclave_gate"></a>`ENCLAVE_GATE` | 2×8 | Custom room gate, closed, in the side. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_GATE.png" height="64"> |
+| <a id="enclave_gate_open"></a>`ENCLAVE_GATE_OPEN` | 8×5 | Custom room gate leaf, swung open. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_GATE_OPEN.png" height="40"> |
+| <a id="enclave_gate_front"></a>`ENCLAVE_GATE_FRONT` | 8×10 | Custom room gate facing the viewer (strip, 39° view). Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_GATE_FRONT.png" height="80"> |
+| <a id="enclave_gate_front_open"></a>`ENCLAVE_GATE_FRONT_OPEN` | 8×10 | Custom room gate facing the viewer, open. Source: `ui/art/vault/enclave.png` | <img src="vault/ENCLAVE_GATE_FRONT_OPEN.png" height="80"> |

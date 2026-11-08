@@ -15,6 +15,7 @@ dependencies = [
  "chrono",
  "getrandom 0.3.4",
  "qrcode",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

@@ -170,6 +170,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             parent: None,
             tokens_today: None,
             stuck: None,
+            room: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));

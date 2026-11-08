@@ -12,6 +12,7 @@ import { T } from '../ui/theme.js';
 import { cellFrame, halfOf } from '../ui/room.js';
 import { wallArt } from '../ui/wallart.js';
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
+import { ENCLAVE_SIZES } from '../ui/layout.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
@@ -43,6 +44,10 @@ const ABOUT = {
   'CAR_FRONT.shut': 'Desktop column: the lift car front over its riders, doors shut', 'CAR_FRONT.half': 'Desktop column: the lift car front, doors half open', 'CAR_FRONT.open': 'Desktop column: the lift car front, doors open',
   SLAB: 'Desktop column: the floor slab under each floor line, tiled', SLAB_L: 'Desktop column: the floor slab, left end', SLAB_R: 'Desktop column: the floor slab, right end',
   'LAMP.off': 'Desktop column: the call lamp by a landing, dark', 'LAMP.on': 'Desktop column: the call lamp, lit while someone waits there or the car stands open',
+  ENCLAVE_FLOOR: 'Custom room floor tile (Settings > Rooms); its sash parts take the rule colour', ENCLAVE_RAIL: 'Custom room rail, front and back edges',
+  ENCLAVE_SIDE: 'Custom room side rail, seen from above', ENCLAVE_POST: 'Custom room post: corners and beside each gate',
+  ENCLAVE_GATE: 'Custom room gate, closed, in the side', ENCLAVE_GATE_OPEN: 'Custom room gate leaf, swung open',
+  ENCLAVE_GATE_FRONT: 'Custom room gate facing the viewer (strip, 39° view)', ENCLAVE_GATE_FRONT_OPEN: 'Custom room gate facing the viewer, open',
 };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
 
@@ -114,7 +119,7 @@ export function catalog() {
   // world's own art; false = never drawn in this world.
   const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$/.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
+    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$|^ENCLAVE_/.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
@@ -163,5 +168,7 @@ export function catalog() {
   add('HONOURS', 'Props and furniture', SHEET_OF.HONOURS, [{ rows: MAPS.HONOURS, over: {} }], false, ABOUT.HONOURS);
   // The desktop column's lift (O9), after the plaque so every earlier cell ref keeps its row.
   for (const name of ['SHAFT', 'SHAFT_TOP', 'SHAFT_PIT', 'CABLE', 'CAR_BACK', 'CAR_FRONT.shut', 'CAR_FRONT.half', 'CAR_FRONT.open', 'SLAB', 'SLAB_L', 'SLAB_R', 'LAMP.off', 'LAMP.on']) add(name, 'Desktop column (lift)', SHEET_OF[name], [{ rows: MAPS[name], over: {} }], false, ABOUT[name]);
+  // Custom rooms (O10), after the lift so every earlier cell ref keeps its row: as drawn, then dyed in two rule colours.
+  for (const name of Object.keys(ENCLAVE_SIZES)) add(name, 'Custom rooms', SHEET_OF[name], [{}, { y: theme.sash[1] }, { y: theme.sash[2] }].map(over => ({ rows: MAPS[name], over })), false, ABOUT[name]);
   return out;
 }

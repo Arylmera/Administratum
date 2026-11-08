@@ -6,7 +6,7 @@ import { loadSheet } from './art.js';
 import { BASE } from './theme.js';
 import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, ADEPT39, ADEPT39_AT, marked, MAGOS, MAGOS_AT, MAGOS39, SCRIBE39, WATCH, WATCH_AT, PROP_AT, MAPS, SHEET_OF, ROOM, RES, ART, FAMILIES39 } from './sprites.js';
 import { THEMES, setTheme, t } from './theme.js';
-import { BREAKOUT_SIZES } from './layout.js';
+import { BREAKOUT_SIZES, ENCLAVE_SIZES } from './layout.js';
 import { markOf, bodyOf, bodyOf39, liftOf } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
 
@@ -223,6 +223,12 @@ for (const id of Object.keys(THEMES)) {
     assert.deepEqual([Math.max(...MAPS[n].map(r => r.length)), MAPS[n].length], [w, h], `${id}: ${n} size`);
   }
   assert.ok(t('breakout') && t('breakout') !== 'breakout', `${id}: room name`);
+  // a custom room (O10): every frame, at the break-out room's sizes, each with a sash part (y) for the rule's colour
+  for (const [n, [w, h]] of Object.entries(ENCLAVE_SIZES)) {
+    assert.ok(MAPS[n], `${id}: ${n}`);
+    assert.deepEqual([Math.max(...MAPS[n].map(r => r.length)), MAPS[n].length], [w, h], `${id}: ${n} size`);
+    assert.ok(MAPS[n].some(r => r.includes('y')), `${id}: ${n} has no sash to dye`);
+  }
 }
 setTheme('tier2');
 
@@ -251,6 +257,29 @@ for (const id of Object.keys(THEMES)) {
   for (const k of ['title', 'row0', 'row1', 'row2', 'row3']) assert.equal(PROP_AT.HONOURS[k]?.length, 4, `${id}: HONOURS ${k} anchor`);
 }
 setTheme('tier2');
+
+// A custom room (tools/enclave_art.mjs): one design per world, each drawn from scratch: its eight frames' silhouette
+// (taken together: a floor tile is solid in every design) is neither its own break-out room's nor the base room's, and
+// no frame is the base frame's rows (a copy or a recolour of either goes red); every theme draws its world's.
+{
+  const ENC = Object.keys(ENCLAVE_SIZES), whole = (frames, names) => names.map(n => mask(frames[n])).join('\n');
+  const baseEnc = ART.base.enclave.frames, baseMask = whole(baseEnc, ENC);
+  for (const id of WORLD_ART) {
+    const own = ART.themed[id]?.enclave?.frames;
+    assert.deepEqual(Object.keys(own ?? {}).sort(), [...ENC].sort(), `${id}: every enclave frame of its own`);
+    const pen = { ...ART.base.breakout.frames, ...ART.themed[id]?.breakout?.frames };
+    assert.notEqual(whole(own, ENC), whole(pen, Object.keys(BREAKOUT_SIZES)), `${id}: the room has its break-out room's silhouette`);
+    assert.notEqual(whole(own, ENC), baseMask, `${id}: the room has the base room's silhouette`);
+    for (const n of ENC) assert.notDeepEqual(own[n], baseEnc[n], `${id} ${n}: the base frame's rows`);
+  }
+  assert.notEqual(baseMask, whole(ART.base.breakout.frames, Object.keys(BREAKOUT_SIZES)), 'base: the room has the break-out room\'s silhouette');
+  for (const id of Object.keys(THEMES)) {
+    setTheme(id);
+    const world = ART.dirOf(id);
+    assert.equal(SHEET_OF.ENCLAVE_FLOOR, WORLD_ART.includes(world) ? `${world}/enclave` : 'enclave', `${id}: its world's room`);
+  }
+  setTheme('tier2');
+}
 
 // The desktop column's lift (tools/lift_art.mjs): 13 frames in each of the 6 worlds, every one at the base frame's size,
 // each world's drawn from scratch: no frame the base one's rows (a recolour keeps the rows), and the car's front, its

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { STRIP_H, FLOOR, MARGIN_R, stripOf, layoutStrip, stripRoute, breakoutOfStrip } from './strip.js';
+import { STRIP_H, FLOOR, MARGIN_R, stripOf, layoutStrip, stripRoute, zonesOfStrip } from './strip.js';
 import { planLayout } from './layout.js';
 import { Cast } from './actors.js';
 
@@ -93,11 +93,35 @@ assert.ok(a.puff > 0 && !a.burn);
 {
   const P = planLayout(null, [{ name: 'out', color: '#fff', ids: ['o1', 'o2'], temp: true }, { name: 'Terra', color: '#fff', ids: ['t1'] }], 0, {}, { w: 800, h: STRIP_H }, layoutStrip);
   assert.deepEqual(P.blocks.map(b => [b.name, !!b.temp]), [['Terra', false], ['out', true]]);
-  const [terra, out] = P.blocks, Z = breakoutOfStrip(P.blocks), dCog = stripOf(800).doors[2];
+  const [terra, out] = P.blocks, [Z] = zonesOfStrip(P.blocks), dCog = stripOf(800).doors[2];
   assert.ok(Z.x < out.x && Z.x + Z.w > out.x + out.w && Z.x > terra.x + terra.w);
   assert.deepEqual(Z.gates.map(g => g.x), [Z.x, Z.x + Z.w]);
   assert.ok(Z.x + Z.w + 4 <= dCog.x); // the east gate (8 wide, centred on its x) stays off the door
-  assert.equal(breakoutOfStrip([terra]), null);
+  assert.deepEqual(zonesOfStrip([terra]), []);
+}
+
+// custom rooms (O10): a bay per room in rule order first, each opened by a cell carrying its plaque; an empty room is
+// its cell alone; then the open hall, the break-out bay last; bays apart, a gate at each end
+{
+  const R = [{ id: 'rA', name: 'A', pattern: '**', color: '#aa0000' }, { id: 'rB', name: 'B', pattern: '**', color: '#00bb00' }];
+  const P = planLayout(null, [{ name: 'out', color: '#fff', ids: ['o1'], temp: true }, { name: 'Terra', color: '#fff', ids: ['t1'] },
+    { name: 'Ad', color: '#fff', ids: ['a1', 'a2'], room: 'rA' }], 0, {}, { w: 1400, h: STRIP_H }, layoutStrip, R);
+  assert.deepEqual(P.blocks.map(b => [b.name, !!b.cell, !!b.empty]), [['room:rA', true, false], ['Ad', false, false], ['room:rB', true, true], ['Terra', false, false], ['out', false, false]]);
+  const Zs = zonesOfStrip(P.blocks);
+  assert.deepEqual(Zs.map(Z => [Z.kind, Z.id, Z.color, Z.empty]), [['room', 'rA', '#aa0000', false], ['room', 'rB', '#00bb00', true], ['temp', 'temp', undefined, false]]);
+  const [cellA, ad, cellB] = P.blocks;
+  assert.ok(Zs[0].x < cellA.x && Zs[0].x + Zs[0].w > ad.x + ad.w, 'the room\'s bay spans its cell and its departments');
+  assert.ok(Zs[0].x + Zs[0].w < Zs[1].x && Zs[1].x + Zs[1].w < P.blocks[3].x, 'bays apart, the open hall outside them');
+  for (const Z of Zs) assert.deepEqual(Z.gates.map(g => g.x), [Z.x, Z.x + Z.w]);
+  assert.ok(!P.desks.some(d => d.dept.startsWith('room:')), 'a cell has no lectern');
+  assert.equal(cellB.w, cellA.w);
+  // a full strip: empty rooms' cells give way, the overflow counts live sessions only
+  const six = Array.from({ length: 6 }, (_, i) => ({ id: `e${i}`, name: `E${i}`, pattern: `**/none${i}/**`, color: '#123456' }));
+  const set = ['a', 'b', 'c', 'd'].map(n => ({ name: n, color: '#fff', ids: [`${n}1`, `${n}2`, `${n}3`] }));
+  for (const w of [800, 1000, 1400]) {
+    const bare = planLayout(null, set, 0, {}, { w, h: STRIP_H }, layoutStrip), roomy = planLayout(null, set, 0, {}, { w, h: STRIP_H }, layoutStrip, six);
+    assert.equal(roomy.overflow, bare.overflow, `${w}: the overflow counts live sessions only`);
+  }
 }
 
 // break-out room scribes stay in: no refectory nap, no cogitator, a compaction is a puff (no brazier walk)
