@@ -118,5 +118,24 @@ written), `art.test.mjs` (`ENCLAVE_*` complete in every theme, contains `y`, eac
 **Build order.** Rust match + field → layout, zones, routes → Settings tab → drawing with the base art → strip →
 the five world sheets.
 
+## O10b — real rooms: walls and a door (user, Q27 = A, 2026-11-08)
+
+Supersedes decision 6's fence: a room is a real walled room in the same place (rooms first, rule order, packing,
+routes and lanes unchanged).
+- **Walls.** The fence (`ENCLAVE_RAIL / _SIDE / _POST`) is replaced by the hall's own interior wall, the one the
+  scriptorium and the Sanctum/Refectorium already draw, in each world's existing art (Ruling: no new wall art — each
+  world's walls are already its own design). In 39° the room's walls are cut away low like every inner wall, the
+  doorway keeping its posts and lintel.
+- **Door.** The gate becomes a real door from the existing `room-doors` art of the world (closed / half / open, `halfOf`),
+  opening as a scribe approaches and closing behind it, exactly like the Sanctum's doors. One door per lane, on the
+  corridor side, where the gate was.
+- **Floor and colour.** The room keeps its `ENCLAVE_FLOOR` in the rule colour; the plaque stays on the room's top wall.
+  An empty room: floor dimmed, door closed.
+- **Break-out room.** Unchanged (fence and gate).
+- **Strip.** Unchanged (a bay; the strip has no walls).
+- **Tests.** A walker enters and leaves only through the door; the door is open while a walker crosses it and closed
+  otherwise; walls never cover a desk, a seat or a queue slot; art: a room draws the world's wall and door frames;
+  `flathall` / `isohall` hashes re-recorded only after looking at the hall.
+
 **Accepted by the user (2026-11-08).** The new direct dependency `regex = "1"` (no new crate: 1.13.1 already
 locked); capacity: each room owns a full row band, at most 6 rules, empty rooms keep the hall compact or grown.
