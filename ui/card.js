@@ -6,6 +6,7 @@ import { settings } from './settings.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { pad2 } from './quiet.js';
 import { invoke, REMOTE, remoteActions } from './bridge.js';
+import { answerable, answerCall } from './petition.js';
 
 let cast, rosterOf; // app.js's cast, and a getter for its roster (reassigned on each roster tick) (initCard)
 export function initCard(o) { ({ cast, roster: rosterOf } = o); }
@@ -169,15 +170,8 @@ function renderTurn(card, s) {
   }
 }
 
-// Permission petitions in an Orca terminal can be answered from here: the backend checks the screen
-// really shows the dialog before typing one option key. Free-text petitions only get "Open in Orca".
-// An OpenCode permission request is answered through its service (no terminal needed).
-export const answerable = s => s?.status === 'waiting'
-  && (s.source === 'opencode' ? !!s.opencodeRequest : !!s.orca && /approve|permission/i.test(s.waitingFor ?? ''));
-// The backend command and its arguments for answering `s` with yes / always / no (the backend maps OpenCode's).
-export const answerCall = (s, choice) => (s.source === 'opencode'
-  ? ['answer_opencode', { session: s.id, request: s.opencodeRequest, choice }]
-  : ['answer_petition', { handle: s.orca, choice }]);
+// Which petitions get Approve / Deny, and the backend call for each: petition.js (the phone page uses them too).
+export { answerable, answerCall };
 const OPENCODE = { yes: 'Allow once', always: 'Always allow', no: 'Reject' }; // OpenCode's own options: nothing to peek
 // Remote view: buttons only while the PC allows remote actions (probed every 10 s at most, and a 403 turns them off).
 let actions = !REMOTE, probed = 0;

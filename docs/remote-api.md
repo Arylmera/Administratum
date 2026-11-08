@@ -59,9 +59,14 @@ Applied at once (start, stop, port change), no restart. Stored in `settings.json
 `GET /mobile.html` (with `mobile.js`): an ordinary embedded file, so the same pairing and checks. `index.html`
 redirects there (`location.replace`) when it runs remote (`window.ADM_REMOTE`) on a screen 640 px wide or less,
 unless the URL has `?hall` (the page's "Full hall" link). It reads `settings_load`, `chronicle_days` and the
-`roster` / `vigil` events, and never answers or peeks at a petition (`ui/mobile.test.mjs` checks its source).
-It probes whether actions are allowed with `POST /api/vigil` and an empty body `{}` (403 when not allowed,
-else 400, never acting) and shows Arm / Cancel only then.
+`roster` / `vigil` events. It probes whether actions are allowed with `POST /api/vigil` and an empty body `{}`
+(403 when not allowed, else 400, never acting); only then does it show Arm / Cancel and answer permission
+petitions. A tap on an Orca permission petition calls `peek_petition` and shows the question; Approve / Deny
+(`answer_petition` with `yes` / `no`) appear only once the peek returns, and a failed peek shows its error and no
+buttons. A tap on Approve / Deny reads the prompt again and answers only if its question is still the one shown;
+otherwise nothing is sent and the row shows the new prompt with "The prompt changed". An OpenCode request gets Approve / Deny at once (no peek). The page never sends `always` and never answers a
+question petition. A 403 on an answer hides the buttons; a 400 shows the error on the row. `ui/mobile.test.mjs`
+checks these rules, and that the source writes no server text as HTML.
 
 ## Static files
 

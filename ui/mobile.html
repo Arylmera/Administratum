@@ -28,6 +28,12 @@
   .petition { border: 1px solid var(--red); border-radius: 3px; margin-bottom: 6px; }
   .petition b { color: var(--pink); }
   .asks { margin-top: 4px; color: var(--light); }
+  .petition .ptap { display: block; width: 100%; min-height: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; }
+  .petition.open { border-color: var(--pink); }
+  .q { margin-top: 6px; color: var(--light); white-space: pre-wrap; }
+  .err { margin-top: 4px; color: var(--pink); }
+  .answers { display: flex; gap: 12px; margin-top: 8px; }
+  .answers button { flex: 1; } .answers .no { border-color: var(--red); }
   .row.waiting b { color: var(--pink); } .row.busy b, .row.shell b { color: var(--green); }
   .task { margin-top: 2px; color: var(--dim); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .vigil { display: flex; align-items: center; gap: 12px; }
@@ -46,7 +52,7 @@
 <main>
   <section id="petitions" hidden aria-live="polite">
     <h2>Petitions</h2>
-    <p class="dim">Answer them on the PC.</p>
+    <p class="dim">While the PC allows remote actions, tap a permission prompt to approve or deny it. Always stays on the PC.</p>
     <ul id="petition-list"></ul>
   </section>
   <section>
