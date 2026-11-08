@@ -143,7 +143,7 @@ mod tests {
         let mut t = Tithe::new("2026-10-16");
         t.tokens = Tokens { input: 10, output: 20, cache_read: 1000, cache_write: 5 };
         t.busy_ms = 7_500_000;
-        t.by_project.insert("Terra".into(), Share { tokens: 900, busy_ms: 7_000_000, turns: 3, files: vec!["src/a.rs".into()], more_files: 2 });
+        t.by_project.insert("Terra".into(), Share { tokens: 900, busy_ms: 7_000_000, turns: 3, files: vec!["src/a.rs".into()], more_files: 2, ..Default::default() });
         t.by_project.insert("Geneseed".into(), Share { tokens: 135, busy_ms: 500_000, turns: 1, ..Default::default() });
         let events = [ev("arrived", "a"), ev("commit", "a"), ev("commit", "b"), ev("left", "b"), ev("task-done", "a"), ev("vigil", "")];
         report("2026-10-16", &t, &events)

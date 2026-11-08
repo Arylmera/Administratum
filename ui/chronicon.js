@@ -239,6 +239,10 @@ function reportSection(md) {
   return box;
 }
 
+// Opens the Chronicon on its Week tab (the Hall of Honours plaque's click); a no-op until initChronicon has run.
+let weekOpener = () => {};
+export const openWeek = () => weekOpener();
+
 export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
@@ -256,7 +260,14 @@ export function initChronicon(colorOf = () => null) {
   refreshPlaque();
   setInterval(() => document.documentElement.classList.contains('paused') || refreshPlaque(), 30_000); // app.js refreshes on resume
 
-  const { isOpen } = panel(root, openers, { onOpen: () => { renderTabs(dayKey()); show(dayKey()); }, onClosed: () => { cur = null; } });
+  let want = null; // the tab an opener other than the header's asked for (openWeek)
+  const { isOpen } = panel(root, openers, { onOpen: () => { const d = want ?? dayKey(); want = null; renderTabs(d); show(d); }, onClosed: () => { cur = null; } });
+  weekOpener = () => {
+    if (root.classList.contains('open')) return show('week'); // open (not rolling up): switch to the week
+    want = 'week';
+    openers[0].click(); // the panel opens as from its header button (focus returns there on close)
+    if (!root.classList.contains('open')) want = null; // it did not open: a later open is not the week's
+  };
 
   async function renderTabs(active) {
     const days = [];

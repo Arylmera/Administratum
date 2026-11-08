@@ -233,4 +233,22 @@ const listed = id => { setTheme(id); return new Set(catalog().map(e => e.id)); }
 for (const n of LENT) assert.ok(listed('tier2').has(n), `tier2 lists ${n}`);
 for (const id of ['cyber', 'corpo', 'orbital', 'tower', 'vault']) { const s = listed(id); for (const n of LENT) assert.ok(!s.has(n), `${id} omits ${n}`); }
 setTheme('tier2');
+
+// The Hall of Honours plaque (tools/honours_art.mjs): one design per world, each drawn from scratch: its silhouette
+// (where it is drawn at all) never the base sheet's; every theme draws its world's (an accent theme through artOf), and
+// the overlay's text fields are anchored on it.
+const mask = rows => rows.map(r => r.replace(/[^.]/g, '#')).join('\n');
+const WORLD_ART = ['cyber', 'orbital', 'tower', 'vault', 'darwin'];
+for (const id of WORLD_ART) {
+  const own = ART.themed[id]?.honours?.frames.HONOURS;
+  assert.ok(own, `${id}: its own HONOURS`);
+  assert.notEqual(mask(own), mask(ART.base.honours.frames.HONOURS), `${id}: HONOURS has the base plaque's silhouette`);
+}
+for (const id of Object.keys(THEMES)) {
+  setTheme(id);
+  const world = ART.dirOf(id);
+  assert.equal(SHEET_OF.HONOURS, WORLD_ART.includes(world) ? `${world}/honours` : 'honours', `${id}: its world's plaque`);
+  for (const k of ['title', 'row0', 'row1', 'row2', 'row3']) assert.equal(PROP_AT.HONOURS[k]?.length, 4, `${id}: HONOURS ${k} anchor`);
+}
+setTheme('tier2');
 console.log('art ok');

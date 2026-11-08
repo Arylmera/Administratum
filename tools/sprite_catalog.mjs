@@ -37,6 +37,7 @@ const ABOUT = {
   BREAKOUT_GATE_FRONT: 'Break-out room gate facing the viewer (strip, 39° view)', BREAKOUT_GATE_FRONT_OPEN: 'Break-out room gate facing the viewer, open',
   DAIS: 'Suzerain dais under a desk: a session that forked live child sessions', DAIS_C: 'Suzerain dais under a lectern (crowded hall)',
   LINK_H: 'Suzerain link tile, across: from the dais to a forked child', LINK_V: 'Suzerain link tile, down', LINK_END: "Suzerain link end at the child's feet",
+  HONOURS: "Hall of Honours plaque in the scriptorium's first back-wall alcove (a wide hall): the week's four marks are written over it",
 };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
 
@@ -108,7 +109,7 @@ export function catalog() {
   // world's own art; false = never drawn in this world.
   const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$/.test(name) || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects: last (below)
+    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$/.test(name) || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
@@ -153,5 +154,7 @@ export function catalog() {
   const turn = [];
   for (let k = 0; MAPS[`SHELL_COG_${k}`]; k++) turn.push({ rows: MAPS[`SHELL_COG_${k}`], over: {} });
   add('SHELL_COG', 'Props and furniture', SHEET_OF.SHELL_COG_0, turn, true, `Cog turning on a desk corner while a background shell runs, ${turn.length} frames a revolution (~3 s)`);
+  // Added after the effects (O8), last so every earlier cell ref keeps its row.
+  add('HONOURS', 'Props and furniture', SHEET_OF.HONOURS, [{ rows: MAPS.HONOURS, over: {} }], false, ABOUT.HONOURS);
   return out;
 }

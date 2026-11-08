@@ -3,7 +3,7 @@
 #[cfg(windows)]
 use crate::firewall;
 use crate::{
-    chronicle_day, chronicle_days,
+    chronicle_day, chronicle_days, honours,
     opencode::answer_opencode,
     orca::{answer_petition, peek_petition},
     remote, settings, settings_load, settings_path, tithe_day,
@@ -53,6 +53,7 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
             remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
             remote::Call::TitheDay(day) => json(tithe_day(day, a.state())).map(remote_tithe),
             remote::Call::ChronicleDays => json(chronicle_days(a.state())),
+            remote::Call::Honours => json(honours(a.state())),
             remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
                 // The remote (LAN) view never learns the local "open folder" program/path or the day report's folder.
                 if let Some(o) = v.as_object_mut() {

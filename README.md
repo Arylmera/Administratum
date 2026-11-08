@@ -203,6 +203,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe raises its scroll, gold glint, soft chime | A turn that took 5 min or more finished |
 | Scribe stays at its desk under a `sealed · resets 14:00` tag | The session hit a subscription usage limit. One toast per wave: sessions sealed until the same hour share it. The tag goes at the reset hour or at the next prompt. The wording follows the theme (*throttled* in the cyberpunk den, *grounded* on the orbital station) |
 | `✎5` by a working scribe's desk | Files the current turn has changed (Edit, Write, MultiEdit, NotebookEdit). The card lists them |
+| Plaque in the first back-wall alcove, four names on it | **Hall of Honours**: the past 7 days' marks, each held by a department: most commits, the longest single task, most petitions answered within a minute, and the busiest day by working time (with its date). An empty mark shows `—`; a tie goes to the latest. Each world draws its own plaque and names it (*Honours of the Week*, *Leaderboard*, *Crew Honours*, *Roll of Laurels*, *Employee of the Week*, *Fellows of the Week*). Click it to open the Chronicon on its Week tab. Alcoves exist only in a wide hall, so a narrow window shows no plaque; the strip never does |
 
 Adepts play a smaller version of these reactions at their console.
 

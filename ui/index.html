@@ -118,6 +118,16 @@
   .plaque.err { border-style: dashed; }
   .plaque.usage { z-index: 1; } /* the strip's usage banner stays readable over the petition labels under it */
   .plaque .branch { display: block; font-size: .8em; letter-spacing: 1px; text-transform: none; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
+  /* the Hall of Honours over its plaque (overlay.js syncHonours): each field placed and sized in JS, flat in 39° too */
+  .honours { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--light); pointer-events: auto; cursor: pointer; }
+  .honours[hidden] { display: none; }
+  .honours .title, .honours .mark { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; justify-content: center; overflow: hidden; line-height: 1.05; text-align: left; white-space: nowrap; text-shadow: 0 1px 0 var(--outline); }
+  .honours .title { align-items: center; text-transform: uppercase; }
+  .honours .mark { padding-left: .25em; box-sizing: border-box; }
+  .honours b, .honours span span { overflow: hidden; text-overflow: ellipsis; }
+  .honours b { font-weight: normal; text-transform: uppercase; }
+  .honours span span { opacity: .85; }
+  .honours:hover { filter: brightness(1.25); }
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
   #card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(12px * var(--k, 1)); width: min(25em, 80%); padding: .67em 1em; background: var(--card); color: var(--paper-ink); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 4px 0 var(--outline); display: flex; flex-direction: column; gap: .25em; } /* em: scales with --k like the labels */

@@ -1,0 +1,23 @@
+{
+  "frames": {
+    "HONOURS": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 72,
+        "h": 96
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "honours.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 72,
+      "h": 96
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

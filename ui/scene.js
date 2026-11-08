@@ -49,12 +49,16 @@ function alcoves(from, to) {
 }
 // On the back wall: a banner, a censer, by their measured y, above the old wall (WALL - WALL_DY: the pre-shift
 // height PROPS was measured against, layout.js). A new wall prop hung here must be added to this name list too.
-export const hung = (name, y) => (name === 'BANNER' || name === 'CENSER') && y < WALL - WALL_DY;
+export const hung = (name, y) => (name === 'BANNER' || name === 'CENSER' || name === 'HONOURS') && y < WALL - WALL_DY;
 // The back walls' window and hangings: the tall gothic window and the full-height hanging, unless the theme redraws
 // the short ones (WINDOW, BANNER) without tall ones of its own; then the short ones, as before, at their old place.
 // win: the window's frame, drawn at (x + winDx, WIN_Y) for a 16 px window slot x (propsOf windows), its glass ending
 // at winBottom (lighting.js starts the beams there).
 const HANG_Y = WALL - 56; // a hanging's top: its brass rod under the pipe, its fringe just above the wall foot
+// The Hall of Honours plaque (36 x 48) in an alcove: centred, its foot 2 px over the wall foot.
+const HONOURS_AT = a => [a.x + 2, WALL - 6 - 48];
+// Where the plaque hangs in this hall ([x, y] of its top-left), or null when the hall has no alcove.
+export const honoursAt = hall => propsOf(hall).props.find(p => p[0] === 'HONOURS')?.slice(1, 3) ?? null;
 export { WIN_Y, wallArt }; // re-exported from ./wallart.js: layout.test.mjs still imports them from here
 // Everything static that depends on the scene's size, once per size: props (placed), windows (x of each 16 px
 // window slot, top at WIN_Y, lighting.js casts their beams), vertical coolant channels. A back-wall banner (12 px,
@@ -82,12 +86,16 @@ export function propsOf(hall) {
     props.push(['BENCH', 262 + ox, y - 6], ['TABLE', 262 + ox, y], ['BENCH', 262 + ox, y + 12]);
   }
   const windows = [78 + dx, 292 + ox];
-  for (const a of [...alcoves(76, 76 + dx), ...alcoves(200 + dx, sw - 2)]) {
-    if (a.win) { windows.push(a.x + 6); props.push(asHanging(a.x + 26)); }
+  // The first alcove (west-most) holds the Hall of Honours plaque instead of its window and hanging (overlay.js writes
+  // the week's marks over it); a narrow hall has no alcove, so no plaque.
+  for (const [i, a] of [...alcoves(76, 76 + dx), ...alcoves(200 + dx, sw - 2)].entries()) {
+    if (!i) props.push(['HONOURS', ...HONOURS_AT(a)]);
+    else if (a.win) { windows.push(a.x + 6); props.push(asHanging(a.x + 26)); }
     else props.push(['SHELF', a.x + 4, 19 + D], ['PAPER_STACK', a.x + 8, 8 + D], ['BOOKS', a.x + 18, 11 + D], ['PAPER_STACK', a.x + 28, 9 + D]);
   }
-  // every other back-wall hanging and shelf, west to east, is the second design (wallArt hangB, shelfB): a 4th element, alt
-  for (const n of ['HANGING', 'SHELF']) props.filter(p => p[0] === n).sort((a, b) => a[1] - b[1]).forEach((p, i) => { if (i % 2) p.push(1); });
+  // every other back-wall hanging and shelf, west to east, is the second design (wallArt hangB, shelfB): a 4th element, alt.
+  // The plaque counts as the hanging its alcove gave up, so no other hanging changes design.
+  for (const n of ['HANGING', 'SHELF']) props.filter(p => p[0] === n || (n === 'HANGING' && p[0] === 'HONOURS')).sort((a, b) => a[1] - b[1]).forEach((p, i) => { if (i % 2 && p[0] === n) p.push(1); });
   const channels = [];
   for (let x = 98 + dx - 200 * Math.floor((88 + dx) / 200); x < sw - 20; x += 200) channels.push(x);
   F = { props, windows, channels };

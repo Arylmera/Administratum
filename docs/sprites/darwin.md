@@ -150,6 +150,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="candles-fire"></a>`CANDLES.fire` | 12×9.5 | CANDLES: the flame licking, 4 frames (still, CANDLES_FIRE_1 over it, still, CANDLES_FIRE_2). Source: `ui/art/darwin/fire.png` | <img src="darwin/CANDLES.fire.png" height="76"> |
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/darwin/refectorium.png`, drawn by actors.js | <img src="darwin/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/darwin/workstations.png`, drawn by (not referenced by name) | <img src="darwin/SHELL_COG.png" height="48"> |
+| <a id="honours"></a>`HONOURS` | 36×48 | Hall of Honours plaque in the scriptorium's first back-wall alcove (a wide hall): the week's four marks are written over it. Source: `ui/art/darwin/honours.png`, drawn by scene.js | <img src="darwin/HONOURS.png" height="160"> |
 
 ## Room tiles
 

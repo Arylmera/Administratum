@@ -370,6 +370,20 @@ for (const [name, x, y] of propsOf(hallOf(0)).props) {
   // the minimum is the original hall
   assert.equal(hallOf(0, { w: 100, h: 100 }), hallOf(0));
   assert.deepEqual(propsOf(hallOf(0)).windows, [78, 292]);
+  // the Hall of Honours plaque: none in the narrow hall (no alcove), exactly one in a wide one, hung on the back wall in
+  // the first (west-most) alcove, which keeps no window or hanging of its own
+  const honours = H => propsOf(H).props.filter(p => p[0] === 'HONOURS');
+  assert.equal(honours(hallOf(0)).length, 0, 'no plaque without an alcove');
+  for (const S of [{ w: MAX_W, h: SCENE.h }, { w: 960, h: 520 }]) {
+    const H = hallOf(0, S), [p] = honours(H), [, x, y] = p, F = propsOf(H);
+    assert.equal(honours(H).length, 1, `${S.w}: one plaque`);
+    assert.ok(y >= 0 && y + MAPS.HONOURS.length / RES <= WALL - 4, `${S.w}: the plaque on the back wall`);
+    assert.ok(F.windows.every(wx => wx + 16 <= x || wx >= x + 36) && F.props.every(([n, hx]) => n !== 'HANGING' || hx + 13 <= x || hx >= x + 36), `${S.w}: nothing else in its alcove`);
+    // the plaque keeps its alcove's slot in the hangings' A/B alternation: no other hanging changes design
+    const row = F.props.filter(([n]) => n === 'HANGING' || n === 'HONOURS').sort((a, b) => a[1] - b[1]);
+    row.forEach((h, i) => { if (h[0] === 'HANGING') assert.equal(!!h[3], i % 2 === 1, `${S.w}: hanging at ${h[1]} keeps its design`); });
+    assert.ok(x >= 76 && x < 76 + H.dx && F.windows.filter(wx => wx !== 78 + H.dx && wx !== 292 + H.ox).every(wx => wx > x), `${S.w}: the first alcove`);
+  }
   // ...its floor the original hall's (two slot rows, 138 px of desks), under a back wall WALL_DY taller
   assert.equal(hallOf(0).rows, 2);
   assert.deepEqual([HALL.y0 - WALL, HALL.y1 - HALL.y0, SCENE.h - WALL], [18, 138, 186]);

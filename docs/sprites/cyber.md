@@ -147,6 +147,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="link_end"></a>`LINK_END` | 5×4 | Suzerain link end at the child's feet. Source: `ui/art/cyber/suzerain.png`, drawn by (not referenced by name) | <img src="cyber/LINK_END.png" height="32"> |
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/cyber/refectorium.png`, drawn by actors.js | <img src="cyber/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/cyber/workstations.png`, drawn by (not referenced by name) | <img src="cyber/SHELL_COG.png" height="48"> |
+| <a id="honours"></a>`HONOURS` | 36×48 | Hall of Honours plaque in the scriptorium's first back-wall alcove (a wide hall): the week's four marks are written over it. Source: `ui/art/cyber/honours.png`, drawn by scene.js | <img src="cyber/HONOURS.png" height="160"> |
 
 ## Room tiles
 

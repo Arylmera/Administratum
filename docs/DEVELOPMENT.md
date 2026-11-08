@@ -29,7 +29,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `poller.rs` | Builds the live roster each tick: liveness of each session pid via Win32, the Orca handle per pid, transcript location, memoised tails and subagents |
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell |
 | `opencode/` | OpenCode 2.x, a second source beside `registry/`. `db.rs` reads its SQLite database read-only (only while its `-wal` exists, so no file is created in OpenCode's folder; one short transaction per read), `service.rs` its service registration (`~/.local/state/opencode/service.json`, loopback URLs and version 2+ only, the password never leaves the module) and a small `std::net` client for `/api/session/active`, pending permissions and replies, `mod.rs` the sessions it adds to the roster (running, waiting, idle while a TUI runs in its folder, 15 min at most), the rows the Chronicon reads, and `answer_opencode` |
-| `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe (per department, model, hour and session (a session's total is on the roster as `tokensToday`, card.js lineage), and per department its turns and edited files; fields added later are `serde(default)` so older day files still load), day files, retention; the usage window (`fine`: 288 five-minute buckets of new Anthropic tokens per day; `day_fine` places them at their real times across DST changes, `fineSince` marks a day file that predates them; `window_of`, pure, with ceilings from the `limit` events' `resetMs` / `hitMs`, kept only over complete kept days; `tithe_answer` adds `window` to today's `tithe_day` only); `opencode.rs` turns OpenCode rows into transcript lines; `report.rs` the end-of-day report (`day_report` command), its markdown, and `write_capture`, the only write outside the app data dir (only with `adm.reportOn` and an existing absolute `adm.reportDir`) |
+| `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe (per department, model, hour and session (a session's total is on the roster as `tokensToday`, card.js lineage), and per department its turns, longest turn (`max_turn_ms`) and edited files; fields added later are `serde(default)` so older day files still load), day files, retention; the usage window (`fine`: 288 five-minute buckets of new Anthropic tokens per day; `day_fine` places them at their real times across DST changes, `fineSince` marks a day file that predates them; `window_of`, pure, with ceilings from the `limit` events' `resetMs` / `hitMs`, kept only over complete kept days; `tithe_answer` adds `window` to today's `tithe_day` only); `opencode.rs` turns OpenCode rows into transcript lines; `honours.rs` the Hall of Honours (`honours` command: the four marks over the kept days, pure `honours` over day Tithes and events); `report.rs` the end-of-day report (`day_report` command), its markdown, and `write_capture`, the only write outside the app data dir (only with `adm.reportOn` and an existing absolute `adm.reportDir`) |
 | `monitor.rs` | Monitoring rules, pure: the config (`adm.tokenAlert`, ... read from `settings.json` at setup and after each `settings_save`, so the UI pushes nothing) and the per-session daily token alert (new tokens, cache reads left out; one toast and a `token-alert` event per session per day, seeded on the first tick). The app cannot see the subscription quota: the threshold is a count the user picks. Stuck sessions (`stuck_of`): busy (never at the shell) and either silent (no write to its transcripts, subagents' included, for `adm.stuckMin`, default 15 min; OpenCode sessions have no files and are never silent) or looping (`adm.stuckRepeat`, default 5, identical tool calls in a row, counted by `chronicle::track_turn`; polling tools and bare `sleep` / `watch` never count); one toast and a `stuck` event per episode |
 | `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS: tauri-plugin-notification's actions (`toast::mac`, one `on_action` handler registered at setup, routed by toast id; two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first; only the bundled app has the right notification identity, `tauri dev` posts as Terminal). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
@@ -57,14 +57,14 @@ do not know which.
 | `index.html` | Markup and styles: header, card, Chronicon and Settings panels |
 | `app.js` | Wiring: roster → layout → cast, render loop, hit test, header buttons, chime |
 | `viewport.js` | The view: scale and scene size for the window, pan (drag, glide, coast, arrow keys), parallax lag |
-| `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip |
+| `overlay.js` | DOM over the canvas, synced each frame: plaques, the Hall of Honours' marks over its plaque, petition labels, tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server |
 | `card.js` | The selected character's card, and answering permission petitions; a Suzerain's lineage (`lineageOf`) |
 | `mobile.html` / `mobile.js` | The remote view's phone page (index.html's head redirects a narrow remote screen to it, `/?hall` stays): petitions (Approve / Deny on a shown permission prompt while remote actions are allowed), Night Vigil, sessions, today's totals |
 | `chrome.js` | The page follows the theme: CSS colours, marked texts, toast wording |
 | `settings.js` | Settings panel and the persisted store (`settings.json`, localStorage as cache) |
 | `panel.js` | Open/close behaviour shared by the parchment panels |
-| `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log; the plaque's usage-window bar (`windowGauge`) and today's window line (`windowLine`) |
+| `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log; the plaque's usage-window bar (`windowGauge`) and today's window line (`windowLine`); `openWeek` (the Hall of Honours' click) |
 | `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
@@ -136,7 +136,7 @@ when it loads. One file per module:
 |---|---|
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
-| `art.test.mjs` | Art files: PNG decoder, key palette, sheets |
+| `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one |
 | `theme.test.mjs` | Themes: complete palettes, runtime switch |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
@@ -152,10 +152,10 @@ when it loads. One file per module:
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
 | `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars; the usage-window bar (no window, empty frame, ticks with the lowest marked, clamped fill, "estimate" tooltip) and today's window line |
-| `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label |
+| `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label; the Hall of Honours: when it is asked again, its lines and dashes |
 | `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls |
 | `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, Monitoring fields, reset |
-| `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped |
+| `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped; `openWeek` (open or closed panel, an open that fails) |
 
 ---
 
@@ -208,8 +208,8 @@ board), each sprite linking to a prefilled new issue. Design notes:
 
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
-`watch_art.mjs` / `suzerain_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/` and
-`suzerain_art/`, each with a shared `kit.mjs` of the drawing helpers) the generators of the break-out room, Watchman and Suzerain (dais and link) art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
+`watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/`,
+`suzerain_art/` and `honours_art/`, each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, Watchman, Suzerain (dais and link) and Hall of Honours plaque art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
 command-line client of the running app, `make_icon.py` the app icon.
 
 ---

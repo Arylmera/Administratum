@@ -186,6 +186,27 @@ await flush();
 assert.equal(body.querySelector('p.window'), null);
 delete tithe.window;
 
+// openWeek (the Hall of Honours' click): an open panel switches to the Week tab; a closed one opens on it; an open that
+// fails leaves nothing pending for the next opening.
+const { openWeek } = await import('./chronicon.js');
+const selected = () => [...tabs.children].find(b => b.getAttribute('aria-selected') === 'true')?.dataset.day;
+tab[0].click(); await flush();
+assert.equal(selected(), TODAY);
+openWeek(); await flush();
+assert.ok(!root.hidden && selected() === 'week', 'open: switched to the week');
+root.querySelector('.close').click(); tick(400); await flush();
+assert.ok(root.hidden, 'closed');
+openWeek(); await flush();
+assert.ok(!root.hidden && selected() === 'week', 'closed: opens on the week');
+root.querySelector('.close').click(); tick(400); await flush();
+const opener = document.getElementById('chron-open'), toggle = opener.onclick;
+opener.onclick = () => {}; // the open does not happen
+openWeek(); await flush();
+assert.ok(root.hidden, 'still closed');
+opener.onclick = toggle;
+opener.click(); await flush();
+assert.equal(selected(), TODAY, 'the next ordinary opening shows today, not a stale week request');
+
 // Pure helpers (sumTithes, reportText, windowLine): the module is already loaded above.
 const { sumTithes, reportText, windowLine } = await import('./chronicon.js');
 assert.equal(windowLine({ startMs: null, tokens: 0, ceilings: [] }), 'Window: 0', 'no token in 5 h: 0, no start time');

@@ -1,0 +1,56 @@
+{
+  "frames": {
+    "HONOURS": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 72,
+        "h": 96
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "honours.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 72,
+      "h": 96
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "HONOURS": {
+        "title": [
+          12,
+          7,
+          48,
+          11
+        ],
+        "row0": [
+          21,
+          23,
+          45,
+          14
+        ],
+        "row1": [
+          21,
+          40,
+          45,
+          14
+        ],
+        "row2": [
+          21,
+          57,
+          45,
+          14
+        ],
+        "row3": [
+          21,
+          74,
+          45,
+          14
+        ]
+      }
+    }
+  }
+}

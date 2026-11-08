@@ -3,13 +3,16 @@ import { SCENE, WALL_DY, breakoutOf } from './layout.js';
 import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion } from './actors.js';
-import { invoke, REMOTE } from './bridge.js';
+import { invoke, listen, REMOTE } from './bridge.js';
 import { sel, ago, filesOf, stuckLine, canAnswer, answer, pick } from './card.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
 import { TAN39 } from './iso.js';
 import { scale, pan, viewW, viewH, pannable, centreOn, drag, coarse, stage } from './viewport.js';
+import { honoursAt } from './scene.js';
+import { PROP_AT } from './sprites.js';
+import { openWeek, fmtDur } from './chronicon.js';
 
 // app.js's: hall, layout, roster and mouse are getters (app.js reassigns them) (initOverlay)
 let cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, paused, hhmm;
@@ -49,6 +52,7 @@ export function renderPlaques(blocks) {
   // centred over the Magos, or flush with the strip's right end when that would run off it (its width: last frame's)
   const uw = (plaques.get('usage')?.offsetWidth ?? 0) / scale;
   if (u) want.set('usage', ['plaque usage', u, Math.min(hall().magos.x - uw / 2, hall().w - 2 - uw), FLOOR - 30 - STRIP_PAD, undefined, undefined, '', undefined, true]);
+  syncHonours();
   if (!roster().length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
     const y = 120 + WALL_DY + (hall().h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall().sw, y), [mx, my] = at(hall().sw / 2, y);
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
@@ -70,6 +74,53 @@ export function renderPlaques(blocks) {
     }
     for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
   }
+}
+
+// The Hall of Honours (backend `honours`): the week's four marks written over the plaque in the first alcove (scene.js
+// honoursAt), flat in the 39° view too, each line centred on its field of the art (PROP_AT.HONOURS). Not in the strip,
+// not in a hall without an alcove. Asked again at start, at midnight and on each commit, answered petition or long task done.
+export const MARKS = ['commits', 'longest', 'fast', 'busiest'];
+// The events that can change a mark: a commit, an answered petition, a finished long turn (the longest task, the busiest day).
+const HONOUR_KINDS = new Set(['commit', 'petition-answered', 'task-done']);
+let honours = null, board = null;
+export const refreshHonours = () => invoke('honours').then(h => { honours = h; }, () => {});
+// [dept, value] of each mark, '—' for an empty one (pure: overlay.test.mjs).
+export function honoursLines(h) {
+  const day = d => new Date(`${d}T12:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+  const value = { commits: m => String(m.value), longest: m => fmtDur(m.value), fast: m => String(m.value), busiest: m => `${fmtDur(m.value)} · ${day(m.day)}` };
+  return MARKS.map(k => (h?.[k] ? [h[k].dept, value[k](h[k])] : ['—', '']));
+}
+function syncHonours() {
+  const p = !strip() && honoursAt(hall()), A = PROP_AT.HONOURS;
+  if (board && board.hidden !== !p) board.hidden = !p;
+  if (!p || !A) return;
+  if (!board) {
+    board = document.createElement('button'); board.type = 'button'; board.className = 'honours';
+    board.onclick = openWeek;
+    board.append(...[0, 1, 2, 3, 4].map(i => { const d = document.createElement('span'); d.className = i ? 'mark' : 'title'; return d; }));
+    overlay.appendChild(board);
+  }
+  const lines = honoursLines(honours), key = [t('honours.title'), ...lines.flat()].join('|');
+  if (board.dataset.key !== key) {
+    board.dataset.key = key;
+    const [title, ...rows] = board.children;
+    title.textContent = t('honours.title');
+    rows.forEach((el, i) => {
+      const [dept, value] = lines[i], b = document.createElement('b'), v = document.createElement('span');
+      b.textContent = dept; v.textContent = value;
+      el.replaceChildren(b, v);
+      el.title = `${t(`honours.${MARKS[i]}`)}: ${dept}${value ? ` · ${value}` : ''}`;
+    });
+    board.setAttribute('aria-label', [t('honours.title'), ...rows.map(r => r.title)].join('. '));
+  }
+  // each field (logical px from the plaque's top-left) centred where its centre lands on screen (the 39° wall shears)
+  // the title's size fits its whole name on one line (an uppercase glyph is ~0.62 em wide), a mark's two lines its field
+  const [px, py] = p, fields = [A.title, A.row0, A.row1, A.row2, A.row3], name = t('honours.title').length;
+  fields.forEach(([fx, fy, fw, fh], i) => {
+    const [cx, cy] = at(px + fx + fw / 2, py + fy + fh / 2), size = i ? fh / 2.3 : Math.min(fh / 1.5, fw / (0.62 * name));
+    setStyle(board.children[i], { left: `${cx * scale}px`, top: `${cy * scale}px`, width: `${fw * scale}px`, height: `${fh * scale}px`,
+      fontSize: `${(size * scale).toFixed(2)}px` });
+  });
 }
 
 // Petitioners keep a compact always-visible label (they must not be missed); everyone else is found by
@@ -200,6 +251,10 @@ export function syncHover() {
 export function initOverlay(o) {
   ({ cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, paused, hhmm } = o);
   pollUsage(); setInterval(() => paused() || pollUsage(), 60_000);
+  refreshHonours();
+  listen('chronicle', ({ payload: e }) => { if (HONOUR_KINDS.has(e.kind)) refreshHonours(); });
+  const atMidnight = () => { const d = new Date(); d.setHours(24, 0, 5, 0); setTimeout(() => { refreshHonours(); atMidnight(); }, d - Date.now()); };
+  atMidnight();
   // Off-screen awareness: an arrow on each edge of the view that has characters beyond it, with their count; it
   // blinks red when one of them petitions, and a click glides the view onto that petitioner (else the nearest one).
   edges = Object.fromEntries(Object.entries({ up: '▲', down: '▼', left: '◀', right: '▶' }).map(([dir, glyph]) => {

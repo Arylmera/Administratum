@@ -92,6 +92,13 @@ fn day_report(day: String, chron: State<Chron>) -> Result<serde_json::Value, Str
     Ok(serde_json::json!({ "markdown": r.markdown(), "report": r }))
 }
 
+/// The Hall of Honours: the four marks over the kept days (chronicle::honours_of).
+#[tauri::command(async)]
+fn honours(chron: State<Chron>) -> Result<chronicle::Honours, String> {
+    let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
+    Ok(chronicle::honours_of(&dir, &live, now_ms()))
+}
+
 /// Today and the 6 previous days, newest first.
 #[tauri::command(async)]
 fn chronicle_days(chron: State<Chron>) -> Result<Vec<DaySummary>, String> {
@@ -269,6 +276,7 @@ fn main() {
             tithe_day,
             chronicle_days,
             day_report,
+            honours,
             set_stale_minutes,
             set_question_prefs,
             set_quiet,

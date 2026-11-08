@@ -16,6 +16,8 @@ mod opencode;
 pub use opencode::{feed_opencode, Msg, OcCursor, OPENCODE_BATCH};
 mod report;
 pub use report::{report, write_capture};
+mod honours;
+pub use honours::{honours_of, Honours};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -84,9 +86,17 @@ pub struct Share {
     pub files: Vec<String>,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub more_files: u32,
+    /// The longest finished main-session turn (a department's day; zero in `hourly`), for the Hall of Honours.
+    /// Added after 0.6.8: older day files read 0.
+    #[serde(default, skip_serializing_if = "is_zero_ms")]
+    pub max_turn_ms: u64,
 }
 
 fn is_zero(n: &u32) -> bool {
+    *n == 0
+}
+
+fn is_zero_ms(n: &u64) -> bool {
     *n == 0
 }
 
@@ -839,7 +849,9 @@ impl Chronicle {
         for t in turns {
             if let Some(tithe) = self.tithe_at(t.ts) {
                 tithe.add_busy(dept, t.ms, hour_of(t.ts));
-                tithe.by_project.entry(dept.clone()).or_default().turns += 1;
+                let share = tithe.by_project.entry(dept.clone()).or_default();
+                share.turns += 1;
+                share.max_turn_ms = share.max_turn_ms.max(t.ms);
                 self.dirty = true;
             }
         }
@@ -1680,7 +1692,11 @@ mod tests {
         let got: Vec<(&str, Option<&str>)> = ev.iter().map(|e| (e.kind.as_str(), e.helper.as_deref())).collect();
         assert_eq!(got, [("push", None), ("tool-error", Some("Explore"))]);
         let tithe = tithe_of(&c.dir, &c.tithe, &day_of(t));
-        assert_eq!(tithe.by_project["Terra"], Share { tokens: 7, busy_ms: 90_000, turns: 1, ..Default::default() }, "subagent tokens go to the parent's project, its turns add no time");
+        assert_eq!(
+            tithe.by_project["Terra"],
+            Share { tokens: 7, busy_ms: 90_000, turns: 1, max_turn_ms: 90_000, ..Default::default() },
+            "subagent tokens go to the parent's project, its turns add no time"
+        );
         assert_eq!((tithe.busy_ms, tithe.hourly[hour_of(t)].busy_ms), (90_000, 90_000));
         assert!(files(&mut c).is_empty(), "nothing new");
         for e in &ev {
@@ -2080,6 +2096,20 @@ mod tests {
     }
 
     #[test]
+    fn the_longest_turn_is_kept_per_department() {
+        let t = now();
+        let mut c = Chronicle::open(temp_dir("maxturn"), t, true);
+        let s = |dept: &str| Session { dept: dept.into(), ..crate::registry::tests_session("s1") };
+        let turns = |ms: &[u64]| (vec![], vec![], ms.iter().map(|&ms| Turn { ts: t, ms }).collect(), vec![]);
+        c.absorb(&s("Terra"), turns(&[40_000, 90_000, 20_000]), &mut vec![]);
+        c.absorb(&s("Geneseed"), turns(&[30_000]), &mut vec![]);
+        let max = |d: &str| c.tithe.by_project[d].max_turn_ms;
+        assert_eq!((max("Terra"), max("Geneseed"), c.tithe.by_project["Terra"].turns), (90_000, 30_000, 3));
+        assert!(c.tithe.hourly.iter().all(|h| h.max_turn_ms == 0), "hourly shares keep none");
+        let _ = fs::remove_dir_all(c.dir());
+    }
+
+    #[test]
     fn current_day_files_and_limit_lines_still_load() {
         let d = temp_dir("compat");
         let _ = fs::create_dir_all(&d);
@@ -2089,6 +2119,8 @@ mod tests {
         fs::write(d.join("2026-11-08.tithe.json"), text).unwrap();
         let mut t = load_tithe(&d, "2026-11-08").expect("a current-format day file loads");
         assert!(t.fine.is_empty(), "no window share for an old day");
+        assert!(old["byProject"].as_object().unwrap().values().all(|s| s.get("maxTurnMs").is_none()), "the fixture is the format before `max_turn_ms`");
+        assert!(t.by_project.values().all(|s| s.max_turn_ms == 0), "an old day's longest turn reads 0");
         let again = serde_json::to_value(&t).unwrap();
         for (k, v) in old.as_object().unwrap() {
             assert_eq!(&again[k], v, "{k} kept as it was");

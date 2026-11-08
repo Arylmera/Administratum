@@ -37,6 +37,8 @@ pub enum Call {
     ChronicleDay(String),
     TitheDay(String),
     ChronicleDays,
+    /// The Hall of Honours (departments and values only, no paths).
+    Honours,
     SettingsLoad,
     PeekPetition(String),
     AnswerPetition {
@@ -204,6 +206,7 @@ fn route(req: &Req, token: &str, actions: bool) -> Route {
         ("GET", "/api/chronicle_day") => with("day", Call::ChronicleDay),
         ("GET", "/api/tithe_day") => with("day", Call::TitheDay),
         ("GET", "/api/chronicle_days") => Route::Call(Call::ChronicleDays),
+        ("GET", "/api/honours") => Route::Call(Call::Honours),
         ("GET", "/api/settings_load") => Route::Call(Call::SettingsLoad),
         ("GET", "/api/peek_petition") => with("handle", Call::PeekPetition),
         ("POST", "/api/answer_petition") => action_gate(req, actions).map_or(Route::Answer, Route::Status),
@@ -618,6 +621,7 @@ mod tests {
         assert_eq!(get("/api/tithe_day?day=2026-10-05", &a), Route::Call(Call::TitheDay("2026-10-05".into())));
         assert_eq!(get("/api/chronicle_day", &a), Route::Status(400));
         assert_eq!(get("/api/chronicle_days", &a), Route::Call(Call::ChronicleDays));
+        assert_eq!(get("/api/honours", &a), Route::Call(Call::Honours));
         assert_eq!(get("/api/settings_load", &a), Route::Call(Call::SettingsLoad));
         assert_eq!(get("/api/peek_petition?handle=term_ab%2D1", &a), Route::Call(Call::PeekPetition("term_ab-1".into())));
         assert_eq!(get("/api/peek_petition?handle=%zz", &a), Route::Status(400));

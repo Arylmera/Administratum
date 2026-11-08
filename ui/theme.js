@@ -105,6 +105,9 @@ export const TEXT = {
   summonedBy: 'Summoned by', summoned: 'Suzerain of', lineage: 'Lineage today',
   rejectAll: "Deny also refuses this session's other pending requests", // an OpenCode petition's card (OpenCode's rule)
   overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen',
+  // the Hall of Honours plaque (overlay.js): its name, and each mark's (its row's tooltip)
+  honours: { title: 'Honours of the Week', commits: 'Most purity seals', longest: 'Longest labour', fast: 'Petitions answered within the minute',
+    busiest: 'Busiest day' },
   limitLabel: 'sealed · resets {time}', limitSealed: 'sealed',
   stuckSilent: 'stalled · {min}m', stuckLoop: 'looping · {tool} ×{count}', // monitor.rs: busy, no progress
   modes: { full: 'Full light', candles: 'Candles' },

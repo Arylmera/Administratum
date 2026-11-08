@@ -5,7 +5,7 @@
 export const REMOTE = globalThis.ADM_REMOTE === true;
 export const tauri = () => (REMOTE ? undefined : globalThis.__TAURI__);
 
-const GETS = new Set(['chronicle_day', 'tithe_day', 'chronicle_days', 'settings_load', 'peek_petition']);
+const GETS = new Set(['chronicle_day', 'tithe_day', 'chronicle_days', 'honours', 'settings_load', 'peek_petition']);
 const notPaired = r => { if (r.status === 401) location.reload(); return r; }; // the reload shows "scan the QR code"
 async function reply(r) {
   const text = await r.text();
