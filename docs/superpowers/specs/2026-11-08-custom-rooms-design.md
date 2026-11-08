@@ -118,7 +118,36 @@ written), `art.test.mjs` (`ENCLAVE_*` complete in every theme, contains `y`, eac
 **Build order.** Rust match + field → layout, zones, routes → Settings tab → drawing with the base art → strip →
 the five world sheets.
 
-## O10b — real rooms: walls and a door (user, Q27 = A, 2026-11-08)
+## O10c — the west wing (user, 2026-11-08; supersedes O10b and the zone placement)
+
+The user tried O10b in the app and asked for "the same walls as elsewhere" and rooms **outside** the scriptorium
+(Q28 = west wing). Binding:
+1. **Place.** A west wing: a column of real rooms west of the scriptorium, mirror of the Refectorium/Sanctum column
+   on the east. Rooms stacked top to bottom in rule order. The wing exists only while at least one rule exists; the
+   hall widens by its width then (the scriptorium keeps its own width rules).
+2. **Walls and doors.** Exactly the hall's own: the same wall art and thickness as the scriptorium's east wall and
+   the east column's rooms, the same doors (each world's existing frames, animated as the Sanctum's and Refectorium's),
+   in flat and 39° (cut away low like every inner wall, doorway = posts as the hall's own). Each room has one door in
+   the scriptorium's west wall; routing through it like `DOORWAY` in `ui/layout.js`.
+3. **Inside.** A room holds the desks (and consoles) of its departments, one sub-block per department; the floor in
+   the rule colour (`ENCLAVE_FLOOR`). Scribes behave as everywhere (refectory, cogitator, Sanctum, gate), leaving and
+   entering through the room's door.
+4. **Size.** A room's height follows what it holds (at least one desk row); an empty room keeps one row, floor dimmed,
+   door shut. When the wing is taller than the hall, the hall grows down (bays) as today; rooms count toward compact
+   lecterns like any block.
+5. **Plaques.** One department in the room: one plaque on the room's top wall with that department's name and branch,
+   in the rule colour, and no department plaque inside. Several: the room name on top, department plaques inside.
+   Empty: the rule's name, dimmed.
+6. **Unchanged.** The break-out room (fenced zone in the scriptorium), the strips (a room is a bay there, as today),
+   the column view (no rooms), the Rooms settings tab, rule matching in Rust.
+7. **Removed.** Rooms as fenced zones inside the scriptorium (`zoneSequence` placeholders for rooms; the room path of
+   `zonesOf`); the enclave fence frames stay generated only if the strip still draws them.
+8. **Tests.** Walkers enter and leave rooms only through their doors; doors open while someone is on the frame; walls
+   never cover a desk, seat, queue slot or prop; rooms in rule order whatever the arrival order; an empty room keeps
+   its place; a live department is never pushed into overflow by an empty room; break-out room and strips unchanged;
+   flathall/isohall hashes re-recorded only after looking at the hall (the wing changes the static background).
+
+## O10b — real rooms: walls and a door (user, Q27 = A, 2026-11-08) — superseded by O10c
 
 Supersedes decision 6's fence: a room is a real walled room in the same place (rooms first, rule order, packing,
 routes and lanes unchanged).
