@@ -53,7 +53,9 @@ the app with `--demo`.
   petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
   `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe` (Windows), or at
   `/Applications/Orca.app/Contents/Resources/bin/orca`, `/usr/local/bin/orca` or `/opt/homebrew/bin/orca` (macOS;
-  an app started from the Dock or Finder does not see your shell's `PATH`).
+  an app started from the Dock or Finder does not see your shell's `PATH`). On Linux the CLI is `orca-ide`, on `PATH`
+  or at `/opt/Orca/resources/bin/orca-ide` or `~/.local/bin/orca-ide`; `orca` there is GNOME's screen reader and is
+  never run.
 
 Each [release](https://github.com/Arylmera/Administratum/releases/latest) ships the Windows installer
 `Administratum_<version>_x64-setup.exe` and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
