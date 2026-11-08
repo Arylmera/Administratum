@@ -215,7 +215,7 @@ mod tests {
         assert_eq!(phase(&s("a", "shell")), Phase::Working);
         assert_eq!(phase(&Session { helpers: vec![helper()], ..s("a", "idle") }), Phase::Working, "busy helper under an idle parent");
         assert_eq!(phase(&Session { background: true, ..s("a", "idle") }), Phase::Working, "background shell");
-        let limit = Some(Limit { reset_ms: None, text: "limit".into() });
+        let limit = Some(Limit { reset_ms: None, hit_ms: None, text: "limit".into() });
         assert_eq!(phase(&Session { limit: limit.clone(), ..s("a", "busy") }), Phase::Limit);
         assert_eq!(phase(&Session { limit, helpers: vec![helper()], ..s("a", "idle") }), Phase::Working, "a helper still runs");
     }

@@ -17,13 +17,18 @@ limits hit, labelled as an estimate.
    `#[serde(default)]`; an old file without it (or with an empty list) still loads with every total intact — the
    existing `hourly.len() == 24` check (`mod.rs:712`) must not reject it. Old days give no window share and no
    ceiling.
-4. **Window rule.** Fixed length: a window opens at the first token after the previous window closed and closes
-   5 h later (buckets: 5-minute precision). A limit with a reset hour pins the current window to
+4. **Window rule.** Fixed length: a window opens at the hour of the first token after the previous window closed,
+   floored (10:20 opens the 10:00 window: the ccusage convention, which matches "resets 2pm"; never before the
+   previous close), and closes 5 h later; a token exactly at that close opens the next one (buckets: 5-minute
+   precision, each at its real time across DST changes). A limit with a reset hour pins the current window to
    `[reset − 5 h, reset]`; the first token after the reset opens a new one. Reads today's and yesterday's `fine`.
 5. **Limit events.** The `limit` event gains `resetMs` and `hitMs` (the transcript line's time from the tail parse,
    `registry/tail.rs:284`), added fields only, `#[serde(default)]`. One wave (same `resetMs`) gives one ceiling.
    Ceilings come only from limits recorded after this ships; a limit without a reset hour gives none.
-6. **Ceilings.** For each such limit in the kept days (7): the tokens in `[resetMs − 5 h, hitMs]` from `fine`.
+6. **Ceilings.** For each such limit in the kept days (7): the tokens in `[resetMs − 5 h, hitMs]` from `fine`. Only
+   when that span lies inside the kept days and their buckets were complete over it: a day file from before `fine`
+   records `fineSince` (its first bucketed token) and counts only from then; the current window's start is likewise
+   shown only when complete (blind-review fixes F1, F5).
 7. **OpenCode.** Count only rows with `providerID == "anthropic"`; the translation at `chronicle/opencode.rs:93`
    keeps `providerID`.
 8. **Where.** A thin bar on the header's Tithe plaque (drawn in `ui/chronicon.js:221`, 30 s poll), a tick per

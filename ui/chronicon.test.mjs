@@ -154,8 +154,41 @@ await flush();
 assert.equal(tabs.children[2].getAttribute('aria-selected'), 'true');
 assert.equal(body.querySelector('ol.events').textContent, 'No events recorded');
 
-// Pure helpers (sumTithes, reportText): the module is already loaded above.
-const { sumTithes, reportText } = await import('./chronicon.js');
+// Usage window: none in the answer (a past day, an older backend) -> no bar; no ceiling yet -> the empty frame.
+replies.chronicle_day = ({ day }) => (day === TODAY ? events : []);
+assert.equal(plaque.querySelector('.gauge'), null, 'no window: no bar');
+tithe.window = { startMs: at(13, 40), tokens: 2_100_000, ceilings: [] };
+await refresh();
+let gauge = plaque.querySelector('.gauge');
+assert.equal(plaque.textContent, '⛁ 1M · 1h05', 'the count stays as it was');
+assert.equal(gauge.querySelectorAll('.tick').length, 0, 'no ceiling: no ticks');
+assert.equal(gauge.querySelector('i').style.width, '0%');
+assert.ok(gauge.title.includes('estimate · this PC'), gauge.title);
+// Ceilings: a tick each, the lowest marked, fill against the highest (clamped).
+tithe.window = { startMs: at(13, 40), tokens: 2_100_000, ceilings: [4_000_000, 3_400_000] };
+await refresh();
+gauge = plaque.querySelector('.gauge');
+const ticks = [...gauge.querySelectorAll('.tick')];
+assert.deepEqual(ticks.map(t => [t.className, t.style.left]), [['tick low', '85%'], ['tick', '100%']]);
+assert.equal(ticks[0].title, "this PC's share at the hit: 3.4M");
+assert.equal(gauge.querySelector('i').style.width, '52.5%');
+assert.equal(gauge.title, 'Window: 2.1M since 13:40 · ceilings 3.4M, 4M · estimate · this PC');
+tithe.window = { startMs: at(13, 40), tokens: 9_000_000, ceilings: [4_000_000] };
+await refresh();
+assert.equal(plaque.querySelector('.gauge i').style.width, '100%', 'past the highest ceiling: full, not wider');
+// Today's Chronicon tab: one line; a past day: none.
+tab[0].click();
+await flush();
+assert.equal(body.querySelector('p.window').textContent, 'Window: 9M since 13:40 · ceilings 4M');
+assert.ok(body.querySelector('p.window').title.includes('estimate'));
+tab[2].click();
+await flush();
+assert.equal(body.querySelector('p.window'), null);
+delete tithe.window;
+
+// Pure helpers (sumTithes, reportText, windowLine): the module is already loaded above.
+const { sumTithes, reportText, windowLine } = await import('./chronicon.js');
+assert.equal(windowLine({ startMs: null, tokens: 0, ceilings: [] }), 'Window: 0', 'no token in 5 h: 0, no start time');
 
 const day = (n, sessions) => ({
   tokens: { input: n, output: 2 * n, cacheRead: 10 * n, cacheWrite: n }, busyMs: 1000 * n,

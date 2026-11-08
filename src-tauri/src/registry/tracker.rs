@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn limit_waves_toast_once() {
-        let lim = |id: &str, reset: Option<i64>| Session { limit: Some(Limit { reset_ms: reset, text: "x".into() }), ..session(id, 1, "idle", 0) };
+        let lim = |id: &str, reset: Option<i64>| Session { limit: Some(Limit { reset_ms: reset, hit_ms: None, text: "x".into() }), ..session(id, 1, "idle", 0) };
         let mut t = Tracker::default();
         let first = t.new_limits(&[lim("a", Some(5)), lim("b", Some(5)), session("c", 3, "busy", 0)]);
         assert_eq!(first.len(), 1, "one wave");

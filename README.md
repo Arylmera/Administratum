@@ -255,7 +255,8 @@ Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbi
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
 banners in the Warhammer themes, each other world its own design), in both views. The remote view keeps its own View.
 
-**Header.** From left to right: petition counter, Tithe plaque (`⛁ tokens · working time` today), Chronicon,
+**Header.** From left to right: petition counter, Tithe plaque (`⛁ tokens · working time` today, with the
+usage-window bar under it, see [Chronicon and Tithe](#chronicon-and-tithe)), Chronicon,
 Settings, a moon while quiet hours are on, mute chime, then the window buttons: **–** hides to the tray (the window
 has no taskbar button), **□** maximizes and restores, **✕** quits. To move the window,
 drag the header.
@@ -360,7 +361,8 @@ hourly ones). Each day shows:
 
 - **Tithe**: tokens (new input/output vs. cache), working time (time sessions spent busy or in a shell),
   event count, tokens and time per department and per model, the top 10 sessions by new tokens, and 24-hour charts
-  of tokens and working minutes.
+  of tokens and working minutes. Today's tab also has the usage-window line, for example
+  `Window: 2.1M since 13:40 · ceilings 3.4M, 4M`.
 - **Day report** (folded): sessions seen and finished, turns, working time, tokens, and per department its turns,
   tokens and the files edited, plus counts of commits, pushes, failed tests, usage limits, stuck sessions and token
   alerts. *Copy as markdown* puts it on the clipboard. It can also be written to a folder each night (Settings >
@@ -373,6 +375,17 @@ Tokens are counted once per assistant message. Subagent tokens count toward the 
 (Claude Code desktop's child sessions) opens with a copy of its parent's history; that copy is skipped, the parent
 already counted it. On first sight
 of a transcript, only today's entries are read. Earlier days are not reconstructed.
+
+**Usage window (an estimate, this PC only).** The thin bar under the Tithe plaque shows the new tokens (input,
+output and cache writes; cache reads are not counted) spent on this PC in the current 5-hour usage window. A window
+opens at the hour of the first token after the previous one closed (a token at 10:20 opens the 10:00 window, as
+Claude's "resets 2pm" suggests) and lasts 5 hours. A usage limit that names its reset hour
+fixes the window to the 5 hours before that reset. Each tick on the bar is a ceiling: this PC's share of the window
+at a past limit hit (limits recorded in the last 7 days), and the lowest tick is marked. Until a limit is recorded,
+the bar is an empty frame. The app cannot see your real quota: use on claude.ai or on another machine spends the
+same quota and does not show here. OpenCode tokens count only from Anthropic models. Days recorded by 0.6.8 or older
+give no share and no ceiling; on the day you update, the count is complete only from the first token after the
+update, so a ceiling (or the window's start time) that reaches before it is not shown.
 
 To close the Chronicon, click ✕, press **Escape**, or click outside it.
 
@@ -492,7 +505,7 @@ configuration, and installs no hooks. It reads:
 |---|---|
 | `settings.json` | UI settings (the tables above) and the remote view's port, switches and pairing token. The WebView's local storage holds only a cache |
 | `chronicon\YYYY-MM-DD.jsonl` | That day's events: time, kind, session name, department, short detail (commit subject, test command, tool name...) |
-| `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals |
+| `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals, and its 5-minute token buckets (the usage window) |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
 

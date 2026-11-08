@@ -2,7 +2,7 @@
 //! OpenCode's message rows (fed in as transcript lines). Read-only on `~/.claude` and OpenCode; everything it
 //! writes lives in the app data dir.
 use crate::registry::{self, Agent, FileStat, Repeat, Session, TurnSummary};
-use chrono::{Local, NaiveDate, TimeZone, Timelike};
+use chrono::{Local, NaiveDate, NaiveDateTime, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -28,12 +28,18 @@ pub struct Event {
     /// Subagent kind when the event comes from a subagent transcript.
     pub helper: Option<String>,
     pub detail: String,
+    /// A `limit` event's reset hour and the time its transcript line was written (the usage window's ceilings).
+    /// Added after 0.6.8: older lines and other kinds have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reset_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hit_ms: Option<i64>,
 }
 
 impl Event {
     /// A session's own event (no helper).
     pub fn for_session(ts: i64, kind: &str, s: &Session, detail: String) -> Self {
-        Event { ts, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail }
+        Event { ts, kind: kind.into(), session_id: s.id.clone(), name: s.name.clone(), dept: s.dept.clone(), helper: None, detail, reset_ms: None, hit_ms: None }
     }
 }
 
@@ -119,14 +125,32 @@ pub struct Tithe {
     /// By session id. Added after 0.6.5: older day files have none.
     #[serde(default)]
     pub by_session: BTreeMap<String, SessionTithe>,
+    /// New tokens (`Tokens::fresh`, Anthropic only) per 5 minutes of local time, FINE_BUCKETS of them, for the usage
+    /// window (`window_of`). Added after 0.6.8: older day files have none and give no window share.
+    #[serde(default)]
+    pub fine: Vec<u64>,
+    /// When `fine` started on a day whose file came from before it (its first token then): the buckets before it are
+    /// incomplete. None for a day `fine` covers from its start.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fine_since: Option<i64>,
 }
+
+pub const FINE_BUCKETS: usize = 288;
 
 impl Tithe {
     pub fn new(day: &str) -> Self {
-        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24], by_session: BTreeMap::new() }
+        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24], by_session: BTreeMap::new(), fine: vec![0; FINE_BUCKETS], fine_since: None }
     }
-    fn add_tokens(&mut self, dept: &str, model: &str, t: &Tokens, hour: usize) {
-        let n = t.total();
+    fn add_tokens(&mut self, dept: &str, model: &str, t: &Tokens, ts: i64, in_window: bool) {
+        let (n, hour) = (t.total(), hour_of(ts));
+        if in_window {
+            if self.fine.len() != FINE_BUCKETS {
+                // a day file from before `fine` loads with none: it is complete only from now on
+                self.fine_since.get_or_insert(ts);
+                self.fine.resize(FINE_BUCKETS, 0);
+            }
+            self.fine[fine_of(ts)] += t.fresh();
+        }
         self.tokens.input += t.input;
         self.tokens.output += t.output;
         self.tokens.cache_read += t.cache_read;
@@ -155,6 +179,8 @@ pub struct Usage {
     pub ts: i64,
     pub model: String,
     pub tokens: Tokens,
+    /// Counts toward the Anthropic usage window: a Claude Code line, or an OpenCode row with `providerID` "anthropic".
+    pub in_window: bool,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -179,6 +205,13 @@ pub fn day_of(ms: i64) -> String {
 
 fn hour_of(ms: i64) -> usize {
     local(ms).hour() as usize
+}
+
+/// The 5-minute bucket of `ms` in its local day (`Tithe::fine`), by local wall-clock time (`day_fine` maps it back).
+// shortcut: on the autumn change the repeated hour's two passes share their buckets (mapped to the first); fine for a gauge.
+fn fine_of(ms: i64) -> usize {
+    let t = local(ms);
+    (t.hour() * 60 + t.minute()) as usize / 5
 }
 
 /// Ms of local midnight starting the day that contains `ms`.
@@ -272,7 +305,7 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     }
     let ts = ts.unwrap_or(now_ms);
     let mut emit = |kind: &str, detail: String| {
-        events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail })
+        events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail, reset_ms: None, hit_ms: None })
     };
     let msg = &v["message"];
     match v["type"].as_str() {
@@ -306,7 +339,9 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
             };
             let d = t.minus(&seen);
             if d.total() > 0 {
-                usage.push(Usage { ts, model: model.into(), tokens: d });
+                // Claude Code lines carry no providerID; OpenCode's translation always does (opencode.rs).
+                let in_window = msg["providerID"].as_str().is_none_or(|p| p == "anthropic");
+                usage.push(Usage { ts, model: model.into(), tokens: d, in_window });
             }
         }
         Some("user") => {
@@ -883,7 +918,7 @@ impl Chronicle {
 
     pub fn add_usage(&mut self, dept: &str, u: &Usage) {
         if let Some(t) = self.tithe_at(u.ts) {
-            t.add_tokens(dept, &u.model, &u.tokens, hour_of(u.ts));
+            t.add_tokens(dept, &u.model, &u.tokens, u.ts, u.in_window);
             self.dirty = true;
         }
     }
@@ -967,6 +1002,136 @@ pub fn days(dir: &Path, live: &Tithe, now_ms: i64) -> Vec<DaySummary> {
             DaySummary { events, tokens: t.tokens.total(), busy_ms: t.busy_ms, day }
         })
         .collect()
+}
+
+// ---- usage window -----------------------------------------------------------------------------
+
+const WINDOW_MS: i64 = 5 * 3_600_000;
+const HOUR_MS: i64 = 3_600_000;
+
+/// The current 5-hour usage window as this PC sees it: an estimate (claude.ai and other machines spend the same quota).
+#[derive(Serialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Window {
+    /// None when no token came in the last 5 h, or when the window began before the buckets were complete.
+    pub start_ms: Option<i64>,
+    pub tokens: u64,
+    /// This PC's share of each past window that hit a limit, lowest first.
+    pub ceilings: Vec<u64>,
+}
+
+/// One day's `fine` at real times (`day_fine`): the day `[start, end)`, its non-empty buckets (ms, tokens), and from
+/// when they hold every token: None for a day file without a full `fine` (0.6.8 and older).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DayFine {
+    pub start: i64,
+    pub end: i64,
+    pub trust_from: Option<i64>,
+    pub buckets: Vec<(i64, u64)>,
+}
+
+/// The first instant of the local day starting at `midnight` (midnight itself is skipped in some zones' spring change).
+fn first_instant(midnight: NaiveDateTime, resolve: &dyn Fn(NaiveDateTime) -> Option<i64>) -> Option<i64> {
+    (0..FINE_BUCKETS as i64).find_map(|i| resolve(midnight + chrono::Duration::minutes(5 * i)))
+}
+
+/// `t.fine` of local `date` at real times: bucket i is `date 00:00 + i × 5 min` as `resolve` places it (Local in the app:
+/// a time the spring change skips gives none, a repeated autumn time its first instant), kept inside the 23 or 25 h day.
+fn day_fine(date: NaiveDate, t: &Tithe, resolve: &dyn Fn(NaiveDateTime) -> Option<i64>) -> Option<DayFine> {
+    let midnight = date.and_hms_opt(0, 0, 0)?;
+    let start = first_instant(midnight, resolve)?;
+    let end = first_instant(midnight + chrono::Duration::days(1), resolve)?;
+    let full = t.fine.len() == FINE_BUCKETS;
+    let buckets = t
+        .fine
+        .iter()
+        .enumerate()
+        .filter(|(_, n)| full && **n > 0)
+        .filter_map(|(i, n)| Some((resolve(midnight + chrono::Duration::minutes(5 * i as i64))?.clamp(start, end - 1), *n)))
+        .collect();
+    Some(DayFine { start, end, trust_from: full.then(|| t.fine_since.unwrap_or(start).max(start)), buckets })
+}
+
+/// The usage window at `now` from `days` (`day_fine`) and `limits`, (reset ms, hit ms) of recorded limit events. A window
+/// opens at the hour of the first token after the previous one closed (floored, not before that close) and lasts 5 h;
+/// a limit pins it to `[reset − 5 h, reset)`. A ceiling is the tokens in `[reset − 5 h, hit]`, one per wave (same reset;
+/// its first hit), kept only when the days given cover that span completely.
+pub fn window_of(days: &[DayFine], limits: &[(i64, i64)], now: i64) -> Window {
+    let mut buckets: Vec<(i64, u64)> = days.iter().flat_map(|d| d.buckets.iter().copied()).collect();
+    buckets.sort_unstable();
+    let sum = |from: i64, to: i64| buckets.iter().filter(|(t, _)| (from..=to).contains(t)).map(|(_, n)| n).sum::<u64>();
+    // [a, b] holds every token when each instant of it lies in a given day whose buckets are complete by then.
+    let complete = |a: i64, b: i64| {
+        let mut t = a;
+        while t <= b {
+            match days.iter().find(|d| d.start <= t && t < d.end) {
+                Some(d) if d.trust_from.is_some_and(|f| f <= t) => t = d.end,
+                _ => return false,
+            }
+        }
+        true
+    };
+    let pinned = |t: i64| limits.iter().find(|(r, _)| (r - WINDOW_MS..*r).contains(&t)).map(|(r, _)| r - WINDOW_MS);
+    let mut start: Option<i64> = None;
+    for &(t, _) in buckets.iter().take_while(|(t, _)| *t <= now) {
+        let opened = start.map_or(i64::MIN, |s| s + WINDOW_MS);
+        start = pinned(t).or(start.filter(|_| t < opened)).or(Some((t - t.rem_euclid(HOUR_MS)).max(opened)));
+    }
+    let start = pinned(now).or(start).filter(|s| now < s + WINDOW_MS);
+    let mut waves: BTreeMap<i64, i64> = BTreeMap::new();
+    for &(reset, hit) in limits {
+        let first = waves.entry(reset).or_insert(hit);
+        *first = (*first).min(hit);
+    }
+    let mut ceilings: Vec<u64> = waves.iter().filter(|(r, hit)| complete(*r - WINDOW_MS, **hit)).map(|(r, hit)| sum(r - WINDOW_MS, *hit)).filter(|n| *n > 0).collect();
+    ceilings.sort_unstable();
+    Window { start_ms: start.filter(|s| complete(*s, now)), tokens: start.map_or(0, |s| sum(s, now)), ceilings }
+}
+
+/// (reset, hit) of the limit events that carry both (recorded after 0.6.8, with a reset hour, not a date).
+fn limit_points(events: &[Event]) -> Vec<(i64, i64)> {
+    events.iter().filter(|e| e.kind == "limit").filter_map(|e| Some((e.reset_ms?, e.hit_ms?))).collect()
+}
+
+/// `day`'s limit events; other lines are skipped before parsing.
+fn limit_events(dir: &Path, day: &str) -> Vec<Event> {
+    let text = fs::read_to_string(dir.join(format!("{day}.jsonl"))).unwrap_or_default();
+    text.lines().filter(|l| l.contains("\"kind\":\"limit\"")).filter_map(|l| serde_json::from_str(l).ok()).collect()
+}
+
+/// Local midnight of "YYYY-MM-DD".
+#[cfg(test)]
+fn day_start(day: &str) -> Option<i64> {
+    let d = NaiveDate::parse_from_str(day, "%Y-%m-%d").ok()?;
+    Local.from_local_datetime(&d.and_hms_opt(0, 0, 0)?).earliest().map(|t| t.timestamp_millis())
+}
+
+/// The usage window at `now_ms` from the kept days (the live Tithe for today): limit events from all of them, `fine`
+/// only from the days the current window and each wave touch (a span reaching before the kept days gives no ceiling).
+pub fn window(dir: &Path, live: &Tithe, now_ms: i64) -> Window {
+    let kept = last_days(now_ms, KEEP_DAYS);
+    let events: Vec<Event> = kept.iter().flat_map(|d| limit_events(dir, d)).collect();
+    let limits = limit_points(&events);
+    let mut need: HashSet<String> = [day_of(now_ms - WINDOW_MS), day_of(now_ms)].into();
+    for &(reset, hit) in &limits {
+        need.extend([day_of(reset - WINDOW_MS), day_of(hit)]); // a 5 h span touches two days at most
+    }
+    let resolve = |n: NaiveDateTime| Local.from_local_datetime(&n).earliest().map(|t| t.timestamp_millis());
+    let days: Vec<DayFine> = kept
+        .iter()
+        .filter(|d| need.contains(*d))
+        .filter_map(|d| day_fine(NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()?, &tithe_of(dir, live, d), &resolve))
+        .collect();
+    window_of(&days, &limits, now_ms)
+}
+
+/// `tithe_day`'s answer: the day's Tithe, and for today the usage window as `window` (computed, never saved).
+pub fn tithe_answer(dir: &Path, live: &Tithe, day: &str, now_ms: i64) -> Value {
+    let mut v = serde_json::to_value(tithe_of(dir, live, day)).unwrap_or_default();
+    if day == day_of(now_ms) {
+        v["window"] = serde_json::to_value(window(dir, live, now_ms)).unwrap_or_default();
+    }
+    v
 }
 
 #[cfg(test)]
@@ -1237,7 +1402,7 @@ mod tests {
     fn tithe_sums_tokens_by_project_model_hour_and_busy_time() {
         let mut c = Chronicle::open(temp_dir("tithe"), now(), true);
         let ts = now();
-        let u = |out| Usage { ts, model: "claude-opus-5-5".into(), tokens: Tokens { input: 1, output: out, cache_read: 10, cache_write: 100 } };
+        let u = |out| Usage { ts, model: "claude-opus-5-5".into(), tokens: Tokens { input: 1, output: out, cache_read: 10, cache_write: 100 }, in_window: true };
         c.add_usage("Terra", &u(5));
         c.add_usage("Geneseed", &u(6));
         let s = |id: &str, dept: &str, status: &str| Session { dept: dept.into(), status: status.into(), ..crate::registry::tests_session(id) };
@@ -1313,7 +1478,7 @@ mod tests {
     fn usage_counts_per_session() {
         let mut c = Chronicle::open(temp_dir("by-session"), now(), true);
         let ts = now();
-        let u = |out| Usage { ts, model: "m".into(), tokens: Tokens { input: 1, output: out, cache_read: 1000, cache_write: 10 } };
+        let u = |out| Usage { ts, model: "m".into(), tokens: Tokens { input: 1, output: out, cache_read: 1000, cache_write: 10 }, in_window: true };
         let a = Session { name: "terra-77".into(), ..crate::registry::tests_session("a") };
         c.add_session_usage(&a, &u(5));
         c.add_session_usage(&a, &u(5));
@@ -1335,7 +1500,7 @@ mod tests {
         let saved = d.join("offsets.json");
         c.maybe_flush(t + FLUSH_MS, true);
         assert!(!saved.exists(), "idle: no write, even after events");
-        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() }, in_window: true });
         c.maybe_flush(t + 2 * FLUSH_MS, false);
         assert!(saved.exists());
         fs::remove_file(&saved).unwrap();
@@ -1349,7 +1514,7 @@ mod tests {
         let t = now();
         let mut c = Chronicle::open(d.clone(), t, true);
         let saved = d.join("offsets.json");
-        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() } });
+        c.add_usage("Terra", &Usage { ts: t, model: "m".into(), tokens: Tokens { input: 1, ..Default::default() }, in_window: true });
         c.maybe_flush(t + 1_000, false);
         assert!(!saved.exists(), "tokens only: wait for the 30 s");
         c.maybe_flush(t + 2_000, true);
@@ -1404,7 +1569,7 @@ mod tests {
 
     #[test]
     fn event_serializes_camel_case() {
-        let e = Event { ts: 1, kind: "commit".into(), session_id: "s".into(), name: "n".into(), dept: "d".into(), helper: Some("Explore".into()), detail: "x".into() };
+        let e = Event { ts: 1, kind: "commit".into(), session_id: "s".into(), name: "n".into(), dept: "d".into(), helper: Some("Explore".into()), detail: "x".into(), reset_ms: None, hit_ms: None };
         let j = serde_json::to_value(&e).unwrap();
         assert_eq!(j["sessionId"], "s");
         assert_eq!(j["helper"], "Explore");
@@ -1622,8 +1787,8 @@ mod tests {
         assert_eq!(
             usage,
             [
-                Usage { ts: 3_000, model: "claude-sonnet-5".into(), tokens: Tokens { input: 10, output: 25, cache_read: 100, cache_write: 7 } },
-                Usage { ts: 6_000, model: "claude-sonnet-5".into(), tokens: Tokens { input: 1, output: 1, cache_read: 0, cache_write: 0 } },
+                Usage { ts: 3_000, model: "claude-sonnet-5".into(), tokens: Tokens { input: 10, output: 25, cache_read: 100, cache_write: 7 }, in_window: true },
+                Usage { ts: 6_000, model: "claude-sonnet-5".into(), tokens: Tokens { input: 1, output: 1, cache_read: 0, cache_write: 0 }, in_window: true },
             ],
             "reasoning counts as output, as Claude's thinking does"
         );
@@ -1712,5 +1877,261 @@ mod tests {
         again.flush();
         let third = Chronicle::open(root, t, false);
         assert!(!third.seqs.contains_key("ses_gone") && third.seqs.contains_key("ses_main"));
+    }
+
+    // ---- usage window (pure: a day's buckets sit at its given start, here 0 for today) ----
+
+    const H: i64 = 3_600_000;
+    const MIN: i64 = 60_000;
+    const DAY: i64 = 86_400_000;
+
+    /// A day's `fine` with `n` tokens at each (local minute of the day, n).
+    fn fine(at: &[(i64, u64)]) -> Vec<u64> {
+        let mut f = vec![0; FINE_BUCKETS];
+        for &(min, n) in at {
+            f[(min / 5) as usize] += n;
+        }
+        f
+    }
+    fn hm(h: i64, m: i64) -> i64 {
+        h * 60 + m
+    }
+    fn at(h: i64, m: i64) -> i64 {
+        h * H + m * MIN
+    }
+    /// A 24 h day starting at `start`, complete from its start when `f` is a full `fine`.
+    fn day(start: i64, f: &[u64]) -> DayFine {
+        let full = f.len() == FINE_BUCKETS;
+        let buckets = f.iter().enumerate().filter(|(_, n)| full && **n > 0).map(|(i, n)| (start + i as i64 * 5 * MIN, *n)).collect();
+        DayFine { start, end: start + DAY, trust_from: full.then_some(start), buckets }
+    }
+    fn win(yesterday: &[u64], today: &[u64], limits: &[(i64, i64)], now: i64) -> Window {
+        window_of(&[day(-DAY, yesterday), day(0, today)], limits, now)
+    }
+
+    #[test]
+    fn a_window_opens_only_after_the_previous_one_closed() {
+        let today = fine(&[(hm(10, 0), 100), (hm(14, 30), 50), (hm(15, 10), 7)]);
+        let w = win(&[], &today, &[], at(14, 45));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(10, 0)), 150), "a gap of 4 h does not open a new window");
+        let w = win(&[], &today, &[], at(15, 20));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(15, 0)), 7), "10:00 + 5 h has passed: 15:10 opens the next, at 15:00");
+        let w = win(&fine(&[(hm(22, 0), 10)]), &fine(&[(hm(1, 0), 5)]), &[], at(1, 30));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(22, 0) - DAY), 15), "yesterday's buckets count");
+    }
+
+    #[test]
+    fn a_window_starts_at_its_first_tokens_hour_and_closes_exactly_5_h_later() {
+        let today = fine(&[(hm(10, 20), 1), (hm(14, 55), 2), (hm(15, 0), 4)]);
+        let w = win(&[], &today, &[], at(14, 58));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(10, 0)), 3), "10:20 opens the 10:00 window; 14:55 is still in it");
+        let w = win(&[], &today, &[], at(15, 1));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(15, 0)), 4), "a token exactly at start + 5 h opens a new window");
+    }
+
+    #[test]
+    fn no_token_in_five_hours_gives_zero_and_no_start() {
+        let w = win(&[], &fine(&[(hm(8, 0), 100)]), &[], at(13, 5));
+        assert_eq!(w, Window::default());
+        assert_eq!(win(&[], &[], &[], at(13, 5)), Window::default(), "an old day file (no fine): nothing invented");
+    }
+
+    #[test]
+    fn a_limit_with_a_reset_pins_the_window() {
+        let today = fine(&[(hm(9, 0), 1), (hm(10, 30), 20), (hm(15, 0), 3)]);
+        let limit = [(at(15, 0), at(12, 0))];
+        let w = win(&[], &today, &limit, at(12, 30));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(10, 0)), 20), "[reset − 5 h, reset), not the 09:00 window");
+        let w = win(&[], &today, &limit, at(14, 59));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(10, 0)), 20), "a token exactly at the reset is not the pinned window's");
+        let w = win(&[], &today, &limit, at(15, 1));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(15, 0)), 3), "it opens the next one");
+        let w = win(&[], &fine(&[(hm(11, 0), 1), (hm(14, 40), 2)]), &[(at(14, 30), at(12, 0))], at(14, 50));
+        assert_eq!((w.start_ms, w.tokens), (Some(at(14, 30)), 2), "after a 14:30 reset, the floored hour never reaches back into it");
+    }
+
+    #[test]
+    fn a_ceiling_is_the_sum_inside_its_window() {
+        let today = fine(&[(hm(9, 55), 1000), (hm(10, 0), 3), (hm(11, 0), 4), (hm(12, 0), 5), (hm(12, 10), 99)]);
+        let w = win(&[], &today, &[(at(15, 0), at(12, 2))], at(16, 0));
+        assert_eq!(w.ceilings, [12], "from reset − 5 h to the hit");
+        let w = win(&fine(&[(hm(20, 55), 1000), (hm(21, 30), 6)]), &fine(&[(hm(0, 30), 7)]), &[(at(2, 0), at(1, 0))], at(9, 0));
+        assert_eq!(w.ceilings, [13], "a window across midnight reads the day before");
+        assert_eq!(win(&[], &[], &[(at(15, 0), at(12, 2))], at(16, 0)).ceilings, Vec::<u64>::new(), "no fine: no ceiling");
+    }
+
+    #[test]
+    fn one_wave_gives_one_ceiling() {
+        let today = fine(&[(hm(10, 0), 3), (hm(12, 15), 4), (hm(17, 0), 1)]);
+        let wave = [(at(15, 0), at(12, 2)), (at(15, 0), at(12, 20))]; // first hit first: the later one must not win
+        assert_eq!(win(&[], &today, &wave, at(16, 0)).ceilings, [3], "same reset: one ceiling, at its first hit");
+        let two = [(at(15, 0), at(12, 20)), (at(20, 0), at(17, 1))];
+        assert_eq!(win(&[], &today, &two, at(21, 0)).ceilings, [1, 7], "lowest first");
+    }
+
+    #[test]
+    fn a_day_file_from_before_fine_is_trusted_only_from_its_first_bucket() {
+        let mut today = day(0, &fine(&[(hm(11, 0), 5), (hm(12, 30), 1), (hm(13, 30), 2), (hm(16, 0), 8)]));
+        today.trust_from = Some(at(12, 0));
+        let limits = [(at(15, 0), at(14, 0)), (at(18, 0), at(17, 0))];
+        let w = window_of(&[today.clone()], &limits, at(19, 0));
+        assert_eq!(w.ceilings, [10], "10:00–14:00 began before the buckets were complete: dropped; 13:00–17:00 kept");
+        let w = window_of(&[today], &[], at(13, 0));
+        assert_eq!((w.start_ms, w.tokens), (None, 6), "a window begun before 12:00: its count, no start");
+        // The Tithe side: an old day file's first token marks the day, a new day needs no mark.
+        let mut old = Tithe { fine: vec![], ..Tithe::new("2026-10-17") };
+        old.add_tokens("Terra", "m", &Tokens { input: 1, ..Default::default() }, 5_000, true);
+        old.add_tokens("Terra", "m", &Tokens { input: 1, ..Default::default() }, 9_000, true);
+        assert_eq!((old.fine_since, old.fine.len()), (Some(5_000), FINE_BUCKETS));
+        let mut new = Tithe::new("2026-10-17");
+        new.add_tokens("Terra", "m", &Tokens { input: 1, ..Default::default() }, 5_000, true);
+        assert_eq!(new.fine_since, None);
+        assert!(serde_json::to_value(&new).unwrap().get("fineSince").is_none(), "nothing written for a complete day");
+    }
+
+    #[test]
+    fn a_wave_reaching_before_the_kept_days_gives_no_ceiling() {
+        let today = fine(&[(hm(0, 30), 7)]);
+        let w = window_of(&[day(0, &today)], &[(at(2, 0), at(1, 0))], at(9, 0));
+        assert_eq!(w.ceilings, Vec::<u64>::new(), "21:00 yesterday is not among the days given");
+        // Through `window`: the 8th day back is never read, even with its file still on disk.
+        let d = temp_dir("window-kept");
+        let _ = fs::create_dir_all(&d);
+        let now_ms = now();
+        let kept = last_days(now_ms, KEEP_DAYS);
+        let (oldest, gone) = (kept[kept.len() - 1].clone(), last_days(now_ms, KEEP_DAYS + 1).pop().unwrap());
+        let midnight = day_start(&oldest).unwrap();
+        for (name, minute) in [(&gone, hm(21, 30)), (&oldest, hm(0, 30))] {
+            let mut t = Tithe::new(name);
+            t.fine[(minute / 5) as usize] = 7;
+            save_json(&d.join(format!("{name}.tithe.json")), &t);
+        }
+        let e = Event { reset_ms: Some(midnight + 2 * H), hit_ms: Some(midnight + H), ..Event::for_session(midnight + H, "limit", &crate::registry::tests_session("a"), String::new()) };
+        fs::write(d.join(format!("{oldest}.jsonl")), serde_json::to_string(&e).unwrap() + "\n").unwrap();
+        assert_eq!(window(&d, &Tithe::new(&day_of(now_ms)), now_ms).ceilings, Vec::<u64>::new());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    /// Europe/Paris around the 2026 changes, as `resolve` sees it: +1 h, then +2 h from 29 March 03:00 (02:00–02:59
+    /// skipped), back to +1 h from 25 October 03:00 (02:00–02:59 twice; the first pass is +2 h).
+    fn paris(n: NaiveDateTime) -> Option<i64> {
+        let (spring, autumn) = (NaiveDate::from_ymd_opt(2026, 3, 29).unwrap(), NaiveDate::from_ymd_opt(2026, 10, 25).unwrap());
+        let two = |d: NaiveDate| d.and_hms_opt(2, 0, 0).unwrap();
+        let three = |d: NaiveDate| d.and_hms_opt(3, 0, 0).unwrap();
+        let offset = if n < two(spring) || n >= three(autumn) {
+            1
+        } else if n < three(spring) {
+            return None;
+        } else {
+            2
+        };
+        Some(n.and_utc().timestamp_millis() - offset * H)
+    }
+
+    #[test]
+    fn buckets_take_their_real_time_across_the_dst_changes() {
+        let utc = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap().timestamp_millis();
+        let mut t = Tithe::new("2026-03-29");
+        t.fine = fine(&[(hm(1, 55), 1), (hm(2, 30), 99), (hm(3, 0), 2)]);
+        let d = day_fine(NaiveDate::from_ymd_opt(2026, 3, 29).unwrap(), &t, &paris).unwrap();
+        assert_eq!((d.start, d.end - d.start), (utc("2026-03-28T23:00:00Z"), 23 * H), "a 23 h day");
+        assert_eq!(d.buckets, [(utc("2026-03-29T00:55:00Z"), 1), (utc("2026-03-29T01:00:00Z"), 2)], "02:30 does not exist");
+        let w = window_of(&[d], &[], utc("2026-03-29T01:10:00Z"));
+        assert_eq!((w.start_ms, w.tokens), (Some(utc("2026-03-29T00:00:00Z")), 3), "01:55 and 03:00 are 5 min apart");
+        let mut t = Tithe::new("2026-10-25");
+        t.fine = fine(&[(hm(2, 30), 1), (hm(3, 0), 2), (hm(23, 55), 4)]);
+        let d = day_fine(NaiveDate::from_ymd_opt(2026, 10, 25).unwrap(), &t, &paris).unwrap();
+        assert_eq!((d.start, d.end - d.start), (utc("2026-10-24T22:00:00Z"), 25 * H), "a 25 h day");
+        let times: Vec<i64> = d.buckets.iter().map(|b| b.0).collect();
+        assert_eq!(times, [utc("2026-10-25T00:30:00Z"), utc("2026-10-25T02:00:00Z"), utc("2026-10-25T22:55:00Z")]);
+        assert!(times.iter().all(|t| (d.start..d.end).contains(t)), "inside the day");
+    }
+
+    #[test]
+    fn only_limits_with_a_reset_hour_and_a_hit_give_ceilings() {
+        let e = |kind: &str, reset_ms, hit_ms| Event { reset_ms, hit_ms, ..Event::for_session(0, kind, &crate::registry::tests_session("a"), String::new()) };
+        let date = None; // what `reset_after` gives "resets Oct 8, 2pm" (registry/tail.rs test)
+        let events = [e("limit", Some(5), Some(2)), e("limit", date, Some(2)), e("limit", Some(5), None), e("commit", Some(5), Some(2))];
+        assert_eq!(limit_points(&events), [(5, 2)], "a reset given as a date: no ceiling");
+    }
+
+    #[test]
+    fn fine_buckets_count_new_anthropic_tokens_only() {
+        let ts = now();
+        let mut t = Tithe::new(&day_of(ts));
+        t.add_tokens("Terra", "m", &Tokens { input: 1, output: 2, cache_read: 1000, cache_write: 4 }, ts, true);
+        t.add_tokens("Terra", "gpt", &Tokens { input: 50, ..Default::default() }, ts, false);
+        assert_eq!((t.fine[fine_of(ts)], t.fine.iter().sum::<u64>()), (7, 7), "cache reads and other providers out");
+        assert_eq!(t.tokens.total(), 1057, "every total still counts both");
+        // From the rows: a Claude Code line and an Anthropic OpenCode row count, another provider's row does not.
+        let claude = serde_json::json!({"type":"assistant","timestamp":iso(5_000),"message":{"id":"m1","model":"claude-opus-5-5","usage":{"input_tokens":3}}});
+        assert!(extract(&mut Cursor::default(), &claude.to_string(), i64::MIN, &SRC, 0).1[0].in_window);
+        let row = |provider: &str, id: &str| {
+            let mut d = oc_assistant(id, 1_000, Some(2_000), vec![], Some(oc_tokens(5, 1, 0, 0, 0)));
+            d["model"]["providerID"] = provider.into();
+            (1, "assistant".to_string(), d)
+        };
+        let usage = |r| oc_feed(&mut OcCursor::default(), &[r], 0).0 .1;
+        assert!(usage(row("anthropic", "a"))[0].in_window);
+        assert!(!usage(row("openai", "b"))[0].in_window);
+        let mut no_provider = row("x", "c");
+        no_provider.2["model"].as_object_mut().unwrap().remove("providerID");
+        assert!(!usage(no_provider)[0].in_window, "an OpenCode row without providerID is not counted as Anthropic");
+    }
+
+    #[test]
+    fn current_day_files_and_limit_lines_still_load() {
+        let d = temp_dir("compat");
+        let _ = fs::create_dir_all(&d);
+        let text = include_str!("testdata/2026-11-08.tithe.json");
+        let old: Value = serde_json::from_str(text).unwrap();
+        assert!(old.get("fine").is_none(), "the fixture is the format before `fine`");
+        fs::write(d.join("2026-11-08.tithe.json"), text).unwrap();
+        let mut t = load_tithe(&d, "2026-11-08").expect("a current-format day file loads");
+        assert!(t.fine.is_empty(), "no window share for an old day");
+        let again = serde_json::to_value(&t).unwrap();
+        for (k, v) in old.as_object().unwrap() {
+            assert_eq!(&again[k], v, "{k} kept as it was");
+        }
+        // Loaded as today, it takes new tokens on top of its totals.
+        let before = t.tokens.total();
+        let ts = day_start("2026-11-08").unwrap() + 13 * H;
+        t.add_tokens("Terra", "m", &Tokens { input: 5, ..Default::default() }, ts, true);
+        assert_eq!((t.tokens.total(), t.fine.len(), t.fine[fine_of(ts)], t.fine_since), (before + 5, FINE_BUCKETS, 5, Some(ts)));
+        // An empty `fine` is accepted too.
+        let mut empty = old.clone();
+        empty["fine"] = serde_json::json!([]);
+        fs::write(d.join("2026-11-07.tithe.json"), empty.to_string()).unwrap();
+        assert_eq!(load_tithe(&d, "2026-11-07").map(|t| t.tokens.total()), Some(before));
+        // Event lines: a limit without resetMs / hitMs parses, and lines write back byte for byte (no null keys).
+        let lines = include_str!("testdata/2026-11-08.jsonl");
+        fs::write(d.join("2026-11-08.jsonl"), lines).unwrap();
+        let events = read_events(&d, "2026-11-08");
+        assert_eq!(events.len(), 2);
+        assert_eq!((events[1].kind.as_str(), events[1].reset_ms, events[1].hit_ms), ("limit", None, None));
+        for (e, line) in events.iter().zip(lines.lines()) {
+            assert_eq!(serde_json::to_string(e).unwrap(), line);
+        }
+        assert!(limit_points(&events).is_empty(), "a limit from before this release gives no ceiling");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn todays_tithe_answer_carries_the_window_and_the_day_file_does_not() {
+        let d = temp_dir("window");
+        let ts = now();
+        let mut c = Chronicle::open(d.clone(), ts, true);
+        c.add_usage("Terra", &Usage { ts, model: "m".into(), tokens: Tokens { input: 4, cache_read: 100, ..Default::default() }, in_window: true });
+        let e = Event { reset_ms: Some(ts + H), hit_ms: Some(ts), ..Event::for_session(ts, "limit", &crate::registry::tests_session("a"), String::new()) };
+        c.record(&e);
+        let (dir, live) = c.snapshot();
+        let v = tithe_answer(&dir, &live, &day_of(ts), ts);
+        assert_eq!((v["window"]["tokens"].as_u64(), v["window"]["ceilings"][0].as_u64()), (Some(4), Some(4)));
+        assert!(v["window"]["startMs"].is_i64());
+        assert!(tithe_answer(&dir, &live, &day_of(ts - 2 * DAY), ts).get("window").is_none(), "a past day: no window");
+        c.flush();
+        let saved = fs::read_to_string(d.join(format!("{}.tithe.json", day_of(ts)))).unwrap();
+        assert!(!saved.contains("window") && saved.contains("\"fine\""), "fine is saved, the window never");
+        let _ = fs::remove_dir_all(&d);
     }
 }

@@ -136,7 +136,7 @@ mod tests {
     use crate::chronicle::{Share, Tokens};
 
     fn ev(kind: &str, id: &str) -> Event {
-        Event { ts: 0, kind: kind.into(), session_id: id.into(), name: id.into(), dept: "Terra".into(), helper: None, detail: String::new() }
+        Event { ts: 0, kind: kind.into(), session_id: id.into(), name: id.into(), dept: "Terra".into(), helper: None, detail: String::new(), reset_ms: None, hit_ms: None }
     }
 
     fn day() -> DayReport {

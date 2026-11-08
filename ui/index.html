@@ -147,6 +147,12 @@
   /* Chronicon: a parchment unrolled over the scene (rows animate 0fr -> 1fr between the two rods). */
   .tithe { font-variant-numeric: tabular-nums; cursor: pointer; background: transparent; font-family: inherit; }
   .tithe:hover { color: var(--ink); border-color: var(--copper); }
+  /* Usage-window bar under the plaque text: fill = this PC's window tokens / highest ceiling, a tick per ceiling. */
+  .tithe .gauge { position: relative; display: block; height: 3px; margin-top: 2px; border: 1px solid currentColor; opacity: .8; }
+  .tithe .gauge i { position: absolute; inset: 0 auto 0 0; background: var(--copper); }
+  .tithe .gauge .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: currentColor; }
+  .tithe .gauge .tick.low { background: var(--wax); width: 2px; }
+  #chron .window { margin: .3em 0 0; color: var(--pm); font-variant-numeric: tabular-nums; }
   #chron { --pk: var(--paper-ink); --pm: var(--paper-ink-3); --c-new: var(--chart-new); --c-cache: var(--chart-cache); --c-busy: var(--chart-cache);
     position: absolute; z-index: 5; top: 0; left: 50%; transform: translateX(-50%); width: min(46em, calc(100% - 12px)); height: 100%;
     display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(11px * var(--k, 1)); color: var(--pk); }

@@ -90,7 +90,7 @@ fn claude_lines(st: &mut OcCursor, kind: &str, d: &Value) -> Vec<String> {
             let usage = t.is_object().then(|| {
                 json!({"input_tokens": n(&t["input"]), "output_tokens": n(&t["output"]).saturating_add(n(&t["reasoning"])), "cache_read_input_tokens": n(&t["cache"]["read"]), "cache_creation_input_tokens": n(&t["cache"]["write"])})
             });
-            let mut out = vec![json!({"type": "assistant", "timestamp": ts, "message": {"id": d["id"], "model": d["model"]["id"], "content": uses, "usage": usage}}).to_string()];
+            let mut out = vec![json!({"type": "assistant", "timestamp": ts, "message": {"id": d["id"], "model": d["model"]["id"], "providerID": d["model"]["providerID"].as_str().unwrap_or(""), "content": uses, "usage": usage}}).to_string()];
             if !results.is_empty() {
                 out.push(json!({"type": "user", "timestamp": ts, "message": {"content": results}}).to_string());
             }

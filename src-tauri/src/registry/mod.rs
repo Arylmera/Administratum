@@ -114,6 +114,8 @@ pub struct Context {
 #[serde(rename_all = "camelCase")]
 pub struct Limit {
     pub reset_ms: Option<i64>,
+    /// When the limit message was written (its transcript line's timestamp).
+    pub hit_ms: Option<i64>,
     pub text: String,
 }
 
