@@ -6,7 +6,7 @@ import { WIN_Y, wallArt } from './wallart.js';
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
-import { hallOf, WALL, WALL_DY, zonesOf } from './layout.js';
+import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
@@ -70,10 +70,16 @@ export { WIN_Y, wallArt }; // re-exported from ./wallart.js: layout.test.mjs sti
 const asHanging = x => ['HANGING', x - 0.5, HANG_Y];
 const furnished = new Map();
 export function propsOf(hall) {
-  const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
+  const key = hall.key ?? `${hall.w}x${hall.baseH}:${hall.bays}`;
   let F = furnished.get(key);
   if (F) return F;
   if (furnished.size > 8) furnished.clear();
+  if (hall.wx) { // a west wing (layout.js hallOf): the hall's own, moved east with the scriptorium; the wing has no props
+    const B = propsOf(hall.base), X = hall.wx;
+    F = { props: B.props.map(([name, x, ...more]) => [name, x + X, ...more]), windows: B.windows.map(x => x + X), channels: B.channels.map(x => x + X) };
+    furnished.set(key, F);
+    return F;
+  }
   const { sw, dx, ox, sd, sb, hy } = hall, ex = sw - 200, D = WALL_DY;
   const move = (list, mx, my) => list.map(([name, x, y]) => (!hung(name, y) ? [name, x + mx, y + my] : name === 'BANNER' ? asHanging(x + mx) : [name, x + mx, y]));
   const props = [...move(PROPS.w, 0, D), ...move(PROPS.c, dx, D), ...move(PROPS.e, ex, D),
@@ -110,7 +116,9 @@ export function propsOf(hall) {
 export const STANDING = new Set(['SHELF', 'SHELF_B', 'CRATE', 'BRAZIER', 'THRONE', 'COGITATOR', 'RECAFF', 'TABLE', 'BENCH', 'LORD_DESK', 'PAPER_STACK', 'BOOKS', 'COG_MECH']);
 // The scriptorium is 0..sw, its east wall sw..rx, the right column rx..w (refectorium 0..split - 10, a wall, the
 // sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
+// A west wing (layout.js hallOf wx): the hall without it, moved east, then the wing (drawWing).
 export function drawStatic(g, daylight, hall = hallOf(0)) {
+  if (hall.wx) { g.save(); g.translate(hall.wx, 0); drawStatic(g, daylight, hall.base); g.restore(); drawWing(g, hall); return; }
   const { w, h, sw, rx, ox, dx, sd, sb, hy, split, baseH } = hall, ex = sw - 200, D = WALL_DY;
   const { props, windows, channels } = propsOf(hall);
   const d0 = 150 + sd, d1 = 186 + sd; // the sanctum's door in the east wall
@@ -167,6 +175,21 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
     else blit(g, alt && name === 'HANGING' ? art.hangB : MAPS[name], x, y);
   }
   tile(g, 'wall base', 0, h - 3, sw, 3); // scriptorium's bottom wall, the gate sits in it
+}
+
+// The west wing (O10c, hallOf().rooms): the hall's own walls. Its back wall as the right column's, each room's floor,
+// each further room's top wall the refectorium/sanctum divider (dark wall), dark wall and plates below the last room; the scriptorium's west wall as its east wall (dark, a pipe down it), the doors
+// drawn over it each frame (drawDoors). The rule's colour is the dynamic layer's (zoneFloor).
+function drawWing(g, { wx, h, rooms }) {
+  const W = WING_W, last = rooms.at(-1), end = last ? last.y + last.h : WALL;
+  tile(g, 'wall east', 0, 0, W, WALL); tile(g, 'wall foot', 0, WALL - 4, W, 4); tile(g, 'pipe h', 0, 4, W);
+  for (const R of rooms) {
+    tile(g, 'floor', 0, R.y, W, R.h);
+    if (R.top) tile(g, 'wall dark', 0, R.top, W, WING_DIV);
+  }
+  tile(g, 'wall dark', 0, end, W, Math.min(WING_DIV, h - end));
+  if (h > end + WING_DIV) tile(g, 'wall', 0, end + WING_DIV, W, h - end - WING_DIV);
+  tile(g, 'wall dark', wx - 8, 0, 8, h); tile(g, 'pipe v', wx - 5, 0, 3, h);
 }
 
 // A bay's seam (y: its first slot row's top, minus 2): a brass-edged iron sill across the floor between two
@@ -228,7 +251,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   beginFrame(layout, now);
   const all = [...actors.values()];
   const Zs = H.column ? [] : H.strip ? zonesOfStrip(layout.blocks) : zonesOf(layout.blocks, H); // the column has no bay
-  for (const Z of Zs) zoneFloor(g, Z);
+  for (const Z of wingZones(H, layout.blocks).concat(Zs)) zoneFloor(g, Z); // the west wing's rooms, the break-out room
   drawRugs(g, layout.blocks);
   drawPlinths(g, layout.desks, actors);
   drawLinks(g, layout.desks, actors, now);
@@ -346,9 +369,9 @@ function stripZone(Z, actors, items) {
 export function drawRugs(g, blocks) {
   for (const b of blocks) {
     if (b.empty || b.cell) continue; // an empty room's placeholder, a strip room's plaque cell: no department, no rug
-    const [fill, line] = rugOf(b.color);
-    g.fillStyle = fill; g.fillRect(b.x, b.y, b.w, b.h);
-    g.strokeStyle = line; g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    const [fill, line] = rugOf(b.color), top = b.room && H.wx ? 8 : 0; // a west wing room's: from its desks' top, under its divider
+    g.fillStyle = fill; g.fillRect(b.x, b.y + top, b.w, b.h - top);
+    g.strokeStyle = line; g.lineWidth = 1; g.strokeRect(b.x + 0.5, b.y + top + 0.5, b.w - 1, b.h - top - 1);
   }
 }
 
@@ -970,8 +993,12 @@ const lightsBySize = new Map();
 onTheme(() => lightsBySize.clear());
 function staticLights(hall) {
   if (hall.strip) return []; // the strip has no room, no lighting pass
-  const key = `${hall.w}x${hall.baseH}:${hall.bays}`;
+  const key = hall.key ?? `${hall.w}x${hall.baseH}:${hall.bays}`;
   let L = lightsBySize.get(key);
+  if (!L && hall.wx) { // a west wing: the hall's own, moved east with it
+    L = staticLights(hall.base).map(l => ({ ...l, x: l.x + hall.wx }));
+    lightsBySize.set(key, L);
+  }
   if (!L) {
     if (lightsBySize.size > 8) lightsBySize.clear();
     const { x, y } = hall.entry, { windows, channels } = propsOf(hall), at = (list, mx, my) => list.map(({ hung, ...l }) => ({ ...l, x: l.x + mx, y: l.y + (hung ? 0 : my), color: T.light[l.color] }));
@@ -991,9 +1018,13 @@ function staticLights(hall) {
 
 // Doors, drawn each frame: open while any actor is within 12 logical px of the doorway.
 // Leaves slide up/down inside the scriptorium's east wall (sw..sw + 8).
-const doorsOf = ({ sw, sd }) => [
+// A west wing room's door (hallOf().rooms): the refectorium's door frames, in the scriptorium's west wall, its 20 px
+// doorway ending 2 px under its lane (inside the room's band, the next room's divider starting there). kind: the
+// frames' (default: name).
+const doorsOf = ({ sw, sd, wx = 0, rooms = [] }) => [
   { name: 'sanctum', x0: sw, x1: sw + 8, y0: 150 + sd, y1: 186 + sd }, // scriptorium <-> sanctum (hall.doorOut/doorIn)
   { name: 'refectory', x0: sw, x1: sw + 8, y0: 78 + WALL_DY, y1: 98 + WALL_DY }, // scriptorium <-> refectorium (hall.refOut/refIn)
+  ...rooms.map(R => ({ name: `w:${R.id}`, kind: 'refectory', x0: wx - 8, x1: wx, y0: R.doorOut.y - 18, y1: R.doorOut.y + 2 })),
 ];
 // Is anyone within 12 logical px of the rect x0..x1, y0..y1?
 const near = (actors, x0, y0, x1, y1) => actors.some(a => Math.hypot(Math.max(x0 - a.x, 0, a.x - x1), Math.max(y0 - a.y, 0, a.y - y1)) < 12);
@@ -1008,7 +1039,7 @@ function doorFrame(key, kind, open, now) {
 }
 function drawDoors(g, actors, now) {
   for (const d of doorsOf(H)) {
-    const name = doorFrame(d.name, d.name, near(actors, d.x0, d.y0, d.x1, d.y1), now), [ax, ay] = roomAt(name).door;
+    const name = doorFrame(d.name, d.kind ?? d.name, near(actors, d.x0, d.y0, d.x1, d.y1), now), [ax, ay] = roomAt(name).door;
     tile(g, name, d.x0 - ax, d.y0 - ay); // leaves, lock cog, brass lintels and jambs
   }
 }

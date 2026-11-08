@@ -7,7 +7,7 @@
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
-import { WALL, WALL_DY, zonesOf } from './layout.js';
+import { WALL, WALL_DY, zonesOf, wingZones } from './layout.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
@@ -22,7 +22,7 @@ const fl = Math.floor;
 // The hall drawn: its art-px offset on the canvas (bounds: the same as view.js toScreen's) and its placed props.
 let H = null, B = { ox: 0, oy: 0 }, key = '', placed = [];
 export function use(hall) {
-  const k = `${T.id}:${hall.w}x${hall.h}:${hall.bays}`;
+  const k = `${T.id}:${hall.key ?? `${hall.w}x${hall.h}:${hall.bays}`}`; // key: the size, bays and west wing (layout.js)
   H = hall;
   if (k === key) return;
   key = k; B = bounds(hall); placed = placeProps(hall); doors = null;
@@ -191,7 +191,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18);
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   const Zs = zonesOf(layout.blocks, H);
-  for (const Z of Zs) floor.push(g2 => S.zoneFloor(g2, Z)); // under the rugs, as in the flat view
+  for (const Z of wingZones(H, layout.blocks).concat(Zs)) floor.push(g2 => S.zoneFloor(g2, Z)); // the west wing's rooms, the break-out room: under the rugs, as in the flat view
   floor.push(g2 => S.drawRugs(g2, layout.blocks));
   floor.push(g2 => S.drawPlinths(g2, layout.desks, actors));
   floor.push(g2 => S.drawLinks(g2, layout.desks, actors, now));
@@ -260,7 +260,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   if (an) {
     const K2 = doorKit(an.doors);
     for (const d of S.doorsOf(H)) {
-      const s = an.doors.find(q => q.name === d.name), k = K2[S.doorFrame(d.name, d.name, S.near(all, d.x0, d.y0, d.x1, d.y1), now)];
+      const s = an.doors.find(q => q.name === d.name), k = K2[S.doorFrame(d.name, d.kind ?? d.name, S.near(all, d.x0, d.y0, d.x1, d.y1), now)];
       if (s && k) items.push({ foot: s, draw: g2 => drawBuf(g2, k.buf, k.cv, 0, 0) });
     }
   }

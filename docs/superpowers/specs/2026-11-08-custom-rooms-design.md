@@ -140,8 +140,9 @@ The user tried O10b in the app and asked for "the same walls as elsewhere" and r
    Empty: the rule's name, dimmed.
 6. **Unchanged.** The break-out room (fenced zone in the scriptorium), the strips (a room is a bay there, as today),
    the column view (no rooms), the Rooms settings tab, rule matching in Rust.
-7. **Removed.** Rooms as fenced zones inside the scriptorium (`zoneSequence` placeholders for rooms; the room path of
-   `zonesOf`); the enclave fence frames stay generated only if the strip still draws them.
+7. **Removed.** Rooms as fenced zones inside the scriptorium (the room path of `zonesOf`). `zoneSequence` keeps its
+   placeholders for empty rooms: they hold an empty wing room's place (and the strip's empty bay). The enclave fence
+   frames stay generated only if the strip still draws them.
 8. **Tests.** Walkers enter and leave rooms only through their doors; doors open while someone is on the frame; walls
    never cover a desk, seat, queue slot or prop; rooms in rule order whatever the arrival order; an empty room keeps
    its place; a live department is never pushed into overflow by an empty room; break-out room and strips unchanged;

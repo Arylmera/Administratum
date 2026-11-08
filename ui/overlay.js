@@ -1,5 +1,5 @@
 // The DOM over the canvas, synced each frame: plaques, petition labels, tags, edge arrows, the hover tip.
-import { SCENE, WALL_DY, zonesOf } from './layout.js';
+import { SCENE, WALL_DY, zonesOf, wingZones } from './layout.js';
 import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion } from './actors.js';
@@ -36,7 +36,6 @@ function openDept(name) {
 const plaques = new Map();
 const FLOOR39 = `matrix(1, ${1 / 3}, ${-TAN39}, ${TAN39 / 2}, 0, 0)`; // one floor px along x and y, as toScreen maps them in 39°
 const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
-export const ROOM_UP = 4; // a custom room's plaque: its top this far above the fence's top rail (zonesOf Z.y), over the rail
 // Subscription usage as claude-deck last wrote it (main.rs usage): session and weekly percent and the time to their
 // reset. Hidden when claude-deck is absent or its file is over 30 min old (it would show a stale percent).
 let usage = null;
@@ -51,13 +50,16 @@ export function renderPlaques(blocks) {
   const depts = blocks.filter(b => !b.empty && !b.cell); // an empty room's placeholder, a strip room's cell: the room's plaque only
   const want = new Map(depts.map(b => [`b:${b.name}`, ['plaque', b.name, ...place(b), b.color, b.w - 4 + (strip() && !col ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip() && !col]])); // the strip's plaque may run over the gap after it
   if (layout().overflow) want.set('overflow', ['plaque', t('overflow', { n: layout().overflow }), ...(col ? [hall().side === 'right' ? hall().w - 96 : 4, hall().cog.y + 1] : at(120 + hall().dx, hall().y1 - 10)), T.ink.overflowPlaque]); // the column's: on the cogitator floor's slab
-  // A zone's name: the break-out room's under its fence (it packs last; not in the strip: no room for it), a custom room's on
-  // its own top rail, in its rule's colour, dim while empty (under the fence it would cover the next zone). In the strip
-  // a room's name hangs over its leading cell (strip.js layoutStrip), as a department's.
+  // The break-out room's name under its fence (it packs last; not in the strip: no room for it). A west wing room's
+  // (hallOf().rooms) on its top wall in its rule's colour (39°: on its floor by that wall, the wall being low there):
+  // its only department's own plaque (name, branch, opens the folder), else the room's name, dim while empty. In the
+  // strip a room's name hangs over its leading cell (strip.js layoutStrip), as a department's.
   const nameOf = id => { const r = rooms.list.find(q => q.id === id); return r ? r.name || r.pattern : ''; };
-  for (const Z of strip() ? [] : zonesOf(blocks, hall())) {
-    if (Z.kind === 'temp') want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
-    else want.set(`r:${Z.id}`, [`plaque room${Z.empty ? ' dim' : ''}`, nameOf(Z.id), ...at(Z.x + 4, Z.y - ROOM_UP), Z.color, Z.w - 8]); // on its own top rail
+  for (const Z of strip() ? [] : zonesOf(blocks, hall())) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
+  for (const R of strip() ? [] : wingZones(hall(), blocks)) {
+    const top = view.mode === '39' ? at(R.x + 4, R.y + 2) : at(R.x + 4, R.plaqueY), inside = depts.filter(b => b.room === R.id);
+    if (inside.length === 1) want.set(`b:${inside[0].name}`, ['plaque', inside[0].name, ...top, R.color, R.w - 8, shownBranch(deptHead(inside[0].name)?.branch)]);
+    else want.set(`r:${R.id}`, [`plaque room${R.empty ? ' dim' : ''}`, nameOf(R.id), ...top, R.color, R.w - 8]);
   }
   if (strip() && !col) for (const b of blocks.filter(b => b.cell)) want.set(`r:${b.room}`, [`plaque room${b.empty ? ' dim' : ''}`, nameOf(b.room), ...place(b), b.roomColor, b.w - 4 + GAP - 4, '', undefined, true]);
   const u = strip() && usageText(); // the subscription's usage on a banner over the Magos
@@ -66,7 +68,7 @@ export function renderPlaques(blocks) {
   if (u) want.set('usage', ['plaque usage', u, Math.max(col ? 2 : -Infinity, Math.min(hall().magos.x - uw / 2, hall().w - 2 - uw)), hall().magos.y - 30 - STRIP_PAD, undefined, undefined, '', undefined, true]); // over the Magos' floor (the strip's: FLOOR)
   syncHonours();
   if (!roster().length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
-    const y = 120 + WALL_DY + (hall().h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall().sw, y), [mx, my] = at(hall().sw / 2, y);
+    const y = 120 + WALL_DY + (hall().h - SCENE.h) / 2, wx = hall().wx ?? 0, [x0] = at(wx, y), [x1] = at(hall().sw, y), [mx, my] = at((wx + hall().sw) / 2, y);
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
   }
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }

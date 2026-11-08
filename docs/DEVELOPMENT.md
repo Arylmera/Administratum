@@ -66,13 +66,13 @@ do not know which.
 | `settings.js` | Settings panel and the persisted store (`settings.json`, localStorage as cache) |
 | `panel.js` | Open/close behaviour shared by the parchment panels |
 | `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log; the plaque's usage-window bar (`windowGauge`) and today's window line (`windowLine`); `openWeek` (the Hall of Honours' click) |
-| `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases; `zoneSequence` (custom rooms in rule order, the open hall, the break-out room) and `zonesOf` (each fenced zone and its gates) |
+| `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases; `zoneSequence` (custom rooms in rule order, the open hall, the break-out room), the west wing (`hallOf(bays, size, wing)`: the hall moved east by `wx`, `hall.base` the hall without it, `hall.rooms` each room's rect, lanes, corridor and door, geometry only; `wingZones` adds each room's colour and emptiness from the layout; `layoutDepartments` packs room departments there and returns `wing`), `zonesOf` (the break-out room's fence and gates) |
 | `rooms.js` | Custom rooms in force (`adm.rooms`): `roomsOf` (the lenient parse, `rooms.rs`'s caps), `setRooms`, `tintOf` (a rule's colour on the sash slot `y`) |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
-| `scene.js` | Canvas drawing of the flat hall: the static background and each frame |
+| `scene.js` | Canvas drawing of the flat hall: the static background and each frame; with a west wing, the hall drawn moved east and `drawWing` (its walls, floors, the west wall; its doors in `drawDoors`) |
 | `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
-| `iso.js`, `isohall.js`, `scene39.js` | The 39° view: z-buffer engine, its static hall, its per-frame layer |
+| `iso.js`, `isohall.js`, `scene39.js` | The 39° view: z-buffer engine, its static hall (with a west wing, `wingPlan`: the hall's plan moved east, the wing's floor and walls, the west wall's doorways), its per-frame layer |
 | `faces.js` | Face sheets: one art source split into faces, drawn flat or built into 39° volumes |
 | `depth.js` | Shadows, cast shadows and ambient occlusion computed from the sprites |
 | `lighting.js`, `sun.js` | Darkness, light pools and glows; sunrise and sunset (NOAA) for *Auto* lighting |

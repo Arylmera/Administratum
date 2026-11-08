@@ -39,9 +39,58 @@ for (const id of ['tier2', 'vault']) {
     got[k] = sha(cv.log.join('\n'));
   }
 }
+// The west wing (O10c): a hall with three rooms (one row, two rows, one row), recorded once looked at on screen.
+const WING = [{ id: 'a', color: '#c8a040', rows: 1 }, { id: 'b', color: '#40a0c8', rows: 2 }, { id: 'c', color: '#a040c8', rows: 1, empty: true }];
+const FLAT_WING = { 'tier2 wing': '5bf757e1fa8f', 'vault wing': '905672fec7a6' };
+for (const id of ['tier2', 'vault']) {
+  setTheme(id);
+  const cv = fakeCanvas();
+  drawStatic(cv.getContext('2d'), true, hallOf(4, undefined, WING)); // 4 bays: the wing's 6 rows fit
+  got[`${id} wing`] = sha(cv.log.join('\n'));
+}
 if (process.env.RECORD) console.log(got);
 for (const k in FLAT) assert.equal(got[k], FLAT[k], `${k}: the flat background changed`);
-assert.equal(new Set(Object.values(got)).size, 8, 'each hall, theme and light draws differently');
+for (const k in FLAT_WING) assert.equal(got[k], FLAT_WING[k], `${k}: the west wing's background changed`);
+assert.equal(new Set(Object.values(got)).size, 10, 'each hall, theme and light draws differently');
+
+// The wing reflows (Cast.resized): whoever stands in a room moves by the rows its room moved; its room gone (or the
+// whole wing), at that room's door, hall side; the scriptorium's actors move with the wing's width.
+{
+  const { Cast } = await import('./actors.js'), { SLOT_H } = await import('./layout.js');
+  const W2 = [{ id: 'a', rows: 2 }, { id: 'b', rows: 1 }], from = hallOf(4, undefined, W2), [A, B] = from.rooms;
+  const at = (R, id) => ({ id, x: 40, y: R.y + 30, path: [], destKey: 'x' });
+  const run = to => { const c = new Cast(), a = at(A, 'a'), b = at(B, 'b'), h = { id: 'h', x: from.x0 + 20, y: from.y0 }; for (const o of [a, b, h]) c.actors.set(o.id, o); c.resized(from, to); return { a, b, h }; };
+  let r = run(hallOf(4, undefined, [{ id: 'a', rows: 1 }, { id: 'b', rows: 1 }]));
+  assert.deepEqual([r.a.y, r.b.y, r.h.x], [A.y + 30, B.y + 30 - SLOT_H, from.x0 + 20], 'b one row up with its room');
+  r = run(hallOf(4, undefined, [{ id: 'b', rows: 1 }])); // a deleted: b first now
+  assert.deepEqual([r.b.y, [r.a.x, r.a.y]], [B.y + 30 - 2 * SLOT_H, [A.doorOut.x, A.doorOut.y]], 'b two rows up; a at its door');
+  r = run(hallOf(4)); // the wing gone
+  assert.deepEqual([[r.a.x, r.a.y], [r.b.x, r.b.y], r.h.x], [[A.doorOut.x - from.wx, A.doorOut.y], [B.doorOut.x - from.wx, B.doorOut.y], from.x0 + 20 - from.wx], 'all at their doors, the hall back west');
+}
+
+// The west wing's doors: one per room in the scriptorium's west wall, on its lane, the refectorium's frames; open while
+// anyone stands on its frame (as the Sanctum's), shut otherwise and for an empty room nobody walks to.
+{
+  const { drawScene, doorsOf } = await import('./scene.js'), { roomAt } = await import('./room.js'), { sprite, ROOM } = await import('./sprites.js');
+  setTheme('tier2');
+  const hall = hallOf(4, undefined, WING), layout = { hall, blocks: [], desks: [], consoles: [], level: { dark: 0.18 } };
+  const img = name => { const cv = sprite(ROOM.frames[name]); return `cv:${cv.width}x${cv.height}:${sha(cv.log.join('\n'))}`; };
+  const ds = doorsOf(hall).filter(d => d.name.startsWith('w:'));
+  assert.deepEqual(ds.map(d => [d.name, d.kind, d.x0, d.x1]), hall.rooms.map(R => [`w:${R.id}`, 'refectory', hall.wx - 8, hall.wx]), 'a door per room in the west wall');
+  let now = 1000;
+  const frameOf = (actors, d) => { // the door's frame drawn, once at rest (a swing shows its half frame for 120 ms)
+    let log;
+    for (const t of [now, now + 1000]) { const cv = fakeCanvas(); drawScene(cv.getContext('2d'), layout, new Map(actors.map((a, i) => [`a${i}`, a])), () => 0, t); log = cv.log; }
+    now += 5000;
+    return ['open', 'closed'].find(s => { const n = `door refectory ${s}`, [ax, ay] = roomAt(n).door; return log.some(l => l.startsWith(`drawImage(${img(n)},${d.x0 - ax},${d.y0 - ay},`)); });
+  };
+  const walker = (x, y) => ({ id: 'w', x, y, pose: 'walk', dir: 'left', t: 0, path: [], s: { status: 'busy', name: 'w', context: 0 } });
+  for (const [d, R] of ds.map((d, i) => [d, hall.rooms[i]])) {
+    assert.ok(d.y0 < R.doorOut.y && R.doorOut.y < d.y1 && d.y0 >= R.top && d.y1 <= R.y + R.h, `${d.name}: on its lane, in its room's band`);
+    assert.equal(frameOf([walker(hall.wx - 4, R.doorOut.y)], d), 'open', `${d.name}: open with someone on its frame`);
+    assert.equal(frameOf([walker(hall.wx + 60, R.doorOut.y)], d), 'closed', `${d.name}: shut with nobody by it`);
+  }
+}
 
 // The background-shell cog and the dozing Zs draw their art, not code (both views share these): spinCog frame k
 // (MAPS.SHELL_COG_k) for its k / COG_TURN of a turn (2 rad/s), centred on (cx, cy); dozing two MAPS.DOZE_Z, fading.

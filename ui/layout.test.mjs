@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY } from './layout.js';
+import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY, WING_W, WING_X, WING_CX, WING_DIV, wingZones } from './layout.js';
 import { propsOf, WIN_Y, wallArt } from './scene.js';
 import { MAPS, RES, ART } from './sprites.js';
 import { setTheme, THEMES } from './theme.js';
@@ -508,77 +508,131 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   assert.equal(P.level, 0, 'all the way down in one step');
 }
 
-// Custom rooms (O10): rooms first in rule order whatever the arrival order, then the open hall, the break-out room last;
-// each zone on rows of its own, fenced, entered only through its gates.
+// Custom rooms (O10c): the west wing's rooms in rule order whatever the arrival order, then the open hall, the
+// break-out room last; each room walled, entered only through its door.
 {
   const R = [{ id: 'rA', name: 'A', pattern: '**', color: '#aa0000' }, { id: 'rB', name: 'B', pattern: '**', color: '#00bb00' }];
   const dept = (name, n, room, temp) => ({ name, color: '#fff', ids: ids(name, n), ...(room && { room }), ...(temp && { temp }) });
   const arrive = [dept('Terra', 2), dept('out', 1, null, true), dept('Bd', 2, 'rB'), dept('Ad', 3, 'rA')];
   const plan = (depts, rooms = R, prev = null, now = 0, lay = layoutDepartments) => planLayout(prev, depts, now, {}, SCENE, lay, rooms);
-  const P = plan(arrive), H = hallOf(P.bays);
+  const P = plan(arrive), H = hallOf(P.bays, SCENE, P.wing);
   assert.deepEqual(P.blocks.map(b => b.name), ['Ad', 'Bd', 'Terra', 'out'], 'rule order first, whatever the arrival order; temp still last');
   assert.deepEqual(P.blocks.map(b => b.room ?? null), ['rA', 'rB', null, null]);
   assert.equal(P.blocks[0].roomColor, '#aa0000');
-  const key = b => (b.temp ? 'temp' : b.room ?? null);
-  const rowsOf = b => [b.y, b.y + b.h];
-  for (const a of P.blocks) for (const b of P.blocks) if (key(a) !== key(b)) {
-    const [a0, a1] = rowsOf(a), [b0, b1] = rowsOf(b);
-    assert.ok(a1 <= b0 || b1 <= a0, `${a.name} and ${b.name} share a slot row`);
+  assert.deepEqual(wingZones(H, P.blocks).map(q => [q.id, q.color]), [['rA', '#aa0000'], ['rB', '#00bb00']], 'the wing in rule order');
+  // the wing west of the scriptorium's west wall, the rooms stacked down it with no row lost; each room's blocks inside it
+  // (a block's first 8 px, over its desks, lie under the room's divider)
+  assert.equal(H.wx, WING_X); assert.equal(H.w, SCENE.w + WING_X);
+  for (const [i, q] of H.rooms.entries()) {
+    if (i) assert.ok(q.top === H.rooms[i - 1].y + H.rooms[i - 1].h && q.y === q.top + WING_DIV && q.k === H.rooms[i - 1].k + H.rooms[i - 1].rows, `${q.id} right below ${H.rooms[i - 1].id}, under its own top wall`);
+    for (const b of P.blocks.filter(b => b.room === q.id)) assert.ok(b.x >= 0 && b.x + b.w <= WING_CX + 1 && b.y + 8 >= q.y && b.y + b.h <= q.y + q.h, `${b.name} inside ${q.id}`);
+    assert.ok(H.lanes.includes(q.doorOut.y) && q.lanes.includes(q.doorIn.y), `${q.id}: its door on a scriptorium lane and its own`);
   }
-  const Zs = zonesOf(P.blocks, H);
-  assert.deepEqual(Zs.map(Z => [Z.kind, Z.id, Z.color, Z.empty]), [['room', 'rA', '#aa0000', false], ['room', 'rB', '#00bb00', false], ['temp', 'temp', undefined, false]]);
-  const overlap = (p, q) => p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h;
-  for (const Z of Zs) {
-    for (const W of Zs) if (W !== Z) assert.ok(!overlap(Z, W), `zones ${Z.id} and ${W.id} overlap`);
-    for (const b of P.blocks) if (key(b) !== (Z.kind === 'temp' ? 'temp' : Z.id)) assert.ok(!overlap(Z, b), `zone ${Z.id} takes in ${b.name}`);
-    assert.ok(Z.gates.length >= 1 && Z.gates.every(q => q.x === Z.x + Z.w));
-  }
-  // walks: a room's scribe crosses its fence once, at a gate; nobody else ever sets foot in any zone
-  const inZ = Z => p => p.x > Z.x && p.x < Z.x + Z.w && p.y > Z.y && p.y < Z.y + Z.h;
+  for (const b of P.blocks.filter(b => !b.room)) assert.ok(b.x >= H.x0 && b.x + b.w <= H.x1 + 1, `${b.name} in the scriptorium`);
+  assert.deepEqual(zonesOf(P.blocks, H).map(Z => Z.id), ['temp'], 'the break-out room alone is fenced');
+  // walks: a room is entered and left through its door only (the wing/hall line crossed at its door's lane, a room's
+  // band at its door), every route ends where asked; nobody else ever sets foot in a room
   const walk = (a, path) => {
     const pts = [a];
     for (const q of path) { const p = pts.at(-1), n = Math.max(Math.abs(q.x - p.x), Math.abs(q.y - p.y)); for (let i = 1; i <= n; i++) pts.push({ x: p.x + (q.x - p.x) * i / n, y: p.y + (q.y - p.y) * i / n }); }
     return pts;
   };
-  const ends = [H.entry, H.queue[0], H.refectory[0], H.cogSpots[0]];
+  const inRoom = q => p => p.x < H.wx - 4 && p.y >= q.top && p.y < q.y + q.h;
+  const ends = [H.entry, H.queue[0], H.refectory[0], H.cogSpots[0], H.recaff];
   const tSeat = P.seats.get('Terra-0');
   for (const b of ends) for (const pts of [walk(tSeat, route(tSeat, b, P.blocks, H)), walk(b, route(b, tSeat, P.blocks, H))])
-    for (const Z of Zs) assert.ok(!pts.some(inZ(Z)), `a normal walk enters ${Z.id}`);
-  for (const [id, Z] of [['Ad-2', Zs[0]], ['Bd-1', Zs[1]]]) {
-    const seat = P.seats.get(id);
-    for (const b of ends) for (const pts of [walk(b, route(b, seat, P.blocks, H)), walk(seat, route(seat, b, P.blocks, H))]) {
-      let crossings = 0;
-      for (let i = 1; i < pts.length; i++) if (inZ(Z)(pts[i]) !== inZ(Z)(pts[i - 1])) {
-        crossings++;
-        assert.ok(Z.gates.some(q => Math.abs(pts[i].y - q.y) < 1 && Math.abs(pts[i].x - q.x) <= 1), `${id}: fence crossed at ${pts[i].x},${pts[i].y}`);
+    assert.ok(!pts.some(p => p.x < H.wx), 'a normal walk enters the wing');
+  const seatsOf = id => [...P.seats].filter(([k]) => k.startsWith(id)).map(([, s]) => s);
+  for (const [dname, q] of [['Ad', H.rooms[0]], ['Bd', H.rooms[1]]]) for (const seat of seatsOf(dname)) {
+    const other = H.rooms.find(r => r !== q);
+    for (const b of [...ends, ...seatsOf(dname === 'Ad' ? 'Bd' : 'Ad'), ...seatsOf(dname)]) for (const [s, e] of [[seat, b], [b, seat]]) {
+      const rt = route(s, e, P.blocks, H), pts = walk(s, rt);
+      assert.deepEqual(rt.at(-1) ?? s, { x: e.x, y: e.y }, `${dname}: the walk ends where asked`);
+      for (let i = 1; i < pts.length; i++) {
+        const [p0, p1] = [pts[i - 1], pts[i]];
+        if ((p0.x < H.wx - 8) !== (p1.x < H.wx - 8) || (p0.x <= H.wx) !== (p1.x <= H.wx))
+          assert.ok(H.rooms.some(r => Math.abs(p1.y - r.doorOut.y) < 1), `${dname}: the west wall crossed at ${p1.x},${p1.y}, off any door`);
+        if (p0.x < H.wx - 8 && p1.x < H.wx - 8) for (const r of H.rooms) if (inRoom(r)(p0) !== inRoom(r)(p1)) assert.fail(`${dname}: a room's wall crossed at ${p1.x},${p1.y}`);
       }
-      assert.equal(crossings, 1, `${id}: one crossing`);
-      for (const W of Zs) if (W !== Z) assert.ok(!pts.some(inZ(W)), `${id} walks through ${W.id}`);
+      for (const Z of zonesOf(P.blocks, H)) assert.ok(!pts.some(p => p.x > Z.x && p.x < Z.x + Z.w && p.y > Z.y && p.y < Z.y + Z.h), `${dname}: walks through the break-out room`);
+      const throughOther = pts.some(inRoom(other)) && !seatsOf(dname === 'Ad' ? 'Bd' : 'Ad').some(o => o === s || o === e);
+      assert.ok(!throughOther, `${dname} walks through ${other.id}`);
+      const has = d => rt.some(p => p.x === d.x && p.y === d.y);
+      if (!seatsOf(dname).includes(e) || !seatsOf(dname).includes(s)) assert.ok(has(q.doorIn) && has(q.doorOut), `${dname}: through its door`);
     }
   }
+  // walls never cover a desk, a seat, a console, a queue slot or a prop: the west wall, each room's top wall, the wing below
+  const walls = [{ x: H.wx - 8, y: 0, w: 8, h: H.h }, ...H.rooms.map(r => ({ x: 0, y: r.top, w: WING_W, h: r.y - r.top })), { x: 0, y: H.rooms.at(-1).y + H.rooms.at(-1).h, w: WING_W, h: H.h }];
+  const things = [...P.desks.map(d => [d, 32, 21]), ...[...P.seats.values()].map(s => [s, 1, 1]), ...P.consoles.map(c => [c, 14, 10]), ...H.queue.map(q => [{ x: q.x - 8, y: q.y - 17 }, 16, 17]),
+    ...propsOf(H).props.map(([name, x, y]) => [{ x, y }, MAPS[name][0].length / RES, MAPS[name].length / RES])];
+  for (const W of walls) for (const [o, w, h] of things) assert.ok(!hit(o, w, h, W, W.w, W.h), `a wall at ${W.x},${W.y} covers ${JSON.stringify(o)}`);
+  // a route recomputed while a scribe crosses a door (in the west wall, wx - 8 .. wx + 1): it keeps to its door's lane
+  // while in the wall, out to a hall seat or in to a room seat, either way
+  const hallSeats = [...P.seats].filter(([k]) => !k.startsWith('Ad') && !k.startsWith('Bd')).map(([, s]) => s);
+  const inWall = p => p.x >= H.wx - 8 && p.x <= H.wx + 1;
+  // the hall side of a door takes only its lane: a walk from it never moves up or down along the west wall (x = wx + 1)
+  for (const R of H.rooms) for (const e of [...hallSeats, H.entry, H.queue[0]]) {
+    const pts = walk(R.doorOut, route(R.doorOut, e, P.blocks, H));
+    assert.ok(!pts.some(p => p.x === H.wx + 1 && p.y !== R.doorOut.y), `${R.id}: from its door up or down the wall to ${e.x},${e.y}`);
+  }
+  for (const R of H.rooms) for (const dx of [-2, -6]) {
+    const s = { x: H.wx + dx, y: R.doorOut.y };
+    for (const e of [...hallSeats, ...seatsOf('Ad'), ...seatsOf('Bd'), H.entry]) for (const [p, q] of [[s, e], [e, s]]) {
+      const rt = route(p, q, P.blocks, H), pts = walk(p, rt);
+      assert.deepEqual(rt.at(-1), { x: q.x, y: q.y }, `${R.id} ${dx}: the walk ends where asked`);
+      for (const pt of pts) if (inWall(pt)) assert.ok(H.rooms.some(r => Math.abs(pt.y - r.doorOut.y) < 1), `${R.id} ${dx}: inside the wall off any door's lane at ${pt.x},${pt.y}`);
+    }
+  }
+  // geometry only: a room filling, emptying or changing colour keeps the very same hall (no background rebuilt, nobody re-routed)
+  const geo = P.wing.map(r => ({ ...r, color: '#010203', empty: !r.empty }));
+  assert.equal(hallOf(P.bays, SCENE, geo), H, 'colour and emptiness do not make a new hall');
+  assert.notEqual(hallOf(P.bays, SCENE, P.wing.map(r => ({ ...r, rows: r.rows + 1 }))), H, 'a row more does');
   // reorder: the rooms follow the rules; a deleted rule's departments join the open hall in arrival order
   assert.deepEqual(plan(arrive, [R[1], R[0]]).blocks.map(b => b.name), ['Bd', 'Ad', 'Terra', 'out']);
   const gone = plan(arrive, [R[1]]);
   assert.deepEqual(gone.blocks.map(b => [b.name, b.room ?? null]), [['Bd', 'rB'], ['Terra', null], ['Ad', null], ['out', null]]);
-  assert.deepEqual(plan(arrive, []).blocks.map(b => b.name), ['Terra', 'Bd', 'Ad', 'out'], 'no rooms: today\'s order');
+  const none = plan(arrive, []);
+  assert.deepEqual(none.blocks.map(b => b.name), ['Terra', 'Bd', 'Ad', 'out'], 'no rooms: today\'s order');
+  assert.equal(none.wing, null, 'no rule, no wing');
   // a live department no longer in its room (its sessions moved, the rule changed) leaves it at once
   const moved = plan([dept('Ad', 3)], R, plan([dept('Ad', 3, 'rA')]), 1);
   assert.deepEqual(moved.blocks.map(b => [b.name, b.room ?? null]), [['room:rA', 'rA'], ['room:rB', 'rB'], ['Ad', null]]);
 }
 
-// An empty room keeps its place: one slot, no desk, no session, dim; it survives every tick; past the hall's capacity
-// its placeholder is not drawn and the overflow counts live sessions only.
+// The winged hall is the hall without it, every x moved east by the wing (the scriptorium keeps its own width rules),
+// every y the same; one more room row in the wing changes no field of the scriptorium.
+{
+  for (const S of [SCENE, { w: 960, h: 520 }]) for (const bays of [0, 2]) {
+    const B = hallOf(bays, S), H = hallOf(bays, S, [{ id: 'r', color: '#fff', rows: 1 }]), X = H.wx;
+    const pt = (k, p, q) => assert.deepEqual([q.x, q.y], [p.x + X, p.y], `${k}: moved east`);
+    for (const k of ['w', 'sw', 'rx', 'ox', 'dx', 'x0', 'x1', 'corridorX']) assert.equal(H[k], B[k] + X, k);
+    for (const k of ['h', 'baseH', 'split', 'sd', 'sb', 'hy', 'rows', 'y0', 'y1', 'aisleY', 'bays', 'dy']) assert.equal(H[k], B[k], k);
+    assert.deepEqual(H.lanes, B.lanes);
+    for (const k of ['entry', 'doorOut', 'doorIn', 'refOut', 'refIn', 'recaff']) pt(k, B[k], H[k]);
+    for (const k of ['refectory', 'cogSpots', 'queue']) { assert.equal(H[k].length, B[k].length); H[k].forEach((q, i) => pt(`${k}[${i}]`, B[k][i], q)); }
+    const keys = o => Object.keys(o).filter(k => !['base', 'rooms', 'key', 'wx'].includes(k)).sort();
+    assert.deepEqual(keys(H), keys(B), 'no field left behind');
+    assert.equal(roomOf({ x: 10, y: 100 }, H), 'w:r'); assert.equal(roomOf(H.rooms[0].doorOut, H), 'hall');
+    const props = propsOf(H).props, base = propsOf(B).props;
+    assert.deepEqual(props, base.map(([n, x, ...m]) => [n, x + X, ...m]), 'the props move with the scriptorium');
+  }
+}
+
+// An empty room keeps its place (one row, no desk, never in the plan), first in its rule's order; past the hall's
+// capacity its placeholder is not drawn and the overflow counts live sessions only.
 {
   const R = [{ id: 'rA', name: 'A', pattern: '**', color: '#aa0000' }, { id: 'rB', name: 'B', pattern: '**', color: '#00bb00' }];
   const d = (name, n, room) => ({ name, color: '#fff', ids: ids(name, n), ...(room && { room }) });
   let P = planLayout(null, [d('Terra', 2), d('Bd', 1, 'rB')], 0, {}, SCENE, layoutDepartments, R);
   for (const now of [1000, DEPT_GRACE_MS * 3]) P = planLayout(P, [d('Terra', 2), d('Bd', 1, 'rB')], now, { desk: 0, dept: 0 }, SCENE, layoutDepartments, R);
   const [ph] = P.blocks;
-  assert.deepEqual([ph.name, ph.room, ph.empty, ph.w, ph.h], ['room:rA', 'rA', true, P.compact ? 33 : 50, 56], 'the placeholder, first, one slot');
+  assert.deepEqual([ph.name, ph.room, ph.empty], ['room:rA', 'rA', true], 'the placeholder, first');
+  assert.deepEqual(P.wing.map(r => [r.id, r.empty, r.rows]), [['rA', true, 1], ['rB', false, 1]], 'the empty room keeps its row');
   assert.ok(!P.desks.some(k => k.dept === 'room:rA'), 'no desk');
   assert.equal(P.plan.some(p => p.name === 'room:rA'), false, 'never in the plan');
-  const [Z] = zonesOf(P.blocks, hallOf(P.bays));
-  assert.deepEqual([Z.id, Z.empty, Z.gates.length], ['rA', true, 1]);
+  const H = hallOf(P.bays, SCENE, P.wing);
+  assert.deepEqual(wingZones(H, P.blocks).map(q => [q.id, q.empty]), [['rA', true], ['rB', false]]);
+  assert.deepEqual(zonesOf(P.blocks, H), [], 'no fenced zone for a room');
   const many = Array.from({ length: 12 }, (_, i) => d(`D${i}`, 6));
   const full = planLayout(null, many, 0, {}, SCENE, layoutDepartments, R);
   assert.ok(full.overflow > 0 && full.level === 1 + MAX_BAYS, 'past capacity');
@@ -594,6 +648,10 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
     assert.equal(roomy.overflow, bare.overflow, `${set.length} departments: the overflow counts live sessions only`);
     assert.deepEqual(roomy.blocks.filter(b => !b.empty).map(b => b.name), bare.blocks.map(b => b.name), 'the same departments drawn');
   }
+  // a wing taller than the tallest hall: the live room's department is drawn whole, the empty rooms past it give way
+  const big = planLayout(null, [{ name: 'Big', color: '#fff', ids: ids('Big', 14), room: 'e0' }], 0, {}, SCENE, layoutDepartments, six);
+  assert.equal(big.overflow, 0, 'no live session in the overflow');
+  assert.ok(big.blocks.some(b => b.name === 'Big') && big.wing.length < six.length, 'Big drawn, some empty rooms not');
 }
 
 // The shrink probe with rooms: the level kept is the smallest that still holds the rooms, the open hall and a newcomer.
@@ -606,23 +664,33 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   const few = [d('a', 2), d('ra', 3, 'rA')];
   P = planLayout(P, few, 1000, grace, SCENE, layoutDepartments, R);
   P = planLayout(P, few, 1000 + SHRINK_MS, grace, SCENE, layoutDepartments, R);
-  const opt = l => ({ compact: l > 0, bays: Math.max(0, l - 1) }), probe = zoneSequence(P.plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }), R);
+  const opt = l => ({ compact: l > 0, bays: Math.max(0, l - 1), wing: R }), probe = zoneSequence(P.plan.concat({ name: '+', desks: [{ key: '+', id: '+' }] }), R);
   assert.equal(layoutDepartments(probe, opt(P.level)).overflow, 0, 'the level kept holds a newcomer');
   if (P.level > 0) assert.ok(layoutDepartments(probe, opt(P.level - 1)).overflow > 0, 'the level below would not');
   assert.ok(P.level < 3, 'it stepped down');
 }
 
-// 39°: a zone never straddles the cogitator bank (x 116..198 + dx in the first row): east of it when the whole zone fits
-// in the first row, else from row 1; the break-out room alike.
+// 39°: the break-out room never straddles the cogitator bank (x 116..198 + dx in the first row): east of it when it fits
+// in the first row, else from row 1; with the west wing too.
 {
   const layIso = (plan, o) => layoutDepartments(plan, { ...o, clearCog: true });
-  const d = (name, n, room, temp) => ({ name, color: '#fff', ids: ids(name, n), ...(room && { room }), ...(temp && { temp }) });
+  const d = (name, n, temp) => ({ name, color: '#fff', ids: ids(name, n), ...(temp && { temp }) });
   const R = [{ id: 'rA', name: 'A', pattern: '**', color: '#aa0000' }];
-  for (const size of [SCENE, { w: MAX_W, h: SCENE.h }]) for (const set of [[d('ra', 1, 'rA')], [d('ra', 4, 'rA'), d('rb', 4, 'rA')], [d('t', 2, null, true)], [d('t', 4, null, true), d('u', 4, null, true)],
-    'abcde'.split('').map(n => d(n, 1, 'rA')), 'abcde'.split('').map(n => d(n, 1, null, true))]) { // small blocks west of the bank, then one past it
-    const P = planLayout(null, set, 0, {}, size, layIso, R), H = hallOf(P.bays, size);
+  for (const rooms of [[], R]) for (const size of [SCENE, { w: MAX_W, h: SCENE.h }]) for (const set of [[d('t', 2, true)], [d('t', 4, true), d('u', 4, true)],
+    'abcde'.split('').map(n => d(n, 1, true))]) { // small blocks west of the bank, then one past it
+    const P = planLayout(null, set, 0, {}, size, layIso, rooms), H = hallOf(P.bays, size, P.wing);
     for (const Z of zonesOf(P.blocks, H)) assert.ok(!(Z.y < H.y0 + 64 && Z.x < 198 + H.dx && Z.x + Z.w > 116 + H.dx), `${set.map(x => x.name)} (${size.w}): zone ${Z.id} before the bank`);
   }
+}
+
+// The wing costs no row of its own: two rules, a one-desk department in each (or both empty), fit the minimum hall
+// with full desks; three need one row more.
+{
+  const R = n => Array.from({ length: n }, (_, i) => ({ id: `r${i}`, color: '#123456' }));
+  const d = (name, n, room) => ({ name, color: '#fff', ids: ids(name, n), ...(room && { room }) });
+  assert.equal(planLayout(null, [d('A', 1, 'r0'), d('B', 1, 'r1')], 0, {}, SCENE, layoutDepartments, R(2)).level, 0, 'two rooms: full desks, no bay');
+  assert.equal(planLayout(null, [d('X', 2)], 0, {}, SCENE, layoutDepartments, R(2)).level, 0, 'two empty rooms: full desks, no bay');
+  assert.equal(planLayout(null, [d('A', 1, 'r0'), d('B', 1, 'r1'), d('C', 1, 'r2')], 0, {}, SCENE, layoutDepartments, R(3)).level, 2, 'three rooms: one bay');
 }
 
 console.log('layout ok');

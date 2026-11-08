@@ -1,6 +1,6 @@
 import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADEPT39_AT, WATCH, WATCH_AT, WATCH39, WATCH39_AT, MAPS, RES, rankOf, blit, sprite, marked, half } from './sprites.js';
 import { T, onTheme, hexA } from './theme.js';
-import { route, roomOf, hallOf } from './layout.js';
+import { route, roomOf, hallOf, SLOT_H } from './layout.js';
 import { settings, questions } from './settings.js';
 import { view } from './view.js';
 import { vigil } from './vigil.js';
@@ -48,7 +48,7 @@ export class Cast {
     if (!hall.column) this.lift = null;
     else if (!this.lift || !this.hall.column) this.lift = makeLift(hall.stops, 'ref');
     else if (hall.floorsKey !== this.hall.floorsKey) this.floorsMoved(this.hall, hall);
-    if (!hall.column && (hall.w !== this.hall.w || hall.baseH !== this.hall.baseH)) this.resized(this.hall, hall);
+    if (!hall.column && (hall.w !== this.hall.w || hall.baseH !== this.hall.baseH || hall.rooms !== this.hall.rooms)) this.resized(this.hall, hall);
     this.hall = hall;
     const ENTRY = hall.entry;
     const live = new Set(roster.map(s => s.id));
@@ -124,12 +124,21 @@ export class Cast {
 
   // The window resized the scene: whoever stands in the refectorium or the sanctum moves with the room (anchored
   // east, the sanctum by its top wall), a scribe east of the narrower scriptorium's corridor steps onto it, and
-  // everyone re-routes from where they stand (sync: the walks follow the new corridor, doors and lanes).
+  // everyone re-routes from where they stand (sync: the walks follow the new corridor, doors and lanes). The west wing
+  // coming or going (layout.js hallOf wx) moves the scriptorium too; whoever stands in a wing room moves with its room
+  // (rooms above it grew or shrank), and stays put if the room went.
   resized(from, to) {
     for (const a of this.actors.values()) {
       const room = roomOf(a, from);
+      if (room.startsWith('w:')) { // by the rows its room moved (layout.js SLOT_H); its room gone, at its door's hall side
+        const R0 = from.rooms.find(R => `w:${R.id}` === room), R1 = to.rooms?.find(R => R.id === R0.id);
+        if (R1) a.y += SLOT_H * (R1.k - R0.k);
+        else Object.assign(a, { x: R0.doorOut.x + (to.wx ?? 0) - from.wx, y: R0.doorOut.y });
+        a.destKey = '';
+        continue;
+      }
       if (room !== 'hall') { a.x += to.ox - from.ox; if (room === 'sanct') a.y += to.sd - from.sd; }
-      else a.x = Math.min(a.x, to.corridorX); // ponytail: a short hop, only when the window narrows
+      else a.x = Math.min(a.x + (to.wx ?? 0) - (from.wx ?? 0), to.corridorX); // ponytail: a short hop, only when the window narrows
       a.destKey = '';
       if (a.burn) a.burn.fire = braziers(to.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
     }

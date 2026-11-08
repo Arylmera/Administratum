@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { setTheme, T } from './theme.js';
 import './themes.js';
-import { roomPlan, bounds, renderHall39, buildHall39, placeProps } from './isohall.js';
+import { roomPlan, bounds, renderHall39, buildHall39, placeProps, wingBands } from './isohall.js';
 import { hung as hungOn } from './scene.js';
-import { hallOf, WALL, SCENE, MAX_W } from './layout.js';
+import { hallOf, WALL, SCENE, MAX_W, WING_W } from './layout.js';
 import { P39 } from './iso.js';
 import { setView, sceneSize, toScreen } from './view.js';
 
 // 2 hall sizes (the minimum, a big window), each without and with bays
-const halls = [hallOf(0), hallOf(2), hallOf(0, { w: MAX_W, h: 420 }), hallOf(2, { w: MAX_W, h: 420 })];
+// ...and with the west wing (O10c): three rooms, one of two rows
+const WING = [{ id: 'a', color: '#c8a040', rows: 1 }, { id: 'b', color: '#40a0c8', rows: 2 }, { id: 'c', color: '#a040c8', rows: 1, empty: true }];
+const halls = [hallOf(0), hallOf(2), hallOf(0, { w: MAX_W, h: 420 }), hallOf(2, { w: MAX_W, h: 420 }), hallOf(4, SCENE, WING), hallOf(2, { w: MAX_W, h: 420 }, WING)]; // the wing's 6 rows fit
 setView('39');
 for (const hall of halls) {
   const tag = `${hall.w}x${hall.h}:${hall.bays}`, { U, V, Z, surfaces } = roomPlan(hall);
@@ -41,10 +43,28 @@ for (const hall of halls) {
   }
   // walls down: an open gap between two low posts, no lintel, no door leaves
   assert.ok(!surfaces.some(s => s.kind === 'door' || s.name === 'lintel'), tag);
-  assert.equal(named('box', 'jamb').length, 4, tag);
+  assert.equal(named('box', 'jamb').length, 4 + 2 * hall.rooms.length, tag);
   assert.ok(named('box', 'jamb').every(s => s.z1 === 12), tag);
   assert.equal(east.length, 3, `${tag}: two openings`);
   assert.ok(east.every(s => s.u0 === 2 * hall.sw && s.u1 === 2 * hall.rx), tag);
+  // the west wing: its floor, the scriptorium's west wall open at each room's door and nowhere else, a divider over
+  // every room but the first, the wall below the last
+  if (hall.wx) {
+    const westWall = named('slab', 'west wall'), gaps = hall.rooms.map(R => 2 * (R.doorOut.y - WALL));
+    assert.equal(named('floor', 'wing').length, 1, tag);
+    assert.ok(westWall.every(s => s.u0 === 2 * (hall.wx - 8) && s.u1 === 2 * hall.wx), `${tag}: the west wall where the flat one stands`);
+    for (const v of gaps) assert.ok(!westWall.some(s => v >= s.v0 && v < s.v1), `${tag}: a door at v ${v} is open`);
+    assert.equal(westWall.reduce((n, s) => n + s.v1 - s.v0, 0), V - hall.rooms.length * 40, `${tag}: walled but for the doorways`);
+    assert.deepEqual(named('slab', 'wing divider').map(s => s.v0), hall.rooms.slice(1).map(R => 2 * (R.top - WALL)), tag);
+    assert.equal(named('slab', 'wing below').length, 1, tag);
+    // ambient occlusion: the scriptorium's own bands moved east with it (none across the wing), the wing's back wall,
+    // each divider and both faces of the west wall
+    const bands = wingBands(hall), ownBand = wingBands(hall.base);
+    assert.ok(ownBand.every(b => bands.some(q => q.x === b.x + hall.wx && q.y === b.y && q.w === b.w && q.side === b.side)), `${tag}: the hall's bands moved east`);
+    assert.ok(!bands.some(b => b.x < hall.wx - 8 && b.x + b.w > WING_W), `${tag}: a band across the west wall`);
+    for (const R of hall.rooms.slice(1)) assert.ok(bands.some(b => b.side === 'n' && b.y === R.y && b.x === 0 && b.w === WING_W), `${tag}: ${R.id}'s divider`);
+    assert.ok(bands.some(b => b.side === 'e' && b.x + b.w === WING_W) && bands.some(b => b.side === 'w' && b.x === hall.wx), `${tag}: both faces of the west wall`);
+  } else assert.equal(hall.rooms.length, 0, tag);
   // props: hung ones on a wall plane within its height, standing ones on their room's floor, never on a wall band
   const fy = y => 2 * (y - WALL), band = [fy(hall.split), fy(hall.split + 30)], placed = placeProps(hall);
   assert.ok(placed.length > 40, tag);
@@ -102,17 +122,21 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // Speed-ups of the render must not move a pixel: the char grid and the shading of the default hall and a big 2-bay
 // hall, in Tier II and the vault, against hashes recorded before the T12 optimisation (iso.js box/outline, texOf).
 // An art or layout change on purpose changes them: re-record (print the hash below) once the new look is checked.
+// The west wing (O10c): recorded once looked at on screen.
 const GRID = {
   'tier2 346x248 day': 'a330330e82d5', 'tier2 554x728 night': 'feaec8359e26', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'c7632cda3462',
+  'tier2 492x504 day wing': '1b06af307138', 'vault 492x504 day wing': '72d5b15cec0d',
 };
+const got = {};
 for (const id of ['tier2', 'vault']) {
   setTheme(id);
-  for (const [hall, day] of [[hallOf(0), true], [hallOf(2, { w: MAX_W, h: 600 }), false]]) {
-    const { buf, shade } = renderHall39(hall, day), k = `${id} ${hall.w}x${hall.h} ${day ? 'day' : 'night'}`;
-    const hash = createHash('sha1').update(buf.ch.join('')).update(new Uint8Array(shade.buffer)).digest('hex').slice(0, 12);
-    assert.equal(hash, GRID[k], `${k}: the 39° background changed`);
+  for (const [hall, day] of [[hallOf(0), true], [hallOf(2, { w: MAX_W, h: 600 }), false], [hallOf(4, SCENE, WING), true]]) {
+    const { buf, shade } = renderHall39(hall, day), k = `${id} ${hall.w}x${hall.h} ${day ? 'day' : 'night'}${hall.wx ? ' wing' : ''}`;
+    got[k] = createHash('sha1').update(buf.ch.join('')).update(new Uint8Array(shade.buffer)).digest('hex').slice(0, 12);
   }
 }
+if (process.env.RECORD) console.log(got);
+for (const k in GRID) assert.equal(got[k], GRID[k], `${k}: the 39° background changed`);
 // The paint (buildHall39): the windows' glass takes the night colours at night (T.ink.windowNight), not its px colour.
 {
   let D = null;

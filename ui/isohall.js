@@ -4,7 +4,7 @@
 // is the plane v = 0, z = 2(WALL - y). Everything stays inside the hall's world box u 0..2w, v 0..2(h - WALL),
 // z 0..2 WALL, so the projected scene fits view.js sceneSize(hall).
 import { IsoBuf, P39, VS39 } from './iso.js';
-import { WALL, WALL_DY } from './layout.js';
+import { WALL, WALL_DY, WING_W, WING_DIV } from './layout.js';
 import { propsOf, wallArt, WIN_Y, STANDING, hung } from './scene.js';
 import { cellFrame } from './room.js';
 import { MAPS, PROP_AT, ROOM, RES } from './sprites.js';
@@ -25,6 +25,7 @@ export const fx = x => Math.round(2 * x), fy = y => Math.round(2 * (y - WALL));
 // wall, SLAB_Z high, lit cap), box (pipes and fittings on the north wall). tex: the room tile (ROOM.frames) it shows;
 // foot: the wall foot band under it. Doors (the flat doors' y) are gaps between an east wall's slabs.
 export function roomPlan(hall) {
+  if (hall.wx) return wingPlan(hall);
   const { w, h, sw, rx, ox, dx, sd, split, baseH, rows, bays, dy } = hall, D = WALL_DY;
   const U = 2 * w, V = fy(h), Z = 2 * WALL, S = [];
   const add = (kind, name, tex, u0, u1, v0, v1, z0, z1, more) => S.push({ kind, name, tex, u0, u1, v0, v1, z0, z1, ...more });
@@ -66,6 +67,47 @@ export function roomPlan(hall) {
   for (const x of fits) add('box', 'fitting', 'fitting h', fx(x), fx(x) + 6, 1, 5, pz - 2, pz + 8);
   for (const x of [144 + dx, 194 + dx]) add('box', 'pipe', 'pipe v', fx(x), fx(x) + 6, 1, 4, 2 * 4, pz);
   return { U, V, Z, surfaces: S };
+}
+
+// A hall with the west wing (layout.js hallOf wx, rooms): the hall without it moved east by the wing, its west wall
+// now the wing's; the wing's floor, its north wall as the right column's, the scriptorium's west wall a cutaway slab
+// broken at each room's door with a jamb either side (as the east wall), each room's divider a slab, a slab below the
+// last room (as the bays' east of the sanctum).
+function wingPlan(hall) {
+  const { w, h, wx, rooms } = hall, B = roomPlan(hall.base), X = fx(wx), U = 2 * w, V = fy(h), Z = 2 * WALL;
+  const S = B.surfaces.filter(s => s.name !== 'west').map(s => ({ ...s, u0: s.u0 + X, u1: s.u1 + X }));
+  const add = (kind, name, tex, u0, u1, v0, v1, z0, z1, more) => S.push({ kind, name, tex, u0, u1, v0, v1, z0, z1, ...more });
+  const slab = (name, x0, x1, y0, y1) => { if (y1 > y0) add('slab', name, 'wall', fx(x0), fx(x1), fy(y0), fy(y1), 0, SLAB_Z); };
+  add('floor', 'wing', 'floor', 0, X, 0, V, 0, 0);
+  add('wall', 'north wing', 'wall east', 0, fx(WING_W), 0, 1, 0, Z, { foot: true });
+  add('wall', 'north west wall', 'wall dark', fx(WING_W), X, 0, 1, 0, Z);
+  add('wall', 'west', 'wall', 0, 1, 0, V, 0, Z, { foot: true });
+  const pz = 2 * (WALL - 7);
+  add('box', 'pipe', 'pipe h', 0, fx(WING_W), 1, 4, pz, pz + 6);
+  let y = WALL;
+  for (const R of rooms) { // the doorway: the refectorium's (scene.js doorsOf), on the room's lane
+    const y0 = R.doorOut.y - 18, y1 = R.doorOut.y + 2, u0 = fx(WING_W) - 2, u1 = X + 2;
+    slab('west wall', WING_W, wx, y, y0);
+    add('box', 'jamb', 'pillar', u0, u1, fy(y0) - 4, fy(y0), 0, SLAB_Z + 4);
+    add('box', 'jamb', 'pillar', u0, u1, fy(y1), fy(y1) + 4, 0, SLAB_Z + 4);
+    y = y1;
+    if (R.top) slab('wing divider', 0, WING_W, R.top, R.top + WING_DIV);
+  }
+  slab('west wall', WING_W, wx, y, h);
+  const last = rooms.at(-1);
+  if (last) slab('wing below', 0, WING_W, last.y + last.h, h);
+  return { U, V, Z, surfaces: S };
+}
+
+// The floor's ambient occlusion bands in this view (depth.js aoBands, the cutaway south wall left out): with a west
+// wing, the hall's own moved east (its back wall's band no longer runs across the wing), then the wing's back wall,
+// each room's divider, both faces of the scriptorium's west wall (8 px, as aoBands').
+export function wingBands(hall) {
+  const own = aoBands(hall.base ?? hall).filter(b => !(b.side === 's' && b.x === 0)).map(b => ({ ...b, x: b.x + (hall.wx ?? 0) }));
+  if (!hall.wx) return own;
+  const A = 8, H = hall.h - WALL;
+  return own.concat({ x: 0, y: WALL, w: WING_W, h: A, side: 'n' }, ...hall.rooms.filter(R => R.top).map(R => ({ x: 0, y: R.y, w: WING_W, h: A, side: 'n' })),
+    { x: WING_W - A, y: WALL, w: A, h: H, side: 'e' }, { x: hall.wx, y: WALL, w: A, h: H, side: 'w' });
 }
 
 // The projected bounding box of the hall's world box (the same 6 points as view.js sceneSize): logical w, h, and the
@@ -190,7 +232,7 @@ export function renderHall39(hall, day = true) {
   // shading: side faces darker; floor AO along every wall foot (depth.js aoBands, plus the west wall; no south wall:
   // cutaway); walls darker toward the floor; prop contact shadows baked from their footprints
   const shade = new Float32Array(buf.ch.length);
-  const bands = aoBands(hall).filter(b => !(b.side === 's' && b.x === 0)).concat({ x: 0, y: WALL, w: 8, h: hall.h - WALL, side: 'w' });
+  const bands = wingBands(hall).concat({ x: 0, y: WALL, w: 8, h: hall.h - WALL, side: 'w' });
   const N = buf.ch.length, W3 = buf.world;
   for (let i = 0; i < N; i++) {
     if (buf.ch[i] === '.') continue;

@@ -77,7 +77,7 @@ sizeCanvas();
 
 const bg = {};
 function background(day) {
-  const tag = `:${hall.w}x${hall.h}`, k = `${T.id}:${day ? 'day' : 'night'}${tag}`;
+  const tag = `:${hall.key ?? `${hall.w}x${hall.h}`}`, k = `${T.id}:${day ? 'day' : 'night'}${tag}`; // key: the size, bays and west wing (layout.js)
   if (!bg[k]) {
     for (const o in bg) if (!o.endsWith(tag) || !o.startsWith(`${T.id}:`)) delete bg[o]; // only this size and theme's day and night
     const c = document.createElement('canvas'), S = scene();
@@ -181,7 +181,7 @@ addEventListener('resize', () => {
 initViewport({ canvas, overlay, scene, iso, strip, at, relayout, setMouse: e => { mouse = e; } }); // scroll, drag-to-pan, double-click, arrow keys (viewport.js)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {
-  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size);
+  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size, layout.wing);
   onRoster(pending ?? roster);
 }
 
@@ -305,8 +305,11 @@ function onRoster(next) {
     .map(name => ({ name, color: colorOf(name), temp: roster.some(s => s.dept === name && s.temp), room: roomOfDept(name), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
   // the column has no rooms yet: a room's departments are ordinary floors there
+  const wx0 = hall.wx ?? 0, centre = column() || strip() ? null : centreFloor(viewMode.mode); // the view's floor point, before the wing comes or goes
   layout = planLayout(layout, depts, Date.now(), GRACE, size, column() ? layColumn : strip() ? layoutStrip : iso() ? layIso : layoutDepartments, column() ? [] : rooms.list);
-  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays, size);
+  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays, size, layout.wing); // the west wing's rooms (O10c)
+  // the west wing came or went: the scriptorium moved by its width, the view stays on the same floor point of it
+  if (centre && (hall.wx ?? 0) !== wx0) fit([centre[0] + (hall.wx ?? 0) - wx0, centre[1]]);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   // the column: a petitioner from a hidden floor still queues in the Sanctum (the petition is what the column is for)
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id) || (column() && (s.status === 'waiting' || isQuestion(s)))), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);

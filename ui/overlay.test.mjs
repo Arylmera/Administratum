@@ -54,24 +54,32 @@ assert.deepEqual(honoursLines({ commits: { dept: 'Terra', value: 12 }, longest: 
   busiest: { dept: 'Hololith', value: 7_500_000, day: '2026-11-03' } }), [['Terra', '12'], ['Geneseed', '1h05'], ['—', ''], ['Hololith', '2h05 · Tue 3']]);
 console.log('overlay ok');
 
-// Custom rooms (O10): a room's plaque (r:<id>) under its fence in the rule's colour, dim while the room is empty; an
-// empty room's placeholder gets no department plaque.
+// Custom rooms (O10c): a west wing room's plaque on its top wall in the rule's colour. One department: that department's
+// own plaque (its branch, opens its folder), no other. Several: the room's name (r:<id>), the departments' inside. Empty:
+// the rule's name (else its pattern), dim. An empty room's placeholder gets no department plaque.
 {
   const { rooms } = await import('./rooms.js');
   const { hallOf, planLayout, layoutDepartments, SCENE } = await import('./layout.js');
-  const { renderPlaques } = await import('./overlay.js');
-  rooms.list = [{ id: 'rA', name: 'Terra works', pattern: '**', color: '#aa0000' }, { id: 'rB', name: '', pattern: '**/empty/**', color: '#00bb00' }];
-  const P = planLayout(null, [{ name: 'Terra', color: '#ffffff', ids: ['t1'], room: 'rA' }], 0, {}, SCENE, layoutDepartments, rooms.list);
-  const H = hallOf(P.bays), ov = document.createElement('div');
+  const { renderPlaques } = await import('./overlay.js'), { scale } = await import('./viewport.js');
+  rooms.list = [{ id: 'rA', name: 'Terra works', pattern: '**', color: '#aa0000' }, { id: 'rB', name: '', pattern: '**/empty/**', color: '#00bb00' },
+    { id: 'rC', name: 'Pair', pattern: '**/pair/**', color: '#0000cc' }];
+  const P = planLayout(null, [{ name: 'Terra', color: '#ffffff', ids: ['t1'], room: 'rA' }, { name: 'P1', color: '#ffffff', ids: ['p1'], room: 'rC' },
+    { name: 'P2', color: '#ffffff', ids: ['p2'], room: 'rC' }], 0, {}, SCENE, layoutDepartments, rooms.list);
+  const H = hallOf(P.bays, SCENE, P.wing), ov = document.createElement('div');
+  const roster = [{ id: 't1', dept: 'Terra', cwd: 'C:\\git\\Terra', sinceMs: 1, room: 'rA', branch: 'wing' }, { id: 'p1', dept: 'P1', cwd: 'C:\\pair\\1', sinceMs: 1, room: 'rC' },
+    { id: 'p2', dept: 'P2', cwd: 'C:\\pair\\2', sinceMs: 1, room: 'rC' }];
   initOverlay({ cast: { actors: new Map() }, canvas, overlay: ov, at: (x, y) => [x, y], feet: () => [0, 0], strip: () => false, hall: () => H, layout: () => P,
-    roster: () => [{ id: 't1', dept: 'Terra', cwd: 'C:\\git\\Terra', sinceMs: 1, room: 'rA' }], mouse: () => null, actorAt: () => null, paused: () => false, hhmm: () => '' });
+    roster: () => roster, mouse: () => null, actorAt: () => null, paused: () => false, hhmm: () => '' });
   renderPlaques(P.blocks);
+  const top = e => parseFloat(e.style.top) / scale, byText = s => ov.children.filter(e => e.textContent.startsWith(s));
   const room = ov.children.filter(e => e.classList.contains('room'));
-  assert.deepEqual(room.map(e => [e.textContent, e.style.color, e.classList.contains('dim')]), [['Terra works', '#aa0000', false], ['**/empty/**', '#00bb00', true]], 'named (else its pattern), dim while empty');
-  assert.ok(ov.children.some(e => e.textContent === 'Terra'), 'the department keeps its plaque');
+  assert.deepEqual(room.map(e => [e.textContent, e.style.color, e.classList.contains('dim')]), [['**/empty/**', '#00bb00', true], ['Pair', '#0000cc', false]], 'named (else its pattern), dim while empty');
+  const [terra] = byText('Terra');
+  assert.equal(byText('Terra').length, 1, 'one department: one plaque');
+  assert.deepEqual([terra.textContent, terra.style.color, terra.classList.contains('open'), top(terra)], ['Terrawing', '#aa0000', true, H.rooms[0].plaqueY], 'its own, on the top wall');
+  assert.ok(!byText('Terra works').length, 'no room name over a single department');
+  for (const n of ['P1', 'P2']) { const [e] = byText(n); assert.ok(e && top(e) > H.rooms[2].y, `${n}: its plaque inside the room`); }
+  for (const [e, R] of [[terra, H.rooms[0]], [room[0], H.rooms[1]], [room[1], H.rooms[2]]]) assert.ok(top(e) >= R.top && top(e) + 8 <= R.y, `${e.textContent}: on ${R.id}'s top wall`);
   assert.ok(!ov.children.some(e => e.textContent.startsWith('room:')), 'the placeholder has none');
-  // each on its own top rail, inside its own band: never over the next zone's rail and desks (8: a plaque's height at most)
-  const { zonesOf } = await import('./layout.js'), { scale } = await import('./viewport.js');
-  zonesOf(P.blocks, H).forEach((Z, i) => { const y = parseFloat(room[i].style.top) / scale; assert.ok(y >= Z.y - 8 && y + 8 <= Z.y + Z.h, `room ${Z.id} plaque at ${y}, its zone ${Z.y}..${Z.y + Z.h}`); });
 }
 console.log('overlay rooms ok');

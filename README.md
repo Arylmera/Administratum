@@ -454,11 +454,17 @@ A pattern that does not compile turns red (its message on hover) and is not save
 The line under each rule names the departments in the room now, and while you type, every department the pattern
 would take, `(→ room)` where an earlier rule takes it first and `(break-out)` for a temp folder.
 
-In the hall each room is a fenced zone in its rule's colour, before the other departments, in rule order; it stays
-(dim, one empty slot) while no session matches. A department whose sessions match several rules goes to the first
-one; a temp folder stays in the break-out room. Flat and 2.5D: a fence with a gate where each walk lane leaves it; the
-desktop strip: a bay with the room's plaque first. The desktop column shows a room's departments as ordinary floors
-for now. Reset to defaults leaves the rooms alone. The remote view shows them read only.
+In the hall the rooms make a west wing: a column of real rooms west of the scriptorium, the mirror of the
+Refectorium and Sanctum on the east, stacked in rule order, with the hall's own walls and a door each in the
+scriptorium's west wall. The wing is there while at least one rule exists, and the hall is that much wider (pan to
+it as to the bays). A room holds its departments' desks, two a row (four lecterns when compact); its floor is in its
+rule's colour; it stays (one row, floor dimmed, door shut) while no session matches. Scribes come and go through its
+door like everyone else's. Its plaque hangs on its top wall in the rule's colour: the department's own when it holds
+one (branch shown, click opens the folder), else the room's name, the departments' plaques inside. A wing taller
+than the hall grows it by bays, and rooms count toward compact lecterns like any department. A department whose
+sessions match several rules goes to the first one; a temp folder stays in the break-out room. The desktop strip:
+a bay with the room's plaque first. The desktop column shows a room's departments as ordinary floors for now. Reset
+to defaults leaves the rooms alone. The remote view shows them read only.
 
 **System**
 
