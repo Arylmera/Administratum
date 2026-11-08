@@ -235,13 +235,19 @@ Bundles are signed for the updater, so the key file must exist (see below). The 
 with `/S` (to `%LOCALAPPDATA%\Administratum`). The release profile uses LTO, `opt-level = "s"` and stripped
 symbols.
 
+On Linux the same `cargo tauri build` (with the Tauri system libraries, as in `check.yml`) makes
+`bundle/appimage/Administratum_<version>_amd64.AppImage` and `bundle/deb/Administratum_<version>_amd64.deb`, each
+with its `.sig`.
+
 ## Releasing
 
 Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>` and builds
-three legs: the signed NSIS installer on Windows, and on macOS a DMG plus a signed updater archive for each arch
+four legs: the signed NSIS installer on Windows, on macOS a DMG plus a signed updater archive for each arch
 (`Administratum_<version>_aarch64.dmg`, `Administratum_<version>_x64.dmg`, `Administratum_aarch64.app.tar.gz`,
-`Administratum_x64.app.tar.gz`). It then publishes a GitHub Release with `latest.json` (`windows-x86_64`,
-`darwin-aarch64`, `darwin-x86_64`), which installed copies read to offer the update. Every leg must succeed: a
+`Administratum_x64.app.tar.gz`), and on Linux (Ubuntu 22.04, so the bundles run on systems as old as it) the signed
+AppImage and .deb. It then publishes a GitHub Release with `latest.json` (`windows-x86_64`, `darwin-aarch64`,
+`darwin-x86_64`, `linux-x86_64` and `linux-x86_64-appimage` for the AppImage, `linux-x86_64-deb`), which installed
+copies read to offer the update. Every leg must succeed: a
 missing artifact or `.sig` fails the release, Windows included. A version with a `-` (`0.3.0-rc1`) becomes a
 pre-release that the updater never offers. To rebuild an existing tag: Actions > release > Run workflow, with the
 tag. A second workflow, `fmt`, checks `cargo fmt`.

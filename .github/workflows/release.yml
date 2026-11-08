@@ -75,6 +75,14 @@ jobs:
               src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
               src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
               src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+          # On the CI's Ubuntu: the AppImage and the .deb need a glibc and a WebKitGTK at least as old as the users'.
+          - os: ubuntu-22.04
+            label: linux
+            artifact_glob: |
+              src-tauri/target/release/bundle/appimage/*.AppImage
+              src-tauri/target/release/bundle/appimage/*.AppImage.sig
+              src-tauri/target/release/bundle/deb/*.deb
+              src-tauri/target/release/bundle/deb/*.deb.sig
     steps:
       - uses: actions/checkout@v5
         with:
@@ -84,6 +92,11 @@ jobs:
       # rustup treats it as a different install from `stable` and the action's target is invisible to cargo
       # ("Target x86_64-apple-darwin is not installed", Token Dashboard v5.1.3). rustup resolves the toolchain from
       # the checkout, so this lands on the one cargo uses.
+      - name: Tauri system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
       - name: Add the cross target
         if: matrix.rust_target != ''
         run: rustup target add ${{ matrix.rust_target }}
@@ -101,7 +114,8 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-        # bundle.targets is ["nsis"], so macOS names its bundles. bundle_dmg.sh flakes on macos-14 when hdiutil
+        # bundle.targets is ["nsis", "deb", "appimage"]: Windows and Linux build theirs from it (the bundler drops another
+        # OS's), macOS names its bundles. bundle_dmg.sh flakes on macos-14 when hdiutil
         # attach/detach races Spotlight: build the .app (and its signed .app.tar.gz) once, then retry only the DMG,
         # up to 3 times.
         run: |
@@ -166,7 +180,9 @@ jobs:
           exe=$(find dist -name '*-setup.exe' | head -1)
           arm=$(find dist -name 'Administratum_aarch64.app.tar.gz' | head -1)
           x64=$(find dist -name 'Administratum_x64.app.tar.gz' | head -1)
-          for f in "$exe" "$arm" "$x64"; do
+          img=$(find dist -name '*.AppImage' | head -1)
+          deb=$(find dist -name '*.deb' | head -1)
+          for f in "$exe" "$arm" "$x64" "$img" "$deb"; do
             if [ -z "$f" ] || [ ! -f "$f.sig" ]; then
               echo "missing updater artifact or .sig: '$f'" >&2
               find dist -type f >&2
@@ -180,10 +196,15 @@ jobs:
             --arg win_url "$base/$(basename "$exe")" --arg win_sig "$(cat "$exe.sig")" \
             --arg arm_url "$base/$(basename "$arm")" --arg arm_sig "$(cat "$arm.sig")" \
             --arg x64_url "$base/$(basename "$x64")" --arg x64_sig "$(cat "$x64.sig")" \
+            --arg img_url "$base/$(basename "$img")" --arg img_sig "$(cat "$img.sig")" \
+            --arg deb_url "$base/$(basename "$deb")" --arg deb_sig "$(cat "$deb.sig")" \
             '{version: $version, pub_date: $pub_date, platforms: {
               "windows-x86_64": {url: $win_url, signature: $win_sig},
               "darwin-aarch64": {url: $arm_url, signature: $arm_sig},
-              "darwin-x86_64": {url: $x64_url, signature: $x64_sig}}}' \
+              "darwin-x86_64": {url: $x64_url, signature: $x64_sig},
+              "linux-x86_64": {url: $img_url, signature: $img_sig},
+              "linux-x86_64-appimage": {url: $img_url, signature: $img_sig},
+              "linux-x86_64-deb": {url: $deb_url, signature: $deb_sig}}}' \
             > dist/latest.json
           cat dist/latest.json
       - uses: softprops/action-gh-release@v2
@@ -199,6 +220,10 @@ jobs:
             dist/**/*.dmg
             dist/**/*.app.tar.gz
             dist/**/*.app.tar.gz.sig
+            dist/**/*.AppImage
+            dist/**/*.AppImage.sig
+            dist/**/*.deb
+            dist/**/*.deb.sig
             dist/latest.json
 
   homebrew:

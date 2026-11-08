@@ -58,9 +58,10 @@ the app with `--demo`.
   never run.
 
 Each [release](https://github.com/Arylmera/Administratum/releases/latest) ships the Windows installer
-`Administratum_<version>_x64-setup.exe` and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
-silicon) and `Administratum_<version>_x64.dmg` (Intel). Neither is signed by Microsoft or Apple, so each OS warns
-once; the steps below get past it.
+`Administratum_<version>_x64-setup.exe`, two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
+silicon) and `Administratum_<version>_x64.dmg` (Intel), and for Linux an AppImage and a Debian/Ubuntu package,
+`Administratum_<version>_amd64.AppImage` and `Administratum_<version>_amd64.deb`. The Windows and macOS ones are not
+signed by Microsoft or Apple, so each OS warns once; the steps below get past it.
 
 ### Windows
 
