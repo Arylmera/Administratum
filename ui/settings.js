@@ -442,8 +442,12 @@ export function initSettings(hooks) {
   } else {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
     pushStale(); pushQuestions(); pushQuiet();
-    // Desktop strip: offered only where the backend can place it (Windows, macOS).
-    invoke('strip_supported').then(ok => { if (ok) for (const v of ['strip', 'vstrip']) form.querySelector(`[value="${v}"]`).hidden = false; }, () => {});
+    // Desktop strip and column: offered only where the backend can place them (Windows, macOS). Removed elsewhere, not
+    // left hidden: WebKitGTK's list (Linux) shows a hidden option.
+    const strips = ['strip', 'vstrip'].map(v => form.querySelector(`[value="${v}"]`));
+    invoke('strip_supported').then(ok => { for (const o of strips) if (ok) o.hidden = false; else o.remove(); }, () => { for (const o of strips) o.remove(); });
+    // Always on top: not under Wayland, where only the compositor stacks windows (a Hyprland rule, README).
+    invoke('on_top_supported').then(ok => { if (!ok) field('onTop').closest('label').hidden = true; }, () => {});
     invoke('platform').then(os => {
       isWin = os === 'windows';
       if (isWin) return;

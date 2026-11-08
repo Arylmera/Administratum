@@ -5,7 +5,7 @@ import { install, replies, calls, invoked, tick, flush, emit } from './testdom.m
 install();
 Object.assign(replies, {
   settings_load: { 'adm.settings': JSON.stringify({ staleMin: 999, onTop: false, stripSize: 'XL' }), 'adm.scale': '2' },
-  platform: 'windows', strip_supported: true, start_at_login: true,
+  platform: 'windows', strip_supported: true, on_top_supported: true, start_at_login: true,
   check_update: { current: '0.6.5', available: '0.7.0' },
   remote_status: { enabled: false, actions_allowed: false, port: 8765, urls: [], qr_svg: null },
   firewall_status: ({ port }) => ({ detail: `rule for ${port}`, rule: 'on', network: 'private' }),
@@ -35,6 +35,7 @@ assert.deepEqual(last('set_question_prefs'), { enabled: true, toast: true });
 assert.deepEqual(last('set_quiet'), { enabled: false, fromMin: 1320, toMin: 480 });
 assert.equal(calls.find(c => c.name === 'setAlwaysOnTop').args, false);
 assert.equal(form.querySelector('[value="strip"]').hidden, false, 'strip offered where supported');
+assert.equal(field('onTop').closest('label').hidden, false, 'always on top offered where supported');
 assert.equal(form.querySelector('[value="vstrip"]').hidden, false, 'column offered where supported');
 // The desktop column's side: right by default (desktop icons sit on the left), saved, the window re-placed (sided).
 assert.equal(settings.stripSide, 'right');

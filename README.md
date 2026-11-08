@@ -130,6 +130,36 @@ from Windows:
   you are there and allow it (it then shows in *System Settings → Privacy & Security → Automation*). An app with
   unsaved work can still refuse the shutdown.
 
+### What differs on Linux
+
+Built and run on Omarchy 4.5 (Arch Linux, Hyprland 0.56, Wayland, WebKitGTK 2.54). Settings are in
+`~/.config/com.arylmera.administratum`, the Chronicon in `~/.local/share/com.arylmera.administratum`. Differences
+from Windows:
+
+- **The window under Wayland**: a Wayland window can neither place itself nor stay above the others; the compositor
+  does both. On Hyprland a window rule makes the hall a small floating widget in a corner, above tiled windows and
+  on every workspace (`pin`). In Hyprland's Lua config (0.55 and later; on Omarchy 4.5,
+  `~/.config/hypr/hyprland.lua`):
+
+  ```lua
+  hl.window_rule({
+    match = { class = "^administratum$" },
+    float = true,
+    pin = true,
+    size = { 700, 500 },
+    move = { "(monitor_w-window_w-40)", "(monitor_h-window_h-40)" },
+  })
+  ```
+
+  An older Hyprland takes the same rules (float, pin, size, move) in its `hyprland.conf` syntax, see Hyprland's
+  [window rules](https://wiki.hypr.land/configuring/core/rules/window-rules/). The header still drags the window and
+  its edges resize it. *Always on top* is not offered under Wayland; in an X11 session it is, as on Windows.
+- **Desktop strip and column**: not available. Wayland lets no window place itself on a screen edge; only
+  layer-shell surfaces (bars, docks) may, and WebKitGTK draws nothing in one (tried with gtk-layer-shell on
+  Hyprland). Settings offers neither and the tray item stays greyed.
+- **Tray**: on Omarchy the icon sits in the bar's tray drawer, behind the `<`; pin it there to keep it in view.
+  Launching Administratum again also brings a hidden window back.
+
 ---
 
 ## Worlds and themes
@@ -483,7 +513,7 @@ to defaults leaves the rooms alone. The remote view shows them read only.
 
 | Setting | Default | Effect |
 |---|---|---|
-| Always on top | on | Keeps the window above others |
+| Always on top | on | Keeps the window above others (not offered under Wayland: see *What differs on Linux*) |
 | Start at login | off | Starts the app at sign-in (same as the tray item) |
 | Pause when hidden or covered | on | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30: redraw rate while nothing moves (anything walking or animating runs at 30 fps). Lower = less CPU/GPU |

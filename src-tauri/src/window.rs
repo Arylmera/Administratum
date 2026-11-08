@@ -155,8 +155,36 @@ pub fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Whether GTK talks Wayland: it does whenever `WAYLAND_DISPLAY` is set, unless `GDK_BACKEND` asks for X11 first.
+#[cfg_attr(any(windows, target_os = "macos"), allow(dead_code))]
+fn wayland(display: Option<&std::ffi::OsStr>, backend: Option<&str>) -> bool {
+    display.is_some_and(|d| !d.is_empty()) && !backend.is_some_and(|b| b.trim_start().starts_with("x11"))
+}
+
+/// Whether the window can keep itself above the others. Not under Wayland, where only the compositor stacks windows
+/// (Hyprland: a window rule, README), so Settings hides the choice there.
+#[tauri::command]
+pub fn on_top_supported() -> bool {
+    #[cfg(not(any(windows, target_os = "macos")))]
+    return !wayland(std::env::var_os("WAYLAND_DISPLAY").as_deref(), std::env::var("GDK_BACKEND").ok().as_deref());
+    #[cfg(any(windows, target_os = "macos"))]
+    true
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn wayland_unless_gdk_asks_for_x11() {
+        use super::wayland;
+        use std::ffi::OsStr;
+        assert!(wayland(Some(OsStr::new("wayland-1")), None));
+        assert!(wayland(Some(OsStr::new("wayland-1")), Some("wayland,x11")));
+        assert!(!wayland(Some(OsStr::new("wayland-1")), Some("x11")), "XWayland");
+        assert!(!wayland(Some(OsStr::new("wayland-1")), Some("x11,wayland")));
+        assert!(!wayland(None, None), "X11 session");
+        assert!(!wayland(Some(OsStr::new("")), None));
+    }
+
     #[test]
     fn sample_grid_stays_inside_and_spans_the_rect() {
         let pts: Vec<_> = super::sample_grid(100, 50, 600, 450).collect();
