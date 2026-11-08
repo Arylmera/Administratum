@@ -118,5 +118,5 @@ written), `art.test.mjs` (`ENCLAVE_*` complete in every theme, contains `y`, eac
 **Build order.** Rust match + field → layout, zones, routes → Settings tab → drawing with the base art → strip →
 the five world sheets.
 
-**Open for the user.** The new direct dependency `regex = "1"` (no new crate: 1.13.1 already locked); capacity
-(each room owns a full row band, so at most 6 rules, and empty rooms keep the hall compact or grown).
+**Accepted by the user (2026-11-08).** The new direct dependency `regex = "1"` (no new crate: 1.13.1 already
+locked); capacity: each room owns a full row band, at most 6 rules, empty rooms keep the hall compact or grown.
