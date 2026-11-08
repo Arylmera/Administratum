@@ -158,4 +158,4 @@ redraws (follow `ui/art/darwin/faces.json`). `node ui/faces.test.mjs` `ok`;
 - [ ] All tests `ok` (`node ui/*.test.mjs`); commit `Breaking Bad: galleries and README`.
 
 ## Worklog
-Face slots: (to fill in Task 1). Done: none. Current: none. Next: 1. Blockers: none.
+Face slots: t skin, T Walter's glasses and goatee, z Jesse's hair (rank slots, scribe only); j g G pinned per rank. Generators: <scratchpad>/draw/kit.mjs + breakingbad-*.mjs. Done: none. Current: none. Next: 1. Blockers: none.
