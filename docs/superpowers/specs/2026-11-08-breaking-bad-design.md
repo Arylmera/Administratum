@@ -1,5 +1,7 @@
 # Breaking Bad: the flat superlab
 
+Status: done (2026-11-08), plan `docs/superpowers/plans/2026-11-08-breaking-bad-world.md`.
+
 A new world for a team that calls itself Breaking Bad, decided with the user on 2026-11-08. It is shown on office
 screens in a corporate setting: funny, a little, but readable at a glance and never embarrassing.
 
