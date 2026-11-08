@@ -12,6 +12,9 @@ const LOW = {
   COG_MECH: [20, 18], SEAL: [6, 10], CANDLES: [12, 9], BRAZIER_FIRE_1: [5, 4.5], BRAZIER_FIRE_2: [5, 4.5], CANDLES_FIRE_1: [12, 4], CANDLES_FIRE_2: [12, 4], THRONE: [20, 20], LORD_DESK: [44, 13], BRAZIER: [10, 13],
   RECAFF: [16, 18], COGITATOR: [82, 50], CONSOLE: [14, 10], WINDOW: [16, 17], BANNER: [12, 15], WINDOW_TALL: [18, 42], HANGING: [13, 50], HANGING_B: [13, 50], CRATE: [14, 12], PAPER_STACK: [8, 12],
   DAIS: [40, 27], DAIS_C: [30, 27], LINK_H: [4, 3], LINK_V: [3, 4], LINK_END: [5, 4], HONOURS: [36, 48],
+  // the desktop column's lift (tools/lift_art/kit.mjs, in art px there)
+  SHAFT: [28, 8], SHAFT_TOP: [28, 6], SHAFT_PIT: [28, 4], CABLE: [1, 2], CAR_BACK: [26, 20], 'CAR_FRONT.shut': [26, 20], 'CAR_FRONT.half': [26, 20], 'CAR_FRONT.open': [26, 20],
+  SLAB: [8, 6], SLAB_L: [4, 6], SLAB_R: [4, 6], 'LAMP.off': [3, 3], 'LAMP.on': [3, 3],
   SCROLL_PILE: [18, 7], BOOKS: [10, 9], LOOSE_A: [5, 4], LOOSE_B: [4, 5], GAUGE: [6, 6], CENSER: [5, 10],
   GATE: [32, 30], GATE_L: [8, 22], GATE_R: [8, 22], GATE_VOID: [16, 22], COMMIT_SEAL: [4, 7.5], COMMIT_TAG: [4, 7.5], COMMIT_STAMP: [4, 6], SCROLL_HELD: [14, 7], TABLE: [46, 8], BENCH: [46, 4], DOZE_Z: [3.5, 3.5],
   ...Object.fromEntries(Array.from({ length: 16 }, (_, k) => [`SHELL_COG_${k}`, [6, 6]])), // the shell cog's turn (scene.js spinCog), centred on its anchor

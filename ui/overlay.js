@@ -44,14 +44,16 @@ const usageText = () => (usage?.session && usage?.weekly && Date.now() - Date.pa
   ? `session ${usage.session.percent}% · ${until(usage.session.resetsAt)} | week ${usage.weekly.percent}% · ${until(usage.weekly.resetsAt)}` : '');
 export function renderPlaques(blocks) {
   // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
-  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...(strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7)), b.color, b.w - 4 + (strip() ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip()]])); // the strip's plaque may run over the gap after it
-  if (layout().overflow) want.set('overflow', ['plaque', t('overflow', { n: layout().overflow }), ...at(120 + hall().dx, hall().y1 - 10), T.ink.overflowPlaque]);
+  // In the column (H.column) it lies on its floor's slab, under the floor line (the block's mat ends 1 px over it).
+  const col = hall().column, place = b => (col ? [b.x + 2, b.y + b.h + 1] : strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7));
+  const want = new Map(blocks.map(b => [`b:${b.name}`, ['plaque', b.name, ...place(b), b.color, b.w - 4 + (strip() && !col ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip() && !col]])); // the strip's plaque may run over the gap after it
+  if (layout().overflow) want.set('overflow', ['plaque', t('overflow', { n: layout().overflow }), ...(col ? [hall().side === 'right' ? hall().w - 96 : 4, hall().cog.y + 1] : at(120 + hall().dx, hall().y1 - 10)), T.ink.overflowPlaque]); // the column's: on the cogitator floor's slab
   const Z = !strip() && breakoutOf(blocks, hall()); // the break-out room's name under its fence (the strip has no room for it)
   if (Z) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
   const u = strip() && usageText(); // the subscription's usage on a banner over the Magos
   // centred over the Magos, or flush with the strip's right end when that would run off it (its width: last frame's)
   const uw = (plaques.get('usage')?.offsetWidth ?? 0) / scale;
-  if (u) want.set('usage', ['plaque usage', u, Math.min(hall().magos.x - uw / 2, hall().w - 2 - uw), FLOOR - 30 - STRIP_PAD, undefined, undefined, '', undefined, true]);
+  if (u) want.set('usage', ['plaque usage', u, Math.max(col ? 2 : -Infinity, Math.min(hall().magos.x - uw / 2, hall().w - 2 - uw)), hall().magos.y - 30 - STRIP_PAD, undefined, undefined, '', undefined, true]); // over the Magos' floor (the strip's: FLOOR)
   syncHonours();
   if (!roster().length) { // the empty hall's notice, centred on the scriptorium (its projected width in the 39° view)
     const y = 120 + WALL_DY + (hall().h - SCENE.h) / 2, [x0] = at(0, y), [x1] = at(hall().sw, y), [mx, my] = at(hall().sw / 2, y);

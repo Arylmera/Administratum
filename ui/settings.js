@@ -8,7 +8,7 @@ import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
-import { view as viewMode, viewName, setView, onView } from './view.js';
+import { view as viewMode, viewName, setView, onView, stripKind } from './view.js';
 
 const mem = {};
 let saved = null;
@@ -38,7 +38,8 @@ export const store = {
 // Numbers: [default, min, max]. Context windows are in k tokens.
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
 const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (stripwin.js stripScale)
-const DEFAULTS = { onTop: true, stripSize: 'M', stripBackdrop: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const SIDES = ['left', 'right']; // the desktop column's screen edge (stripwin.js); right by default: desktop icons sit on the left
+const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
@@ -46,6 +47,7 @@ function load() {
   const s = { ...DEFAULTS };
   if (typeof saved.onTop === 'boolean') s.onTop = saved.onTop;
   if (STRIP_SIZES.includes(saved.stripSize)) s.stripSize = saved.stripSize;
+  if (SIDES.includes(saved.stripSide)) s.stripSide = saved.stripSide;
   if (typeof saved.stripBackdrop === 'boolean') s.stripBackdrop = saved.stripBackdrop;
   if (typeof saved.isoBackdrop === 'boolean') s.isoBackdrop = saved.isoBackdrop;
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
@@ -115,7 +117,8 @@ const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', 
 const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
 const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
 const pickView = mode => {
-  if (mode === 'strip' && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
+  if (stripKind(mode) && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
+  if (stripKind(mode)) store.set('adm.stripKind', mode); // the tray's strip item goes back to it
   store.set('adm.view', mode); setView(mode);
 };
 const save = () => store.set('adm.settings', JSON.stringify(settings));
@@ -241,7 +244,9 @@ function syncForm(form, field, hooks, login) {
   field('theme').value = T.id;
   field('view').value = viewName();
   for (const e of form.querySelectorAll('.strip-only')) e.hidden = !viewMode.strip; // the strip's own rows, only while it is on
+  for (const e of form.querySelectorAll('.column-only')) e.hidden = !viewMode.column;
   field('stripSize').value = settings.stripSize;
+  field('stripSide').value = settings.stripSide;
   field('stripBackdrop').checked = settings.stripBackdrop;
   for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
   field('isoBackdrop').checked = settings.isoBackdrop;
@@ -286,6 +291,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k === 'theme') pickTheme(el.value);
   else if (k === 'view') pickView(el.value);
   else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
+  else if (k === 'stripSide') { settings.stripSide = SIDES.includes(el.value) ? el.value : 'right'; save(); hooks.sided?.(); }
   else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
   else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
   else if (k === 'chime') hooks.setMuted(!el.checked);
@@ -344,7 +350,7 @@ export function initSettings(hooks) {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
     pushStale(); pushQuestions(); pushQuiet();
     // Desktop strip: offered only where the backend can place it (Windows, macOS).
-    invoke('strip_supported').then(ok => { if (ok) form.querySelector('[value="strip"]').hidden = false; }, () => {});
+    invoke('strip_supported').then(ok => { if (ok) for (const v of ['strip', 'vstrip']) form.querySelector(`[value="${v}"]`).hidden = false; }, () => {});
     invoke('platform').then(os => {
       isWin = os === 'windows';
       if (isWin) return;

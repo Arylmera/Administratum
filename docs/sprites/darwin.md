@@ -214,3 +214,21 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="faces-books"></a>`FACES.BOOKS` | 3×2.5 | BOOKS, 39° view only: volume 1 side, volume 1 top, volume 2 front, volume 2 side, volume 2 top, volume 3 side, volume 3 top, volume 4 front, volume 4 side, volume 4 top, clasp side, clasp top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.BOOKS.png" height="24"> |
 | <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 8×4.5 | PAPER_STACK, 39° view only: bundle 1 front, bundle 1 side, bundle 1 top, bundle 2 front, bundle 2 side, bundle 2 top, bundle 3 front, bundle 3 side, bundle 3 top, bow side, bow top. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.PAPER_STACK.png" height="36"> |
 | <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 3.5×3.5 | SCROLL_PILE, 39° view only: roll 1 front, roll 1 rim, roll 2 front, roll 2 rim, roll 3 front, roll 3 rim, roll 4 front, roll 4 rim, roll 5 front, roll 5 rim, roll 6 front, roll 6 rim, roll 7 front, roll 7 rim, roll 8 front, roll 8 rim, roll 9 front, roll 9 rim. Source: `ui/art/darwin/faces.png` | <img src="darwin/FACES.SCROLL_PILE.png" height="28"> |
+
+## Desktop column (lift)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="shaft"></a>`SHAFT` | 28×8 | Desktop column: the lift shaft, tiled down the inner side. Source: `ui/art/darwin/lift.png` | <img src="darwin/SHAFT.png" height="64"> |
+| <a id="shaft_top"></a>`SHAFT_TOP` | 28×6 | Desktop column: the head of the lift shaft (its pulley). Source: `ui/art/darwin/lift.png` | <img src="darwin/SHAFT_TOP.png" height="48"> |
+| <a id="shaft_pit"></a>`SHAFT_PIT` | 28×4 | Desktop column: the foot of the lift shaft. Source: `ui/art/darwin/lift.png` | <img src="darwin/SHAFT_PIT.png" height="32"> |
+| <a id="cable"></a>`CABLE` | 1×2 | Desktop column: the lift cable from the shaft head down to the car, tiled. Source: `ui/art/darwin/lift.png` | <img src="darwin/CABLE.png" height="16"> |
+| <a id="car_back"></a>`CAR_BACK` | 26×20 | Desktop column: the lift car behind its riders. Source: `ui/art/darwin/lift.png` | <img src="darwin/CAR_BACK.png" height="160"> |
+| <a id="car_front-shut"></a>`CAR_FRONT.shut` | 26×20 | Desktop column: the lift car front over its riders, doors shut. Source: `ui/art/darwin/lift.png` | <img src="darwin/CAR_FRONT.shut.png" height="160"> |
+| <a id="car_front-half"></a>`CAR_FRONT.half` | 26×20 | Desktop column: the lift car front, doors half open. Source: `ui/art/darwin/lift.png` | <img src="darwin/CAR_FRONT.half.png" height="160"> |
+| <a id="car_front-open"></a>`CAR_FRONT.open` | 26×20 | Desktop column: the lift car front, doors open. Source: `ui/art/darwin/lift.png` | <img src="darwin/CAR_FRONT.open.png" height="160"> |
+| <a id="slab"></a>`SLAB` | 8×6 | Desktop column: the floor slab under each floor line, tiled. Source: `ui/art/darwin/lift.png` | <img src="darwin/SLAB.png" height="48"> |
+| <a id="slab_l"></a>`SLAB_L` | 4×6 | Desktop column: the floor slab, left end. Source: `ui/art/darwin/lift.png` | <img src="darwin/SLAB_L.png" height="48"> |
+| <a id="slab_r"></a>`SLAB_R` | 4×6 | Desktop column: the floor slab, right end. Source: `ui/art/darwin/lift.png` | <img src="darwin/SLAB_R.png" height="48"> |
+| <a id="lamp-off"></a>`LAMP.off` | 3×3 | Desktop column: the call lamp by a landing, dark. Source: `ui/art/darwin/lift.png` | <img src="darwin/LAMP.off.png" height="24"> |
+| <a id="lamp-on"></a>`LAMP.on` | 3×3 | Desktop column: the call lamp, lit while someone waits there or the car stands open. Source: `ui/art/darwin/lift.png` | <img src="darwin/LAMP.on.png" height="24"> |

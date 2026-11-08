@@ -209,3 +209,21 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="faces-books"></a>`FACES.BOOKS` | 2.5×2 | BOOKS, 39° view only: book 1 side, book 1 top, book 2 side, book 2 top, book 3 side, book 3 top, book 4 side, book 4 top. Source: `ui/art/cyber/faces.png` | <img src="corpo/FACES.BOOKS.png" height="24"> |
 | <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 3×4.5 | PAPER_STACK, 39° view only: ream 1 side, ream 1 top, ream 2 side, ream 2 top, ream 3 side, ream 3 top. Source: `ui/art/cyber/faces.png` | <img src="corpo/FACES.PAPER_STACK.png" height="40"> |
 | <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 1×1.5 | SCROLL_PILE, 39° view only: rod 1 side, rod 1 top, rod 2 side, rod 2 top, rod 3 side, rod 3 top, rod 4 side, rod 4 top, rod 5 side, rod 5 top, rod 6 side, rod 6 top, rod 7 side, rod 7 top. Source: `ui/art/cyber/faces.png` | <img src="corpo/FACES.SCROLL_PILE.png" height="20"> |
+
+## Desktop column (lift)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="shaft"></a>`SHAFT` | 28×8 | Desktop column: the lift shaft, tiled down the inner side. Source: `ui/art/cyber/lift.png` | <img src="corpo/SHAFT.png" height="64"> |
+| <a id="shaft_top"></a>`SHAFT_TOP` | 28×6 | Desktop column: the head of the lift shaft (its pulley). Source: `ui/art/cyber/lift.png` | <img src="corpo/SHAFT_TOP.png" height="48"> |
+| <a id="shaft_pit"></a>`SHAFT_PIT` | 28×4 | Desktop column: the foot of the lift shaft. Source: `ui/art/cyber/lift.png` | <img src="corpo/SHAFT_PIT.png" height="32"> |
+| <a id="cable"></a>`CABLE` | 1×2 | Desktop column: the lift cable from the shaft head down to the car, tiled. Source: `ui/art/cyber/lift.png` | <img src="corpo/CABLE.png" height="16"> |
+| <a id="car_back"></a>`CAR_BACK` | 26×20 | Desktop column: the lift car behind its riders. Source: `ui/art/cyber/lift.png` | <img src="corpo/CAR_BACK.png" height="160"> |
+| <a id="car_front-shut"></a>`CAR_FRONT.shut` | 26×20 | Desktop column: the lift car front over its riders, doors shut. Source: `ui/art/cyber/lift.png` | <img src="corpo/CAR_FRONT.shut.png" height="160"> |
+| <a id="car_front-half"></a>`CAR_FRONT.half` | 26×20 | Desktop column: the lift car front, doors half open. Source: `ui/art/cyber/lift.png` | <img src="corpo/CAR_FRONT.half.png" height="160"> |
+| <a id="car_front-open"></a>`CAR_FRONT.open` | 26×20 | Desktop column: the lift car front, doors open. Source: `ui/art/cyber/lift.png` | <img src="corpo/CAR_FRONT.open.png" height="160"> |
+| <a id="slab"></a>`SLAB` | 8×6 | Desktop column: the floor slab under each floor line, tiled. Source: `ui/art/cyber/lift.png` | <img src="corpo/SLAB.png" height="48"> |
+| <a id="slab_l"></a>`SLAB_L` | 4×6 | Desktop column: the floor slab, left end. Source: `ui/art/cyber/lift.png` | <img src="corpo/SLAB_L.png" height="48"> |
+| <a id="slab_r"></a>`SLAB_R` | 4×6 | Desktop column: the floor slab, right end. Source: `ui/art/cyber/lift.png` | <img src="corpo/SLAB_R.png" height="48"> |
+| <a id="lamp-off"></a>`LAMP.off` | 3×3 | Desktop column: the call lamp by a landing, dark. Source: `ui/art/cyber/lift.png` | <img src="corpo/LAMP.off.png" height="24"> |
+| <a id="lamp-on"></a>`LAMP.on` | 3×3 | Desktop column: the call lamp, lit while someone waits there or the car stands open. Source: `ui/art/cyber/lift.png` | <img src="corpo/LAMP.on.png" height="24"> |

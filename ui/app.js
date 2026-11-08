@@ -1,5 +1,6 @@
 import { WALL, lightLevel, planLayout, hallOf, layoutDepartments } from './layout.js';
 import { stripOf, layoutStrip } from './strip.js';
+import { columnOf, layoutColumn, columnPlaced } from './column.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
@@ -9,7 +10,7 @@ import './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
-import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView } from './view.js';
+import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView, stripKind } from './view.js';
 import { buildHall39 } from './isohall.js';
 import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
 import { quietAt, hhmmOf, pad2 } from './quiet.js';
@@ -21,16 +22,16 @@ import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
 import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
-import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu } from './stripwin.js';
+import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
-// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). The strip waits for
-// the backend's yes (strip_supported); the hall view draws meanwhile.
+// The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). The strip and the column
+// wait for the backend's yes (strip_supported); the hall view draws meanwhile.
 const saved = store.get('adm.view', 'flat');
-setView(hallView(saved === 'strip' ? store.get('adm.hallView', 'flat') : saved));
+setView(hallView(stripKind(saved) ? store.get('adm.hallView', 'flat') : saved));
 document.documentElement.classList.toggle('iso', viewMode.mode === '39'); // the 39° view: no frame round the stage (index.html)
-if (saved === 'strip' && !REMOTE) invoke('strip_supported').then(ok => ok && setView('strip'), () => {});
+if (stripKind(saved) && !REMOTE) invoke('strip_supported').then(ok => ok && setView(saved), () => {});
 applyChrome();
 onTheme(applyChrome);
 
@@ -54,6 +55,11 @@ const scene = () => sceneSize(hall);
 const iso = () => viewMode.mode === '39';
 // The desktop strip (view.js): a transparent bar on the taskbar, its pixel size by the Strip size setting (Task 6).
 const strip = () => viewMode.strip;
+// The desktop column (column.js): its hall for these department floors, on the Settings side.
+const column = () => viewMode.column;
+const columnHall = (floors = []) => columnOf(size, floors, settings.stripSide);
+const layColumn = (plan, o) => layoutColumn(plan, { ...o, side: settings.stripSide });
+let settleNext = false; // entering the column: the cast snaps to its places on the next roster (Cast.settle)
 // Where a floor point (x, y), up logical px above the floor, is drawn: itself in the flat view (up: straight up the
 // screen), projected in the 39° view (view.js). Overlays and hit tests place themselves through it.
 const at = (x, y, up = 0) => (iso() ? toScreen(x, y, up) : [x, y - up]);
@@ -108,7 +114,7 @@ function toggleVigil() {
 vigilBtn.onclick = toggleVigil;
 renderVigil();
 
-initStripWin({ actorAt, fromStrip: saved === 'strip', toggleVigil });
+initStripWin({ actorAt, fromStrip: stripKind(saved), toggleVigil });
 // The hall's floor point at its view centre, kept through a stay in the strip (the strip's view says nothing of it).
 // Leaving, the window is still strip-sized until place_hall lands: the first hall resize after (refloor) centres
 // on it again, the strip-sized fit in between having clamped it.
@@ -117,16 +123,19 @@ const centreFloor = prev => (viewW ? toFloor((viewW / 2 - pan.x) / scale, (viewH
 // The view changed (adm.view, Settings): drop the cached background like a theme change, and re-fit (the 39°
 // view's canvas is the projected hall's size: the next frame resizes it) on the floor point the old view centred.
 onView((mode, prev) => {
-  if (mode === 'strip' || prev === 'strip') { // another world: the cast starts over (walks in from the gate)
-    if (mode === 'strip') { hallFloor = centreFloor(prev); refloor = false; }
-    document.documentElement.classList.toggle('strip', mode === 'strip');
-    if (tauri()) switchStrip(mode === 'strip');
+  if (stripKind(mode) || stripKind(prev)) { // another world: the cast starts over (walks in from the gate)
+    if (stripKind(mode) && !stripKind(prev)) { hallFloor = centreFloor(prev); refloor = false; }
+    document.documentElement.classList.toggle('strip', stripKind(mode));
+    applyColumn();
+    if (tauri()) switchStrip(stripKind(mode)); // bar <-> column: straight across, the window stays the strip's (never leave then enter)
+    settleNext = mode === 'vstrip';
     showMenu(false);
     mouse = null; // the strip's cursor is backend-fed, the hall's a pointer event: neither means anything in the other
     resetCast();
     for (const k in bg) delete bg[k];
-    if (prev === 'strip') { setViewW(0); refloor = tauri(); } // the strip's stage: no hall centre to keep (hallFloor, else the scene's centre)
-    fit(prev === 'strip' ? hallFloor : undefined); relayout();
+    const out = stripKind(prev) && !stripKind(mode);
+    if (out) { setViewW(0); refloor = tauri(); } // the strip's stage: no hall centre to keep (hallFloor, else the scene's centre)
+    fit(out ? hallFloor : undefined); relayout();
     return;
   }
   const c = centreFloor(prev);
@@ -164,14 +173,14 @@ let resizing;
 addEventListener('resize', () => {
   clearTimeout(resizing);
   resizing = setTimeout(() => {
-    if (!refloor || strip()) return fit();
+    if (!refloor || strip()) { fit(); if (column()) growStrip(); return; } // the column: the work area changed, re-place it
     refloor = false; setViewW(0); fit(hallFloor);
   }, 150);
 });
 initViewport({ canvas, overlay, scene, iso, strip, at, relayout, setMouse: e => { mouse = e; } }); // scroll, drag-to-pan, double-click, arrow keys (viewport.js)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {
-  hall = strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size);
+  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size);
   onRoster(pending ?? roster);
 }
 
@@ -237,6 +246,7 @@ function frame(now) {
   view.level = level;
   view.mode = viewMode.mode;
   view.anchors = back?.anchors;
+  view.lift = cast.lift; // the column's car (scene.js drawColumnProps)
   let lights;
   outline.on = strip(); // outlined sprites in the strip only: the hall and the sprite viewer draw without
   try { lights = iso() ? drawScene39(g, view, cast.actors, fillOf, now) : drawScene(g, view, cast.actors, fillOf, now); } finally { outline.on = false; }
@@ -266,7 +276,7 @@ const emptyLayout = () => ({ blocks: [], desks: [], seats: new Map(), consoles: 
 let layout = emptyLayout();
 // A switch into or out of the strip: nobody walks between worlds. The plan (desk keys) is geometry-free and stays.
 function resetCast() {
-  cast.actors.clear(); cast.naps.clear(); clearGlides();
+  cast.actors.clear(); cast.naps.clear(); cast.lift = null; clearGlides();
   layout = { ...emptyLayout(), plan: layout.plan };
 }
 // Harness only: ?grace=<s> shortens the empty-desk grace (blocks get 5/3 of it). The app's URL has no query.
@@ -281,14 +291,17 @@ function onRoster(next) {
   if (paused()) { pending = next; return; } // ponytail: the newest roster wins; wake() applies it
   roster = next;
   for (const s of roster) if (!deptOrder.includes(s.dept)) deptOrder.push(s.dept);
-  const napping = cast.napping(roster, (strip() ? stripOf(size.w) : hallOf(0, size)).refectory);
+  const napping = cast.napping(roster, (column() ? columnHall() : strip() ? stripOf(size.w) : hallOf(0, size)).refectory); // the column's: by its height alone
   const depts = deptOrder
     .map(name => ({ name, color: colorOf(name), temp: roster.some(s => s.dept === name && s.temp), ids: roster.filter(s => s.dept === name && !napping.has(s.id)).map(s => s.id), helpers: consolesOf(name) }))
     .filter(d => d.ids.length || d.helpers.some(Boolean)); // a dozing scribe's adepts keep working at their consoles
-  layout = planLayout(layout, depts, Date.now(), GRACE, size, strip() ? layoutStrip : iso() ? layIso : layoutDepartments);
-  hall = strip() ? stripOf(size.w) : hallOf(layout.bays, size);
+  layout = planLayout(layout, depts, Date.now(), GRACE, size, column() ? layColumn : strip() ? layoutStrip : iso() ? layIso : layoutDepartments);
+  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays, size);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
-  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id)), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
+  // the column: a petitioner from a hidden floor still queues in the Sanctum (the petition is what the column is for)
+  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id) || (column() && (s.status === 'waiting' || isQuestion(s)))), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
+  // settled once the window is the column (the layout made while it is still the hall's window would place them wrong)
+  if (settleNext && column() && (!tauri() || columnPlaced(size.h, screen.availHeight, colScale()))) { settleNext = false; cast.settle(); }
   const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;
   const count = document.getElementById('count');
   const qs = t('questions', { n: nq });
@@ -375,7 +388,8 @@ muteBtn.onclick = toggleMute;
 renderMute();
 
 let refreshTithe = null;
-initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet });
+initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet,
+  sided: () => { if (!column()) return; resetCast(); settleNext = true; applyColumn(); fit(); relayout(); growStrip(); } }); // the column's side: mirrored at once
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;

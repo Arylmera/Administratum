@@ -17,16 +17,20 @@ export function floorToWorld(x, y, WALL = WALL_DEFAULT) {
 import { P39, TAN39 as K } from './iso.js'; // K: the continuous inverse of P39 for floor points (z = 0), toFloor
 export { P39 };
 
-export const view = { mode: 'flat', strip: false };
-export const viewName = () => (view.strip ? 'strip' : view.mode);
+// column: the desktop column ('vstrip', column.js), a strip kind: view.strip is true in it too, so every strip
+// behaviour (no lighting, outlines, click-through, a puff for a compaction) comes with it.
+export const view = { mode: 'flat', strip: false, column: false };
+export const viewName = () => (view.column ? 'vstrip' : view.strip ? 'strip' : view.mode);
 export const hallView = name => (name === '39' ? '39' : 'flat');
+export const stripKind = name => name === 'strip' || name === 'vstrip';
 const listeners = new Set();
 export const onView = fn => { listeners.add(fn); return () => listeners.delete(fn); };
-// mode: 'flat' | '39' | 'strip' (adm.view). The strip is a window mode drawn with the flat projection.
+// mode: 'flat' | '39' | 'strip' | 'vstrip' (adm.view). The strip and the column are window modes drawn with the flat projection.
 export function setView(mode) {
-  const next = mode === 'strip' ? 'strip' : hallView(mode), prev = viewName();
+  const next = stripKind(mode) ? mode : hallView(mode), prev = viewName();
   if (next === prev) return;
-  view.strip = next === 'strip';
+  view.strip = stripKind(next);
+  view.column = next === 'vstrip';
   view.mode = hallView(next);
   for (const f of listeners) f(next, prev);
 }

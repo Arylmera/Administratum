@@ -304,6 +304,7 @@ fn main() {
             install_update,
             strip::strip_supported,
             strip::place_strip,
+            strip::place_column,
             strip::place_hall,
             strip::set_click_through,
             strip::set_strip_menu,

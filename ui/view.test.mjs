@@ -76,6 +76,15 @@ setView('flat');
   assert.equal(view.mode, '39');
   setView('39'); // no change: no event
   assert.deepEqual(seen.slice(-2), [['strip', 'flat'], ['39', 'strip']]);
+  // the desktop column: a strip kind (strip and column both on), drawn flat; strip <-> column is one switch
+  setView('vstrip');
+  assert.deepEqual([view.strip, view.column, view.mode, viewName()], [true, true, 'flat', 'vstrip']);
+  setView('strip');
+  assert.deepEqual([view.strip, view.column, viewName()], [true, false, 'strip']);
+  setView('flat');
+  assert.deepEqual([view.strip, view.column], [false, false]);
+  assert.deepEqual(seen.slice(-3), [['vstrip', '39'], ['strip', 'vstrip'], ['flat', 'strip']]);
+  assert.equal(hallView('vstrip'), 'flat');
   assert.equal(hallView('39'), '39');
   assert.equal(hallView('strip'), 'flat');
   assert.equal(hallView('flat'), 'flat');

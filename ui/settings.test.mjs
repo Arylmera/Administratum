@@ -35,6 +35,27 @@ assert.deepEqual(last('set_question_prefs'), { enabled: true, toast: true });
 assert.deepEqual(last('set_quiet'), { enabled: false, fromMin: 1320, toMin: 480 });
 assert.equal(calls.find(c => c.name === 'setAlwaysOnTop').args, false);
 assert.equal(form.querySelector('[value="strip"]').hidden, false, 'strip offered where supported');
+assert.equal(form.querySelector('[value="vstrip"]').hidden, false, 'column offered where supported');
+// The desktop column's side: right by default (desktop icons sit on the left), saved, the window re-placed (sided).
+assert.equal(settings.stripSide, 'right');
+{
+  const sided = []; hooks.sided = () => sided.push(settings.stripSide);
+  change('stripSide', 'left');
+  assert.equal(settings.stripSide, 'left');
+  assert.equal(JSON.parse(store.get('adm.settings')).stripSide, 'left');
+  change('stripSide', 'up'); // not a side: the default
+  assert.equal(settings.stripSide, 'right');
+  assert.deepEqual(sided, ['left', 'right']);
+  delete hooks.sided;
+  // the strip kind last chosen is the one the tray's strip item goes back to (stripwin.js toggleStrip)
+  change('view', 'vstrip');
+  assert.equal(store.get('adm.stripKind'), 'vstrip');
+  assert.equal(form.querySelector('.column-only').hidden, false);
+  change('view', 'strip');
+  assert.equal(store.get('adm.stripKind'), 'strip');
+  change('view', 'flat');
+  assert.equal(store.get('adm.stripKind'), 'strip'); // a hall view leaves it
+}
 // Updates: the startup check only offers the install.
 const up = form.querySelector('#updates');
 assert.equal(up.querySelector('.up-line').textContent, 'Version 0.6.5. Version 0.7.0 is available.');
@@ -230,3 +251,30 @@ assert.equal(field('stuckMin').value, '15');
 assert.equal(field('reportOn').checked, false);
 assert.equal(field('reportDir').value, '');
 assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disabled);
+
+// The desktop column's window (stripwin.js growStrip): placed by kind and side, a side change re-placed even with a
+// panel open (its key holds the side), the panels widening it, the handle's menu (inside the column) never.
+{
+  const { setView } = await import('./view.js');
+  const { growStrip } = await import('./stripwin.js');
+  globalThis.screen ??= {}; globalThis.screen.availHeight = 1040;
+  document.querySelectorAll ??= sel => document.documentElement.querySelectorAll(sel); // testdom: the element's, on the page
+  const shown = (id, w) => Object.defineProperties(document.getElementById(id), { offsetParent: { value: w ? document.body : null, configurable: true }, offsetWidth: { value: w, configurable: true } });
+  setView('vstrip');
+  settings.stripSide = 'right'; settings.stripSize = 'M';
+  shown('card', 200);
+  const places = () => invoked('place_column').map(c => c.args);
+  const n0 = places().length;
+  growStrip();
+  assert.deepEqual(places().slice(n0), [{ width: 256 + 208, side: 'right' }]);
+  settings.stripSide = 'left';
+  growStrip(); // same width, the other side: placed again
+  assert.deepEqual(places().slice(n0 + 1), [{ width: 256 + 208, side: 'left' }]);
+  growStrip(); // nothing changed: not placed again
+  assert.equal(places().length, n0 + 2);
+  shown('card', 0); shown('strip-menu', 120); // the menu open alone: the column's own width
+  growStrip();
+  assert.deepEqual(places().at(-1), { width: 256, side: 'left' });
+  shown('strip-menu', 0);
+  setView('flat');
+}

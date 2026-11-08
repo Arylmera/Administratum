@@ -3,7 +3,9 @@ import { SCENE, MAX_W } from './layout.js';
 import { STRIP_H } from './strip.js';
 import { RES } from './sprites.js';
 import { view as scaleSetting } from './settings.js';
-import { stripScale } from './stripwin.js';
+import { stripScale, colScale } from './stripwin.js';
+import { COL_W } from './column.js';
+import { view as viewMode } from './view.js';
 
 let canvas, overlay, scene, iso, strip, at, relayout, setMouse; // app.js's (initViewport)
 export let scale = 2;
@@ -46,9 +48,9 @@ export function settleLag(ms) {
 export const centreOn = (lx, ly) => panTo(viewW / 2 - lx * scale, viewH / 2 - ly * scale); // a logical point, gliding there
 let viewCentre = null; // the logical point at the view's centre, kept through a resize (null: the scene's centre)
 export function fit(floor) { // floor: a floor point to centre on (a view switch), else the view keeps its logical centre
-  if (strip()) { // the window's whole width, one strip high; nothing to pan
-    scale = stripScale();
-    const next = { w: Math.floor(innerWidth / scale), h: STRIP_H };
+  if (strip()) { // the window's whole width, one strip high (the column: COL_W wide, the window's whole height); nothing to pan
+    scale = viewMode.column ? colScale() : stripScale();
+    const next = viewMode.column ? { w: COL_W, h: Math.floor(innerHeight / scale) } : { w: Math.floor(innerWidth / scale), h: STRIP_H };
     if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
     viewCentre = null;
     const S = scene();
@@ -83,6 +85,7 @@ function applySize(W, H) {
   const root = document.documentElement.style;
   root.setProperty('--k', Math.min(2.5, Math.max(1, scale / 2)).toFixed(3)); // label/plaque text grows with the scene
   root.setProperty('--px', `${scale}px`); // one logical px (the strip's handle)
+  root.setProperty('--colw', `${S.w * scale}px`); // the stage's CSS width (the column's panels open beside it)
   root.setProperty('--tile', `${40 * scale / RES}px`);
 }
 // app.js's few writes into this state (leaving the strip and a resize forget the view's centre; a click after a pan).

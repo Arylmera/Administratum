@@ -4,10 +4,14 @@ import { route, roomOf, hallOf } from './layout.js';
 import { settings, questions } from './settings.js';
 import { view } from './view.js';
 import { vigil } from './vigil.js';
+import { makeLift, setStops, call, cancel, retarget, step as liftStep, carY, slotOf, lineOf } from './lift.js';
+import { floorAt } from './column.js';
 
 const SPEED = 80; // logical px per second
 // The strip spans the whole screen, so a walk there takes twice the hall's speed (a wide screen's crossing stays short).
-const speed = () => (view.strip ? 2 * SPEED : SPEED);
+// The column is short: its walks keep the hall's speed.
+const speed = () => (view.strip && !view.column ? 2 * SPEED : SPEED);
+const RIDE_DX = [-5, 0, 5]; // a rider's place in the car (lift.js slotOf), from the car's centre
 const STRIDE = SPEED / 16; // px walked per walk frame: the legs keep pace with the speed
 // Thresholds come from the settings panel (settings.js), read live:
 const COG_HOLD_MS = () => settings.cogHoldS * 1000; // a busy scribe stays at the cogitator this long after its last shell command
@@ -40,15 +44,19 @@ export class Cast {
 
   // hall: hallOf() of the scene's size and the layout's bays (rooms, gate, queue, aisle and lanes follow it).
   sync(roster, seats, colorOf, consoleSeats, blocks, hall = hallOf(0)) {
-    if (hall.w !== this.hall.w || hall.baseH !== this.hall.baseH) this.resized(this.hall, hall);
+    // The desktop column (column.js): one lift for the cast (lift.js), new on entry; its floors moved: everyone on them moves too.
+    if (!hall.column) this.lift = null;
+    else if (!this.lift || !this.hall.column) this.lift = makeLift(hall.stops, 'ref');
+    else if (hall.floorsKey !== this.hall.floorsKey) this.floorsMoved(this.hall, hall);
+    if (!hall.column && (hall.w !== this.hall.w || hall.baseH !== this.hall.baseH)) this.resized(this.hall, hall);
     this.hall = hall;
     const ENTRY = hall.entry;
     const live = new Set(roster.map(s => s.id));
     // New actors walk in through the gate; known ones take the fresh data (and stop leaving if they were).
-    const upsert = (id, fields) => {
+    const upsert = (id, fields, at = ENTRY) => {
       const a = this.actors.get(id);
       if (a) Object.assign(a, fields, { leaving: false });
-      else this.actors.set(id, { id, x: ENTRY.x, y: ENTRY.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false, ...fields });
+      else this.actors.set(id, { id, x: at.x, y: at.y, path: [], target: null, destKey: '', dir: 'up', t: 0, pose: 'walk', leaving: false, ...fields });
     };
     for (const s of roster) {
       const a = this.actors.get(s.id); // a.s is still last poll's session here
@@ -58,7 +66,8 @@ export class Cast {
     for (const s of roster) for (const h of s.helpers ?? []) {
       const id = `${s.id}|${h.id}`;
       live.add(id);
-      upsert(id, { owner: s.id, h });
+      const seat = consoleSeats.get(id); // in the column an adept appears at its floor's landing: adepts never ride
+      upsert(id, { owner: s.id, h }, hall.column && seat ? hall.landing(floorAt(hall, seat.y)) : ENTRY);
     }
     if (this.watchOn()) live.add(WATCH_ID);
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
@@ -99,8 +108,16 @@ export class Cast {
     a.target = d;
     a.wait = 0;
     a.pose = 'walk';
-    if (a.x === d.x && a.y === d.y) { a.path = []; return; } // already there (a resize re-routing everyone)
     const H = this.hall, R = H.route ?? route;
+    if (a.snap) { a.snap = false; Object.assign(a, { x: d.x, y: d.y, path: [] }); return; } // its floor went mid-trip (lift.js lost)
+    if (a.ride) { // in the lift's line or its car (the column): a new destination
+      const to = floorAt(H, d.y), at = a.path.find(p => p.lift)?.lift.from;
+      const tail = [...(d.pose === 'nap' ? [{ ...H.recaff, wait: RECAFF_S }] : []), { x: d.x, y: d.y }];
+      if (a.ride === 'in') { retarget(this.lift, a.id, to); a.path = [{ ...H.landing(to), lift: { from: at, to } }, ...tail]; return; }
+      if (to !== at) { call(this.lift, a.id, at, to); a.path = [{ ...H.landing(to), lift: { from: at, to } }, ...tail]; return; } // keeps its place
+      cancel(this.lift, a.id); a.ride = null; a.still = false; // the same floor after all: it walks on from the line
+    }
+    if (a.x === d.x && a.y === d.y) { a.path = []; return; } // already there (a resize re-routing everyone)
     a.path = d.pose === 'nap' ? R(from, H.recaff, blocks, H).concat({ x: d.x, y: d.y }) : R(from, d, blocks, H);
     if (d.pose === 'nap') a.path.at(-2).wait = RECAFF_S;
   }
@@ -115,6 +132,38 @@ export class Cast {
       else a.x = Math.min(a.x, to.corridorX); // ponytail: a short hop, only when the window narrows
       a.destKey = '';
       if (a.burn) a.burn.fire = braziers(to.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
+    }
+  }
+
+  // The column's floors moved (a department came or went, the screen's height changed): everyone not in the car moves
+  // with their floor (never a lift trip), and is re-routed; the lift takes the new stops, and a caller or rider whose
+  // floor went snaps to its destination.
+  floorsMoved(from, to) {
+    const dy = new Map(from.floors.map(f => [f.key, to.stops.has(f.key) ? to.stops.get(f.key) - f.y : 0]));
+    const shift = p => { const k = floorAt(from, p.y); if (k) p.y += dy.get(k); };
+    for (const a of this.actors.values()) {
+      if (a.ride === 'in') continue;
+      shift(a);
+      for (const p of a.path) shift(p);
+      if (!a.ride) a.destKey = '';
+    }
+    for (const e of setStops(this.lift, to.stops)) this.onLift(e);
+  }
+  // A lift event (lift.js step, setStops): on board, off at the landing (on to its destination), or snapped there.
+  onLift(e) {
+    const a = this.actors.get(e.id);
+    if (!a) return;
+    if (e.type === 'board') { a.ride = 'in'; a.still = false; }
+    else if (e.type === 'alight') { a.ride = null; Object.assign(a, this.hall.landing(e.key)); if (a.path[0]?.lift) a.path.shift(); }
+    else if (e.type === 'lost') { a.ride = null; a.still = false; a.snap = true; a.destKey = ''; }
+  }
+  // Entering the column: everyone is already where they are going (only later arrivals ride).
+  settle() {
+    for (const a of [...this.actors.values()]) {
+      const t = a.target;
+      if (!t || a.ride) continue;
+      if (t.pose === 'gone') { this.actors.delete(a.id); continue; }
+      Object.assign(a, { x: t.x, y: t.y, path: [], wait: 0, pose: t.pose });
     }
   }
 
@@ -158,7 +207,8 @@ export class Cast {
   // Adepts work at their own console in the owner's department block, whatever the owner is doing.
   atConsole(a, consoleSeats) {
     const seat = consoleSeats.get(a.id);
-    return a.leaving || !seat ? { ...this.hall.entry, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
+    const H = this.hall, out = H.column ? H.landing(floorAt(H, a.y) ?? 'ref') : H.entry; // the column's adepts leave at their landing
+    return a.leaving || !seat ? { ...out, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
   }
 
   watchOn() { return vigil.armed && !this.hall.strip; }
@@ -183,12 +233,28 @@ export class Cast {
 
   update(dt) {
     this.watch(dt);
+    const L = this.lift, H = this.hall;
+    if (L) for (const e of liftStep(L, dt)) this.onLift(e); // the car first: who boards, who gets off
     for (const a of [...this.actors.values()]) {
       a.t += dt;
       let step = speed() * dt;
       if (a.wait > 0) { a.wait -= dt; step = 0; } // pausing at a waypoint (the recaff)
+      if (a.ride === 'in') { a.x = H.carX + RIDE_DX[Math.max(0, slotOf(L, a.id))]; a.y = carY(L); a.dir = 'down'; step = 0; } // in the car
+      else if (a.ride === 'wait') { // in line at the landing, its place moving up as the line closes
+        const from = a.path[0].lift.from, spot = H.lineSpot(from, Math.max(0, lineOf(L, a.id))), dx = spot.x - a.x, dist = Math.abs(dx);
+        a.still = dist <= step;
+        if (a.still) { a.x = spot.x; a.y = spot.y; a.dir = H.carX > a.x ? 'right' : 'left'; } // facing the shaft
+        else { a.x += Math.sign(dx) * step; a.dir = dx > 0 ? 'right' : 'left'; a.walked = (a.walked ?? 0) + step; }
+        step = 0;
+      }
       a.walked = (a.walked ?? 0) + step;
       while (step > 0 && a.path.length) {
+        if (a.path[0].lift && L) { // at the landing: call the car; a call it refuses (a floor gone) drops the lift waypoint
+          const { from, to } = a.path[0].lift;
+          if (call(L, a.id, from, to)) { a.ride = 'wait'; break; }
+          a.path.shift();
+          continue;
+        }
         const p = a.path[0], dx = p.x - a.x, dy = p.y - a.y, dist = Math.hypot(dx, dy);
         if (dist > 0) a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
         if (dist <= step) { a.x = p.x; a.y = p.y; a.path.shift(); step -= dist; if (p.wait) { a.wait = p.wait; a.dir = 'up'; break; } }
@@ -261,9 +327,10 @@ export function bodyOf(a) {
     const face = walk ? a.dir : a.target.dir;
     return { map: marked(ADEPT[face][walk ? i : 0], ADEPT, ADEPT_AT, face, markOf(a.h.kind)), over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
   }
-  const i = a.wait > 0 ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
-  const map = a.pose === 'burn' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
-  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !(a.wait > 0) ? i : -1 };
+  const still = a.wait > 0 || a.still || a.ride === 'in'; // paused at the recaff, in the lift's line, riding the car
+  const i = still ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
+  const map = a.pose === 'burn' || a.ride === 'in' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
+  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !still ? i : -1 };
 }
 
 // The 39° view's facing, from the walk direction in floor space: E = +x, W = -x, S = +y (toward the viewer), N = -y.

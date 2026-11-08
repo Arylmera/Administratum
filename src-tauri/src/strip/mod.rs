@@ -43,6 +43,46 @@ pub fn edge_of(mon: Rect, work: Rect) -> Option<Edge> {
     }
 }
 
+/// The screen edge the desktop column stands on (Settings, `adm.settings.stripSide`).
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Side {
+    Left,
+    Right,
+}
+/// What the strip window is: the bar on the taskbar (`h` CSS px tall) or the desktop column (`w` CSS px wide, the work
+/// area's full height, on `side`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Shape {
+    Bar { h: f64 },
+    Column { w: f64, side: Side },
+}
+
+/// The column's rect, physical px: the work area's height on the `side` edge, `w` wide. An auto-hidden taskbar
+/// (`hide`, its edge) keeps 2 px of the monitor free on its side, so it can still slide in.
+pub fn column_rect(mon: Rect, work: Rect, side: Side, hide: Option<Edge>, w: i32) -> Rect {
+    let top = if hide == Some(Edge::Top) { mon.top + 2 } else { work.top };
+    let bottom = if hide == Some(Edge::Bottom) { mon.bottom - 2 } else { work.bottom };
+    match side {
+        Side::Left => {
+            let left = if hide == Some(Edge::Left) { mon.left + 2 } else { work.left };
+            Rect { left, top, right: left + w, bottom }
+        }
+        Side::Right => {
+            let right = if hide == Some(Edge::Right) { mon.right - 2 } else { work.right };
+            Rect { left: right - w, top, right, bottom }
+        }
+    }
+}
+
+/// The window's rect for a shape on a monitor, physical px (`scale`: the monitor's factor, CSS to physical).
+pub fn rect_of(mon: Rect, work: Rect, hide: Option<Edge>, shape: Shape, scale: f64) -> Rect {
+    match shape {
+        Shape::Bar { h } => strip_rect(mon, work, hide == Some(Edge::Bottom), (h * scale).round() as i32),
+        Shape::Column { w, side } => column_rect(mon, work, side, hide, (w * scale).round() as i32),
+    }
+}
+
 /// The strip's rect, physical px: the work area's width, `h` tall, standing on the work area's bottom (on a bottom
 /// taskbar that is the taskbar's top edge). An auto-hidden taskbar: 2 px above the monitor's bottom.
 pub fn strip_rect(mon: Rect, work: Rect, autohide: bool, h: i32) -> Rect {
@@ -92,8 +132,8 @@ pub static ON: AtomicBool = AtomicBool::new(false);
 /// The strip's last placed rect, physical px: `None` before the first placement, or once the hall
 /// is back.
 static RECT: Mutex<Option<Rect>> = Mutex::new(None);
-/// The last CSS height asked for, so a monitor-change watcher (Task 7) can replay the same placement.
-static HEIGHT: Mutex<f64> = Mutex::new(0.0);
+/// The last shape asked for (its CSS size and side), so the watcher can replay the same placement.
+static SHAPE: Mutex<Shape> = Mutex::new(Shape::Bar { h: 0.0 });
 
 /// The hall window's saved placement, physical px: `x`/`y` are `outer_position` (screen
 /// coordinates, no frame involved), `w`/`h` are `inner_size` (what `set_size` restores).
@@ -111,19 +151,19 @@ pub fn strip_supported() -> bool {
     cfg!(any(windows, target_os = "macos"))
 }
 
-/// Re-place the strip on the window's current monitor, `height_css` tall. Returns the rect it set.
+/// Re-place the strip window on its current monitor as `shape`. Returns the rect it set.
 /// Safe against a concurrent `place_hall`: every caller that can race with it (the watcher) only
 /// ever calls this from the main thread (`run_on_main_thread`), the same thread tauri's own
 /// `set_size`/`set_position` apply on, so the two can never interleave their window writes.
 /// `current_monitor()` below is a blocking round-trip to the main thread; it runs before the
 /// `RECT` lock is taken so a main-thread caller can never deadlock waiting on itself through this lock.
-pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String> {
+pub fn replace(w: &tauri::WebviewWindow, shape: Shape) -> Result<Rect, String> {
     let m = w.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     let (p, s, wa) = (m.position(), m.size(), m.work_area());
     let mon = Rect { left: p.x, top: p.y, right: p.x + s.width as i32, bottom: p.y + s.height as i32 };
     let work = Rect { left: wa.position.x, top: wa.position.y, right: wa.position.x + wa.size.width as i32, bottom: wa.position.y + wa.size.height as i32 };
-    let bottom_bar = bar_edge(mon, work) == Some(Edge::Bottom);
-    let r = strip_rect(mon, work, autohide() && bottom_bar, (height_css * m.scale_factor()).round() as i32);
+    let hide = autohide().then(|| bar_edge(mon, work)).flatten();
+    let r = rect_of(mon, work, hide, shape, m.scale_factor());
     if *crate::lock(&RECT) != Some(r) {
         w.set_size(tauri::PhysicalSize::new((r.right - r.left) as u32, (r.bottom - r.top) as u32)).map_err(|e| e.to_string())?;
         w.set_position(tauri::PhysicalPosition::new(r.left, r.top)).map_err(|e| e.to_string())?;
@@ -134,6 +174,18 @@ pub fn replace(w: &tauri::WebviewWindow, height_css: f64) -> Result<Rect, String
 
 #[tauri::command]
 pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<HallRect>, String> {
+    enter(&window, Shape::Bar { h: height })
+}
+
+/// The desktop column: `width` CSS px on the `side` edge, the work area's full height.
+#[tauri::command]
+pub fn place_column(window: tauri::WebviewWindow, width: f64, side: Side) -> Result<Option<HallRect>, String> {
+    enter(&window, Shape::Column { w: width, side })
+}
+
+/// Into the strip window as `shape`: the hall's rect the first time (kept by the UI for the way back), `None` while
+/// the strip window is already on (a resize, or the bar <-> column switch: never leave then enter).
+fn enter(window: &tauri::WebviewWindow, shape: Shape) -> Result<Option<HallRect>, String> {
     // ON only once the strip is placed: a failure below leaves the hall's state (and its rect, captured
     // again on the next try) as it was.
     let hall = if ON.load(Ordering::SeqCst) {
@@ -145,13 +197,13 @@ pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<H
         window.set_resizable(false).map_err(|e| e.to_string())?;
         Some(HallRect { x: p.x, y: p.y, w: s.width, h: s.height })
     };
-    *crate::lock(&HEIGHT) = height;
+    *crate::lock(&SHAPE) = shape;
     // Windows 11 draws a 1 px border + shadow around undecorated windows while the shadow is on;
     // off in the strip, where the bar must sit flush against the taskbar. Off before replace(): with the
     // shadow on, the window keeps an invisible resize frame round the size set, which becomes drawn
     // client area once the shadow goes (the strip came out 16 px wider, 9 px taller, over the taskbar).
     let _ = window.set_shadow(false);
-    if let Err(e) = replace(&window, height) {
+    if let Err(e) = replace(window, shape) {
         let _ = window.set_shadow(true); // still the hall
         return Err(e);
     }
@@ -237,8 +289,8 @@ pub fn start_watcher(app: tauri::AppHandle) {
                 if !ON.load(Ordering::SeqCst) || !w2.is_visible().unwrap_or(false) {
                     return;
                 }
-                let height = *crate::lock(&HEIGHT);
-                match replace(&w2, height) {
+                let shape = *crate::lock(&SHAPE);
+                match replace(&w2, shape) {
                     Ok(_) => clear_log(&REPLACE_ERR),
                     Err(e) => log_once(&REPLACE_ERR, format!("strip watcher replace: {e}")),
                 }
@@ -329,6 +381,54 @@ mod tests {
         let mon = Rect { left: 1920, top: -200, right: 4480, bottom: 1240 };
         let work = Rect { bottom: 1180, ..mon };
         assert_eq!(strip_rect(mon, work, false, 150), Rect { left: 1920, top: 1030, right: 4480, bottom: 1180 });
+    }
+    #[test]
+    fn column_on_either_edge() {
+        // taskbar at the bottom: the column the work area's height, on the chosen edge
+        let work = Rect { bottom: 1032, ..MON };
+        assert_eq!(column_rect(MON, work, Side::Left, None, 320), Rect { left: 0, top: 0, right: 320, bottom: 1032 });
+        assert_eq!(column_rect(MON, work, Side::Right, None, 320), Rect { left: 1600, top: 0, right: 1920, bottom: 1032 });
+        // taskbar on the same side: beside it; on the opposite side: flush with the screen edge
+        let left_bar = Rect { left: 62, ..MON };
+        assert_eq!(column_rect(MON, left_bar, Side::Left, None, 320), Rect { left: 62, top: 0, right: 382, bottom: 1080 });
+        assert_eq!(column_rect(MON, left_bar, Side::Right, None, 320), Rect { left: 1600, top: 0, right: 1920, bottom: 1080 });
+        let right_bar = Rect { right: 1858, ..MON };
+        assert_eq!(column_rect(MON, right_bar, Side::Right, None, 320), Rect { left: 1538, top: 0, right: 1858, bottom: 1080 });
+        let top_bar = Rect { top: 48, ..MON };
+        assert_eq!(column_rect(MON, top_bar, Side::Left, None, 320), Rect { left: 0, top: 48, right: 320, bottom: 1080 });
+    }
+    #[test]
+    fn column_beside_an_auto_hidden_taskbar() {
+        // auto-hide: the work area is the whole monitor; 2 px kept free on the taskbar's own side
+        assert_eq!(column_rect(MON, MON, Side::Left, Some(Edge::Left), 320), Rect { left: 2, top: 0, right: 322, bottom: 1080 });
+        assert_eq!(column_rect(MON, MON, Side::Right, Some(Edge::Right), 320), Rect { left: 1598, top: 0, right: 1918, bottom: 1080 });
+        assert_eq!(column_rect(MON, MON, Side::Right, Some(Edge::Left), 320), Rect { left: 1600, top: 0, right: 1920, bottom: 1080 });
+        assert_eq!(column_rect(MON, MON, Side::Left, Some(Edge::Top), 320), Rect { left: 0, top: 2, right: 320, bottom: 1080 });
+        assert_eq!(column_rect(MON, MON, Side::Left, Some(Edge::Bottom), 320), Rect { left: 0, top: 0, right: 320, bottom: 1078 });
+    }
+    #[test]
+    fn column_on_a_secondary_monitor() {
+        let mon = Rect { left: -2560, top: -200, right: 0, bottom: 1240 };
+        let work = Rect { bottom: 1180, ..mon };
+        assert_eq!(column_rect(mon, work, Side::Left, None, 384), Rect { left: -2560, top: -200, right: -2176, bottom: 1180 });
+        assert_eq!(column_rect(mon, work, Side::Right, None, 384), Rect { left: -384, top: -200, right: 0, bottom: 1180 });
+    }
+    #[test]
+    fn rect_of_each_shape() {
+        // the rect the watcher replays for a shape: its CSS size times the monitor's factor
+        let work = Rect { bottom: 1032, ..MON };
+        let col = Shape::Column { w: 256.0, side: Side::Right };
+        assert_eq!(rect_of(MON, work, None, col, 1.25), Rect { left: 1600, top: 0, right: 1920, bottom: 1032 });
+        // the bar: as strip_rect, the auto-hide inset only for a bottom taskbar
+        assert_eq!(rect_of(MON, work, None, Shape::Bar { h: 56.0 }, 2.0), strip_rect(MON, work, false, 112));
+        assert_eq!(rect_of(MON, MON, Some(Edge::Bottom), Shape::Bar { h: 56.0 }, 2.0), strip_rect(MON, MON, true, 112));
+        assert_eq!(rect_of(MON, MON, Some(Edge::Left), Shape::Bar { h: 56.0 }, 2.0), strip_rect(MON, MON, false, 112));
+    }
+    #[test]
+    fn side_from_the_ui() {
+        assert_eq!(serde_json::from_str::<Side>("\"left\"").unwrap(), Side::Left);
+        assert_eq!(serde_json::from_str::<Side>("\"right\"").unwrap(), Side::Right);
+        assert!(serde_json::from_str::<Side>("\"up\"").is_err());
     }
     #[test]
     fn cursor_inside() {

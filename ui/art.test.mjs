@@ -251,4 +251,27 @@ for (const id of Object.keys(THEMES)) {
   for (const k of ['title', 'row0', 'row1', 'row2', 'row3']) assert.equal(PROP_AT.HONOURS[k]?.length, 4, `${id}: HONOURS ${k} anchor`);
 }
 setTheme('tier2');
+
+// The desktop column's lift (tools/lift_art.mjs): 13 frames in each of the 6 worlds, every one at the base frame's size,
+// each world's drawn from scratch: no frame the base one's rows (a recolour keeps the rows), and the car's front, its
+// back and its open doors each a silhouette of their own; every theme draws its world's.
+const LIFT = ['SHAFT', 'SHAFT_TOP', 'SHAFT_PIT', 'CABLE', 'CAR_BACK', 'CAR_FRONT.shut', 'CAR_FRONT.half', 'CAR_FRONT.open', 'SLAB', 'SLAB_L', 'SLAB_R', 'LAMP.off', 'LAMP.on'];
+assert.deepEqual(Object.keys(ART.base.lift.frames).sort(), [...LIFT].sort());
+for (const id of WORLD_ART) {
+  const own = ART.themed[id]?.lift?.frames, base = ART.base.lift.frames;
+  assert.deepEqual(Object.keys(own ?? {}).sort(), [...LIFT].sort(), `${id}: every lift frame of its own`);
+  for (const n of LIFT) {
+    assert.equal(own[n].length, base[n].length, `${id} ${n}: height`);
+    assert.equal(own[n][0].length, base[n][0].length, `${id} ${n}: width`);
+    assert.notDeepEqual(own[n], base[n], `${id} ${n}: the base frame's rows`);
+  }
+  for (const n of ['CAR_BACK', 'CAR_FRONT.shut', 'CAR_FRONT.open', 'SHAFT_TOP']) assert.notEqual(mask(own[n]), mask(base[n]), `${id} ${n}: the base silhouette`);
+  for (const other of WORLD_ART.filter(o => o !== id)) assert.notDeepEqual(own['CAR_FRONT.shut'], ART.themed[other].lift.frames['CAR_FRONT.shut'], `${id}: ${other}'s car`);
+}
+for (const id of Object.keys(THEMES)) {
+  setTheme(id);
+  const world = ART.dirOf(id);
+  assert.equal(SHEET_OF.CAR_BACK, WORLD_ART.includes(world) ? `${world}/lift` : 'lift', `${id}: its world's lift`);
+}
+setTheme('tier2');
 console.log('art ok');

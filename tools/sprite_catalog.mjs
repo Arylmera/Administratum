@@ -38,6 +38,11 @@ const ABOUT = {
   DAIS: 'Suzerain dais under a desk: a session that forked live child sessions', DAIS_C: 'Suzerain dais under a lectern (crowded hall)',
   LINK_H: 'Suzerain link tile, across: from the dais to a forked child', LINK_V: 'Suzerain link tile, down', LINK_END: "Suzerain link end at the child's feet",
   HONOURS: "Hall of Honours plaque in the scriptorium's first back-wall alcove (a wide hall): the week's four marks are written over it",
+  SHAFT: 'Desktop column: the lift shaft, tiled down the inner side', SHAFT_TOP: 'Desktop column: the head of the lift shaft (its pulley)', SHAFT_PIT: 'Desktop column: the foot of the lift shaft',
+  CABLE: 'Desktop column: the lift cable from the shaft head down to the car, tiled', CAR_BACK: 'Desktop column: the lift car behind its riders',
+  'CAR_FRONT.shut': 'Desktop column: the lift car front over its riders, doors shut', 'CAR_FRONT.half': 'Desktop column: the lift car front, doors half open', 'CAR_FRONT.open': 'Desktop column: the lift car front, doors open',
+  SLAB: 'Desktop column: the floor slab under each floor line, tiled', SLAB_L: 'Desktop column: the floor slab, left end', SLAB_R: 'Desktop column: the floor slab, right end',
+  'LAMP.off': 'Desktop column: the call lamp by a landing, dark', 'LAMP.on': 'Desktop column: the call lamp, lit while someone waits there or the car stands open',
 };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
 
@@ -109,7 +114,7 @@ export function catalog() {
   // world's own art; false = never drawn in this world.
   const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$/.test(name) || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
+    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$/.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
@@ -156,5 +161,7 @@ export function catalog() {
   add('SHELL_COG', 'Props and furniture', SHEET_OF.SHELL_COG_0, turn, true, `Cog turning on a desk corner while a background shell runs, ${turn.length} frames a revolution (~3 s)`);
   // Added after the effects (O8), last so every earlier cell ref keeps its row.
   add('HONOURS', 'Props and furniture', SHEET_OF.HONOURS, [{ rows: MAPS.HONOURS, over: {} }], false, ABOUT.HONOURS);
+  // The desktop column's lift (O9), after the plaque so every earlier cell ref keeps its row.
+  for (const name of ['SHAFT', 'SHAFT_TOP', 'SHAFT_PIT', 'CABLE', 'CAR_BACK', 'CAR_FRONT.shut', 'CAR_FRONT.half', 'CAR_FRONT.open', 'SLAB', 'SLAB_L', 'SLAB_R', 'LAMP.off', 'LAMP.on']) add(name, 'Desktop column (lift)', SHEET_OF[name], [{ rows: MAPS[name], over: {} }], false, ABOUT[name]);
   return out;
 }

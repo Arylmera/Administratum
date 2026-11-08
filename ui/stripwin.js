@@ -1,5 +1,7 @@
-// The desktop strip's window: on/off the taskbar, its height, click-through, the handle's menu.
+// The desktop strip's window: on/off the taskbar (or the desktop column on a screen edge), its size, click-through,
+// the handle's menu.
 import { STRIP_H } from './strip.js';
+import { COL_W, columnScale } from './column.js';
 import { settings, store, applyTop } from './settings.js';
 import { view as viewMode, setView } from './view.js';
 import { invoke, tauri } from './bridge.js';
@@ -7,6 +9,10 @@ import { invoke, tauri } from './bridge.js';
 const strip = () => viewMode.strip;
 export const stripScale = () => ({ S: 1.5, M: 2, L: 2.5 })[settings.stripSize] ?? 2;
 const stripCss = () => Math.round(STRIP_H * stripScale()); // the strip's CSS height
+// The column's scale: the Strip size's, smaller on a short work area (column.js columnScale); its CSS width.
+export const colScale = () => columnScale(screen.availHeight, stripScale());
+const colCss = () => Math.round(COL_W * colScale());
+const baseCss = () => (viewMode.column ? colCss() : stripCss());
 let actorAt; // app.js's hit test on the cast (initStripWin)
 // Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
 // is over the strip (it gets no pointer events while ignoring them).
@@ -23,25 +29,27 @@ export function setThrough(on) {
 }
 // Into the strip: the window moves onto the taskbar (place_strip returns the hall's rect the first time, kept for the
 // way back in adm.hallRect). Out: the hall's rect back (place_hall turns click-through off). The tray check follows.
-let grownTo = 0; // the window's last asked CSS height in the strip (growStrip)
+let grownTo = ''; // the window's last asked shape and CSS size in the strip (growStrip)
 let bootStrip; // started in the strip: the window's rect is the last session's strip, not a hall (initStripWin)
 // Every move onto the taskbar goes through here: the first one out of the hall returns the hall's rect, whoever calls.
-async function placeStrip(height) {
-  const r = await invoke('place_strip', { height });
+// The column: its CSS width on its side (place_column); the bar: its CSS height (place_strip). Between the two the
+// window stays the strip's (the backend's ON): no hall rect comes back, adm.hallRect keeps the hall's.
+async function placeStrip(css) {
+  const r = await invoke(viewMode.column ? 'place_column' : 'place_strip', viewMode.column ? { width: css, side: settings.stripSide } : { height: css });
   if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
   bootStrip = false;
   return r;
 }
 async function enterStrip() {
-  grownTo = stripCss();
-  await placeStrip(grownTo);
+  grownTo = shapeKey(baseCss());
+  await placeStrip(baseCss());
   if (!strip()) return; // a leave was queued behind this enter: let it undo the move instead
   setThrough(true);
   invoke('set_strip_menu', { on: true }).catch(() => {});
   growStrip();
 }
 async function leaveStrip() {
-  through = null; grownTo = 0;
+  through = null; grownTo = '';
   const r = store.get('adm.hallRect');
   await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
   applyTop(); // the strip's watcher re-asserts topmost every tick regardless of the user's setting
@@ -56,16 +64,26 @@ export function switchStrip(on) {
 }
 // The strip's window grows upward while a panel (card, Settings, Chronicon, the handle's menu) is open above it, and
 // shrinks back when they close; the stage stays pinned to the bottom (index.html). Also replays a Strip size change.
+// The column grows sideways instead (beside the panel), its height the work area's.
+// The key holds the kind and the column's side, so a side change re-places the window even with a panel open.
+const shapeKey = css => `${viewMode.column ? settings.stripSide : 'bar'}:${css}`;
 export function growStrip() {
   if (!strip() || !tauri()) return;
-  const open = [...document.querySelectorAll('#card, #prefs, #chron, #strip-menu')].filter(el => el.offsetParent);
-  const h = stripCss() + Math.max(0, ...open.map(el => el.offsetHeight + 8));
-  if (h !== grownTo) { grownTo = h; placeStrip(h).catch(() => {}); }
+  // the column's handle menu opens inside it (index.html), so only the panels widen it
+  const open = [...document.querySelectorAll(viewMode.column ? '#card, #prefs, #chron' : '#card, #prefs, #chron, #strip-menu')].filter(el => el.offsetParent);
+  const css = baseCss() + Math.max(0, ...open.map(el => (viewMode.column ? el.offsetWidth : el.offsetHeight) + 8));
+  if (shapeKey(css) !== grownTo) { grownTo = shapeKey(css); placeStrip(css).catch(() => {}); }
 }
-// Strip <-> hall (the tray's check item, the handle's Hall view): back to the hall view it left (adm.hallView).
+// The column's classes (index.html html.vstrip, html.right): on its entry, its exit and a side change.
+export function applyColumn() {
+  const r = document.documentElement.classList;
+  r.toggle('vstrip', viewMode.column); r.toggle('right', viewMode.column && settings.stripSide === 'right');
+}
+// Strip <-> hall (the tray's check item, the handle's Hall view): back to the hall view it left (adm.hallView), or into
+// the strip kind last used (adm.stripKind: the bar or the column, one tray item for both).
 export function toggleStrip() {
-  const to = viewMode.strip ? store.get('adm.hallView', 'flat') : 'strip';
-  if (to === 'strip') store.set('adm.hallView', viewMode.mode);
+  const to = viewMode.strip ? store.get('adm.hallView', 'flat') : store.get('adm.stripKind', 'strip') === 'vstrip' ? 'vstrip' : 'strip';
+  if (!viewMode.strip) store.set('adm.hallView', viewMode.mode);
   store.set('adm.view', to); setView(to);
 }
 // The handle: a cog at the strip's left end (over the gate) opening a small menu above it.

@@ -209,3 +209,21 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="faces-books"></a>`FACES.BOOKS` | 2.5×7.5 | BOOKS, 39° view only: binder 1 side, binder 1 top, binder 2 side, binder 2 top, binder 3 side, binder 3 top, binder 4 side, binder 4 top, strap side, strap top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.BOOKS.png" height="72"> |
 | <a id="faces-paper_stack"></a>`FACES.PAPER_STACK` | 1×12 | PAPER_STACK, 39° view only: board side, board top, card 1 side, card 1 top, card 2 side, card 2 top, card 3 side, card 3 top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.PAPER_STACK.png" height="96"> |
 | <a id="faces-scroll_pile"></a>`FACES.SCROLL_PILE` | 2.5×4.5 | SCROLL_PILE, 39° view only: bag L side, bag L top, bag M side, bag M top, bag R2 side, bag R2 top, bag R side, bag R top, bag top side, bag top top, handle side, handle top, handle 2 side, handle 2 top. Source: `ui/art/orbital/faces.png` | <img src="orbital/FACES.SCROLL_PILE.png" height="40"> |
+
+## Desktop column (lift)
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="shaft"></a>`SHAFT` | 28×8 | Desktop column: the lift shaft, tiled down the inner side. Source: `ui/art/orbital/lift.png` | <img src="orbital/SHAFT.png" height="64"> |
+| <a id="shaft_top"></a>`SHAFT_TOP` | 28×6 | Desktop column: the head of the lift shaft (its pulley). Source: `ui/art/orbital/lift.png` | <img src="orbital/SHAFT_TOP.png" height="48"> |
+| <a id="shaft_pit"></a>`SHAFT_PIT` | 28×4 | Desktop column: the foot of the lift shaft. Source: `ui/art/orbital/lift.png` | <img src="orbital/SHAFT_PIT.png" height="32"> |
+| <a id="cable"></a>`CABLE` | 1×2 | Desktop column: the lift cable from the shaft head down to the car, tiled. Source: `ui/art/orbital/lift.png` | <img src="orbital/CABLE.png" height="16"> |
+| <a id="car_back"></a>`CAR_BACK` | 26×20 | Desktop column: the lift car behind its riders. Source: `ui/art/orbital/lift.png` | <img src="orbital/CAR_BACK.png" height="160"> |
+| <a id="car_front-shut"></a>`CAR_FRONT.shut` | 26×20 | Desktop column: the lift car front over its riders, doors shut. Source: `ui/art/orbital/lift.png` | <img src="orbital/CAR_FRONT.shut.png" height="160"> |
+| <a id="car_front-half"></a>`CAR_FRONT.half` | 26×20 | Desktop column: the lift car front, doors half open. Source: `ui/art/orbital/lift.png` | <img src="orbital/CAR_FRONT.half.png" height="160"> |
+| <a id="car_front-open"></a>`CAR_FRONT.open` | 26×20 | Desktop column: the lift car front, doors open. Source: `ui/art/orbital/lift.png` | <img src="orbital/CAR_FRONT.open.png" height="160"> |
+| <a id="slab"></a>`SLAB` | 8×6 | Desktop column: the floor slab under each floor line, tiled. Source: `ui/art/orbital/lift.png` | <img src="orbital/SLAB.png" height="48"> |
+| <a id="slab_l"></a>`SLAB_L` | 4×6 | Desktop column: the floor slab, left end. Source: `ui/art/orbital/lift.png` | <img src="orbital/SLAB_L.png" height="48"> |
+| <a id="slab_r"></a>`SLAB_R` | 4×6 | Desktop column: the floor slab, right end. Source: `ui/art/orbital/lift.png` | <img src="orbital/SLAB_R.png" height="48"> |
+| <a id="lamp-off"></a>`LAMP.off` | 3×3 | Desktop column: the call lamp by a landing, dark. Source: `ui/art/orbital/lift.png` | <img src="orbital/LAMP.off.png" height="24"> |
+| <a id="lamp-on"></a>`LAMP.on` | 3×3 | Desktop column: the call lamp, lit while someone waits there or the car stands open. Source: `ui/art/orbital/lift.png` | <img src="orbital/LAMP.on.png" height="24"> |

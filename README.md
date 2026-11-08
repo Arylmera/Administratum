@@ -250,6 +250,16 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   size (S/M/L) and an optional backdrop are in Settings. It sits best with a taskbar or Dock at the bottom of the
   screen; with one on a side it stands on the bottom of the screen. On macOS it does not show over full-screen apps.
 
+- **Desktop column**: the strip stood on end, a narrow transparent click-through column the full height of the work
+  area on the left or right screen edge (Settings, *Column side*; right by default, desktop icons sit on the left).
+  Floors top to bottom: the Sanctum (the Magos and the petition line), one floor per department (its lecterns, its
+  adepts' consoles behind them, its plaque on the floor slab), the cogitator, and the refectory at the bottom, where
+  scribes come in from the screen edge. One lift on the inner side carries the scribes between floors: they queue at
+  its landing (a lamp lights while someone waits), it takes up to three at once and stops on its way for anyone going
+  the same way. Adepts never ride; they appear at their console's floor. A short screen drops the size L -> M -> S until
+  four department floors fit; departments past the last floor (and scribes past six lecterns on one) are hidden and
+  counted on the cogitator's floor. Panels open beside the column. Each world draws its own shaft, car and floor slab.
+
 ![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
 Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111, Darwin)
@@ -403,8 +413,9 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
 | Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
 | Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
-| View | Flat | Flat / 2.5D (the 39° view) / Desktop strip (Windows and macOS; see *Views*) |
-| Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip |
+| View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
+| Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
+| Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
 | Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3, or its − / + buttons, a quarter step per click) sets it, and a hall larger than the window pans |
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
 | Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
@@ -455,7 +466,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Show / hide | Toggle the window (the header's `–` button also hides it) |
 | Chime | Ticked while the chime is on; click to mute / unmute (same as the header bell) |
 | Cycle lighting | Auto → Full light → Candles |
-| Desktop strip | Checkbox (Windows and macOS): switches between the strip and the view held before it |
+| Desktop strip | Checkbox (Windows and macOS): switches between the view held before and the strip kind last used (the strip or the column) |
 | Start at login | Checkbox, kept in sync with Settings |
 | Quit | Exit Administratum |
 

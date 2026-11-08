@@ -37,7 +37,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `settings.rs` | `settings.json`: load, shape checks, atomic save; readers of saved `adm.*` values the backend needs (quiet hours, open-folder program) |
 | `remote/` | The LAN remote view. `mod.rs` the HTTP server, pairing token and policy, with no Tauri in it; `app.rs` its settings, the backend it calls and the settings panel's commands (remote view, firewall rule). Its API: [remote-api.md](remote-api.md) |
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
-| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) |
+| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, or as the desktop column on a screen edge (`Shape`: `Bar` or `Column`, `place_strip` / `place_column`, `column_rect`; the watcher replays the last shape each second), click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
 | `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown) and `report_day` (armed before 04:00: the day before); `app.rs` arming, its tick, toast and Chronicon events, the day report capture on arm and on fire, the shutdown itself |
 
@@ -69,12 +69,13 @@ do not know which.
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
 | `scene.js` | Canvas drawing of the flat hall: the static background and each frame |
-| `view.js` | The view switch: Flat (identity) or the 39° projection |
+| `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
 | `iso.js`, `isohall.js`, `scene39.js` | The 39° view: z-buffer engine, its static hall, its per-frame layer |
 | `faces.js` | Face sheets: one art source split into faces, drawn flat or built into 39° volumes |
 | `depth.js` | Shadows, cast shadows and ambient occlusion computed from the sprites |
 | `lighting.js`, `sun.js` | Darkness, light pools and glows; sunrise and sunset (NOAA) for *Auto* lighting |
-| `strip.js`, `stripwin.js`, `outline.js` | Desktop strip: its geometry, its window, the 1 px outline around sprites |
+| `strip.js`, `stripwin.js`, `outline.js` | Desktop strip: its geometry, its window (the bar or the column, `adm.stripKind`), the 1 px outline around sprites |
+| `column.js`, `lift.js` | Desktop column: its floors, layout and routes (a cross-floor walk has one lift waypoint); the lift, a pure SCAN scheduler (FIFO calls, 3 riders, event-exact `step`) the cast rides (`actors.js`) |
 | `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder |
 | `room.js`, `wallart.js` | The room from tiles (fill rules), the back wall's window and hangings |
 | `theme.js`, `themes.js` | Themes: every colour and the wording; `setTheme`, `t()` |
@@ -136,7 +137,7 @@ when it loads. One file per module:
 |---|---|
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
-| `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one |
+| `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
 | `theme.test.mjs` | Themes: complete palettes, runtime switch |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
@@ -149,6 +150,8 @@ when it loads. One file per module:
 | `isohall.test.mjs` | 39° hall: room plan, prop placement, render (pixel hashes) |
 | `scene39.test.mjs` | 39° dynamic layer: depth order, seats, hit tests, gate |
 | `strip.test.mjs` | Strip geometry |
+| `lift.test.mjs` | The lift: delivery, FIFO trips at CAP, same-way pickup, starvation bound, repeat calls, cancel, retarget, new stops, the same events for any dt split |
+| `column.test.mjs` | Column geometry (floor ys, floors moving, the right side mirrored, pitch, overflow, routes, the scale drop) and the cast in it (riding, a petition mid-ride, a floor move, settle, adepts never ride) |
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
 | `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars; the usage-window bar (no window, empty frame, ticks with the lowest marked, clamped fill, "estimate" tooltip) and today's window line |
@@ -208,8 +211,8 @@ board), each sprite linking to a prefilled new issue. Design notes:
 
 **Tools** (`tools/`): `sprites.html` the live viewer, `preview.html` the backend-free hall, `sprite_catalog.mjs` the
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` /
-`watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/`,
-`suzerain_art/` and `honours_art/`, each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, Watchman, Suzerain (dais and link) and Hall of Honours plaque art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
+`watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` / `lift_art.mjs` (one module per theme or world under `breakout_art/`, `watch_art/`,
+`suzerain_art/`, `honours_art/` and `lift_art/`, each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, Watchman, Suzerain (dais and link), Hall of Honours plaque and desktop column lift art, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
 command-line client of the running app, `make_icon.py` the app icon.
 
 ---

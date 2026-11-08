@@ -9,6 +9,8 @@ let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { hallOf, WALL, WALL_DY, breakoutOf } from './layout.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { FLOOR, breakoutOfStrip } from './strip.js';
+import { COL_W } from './column.js';
+import { carY, doorsOf as liftDoors } from './lift.js';
 import { shadowOf, contactShadow, castShadow, casterOf, drawAO, FLY_H } from './depth.js';
 
 const BIN = '0100000101110110011001010010000001001111011011010110111001101001';
@@ -224,13 +226,13 @@ export function beginFrame(layout, now) {
 export function drawScene(g, layout, actors, fillOf, now) {
   beginFrame(layout, now);
   const all = [...actors.values()];
-  const Z = H.strip ? breakoutOfStrip(layout.blocks) : breakoutOf(layout.blocks, H);
+  const Z = H.column ? null : H.strip ? breakoutOfStrip(layout.blocks) : breakoutOf(layout.blocks, H); // the column has no bay
   if (Z) breakoutFloor(g, Z);
   drawRugs(g, layout.blocks);
   drawPlinths(g, layout.desks, actors);
   drawLinks(g, layout.desks, actors, now);
   if (!H.strip) drawDoors(g, all, now);
-  const items = [drawGate(g, all)], lights = [], over = [], floor = []; // floor: shadows, under everything standing
+  const items = H.column ? [] : [drawGate(g, all)], lights = [], over = [], floor = []; // the column has no gate // floor: shadows, under everything standing
   if (Z) (H.strip ? stripBreakout : breakoutFence)(Z, all, items);
   const dark = layout.level?.dark ?? 0.18, shade = H.strip ? STRIP_SHADE : 0.5 - 0.33 * (dark - 0.18); // contact shadow alpha: 0.5 by day, 0.3 at night
   const footShadow = (g2, e, a) => contactShadow(g2, H.strip ? stood(e) : e, a); // the strip's: wider and darker
@@ -270,7 +272,8 @@ export function drawScene(g, layout, actors, fillOf, now) {
     }
     floor.push(() => footShadow(g, e, shade));
   }
-  if (H.strip) drawStripProps(g, H, all, now, items); // its contact shadows go down now, with the floor's
+  if (H.column) drawColumnProps(g, H, all, now, items, layout.lift); // its contact shadows go down now, with the floor's
+  else if (H.strip) drawStripProps(g, H, all, now, items);
   floor.forEach(f => f(g));
   if (!H.strip) for (const [name, x, y] of propsOf(H).props) { // the flames lick, under everyone as the props they sit on
     const m = flameOf(name, x, now / 1000);
@@ -878,6 +881,49 @@ function drawStripProps(g, H, actors, now, items) {
   prop(MAPS.THRONE, tx, g2 => { blit(g2, MAPS.THRONE, tx, top(MAPS.THRONE)); drawMagos(g2, tx - 4, top(MAPS.THRONE) - 4, t); });
 }
 
+// The desktop column's props (column.js columnOf): the lift shaft on the inner side (its head, its tiled walls, its pit),
+// the cable down to the car, the car (its back under the riders, its front over them, the doors by lift.js doorsOf),
+// a call lamp by each landing (lit while someone waits there or the car stands open at it), the floor slab under each
+// floor line but the bottom one, and the rooms' props on their floors: the Magos' throne on the sanctum, the
+// cogitator, the recaff and the bench on the refectory. Each stands 1 px behind its floor line, as in the strip.
+function drawColumnProps(g, H, actors, now, items, L) {
+  const t = now / 1000, cog = actors.filter(a => a.pose === 'cog').length, aw = m => m[0].length / RES, ah = m => m.length / RES;
+  const prop = (map, x, foot, draw) => {
+    contactShadow(g, stood(shadowOf(map, x, foot - ah(map))), STRIP_SHADE);
+    items.push({ y: foot, draw: draw ?? (g2 => blit(g2, map, x, foot - ah(map))) });
+  };
+  const run = (map, x0, y0, x1, y1) => clipped(g, x0, y0, x1 - x0, y1 - y0, g2 => { // a tile repeated over a rect
+    for (let y = y0; y < y1; y += ah(map)) for (let x = x0; x < x1; x += aw(map)) blit(g2, map, x, y);
+  });
+  const sx = H.shaftX, sw = aw(MAPS.SHAFT), head = ah(MAPS.SHAFT_TOP), pit = ah(MAPS.SHAFT_PIT);
+  run(MAPS.SHAFT, sx, head, sx + sw, H.h - pit);
+  blit(g, MAPS.SHAFT_TOP, sx, 0);
+  blit(g, MAPS.SHAFT_PIT, sx, H.h - pit);
+  const cy = L ? carY(L) : H.h, cw = aw(MAPS.CAR_BACK), ch = ah(MAPS.CAR_BACK), cx = H.carX - cw / 2;
+  run(MAPS.CABLE, H.carX - aw(MAPS.CABLE) / 2, head, H.carX + aw(MAPS.CABLE) / 2, cy - ch);
+  blit(g, MAPS.CAR_BACK, cx, cy - ch);
+  const d = L ? liftDoors(L) : 0, front = MAPS[`CAR_FRONT.${d < 1 / 3 ? 'shut' : d < 2 / 3 ? 'half' : 'open'}`];
+  items.push({ y: cy + 0.5, draw: g2 => blit(g2, front, cx, cy - ch) }); // over its riders (feet on cy)
+  const x0 = H.side === 'right' ? sw : 0, x1 = x0 + COL_W - sw; // the floor beside the shaft
+  for (const f of H.floors) {
+    const lit = !!L && ([...L.calls.values()].some(c => c.from === f.key) || (L.at === f.key && d > 0));
+    const lx = H.side === 'right' ? H.landing(f.key).x + 1 : H.landing(f.key).x - 1 - aw(MAPS['LAMP.off']);
+    blit(g, MAPS[`LAMP.${lit ? 'on' : 'off'}`], lx, f.y - 26);
+    if (f.key === 'ref') continue; // the bottom floor stands on the screen's edge
+    run(MAPS.SLAB, x0 + aw(MAPS.SLAB_L), f.y, x1 - aw(MAPS.SLAB_R), f.y + ah(MAPS.SLAB));
+    blit(g, MAPS.SLAB_L, x0, f.y); blit(g, MAPS.SLAB_R, x1 - aw(MAPS.SLAB_R), f.y);
+  }
+  const tx = H.magos.x - 10, sf = H.magos.y - 1;
+  prop(MAPS.THRONE, tx, sf, g2 => { blit(g2, MAPS.THRONE, tx, sf - ah(MAPS.THRONE)); drawMagos(g2, tx - 4, sf - ah(MAPS.THRONE) - 4, t); });
+  const cf = H.cog.y - 1;
+  prop(MAPS.COGITATOR, H.cog.x, cf, g2 => {
+    blit(g2, MAPS.COGITATOR, H.cog.x, cf - ah(MAPS.COGITATOR));
+    g2.save(); g2.translate(H.cog.x - COG_X, cf - ah(MAPS.COGITATOR) - COG_Y); drawCogitator(g2, t, cog); g2.restore();
+  });
+  prop(MAPS.RECAFF, H.recaffAt, H.h - 1);
+  for (const b of H.benches) prop(widened(MAPS.BENCH, H.benchW * RES), b.x, H.h - 1);
+}
+
 // The strip's escalation: no wall bracket to hang a beacon on and no room to light, so while any queued petition
 // is stale a small red beacon blinks over the Magos (hall's colours and sweep period) and the servo-skull sits
 // over the nearest petitioner (H.queue[0]) with its flying shadow (reuse the hall's sprite and flyShadow).
@@ -886,7 +932,7 @@ function drawStripAlarm(g, H, actors, now) {
   const on = actors.some(a => !a.h && !a.leaving && a.pose === 'queue' && isStale(a.s));
   if (!on) return [];
   const t = now / 1000, blink = Math.sin(t * 5) > 0; // the hall beacon's sweep period (stepAlarm)
-  const bx = H.magos.x - 10, by = FLOOR - 1 - MAPS.THRONE.length / RES - 12;
+  const bx = H.magos.x - 10, by = H.magos.y - 1 - MAPS.THRONE.length / RES - 12; // the Magos' floor (the strip's: FLOOR)
   rect(g, bx - 1, by - 1, 3, 3, blink ? I.alarm : I.alarmGlow);
   const { x: sx, y: sy } = H.queue[0], hx = sx + 10, hy = sy - 30; // clear of the petition label (overlay.js syncLabels)
   flyShadow(g, hx, hy);
@@ -973,7 +1019,7 @@ function drawGate(g, actors) {
   blit(g, MAPS.GATE_VOID, ox, oy); // the void beyond, lit by the braziers
   const s = stepGate(actors, frameDt);
   return {
-    y: H.strip ? FLOOR - 1 : GATE.y + MAPS.GATE.length / RES, // the strip's walkers pass in front
+    y: H.strip ? E.y - 1 : GATE.y + MAPS.GATE.length / RES, // the strip's walkers pass in front (its gate stands on FLOOR)
     draw(g2) {
       g2.save(); g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
       blit(g2, MAPS.GATE_L, GATE.x + A.leafL[0] - s, GATE.y + A.leafL[1]); blit(g2, MAPS.GATE_R, GATE.x + A.leafR[0] + s, GATE.y + A.leafR[1]);
