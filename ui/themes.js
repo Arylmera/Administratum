@@ -558,10 +558,13 @@ defineTheme({
     // frosted lab glass by day, the New Mexico night beyond it
     windowDay: { u: '#cfe3ee', v: '#d9c39a', g: '#fff4d0', h: '#fff0b0', x: '#e3eef3', c: '#b8a07a', C: '#9a8462' },
     windowNight: { u: '#1c2433', v: '#2a2620', g: '#e8e4c8', h: '#283044', x: '#232c3c', c: '#2a2a26', C: '#1a1a18' },
-    backdrop: '#dfe4e7', backdropLit: '#e9edf0', backdropEdge: '#c7d0d4', backdropDark: '#b9c3c8', backdropSeam: '#dfe4e7', backdropSeamLit: '#e9edf0',
-    backdropRivet: BB.steel, overflowPlaque: BB.steel,
+    // the band around the hall: one flat colour, no seams, no rivets
+    backdrop: '#dfe4e7', backdropLit: '#dfe4e7', backdropEdge: '#dfe4e7', backdropDark: '#dfe4e7', backdropSeam: '#dfe4e7', backdropSeamLit: '#dfe4e7',
+    backdropRivet: '#dfe4e7', backdropRivetLit: '#dfe4e7', overflowPlaque: BB.steel,
   },
-  light: { amber: 'rgba(255,240,200,.18)', green: 'rgba(95,158,90,.16)', red: 'rgba(224,58,42,.22)', lampOn: 'rgba(255,250,235,.5)',
+  // soft glows: an additive glow on a pale floor reads as a white smudge, so the lights barely add (the darkness of
+  // the night shift still opens round them)
+  light: { amber: 'rgba(255,240,200,.06)', green: 'rgba(95,158,90,.06)', red: 'rgba(224,58,42,.12)', lampOn: 'rgba(255,250,235,.15)',
     glint: 'rgba(255,255,255,.6)', spark: 'rgba(207,233,255,.8)', night: '20,24,32', beam: '255,250,235' },
   ui: {
     '--bg': '#e9edf0', '--bar': '#dfe4e7', '--ink': '#26282b', '--dim': '#6b767c', '--light': '#ffffff', '--edge': '#c7d0d4', '--btn': '#f4f6f7',
