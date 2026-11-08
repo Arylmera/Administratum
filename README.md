@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-1c1d20?style=flat-square"></a>
 </p>
 
-A Windows and macOS desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
+A Windows, macOS and Linux desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
 office, and calls you when one of them needs an answer. Pick your world: a tech-priest scribe in a Warhammer 40k
 scriptorium, a netrunner in a cyberpunk den, crew on an orbital station, an apprentice in a wizard's tower, a
 dweller in a Fallout vault or a chimpanzee at a typewriter in Darwin's Victorian laboratory ([Worlds and themes](#worlds-and-themes)).
@@ -36,14 +36,15 @@ permission prompts in Orca terminals you can approve or deny from the widget its
 |---|---|---|
 | **Windows 10 / 11** | Download `Administratum_<version>_x64-setup.exe` from the [latest release](https://github.com/Arylmera/Administratum/releases/latest) and run it | [Step by step](#windows) |
 | **macOS** (Apple silicon or Intel) | `brew install --cask arylmera/administratum/administratum` | [Step by step](#macos-with-homebrew-recommended), or [without Homebrew](#macos-without-homebrew) |
+| **Linux** (x86_64) | Download `Administratum_<version>_amd64.AppImage` (any distribution) or the `.deb` (Debian, Ubuntu) from the [latest release](https://github.com/Arylmera/Administratum/releases/latest) | [Step by step](#linux) |
 
 Then start a Claude Code session: its scribe walks in through the gate. To look around without any session, run
 the app with `--demo`.
 
 ### Requirements
 
-- Windows 10 or 11 (tested on Windows 11), or macOS (built and run on macOS 26, Apple silicon). Linux is not
-  supported.
+- Windows 10 or 11 (tested on Windows 11), macOS (built and run on macOS 26, Apple silicon), or Linux (built and run
+  on Omarchy 4.5: Arch Linux, Hyprland, Wayland).
 - Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
   missing.
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
@@ -114,6 +115,32 @@ Chronicon stay in `%APPDATA%\com.arylmera.administratum` unless you tick the uni
 4. Continue from step 3 of the Homebrew steps above.
 
 **Uninstall:** quit it from the tray menu, then drag `Administratum.app` to the Bin.
+
+### Linux
+
+1. From the [latest release](https://github.com/Arylmera/Administratum/releases/latest), download either:
+   - `Administratum_<version>_amd64.AppImage`, for any distribution. It carries its own libraries and needs FUSE 2
+     (`fuse2` on Arch, `libfuse2` on Ubuntu 22.04, `libfuse2t64` on 24.04). Make it executable and run it:
+     ```sh
+     chmod +x Administratum_*_amd64.AppImage && ./Administratum_*_amd64.AppImage
+     ```
+   - or `Administratum_<version>_amd64.deb`, on Debian or Ubuntu. It installs WebKitGTK and the tray library with
+     it, and a launcher entry:
+     ```sh
+     sudo apt install ./Administratum_<version>_amd64.deb
+     ```
+2. Under a tiling window manager the widget first opens as a tiled window: on Hyprland, add the window rule from
+   [What differs on Linux](#what-differs-on-linux) to make it a floating widget in a corner.
+3. It lives in the tray, which needs a StatusNotifier tray (most bars have one; on GNOME, the AppIndicator
+   extension). Petition toasts carry Approve and Deny where the notification server shows actions.
+4. Optional: tray menu or Settings → **Start at login** writes `~/.config/autostart/Administratum.desktop` (for the
+   AppImage, pointing at the `.AppImage` file), which XDG desktops and systemd-based sessions such as Omarchy's
+   start at login.
+5. Start a Claude Code session: its scribe walks in through the gate.
+
+**Updates:** Settings → System → Updates replaces the AppImage in place; the `.deb` installs through a password
+prompt (`pkexec`). **Uninstall:** delete the AppImage, or `sudo apt remove administratum`; settings stay in
+`~/.config/com.arylmera.administratum` and the Chronicon in `~/.local/share/com.arylmera.administratum`.
 
 ### What differs on macOS
 

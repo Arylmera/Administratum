@@ -91,7 +91,9 @@ do not know which.
 
 ## Run
 
-Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --version "^2"`).
+Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --version "^2"`). On Linux, also the Tauri
+system libraries: on Debian or Ubuntu the `apt-get install` line of `.github/workflows/check.yml`, on Arch
+`webkit2gtk-4.1 libayatana-appindicator librsvg xdotool openssl`.
 
 ```sh
 cd src-tauri
