@@ -541,10 +541,10 @@ defineTheme({
     '@': '#1b1d20', $: BB.visor, '%': '#3a4a52', '&': '#ff5a40', '*': '#8a2a1e', '-': '#5a1a12', '=': '#ffffff', // the gate's dark, the red warning light
     '(': BB.green, ')': '#7fbf78', '[': '#3f6e3b', ']': BB.k, // the Br Ba seal
   },
-  sash: ['#c0392b', '#2e7d32', '#8e44ad', '#26282b', '#8b5a2b', '#e84393', '#2c3e50', '#7f8c8d'], // none near the white, blue or yellow suit
+  sash: ['#c0392b', '#43a047', '#8e44ad', '#00897b', '#8b5a2b', '#e84393', '#d35400', '#7f8c8d'], // mid tones: none near a suit, the outline or the visor
   rank: {
     high: { robe: { r: BB.white, R: BB.white, d: BB.white, ...bbFace(BB.skin, BB.k, BB.skin) }, // Walter: bald, glasses and goatee
-      adept: { x: '#d0452f', b: '#f4f6f7', q: '#f4f6f7', Q: '#f4f6f7', J: BB.k, I: '#ffffff' } },
+      adept: { x: '#d0452f', b: '#f4f6f7', q: '#f4f6f7', Q: '#f4f6f7', J: '#c9a227', I: '#ffffff' } }, // Gale's gold trim
     standard: { robe: { r: BB.blue, R: BB.blue, d: BB.blue, ...bbFace(BB.skin, BB.skin, BB.k) }, // Jesse: no glasses, dark hair
       adept: { J: BB.green, I: '#ffffff' } },
     novice: { robe: { r: BB.yellow, R: BB.yellow, d: BB.yellow, ...bbFace(BB.visor, BB.visor, BB.visor) }, // anonymous: a dark visor
@@ -587,6 +587,7 @@ defineTheme({
       background: 'Idle · Gale on errands', napping: 'Idle · asleep in the RV' },
     petitions: ['{n} sample', '{n} samples'], petitioning: '{n} waiting on Heisenberg', petitionLabel: '{name}, sample: {want}',
     adeptOf: '{kind} · Gale for {owner}', overflow: '+{n} in the RV', empty: 'No cooks in the lab',
+    summonedBy: 'Hired by', summoned: 'Boss of', lineage: 'Crew today',
     modes: { full: 'Lab lights', candles: 'Night shift' },
     log: { title: 'Lab notebook', open: 'Open the lab notebook', close: 'Close the lab notebook', silent: 'The lab notebook is blank: no record could be read for this day.' },
     tithe: { hint: 'Cooked today: tokens and time at the bench', day: 'Cooked today: {tokens} tokens, {time} at the bench' },
