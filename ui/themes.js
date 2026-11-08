@@ -514,3 +514,85 @@ defineTheme({
     toast: { petition: 'Query from {name}', stale: 'Query still waiting: {name}', limit: '{name} out of bananas until {time}', limitMany: '{n} monkeys out of bananas until {time}' },
   },
 });
+
+// Breaking Bad: the superlab under the laundry, drawn flat (docs/superpowers/specs/2026-11-08-breaking-bad-design.md):
+// one outline colour, flat fills (every shadow slot equals its fill), a one-colour floor and wall, the Br Ba tiles
+// as the one decoration. Cooks in hazmat suits, rank by suit and by who is behind the visor: the face is drawn in the
+// rank slots t (skin), T (Walter's glasses and goatee), z (Jesse's hair), dark visor by default (the anonymous
+// Assistant), recoloured per rank. Gale is the assistant (adept), Heisenberg the boss (magos), Mike the watchman.
+const BB = { k: '#26282b', visor: '#2f3a40', skin: '#f0c8a0', goatee: '#7a5230', white: '#fafafa', blue: '#3a6ea5', yellow: '#f2c230',
+  steel: '#9aa3a8', steelDark: '#6b767c', wall: '#e9edf0', floor: '#c7d0d4', base: '#9aa6ac', green: '#5f9e5a', liquid: '#8fd3ff' };
+const bbFace = (skin, specs, hair) => ({ t: skin, T: specs, z: hair, j: BB.visor, g: BB.steel, G: BB.steel });
+defineTheme({
+  id: 'breakingbad', world: 'breakingbad', name: 'Breaking Bad', art: [],
+  px: {
+    k: BB.k, e: BB.visor, n: '#1b1d20',
+    r: BB.yellow, R: BB.yellow, d: BB.yellow, t: BB.visor, T: BB.visor, z: BB.visor, j: BB.visor, // the suit; the face behind the visor
+    g: BB.steel, G: BB.steel, h: '#c4cbcf', U: BB.steelDark, // steel fittings instead of brass
+    m: BB.steel, M: BB.steelDark, l: BB.steel, V: '#3a3d42', // V: Heisenberg's dark jacket
+    p: BB.white, P: BB.white, b: '#f4f6f7', B: '#f4f6f7', s: '#d9c39a', ':': BB.skin, ';': BB.skin, // white paper, lab coats, skin
+    q: '#f4f6f7', Q: '#f4f6f7', J: BB.green, I: '#ffffff', // Gale's coat and its rank trim
+    w: '#e3e7ea', W: '#e3e7ea', L: '#ffffff', u: BB.blue, v: BB.green, // white benches; blue, Br Ba green
+    c: BB.liquid, C: BB.visor, o: BB.liquid, O: '#ffffff', f: '#4aa8ff', F: '#cfe9ff', x: '#d0452f', a: '#e03a2a', // screens, the blue flask, Bunsen flame
+    1: BB.floor, 2: BB.floor, 3: BB.floor, // one-colour floor: no grate, no gap, no lip
+    4: BB.wall, 5: BB.wall, 6: BB.wall, 7: BB.wall, 8: BB.wall, 9: BB.wall, 0: BB.base, A: BB.base, // one-colour wall, the baseboard
+    D: '#dfe4e7', E: '#dfe4e7', H: '#dfe4e7', K: '#dfe4e7', N: '#b9c3c8', S: '#d5dbde', // Heisenberg's corner, pillars
+    X: BB.steel, Y: '#c4cbcf', Z: BB.steel, i: BB.steelDark, '!': '#b9c3c8', '+': '#b9c3c8', // plain grey pipes and channels
+    '@': '#1b1d20', $: BB.visor, '%': '#3a4a52', '&': '#ff5a40', '*': '#8a2a1e', '-': '#5a1a12', '=': '#ffffff', // the gate's dark, the red warning light
+    '(': BB.green, ')': '#7fbf78', '[': '#3f6e3b', ']': BB.k, // the Br Ba seal
+  },
+  sash: ['#c0392b', '#2e7d32', '#8e44ad', '#26282b', '#8b5a2b', '#e84393', '#2c3e50', '#7f8c8d'], // none near the white, blue or yellow suit
+  rank: {
+    high: { robe: { r: BB.white, R: BB.white, d: BB.white, ...bbFace(BB.skin, BB.k, BB.skin) }, // Walter: bald, glasses and goatee
+      adept: { x: '#d0452f', b: '#f4f6f7', q: '#f4f6f7', Q: '#f4f6f7', J: BB.k, I: '#ffffff' } },
+    standard: { robe: { r: BB.blue, R: BB.blue, d: BB.blue, ...bbFace(BB.skin, BB.skin, BB.k) }, // Jesse: no glasses, dark hair
+      adept: { J: BB.green, I: '#ffffff' } },
+    novice: { robe: { r: BB.yellow, R: BB.yellow, d: BB.yellow, ...bbFace(BB.visor, BB.visor, BB.visor) }, // anonymous: a dark visor
+      adept: { x: '#d0452f', b: '#f4f6f7', q: '#f4f6f7', Q: '#f4f6f7', J: BB.steel, I: '#ffffff' } },
+  },
+  ink: {
+    coolant: BB.liquid, screenHot: '#ffffff', screenDim: '#cfe9ff', screenMark: BB.k, screenFlicker: 'rgba(38,40,43,.35)', screenOff: BB.steelDark,
+    scratch: 'rgba(0,0,0,0)', scratchSheen: 'rgba(0,0,0,0)', grime: 'rgba(0,0,0,0)', cant: 'rgba(0,0,0,0)', // flat walls: no texture drawn by code
+    parchmentWarn: '#e07a5f',
+    smoke: '#d5dbde', sparkSmoke: '#e3e7ea', steam: '#eef2f3', alarmGlow: '#ff5a40', beaconSweep: '#ff5a40', searchlight: '#fff4d0',
+    // frosted lab glass by day, the New Mexico night beyond it
+    windowDay: { u: '#cfe3ee', v: '#d9c39a', g: '#fff4d0', h: '#fff0b0', x: '#e3eef3', c: '#b8a07a', C: '#9a8462' },
+    windowNight: { u: '#1c2433', v: '#2a2620', g: '#e8e4c8', h: '#283044', x: '#232c3c', c: '#2a2a26', C: '#1a1a18' },
+    backdrop: '#dfe4e7', backdropLit: '#e9edf0', backdropEdge: '#c7d0d4', backdropDark: '#b9c3c8', backdropSeam: '#dfe4e7', backdropSeamLit: '#e9edf0',
+    backdropRivet: BB.steel, overflowPlaque: BB.steel,
+  },
+  light: { amber: 'rgba(255,240,200,.18)', green: 'rgba(95,158,90,.16)', red: 'rgba(224,58,42,.22)', lampOn: 'rgba(255,250,235,.5)',
+    glint: 'rgba(255,255,255,.6)', spark: 'rgba(207,233,255,.8)', night: '20,24,32', beam: '255,250,235' },
+  ui: {
+    '--bg': '#e9edf0', '--bar': '#dfe4e7', '--ink': '#26282b', '--dim': '#6b767c', '--light': '#ffffff', '--edge': '#c7d0d4', '--btn': '#f4f6f7',
+    '--copper': BB.green, '--outline': BB.k, '--bone': '#f4f6f7', '--iron': BB.steel, '--green': BB.green,
+    '--red': '#d0452f', '--pink': '#e07a5f', '--blood': '#8a2a1e', '--glow': BB.yellow, '--wax': BB.green, '--wax-deep': '#3f6e3b',
+    '--alarm': '#e03a2a', '--flame': '#cfe9ff', '--label': '#26282b', '--label-sel': '#3a3d42', '--label-btn': '#2f3a40', '--plaque': '#dfe4e7',
+    '--yes': BB.green, '--yes-deep': '#3f6e3b',
+    // white lab sheets, the Br Ba green as the accent
+    '--card': '#ffffff', '--paper': '#ffffff', '--paper-edge': '#c7d0d4', '--paper-hi': '#ffffff', '--paper-tab': '#f4f6f7', '--paper-q': '#f8fafb',
+    '--paper-shade': '#dfe4e7', '--paper-line': '#c7d0d4', '--paper-ink': BB.k, '--paper-ink-2': '#3a3d42', '--paper-ink-3': '#6b767c',
+    '--paper-err': '#d0452f', '--leather': '#3a3d42', '--leather-deep': '#26282b', '--chart-new': BB.green, '--chart-cache': BB.blue,
+    '--rod-hi': '#ffffff', '--rod': BB.steel, '--rod-lo': BB.steelDark, '--rod-edge': BB.k, '--rod-cap': '#ffffff',
+    '--display': "'VT323', monospace", '--paper-accent': BB.green,
+  },
+  text: {
+    watch: { name: 'Mike', button: 'Night Vigil: Mike shuts the PC down once every cook waits on you' },
+    subtitle: 'Superlab · Under the laundry', motto: 'Say my name', breakout: 'The Yard',
+    rank: { high: 'Cook', standard: 'Partner', novice: 'Assistant' },
+    status: { busy: 'Cooking', shell: 'At the reactor', idle: 'Batch done, awaiting input', waiting: 'Holding up a sample',
+      background: 'Idle · Gale on errands', napping: 'Idle · asleep in the RV' },
+    petitions: ['{n} sample', '{n} samples'], petitioning: '{n} waiting on Heisenberg', petitionLabel: '{name}, sample: {want}',
+    adeptOf: '{kind} · Gale for {owner}', overflow: '+{n} in the RV', empty: 'No cooks in the lab',
+    modes: { full: 'Lab lights', candles: 'Night shift' },
+    log: { title: 'Lab notebook', open: 'Open the lab notebook', close: 'Close the lab notebook', silent: 'The lab notebook is blank: no record could be read for this day.' },
+    tithe: { hint: 'Cooked today: tokens and time at the bench', day: 'Cooked today: {tokens} tokens, {time} at the bench' },
+    event: { commit: 'Batch shipped', petition: 'Sample', 'petition-answered': 'Sample approved', compaction: 'Purity 99.1%', limit: 'Out of methylamine' },
+    prefs: { chime: 'Sample bell', petitions: 'Samples', questions: 'A question at the end of a turn counts as a sample',
+      stale: 'Sample goes stale after', nap: 'Idle to a nap in the RV after', cog: 'Stay at the reactor for',
+      pauseHint: 'Near-zero CPU when unseen; samples still alert.',
+      cat: { hall: 'Superlab', petitions: 'Samples', scribes: 'Cooks', system: 'System', remote: 'Remote access' } },
+    limitLabel: 'out of methylamine · back at {time}', limitSealed: 'out of methylamine',
+    toast: { petition: 'Sample from {name}', stale: 'Sample still waiting: {name}', limit: '{name} out of methylamine until {time}', limitMany: '{n} cooks out of methylamine until {time}' },
+  },
+});

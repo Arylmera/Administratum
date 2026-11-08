@@ -68,7 +68,7 @@ assert.deepEqual(seen, ['test-blue', 'tier2']);
 off();
 delete THEMES['test-blue'];
 // The shipped themes are there (and so checked by the completeness loop above).
-assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'corpo', 'cyber', 'darwin', 'forge', 'matrix', 'night', 'orbital', 'rain', 'synth', 'tier2', 'tower', 'vault', 'xenos']);
+assert.deepEqual(Object.keys(THEMES).sort(), ['breakingbad', 'contrast', 'corpo', 'cyber', 'darwin', 'forge', 'matrix', 'night', 'orbital', 'rain', 'synth', 'tier2', 'tower', 'vault', 'xenos']);
 // Neon Grid's accents: its art, its colours rehued, but skin, the alarm and the sashes kept.
 for (const id of ['corpo', 'rain', 'matrix', 'synth']) {
   const a = resolve(THEMES[id]), n = resolve(THEMES.cyber);
@@ -118,5 +118,14 @@ assert.equal(t('rank.high'), 'Magos', 'a theme keeps the wording it does not cha
 // tag (the base ranks gild t T z, a robe's trim)
 setTheme('darwin');
 assert.deepEqual(['high', 'novice'].map(r => ['t', 'T', 'z'].map(k => ({ ...T.px, ...T.rank[r].robe })[k])), [['t', 'T', 'z'].map(k => T.px[k]), ['t', 'T', 'z'].map(k => T.px[k])], 'darwin: one collar tag at every rank');
+// Breaking Bad: the whole wording redone (no 40k word left), no code-drawn texture on the flat walls, and every
+// department arm band readable on every suit colour (white Cook, blue Partner, yellow Assistant).
+setTheme('breakingbad');
+const deepKeys = o => Object.entries(o).flatMap(([k, v]) => v && typeof v === 'object' && !Array.isArray(v) ? deepKeys(v).map(s => `${k}.${s}`) : [k]).sort();
+assert.deepEqual(deepKeys(THEMES.breakingbad.text), deepKeys(THEMES.darwin.text), 'breakingbad: every text key darwin has');
+assert.deepEqual(T.text.rank, { high: 'Cook', standard: 'Partner', novice: 'Assistant' });
+for (const k of ['scratch', 'scratchSheen', 'grime', 'cant']) assert.equal(T.ink[k], 'rgba(0,0,0,0)', `breakingbad: no ${k}`);
+const rgbOf = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), far = (a, b) => rgbOf(a).reduce((s, v, i) => s + Math.abs(v - rgbOf(b)[i]), 0) > 120;
+for (const r of ['high', 'standard', 'novice']) for (const y of T.sash) assert.ok(far(y, { ...T.px, ...T.rank[r].robe }.r), `breakingbad: sash ${y} vs the ${r} suit`);
 setTheme('tier2');
 console.log('theme ok');
