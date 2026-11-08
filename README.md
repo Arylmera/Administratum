@@ -312,7 +312,9 @@ Use **✓ / ✗** on the queue label, or **Approve / Always / Deny** on the card
 
 The petition toast itself carries **Approve** and **Deny** for the same prompts (permission, in Orca). A click runs
 the same check below. If the petition was already answered in the terminal, nothing is typed. *Always* stays on the
-card: on a toast it could be clicked without reading the prompt.
+card: on a toast it could be clicked without reading the prompt. On Linux the buttons are the notification's actions:
+GNOME Shell, KDE Plasma, Omarchy (4.5 and later), dunst, mako (`makoctl menu`) and swaync show them; a notification
+server that does not shows the toast without them, and the card still answers.
 
 What happens when you click:
 

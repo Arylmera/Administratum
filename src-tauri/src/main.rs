@@ -332,8 +332,8 @@ fn main() {
             quiet::set(on, from, to);
             monitor::set(monitor::config_from(&saved));
             rooms::set(rooms::rules_from(&saved));
-            #[cfg(target_os = "macos")]
-            toast::mac::hook(app.handle()); // before the first toast: toasts shown earlier report no click
+            #[cfg(not(windows))]
+            toast::actions::hook(app.handle()); // before the first toast: toasts shown earlier report no click
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
                 toast::test_toast(app.handle());
             }
