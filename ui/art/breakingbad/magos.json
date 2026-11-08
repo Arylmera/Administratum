@@ -1,0 +1,48 @@
+{
+  "frames": {
+    "body": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      }
+    },
+    "arm": {
+      "frame": {
+        "x": 49,
+        "y": 0,
+        "w": 10,
+        "h": 48
+      }
+    }
+  },
+  "meta": {
+    "app": "breakingbad theme art",
+    "image": "magos.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 59,
+      "h": 48
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "arm": [
+        34,
+        0
+      ],
+      "chest": [
+        15,
+        32
+      ],
+      "eyeL": [
+        19,
+        13
+      ],
+      "eyeR": [
+        28,
+        13
+      ]
+    }
+  }
+}
