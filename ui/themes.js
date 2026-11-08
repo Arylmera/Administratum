@@ -524,7 +524,7 @@ const BB = { k: '#26282b', visor: '#2f3a40', skin: '#f0c8a0', goatee: '#7a5230',
   steel: '#9aa3a8', steelDark: '#6b767c', wall: '#e9edf0', floor: '#c7d0d4', base: '#9aa6ac', green: '#5f9e5a', liquid: '#8fd3ff' };
 const bbFace = (skin, specs, hair) => ({ t: skin, T: specs, z: hair, j: BB.visor, g: BB.steel, G: BB.steel });
 defineTheme({
-  id: 'breakingbad', world: 'breakingbad', name: 'Breaking Bad', art: ['scribe', 'adept', 'room-floor', 'room-walls', 'room-doors', 'room-pipes', 'workstations', 'walls', 'magos', 'sanctum'],
+  id: 'breakingbad', world: 'breakingbad', name: 'Breaking Bad', art: ['scribe', 'adept', 'room-floor', 'room-walls', 'room-doors', 'room-pipes', 'workstations', 'walls', 'magos', 'sanctum', 'cogitator', 'skull', 'gate', 'fire'],
   px: {
     k: BB.k, e: BB.visor, n: '#1b1d20',
     r: BB.yellow, R: BB.yellow, d: BB.yellow, t: BB.visor, T: BB.visor, z: BB.visor, j: BB.visor, // the suit; the face behind the visor
