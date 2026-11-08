@@ -60,7 +60,7 @@ do not know which.
 | `overlay.js` | DOM over the canvas, synced each frame: plaques, petition labels, tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server |
 | `card.js` | The selected character's card, and answering permission petitions; a Suzerain's lineage (`lineageOf`) |
-| `mobile.html` / `mobile.js` | The remote view's phone page (index.html's head redirects a narrow remote screen to it, `/?hall` stays): read-only petitions, Night Vigil, sessions, today's totals |
+| `mobile.html` / `mobile.js` | The remote view's phone page (index.html's head redirects a narrow remote screen to it, `/?hall` stays): petitions (Approve / Deny on a shown permission prompt while remote actions are allowed), Night Vigil, sessions, today's totals |
 | `chrome.js` | The page follows the theme: CSS colours, marked texts, toast wording |
 | `settings.js` | Settings panel and the persisted store (`settings.json`, localStorage as cache) |
 | `panel.js` | Open/close behaviour shared by the parchment panels |

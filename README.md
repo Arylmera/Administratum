@@ -337,10 +337,11 @@ Watch the hall from a tablet or phone on the same network, in its browser:
 3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
    the link is then remembered in a cookie.
 
-On a phone (a screen 640 px wide or less) the link opens a light page instead: the petitions waiting (read only:
-answer them on the PC), the Night Vigil (with Arm / Cancel when remote actions are allowed), every session with
-its state and tokens today (forked children under their Suzerain), and today's Chronicon totals, in the theme's
-colours. Its **Full hall** link opens the hall.
+On a phone (a screen 640 px wide or less) the link opens a light page instead: the petitions waiting, the Night
+Vigil, every session with its state and tokens today (forked children under their Suzerain), and today's Chronicon
+totals, in the theme's colours. When remote actions are allowed, the Night Vigil has Arm / Cancel, and a tap on a
+permission petition shows its prompt, then **Approve** / **Deny** (the same checks as on the PC). *Always* stays on
+the PC, and questions and other petitions are shown only. Its **Full hall** link opens the hall.
 
 The remote page shows the same hall, cards and Chronicon, live. It keeps its own lighting, scale, theme, view and
 chime; the PC's settings are shown read only. **Allow remote actions** (off by default) lets a paired device approve
