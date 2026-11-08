@@ -180,9 +180,11 @@ mod tests {
         let v = remote_tithe(json!({
             "day": "2026-10-17", "bySession": {"a": {"name": "terra-1"}},
             "byProject": {"Terra": share.clone()}, "hourly": [share],
+            "window": {"startMs": 1, "tokens": 9, "ceilings": [12]},
         }));
         let s = v.to_string();
         assert!(!s.contains("bySession") && !s.contains("secret.rs"), "{s}");
+        assert_eq!(v["window"]["ceilings"][0], 12, "the usage window stays (it holds no paths)");
         assert_eq!(v["byProject"]["Terra"]["tokens"], 5, "the counts stay");
         assert_eq!(v["byProject"]["Terra"]["moreFiles"], 3, "a count, not a path");
     }

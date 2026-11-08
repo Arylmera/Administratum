@@ -57,6 +57,31 @@ export function sumTithes(list) {
   return out;
 }
 
+// The usage window (backend chronicle::window_of, today's tithe_day only): this PC's tokens in the current 5-hour
+// window, against this PC's share at each past limit hit. An estimate: claude.ai and other machines are invisible.
+export function windowLine(w) {
+  const since = w.startMs != null ? ` since ${hhmm(w.startMs)}` : '';
+  const ceilings = w.ceilings?.length ? ` · ceilings ${[...w.ceilings].sort((a, b) => a - b).map(fmtTok).join(', ')}` : '';
+  return `Window: ${fmtTok(w.tokens || 0)}${since}${ceilings}`;
+}
+
+// The plaque's bar: fill ∝ tokens / highest ceiling (clamped), a tick per ceiling, the lowest marked; no ceiling yet:
+// the empty frame.
+export function windowGauge(w) {
+  const g = h('span', 'gauge'), fill = h('i'), ceilings = [...(w.ceilings ?? [])].sort((a, b) => a - b);
+  const top = ceilings.at(-1) || 0;
+  fill.style.width = `${top ? Math.min(100, (100 * (w.tokens || 0)) / top) : 0}%`;
+  g.append(fill);
+  ceilings.forEach((c, i) => {
+    const tick = h('b', i ? 'tick' : 'tick low');
+    tick.style.left = `${(100 * c) / top}%`;
+    tick.title = `this PC's share at the hit: ${fmtTok(c)}`;
+    g.append(tick);
+  });
+  g.title = `${windowLine(w)} · estimate · this PC`;
+  return g;
+}
+
 // The day report as the Chronicon shows it: its markdown without the frontmatter (that is for the file).
 export const reportText = md => md.replace(/^---\n[\s\S]*?\n---\n+/, '');
 
@@ -114,6 +139,7 @@ function summary(t, today, byDay, events, colorOf) {
   head.append(stat(fmtTok(all), 'tokens'), stat(fmtDur(t?.busyMs), 'working time'));
   if (!byDay) head.append(stat(String(events), 'events'));
   sec.append(head);
+  if (today && t?.window) { const line = h('p', 'window', windowLine(t.window)); line.title = 'estimate · this PC'; sec.append(line); }
 
   // New vs cache: one stacked bar, both parts labelled directly.
   const split = h('div', 'split');
@@ -218,12 +244,12 @@ export function initChronicon(colorOf = () => null) {
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
   let cur = null, seq = 0;
 
-  // Header plaque: today's tokens · working time, every 30 s.
+  // Header plaque: today's tokens · working time and the usage-window bar, every 30 s.
   const plaque = document.getElementById('tithe');
   async function refreshPlaque() {
     try {
       const t = await invoke('tithe_day', { day: dayKey() });
-      plaque.textContent = `⛁ ${fmtTok(total(t))} · ${fmtDur(t.busyMs)}`;
+      plaque.replaceChildren(`⛁ ${fmtTok(total(t))} · ${fmtDur(t.busyMs)}`, ...(t.window ? [windowGauge(t.window)] : []));
       plaque.title = say('tithe.day', { tokens: fmtTok(total(t)), time: fmtDur(t.busyMs) });
     } catch { /* backend not ready: keep the last value */ }
   }

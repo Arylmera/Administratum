@@ -71,14 +71,14 @@ fn chronicle_day(day: String, chron: State<Chron>) -> Result<Vec<Event>, String>
     Ok(chronicle::read_events(&dir, &day))
 }
 
-/// Tithe (tokens + working time) of one local day; today's is live.
+/// Tithe (tokens + working time) of one local day; today's is live and carries the usage `window`.
 #[tauri::command(async)]
-fn tithe_day(day: String, chron: State<Chron>) -> Result<Tithe, String> {
+fn tithe_day(day: String, chron: State<Chron>) -> Result<serde_json::Value, String> {
     if !chronicle::valid_day(&day) {
         return Err("invalid day".into());
     }
     let (dir, live) = chron.lock().map_err(|_| "chronicle unavailable")?.snapshot();
-    Ok(chronicle::tithe_of(&dir, &live, &day))
+    Ok(chronicle::tithe_answer(&dir, &live, &day, now_ms()))
 }
 
 /// The day report of one local day ("YYYY-MM-DD"), with its markdown (the Chronicon's Copy button).
@@ -503,7 +503,7 @@ fn token_alerts(app: &AppHandle, over: Vec<(String, chronicle::SessionTithe)>, n
                 let title = toast::fill(&words.tokens, &s.name).replace("{count}", &count);
                 let _ = app.notification().builder().title(title).body(format!("{} · {count} new tokens today", s.dept)).show();
             }
-            Event { ts: now_ms, kind: "token-alert".into(), session_id: id, name: s.name, dept: s.dept, helper: None, detail: count }
+            Event { ts: now_ms, kind: "token-alert".into(), session_id: id, name: s.name, dept: s.dept, helper: None, detail: count, reset_ms: None, hit_ms: None }
         })
         .collect()
 }
@@ -578,11 +578,17 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
                 emit(app, "limit", loud.len());
             }
             for s in &wave {
-                limit_events.push(Event::for_session(now_ms, "limit", s, time.clone()));
+                limit_events.push(limit_event(now_ms, s, time.clone()));
             }
         }
     }
     limit_events
+}
+
+/// A session's `limit` event, with its reset hour and hit time (the usage window's ceilings, chronicle::window_of).
+fn limit_event(now_ms: i64, s: &Session, time: String) -> Event {
+    let (reset_ms, hit_ms) = s.limit.as_ref().map_or((None, None), |l| (l.reset_ms, l.hit_ms));
+    Event { reset_ms, hit_ms, ..Event::for_session(now_ms, "limit", s, time) }
 }
 
 #[cfg(test)]
@@ -594,10 +600,17 @@ mod tests {
         Session { id: id.into(), name: id.into(), dept: "Terra".into(), status: status.into(), waiting_for: Some("approve Bash".into()), ..Default::default() }
     }
     fn event(ts: i64, kind: &str) -> Event {
-        Event { ts, kind: kind.into(), session_id: "s".into(), name: "s".into(), dept: "Terra".into(), helper: None, detail: String::new() }
+        Event { ts, kind: kind.into(), session_id: "s".into(), name: "s".into(), dept: "Terra".into(), helper: None, detail: String::new(), reset_ms: None, hit_ms: None }
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn a_limit_event_carries_the_reset_and_the_hit() {
+        let limit = Some(registry::Limit { reset_ms: Some(9_000), hit_ms: Some(4_000), text: "x".into() });
+        let e = limit_event(10, &Session { limit, ..session("a", "idle") }, "14:00".into());
+        assert_eq!((e.kind.as_str(), e.ts, e.reset_ms, e.hit_ms, e.detail.as_str()), ("limit", 10, Some(9_000), Some(4_000), "14:00"));
     }
 
     #[test]
@@ -663,7 +676,7 @@ mod tests {
         let day_ms = 86_400_000;
         let ts = 1_792_000_000_000; // mid-October 2026; +24 h is always the next local day
         let mut c = Chronicle::open(dir.clone(), ts, true);
-        let u = chronicle::Usage { ts, model: "m".into(), tokens: chronicle::Tokens { input: 7, output: 3, cache_read: 0, cache_write: 0 } };
+        let u = chronicle::Usage { ts, model: "m".into(), tokens: chronicle::Tokens { input: 7, output: 3, cache_read: 0, cache_write: 0 }, in_window: true };
         c.add_session_usage(&session("a", "busy"), &u);
         let mut roster = vec![session("a", "busy"), session("b", "busy")];
         fill_tokens_today(&mut roster, &c, ts);

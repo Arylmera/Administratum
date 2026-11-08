@@ -67,7 +67,7 @@ fn report_failed_detail(_e: &str) -> String {
 }
 
 fn vigil_event(app: &AppHandle, now: i64, detail: &str) {
-    let e = Event { ts: now, kind: "vigil".into(), session_id: String::new(), name: String::new(), dept: String::new(), helper: None, detail: detail.into() };
+    let e = Event { ts: now, kind: "vigil".into(), session_id: String::new(), name: String::new(), dept: String::new(), helper: None, detail: detail.into(), reset_ms: None, hit_ms: None };
     crate::lock(&app.state::<Chron>()).record(&e);
     emit(app, "chronicle", &e);
 }

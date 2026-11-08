@@ -118,6 +118,8 @@ pub fn chronicle(from: u64, to: u64, roster: &[Session], now_ms: i64) -> Vec<Eve
                 dept: s.dept.clone(),
                 helper: helper.map(str::to_string),
                 detail: detail.to_string(),
+                reset_ms: None,
+                hit_ms: None,
             });
         }
     }
@@ -131,7 +133,7 @@ pub fn usage(roster: &[Session], now_ms: i64) -> Vec<(String, Usage)> {
         .filter(|s| s.status == "busy" || s.status == "shell")
         .map(|s| {
             let model = s.context.as_ref().map_or(OPUS.to_string(), |c| c.model.clone());
-            (s.dept.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 } })
+            (s.dept.clone(), Usage { ts: now_ms, model, tokens: Tokens { input: 300, output: 900, cache_read: 45_000, cache_write: 2_500 }, in_window: true })
         })
         .collect()
 }

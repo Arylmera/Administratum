@@ -281,8 +281,9 @@ pub fn limit_of(tail: &str) -> Option<Limit> {
                     return None;
                 }
                 let text = blocks.into_iter().flatten().filter_map(|b| b["text"].as_str()).collect::<Vec<_>>().join(" ");
-                let reset_ms = v["timestamp"].as_str().and_then(iso_utc_ms).and_then(|ts| reset_after(&text, ts));
-                return Some(Limit { reset_ms, text: text.chars().take(120).collect() });
+                let hit_ms = v["timestamp"].as_str().and_then(iso_utc_ms);
+                let reset_ms = hit_ms.and_then(|ts| reset_after(&text, ts));
+                return Some(Limit { reset_ms, hit_ms, text: text.chars().take(120).collect() });
             }
             Some("user") if !blocks.is_some_and(|a| a.iter().any(|b| b["type"] == "tool_result")) && v["isMeta"] != true => return None,
             _ => {}
@@ -601,7 +602,7 @@ mod tests {
         let answer = r#"{"type":"assistant","message":{"model":"claude-opus-5-5","content":[{"type":"text","text":"done"}]}}"#;
 
         let l = limit_of(&limit("You've hit your limit · resets 2pm (Europe/Paris)", at(10, 0))).unwrap();
-        assert_eq!(l.reset_ms, Some(at(14, 0)));
+        assert_eq!((l.reset_ms, l.hit_ms), (Some(at(14, 0)), Some(at(10, 0))), "the reset and the line's own time");
         assert_eq!(l.text, "You've hit your limit · resets 2pm (Europe/Paris)");
         assert!(limit_of(&format!("{}\n{result}", limit("resets 2pm", at(10, 0)))).is_some(), "a tool result after it: still limited");
         assert_eq!(limit_of(&format!("{}\n{prompt}", limit("resets 2pm", at(10, 0)))), None, "a prompt after it: lifted");

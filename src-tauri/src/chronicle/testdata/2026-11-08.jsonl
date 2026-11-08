@@ -1,0 +1,2 @@
+{"ts":1794120000000,"kind":"tests-pass","sessionId":"00000000-0000-4000-8000-000000000001","name":"scribe-1","dept":"proj-a","helper":null,"detail":"cargo test"}
+{"ts":1794121000000,"kind":"limit","sessionId":"00000000-0000-4000-8000-000000000001","name":"scribe-1","dept":"proj-a","helper":null,"detail":"14:00"}

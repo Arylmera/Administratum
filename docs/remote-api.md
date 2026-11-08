@@ -83,7 +83,7 @@ Query values are percent-decoded.
 | Endpoint | Tauri equivalent |
 |---|---|
 | `GET /api/chronicle_day?day=YYYY-MM-DD` | `chronicle_day` -> `Event[]` |
-| `GET /api/tithe_day?day=YYYY-MM-DD` | `tithe_day` -> `Tithe`, without `bySession` (per-session counts stay local; the roster carries `tokensToday`) and without the edited files' paths (`files`; the `moreFiles` count stays) |
+| `GET /api/tithe_day?day=YYYY-MM-DD` | `tithe_day` -> `Tithe`, without `bySession` (per-session counts stay local; the roster carries `tokensToday`) and without the edited files' paths (`files`; the `moreFiles` count stays). Today's answer also has `window` (`{startMs, tokens, ceilings}`: the usage window's new tokens on this PC since `startMs`, null when no token came in 5 h or the window began before the buckets were complete, and this PC's share at each past limit hit, lowest first; computed, not saved, an estimate); `fine` holds the day's 288 five-minute token buckets, `fineSince` (only on a day file that predates them) when they became complete. Known limit: `window` comes only when `day` is the PC's own local today, so a remote client in another time zone asks with its own date near midnight and gets no window |
 | `GET /api/chronicle_days` | `chronicle_days` -> `DaySummary[]` |
 | `GET /api/settings_load` | `settings_load` -> object (read only; there is no remote save) |
 | `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}` |
