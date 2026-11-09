@@ -715,6 +715,11 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   for (const [tag, size, rules, depts] of cases) {
     const P = planLayout(null, depts, 0, {}, size, layoutDepartments, rules), H = hallOf(P.bays, size, P.wing);
     if (tag === 'bays') assert.ok(P.bays > 0, `${tag}: grows bays`);
+    // the break-out room's fence never takes in a door's lane (a walk from a door along it would cross the fence)
+    for (const extra of [[d('t1', 2, null)], [d('t1', 2, null), d('t2', 4, null), d('t3', 1, null)]]) {
+      const Q = planLayout(null, depts.concat(extra.map(t => ({ ...t, temp: true }))), 0, {}, size, layoutDepartments, rules), HQ = hallOf(Q.bays, size, Q.wing);
+      for (const Z of zonesOf(Q.blocks, HQ)) for (const q of HQ.rooms) assert.ok(!(q.doorOut.y > Z.y && q.doorOut.y < Z.y + Z.h), `${tag}: ${q.id}'s door lane ${q.doorOut.y} inside the break-out room ${Z.y}..${Z.y + Z.h}`);
+    }
     assert.equal(H.rooms.length, rules.length, `${tag}: every room drawn`);
     assert.equal(H.rooms[0].y, WALL, `${tag}: the first room right under the back wall`);
     assert.equal(H.rooms.at(-1).y + H.rooms.at(-1).h, H.h, `${tag}: the last room down to the hall's bottom`);

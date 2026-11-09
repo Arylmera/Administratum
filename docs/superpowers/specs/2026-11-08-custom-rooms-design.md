@@ -168,8 +168,14 @@ The user tried O10b in the app and asked for "the same walls as elsewhere" and r
      exact middle would cross the scriptorium's desks, so the door uses an existing lane. Each lane in a room's
      band is a scriptorium lane, so no lane is added. A one-row room has lanes only at its top and bottom, so its
      door is at one of these.
-   - The break-out room starts below the lowest door lane of any room (the first room included, now that its door
-     can be lower).
+   - The break-out room's fence never takes in a door's lane: it is packed as before, and while its rows hold a door
+     lane, it is packed again from the row after that lane. Before, it started below every door. A door lane in the
+     middle of a room would push it far down (measured: up to 3 levels more, live sessions in the overflow). Now it
+     can sit above a door. Measured against BASE over 72 cases (3 sizes, 1 to 3 rules, 1 to 4 temp departments): no
+     extra overflow; the fence is higher in 40 cases; one level more in 6 dense cases (the minimum hall with 1 or 3
+     rules and 3 or 4 temp departments, 554x400 with 1 rule and 4).
+   - When a room loses rows under a scribe (the spare rows shared out again), the scribe moves to the room's
+     nearest lane (`Cast.resized`). It does not stay in the next room or in a wall.
 
 ## O10b — real rooms: walls and a door (user, Q27 = A, 2026-11-08) — superseded by O10c
 

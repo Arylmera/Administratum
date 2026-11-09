@@ -170,7 +170,7 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
   // departments wrapping west of the room's corridor. A room with nothing in the sequence (its placeholder dropped past
   // MAX_BAYS, planLayout) is not drawn.
   const known = new Set((wing ?? []).map(r => r.id)), inWing = d => !d.temp && known.has(d.room), rooms = [];
-  let doorRow = -1; // the lowest slot row whose lane holds a wing room's door (hallOf: by each room's middle)
+  const doorRows = []; // the slot rows whose lane (the one under the row) holds a wing room's door (hallOf: by its middle)
   if (wing) {
     const COLS = compact ? 4 : 2, WX0 = 3, at = []; // at: per room drawn, its blocks' places from its top
     let k = 0, full = false;
@@ -195,35 +195,52 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
     // the rooms share the wing's height (hallOf): each one's desks packed from its own first grid row
     hallOf(bays, size, rooms).rooms.forEach((R, j) => {
       for (const [d, gm, x, dy] of at[j]) place(d, gm, x, y0 + SLOT_H * R.k + dy, COLS);
-      doorRow = Math.max(doorRow, Math.round((R.doorOut.y - y0 - 60) / SLOT_H)); // y0 (above the first room's desks): -1
+      if (R.doorOut.y > y0) doorRows.push((R.doorOut.y - y0 - 60) / SLOT_H); // y0, above every row: never in a fence
     });
   }
   const hallDepts = depts.filter(d => !inWing(d) && !d.empty), COLS = G.cols;
   const all = hallDepts.map(d => geom(d, COLS));
-  let x = x0, y = y0, rowH = 0, full = false, prevKey = null;
-  hallDepts.forEach((d, i) => {
-    const { slotsOf, w, h } = all[i], live = slotsOf.filter(k => k.id).length, key = zoneKey(d);
-    if (key !== prevKey && x > x0) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // a zone begins or ends: a fresh row
-    // the break-out room starts below every wing door's lane: a walk from a door along its lane never crosses its fence
-    if (key === 'temp' && key !== prevKey && y < y0 + SLOT_H * (doorRow + 1)) { x = x0; y = y0 + SLOT_H * (doorRow + 1); rowH = 0; }
-    // 39°: a zone never straddles the cogitator bank: east of it when the whole zone fits in the first row, else from row 1
-    if (clearCog && key != null && key !== prevKey && y === y0) {
-      let zw = -4;
-      for (let j = i; j < hallDepts.length && zoneKey(hallDepts[j]) === key; j++) zw += all[j].w + 4;
-      const east = 200 + dx;
-      if (east + zw <= x1 + 1 && !(compact && east + zw - 6 > corridorX - 5)) x = Math.max(x, east);
-      else { x = x0; y += SLOT_H; rowH = 0; }
-    }
-    prevKey = key;
-    if (clearCog && y === y0 && x < 200 + dx && x + w > 114 + dx) x = 200 + dx; // past the bank (wraps below if it no longer fits)
-    // a block wraps past the hall's east edge, or when its last lectern would stand in the corridor (a 6-wide row never does)
-    if (!full && x > x0 && (x + w > x1 + 1 || (compact && x + w - 6 > corridorX - 5))) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // rowH 0: the first block skipped the cogitator
-    if (full || y + h > y1) { full = true; overflow += live; return; }
-    place(d, all[i], x, y, COLS);
-    x += w + 4;
-    rowH = Math.max(rowH, h);
-  });
+  // The break-out room's fence never takes in a wing door's lane (a walk from a door along its lane never crosses it):
+  // packed, then, while its rows (zonesOf: the lane under each inside) hold a door's, packed again from the row after it.
+  const mark = { blocks: blocks.length, desks: desks.length, consoles: consoles.length, overflow, seats: new Set(seats.keys()), cons: new Set(consoleSeats.keys()) };
+  for (let tempFrom = 0; ;) {
+    packHall(tempFrom);
+    const zb = blocks.slice(mark.blocks).filter(b => b.temp);
+    if (!zb.length) break;
+    const r0 = (Math.min(...zb.map(b => b.y)) - y0) / SLOT_H, r1 = (Math.max(...zb.map(b => b.y + b.h)) + 8 - y0) / SLOT_H - 1;
+    const hit = doorRows.filter(r => r >= r0 && r <= r1);
+    if (!hit.length) break;
+    tempFrom = Math.max(...hit) + 1; // strictly lower each round (r0 >= tempFrom): ends once the break-out room overflows
+    blocks.length = mark.blocks; desks.length = mark.desks; consoles.length = mark.consoles; overflow = mark.overflow;
+    for (const k of [...seats.keys()]) if (!mark.seats.has(k)) seats.delete(k);
+    for (const k of [...consoleSeats.keys()]) if (!mark.cons.has(k)) consoleSeats.delete(k);
+  }
   return { blocks, desks, seats, consoles, consoleSeats, overflow, wing: wing ? rooms : null };
+
+  function packHall(tempFrom) {
+    let x = x0, y = y0, rowH = 0, full = false, prevKey = null;
+    hallDepts.forEach((d, i) => {
+      const { slotsOf, w, h } = all[i], live = slotsOf.filter(k => k.id).length, key = zoneKey(d);
+      if (key !== prevKey && x > x0) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // a zone begins or ends: a fresh row
+      if (key === 'temp' && key !== prevKey && y < y0 + SLOT_H * tempFrom) { x = x0; y = y0 + SLOT_H * tempFrom; rowH = 0; }
+      // 39°: a zone never straddles the cogitator bank: east of it when the whole zone fits in the first row, else from row 1
+      if (clearCog && key != null && key !== prevKey && y === y0) {
+        let zw = -4;
+        for (let j = i; j < hallDepts.length && zoneKey(hallDepts[j]) === key; j++) zw += all[j].w + 4;
+        const east = 200 + dx;
+        if (east + zw <= x1 + 1 && !(compact && east + zw - 6 > corridorX - 5)) x = Math.max(x, east);
+        else { x = x0; y += SLOT_H; rowH = 0; }
+      }
+      prevKey = key;
+      if (clearCog && y === y0 && x < 200 + dx && x + w > 114 + dx) x = 200 + dx; // past the bank (wraps below if it no longer fits)
+      // a block wraps past the hall's east edge, or when its last lectern would stand in the corridor (a 6-wide row never does)
+      if (!full && x > x0 && (x + w > x1 + 1 || (compact && x + w - 6 > corridorX - 5))) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // rowH 0: the first block skipped the cogitator
+      if (full || y + h > y1) { full = true; overflow += live; return; }
+      place(d, all[i], x, y, COLS);
+      x += w + 4;
+      rowH = Math.max(rowH, h);
+    });
+  }
 }
 
 // A department's (or a block's) zone in the scriptorium: 'temp' (the break-out room) or null (the open hall).

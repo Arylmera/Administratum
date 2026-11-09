@@ -126,14 +126,18 @@ export class Cast {
   // east, the sanctum by its top wall), a scribe east of the narrower scriptorium's corridor steps onto it, and
   // everyone re-routes from where they stand (sync: the walks follow the new corridor, doors and lanes). The west wing
   // coming or going (layout.js hallOf wx) moves the scriptorium too; whoever stands in a wing room moves with its room
-  // (rooms above it grew or shrank), and stays put if the room went.
+  // (rooms above it grew or shrank), onto its nearest lane if its room shrank from under it, and to the room's door
+  // (hall side) if the room went.
   resized(from, to) {
     for (const a of this.actors.values()) {
       const room = roomOf(a, from);
       if (room.startsWith('w:')) { // by the rows its room moved (layout.js SLOT_H); its room gone, at its door's hall side
         const R0 = from.rooms.find(R => `w:${R.id}` === room), R1 = to.rooms?.find(R => R.id === R0.id);
-        if (R1) a.y += SLOT_H * (R1.k - R0.k);
-        else Object.assign(a, { x: R0.doorOut.x + (to.wx ?? 0) - from.wx, y: R0.doorOut.y });
+        if (R1) {
+          a.y += SLOT_H * (R1.k - R0.k);
+          // its room lost rows under it (the wing's spare rows re-shared): onto the room's nearest lane, never in a wall
+          if (a.y < R1.y || a.y >= R1.y + R1.h) a.y = R1.lanes.reduce((p, q) => (Math.abs(q - a.y) < Math.abs(p - a.y) ? q : p));
+        } else Object.assign(a, { x: R0.doorOut.x + (to.wx ?? 0) - from.wx, y: R0.doorOut.y });
         a.destKey = '';
         continue;
       }
