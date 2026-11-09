@@ -180,7 +180,7 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
 - A theme belongs to a **world** (Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout). Settings picks the world, then
   one of its themes as the **style**.
 - A theme with its own art lists the families it redraws in its `art` field; the files sit in `ui/art/<theme>/`
-  (`cyber`, `orbital`, `tower`, `vault`, `darwin`). Every other family falls back to the base art.
+  (`cyber`, `orbital`, `tower`, `vault`, `darwin`, `breakingbad`). Every other family falls back to the base art.
 - A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
   has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
   world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).
@@ -195,7 +195,7 @@ python -m http.server 8123        # from the repo root
 
 Cells are named like a spreadsheet: the column is the theme (A Ordo Administratum, B Ordo Machinum, C Ordo Xenos,
 D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower, I Rain City, J Green Code,
-K Sunset Drive, L Arcane Tower, M Vault 111, N Darwin), the row is the sprite's number. `F79` is the Neon Grid shelf, and
+K Sunset Drive, L Arcane Tower, M Vault 111, N Darwin, O Breaking Bad), the row is the sprite's number. `F79` is the Neon Grid shelf, and
 `sprites.html#F79` jumps to it. `node tools/sprite_sheet.mjs --list` prints the key. Rows are numbered over the default
 theme's list, so a ref means the same sprite in every column; a sprite the hall never draws in a world (a frame the
 default art lends but the world's own art lacks: `HANGING_B`, `SHELF_B`, a door's half frame...) shows there as an

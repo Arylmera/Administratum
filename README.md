@@ -167,7 +167,11 @@ a phone can show a different world than the PC.</td>
 <b>Darwin</b>: chimpanzees at their typewriters (the infinite monkey theorem) on oak lab benches, capuchin lab assistants
 for subagents, Charles Darwin himself checking the work with his magnifying glass, specimen jars, brass microscopes and
 gaslight, and a Galapagos finch. Style: <i>Darwin</i>.</td>
-<td></td>
+<td><img src="docs/img/world-breakingbad.png" alt="Breaking Bad: hazmat cooks at white lab benches in a flat, light superlab"><br>
+<b>Breaking Bad</b>: a flat, light superlab: cooks in hazmat suits (white with Walter behind the visor for Opus, blue
+with Jesse for Sonnet, yellow and anonymous for Haiku), Gale as the lab assistant for subagents, Heisenberg in his
+office chair, the Br Ba tiles on the wall, the fly, Mike on the night shift and a Los Pollos Hermanos corner. Style:
+<i>Breaking Bad</i>.</td>
 </tr>
 </table>
 
