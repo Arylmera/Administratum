@@ -86,11 +86,7 @@ pub fn rules_from(settings: &Value) -> Vec<Rule> {
     let list = settings["adm.rooms"].as_str().and_then(|t| serde_json::from_str::<Value>(t).ok());
     let Some(list) = list.as_ref().and_then(Value::as_array) else { return vec![] };
     let mut seen = HashSet::new();
-    list.iter()
-        .filter(|e| shaped(e, &mut seen))
-        .take(MAX_RULES)
-        .filter_map(|e| Some(Rule { id: e["id"].as_str()?.to_string(), re: compile(e["pattern"].as_str()?).ok()? }))
-        .collect()
+    list.iter().filter(|e| shaped(e, &mut seen)).take(MAX_RULES).filter_map(|e| Some(Rule { id: e["id"].as_str()?.to_string(), re: compile(e["pattern"].as_str()?).ok()? })).collect()
 }
 
 /// A cwd as the rules see it: `\` as `/`, no trailing `/`.

@@ -152,7 +152,17 @@ pub const FINE_BUCKETS: usize = 288;
 
 impl Tithe {
     pub fn new(day: &str) -> Self {
-        Tithe { day: day.into(), tokens: Tokens::default(), by_project: BTreeMap::new(), by_model: BTreeMap::new(), busy_ms: 0, hourly: vec![Share::default(); 24], by_session: BTreeMap::new(), fine: vec![0; FINE_BUCKETS], fine_since: None }
+        Tithe {
+            day: day.into(),
+            tokens: Tokens::default(),
+            by_project: BTreeMap::new(),
+            by_model: BTreeMap::new(),
+            busy_ms: 0,
+            hourly: vec![Share::default(); 24],
+            by_session: BTreeMap::new(),
+            fine: vec![0; FINE_BUCKETS],
+            fine_since: None,
+        }
     }
     fn add_tokens(&mut self, dept: &str, model: &str, t: &Tokens, ts: i64, in_window: bool) {
         let (n, hour) = (t.total(), hour_of(ts));
@@ -318,7 +328,17 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
     }
     let ts = ts.unwrap_or(now_ms);
     let mut emit = |kind: &str, detail: String| {
-        events.push(Event { ts, kind: kind.into(), session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), helper: src.helper.map(str::to_string), detail, reset_ms: None, hit_ms: None })
+        events.push(Event {
+            ts,
+            kind: kind.into(),
+            session_id: src.session_id.into(),
+            name: src.name.into(),
+            dept: src.dept.into(),
+            helper: src.helper.map(str::to_string),
+            detail,
+            reset_ms: None,
+            hit_ms: None,
+        })
     };
     let msg = &v["message"];
     match v["type"].as_str() {
@@ -1105,13 +1125,8 @@ fn day_fine(date: NaiveDate, t: &Tithe, resolve: &dyn Fn(NaiveDateTime) -> Optio
     let start = first_instant(midnight, resolve)?;
     let end = first_instant(midnight + chrono::Duration::days(1), resolve)?;
     let full = t.fine.len() == FINE_BUCKETS;
-    let buckets = t
-        .fine
-        .iter()
-        .enumerate()
-        .filter(|(_, n)| full && **n > 0)
-        .filter_map(|(i, n)| Some((resolve(midnight + chrono::Duration::minutes(5 * i as i64))?.clamp(start, end - 1), *n)))
-        .collect();
+    let buckets =
+        t.fine.iter().enumerate().filter(|(_, n)| full && **n > 0).filter_map(|(i, n)| Some((resolve(midnight + chrono::Duration::minutes(5 * i as i64))?.clamp(start, end - 1), *n))).collect();
     Some(DayFine { start, end, trust_from: full.then(|| t.fine_since.unwrap_or(start).max(start)), buckets })
 }
 
@@ -1180,11 +1195,7 @@ pub fn window(dir: &Path, live: &Tithe, now_ms: i64) -> Window {
         need.extend([day_of(reset - WINDOW_MS), day_of(hit)]); // a 5 h span touches two days at most
     }
     let resolve = |n: NaiveDateTime| Local.from_local_datetime(&n).earliest().map(|t| t.timestamp_millis());
-    let days: Vec<DayFine> = kept
-        .iter()
-        .filter(|d| need.contains(*d))
-        .filter_map(|d| day_fine(NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()?, &tithe_of(dir, live, d), &resolve))
-        .collect();
+    let days: Vec<DayFine> = kept.iter().filter(|d| need.contains(*d)).filter_map(|d| day_fine(NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()?, &tithe_of(dir, live, d), &resolve)).collect();
     window_of(&days, &limits, now_ms)
 }
 
