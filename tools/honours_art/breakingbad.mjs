@@ -1,6 +1,6 @@
 // Breaking Bad (the flat superlab): the board of the week is a steel clipboard, its clip standing proud over the top
-// edge, a pale grey lab sheet under it, the title on a light green band and each mark on a white cell (the overlay's
-// text is dark in this theme); signs: a blue crystal, an Erlenmeyer flask, a Bunsen flame, a steel drum. Flat: one
+// edge, a pale grey lab sheet under it, the title on a dark green band and each mark on a dark slate cell (the
+// overlay writes them in white, --honours-ink, readable by day and under the night's darkness); signs: a blue crystal, an Erlenmeyer flask, a Bunsen flame, a steel drum. Flat: one
 // outline colour, no shading.
 import { TITLE, ROW, part, rounded, ringOf, pic, plaque } from './kit.mjs';
 
@@ -14,8 +14,8 @@ const body = (x, y) => {
   if (!sheet) return 'm';
   if (sheet === 'edge') return 'k';
   const t = part(TITLE, x, y);
-  if (t) return t === 'edge' ? 'k' : ')';
-  for (let i = 0; i < 4; i++) { const r = part(ROW(i), x, y); if (r) return r === 'edge' ? 'k' : 'p'; }
+  if (t) return t === 'edge' ? 'k' : '[';
+  for (let i = 0; i < 4; i++) { const r = part(ROW(i), x, y); if (r) return r === 'edge' ? 'k' : 'e'; }
   return 'w';
 };
 

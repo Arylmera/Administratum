@@ -27,7 +27,11 @@
     /* petitions and alarms */
     --red: #a0221a; --pink: #ff7a66; --blood: #4e110c; --glow: #be281c; --wax: #8e1c16; --wax-deep: #3a0d09; --alarm: #ff3a20; --flame: #ffe6a0;
     /* text on a --blood fill (a light-chrome theme's --light is dark, its --blood stays dark: paper text) */
-    --on-blood: var(--light); --ink-on-blood: var(--ink); --pink-on-blood: var(--pink);
+    --on-blood: var(--light); --ink-on-blood: var(--ink); --pink-on-blood: var(--pink); --green-on-blood: var(--green);
+    /* the alarm's text on its --wax fill (and on --wax-deep at the blink) */
+    --flame-on-wax: var(--flame);
+    /* the Hall of Honours' words over its plaque art (the night darkens the art, never the words) */
+    --honours-ink: var(--light);
     /* labels over the scene */
     --label: #1e0a08; --label-sel: #3a1410; --label-btn: #2a0d0a; --plaque: #140d09; --yes: #2e6b47; --yes-deep: #16301f;
     /* parchment: the card, the Chronicon, Settings */
@@ -52,7 +56,7 @@
   .count.on::after, .lbl::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--glow) 80%, transparent); opacity: 0; pointer-events: none; animation: pulse 1.8s ease-in-out infinite; }
   .count.alarm::after { display: none; }
   .count.ask { border-color: var(--paper-shade); color: var(--light); } /* questions only: parchment, no glow */
-  .count.alarm { background: var(--wax); border-color: var(--alarm); color: var(--flame); animation: alarm 1s steps(1) infinite; }
+  .count.alarm { background: var(--wax); border-color: var(--alarm); color: var(--flame-on-wax); animation: alarm 1s steps(1) infinite; }
   .icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: var(--copper); cursor: pointer; padding: 0; }
   #prefs-open.update { position: relative; }
   #prefs-open.update::after { content: ''; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--paper-accent); }
@@ -100,8 +104,9 @@
   #overlay { position: absolute; inset: 0; pointer-events: none; }
   .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: var(--label); border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
   .lbl.below { transform: translate(-50%, 0); }
-  .lbl.stale { border-color: var(--alarm); background: var(--blood); color: var(--ink-on-blood); } .lbl.stale .sub { color: var(--pink-on-blood); }
-  .lbl.risky { border-color: var(--alarm); background: var(--blood); color: var(--ink-on-blood); } .lbl.risky .sub { color: var(--ink-on-blood); font-weight: bold; }
+  /* the on-blood colours only while the fill is --blood: a selected label is on --label-sel (:where keeps the specificity) */
+  .lbl.stale { border-color: var(--alarm); background: var(--blood); } .lbl.stale:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.stale:where(:not(.sel)) .sub { color: var(--pink-on-blood); }
+  .lbl.risky { border-color: var(--alarm); background: var(--blood); } .lbl.risky:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.risky .sub { color: var(--ink); font-weight: bold; } .lbl.risky:where(:not(.sel)) .sub { color: var(--ink-on-blood); }
   .lbl.sel { border-color: var(--green); background: var(--label-sel); }
   .lbl .sub { color: var(--pink); }
   /* A question at the end of a turn: parchment, not the red petition. */
@@ -113,7 +118,7 @@
   .lbl .ans { display: flex; flex-direction: column; gap: 1px; }
   .lbl .ans button { padding: 0 2px; background: var(--label-btn); border: 1px solid currentColor; border-radius: 2px; color: var(--green); font: inherit; font-size: .9em; line-height: 1; cursor: pointer; }
   .lbl .ans button + button { color: var(--pink); }
-  .lbl .ans button:hover { background: var(--blood); }
+  .lbl .ans button:hover { background: var(--blood); color: var(--green-on-blood); } .lbl .ans button + button:hover { color: var(--pink-on-blood); }
   .lbl.tag { pointer-events: none; cursor: default; }
   .lbl.sealed { border-width: 3px; border-style: double; }
   .lbl.stuck { border-style: dashed; border-color: var(--flame); }
@@ -135,7 +140,7 @@
   .plaque.usage { z-index: 1; } /* the strip's usage banner stays readable over the petition labels under it */
   .plaque .branch { display: block; font-size: .8em; letter-spacing: 1px; text-transform: none; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
   /* the Hall of Honours over its plaque (overlay.js syncHonours): each field placed and sized in JS, flat in 39° too */
-  .honours { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--light); pointer-events: auto; cursor: pointer; }
+  .honours { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--honours-ink); pointer-events: auto; cursor: pointer; }
   .honours[hidden] { display: none; }
   .honours .title, .honours .mark { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; justify-content: center; overflow: hidden; line-height: 1.05; text-align: left; white-space: nowrap; text-shadow: 0 1px 0 var(--outline); }
   .honours .title { align-items: center; text-transform: uppercase; }
@@ -330,7 +335,7 @@
   }
   @media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
   @media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } } /* room for the gear at 700 px */
-  @keyframes alarm { 50% { background: var(--wax-deep); box-shadow: 0 0 14px 3px color-mix(in srgb, var(--alarm) 90%, transparent); } }
+  @keyframes alarm { 50% { background: var(--wax-deep); color: var(--flame-on-wax); box-shadow: 0 0 14px 3px color-mix(in srgb, var(--alarm) 90%, transparent); } }
   @keyframes pulse { 50% { opacity: 1; } }
   html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; } /* hidden or covered: app.js */
   @media (prefers-reduced-motion: reduce) { .count.on::after, .lbl::after, .count.alarm, .edge.alarm { animation: none; } }

@@ -147,12 +147,23 @@ setTheme('tier2');
   const PAIRS = [ // [foreground, fill, minimum, where]
     ['--light', '--bar', 4.5, '.count.ask, #quiet'], ['--light', '--edge', 3, '#vigil armed'], ['--light', '--label', 4.5, '.edge'],
     ['--light', '--leather', 4.5, 'card and settings buttons'], ['--on-blood', '--blood', 4.5, 'Chronicon tab'], ['--ink-on-blood', '--blood', 4.5, '.lbl.stale'],
-    ['--flame', '--bar', 4.5, '.count.link'], ['--flame', '--wax', 4.5, '.count.alarm'], ['--flame', '--wax-deep', 4.5, 'the alarm blink'], ['--pink-on-blood', '--blood', 4.5, '.lbl.stale .sub'], ['--flame', '--label', 4.5, '.edge.alarm, .lbl.stuck border'],
+    ['--flame', '--bar', 4.5, '.count.link'], ['--flame-on-wax', '--wax', 4.5, '.count.alarm'], ['--flame-on-wax', '--wax-deep', 4.5, 'the alarm blink'], ['--pink-on-blood', '--blood', 4.5, '.lbl.stale .sub'],
+    ['--green-on-blood', '--blood', 4.5, '.lbl .ans button:hover'], ['--ink', '--label-sel', 4.5, '.lbl.sel (stale or risky too)'], ['--pink', '--label-sel', 4.5, '.lbl.sel .sub'],
+    ['--copper', '--bar', 3, 'header .icon'], ['--paper-ink-3', '--paper-tab', 4.5, 'Chronicon tabs'], ['--wax', '--card', 4.5, '#card .err'], ['--paper-accent', '--card', 4.5, '#card .files .more'], ['--flame', '--label', 4.5, '.edge.alarm, .lbl.stuck border'],
     ['--pink', '--bar', 4.5, '.count.on'], ['--pink', '--bg', 4.5, 'pink on the page'], ['--pink', '--label', 4.5, '.lbl .sub'],
     ['--dim', '--bar', 4.5, '.motto, .count'], ['--ink', '--label', 4.5, '.lbl'], ['--green', '--label-btn', 4.5, '.lbl .ans button'],
   ];
   // Known shortfalls in themes this check found already shipped: each must still fail, so fixing one forces its removal here.
-  const KNOWN = new Set(['night --dim/--bar', 'cyber --dim/--bar', 'synth --dim/--bar', 'orbital --flame/--wax', 'matrix --flame/--wax', 'tower --flame/--wax', 'vault --flame/--wax', 'orbital --pink-on-blood/--blood']);
+  const KNOWN = new Set(['night --dim/--bar', 'cyber --dim/--bar', 'synth --dim/--bar',
+    'orbital --flame-on-wax/--wax', 'matrix --flame-on-wax/--wax', 'tower --flame-on-wax/--wax', 'vault --flame-on-wax/--wax', 'orbital --pink-on-blood/--blood',
+    'darwin --green-on-blood/--blood', 'orbital --copper/--bar',
+    'cyber --paper-ink-3/--paper-tab', 'orbital --paper-ink-3/--paper-tab', 'synth --paper-ink-3/--paper-tab', 'tower --paper-ink-3/--paper-tab', 'vault --paper-ink-3/--paper-tab', 'darwin --paper-ink-3/--paper-tab',
+    'xenos --wax/--card', 'night --wax/--card', 'cyber --wax/--card', 'orbital --wax/--card', 'corpo --wax/--card', 'rain --wax/--card', 'synth --wax/--card', 'tower --wax/--card', 'vault --wax/--card',
+    'corpo --paper-accent/--card']);
+  // the on-blood colours apply only while the label's fill is --blood: never to a selected label (on --label-sel)
+  for (const m of html.matchAll(/([^{}]*)\{[^}]*color: var\(--(?:ink|pink)-on-blood\)/g)) {
+    if (/\.lbl\.(stale|risky)/.test(m[1])) assert.ok(m[1].includes(':where(:not(.sel))'), `index.html: '${m[1].trim()}' colours a selected label for --blood`);
+  }
   const seenKnown = new Set();
   for (const id of Object.keys(THEMES)) {
     const ui = { ...ROOT, ...resolve(THEMES[id]).ui };
@@ -164,5 +175,22 @@ setTheme('tier2');
     }
   }
   assert.deepEqual([...seenKnown].sort(), [...KNOWN].sort(), 'every KNOWN shortfall names a real theme and pair');
+  // the Hall of Honours' words (--honours-ink) over the fill of each of the plaque's title and mark fields (its most
+  // common colour inside the border; a world's texture specks aside)
+  const { TITLE, ROW } = await import('../tools/honours_art/kit.mjs');
+  const low = [];
+  for (const id of Object.keys(THEMES)) {
+    setTheme(id);
+    const ink = { ...ROOT, ...resolve(THEMES[id]).ui }, val = k => { let v = ink[k]; for (let i = 0; i < 4 && v?.startsWith('var('); i++) v = ink[v.slice(4, -1).trim()]; return v; };
+    for (const [f, [x0, y0, w, h]] of [TITLE, ...[0, 1, 2, 3].map(ROW)].entries()) {
+      const n = {};
+      for (let y = y0 + 1; y < y0 + h - 1; y++) for (let x = x0 + 1; x < x0 + w - 1; x++) { const c = T.px[MAPS.HONOURS[y][x]] ?? 'clear'; n[c] = (n[c] ?? 0) + 1; }
+      const fill = Object.entries(n).sort((a, b) => b[1] - a[1])[0][0], r = fill === 'clear' ? 0 : ratio(val('--honours-ink'), fill);
+      if (r < 4.5) low.push(`${id} ${f ? `row${f - 1}` : 'title'}`);
+    }
+  }
+  setTheme('tier2');
+  // shipped before this check: the Neon Grid title band is the bright accent under light words (asserted still so)
+  assert.deepEqual(low, ['cyber title', 'corpo title', 'rain title', 'matrix title', 'synth title'], 'Hall of Honours words over their fields');
 }
 console.log('theme ok');
