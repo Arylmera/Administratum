@@ -147,6 +147,29 @@ The user tried O10b in the app and asked for "the same walls as elsewhere" and r
    never cover a desk, seat, queue slot or prop; rooms in rule order whatever the arrival order; an empty room keeps
    its place; a live department is never pushed into overflow by an empty room; break-out room and strips unchanged;
    flathall/isohall hashes re-recorded only after looking at the hall (the wing changes the static background).
+9. **Full height and centred doors (user, 2026-11-09: "could the rooms take the full height? and the door be in the
+   middle").** Supersedes the heights in point 4 and the door places in the plan.
+   1. The rooms share the wing's full height, from under the back wall to the hall's floor bottom (the
+      scriptorium's own bottom, bays included). Each room gets at least the rows its desks need; the hall's spare
+      rows go to the rooms evenly, the last room taking any remainder. No dark band above the first room or below
+      the last.
+   2. Each room's door is centred vertically on its east wall (the scriptorium's west wall). Inside the room, the
+      room's corridor and lanes join the door to its desk lanes. On the hall side, the door's lane joins the
+      scriptorium's corridor network as before.
+   3. The desks stay packed from the room's top.
+   4. Everything else in O10c is unchanged: walls, dividers, plaques, empty rooms, break-out room, strips, column.
+   The routing gates hold: walkers cross the west wall only through doors, never walk inside a wall, and a door is
+   open while someone is on its frame.
+   Decisions made in the implementation:
+   - The rooms stay on the scriptorium's slot-row grid. The spare height is shared in whole rows. The last room also
+     takes the floor under the last row, down to the hall's bottom.
+   - "Centred" means the scriptorium lane whose door centre (the frame is lane - 18 .. lane + 2) is nearest the
+     room's vertical middle; on a tie, the lower lane. The error is at most half a row (32 px). A new lane at the
+     exact middle would cross the scriptorium's desks, so the door uses an existing lane. Each lane in a room's
+     band is a scriptorium lane, so no lane is added. A one-row room has lanes only at its top and bottom, so its
+     door is at one of these.
+   - The break-out room starts below the lowest door lane of any room (the first room included, now that its door
+     can be lower).
 
 ## O10b — real rooms: walls and a door (user, Q27 = A, 2026-11-08) — superseded by O10c
 

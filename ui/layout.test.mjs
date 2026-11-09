@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY, WING_W, WING_X, WING_CX, WING_DIV, wingZones } from './layout.js';
+import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY, WING_W, WING_X, WING_CX, WING_DIV, wingZones, SLOT_H } from './layout.js';
 import { propsOf, WIN_Y, wallArt } from './scene.js';
 import { MAPS, RES, ART } from './sprites.js';
 import { setTheme, THEMES } from './theme.js';
@@ -691,6 +691,60 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   assert.equal(planLayout(null, [d('A', 1, 'r0'), d('B', 1, 'r1')], 0, {}, SCENE, layoutDepartments, R(2)).level, 0, 'two rooms: full desks, no bay');
   assert.equal(planLayout(null, [d('X', 2)], 0, {}, SCENE, layoutDepartments, R(2)).level, 0, 'two empty rooms: full desks, no bay');
   assert.equal(planLayout(null, [d('A', 1, 'r0'), d('B', 1, 'r1'), d('C', 1, 'r2')], 0, {}, SCENE, layoutDepartments, R(3)).level, 2, 'three rooms: one bay');
+}
+
+// The rooms take the wing's full height (O10c, 2026-11-09): from under the back wall to the hall's bottom (bays
+// included), no band above the first or below the last; each its desk rows, the spare rows shared evenly (the last
+// takes the remainder); its desks packed from its top; its door on the scriptorium lane nearest its vertical middle;
+// every walk in or out still through its door only.
+{
+  const R = n => Array.from({ length: n }, (_, i) => ({ id: `r${i}`, color: '#123456' }));
+  const d = (name, n, room) => ({ name, color: '#fff', ids: ids(name, n), ...(room && { room }) });
+  const cases = [
+    ['one room', SCENE, R(1), [d('G', 2, 'r0'), d('Terra', 3)]],
+    ['one room, tall', { w: 700, h: 600 }, R(1), [d('G', 2, 'r0'), d('Terra', 3)]],
+    ['three rooms, one empty', { w: 700, h: 600 }, R(3), [d('A', 3, 'r0'), d('C', 1, 'r2'), d('Terra', 2)]],
+    ['three rooms, one empty, short', { w: 700, h: 400 }, R(3), [d('A', 2, 'r0'), d('C', 2, 'r2'), d('Terra', 2)]],
+    ['bays', SCENE, R(2), [d('A', 5, 'r0'), d('B', 1, 'r1'), ...'abcde'.split('').map(n => d(n, 4))]],
+  ];
+  const walk = (a, path) => {
+    const pts = [a];
+    for (const q of path) { const p = pts.at(-1), n = Math.max(Math.abs(q.x - p.x), Math.abs(q.y - p.y)); for (let i = 1; i <= n; i++) pts.push({ x: p.x + (q.x - p.x) * i / n, y: p.y + (q.y - p.y) * i / n }); }
+    return pts;
+  };
+  for (const [tag, size, rules, depts] of cases) {
+    const P = planLayout(null, depts, 0, {}, size, layoutDepartments, rules), H = hallOf(P.bays, size, P.wing);
+    if (tag === 'bays') assert.ok(P.bays > 0, `${tag}: grows bays`);
+    assert.equal(H.rooms.length, rules.length, `${tag}: every room drawn`);
+    assert.equal(H.rooms[0].y, WALL, `${tag}: the first room right under the back wall`);
+    assert.equal(H.rooms.at(-1).y + H.rooms.at(-1).h, H.h, `${tag}: the last room down to the hall's bottom`);
+    assert.equal(H.rooms.reduce((s, q) => s + q.rows, 0), H.rows, `${tag}: every grid row in a room`);
+    const spare = H.rows - P.wing.reduce((s, r) => s + r.rows, 0), even = Math.floor(spare / rules.length);
+    H.rooms.forEach((q, i) => {
+      if (i) assert.equal(q.top, H.rooms[i - 1].y + H.rooms[i - 1].h, `${tag}: ${q.id} right under ${H.rooms[i - 1].id}`);
+      assert.equal(q.rows, P.wing[i].rows + even + (i === H.rooms.length - 1 ? spare % rules.length : 0), `${tag}: ${q.id} its desk rows and its share`);
+      const mid = q.y + q.h / 2, door = q.doorOut.y; // the door's frame: door - 18 .. door + 2, its centre door - 8
+      assert.ok(Math.abs(door - 8 - mid) <= SLOT_H / 2, `${tag}: ${q.id}'s door centred at ${door - 8}, the room's middle ${mid}`);
+      for (const l of q.lanes) assert.ok(Math.abs(door - 8 - mid) <= Math.abs(l - 8 - mid), `${tag}: ${q.id}'s lane ${l} nearer its middle than its door's ${door}`);
+      assert.ok(H.lanes.includes(door) && q.lanes.includes(door) && q.doorIn.y === door, `${tag}: ${q.id}'s door on a scriptorium lane and its own`);
+      assert.ok(door - 18 >= q.y && door + 2 <= q.y + q.h, `${tag}: ${q.id}'s door frame inside its band`);
+      const mine = P.blocks.filter(b => b.room === q.id);
+      assert.equal(Math.min(...mine.map(b => b.y)), H.y0 + SLOT_H * q.k, `${tag}: ${q.id}'s desks from its top`);
+      for (const b of mine) assert.ok(b.y + 8 >= q.y && b.y + b.h <= q.y + q.h, `${tag}: ${b.name} inside ${q.id}`);
+      // walks between its seats and the hall: across the west wall only at a door, never through a room's top wall
+      const seats = [...P.seats].filter(([k]) => mine.some(b => k.startsWith(`${b.name}-`))).map(([, s]) => s);
+      for (const s of seats) for (const [a, e] of [[s, H.entry], [H.entry, s], [s, H.queue[0]]]) {
+        const rt = route(a, e, P.blocks, H), pts = walk(a, rt), has = p => rt.some(o => o.x === p.x && o.y === p.y);
+        assert.deepEqual(rt.at(-1), { x: e.x, y: e.y }, `${tag}: the walk ends where asked`);
+        assert.ok(has(q.doorIn) && has(q.doorOut), `${tag}: through ${q.id}'s door`);
+        for (let j = 1; j < pts.length; j++) {
+          const [p0, p1] = [pts[j - 1], pts[j]];
+          if ((p0.x < H.wx - 8) !== (p1.x < H.wx - 8) || (p0.x <= H.wx) !== (p1.x <= H.wx)) assert.ok(Math.abs(p1.y - door) < 1, `${tag}: the west wall crossed at ${p1.x},${p1.y}`);
+          if (p1.x < H.wx - 8) for (const o of H.rooms) assert.ok(!(p1.y >= o.top && p1.y < o.y && o.top > 0), `${tag}: in ${o.id}'s top wall at ${p1.x},${p1.y}`);
+        }
+      }
+    });
+  }
 }
 
 console.log('layout ok');

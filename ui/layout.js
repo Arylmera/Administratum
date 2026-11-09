@@ -70,10 +70,13 @@ export function hallOf(bays = 0, size = SCENE, wing = null) {
 // wall): the scriptorium starts at wx. Its rooms stand on the scriptorium's slot-row grid (rows at y0 + 64 k), 2 desks
 // a row (4 lecterns compact) west of the room's corridor, one under another with no row lost: the first under the back
 // wall, each further one under a WING_DIV dark divider (the refectorium/sanctum's) packed into the floor above its
-// first desk row (from 2 px under the lane above to the desks' top). A room's door sits in the west wall on a
-// scriptorium lane: the first room's just above its desks, every other one's just under its first desk row; its hall
-// side (wx + 1) and room side (the room's corridor) take only that lane (route). Geometry only (id, rows): a room's
-// colour and whether it is empty are the layout's (wingZones), so they never rebuild the hall.
+// first desk row (from 2 px under the lane above to the desks' top). The rooms share the wing's full height: each its
+// desk rows (wing[].rows), the scriptorium's rows left over shared evenly (the last takes the remainder and runs down
+// to the hall's bottom, bays included); hall.rooms[].rows counts both. A room's door sits in the west wall on the
+// scriptorium lane nearest the room's vertical middle (one of the room's own lanes, every one a scriptorium lane); its
+// hall side (wx + 1) and room side (the room's corridor) take only that lane (route), the room's corridor joining it to
+// the desk lanes. Geometry only (id, rows): a room's colour and whether it is empty are the layout's (wingZones), so
+// they never rebuild the hall.
 export const WING_W = 138, WING_X = WING_W + 8, WING_CX = WING_W - 10, WING_DIV = 10;
 const wings = new Map();
 const movedX = (p, d) => ({ ...p, x: p.x + d });
@@ -82,14 +85,17 @@ function wingHall(B, wing) {
   let H = wings.get(key);
   if (H) return H;
   if (wings.size > 64) wings.clear();
-  const X = WING_X, m = p => movedX(p, X), rooms = [];
+  const X = WING_X, m = p => movedX(p, X), rooms = [], n = wing.length;
+  const need = wing.map(r => Math.max(1, r.rows ?? 1)), spare = Math.max(0, B.rows - need.reduce((s, q) => s + q, 0));
   let k = 0;
   for (const [j, r] of wing.entries()) {
-    const rows = Math.max(1, r.rows ?? 1), top = j ? B.y0 + SLOT_H * k - 2 : 0; // its top wall's top
-    const y = j ? top + WING_DIV : WALL, y1 = B.y0 + SLOT_H * (k + rows) - 2, under = i => B.y0 + 60 + SLOT_H * (k + i), door = j ? under(0) : B.y0;
+    const last = j === n - 1, rows = need[j] + Math.floor(spare / n) + (last ? spare % n : 0), top = j ? B.y0 + SLOT_H * k - 2 : 0; // its top wall's top
+    const y = j ? top + WING_DIV : WALL, y1 = last ? B.h : B.y0 + SLOT_H * (k + rows) - 2, under = i => B.y0 + 60 + SLOT_H * (k + i);
+    const lanes = [...(j ? [] : [B.y0]), ...Array.from({ length: rows }, (_, i) => under(i))], mid = (y + y1) / 2;
+    // the lane whose door (its frame y - 18 .. y + 2, so its centre y - 8) is nearest the room's middle; a tie: the lower
+    const door = lanes.reduce((p, q) => (Math.abs(q - 8 - mid) <= Math.abs(p - 8 - mid) ? q : p));
     rooms.push({ kind: 'room', id: r.id, x: 0, y, w: WING_W, h: y1 - y, top, k, rows, plaqueY: j ? top + 1 : WALL - 12,
-      lanes: [...(j ? [] : [door]), ...Array.from({ length: rows }, (_, i) => under(i))], corridorX: WING_CX,
-      doorIn: { x: WING_CX, y: door }, doorOut: { x: X + 1, y: door } });
+      lanes, corridorX: WING_CX, doorIn: { x: WING_CX, y: door }, doorOut: { x: X + 1, y: door } });
     k += rows;
   }
   H = { ...B, base: B, key, wx: X, rooms, w: B.w + X, sw: B.sw + X, rx: B.rx + X, ox: B.ox + X, dx: B.dx + X, x0: B.x0 + X, x1: B.x1 + X,
@@ -164,12 +170,12 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
   // departments wrapping west of the room's corridor. A room with nothing in the sequence (its placeholder dropped past
   // MAX_BAYS, planLayout) is not drawn.
   const known = new Set((wing ?? []).map(r => r.id)), inWing = d => !d.temp && known.has(d.room), rooms = [];
-  let doorRow = -1; // the lowest slot row whose lane holds a wing room's door (hallOf: each further room's first)
+  let doorRow = -1; // the lowest slot row whose lane holds a wing room's door (hallOf: by each room's middle)
   if (wing) {
-    const COLS = compact ? 4 : 2, WX0 = 3;
+    const COLS = compact ? 4 : 2, WX0 = 3, at = []; // at: per room drawn, its blocks' places from its top
     let k = 0, full = false;
     for (const r of wing) {
-      const inside = depts.filter(d => inWing(d) && d.room === r.id);
+      const inside = depts.filter(d => inWing(d) && d.room === r.id), mine = [];
       if (!inside.length) continue;
       let x = WX0, y = y0 + SLOT_H * k, rowH = 0, bottom = 0;
       for (const d of inside) {
@@ -177,15 +183,20 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
         if (x > WX0 && (x + gm.w > WING_CX + 1 || (compact && x + gm.w - 6 > WING_CX - 5))) { x = WX0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; }
         // an empty room that does not fit counts one, so the hall grows to keep its place (planLayout drops it past MAX_BAYS)
         if (full || y + gm.h > y1) { full = true; overflow += d.empty ? 1 : live; continue; }
-        place(d, gm, x, y, COLS);
+        mine.push([d, gm, x, y - y0 - SLOT_H * k]);
         x += gm.w + 4; rowH = Math.max(rowH, gm.h); bottom = Math.max(bottom, y + gm.h);
       }
       if (!bottom) continue; // nothing of it fits (full): nor of any room after it, all counted in the overflow
       const rows = (bottom + 8 - (y0 + SLOT_H * k)) / SLOT_H;
-      if (rooms.length) doorRow = k; // its door: on the lane under its first desk row
       rooms.push({ id: r.id, color: r.color, empty: inside.every(d => d.empty), rows });
+      at.push(mine);
       k += rows;
     }
+    // the rooms share the wing's height (hallOf): each one's desks packed from its own first grid row
+    hallOf(bays, size, rooms).rooms.forEach((R, j) => {
+      for (const [d, gm, x, dy] of at[j]) place(d, gm, x, y0 + SLOT_H * R.k + dy, COLS);
+      doorRow = Math.max(doorRow, Math.round((R.doorOut.y - y0 - 60) / SLOT_H)); // y0 (above the first room's desks): -1
+    });
   }
   const hallDepts = depts.filter(d => !inWing(d) && !d.empty), COLS = G.cols;
   const all = hallDepts.map(d => geom(d, COLS));

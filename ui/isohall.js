@@ -71,8 +71,8 @@ export function roomPlan(hall) {
 
 // A hall with the west wing (layout.js hallOf wx, rooms): the hall without it moved east by the wing, its west wall
 // now the wing's; the wing's floor, its north wall as the right column's, the scriptorium's west wall a cutaway slab
-// broken at each room's door with a jamb either side (as the east wall), each room's divider a slab, a slab below the
-// last room (as the bays' east of the sanctum).
+// broken at each room's door with a jamb either side (as the east wall), each room's divider a slab; the last room
+// runs down to the hall's bottom.
 function wingPlan(hall) {
   const { w, h, wx, rooms } = hall, B = roomPlan(hall.base), X = fx(wx), U = 2 * w, V = fy(h), Z = 2 * WALL;
   const S = B.surfaces.filter(s => s.name !== 'west').map(s => ({ ...s, u0: s.u0 + X, u1: s.u1 + X }));
@@ -94,8 +94,6 @@ function wingPlan(hall) {
     if (R.top) slab('wing divider', 0, WING_W, R.top, R.top + WING_DIV);
   }
   slab('west wall', WING_W, wx, y, h);
-  const last = rooms.at(-1);
-  if (last) slab('wing below', 0, WING_W, last.y + last.h, h);
   return { U, V, Z, surfaces: S };
 }
 

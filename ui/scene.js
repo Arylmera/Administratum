@@ -178,8 +178,9 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
 }
 
 // The west wing (O10c, hallOf().rooms): the hall's own walls. Its back wall as the right column's, each room's floor,
-// each further room's top wall the refectorium/sanctum divider (dark wall), dark wall and plates below the last room; the scriptorium's west wall as its east wall (dark, a pipe down it), the doors
-// drawn over it each frame (drawDoors). The rule's colour is the dynamic layer's (zoneFloor).
+// each further room's top wall the refectorium/sanctum divider (dark wall), the last room down to the hall's bottom
+// (dark wall and plates only while no room is drawn); the scriptorium's west wall as its east wall (dark, a pipe down
+// it), the doors drawn over it each frame (drawDoors). The rule's colour is the dynamic layer's (zoneFloor).
 function drawWing(g, { wx, h, rooms }) {
   const W = WING_W, last = rooms.at(-1), end = last ? last.y + last.h : WALL;
   tile(g, 'wall east', 0, 0, W, WALL); tile(g, 'wall foot', 0, WALL - 4, W, 4); tile(g, 'pipe h', 0, 4, W);
@@ -187,7 +188,7 @@ function drawWing(g, { wx, h, rooms }) {
     tile(g, 'floor', 0, R.y, W, R.h);
     if (R.top) tile(g, 'wall dark', 0, R.top, W, WING_DIV);
   }
-  tile(g, 'wall dark', 0, end, W, Math.min(WING_DIV, h - end));
+  if (h > end) tile(g, 'wall dark', 0, end, W, Math.min(WING_DIV, h - end));
   if (h > end + WING_DIV) tile(g, 'wall', 0, end + WING_DIV, W, h - end - WING_DIV);
   tile(g, 'wall dark', wx - 8, 0, 8, h); tile(g, 'pipe v', wx - 5, 0, 3, h);
 }

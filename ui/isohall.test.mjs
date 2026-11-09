@@ -48,7 +48,7 @@ for (const hall of halls) {
   assert.equal(east.length, 3, `${tag}: two openings`);
   assert.ok(east.every(s => s.u0 === 2 * hall.sw && s.u1 === 2 * hall.rx), tag);
   // the west wing: its floor, the scriptorium's west wall open at each room's door and nowhere else, a divider over
-  // every room but the first, the wall below the last
+  // every room but the first, the last room down to the hall's bottom
   if (hall.wx) {
     const westWall = named('slab', 'west wall'), gaps = hall.rooms.map(R => 2 * (R.doorOut.y - WALL));
     assert.equal(named('floor', 'wing').length, 1, tag);
@@ -56,7 +56,8 @@ for (const hall of halls) {
     for (const v of gaps) assert.ok(!westWall.some(s => v >= s.v0 && v < s.v1), `${tag}: a door at v ${v} is open`);
     assert.equal(westWall.reduce((n, s) => n + s.v1 - s.v0, 0), V - hall.rooms.length * 40, `${tag}: walled but for the doorways`);
     assert.deepEqual(named('slab', 'wing divider').map(s => s.v0), hall.rooms.slice(1).map(R => 2 * (R.top - WALL)), tag);
-    assert.equal(named('slab', 'wing below').length, 1, tag);
+    assert.equal(named('slab', 'wing below').length, 0, `${tag}: no wall below the last room`);
+    assert.equal(hall.rooms.at(-1).y + hall.rooms.at(-1).h, hall.h, `${tag}: the last room down to the hall's bottom`);
     // ambient occlusion: the scriptorium's own bands moved east with it (none across the wing), the wing's back wall,
     // each divider and both faces of the west wall
     const bands = wingBands(hall), ownBand = wingBands(hall.base);
@@ -125,7 +126,7 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // The west wing (O10c): recorded once looked at on screen.
 const GRID = {
   'tier2 346x248 day': 'a330330e82d5', 'tier2 554x728 night': 'feaec8359e26', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'c7632cda3462',
-  'tier2 492x504 day wing': '1b06af307138', 'vault 492x504 day wing': '72d5b15cec0d',
+  'tier2 492x504 day wing': '37dcc3f1193e', 'vault 492x504 day wing': '845b2ebbf0a5', // the rooms down to the hall's bottom (2026-11-09)
 };
 const got = {};
 for (const id of ['tier2', 'vault']) {

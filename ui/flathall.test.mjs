@@ -41,7 +41,7 @@ for (const id of ['tier2', 'vault']) {
 }
 // The west wing (O10c): a hall with three rooms (one row, two rows, one row), recorded once looked at on screen.
 const WING = [{ id: 'a', color: '#c8a040', rows: 1 }, { id: 'b', color: '#40a0c8', rows: 2 }, { id: 'c', color: '#a040c8', rows: 1, empty: true }];
-const FLAT_WING = { 'tier2 wing': '5bf757e1fa8f', 'vault wing': '905672fec7a6' };
+const FLAT_WING = { 'tier2 wing': '495247623bbd', 'vault wing': '041417c189ff' }; // the rooms down to the hall's bottom (2026-11-09)
 for (const id of ['tier2', 'vault']) {
   setTheme(id);
   const cv = fakeCanvas();
@@ -57,13 +57,14 @@ assert.equal(new Set(Object.values(got)).size, 10, 'each hall, theme and light d
 // whole wing), at that room's door, hall side; the scriptorium's actors move with the wing's width.
 {
   const { Cast } = await import('./actors.js'), { SLOT_H } = await import('./layout.js');
-  const W2 = [{ id: 'a', rows: 2 }, { id: 'b', rows: 1 }], from = hallOf(4, undefined, W2), [A, B] = from.rooms;
+  // 6 rows at 4 bays: a 4 + 0, b 1 + 1 (the spare row: the last room's); then a 1 + 2, b 1 + 2 (b one row up)
+  const W2 = [{ id: 'a', rows: 4 }, { id: 'b', rows: 1 }], from = hallOf(4, undefined, W2), [A, B] = from.rooms;
   const at = (R, id) => ({ id, x: 40, y: R.y + 30, path: [], destKey: 'x' });
   const run = to => { const c = new Cast(), a = at(A, 'a'), b = at(B, 'b'), h = { id: 'h', x: from.x0 + 20, y: from.y0 }; for (const o of [a, b, h]) c.actors.set(o.id, o); c.resized(from, to); return { a, b, h }; };
   let r = run(hallOf(4, undefined, [{ id: 'a', rows: 1 }, { id: 'b', rows: 1 }]));
   assert.deepEqual([r.a.y, r.b.y, r.h.x], [A.y + 30, B.y + 30 - SLOT_H, from.x0 + 20], 'b one row up with its room');
   r = run(hallOf(4, undefined, [{ id: 'b', rows: 1 }])); // a deleted: b first now
-  assert.deepEqual([r.b.y, [r.a.x, r.a.y]], [B.y + 30 - 2 * SLOT_H, [A.doorOut.x, A.doorOut.y]], 'b two rows up; a at its door');
+  assert.deepEqual([r.b.y, [r.a.x, r.a.y]], [B.y + 30 - 4 * SLOT_H, [A.doorOut.x, A.doorOut.y]], 'b four rows up; a at its door');
   r = run(hallOf(4)); // the wing gone
   assert.deepEqual([[r.a.x, r.a.y], [r.b.x, r.b.y], r.h.x], [[A.doorOut.x - from.wx, A.doorOut.y], [B.doorOut.x - from.wx, B.doorOut.y], from.x0 + 20 - from.wx], 'all at their doors, the hall back west');
 }
