@@ -221,10 +221,10 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   const sit = (a, p) => Object.assign(sits.get(a.id) ?? sits.set(a.id, { k: 0, t: now, down: true }).get(a.id), { shift: frontShift(p, a), yb: p.yb, seen: true });
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, kind = S.kindOf(d), fill = S.deskFill(d, a, fillOf);
-    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
-    const p = furniture(kind, d, pile, busy, fill, d.id && a, !!a?.s.background, blockOf(d.dept));
+    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy', candle = S.candleOf(a); // the cache clock (scene.js)
+    const p = furniture(kind, d, pile, busy || S.candleLit(candle), fill, d.id && a, !!a?.s.background, blockOf(d.dept));
     if (a?.pose === 'desk') sit(a, p);
-    if (d.id) lights.push(S.deskLight(d, busy));
+    if (d.id) lights.push(S.deskLight(d, busy, candle));
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S, [px, py] = S.KIND[kind].at.puff;
       items.push({ foot: { ...p.foot, v0: p.foot.v1, v1: p.foot.v1 + 1 }, draw: g2 => save(g2, g3 => onFace(g3, p.v0 + p.k.d - 1, p.yb), g3 => S.puff(g3, d.x + px, d.y + py, k)) });

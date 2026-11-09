@@ -70,7 +70,9 @@ pub fn parse_permission_prompt(screen: &str) -> Option<Prompt> {
     let find = |pred: &dyn Fn(&str) -> bool| opts.iter().find(|(_, l)| pred(l)).map(|(n, _)| *n);
     let yes = find(&|l| l == "Yes").filter(|&n| n == 1)?;
     let (always, no) = (find(&|l| l.starts_with("Yes,") && !l.contains("auto mode")), find(&|l| l.starts_with("No"))?);
-    Some(Prompt { question: lines[q].to_string(), options: opts, yes, always, no })
+    // Screen text goes to the card and the phone: secrets masked (an option label can quote the command).
+    let options = opts.into_iter().map(|(n, l)| (n, crate::mask::mask(&l).into_owned())).collect();
+    Some(Prompt { question: crate::mask::mask(lines[q]).into_owned(), options, yes, always, no })
 }
 
 #[cfg(test)]

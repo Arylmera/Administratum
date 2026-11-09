@@ -8,7 +8,7 @@ import './themes.js'; // registers the themes beyond Tier II
 import { applyChrome } from './chrome.js';
 import { fmtTok, fmtDur } from './chronicon.js';
 import { pad2 } from './quiet.js';
-import { answerable, answerCall } from './petition.js';
+import { answerable, answerCall, riskOfPetition, allowed } from './petition.js';
 
 // ---- pure (mobile.test.mjs) ----
 
@@ -34,13 +34,15 @@ export const rowKey = s => `${s.id}:${s.sinceMs}`;
 // peek: undefined while not read, the prompt ({question, yes, no, ...}) once read, or {error}. Buttons only while
 // actions are allowed, on an answerable petition whose prompt was shown (OpenCode: the request the roster carries).
 export function rowState(s, { actions, peek }) {
-  const none = { buttons: false, text: null, sub: null, error: null };
+  const risk = riskOfPetition(s), none = { buttons: false, text: null, sub: null, error: null, risk };
   if (!actions || !answerable(s)) return none;
   if (s.source === 'opencode') return { ...none, buttons: true };
   if (!peek) return none;
   if (peek.error) return { ...none, error: peek.error }; // never answer a prompt the phone could not show
-  return { buttons: true, text: peek.question ?? null, sub: [peek.yes, peek.no].filter(Boolean).join(' / ') || null, error: null };
+  return { ...none, buttons: true, text: peek.question ?? null, sub: [peek.yes, peek.no].filter(Boolean).join(' / ') || null };
 }
+// The answer buttons a row shows: Approve and Deny; Deny only for a risky prompt (petition.js `allowed`).
+export const phoneChoices = risk => [['yes', 'Approve'], ['no', 'Deny']].filter(([c]) => allowed(c, risk, 'phone'));
 // A stored peek belongs to one prompt: the row, what it waits for and its terminal. A changed prompt finds no peek,
 // so its old buttons go.
 export const peekKey = s => `${rowKey(s)}|${s.waitingFor ?? ''}|${s.orca ?? ''}`;
@@ -56,7 +58,7 @@ export function openRow(s, { actions, invoke }) {
 // again first and answered only if it is still the one shown; else nothing is sent and the new prompt comes back.
 // Resolves { sent: true } or { sent: false, peek }; a refused answer rejects with the backend's error.
 export function phoneAnswer(s, choice, invoke, shown) {
-  if (choice !== 'yes' && choice !== 'no') throw new Error(`the phone does not send ${choice}`);
+  if (!allowed(choice, riskOfPetition(s), 'phone')) throw new Error(`the phone does not send ${choice} here`);
   const send = () => invoke(...answerCall(s, choice)).then(() => ({ sent: true }));
   if (s.source === 'opencode') return send();
   return peekOf(s, invoke).then(p => (!p.error && shown?.question != null && p.question === shown.question ? send() : { sent: false, peek: p }));
@@ -97,12 +99,13 @@ export function petitionRow(s, st, on) {
   li.append(head);
   const what = s.asks ?? s.question;
   if (what) li.append(el('div', 'asks', what));
+  if (st.risk) li.append(el('div', 'err', t('risky', { reason: st.risk })));
   if (st.open && st.text) li.append(el('div', 'q', st.text));
   if (st.open && st.sub) li.append(el('div', 'dim', st.sub));
   if (st.error) li.append(el('div', 'err', st.error));
   if (st.open && st.buttons) {
     const row = el('div', 'answers');
-    for (const [choice, label] of [['yes', 'Approve'], ['no', 'Deny']]) {
+    for (const [choice, label] of phoneChoices(st.risk)) {
       const b = el('button', choice, label);
       b.type = 'button'; b.disabled = !!st.busy; b.onclick = () => on.answer(choice);
       row.append(b);

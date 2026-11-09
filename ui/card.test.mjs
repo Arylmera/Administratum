@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { answerable, answerCall, kinOf, lineageOf, stuckLine } from './card.js';
+import { answerable, answerCall, kinOf, lineageOf, stuckLine, watchLines, cacheLine } from './card.js';
+import { candleOf } from './scene.js';
 
 // Claude Code: a permission prompt in an Orca terminal.
 const claude = { id: 's1', status: 'waiting', source: 'claude', orca: 'term_ab', waitingFor: 'approve Bash' };
@@ -39,3 +40,33 @@ console.log('card ok');
 assert.equal(stuckLine({ kind: 'silent', sinceMs: 0, tool: null, count: 0 }, 16 * 60_000 + 5), 'stalled · 16m');
 assert.equal(stuckLine({ kind: 'loop', sinceMs: 0, tool: 'Bash', count: 5 }, 0), 'looping · Bash ×5');
 assert.equal(stuckLine(null, 0), '');
+
+// The watch's lines (O13): the same file and the other session; a port this turn found in use.
+assert.deepEqual(watchLines({ sameFile: { file: 'app.js', other: 'terra-2' }, turn: { portInUse: '3000' } }),
+  ['same file: app.js · terra-2', 'port 3000 already in use']);
+assert.deepEqual(watchLines({ turn: { portInUse: null } }), []);
+assert.deepEqual(watchLines({}), []);
+
+// The cache clock (O15): the candle's phase from the time left over the TTL; the card's line; who shows it.
+{
+  const now = 1_000_000, M = 60_000;
+  const at = (status, untilMs, ttlMs = 5 * M, pose = 'desk') => ({ pose, s: { status, cache: untilMs == null ? null : { untilMs, ttlMs } } });
+  assert.deepEqual(candleOf(at('idle', now + 5 * M), now), { phase: 'lit', k: 1 }, 'just written: lit');
+  assert.equal(candleOf(at('idle', now + 3 * M), now).phase, 'lit', 'more than half the TTL left');
+  assert.equal(candleOf(at('idle', now + 2.5 * M), now).phase, 'low', 'half: burning down');
+  assert.equal(candleOf(at('idle', now + 1), now).phase, 'low');
+  assert.deepEqual(candleOf(at('idle', now), now), { phase: 'out', k: 0 }, 'cold at the TTL');
+  assert.equal(candleOf(at('idle', null), now).phase, 'out', 'nothing cached: cold');
+  assert.equal(candleOf(at('idle', now + 40 * M, 60 * M), now).phase, 'lit', 'a 1 h cache with 40 min left');
+  assert.equal(candleOf(at('idle', now + 20 * M, 60 * M), now).phase, 'low', 'a 1 h cache with 20 min left');
+  assert.deepEqual(candleOf(at('busy', now - M), now), { phase: 'lit', k: 1 }, 'a working scribe stays lit');
+  assert.equal(candleOf(at('idle', now + M, 5 * M, 'nap'), now), null, 'a napper in the refectory shows nothing');
+  assert.equal(candleOf(at('waiting', now + M), now), null);
+  assert.equal(candleOf({ ...at('idle', now + M), h: {} }, now), null, 'adepts have no candle');
+  assert.equal(cacheLine(at('idle', now + 3 * M), now), 'cache warm · 3 min left');
+  assert.equal(cacheLine(at('idle', now + 10_000), now), 'cache warm · 1 min left');
+  assert.equal(cacheLine(at('idle', now - 1), now), 'cache cold');
+  assert.equal(cacheLine(at('busy', now + M), now), '', 'only idle scribes show it');
+  assert.equal(cacheLine(at('idle', now + M, 5 * M, 'nap'), now), '');
+  assert.deepEqual(watchLines({}, at('idle', now - 1), now), ['cache cold']);
+}

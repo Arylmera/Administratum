@@ -4,6 +4,7 @@ mod demo;
 #[cfg(windows)]
 mod firewall;
 mod git;
+mod mask;
 mod monitor;
 mod opencode;
 mod orca;
@@ -389,6 +390,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let start = Instant::now();
     let mut first = true;
     let mut first_stuck = true; // like `first`: a session already stuck before this start toasts no more
+    let mut seen_pairs = std::collections::HashSet::new(); // (a, b, path key) already toasted: one toast per pair and path
     let mut last_tick = Instant::now();
     let mut last_t = 0;
     loop {
@@ -406,8 +408,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 roster
             };
             rooms::assign(&mut roster, &rooms::get()); // before anything reads the roster: toasts, the remote view, prev
+            opencode_risk(&mut roster);
             let limit_events = notify(&app, &mut tracker, &roster, first, now);
             let mut turns = std::collections::HashMap::new();
+            let mut pairs = vec![];
             {
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
                 last_tick = Instant::now();
@@ -428,6 +432,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     ev.extend(opencode.with_messages(|rows| c.read_opencode(&roster, &family, rows, now)));
                     turns = c.turns(&poller.files);
                     turns.extend(c.opencode_turns());
+                    pairs = c.conflicts(&roster, now);
                     ev
                 };
                 let from_transcripts = !demo && !events.is_empty();
@@ -456,7 +461,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 s.stuck = monitor::stuck_of(s, last_write, &cfg, now);
             }
             let fresh_stuck = episodes_after_seed(&mut episodes, &roster, first_stuck);
-            for e in stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now) {
+            let mut events = stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now);
+            let fresh_pairs = same_file(&mut roster, &pairs, &mut seen_pairs, first_stuck);
+            events.extend(conflict_toasts(&app, &roster, &fresh_pairs, now));
+            for e in events {
                 lock(&app.state::<Chron>()).record(&e);
                 emit(&app, "chronicle", &e);
             }
@@ -540,6 +548,49 @@ fn stuck_toasts(app: &AppHandle, fresh: &[&Session], toast_on: bool, now_ms: i64
         .collect()
 }
 
+/// Sets each session's `same_file` (its first pair; the file's name, never its path) and returns the pairs not seen
+/// before (`seen`: by both ids and the path key). The first tick only seeds `seen`: an overlap from before this start
+/// toasts no more.
+// ponytail: `seen` keeps every pair of this run (a few bytes each); one toast per pair and path is the rule.
+fn same_file<'a>(roster: &mut [Session], pairs: &'a [chronicle::conflict::Pair], seen: &mut std::collections::HashSet<String>, first: bool) -> Vec<&'a chronicle::conflict::Pair> {
+    let name = |roster: &[Session], id: &str| roster.iter().find(|s| s.id == id).map(|s| s.name.clone()).unwrap_or_default();
+    for p in pairs.iter().rev() {
+        // reversed: the first pair of a session is the one it keeps
+        let file = chronicle::conflict::file_name(&p.path).to_string();
+        let (na, nb) = (name(roster, &p.a), name(roster, &p.b));
+        for s in roster.iter_mut() {
+            if s.id == p.a {
+                s.same_file = Some(registry::SameFile { file: file.clone(), other: nb.clone() });
+            } else if s.id == p.b {
+                s.same_file = Some(registry::SameFile { file: file.clone(), other: na.clone() });
+            }
+        }
+    }
+    let fresh: Vec<_> = pairs.iter().filter(|p| seen.insert(format!("{}\n{}\n{}", p.a, p.b, p.key))).collect();
+    if first {
+        vec![]
+    } else {
+        fresh
+    }
+}
+
+/// New same-file pairs: a toast each (quiet hours respected; never for the break-out room) and a `conflict` event on the first session of the pair.
+fn conflict_toasts(app: &AppHandle, roster: &[Session], fresh: &[&chronicle::conflict::Pair], now_ms: i64) -> Vec<Event> {
+    let quiet = quiet::active();
+    fresh
+        .iter()
+        .filter_map(|p| {
+            let (a, b) = (roster.iter().find(|s| s.id == p.a)?, roster.iter().find(|s| s.id == p.b)?);
+            let detail = format!("{} · {}", chronicle::conflict::file_name(&p.path), b.name);
+            if !quiet && !a.temp && !b.temp {
+                // the break-out room is quiet, as for stuck toasts
+                let _ = app.notification().builder().title(format!("{} and {} edit the same file", a.name, b.name)).body(&detail).show();
+            }
+            Some(Event::for_session(now_ms, "conflict", a, detail))
+        })
+        .collect()
+}
+
 /// This tick's toasts and UI events: new petitions, questions, stale petitions, and usage-limit waves. Returns the
 /// waves' Chronicon events. `first`: the app's first tick, whose limits were reached before it started.
 fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: bool, now_ms: i64) -> Vec<Event> {
@@ -547,7 +598,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
     let quiet = quiet::active();
     for s in tracker.new_petitions(roster) {
         if !quiet {
-            let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+            let body = petition_body(&s, &words);
             toast::petition_toast(app, &s, toast::fill(&words.petition, &s.name), body);
         }
         emit(app, "petition", &s);
@@ -559,7 +610,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
         }
         if QUESTION_TOAST.load(Ordering::Relaxed) && !quiet {
             let q = s.question.clone().unwrap_or_default();
-            let q = registry::clip_to(&q, 120);
+            let q = registry::clip_to(&mask::mask(&q), 120);
             let _ = app.notification().builder().title(toast::fill(&words.question, &s.name)).body(format!("{} · {q}", s.dept)).show();
         }
         emit(app, "question", &s);
@@ -570,7 +621,7 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
         if s.temp {
             continue; // the break-out room is quiet: a temp petition toasts once, never as stale
         }
-        let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+        let body = petition_body(&s, &words);
         toast::petition_toast(app, &s, toast::fill(&words.stale, &s.name), body);
         emit(app, "petition-stale", &s);
     }
@@ -600,6 +651,22 @@ fn notify(app: &AppHandle, tracker: &mut Tracker, roster: &[Session], first: boo
     limit_events
 }
 
+/// A petition toast's body: the department, what it waits for, and the reason when its command is risky.
+fn petition_body(s: &Session, words: &toast::Text) -> String {
+    let body = format!("{} · {}", s.dept, s.waiting_for.clone().unwrap_or_else(|| words.needed.clone()));
+    s.risk.as_ref().map_or_else(|| body.clone(), |r| format!("{body} · risky: {r}"))
+}
+
+/// An OpenCode petition's risk, from its request's detail as OpenCode sends it (the poller fills Claude's from the
+/// transcript, registry/tail.rs `pending_risk`).
+fn opencode_risk(roster: &mut [Session]) {
+    for s in roster.iter_mut().filter(|s| s.source == registry::Agent::OpenCode) {
+        // asks is "<action>: <resource>": the resource is the command (a command start for the patterns)
+        let command = s.asks.as_deref().filter(|_| s.status == "waiting").map(|a| a.split_once(": ").map_or(a, |(_, r)| r));
+        s.risk = command.and_then(registry::risk_of).map(str::to_string);
+    }
+}
+
 /// A session's `limit` event, with its reset hour and hit time (the usage window's ceilings, chronicle::window_of).
 fn limit_event(now_ms: i64, s: &Session, time: String) -> Event {
     let (reset_ms, hit_ms) = s.limit.as_ref().map_or((None, None), |l| (l.reset_ms, l.hit_ms));
@@ -619,6 +686,39 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn an_opencode_petition_gets_its_risk_from_its_request() {
+        let oc = |asks: &str, status: &str| Session { source: registry::Agent::OpenCode, asks: Some(asks.into()), ..session("o", status) };
+        let mut roster = [
+            oc("bash: git push --force origin main", "waiting"),
+            oc("bash: ls", "waiting"),
+            oc("bash: rm -rf x", "busy"),
+            oc("bash: rm -rf x", "waiting"),
+            Session { asks: Some("rm -rf x".into()), risk: Some("kept".into()), ..session("c", "waiting") },
+        ];
+        opencode_risk(&mut roster);
+        let risks: Vec<_> = roster.iter().map(|s| s.risk.as_deref()).collect();
+        assert_eq!(risks, [Some("git push --force"), None, None, Some("rm -r"), Some("kept")], "only a waiting OpenCode request, its command after the action; Claude's comes from its transcript");
+        assert_eq!(petition_body(&roster[0], &toast::Text::default()), "Terra · approve Bash · risky: git push --force");
+    }
+
+    #[test]
+    fn same_file_tags_both_sessions_and_toasts_once_per_pair_and_path() {
+        use chronicle::conflict::Pair;
+        let pair = |a: &str, b: &str, path: &str| Pair { a: a.into(), b: b.into(), path: path.into(), key: path.to_lowercase() };
+        let mut roster = [session("a", "busy"), session("b", "busy"), session("c", "idle")];
+        let pairs = [pair("a", "b", r"C:\git\Terra\ui\app.js")];
+        let mut seen = std::collections::HashSet::new();
+        assert!(same_file(&mut roster, &pairs, &mut seen, true).is_empty(), "the first tick seeds");
+        assert_eq!(roster[0].same_file, Some(registry::SameFile { file: "app.js".into(), other: "b".into() }), "the name, never the path");
+        assert_eq!(roster[1].same_file.as_ref().map(|f| f.other.as_str()), Some("a"));
+        assert_eq!(roster[2].same_file, None);
+        let more = [pairs[0].clone(), pair("a", "c", r"C:\git\Terra\ui\app.js"), pair("a", "b", r"C:\git\Terra\ui\b.js")];
+        let fresh: Vec<_> = same_file(&mut roster, &more, &mut seen, false).into_iter().map(|p| (p.b.as_str(), p.key.as_str())).collect();
+        assert_eq!(fresh, [("c", r"c:\git\terra\ui\app.js"), ("b", r"c:\git\terra\ui\b.js")], "a new pair or a new path toasts; a seen one does not");
+        assert!(same_file(&mut roster, &more, &mut seen, false).is_empty(), "once each");
     }
 
     #[test]

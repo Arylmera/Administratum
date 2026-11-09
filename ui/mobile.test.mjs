@@ -40,9 +40,9 @@ assert.equal(rowState(orca, { actions: false, peek: shown }).buttons, false);
 for (const waitingFor of ['question', 'input needed'])
   assert.equal(rowState({ ...orca, waitingFor }, { actions: true, peek: shown }).buttons, false, `${waitingFor} stays text`);
 assert.equal(rowState(orca, { actions: true }).buttons, false, 'not before the prompt is shown');
-assert.deepEqual(rowState(orca, { actions: true, peek: shown }), { buttons: true, text: 'Run ls?', sub: 'Yes / No', error: null });
+assert.deepEqual(rowState(orca, { actions: true, peek: shown }), { buttons: true, text: 'Run ls?', sub: 'Yes / No', error: null, risk: null });
 assert.deepEqual(rowState(orca, { actions: true, peek: { error: 'no permission prompt on screen' } }),
-  { buttons: false, text: null, sub: null, error: 'no permission prompt on screen' }, 'a failed peek: its error, no buttons');
+  { buttons: false, text: null, sub: null, error: 'no permission prompt on screen', risk: null }, 'a failed peek: its error, no buttons');
 assert.equal(rowState(oc, { actions: true }).buttons, true, 'OpenCode: no peek, the roster carries the request');
 assert.equal(rowKey(orca), 's1:100');
 assert.notEqual(rowKey({ ...orca, sinceMs: 200 }), rowKey(orca), 'a new prompt in the same session is a new row');
@@ -103,6 +103,19 @@ assert.ok(flat(open).some(n => n.className === 'q' && n.textContent === 'Run ls?
 flat(open).find(n => n.textContent === 'Approve').onclick();
 assert.deepEqual(calls.at(-1), ['answer', 'yes']);
 assert.deepEqual(buttons(petitionRow(orca, { ...rowState(orca, { actions: true, peek: shown }), tappable: true, open: false }, on)), [], 'closed row: no buttons');
+// A risky prompt (O11): its reason in red, Deny only, and the phone refuses to send Approve for it.
+{
+  const risky = { ...orca, risk: 'git reset --hard' }, st = rowState(risky, { actions: true, peek: shown });
+  assert.equal(st.risk, 'git reset --hard');
+  const row = petitionRow(risky, { ...st, tappable: true, open: true }, on);
+  assert.deepEqual(buttons(row), ['Deny'], 'the phone shows Deny only for a risky prompt');
+  assert.ok(flat(row).some(n => n.className === 'err' && n.textContent === 'risky: git reset --hard'));
+  const before = calls.length;
+  assert.throws(() => phoneAnswer(risky, 'yes', peekThen(shown), shown), /does not send yes/);
+  assert.equal(calls.length, before, 'nothing read, nothing sent');
+  assert.deepEqual(await phoneAnswer(risky, 'no', peekThen(shown), shown), { sent: true }, 'Deny still goes');
+  calls.length = 0;
+}
 
 // The rows are rebuilt (roster comes every tick) only on a change, and always when what an answer targets changes.
 const st0 = rowState(orca, { actions: true, peek: shown }), sig0 = rowsSig([[orca, st0]]);

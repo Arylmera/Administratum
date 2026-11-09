@@ -41,6 +41,18 @@ fn remote_tithe(mut v: serde_json::Value) -> serde_json::Value {
     v
 }
 
+/// Why a remote answer is refused before it reaches the terminal or OpenCode: a risky petition (`Session.risk`) takes
+/// Deny only from a remote client, the toast's rule (`toast::accepts`). The petition is found by its Orca handle or its
+/// OpenCode session; one not on the roster is left to the answer's own checks.
+fn refused(roster: &[crate::registry::Session], c: &remote::Call) -> Option<String> {
+    let (s, choice) = match c {
+        remote::Call::AnswerPetition { handle, choice } => (roster.iter().find(|s| s.orca.as_deref() == Some(handle))?, choice),
+        remote::Call::AnswerOpenCode { session, choice, .. } => (roster.iter().find(|s| s.id == *session)?, choice),
+        _ => return None,
+    };
+    (s.risk.is_some() && choice != "no").then(|| format!("risky petition ({}): Deny only", s.risk.as_deref().unwrap_or("")))
+}
+
 /// The app as the remote view reaches it: the read commands, answer_petition and answer_opencode
 /// (gated by the server), and the embedded UI files. open_session and every settings write stay local.
 fn remote_backend(app: &AppHandle) -> remote::Backend {
@@ -49,24 +61,30 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
     }
     let (a, b) = (app.clone(), app.clone());
     remote::Backend {
-        call: Box::new(move |c| match c {
-            remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
-            remote::Call::TitheDay(day) => json(tithe_day(day, a.state())).map(remote_tithe),
-            remote::Call::ChronicleDays => json(chronicle_days(a.state())),
-            remote::Call::Honours => json(honours(a.state())),
-            remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
-                // The remote (LAN) view never learns the local "open folder" program/path or the day report's folder.
-                if let Some(o) = v.as_object_mut() {
-                    o.retain(|k, _| !k.starts_with("adm.open") && k != "adm.reportDir");
+        call: Box::new(move |c| {
+            // a risky petition: Deny only from a remote client (checked under the roster's lock, answered outside it)
+            if let Some(e) = a.state::<crate::Live>().lock().ok().and_then(|r| refused(&r, &c)) {
+                return Err(e);
+            }
+            match c {
+                remote::Call::ChronicleDay(day) => json(chronicle_day(day, a.state())),
+                remote::Call::TitheDay(day) => json(tithe_day(day, a.state())).map(remote_tithe),
+                remote::Call::ChronicleDays => json(chronicle_days(a.state())),
+                remote::Call::Honours => json(honours(a.state())),
+                remote::Call::SettingsLoad => settings_load(a.clone()).map(|mut v| {
+                    // The remote (LAN) view never learns the local "open folder" program/path or the day report's folder.
+                    if let Some(o) = v.as_object_mut() {
+                        o.retain(|k, _| !k.starts_with("adm.open") && k != "adm.reportDir");
+                    }
+                    v
+                }),
+                remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
+                remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
+                remote::Call::AnswerOpenCode { session, request, choice } => json(answer_opencode(session, request, choice, a.state())),
+                remote::Call::Vigil { arm } => {
+                    vigil_set(&a, arm);
+                    Ok(serde_json::Value::Null)
                 }
-                v
-            }),
-            remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
-            remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
-            remote::Call::AnswerOpenCode { session, request, choice } => json(answer_opencode(session, request, choice, a.state())),
-            remote::Call::Vigil { arm } => {
-                vigil_set(&a, arm);
-                Ok(serde_json::Value::Null)
             }
         }),
         asset: Box::new(move |p| b.asset_resolver().get(p.to_string()).map(|x| (x.bytes, x.mime_type))),
@@ -172,8 +190,26 @@ pub fn start_saved(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::remote_tithe;
+    use super::{refused, remote_tithe};
+    use crate::{registry::Session, remote::Call};
     use serde_json::json;
+
+    #[test]
+    fn a_risky_petition_takes_deny_only_from_a_remote_client() {
+        let s = |id: &str, orca: Option<&str>, risk: Option<&str>| Session { orca: orca.map(Into::into), risk: risk.map(Into::into), ..crate::registry::tests_session(id) };
+        let roster = [s("a", Some("term_a"), Some("git push --force")), s("b", Some("term_b"), None), s("ses_c", None, Some("rm -r"))];
+        let orca = |h: &str, c: &str| Call::AnswerPetition { handle: h.into(), choice: c.into() };
+        let oc = |id: &str, c: &str| Call::AnswerOpenCode { session: id.into(), request: "per_1".into(), choice: c.into() };
+        for c in ["yes", "always"] {
+            assert!(refused(&roster, &orca("term_a", c)).is_some(), "{c} refused on a risky Orca prompt");
+            assert!(refused(&roster, &oc("ses_c", c)).is_some(), "{c} refused on a risky OpenCode request");
+        }
+        assert_eq!(refused(&roster, &orca("term_a", "no")), None, "Deny goes");
+        assert_eq!(refused(&roster, &oc("ses_c", "no")), None);
+        assert_eq!(refused(&roster, &orca("term_b", "yes")), None, "a safe petition is not refused here");
+        assert_eq!(refused(&roster, &orca("term_zz", "yes")), None, "unknown: left to the answer's own checks");
+        assert_eq!(refused(&roster, &Call::Honours), None);
+    }
 
     #[test]
     fn the_remote_tithe_carries_no_session_map_and_no_file_paths() {

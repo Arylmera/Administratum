@@ -4,7 +4,8 @@ import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion } from './actors.js';
 import { invoke, listen, REMOTE } from './bridge.js';
-import { sel, ago, filesOf, stuckLine, canAnswer, answer, pick } from './card.js';
+import { sel, ago, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed } from './card.js';
+import { riskOfPetition } from './petition.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
@@ -154,10 +155,12 @@ export function syncLabels() {
       labels.set(a.id, el);
     }
     const asks = isQuestion(a.s), want = asks ? 'question' : a.s.waitingFor ?? 'input needed';
-    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s), isStale(a.s)].join('|');
+    const risk = asks ? null : riskOfPetition(a.s), armedNow = !!risk && isArmed(a.s);
+    const key = [a.s.name, want, sel === a.id, ago(a.s.sinceMs), canAnswer(a.s), isStale(a.s), risk, armedNow].join('|');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
       el.classList.toggle('question', asks);
+      el.classList.toggle('risky', !!risk); // red, with the reason under the name; its ✓ arms first (card.js answer)
       el.classList.toggle('sel', sel === a.id);
       el.classList.toggle('stale', isStale(a.s));
       const who = document.createElement('button');
@@ -166,7 +169,7 @@ export function syncLabels() {
       who.setAttribute('aria-label', t('petitionLabel', { name: a.s.name, want }));
       const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; who.appendChild(s); };
       line('', a.s.name);
-      line('sub', `${want} · ${ago(a.s.sinceMs)}`);
+      line('sub', risk ? t('risky', { reason: risk }) : `${want} · ${ago(a.s.sinceMs)}`);
       el.replaceChildren(who);
       if (canAnswer(a.s)) {
         const ans = document.createElement('div');
@@ -174,7 +177,7 @@ export function syncLabels() {
         for (const [text, choice, verb] of [['✓', 'yes', 'Approve'], ['✗', 'no', 'Deny']]) {
           const b = document.createElement('button');
           // OpenCode's rule: a deny also refuses the session's other pending requests (as the card says)
-          b.textContent = text; b.title = choice === 'no' && a.s.source === 'opencode' ? `${verb}: ${t('rejectAll')}` : verb;
+          b.textContent = text; b.title = choice === 'no' && a.s.source === 'opencode' ? `${verb}: ${t('rejectAll')}` : choice === 'yes' && armedNow ? 'Approve? click again' : verb;
           b.setAttribute('aria-label', `${verb} ${a.s.name}`);
           b.onclick = () => answer(a.s, choice);
           ans.appendChild(b);
@@ -189,6 +192,7 @@ export function syncLabels() {
     const [lx, ly] = at(...feet(a), below ? (odd ? -14 : -2) : odd ? 30 : 18);
     setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
+  syncTags(sameTags, 'same', sameText, 0, -18); // synced with the labels it yields to (app.js calls syncLabels every frame)
 }
 
 const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
@@ -241,6 +245,10 @@ export const sealText = a => (!a.h && !a.leaving && a.s?.limit && !labels.has(a.
 // A busy scribe making no progress (backend `stuck`); a seal or a petition label says more, so it yields to them.
 export const stuckTags = new Map();
 export const stuckText = a => (!a.h && !a.leaving && a.s?.stuck && !a.s.limit && !labels.has(a.id) ? stuckLine(a.s.stuck) : '');
+
+// Two sessions on one file (backend `sameFile`); a seal, a stuck tag or a petition label says more, so it yields.
+export const sameTags = new Map();
+export const sameText = a => (!a.h && !a.leaving && a.s?.sameFile && !a.s.limit && !a.s.stuck && !labels.has(a.id) ? sameFileLine(a.s) : '');
 
 // The Watchman at the gate: the countdown's seconds over him.
 export const watchTags = new Map();

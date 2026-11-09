@@ -18,6 +18,7 @@ mod report;
 pub use report::{report, write_capture};
 mod honours;
 pub use honours::{honours_of, Honours};
+pub mod conflict;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +30,8 @@ pub struct Event {
     pub dept: String,
     /// Subagent kind when the event comes from a subagent transcript.
     pub helper: Option<String>,
+    /// Masked on the way out (mask.rs): the WebView, the remote view and the day file on disk get no secret.
+    #[serde(serialize_with = "crate::mask::ser")]
     pub detail: String,
     /// A `limit` event's reset hour and the time its transcript line was written (the usage window's ceilings).
     /// Added after 0.6.8: older lines and other kinds have none.
@@ -401,13 +404,20 @@ pub fn track_turn(turn: &mut TurnSummary, line: &str, cwd: &str) {
             if prompt && v["isMeta"] != true {
                 *turn = TurnSummary { started_ms: ts, last_ms: ts, ..Default::default() };
             }
+            for b in content.as_array().into_iter().flatten().filter(|b| b["type"] == "tool_result") {
+                let shell = b["tool_use_id"].as_str().and_then(|id| turn.calls.get(id)).is_some_and(|(tool, _, _)| conflict::SHELL_TOOLS.contains(&tool.as_str()));
+                if let Some(port) = conflict::port_in_use(&result_text(&b["content"])).filter(|_| shell) {
+                    turn.port_in_use = Some(port);
+                }
+                track_result(turn, b);
+            }
         }
         Some("assistant") => {
             turn.last_ms = ts.or(turn.last_ms);
             let msg = v["message"]["id"].as_str().unwrap_or("");
             for b in content.as_array().into_iter().flatten().filter(|b| b["type"] == "tool_use") {
                 turn.tools += 1;
-                track_repeat(&mut turn.repeat, b, msg);
+                track_call(turn, b, msg);
                 if let Some(p) = edited_path(b) {
                     add_file(turn, p, cwd);
                 }
@@ -428,24 +438,46 @@ fn edited_path(b: &Value) -> Option<&str> {
 /// Tools that wait on something else by design: calling them again and again is polling, not a loop.
 const POLLING_TOOLS: [&str; 3] = ["BashOutput", "TaskOutput", "KillShell"];
 
-/// Folds one tool call into the run of identical calls: the same call again adds one (once per message), any other
-/// call starts a new run, a polling call (a polling tool, a bare `sleep` or `watch`) ends it.
-fn track_repeat(run: &mut Option<Repeat>, b: &Value, msg: &str) {
+/// The key a polling call (a polling tool, a bare `sleep` or `watch`) is kept under: it ends the run, never counts.
+const POLLING: &str = "\u{0}polling";
+
+/// Folds one tool call into the loop watch: a polling call ends the run; every call waits for its result
+/// (`track_result`), an edit included (a failed edit retried with the same error is a loop too).
+fn track_call(turn: &mut TurnSummary, b: &Value, msg: &str) {
     let name = b["name"].as_str().unwrap_or("tool");
     let cmd = b["input"]["command"].as_str().unwrap_or("").trim();
-    if POLLING_TOOLS.contains(&name) || (name == "Bash" && (cmd == "sleep" || cmd.starts_with("sleep ") || cmd.starts_with("watch "))) {
-        *run = None;
+    let polling = POLLING_TOOLS.contains(&name) || (name == "Bash" && (cmd == "sleep" || cmd.starts_with("sleep ") || cmd.starts_with("watch ")));
+    if polling {
+        turn.repeat = None;
+    }
+    if turn.calls.len() >= CAP {
+        turn.calls.clear(); // ponytail: only interrupted calls pile up
+    }
+    let key = if polling { POLLING.to_string() } else { format!("{name}{}", b["input"]) };
+    turn.calls.insert(b["id"].as_str().unwrap_or("").into(), (name.into(), key, msg.into()));
+}
+
+/// Folds a call's result into the run: the same call with the same error (volatile parts masked) adds one, once per
+/// message; another error starts a new run; a success ends it (a successful edit included); a polling result is
+/// ignored.
+fn track_result(turn: &mut TurnSummary, b: &Value) {
+    let Some((tool, call, msg)) = b["tool_use_id"].as_str().and_then(|id| turn.calls.remove(id)) else { return };
+    if call == POLLING {
         return;
     }
-    let key = format!("{name}{}", b["input"]);
-    match run {
+    if b["is_error"] != true {
+        turn.repeat = None;
+        return;
+    }
+    let key = format!("{call}\n{}", crate::mask::volatile(&result_text(&b["content"])));
+    match &mut turn.repeat {
         Some(r) if r.key == key => {
             if r.msg != msg || msg.is_empty() {
                 r.count += 1;
-                r.msg = msg.into();
+                r.msg = msg;
             }
         }
-        _ => *run = Some(Repeat { tool: name.into(), key, count: 1, msg: msg.into() }),
+        run => *run = Some(Repeat { tool, key, count: 1, msg }),
     }
 }
 
@@ -474,7 +506,17 @@ fn relative(p: &str, cwd: &str) -> String {
     }
 }
 
+/// The events of one tool result: what `classify_call` finds, and a port already in use (the result names it).
 fn classify(p: Option<&Pending>, b: &Value, branch: Option<&str>) -> Vec<(&'static str, String)> {
+    let mut out = classify_call(p, b, branch);
+    // only what a shell printed: a Read or Grep quoting EADDRINUSE is no port in use
+    if let Some(port) = p.filter(|p| conflict::SHELL_TOOLS.contains(&p.name.as_str())).and_then(|_| conflict::port_in_use(&result_text(&b["content"]))) {
+        out.push(("port-in-use", format!("port {port}")));
+    }
+    out
+}
+
+fn classify_call(p: Option<&Pending>, b: &Value, branch: Option<&str>) -> Vec<(&'static str, String)> {
     let is_error = b["is_error"].as_bool();
     let failed = is_error == Some(true);
     let text = result_text(&b["content"]);
@@ -721,6 +763,8 @@ pub struct Chronicle {
     last_flush_ms: i64,
     /// Tithe or offsets changed since the last flush.
     dirty: bool,
+    /// Per session id, the absolute paths it (or its subagents) edited in the last 20 min (conflict.rs).
+    recent: HashMap<String, Vec<(i64, String)>>,
 }
 
 /// A file untouched since before today needs no offset: first sight skips it to its end anyway.
@@ -788,7 +832,7 @@ impl Chronicle {
         prune_seqs(&mut seqs, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
-        Chronicle { dir, offsets, cursors: HashMap::new(), seqs, oc: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false }
+        Chronicle { dir, offsets, cursors: HashMap::new(), seqs, oc: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false, recent: HashMap::new() }
     }
 
     pub fn dir(&self) -> &Path {
@@ -860,7 +904,14 @@ impl Chronicle {
                 tithe.by_project.entry(dept.clone()).or_default().add_file(relative(&p, &s.cwd));
                 self.dirty = true;
             }
+            self.recent.entry(s.id.clone()).or_default().push((ts, p)); // a subagent's under its parent: never a self-conflict
         }
+    }
+
+    /// Pairs of live sessions that edited the same file in the last 20 min (conflict.rs); drops older edits.
+    pub fn conflicts(&mut self, roster: &[Session], now_ms: i64) -> Vec<conflict::Pair> {
+        conflict::prune(&mut self.recent, now_ms);
+        conflict::pairs(&self.recent, roster, now_ms)
     }
 
     /// Each live session's current turn (from its main transcript's cursor), by session id; none before a first prompt
@@ -1309,6 +1360,56 @@ mod tests {
     }
 
     #[test]
+    fn a_port_in_use_is_an_event_and_a_line_of_its_turn() {
+        let mut cur = Cursor::default();
+        let out = "Error: listen EADDRINUSE: address already in use :::3000";
+        let ev = run(&mut cur, &[bash_use("n", "npm run dev", 0), result("n", out.into(), Some(true), 0)]);
+        assert_eq!(kinds(&ev).last(), Some(&("port-in-use", "port 3000")), "beside its tool-error");
+        assert_eq!(kinds(&ev)[0].0, "tool-error");
+        assert!(run(&mut cur, &[bash_use("o", "ls", 0), result("o", "all fine on port 3000".into(), Some(false), 0)]).is_empty());
+        let mut t = TurnSummary::default();
+        for l in [r#"{"type":"user","message":{"content":"start it"}}"#.to_string(), bash_use("n", "npm run dev", 0), result("n", out.into(), Some(true), 0)] {
+            track_turn(&mut t, &l, r"C:\git\Terra");
+        }
+        assert_eq!(t.port_in_use.as_deref(), Some("3000"));
+        track_turn(&mut t, r#"{"type":"user","message":{"content":"next"}}"#, r"C:\git\Terra");
+        assert_eq!(t.port_in_use, None, "for that turn only");
+        // A Read or Grep quoting the words is no port in use: only a shell's output counts.
+        let read = serde_json::json!({"type":"assistant","message":{"content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"conflict.rs"}}]}}).to_string();
+        assert!(run(&mut cur, &[read.clone(), result("r1", out.into(), Some(false), 0)]).is_empty());
+        for l in [read, result("r1", out.into(), Some(false), 0)] {
+            track_turn(&mut t, &l, r"C:\git\Terra");
+        }
+        assert_eq!(t.port_in_use, None);
+        let poll = serde_json::json!({"type":"assistant","message":{"content":[{"type":"tool_use","id":"o1","name":"BashOutput","input":{"bash_id":"b"}}]}}).to_string();
+        let ev = run(&mut cur, &[poll.clone(), result("o1", out.into(), Some(false), 0)]);
+        assert_eq!(kinds(&ev), [("port-in-use", "port 3000")], "a background shell's output counts");
+        for l in [poll, result("o1", out.into(), Some(false), 0)] {
+            track_turn(&mut t, &l, r"C:\git\Terra");
+        }
+        assert_eq!(t.port_in_use.as_deref(), Some("3000"));
+    }
+
+    #[test]
+    fn edits_reach_the_conflict_watch_under_the_parent_session() {
+        let d = temp_dir("conflict-watch");
+        let mut c = Chronicle::open(d.clone(), 0, true);
+        let edit =
+            |p: &str| serde_json::json!({"type":"assistant","timestamp":iso(now()),"message":{"id":"m","content":[{"type":"tool_use","id":"t","name":"Edit","input":{"file_path":p}}]}}).to_string();
+        let (a, b) = (crate::registry::tests_session("a"), crate::registry::tests_session("b"));
+        let found = |p: &str, helper| extract(&mut Cursor::default(), &edit(p), i64::MIN, &Src { session_id: "x", helper, ..SRC }, 0);
+        let mut ev = vec![];
+        c.absorb(&a, found(r"C:\git\Terra\ui\app.js", None), &mut ev);
+        c.absorb(&a, found(r"C:\git\Terra\ui\app.js", Some("Explore")), &mut ev); // its subagent: still a
+        assert!(c.conflicts(&[a.clone(), b.clone()], now()).is_empty(), "a session and its subagent are one");
+        c.absorb(&b, found("c:/git/terra/ui/APP.js", None), &mut ev);
+        let p = c.conflicts(&[a.clone(), b.clone()], now());
+        assert_eq!(p.iter().map(|p| (p.a.as_str(), p.b.as_str())).collect::<Vec<_>>(), [("a", "b")]);
+        assert!(c.conflicts(&[a, b], now() + conflict::WINDOW_MS + 60_000).is_empty(), "older than 20 min");
+        let _ = fs::remove_dir_all(d);
+    }
+
+    #[test]
     fn long_turns_are_task_done() {
         let mut cur = Cursor::default();
         let line = |ms: u64| serde_json::json!({"type":"system","subtype":"turn_duration","durationMs":ms,"messageCount":28,"timestamp":iso(0)}).to_string();
@@ -1483,6 +1584,18 @@ mod tests {
         let t = load_tithe(&d, "2026-10-16").expect("a 0.6.5 day file loads");
         assert_eq!((t.tokens.total(), t.by_project["A"].tokens, t.by_project["A"].busy_ms, t.by_model["m"], t.busy_ms), (10, 10, 2, 10, 2));
         assert!(t.by_session.is_empty());
+        // Old event lines (0.6.5: no resetMs / hitMs) and the new kinds (O13) load side by side; an old unmasked detail
+        // loads as written and is masked only when it goes out.
+        let lines = [
+            r#"{"ts":1,"kind":"commit","sessionId":"s","name":"n","dept":"A","helper":null,"detail":"fix token='abc'"}"#,
+            r#"{"ts":2,"kind":"conflict","sessionId":"s","name":"n","dept":"A","helper":null,"detail":"app.js · other"}"#,
+            r#"{"ts":3,"kind":"port-in-use","sessionId":"s","name":"n","dept":"A","helper":null,"detail":"port 3000"}"#,
+        ];
+        fs::write(d.join("2026-10-16.jsonl"), lines.join("\n")).unwrap();
+        let ev = read_events(&d, "2026-10-16");
+        assert_eq!(ev.iter().map(|e| e.kind.as_str()).collect::<Vec<_>>(), ["commit", "conflict", "port-in-use"]);
+        assert_eq!(ev[0].detail, "fix token='abc'");
+        assert!(serde_json::to_string(&ev[0]).unwrap().contains("token=•••"));
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -1601,32 +1714,66 @@ mod tests {
         t.repeat.map(|r| (r.tool, r.count))
     }
 
+    /// A user line with the results of message `msg`'s calls (ids `{msg}_{i}`): (is_error, text) each.
+    fn results(msg: &str, outs: &[(bool, &str)]) -> String {
+        let content: Vec<Value> = outs.iter().enumerate().map(|(i, (err, t))| serde_json::json!({"type":"tool_result","tool_use_id":format!("{msg}_{i}"),"is_error":err,"content":t})).collect();
+        serde_json::json!({"type":"user","timestamp":"2026-10-06T11:00:01.000Z","message":{"content":content}}).to_string()
+    }
+    /// Message `m`: one `tool` call with `input`, then its result.
+    fn ran(m: &str, tool: &str, input: Value, err: bool, out: &str) -> [String; 2] {
+        [calls(m, &[(tool, input)]), results(m, &[(err, out)])]
+    }
+    fn runs(list: &[[String; 2]]) -> Option<(String, u32)> {
+        repeat_after(&list.concat())
+    }
+
     #[test]
-    fn repeat_counts_identical_calls() {
-        let read = |m: &str, f: &str| calls(m, &[("Read", serde_json::json!({"file_path": f}))]);
-        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), read("m3", "a")]), Some(("Read".into(), 3)));
-        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), read("m3", "b")]), Some(("Read".into(), 1)), "another input breaks the run");
+    fn repeat_counts_the_same_call_with_the_same_error() {
+        let read = |m: &str, f: &str, err: bool, out: &str| ran(m, "Read", serde_json::json!({"file_path": f}), err, out);
+        let fail = |m: &str| read(m, "a", true, "File does not exist.");
+        assert_eq!(runs(&[fail("m1"), fail("m2"), fail("m3")]), Some(("Read".into(), 3)), "same call, same error: a loop");
+        assert_eq!(runs(&[fail("m1"), fail("m2"), read("m3", "a", true, "Permission denied")]), Some(("Read".into(), 1)), "another error starts a new run");
+        assert_eq!(runs(&[fail("m1"), fail("m2"), read("m3", "b", true, "File does not exist.")]), Some(("Read".into(), 1)), "another input breaks the run");
+        assert_eq!(runs(&[fail("m1"), fail("m2"), read("m3", "a", false, "ok"), fail("m4")]), Some(("Read".into(), 1)), "a success between resets it");
+        let ok = |m: &str| read(m, "a", false, "contents");
+        assert_eq!(runs(&[ok("m1"), ok("m2"), ok("m3"), ok("m4"), ok("m5")]), None, "identical calls that succeed are no loop");
+        let edit = |m: &str, err: bool, out: &str| ran(m, "Edit", serde_json::json!({"file_path": "a", "old_string": "x", "new_string": "y"}), err, out);
+        assert_eq!(runs(&[fail("m1"), fail("m2"), edit("e1", false, "ok"), fail("m3")]), Some(("Read".into(), 1)), "a successful edit between resets it");
+        let bad = |m: &str| edit(m, true, "String to replace not found in file.");
+        assert_eq!(runs(&[bad("e1"), bad("e2"), bad("e3")]), Some(("Edit".into(), 3)), "a failed edit retried with the same error is a loop");
+        assert_eq!(runs(&[bad("e1"), bad("e2"), edit("e3", false, "ok")]), None, "only a successful edit clears it");
+        let write = calls("e2", &[("Write", serde_json::json!({"file_path": "a", "content": "z"}))]);
+        assert_eq!(repeat_after(&[fail("m1"), fail("m2")].concat().into_iter().chain([write]).collect::<Vec<_>>()), Some(("Read".into(), 2)), "an edit's call alone, no result yet, clears nothing");
         let prompt = r#"{"type":"user","timestamp":"2026-10-06T11:00:00.000Z","message":{"content":"go on"}}"#.to_string();
-        assert_eq!(repeat_after(&[read("m1", "a"), read("m2", "a"), prompt]), None, "a new prompt resets it");
+        assert_eq!(repeat_after(&[fail("m1"), fail("m2")].concat().into_iter().chain([prompt]).collect::<Vec<_>>()), None, "a new prompt resets it");
+        assert_eq!(repeat_after(&[calls("m1", &[("Read", serde_json::json!({"file_path": "a"}))])]), None, "a call without its result yet");
+    }
+
+    #[test]
+    fn the_error_is_compared_with_its_volatile_parts_masked() {
+        let test = |m: &str, out: &str| ran(m, "Bash", serde_json::json!({"command": "cargo test"}), true, out);
+        let list = [test("m1", "test failed, took 1234 ms"), test("m2", "test failed, took 5678 ms"), test("m3", "test failed, took 91011 ms")];
+        assert_eq!(runs(&list), Some(("Bash".into(), 3)));
+        assert_eq!(runs(&[test("m1", "test a failed"), test("m2", "test b failed")]), Some(("Bash".into(), 1)), "a different error is no loop");
     }
 
     #[test]
     fn repeat_parallel_calls_count_once() {
         let read = serde_json::json!({"file_path": "a"});
-        // Claude Code writes one line per block of the same message.
-        let one = calls("m1", &[("Read", read.clone())]);
-        assert_eq!(repeat_after(&[one.clone(), one.clone()]), Some(("Read".into(), 1)));
-        assert_eq!(repeat_after(&[calls("m1", &[("Read", read.clone()), ("Read", read)])]), Some(("Read".into(), 1)));
+        // Claude Code writes one line per block of the same message; two identical calls in one message count once.
+        let one = calls("m1", &[("Read", read.clone()), ("Read", read)]);
+        let both = results("m1", &[(true, "File does not exist."), (true, "File does not exist.")]);
+        assert_eq!(repeat_after(&[one, both]), Some(("Read".into(), 1)));
     }
 
     #[test]
     fn polling_tools_never_count() {
-        let poll = |m: &str| calls(m, &[("BashOutput", serde_json::json!({"bash_id": "b1"}))]);
-        assert_eq!(repeat_after(&(1..=6).map(|i| poll(&format!("m{i}"))).collect::<Vec<_>>()), None);
-        let sleep = |m: &str| calls(m, &[("Bash", serde_json::json!({"command": "sleep 30"}))]);
-        assert_eq!(repeat_after(&(1..=6).map(|i| sleep(&format!("m{i}"))).collect::<Vec<_>>()), None);
-        let test = |m: &str| calls(m, &[("Bash", serde_json::json!({"command": "cargo test"}))]);
-        assert_eq!(repeat_after(&(1..=6).map(|i| test(&format!("m{i}"))).collect::<Vec<_>>()), Some(("Bash".into(), 6)));
+        let poll = |m: &str| ran(m, "BashOutput", serde_json::json!({"bash_id": "b1"}), true, "no output yet");
+        assert_eq!(runs(&(1..=6).map(|i| poll(&format!("m{i}"))).collect::<Vec<_>>()), None);
+        let sleep = |m: &str| ran(m, "Bash", serde_json::json!({"command": "sleep 30"}), true, "interrupted");
+        assert_eq!(runs(&(1..=6).map(|i| sleep(&format!("m{i}"))).collect::<Vec<_>>()), None);
+        let test = |m: &str| ran(m, "Bash", serde_json::json!({"command": "cargo test"}), true, "1 failed");
+        assert_eq!(runs(&(1..=6).map(|i| test(&format!("m{i}"))).collect::<Vec<_>>()), Some(("Bash".into(), 6)));
     }
 
     #[test]

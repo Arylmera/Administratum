@@ -1,6 +1,6 @@
 //! What a session's transcript tail says: last task, context, turn state, question, petition, usage limit.
 use super::files::{BIG_TAIL_BYTES, TAIL_BYTES};
-use super::{Context, Limit};
+use super::{Cache, Context, Limit};
 use chrono::{Local, TimeZone};
 use std::collections::HashSet;
 
@@ -26,6 +26,41 @@ pub fn context_of(tail: &str) -> Option<Context> {
         return Some(Context { tokens, model: model.to_string() });
     }
     None
+}
+
+/// Prompt cache lifetimes: 1 h when the most recent cache write was `ephemeral_1h`, else 5 min.
+pub const CACHE_5M_MS: i64 = 5 * 60_000;
+pub const CACHE_1H_MS: i64 = 60 * 60_000;
+
+/// The session's prompt cache clock, counted from its newest assistant line with a usage (a read refreshes the cache).
+/// Its TTL is the one of the most recent cache WRITE (`cache_creation`: 1 h when it wrote `ephemeral_1h`, else 5 min);
+/// a turn that only reads keeps it; no write in the tail: 5 min. None without an assistant usage line (nothing cached).
+pub fn cache_of(tail: &str) -> Option<Cache> {
+    let (mut last, mut ttl) = (None, None);
+    for line in tail.lines().rev().filter(|l| l.contains("\"usage\"")) {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        let model = v["message"]["model"].as_str().unwrap_or("");
+        let u = &v["message"]["usage"];
+        if v["type"] != "assistant" || u.is_null() || model.is_empty() || model == "<synthetic>" {
+            continue;
+        }
+        last = last.or_else(|| v["timestamp"].as_str().and_then(iso_utc_ms));
+        let n = |k: &str| u["cache_creation"][k].as_u64().unwrap_or(0);
+        if n("ephemeral_1h_input_tokens") > 0 {
+            ttl = Some(CACHE_1H_MS);
+        } else if n("ephemeral_5m_input_tokens") > 0 || u["cache_creation_input_tokens"].as_u64().unwrap_or(0) > 0 {
+            ttl = Some(CACHE_5M_MS);
+        }
+        if last.is_some() && ttl.is_some() {
+            break;
+        }
+    }
+    let ttl_ms = ttl.unwrap_or(CACHE_5M_MS);
+    last.map(|ts| Cache { until_ms: ts + ttl_ms, ttl_ms })
+}
+#[cfg(test)]
+fn cache_until(tail: &str) -> Option<i64> {
+    cache_of(tail).map(|c| c.until_ms)
 }
 
 /// Ms timestamp of the newest `{"type":"system","subtype":"compact_boundary","timestamp":"<ISO>"}`
@@ -264,6 +299,40 @@ pub fn pending_ask(tail: &str) -> Option<String> {
     None
 }
 
+/// The risk of a petition (`risk::risk_of`), read from the raw, uncut input of every unanswered call of the newest
+/// message with one (parallel calls are one line each, same message id): whichever of them the dialog shows, a risky
+/// one marks the petition. A command is read whole (all its lines); other tools' inputs are not commands.
+pub fn pending_risk(tail: &str) -> Option<&'static str> {
+    let mut answered: HashSet<String> = HashSet::new();
+    let (mut msg, mut text): (Option<String>, String) = (None, String::new());
+    for line in tail.lines().rev() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        let blocks = v["message"]["content"].as_array();
+        match v["type"].as_str() {
+            Some("user") => {
+                let results: Vec<_> = blocks.into_iter().flatten().filter(|b| b["type"] == "tool_result").collect();
+                if results.is_empty() && v["isMeta"] != true {
+                    break; // a prompt: the turn began here
+                }
+                answered.extend(results.iter().filter_map(|b| b["tool_use_id"].as_str().map(str::to_string)));
+            }
+            Some("assistant") => {
+                let id = v["message"]["id"].as_str().unwrap_or("").to_string();
+                if msg.as_ref().is_some_and(|m| *m != id || m.is_empty()) {
+                    break; // an older message: not this petition
+                }
+                for b in blocks.into_iter().flatten().filter(|b| b["type"] == "tool_use" && !b["id"].as_str().is_some_and(|id| answered.contains(id))) {
+                    msg.get_or_insert_with(|| id.clone());
+                    text.push_str(b["input"]["command"].as_str().unwrap_or("")); // a command only: a file's content runs nothing
+                    text.push('\n');
+                }
+            }
+            _ => {}
+        }
+    }
+    super::risk::risk_of(&text)
+}
+
 /// Whether a `pending_ask` line is a shell command (Bash/PowerShell).
 pub(super) fn is_shell_call(ask: &str) -> bool {
     ["Bash", "PowerShell"].iter().any(|n| ask.strip_prefix(n).is_some_and(|r| r.is_empty() || r.starts_with(':') || r.starts_with(' ')))
@@ -327,6 +396,9 @@ pub struct Tail {
     pub asks: Option<String>,
     pub question: Option<String>,
     pub limit: Option<Limit>,
+    pub cache: Option<Cache>,
+    /// The pending calls' risk (`pending_risk`).
+    pub risk: Option<&'static str>,
 }
 
 /// The `Tail` of a transcript, `read(n)` giving its last `n` bytes (None: no transcript). When
@@ -356,6 +428,8 @@ pub fn read_tail(read: impl Fn(u64) -> Option<String>) -> Option<Tail> {
         asks: pending_ask(&tail),
         question: ends_with_question(&tail),
         limit: limit_of(&tail),
+        cache: cache_of(&tail),
+        risk: pending_risk(&tail),
     })
 }
 
@@ -482,6 +556,67 @@ mod tests {
         assert!(is_shell_call("Bash"));
         assert!(!is_shell_call("BashOutput: x"));
         assert!(!is_shell_call("Edit: ui/app.js"));
+    }
+
+    #[test]
+    fn the_risk_reads_every_pending_call_whole() {
+        let call = |msg: &str, id: &str, cmd: &str| {
+            serde_json::json!({"type":"assistant","message":{"id":msg,"content":[{"type":"tool_use","id":id,"name":"Bash","input":{"command":cmd,"description":"Push it"}}]}}).to_string()
+        };
+        let prompt = r#"{"type":"user","message":{"content":"ship it"}}"#;
+        // Long: the risky part past 140 chars (asks is cut there).
+        let long = format!("cd {} && npm run build && git push --force origin main", "C:/very/long/path/".repeat(10));
+        let tail = [prompt.to_string(), call("m1", "t1", &long)].join("\n");
+        assert!(pending_ask(&tail).unwrap().chars().count() <= 140);
+        assert_eq!(pending_risk(&tail), Some("git push --force"), "the whole command, not the cut line");
+        // Multi-line: the risky line is not the first.
+        let multi = [prompt.to_string(), call("m1", "t1", "set -e\nrm -rf dist")].join("\n");
+        assert_eq!(pending_risk(&multi), Some("rm -r"));
+        // Two calls in one message (one line each): rm -rf first, ls last. Either may be the dialog's: both count.
+        let both = [prompt.to_string(), call("m1", "t1", "rm -rf x"), call("m1", "t2", "ls")].join("\n");
+        assert_eq!(pending_ask(&both).as_deref(), Some("Bash: ls — Push it"), "asks names the last one");
+        assert_eq!(pending_risk(&both), Some("rm -r"));
+        let one_line = serde_json::json!({"type":"assistant","message":{"id":"m1","content":[
+            {"type":"tool_use","id":"t1","name":"Bash","input":{"command":"ls"}},
+            {"type":"tool_use","id":"t2","name":"Bash","input":{"command":"git clean -fd"}}]}})
+        .to_string();
+        assert_eq!(pending_risk(&[prompt.to_string(), one_line].join("\n")), Some("git clean -f"), "two blocks in one line: both count");
+        // An answered call, an older message, a call before the prompt: not this petition.
+        let answered = format!("{both}\n{}", r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}"#);
+        assert_eq!(pending_risk(&answered), None, "rm -rf was answered: ls is left");
+        let older = [prompt.to_string(), call("m0", "t0", "rm -rf x"), call("m1", "t1", "ls")].join("\n");
+        assert_eq!(pending_risk(&older), None, "an older message is not this petition");
+        let before = [call("m0", "t0", "rm -rf x"), prompt.to_string()].join("\n");
+        assert_eq!(pending_risk(&before), None);
+        // The description never counts: only the command.
+        let desc = serde_json::json!({"type":"assistant","message":{"id":"m","content":[{"type":"tool_use","id":"t","name":"Bash","input":{"command":"ls","description":"before rm -rf build"}}]}})
+            .to_string();
+        assert_eq!(pending_risk(&desc), None);
+    }
+
+    #[test]
+    fn cache_clock_from_the_newest_usage_line() {
+        let line = |ts: &str, cache: &str| format!(r#"{{"type":"assistant","timestamp":"{ts}","message":{{"model":"claude-opus-5-5","usage":{{"input_tokens":1,"cache_creation":{cache}}}}}}}"#);
+        let t0 = iso_utc_ms("2026-11-08T10:00:00.000Z").unwrap();
+        let five = line("2026-11-08T10:00:00.000Z", r#"{"ephemeral_5m_input_tokens":900,"ephemeral_1h_input_tokens":0}"#);
+        let hour = line("2026-11-08T10:00:00.000Z", r#"{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":900}"#);
+        assert_eq!(cache_until(&five), Some(t0 + CACHE_5M_MS));
+        assert_eq!(cache_until(&hour), Some(t0 + CACHE_1H_MS), "1 h cache written: an hour");
+        assert_eq!(cache_until(&line("2026-11-08T10:00:00.000Z", "null")), Some(t0 + CACHE_5M_MS), "no breakdown: 5 min");
+        let later = line("2026-11-08T10:30:00.000Z", r#"{"ephemeral_5m_input_tokens":5}"#);
+        assert_eq!(cache_until(&format!("{hour}\n{later}")), Some(t0 + 30 * 60_000 + CACHE_5M_MS), "the newest write decides");
+        let read_only = line("2026-11-08T10:30:00.000Z", r#"{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0}"#);
+        assert_eq!(cache_of(&format!("{hour}\n{read_only}")), Some(Cache { until_ms: t0 + 30 * 60_000 + CACHE_1H_MS, ttl_ms: CACHE_1H_MS }), "a read-only turn keeps the 1 h TTL, counted from it");
+        let flat = r#"{"type":"assistant","timestamp":"2026-11-08T10:00:00.000Z","message":{"model":"m","usage":{"cache_creation_input_tokens":40}}}"#;
+        assert_eq!(cache_of(&format!("{hour}\n{flat}")).map(|c| c.ttl_ms), Some(CACHE_5M_MS), "a write with no breakdown is a 5 min write");
+        let user = r#"{"type":"user","timestamp":"2026-11-08T11:00:00.000Z","message":{"content":"go"}}"#;
+        assert_eq!(cache_until(&format!("{five}\n{user}")), Some(t0 + CACHE_5M_MS), "counted from the last assistant line");
+        assert_eq!(cache_until(user), None, "no assistant line: nothing cached");
+        let synthetic = r#"{"type":"assistant","timestamp":"2026-11-08T12:00:00.000Z","message":{"model":"<synthetic>","usage":{"input_tokens":0}}}"#;
+        assert_eq!(cache_until(&format!("{five}\n{synthetic}")), Some(t0 + CACHE_5M_MS));
+        // A subagent's progress line embeds its own message and usage: not this session's cache.
+        let progress = r#"{"type":"progress","timestamp":"2026-11-08T12:00:00.000Z","message":{"model":"claude-haiku","usage":{"input_tokens":3}}}"#;
+        assert_eq!(cache_until(&format!("{five}\n{progress}")), Some(t0 + CACHE_5M_MS));
     }
 
     #[test]

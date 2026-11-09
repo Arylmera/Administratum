@@ -4,6 +4,7 @@ use serde::Serialize;
 mod files;
 mod helpers;
 mod prompt;
+mod risk;
 mod sessions;
 mod tail;
 #[cfg(test)]
@@ -16,6 +17,7 @@ pub use files::{direct_transcript, file_tail, find_transcript, fork_parent, list
 pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
 pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
+pub use risk::risk_of;
 pub use sessions::{adopt, dept_of, merge, scan, temp_dept, track_compaction};
 pub(crate) use tail::{clip, clip_to, iso_utc_ms};
 pub use tail::{read_tail, Tail};
@@ -37,10 +39,14 @@ pub struct Session {
     pub status: String,
     pub waiting_for: Option<String>,
     pub since_ms: i64,
+    /// Texts read from transcripts (task, title, asks, question) leave the backend with secrets masked (mask.rs).
+    #[serde(serialize_with = "crate::mask::ser")]
     pub task: String,
     /// Claude Code's generated session title (newest `ai-title` in the tail).
+    #[serde(serialize_with = "crate::mask::ser_opt")]
     pub title: Option<String>,
     /// While waiting: the pending tool call the petition is about (see `pending_ask`).
+    #[serde(serialize_with = "crate::mask::ser_opt")]
     pub asks: Option<String>,
     pub helpers: Vec<Helper>,
     pub context: Option<Context>,
@@ -50,6 +56,7 @@ pub struct Session {
     /// Ms timestamp of the newest context compaction seen (see `compacted_at`, `track_compaction`).
     pub compacted_at: Option<i64>,
     /// The closing question of a finished turn (`ends_with_question`), only while idle in the foreground.
+    #[serde(serialize_with = "crate::mask::ser_opt")]
     pub question: Option<String>,
     /// The git branch of `cwd` (git.rs, refreshed by the poller every few seconds); None outside a repo.
     pub branch: Option<String>,
@@ -73,6 +80,31 @@ pub struct Session {
     /// The custom room (Settings > Rooms) its cwd falls in: the first matching rule's id (rooms.rs `assign`), never
     /// for a temp session; filled by the poll loop.
     pub room: Option<String>,
+    /// Another live session edited one of the files it edited in the last 20 min (chronicle conflict.rs), filled by
+    /// the poll loop: the file's name only, never its path.
+    pub same_file: Option<SameFile>,
+    /// Its prompt cache clock (`tail::cache_of`). None: nothing cached.
+    pub cache: Option<Cache>,
+    /// While waiting: why its pending command is risky (`risk.rs`), read once here from the calls' raw input; every
+    /// surface reads this field.
+    pub risk: Option<String>,
+}
+
+/// A prompt cache: cold at `until_ms`, its newest assistant usage line + `ttl_ms` (1 h when that usage wrote
+/// `ephemeral_1h` cache, else 5 min).
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Cache {
+    pub until_ms: i64,
+    pub ttl_ms: i64,
+}
+
+/// A file two live sessions both edited lately: its name, and the other session's name.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SameFile {
+    pub file: String,
+    pub other: String,
 }
 
 /// Why a busy session looks stuck: `"silent"` (no transcript write since `since_ms`) or `"loop"` (`count` identical
@@ -100,6 +132,7 @@ pub enum Agent {
 pub struct Helper {
     pub id: String,
     pub kind: String,
+    #[serde(serialize_with = "crate::mask::ser")]
     pub task: String,
     pub model: Option<String>,
     pub context: Option<Context>,
@@ -119,6 +152,7 @@ pub struct Limit {
     pub reset_ms: Option<i64>,
     /// When the limit message was written (its transcript line's timestamp).
     pub hit_ms: Option<i64>,
+    #[serde(serialize_with = "crate::mask::ser")]
     pub text: String,
 }
 
@@ -133,13 +167,19 @@ pub struct TurnSummary {
     pub tools: u32,
     pub files: Vec<String>,
     pub more_files: u32,
-    /// The run of identical tool calls ending the turn so far (monitor.rs: a loop). Backend only.
+    /// A tool result of this turn said a port is already in use: its number, or "?" (chronicle conflict.rs).
+    pub port_in_use: Option<String>,
+    /// The run of identical failing tool calls ending the turn so far (monitor.rs: a loop). Backend only.
     #[serde(skip)]
     pub repeat: Option<Repeat>,
+    /// Tool calls still waiting for their result, by tool_use id: (tool, call key, message id). Backend only.
+    #[serde(skip)]
+    pub calls: std::collections::HashMap<String, (String, String, String)>,
 }
 
-/// Identical tool calls in a row: the tool, its call (name + input JSON), how many, and the message of the last one
-/// (parallel identical calls in one message count once).
+/// Identical tool calls in a row that each got the same error: the tool, its call and error (name + input JSON + the
+/// error text with its volatile parts masked, `mask::volatile`), how many, and the message of the last one (parallel
+/// identical calls in one message count once).
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Repeat {
     pub tool: String,

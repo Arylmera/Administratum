@@ -141,6 +141,16 @@ data: [{"name":"...", ...}]
 | `chronicle` | `Event` |
 | `ui-command` | `"mute"` or `"light"` (tray) |
 
+Fields added by the watchful pack (O11 – O15), all read-only:
+- `Session.sameFile`: `{file, other}` when another live session edited one of its files in the last 20 min: the
+  file's name only, never its path. `Session.cache`: `{untilMs, ttlMs}`, its prompt cache clock (null: nothing cached).
+  `Session.turn.portInUse`: a port a tool result of this turn found in use (`"3000"`, or `"?"`).
+- `Event.kind` adds `conflict` (detail `<file> · <other session>`) and `port-in-use` (detail `port <n>`).
+- Texts read from transcripts and screens (`task`, `title`, `asks`, `question`, helper tasks, limit text, the peek's
+  question and labels, every `Event.detail`) arrive with secret-shaped strings replaced by `•••`.
+- `Session.risk`: while waiting, why its pending command is risky (`registry/risk.rs`, read from the raw command),
+  else null. The server refuses `/api/answer_petition` with any choice but `no` on a risky petition (400, `{"error": "risky petition (<reason>): Deny only"}`); the phone and the remote hall card show Deny only.
+
 Comment lines (`: hb` every 15 s, `: hi` occasionally) are heartbeats; EventSource ignores them.
 Each client has a 64-event buffer; a client that falls behind is disconnected (the server closes the
 stream) and EventSource reconnects. The server also closes every stream on stop and on a token change.

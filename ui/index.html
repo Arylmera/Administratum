@@ -99,6 +99,7 @@
   .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: var(--label); border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
   .lbl.below { transform: translate(-50%, 0); }
   .lbl.stale { border-color: var(--alarm); background: var(--blood); }
+  .lbl.risky { border-color: var(--alarm); background: var(--blood); } .lbl.risky .sub { color: var(--ink); font-weight: bold; }
   .lbl.sel { border-color: var(--green); background: var(--label-sel); }
   .lbl .sub { color: var(--pink); }
   /* A question at the end of a turn: parchment, not the red petition. */
@@ -114,6 +115,7 @@
   .lbl.tag { pointer-events: none; cursor: default; }
   .lbl.sealed { border-width: 3px; border-style: double; }
   .lbl.stuck { border-style: dashed; border-color: var(--flame); }
+  .lbl.same { border-style: dotted; border-color: var(--flame); }
   .lbl.sheets { font-size: calc(8px * var(--k, 1)); border-color: var(--green); }
   .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: color-mix(in srgb, var(--outline) 85%, transparent); border: 1px solid var(--edge); border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
   .tip[hidden] { display: none; }
@@ -148,6 +150,8 @@
   #card .turn { color: var(--paper-ink-2); }
   #card .turn[hidden], #card .files[hidden], #card .stuck[hidden] { display: none; }
   #card .stuck { color: var(--blood); font-weight: bold; }
+  #card.risky { border-color: var(--red); } #card .risk { color: var(--blood); font-weight: bold; } #card .risk[hidden], #card .watch[hidden] { display: none; }
+  #card .watch { color: var(--paper-ink-2); white-space: pre-line; }
   #card .files { margin: 0; padding: 0 0 0 1em; font-family: ui-monospace, Consolas, monospace; font-size: .85em; max-height: 9em; overflow-y: auto; overflow-wrap: anywhere; }
   #card .files .more { padding: 0; background: none; border: none; color: var(--paper-accent); font: inherit; cursor: pointer; text-decoration: underline; }
   #card .name { font-size: 1.17em; font-weight: 600; }
@@ -389,11 +393,13 @@
     <div class="ctx"></div>
     <div class="task"></div>
     <div class="stuck" hidden></div>
+    <div class="watch" hidden></div>
     <div class="turn" hidden></div>
     <ul class="files" hidden></ul>
     <div class="asks" hidden></div>
     <div class="path"></div>
     <div class="kin" hidden></div>
+    <div class="risk" hidden></div>
     <div class="q" hidden></div>
     <div class="answer" hidden><button type="button" data-choice="yes">Approve</button><button type="button" data-choice="always">Always</button><button type="button" data-choice="no">Deny</button></div>
     <div class="note reject" data-t="rejectAll" hidden>Deny also refuses this session's other pending requests</div>

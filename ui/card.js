@@ -1,12 +1,13 @@
 // The selected character's card: status, context, turn, links, and answering permission petitions.
 import { T, t } from './theme.js';
 import { rankOf } from './sprites.js';
+import { candleOf } from './scene.js';
 import { isQuestion } from './actors.js';
 import { settings } from './settings.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { pad2 } from './quiet.js';
 import { invoke, REMOTE, remoteActions } from './bridge.js';
-import { answerable, answerCall } from './petition.js';
+import { answerable, answerCall, riskOfPetition, allowed, armStep, ARM_MS } from './petition.js';
 
 let cast, rosterOf; // app.js's cast, and a getter for its roster (reassigned on each roster tick) (initCard)
 export function initCard(o) { ({ cast, roster: rosterOf } = o); }
@@ -31,6 +32,7 @@ export function renderCard() {
   const card = document.getElementById('card');
   if (cast.actors.get(sel)?.leaving ?? true) sel = null; // the selected character left the hall: deselect it
   const s = rosterOf().find(r => r.id === sel), a = cast.actors.get(sel);
+  card.querySelector('.watch').hidden = true; // a scribe's own lines (below)
   renderVigil(card, a?.watch);
   if (a?.watch) {
     card.hidden = false;
@@ -77,6 +79,9 @@ export function renderCard() {
   const stuck = card.querySelector('.stuck');
   stuck.textContent = stuckLine(s.stuck);
   stuck.hidden = !s.stuck;
+  const watch = card.querySelector('.watch');
+  watch.textContent = watchLines(s, a, Date.now()).join('\n');
+  watch.hidden = !watch.textContent;
   card.querySelector('.path').textContent = s.cwd;
   renderAsks(card, s);
   renderTurn(card, s);
@@ -143,6 +148,15 @@ export const stuckLine = (st, now = Date.now()) => (!st ? ''
   : st.kind === 'loop' ? t('stuckLoop', { tool: st.tool, count: st.count })
   : t('stuckSilent', { min: Math.max(0, Math.floor((now - st.sinceMs) / 60_000)) }));
 export const filesOf = tr => (tr ? tr.files.length + tr.moreFiles : 0);
+// What the watch saw (display only): another session on the same file, a port this turn found in use.
+export const sameFileLine = s => (s?.sameFile ? t('sameFile', { file: s.sameFile.file, other: s.sameFile.other }) : '');
+// The cache clock (O15), only for a scribe idle at its desk (scene.js candleOf): warm with the minutes left, or cold.
+export const cacheLine = (a, now = Date.now()) => {
+  const c = candleOf(a, now);
+  if (!c || a.s.status !== 'idle') return '';
+  return c.phase === 'out' ? t('cacheCold') : t('cacheWarm', { min: Math.max(1, Math.ceil((a.s.cache.untilMs - now) / 60_000)) });
+};
+export const watchLines = (s, a, now) => [sameFileLine(s), s.turn?.portInUse ? t('portInUse', { port: s.turn.portInUse }) : '', a ? cacheLine(a, now) : ''].filter(Boolean);
 function renderTurn(card, s) {
   const line = card.querySelector('.turn'), list = card.querySelector('.files'), tr = s?.turn;
   line.hidden = !tr;
@@ -184,10 +198,22 @@ export const canAnswer = s => actions && answerable(s);
 export const actionsOn = () => actions; // the header's Night Vigil button follows the same flag (app.js)
 export function noActions() { actions = false; renderCard(); } // a 403 elsewhere: off until the next probe says otherwise
 const episode = s => `${s.id}:${s.sinceMs}`;
-const answerErr = new Map(), answering = new Set(); // by episode
+const answerErr = new Map(), answering = new Set(), armed = new Map(); // by episode; armed: when a risky Approve was armed
+export const isArmed = s => armStep(armed.get(episode(s)), Date.now()) !== 'arm';
+const surface = () => (REMOTE ? 'phone' : 'card'); // a remote client: Deny only on a risky petition (remote/app.rs refuses the rest)
 export function answer(s, choice) {
   const key = episode(s);
   if (answering.has(key)) return;
+  const risk = riskOfPetition(s);
+  if (!allowed(choice, risk, surface())) return;
+  const step = risk && choice === 'yes' ? armStep(armed.get(key), Date.now()) : 'send';
+  if (step === 'hold') return; // a double-click on an armed Approve
+  if (step === 'arm') { // a risky Approve: the first click arms it
+    armed.set(key, Date.now()); renderCard();
+    setTimeout(renderCard, ARM_MS + 50); // back to "Approve" once the window is over
+    return;
+  }
+  armed.delete(key);
   answering.add(key); answerErr.delete(key); renderCard();
   invoke(...answerCall(s, choice)).catch(err => {
     if (err === 'remote actions disabled') { actions = false; return; }
@@ -221,10 +247,15 @@ function renderAnswer(card, s) {
   card.querySelector('.noact').hidden = !(REMOTE && !actions && answerable(s));
   err.textContent = (s && answerErr.get(episode(s))) ?? '';
   err.hidden = !err.textContent;
+  const risk = riskOfPetition(s), riskEl = card.querySelector('.risk');
+  card.classList.toggle('risky', !row.hidden && !!risk);
+  riskEl.textContent = risk ? t('risky', { reason: risk }) : '';
+  riskEl.hidden = row.hidden || !risk;
   for (const b of row.querySelectorAll('button')) {
     const label = p?.[b.dataset.choice];
-    b.hidden = p ? !label : b.dataset.choice === 'always'; // unknown dialog: Approve + Deny only
+    b.hidden = (p ? !label : b.dataset.choice === 'always') || !allowed(b.dataset.choice, risk, surface()); // unknown dialog: Approve + Deny only
     b.title = label ?? '';
+    if (b.dataset.choice === 'yes') { b.dataset.label ??= b.textContent; b.textContent = s && isArmed(s) ? 'Approve? click again' : b.dataset.label; }
     b.disabled = !!s && answering.has(episode(s));
     b.onclick = () => answer(s, b.dataset.choice);
   }

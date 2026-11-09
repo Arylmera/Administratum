@@ -117,6 +117,12 @@ pub fn has_buttons(s: &Session) -> bool {
         }
 }
 
+/// Whether a choice from a toast or a remote client may be sent for `s`: Deny always; Approve only when the petition
+/// is not risky (`Session.risk`, registry/risk.rs); never Always. The remote view applies the same rule (remote/app.rs).
+pub fn accepts(s: &Session, choice: &str) -> bool {
+    choice == "no" || (choice == "yes" && s.risk.is_none())
+}
+
 /// The session to answer, only while the toast's petition is still open: same session, same episode, still a
 /// petition with buttons. Otherwise (answered in the terminal, gone) None: nothing is sent.
 pub fn still_open<'a>(roster: &'a [Session], id: &str, since_ms: i64) -> Option<&'a Session> {
@@ -243,12 +249,14 @@ pub mod mac {
 }
 
 /// A petition toast's buttons. macOS shows two or more as an "Options" menu, and a click on the menu's own button
-/// reports the first: Deny comes first there, so a stray click never approves.
-pub fn petition_buttons<'a>(mac: bool, yes: &'a str, no: &'a str) -> [(&'static str, &'a str); 2] {
-    if mac {
-        [("Deny", no), ("Approve", yes)]
+/// reports the first: Deny comes first there, so a stray click never approves. A risky petition gets Deny only.
+pub fn petition_buttons<'a>(mac: bool, risky: bool, yes: &'a str, no: &'a str) -> Vec<(&'static str, &'a str)> {
+    if risky {
+        vec![("Deny", no)]
+    } else if mac {
+        vec![("Deny", no), ("Approve", yes)]
     } else {
-        [("Approve", yes), ("Deny", no)]
+        vec![("Approve", yes), ("Deny", no)]
     }
 }
 
@@ -258,7 +266,7 @@ pub fn test_toast(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(3));
-        let buttons = petition_buttons(cfg!(target_os = "macos"), "yes:0:test", "no:0:test");
+        let buttons = petition_buttons(cfg!(target_os = "macos"), false, "yes:0:test", "no:0:test");
         with_buttons(&app, "Test petition", "A click is only logged", &buttons, |arg| eprintln!("test toast click: {arg:?}"));
     });
 }
@@ -273,9 +281,9 @@ pub fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String)
     }
     let (handle, name) = (app.clone(), s.name.clone());
     let (yes, no) = (action_arg("yes", s.since_ms, &s.id), action_arg("no", s.since_ms, &s.id));
-    with_buttons(app, &title, &body, &petition_buttons(cfg!(target_os = "macos"), &yes, &no), move |arg| {
+    with_buttons(app, &title, &body, &petition_buttons(cfg!(target_os = "macos"), s.risk.is_some(), &yes, &no), move |arg| {
         let Some((choice, since, id)) = arg.and_then(parse_action) else { return };
-        let open = handle.state::<Live>().lock().ok().and_then(|r| still_open(&r, id, since).cloned()); // answered outside the lock
+        let open = handle.state::<Live>().lock().ok().and_then(|r| still_open(&r, id, since).filter(|s| accepts(s, choice)).cloned()); // answered outside the lock
         if let Some(s) = open {
             let answered = match s.source {
                 Agent::OpenCode => opencode::answer(std::slice::from_ref(&s), &s.id, s.opencode_request.as_deref().unwrap_or_default(), choice),
@@ -350,8 +358,22 @@ mod tests {
 
     #[test]
     fn macos_menu_button_never_approves() {
-        assert_eq!(petition_buttons(true, "y", "n")[0], ("Deny", "n"), "the menu's own button reports the first");
-        assert_eq!(petition_buttons(false, "y", "n"), [("Approve", "y"), ("Deny", "n")]);
+        assert_eq!(petition_buttons(true, false, "y", "n")[0], ("Deny", "n"), "the menu's own button reports the first");
+        assert_eq!(petition_buttons(false, false, "y", "n"), [("Approve", "y"), ("Deny", "n")]);
+    }
+
+    #[test]
+    fn a_risky_petition_toast_keeps_deny_only() {
+        use crate::registry::tests_session;
+        for mac in [false, true] {
+            assert_eq!(petition_buttons(mac, true, "y", "n"), [("Deny", "n")]);
+        }
+        let p = Session { status: "waiting".into(), orca: Some("t".into()), waiting_for: Some("approve Bash".into()), risk: Some("rm -r".into()), ..tests_session("s") };
+        assert!(!accepts(&p, "yes"), "a click on an old Approve is refused");
+        assert!(!accepts(&p, "always"));
+        assert!(accepts(&p, "no"));
+        let safe = Session { risk: None, ..p.clone() };
+        assert!(accepts(&safe, "yes") && accepts(&safe, "no") && !accepts(&safe, "always"));
     }
 
     #[test]

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { install, flush, tick, emit, invoked } from './testdom.mjs';
+import { install, flush, tick, emit, invoked, replies } from './testdom.mjs';
 
 // The tags over characters: a stuck tag yields to the sealed tag and to a petition label (overlay.js).
 install();
 globalThis.matchMedia ??= () => ({ matches: false, addEventListener() {} });
 const { initViewport } = await import('./viewport.js');
-const { initOverlay, syncLabels, sealText, stuckText, honoursLines } = await import('./overlay.js');
+const { initOverlay, syncLabels, sealText, stuckText, sameText, honoursLines } = await import('./overlay.js');
 
 const actors = new Map(), canvas = document.createElement('canvas'), overlay = document.createElement('div');
 initViewport({ canvas, overlay, scene: () => ({ w: 1, h: 1 }), iso: () => false, strip: () => false, at: () => [0, 0], relayout: () => {}, setMouse: () => {} });
@@ -35,6 +35,56 @@ assert.match(stuckText(asking), /20/, 'no label yet: the stuck tag would show');
 syncLabels();
 assert.equal(stuckText(asking), '', 'the petition label is up: the stuck tag yields');
 assert.equal(sealText(waiting), '', 'and so does the sealed tag');
+
+// Two sessions on one file (O13): the tag names the file and the other session; a stuck tag or a label says more.
+{
+  const sameFile = { file: 'app.js', other: 'terra-2' };
+  const on = actor('same', { stuck: null, sameFile });
+  assert.equal(sameText(on), 'same file: app.js · terra-2');
+  assert.equal(sameText(actor('same2', { sameFile })), '', 'stuck says more');
+  assert.equal(sameText(actor('same3', { stuck: null })), '', 'no overlap: no tag');
+  const queued = actor('same4', { stuck: null, sameFile, status: 'waiting', waitingFor: 'approve Bash' }, { pose: 'queue' });
+  syncLabels();
+  assert.equal(sameText(queued), '', 'the petition label is up: it yields');
+}
+
+// A risky petition through card.js `answer` (the card's buttons and the label's ✓ both call it): Always is never
+// sent; Approve is sent only on a second click within 5 s; a late second click arms again.
+{
+  const { initCard, answer, pick } = await import('./card.js');
+  let cardRoster = [];
+  initCard({ cast: { actors }, roster: () => cardRoster });
+  const risky = { id: 'rk', name: 'rk', status: 'waiting', source: 'claude', orca: 'term_rk', waitingFor: 'approve Bash', sinceMs: 7, asks: 'Bash: ls', risk: 'git reset --hard' };
+  const sent = () => invoked('answer_petition').length, base = sent();
+  answer(risky, 'always'); await flush();
+  assert.equal(sent(), base, 'no Always on a risky petition');
+  answer(risky, 'yes'); await flush();
+  assert.equal(sent(), base, 'the first Approve only arms');
+  answer(risky, 'yes'); await flush();
+  assert.equal(sent(), base, 'a double-click (under 400 ms) never sends');
+  tick(500);
+  answer(risky, 'yes'); await flush();
+  assert.equal(sent(), base + 1, 'a second click within 5 s sends');
+  answer(risky, 'yes'); await flush();
+  tick(5001);
+  answer(risky, 'yes'); await flush();
+  assert.equal(sent(), base + 1, 'too late: armed again, nothing sent');
+  const safe = { ...risky, id: 'sf', risk: null };
+  answer(safe, 'yes'); await flush();
+  assert.equal(sent(), base + 2, 'a safe Approve goes on the first click');
+
+  // The card's buttons: a dialog that offers Always shows it for a safe petition, never for a risky one.
+  replies.peek_petition = { question: 'Do you want to proceed?', yes: 'Yes', always: "Yes, and don't ask again", no: 'No' };
+  const always = () => document.getElementById('card').querySelector('[data-choice="always"]');
+  for (const [s, hidden] of [[{ ...safe, sinceMs: 8 }, false], [{ ...risky, sinceMs: 9 }, true]]) {
+    cardRoster = [s]; actors.set(s.id, { id: s.id, s, leaving: false });
+    pick(s.id); await flush(); tick(3100); pick(s.id); pick(s.id); await flush();
+    assert.equal(document.getElementById('card').hidden, false, 'the card is up');
+    assert.equal(document.getElementById('card').querySelector('.answer').hidden, false, 'its answer row too');
+    assert.equal(always().hidden, hidden, `Always ${hidden ? 'hidden on a risky' : 'shown on a safe'} petition`);
+    pick(s.id); actors.delete(s.id); // deselect
+  }
+}
 
 // Away, leaving or helper actors carry no tag at all.
 assert.equal(stuckText({ ...plain, leaving: true }), '');

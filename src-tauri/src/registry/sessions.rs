@@ -134,6 +134,8 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
         let background = status == "shell" && tail.as_ref().is_some_and(|t| t.turn_done);
         let compacted = tail.as_ref().and_then(|t| t.compacted_at);
         let limit = tail.as_ref().and_then(|t| t.limit.clone());
+        let cache = tail.as_ref().and_then(|t| t.cache.clone());
+        let risk = tail.as_ref().and_then(|t| t.risk).filter(|_| status == "waiting").map(str::to_string);
         if background {
             status = "idle".to_string();
         }
@@ -171,6 +173,9 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             tokens_today: None,
             stuck: None,
             room: None,
+            same_file: None,
+            cache,
+            risk,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
@@ -267,11 +272,13 @@ mod tests {
         let d = temp_dir("scan-asks");
         fs::write(d.join("10.json"), record(10, "a", "terra-a", "waiting")).unwrap();
         fs::write(d.join("11.json"), record(11, "b", "terra-b", "busy")).unwrap();
-        let t = [r#"{"type":"ai-title","aiTitle":"Fix the card"}"#.to_string(), tool("Bash", "x", r#"{"command":"ls","description":"List files"}"#)].join("\n");
+        let t = [r#"{"type":"ai-title","aiTitle":"Fix the card"}"#.to_string(), tool("Bash", "x", r#"{"command":"rm -rf build","description":"Clean"}"#)].join("\n");
         let out = scan(&d, |_, _| true, |_, _| (tail_of(&t), vec![]), |_| None);
-        assert_eq!(out.sessions[0].asks.as_deref(), Some("Bash: ls — List files"));
+        assert_eq!(out.sessions[0].asks.as_deref(), Some("Bash: rm -rf build — Clean"));
+        assert_eq!(out.sessions[0].risk.as_deref(), Some("rm -r"), "the risk, read from the raw command, while waiting");
         assert_eq!(out.sessions[0].title.as_deref(), Some("Fix the card"));
         assert_eq!(out.sessions[1].asks, None);
+        assert_eq!(out.sessions[1].risk, None, "not waiting: no risk");
         assert_eq!(out.sessions[1].title.as_deref(), Some("Fix the card"));
         assert!(out.sessions.iter().all(|s| s.source == Agent::Claude && s.opencode_request.is_none()));
     }

@@ -263,11 +263,11 @@ export function drawScene(g, layout, actors, fillOf, now) {
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   for (const d of layout.desks) {
     const a = actors.get(d.id), pile = d.id ?? d.was ?? d.key, fill = deskFill(d, a, fillOf);
-    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy';
+    const busy = !!a && a.pose === 'desk' && a.s.status === 'busy', candle = candleOf(a);
     paperFloor(g, pile, kindOf(d), fill, d, blockOf(d.dept), now);
-    items.push(furniture(kindOf(d), d, pile, busy, fill, d.id && a, !!a?.s.background, now));
+    items.push(furniture(kindOf(d), d, pile, busy || candleLit(candle), fill, d.id && a, !!a?.s.background, now));
     floor.push(() => footShadow(g, shadowOf(MAPS[KIND[kindOf(d)].map], d.x, d.y), shade));
-    if (d.id) lights.push(deskLight(d, busy));
+    if (d.id) lights.push(deskLight(d, busy, candle));
     if (d.id && a) reactions(a, d, KIND[kindOf(d)].at, over, lights, now, floor);
     if (a?.puff > 0) {
       const k = 1 - a.puff / PUFF_S, [px, py] = KIND[kindOf(d)].at.puff;
@@ -778,10 +778,27 @@ const KIND = {
 };
 const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 
-function deskLight(desk, busy) {
+// The cache clock (O15): a scribe idle at its desk keeps its candle (each world's own desk light) while its prompt
+// cache is warm: 'lit' for the first half of the cache's TTL, 'low' for the second (no world has a low-candle frame:
+// the lit desk with its light pool scaled down by k, the time left over the TTL), 'out' once cold (the dimmed desk, as
+// before). A working scribe stays lit; anyone not at a desk (a napper in the refectory) shows nothing: null.
+export function candleOf(a, now = Date.now()) {
+  if (!a || a.h || a.pose !== 'desk') return null;
+  if (a.s?.status === 'busy') return { phase: 'lit', k: 1 };
+  if (a.s?.status !== 'idle') return null;
+  const c = a.s.cache, left = c ? c.untilMs - now : 0;
+  if (left <= 0) return { phase: 'out', k: 0 };
+  const k = Math.min(1, left / c.ttlMs);
+  return { phase: k > 0.5 ? 'lit' : 'low', k };
+}
+export const candleLit = c => !!c && c.phase !== 'out';
+
+// busy: its candle (amber, flickering); a warm idle candle: the same, its pool scaled by the time left; else the slate.
+function deskLight(desk, busy, candle) {
   const K = KIND[kindOf(desk)];
-  return busy
-    ? { x: desk.x + K.at.candle[0], y: desk.y + K.at.candle[1], r: 22, color: T.light.amber, flicker: true }
+  const k = busy ? 1 : candleLit(candle) ? Math.max(0.35, candle.k) : 0;
+  return k
+    ? { x: desk.x + K.at.candle[0], y: desk.y + K.at.candle[1], r: Math.round(22 * k), color: T.light.amber, flicker: true }
     : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green };
 }
 
