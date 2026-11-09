@@ -143,7 +143,7 @@ when it loads. One file per module:
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
-| `theme.test.mjs` | Themes: complete palettes, runtime switch; chrome contrast in every theme (each foreground over the fill it sits on, text >= 4.5, icons and borders >= 3; a light-chrome theme sets `--on-blood` / `--ink-on-blood` for text on `--blood`), with the shortfalls already shipped listed and asserted still failing |
+| `theme.test.mjs` | Themes: complete palettes, runtime switch; chrome contrast in every theme (each foreground over the fill it sits on, text >= 4.5, icons and borders >= 3; a light-chrome theme sets `--on-blood` / `--ink-on-blood` / `--pink-on-blood` for text on `--blood`), with the shortfalls already shipped listed and asserted still failing |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
 | `depth.test.mjs` | Footprints, shadows, cast lights, AO bands |

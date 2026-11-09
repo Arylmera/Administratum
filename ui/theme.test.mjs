@@ -147,12 +147,12 @@ setTheme('tier2');
   const PAIRS = [ // [foreground, fill, minimum, where]
     ['--light', '--bar', 4.5, '.count.ask, #quiet'], ['--light', '--edge', 3, '#vigil armed'], ['--light', '--label', 4.5, '.edge'],
     ['--light', '--leather', 4.5, 'card and settings buttons'], ['--on-blood', '--blood', 4.5, 'Chronicon tab'], ['--ink-on-blood', '--blood', 4.5, '.lbl.stale'],
-    ['--flame', '--bar', 4.5, '.count.link'], ['--flame', '--wax', 4.5, '.count.alarm'], ['--flame', '--label', 4.5, '.edge.alarm, .lbl.stuck border'],
+    ['--flame', '--bar', 4.5, '.count.link'], ['--flame', '--wax', 4.5, '.count.alarm'], ['--flame', '--wax-deep', 4.5, 'the alarm blink'], ['--pink-on-blood', '--blood', 4.5, '.lbl.stale .sub'], ['--flame', '--label', 4.5, '.edge.alarm, .lbl.stuck border'],
     ['--pink', '--bar', 4.5, '.count.on'], ['--pink', '--bg', 4.5, 'pink on the page'], ['--pink', '--label', 4.5, '.lbl .sub'],
     ['--dim', '--bar', 4.5, '.motto, .count'], ['--ink', '--label', 4.5, '.lbl'], ['--green', '--label-btn', 4.5, '.lbl .ans button'],
   ];
   // Known shortfalls in themes this check found already shipped: each must still fail, so fixing one forces its removal here.
-  const KNOWN = new Set(['night --dim/--bar', 'cyber --dim/--bar', 'synth --dim/--bar', 'orbital --flame/--wax', 'matrix --flame/--wax', 'tower --flame/--wax', 'vault --flame/--wax']);
+  const KNOWN = new Set(['night --dim/--bar', 'cyber --dim/--bar', 'synth --dim/--bar', 'orbital --flame/--wax', 'matrix --flame/--wax', 'tower --flame/--wax', 'vault --flame/--wax', 'orbital --pink-on-blood/--blood']);
   const seenKnown = new Set();
   for (const id of Object.keys(THEMES)) {
     const ui = { ...ROOT, ...resolve(THEMES[id]).ui };

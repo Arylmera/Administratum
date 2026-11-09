@@ -576,9 +576,9 @@ defineTheme({
     // (labels, leather buttons); text on --blood reads --on-blood
     '--bg': '#e9edf0', '--bar': '#dfe4e7', '--ink': '#26282b', '--dim': '#525b60', '--light': '#26282b', '--edge': '#c7d0d4', '--btn': '#f4f6f7',
     '--copper': BB.green, '--outline': BB.k, '--bone': '#f4f6f7', '--iron': BB.steel, '--green': '#3f6e3b',
-    '--red': '#d0452f', '--pink': '#a63a24', '--blood': '#8a2a1e', '--glow': BB.yellow, '--wax': BB.green, '--wax-deep': '#3f6e3b',
+    '--red': '#d0452f', '--pink': '#a63a24', '--blood': '#8a2a1e', '--glow': BB.yellow, '--wax': BB.green, '--wax-deep': '#a8d5a3',
     '--alarm': '#e03a2a', '--flame': '#0b2540', '--label': '#ffffff', '--label-sel': '#cfe9ff', '--label-btn': '#f4f6f7', '--plaque': '#dfe4e7',
-    '--on-blood': '#ffffff', '--ink-on-blood': '#ffffff',
+    '--on-blood': '#ffffff', '--ink-on-blood': '#ffffff', '--pink-on-blood': '#ffd2c8',
     '--yes': BB.green, '--yes-deep': '#3f6e3b',
     // white lab sheets, the Br Ba green as the accent
     '--card': '#ffffff', '--paper': '#ffffff', '--paper-edge': '#c7d0d4', '--paper-hi': '#ffffff', '--paper-tab': '#f4f6f7', '--paper-q': '#f8fafb',
