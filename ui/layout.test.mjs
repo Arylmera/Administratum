@@ -752,4 +752,26 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   }
 }
 
+// The rooms' full height costs the break-out room no capacity: level and overflow as recorded from the hall before it
+// (b8927f1), for heavy break-out rooms (temp departments of 3) beside 1 to 3 rules. The doors give way to its fence
+// instead: every room keeps a door lane outside it, the spare rows capped when one would have none.
+{
+  const BEFORE = [[346, 248, 1, 1, 5, 4, 0], [346, 248, 1, 1, 3, 2, 0], [346, 248, 1, 2, 4, 3, 0], [346, 248, 2, 1, 3, 4, 0], [346, 248, 3, 1, 4, 6, 0], [554, 400, 1, 2, 4, 0, 0], [554, 400, 3, 1, 4, 1, 0], [700, 600, 2, 3, 5, 0, 0]];
+  for (const [w, h, nr, rd, nt, level, over] of BEFORE) {
+    const rules = Array.from({ length: nr }, (_, i) => ({ id: `r${i}`, color: '#123456' })), tag = `${w}x${h} ${nr} rules, ${nt} temp`;
+    const depts = rules.map((r, i) => ({ name: `R${i}`, color: '#fff', ids: ids(`R${i}`, rd), room: r.id })).concat(Array.from({ length: nt }, (_, i) => ({ name: `T${i}`, color: '#fff', ids: ids(`T${i}`, 3), temp: true })));
+    const P = planLayout(null, depts, 0, {}, { w, h }, layoutDepartments, rules), H = hallOf(P.bays, { w, h }, P.wing);
+    assert.deepEqual([P.level, P.overflow], [level, over], `${tag}: level and overflow as before`);
+    assert.equal(H.rooms.at(-1).y + H.rooms.at(-1).h, H.h, `${tag}: the last room down to the hall's bottom`);
+    for (const Z of zonesOf(P.blocks, H)) for (const q of H.rooms) assert.ok(!(q.doorOut.y > Z.y && q.doorOut.y < Z.y + Z.h), `${tag}: ${q.id}'s door lane ${q.doorOut.y} inside the break-out room`);
+  }
+  // two rules, the second empty, two temp departments in the minimum hall: the even share would put every lane of the
+  // second room inside the fence; capped, it starts above it
+  const rules = [{ id: 'r0', color: '#123456' }, { id: 'r1', color: '#123456' }];
+  const P = planLayout(null, [{ name: 'R0', color: '#fff', ids: ids('R0', 1), room: 'r0' }, ...[0, 1].map(i => ({ name: `T${i}`, color: '#fff', ids: ids(`T${i}`, 3), temp: true }))], 0, {}, SCENE, layoutDepartments, rules);
+  const H = hallOf(P.bays, SCENE, P.wing), [Z] = zonesOf(P.blocks, H);
+  assert.ok(Z && H.rooms[1].lanes.some(l => l > Z.y && l < Z.y + Z.h), 'the fence takes in some of the second room\'s lanes');
+  for (const q of H.rooms) assert.ok(!(q.doorOut.y > Z.y && q.doorOut.y < Z.y + Z.h), `${q.id}: its door outside the fence`);
+}
+
 console.log('layout ok');

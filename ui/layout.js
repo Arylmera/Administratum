@@ -72,28 +72,33 @@ export function hallOf(bays = 0, size = SCENE, wing = null) {
 // wall, each further one under a WING_DIV dark divider (the refectorium/sanctum's) packed into the floor above its
 // first desk row (from 2 px under the lane above to the desks' top). The rooms share the wing's full height: each its
 // desk rows (wing[].rows), the scriptorium's rows left over shared evenly (the last takes the remainder and runs down
-// to the hall's bottom, bays included); hall.rooms[].rows counts both. A room's door sits in the west wall on the
-// scriptorium lane nearest the room's vertical middle (one of the room's own lanes, every one a scriptorium lane); its
+// to the hall's bottom, bays included; wing[].share, the layout's, caps the share); hall.rooms[].rows counts both. A
+// room's door sits in the west wall on the scriptorium lane nearest the room's vertical middle (one of the room's own
+// lanes, every one a scriptorium lane), or on wing[].door, the layout's choice clear of the break-out room's fence; its
 // hall side (wx + 1) and room side (the room's corridor) take only that lane (route), the room's corridor joining it to
 // the desk lanes. Geometry only (id, rows): a room's colour and whether it is empty are the layout's (wingZones), so
 // they never rebuild the hall.
 export const WING_W = 138, WING_X = WING_W + 8, WING_CX = WING_W - 10, WING_DIV = 10;
 const wings = new Map();
 const movedX = (p, d) => ({ ...p, x: p.x + d });
+// A room's door lane: of its lanes that `ok` allows (all if none), the one whose door (its frame y - 18 .. y + 2, so
+// its centre y - 8) is nearest the room's middle; a tie: the lower.
+const doorLane = (lanes, mid, ok = () => true) => (lanes.some(ok) ? lanes.filter(ok) : lanes)
+  .reduce((p, q) => (Math.abs(q - 8 - mid) <= Math.abs(p - 8 - mid) ? q : p));
 function wingHall(B, wing) {
-  const key = `${B.key}|${wing.map(r => `${r.id}:${Math.max(1, r.rows ?? 1)}`).join(',')}`;
+  const key = `${B.key}|${wing.map(r => `${r.id}:${Math.max(1, r.rows ?? 1)}:${r.door ?? ''}:${r.share ?? ''}`).join(',')}`;
   let H = wings.get(key);
   if (H) return H;
   if (wings.size > 64) wings.clear();
   const X = WING_X, m = p => movedX(p, X), rooms = [], n = wing.length;
   const need = wing.map(r => Math.max(1, r.rows ?? 1)), spare = Math.max(0, B.rows - need.reduce((s, q) => s + q, 0));
+  const share = Math.min(Math.floor(spare / n), ...wing.map(r => r.share ?? Infinity)); // the layout's cap (layoutDepartments)
   let k = 0;
   for (const [j, r] of wing.entries()) {
-    const last = j === n - 1, rows = need[j] + Math.floor(spare / n) + (last ? spare % n : 0), top = j ? B.y0 + SLOT_H * k - 2 : 0; // its top wall's top
+    const last = j === n - 1, rows = need[j] + (last ? spare - share * (n - 1) : share), top = j ? B.y0 + SLOT_H * k - 2 : 0; // its top wall's top
     const y = j ? top + WING_DIV : WALL, y1 = last ? B.h : B.y0 + SLOT_H * (k + rows) - 2, under = i => B.y0 + 60 + SLOT_H * (k + i);
     const lanes = [...(j ? [] : [B.y0]), ...Array.from({ length: rows }, (_, i) => under(i))], mid = (y + y1) / 2;
-    // the lane whose door (its frame y - 18 .. y + 2, so its centre y - 8) is nearest the room's middle; a tie: the lower
-    const door = lanes.reduce((p, q) => (Math.abs(q - 8 - mid) <= Math.abs(p - 8 - mid) ? q : p));
+    const door = lanes.includes(r.door) ? r.door : doorLane(lanes, mid); // the layout's choice (layoutDepartments), else by the middle
     rooms.push({ kind: 'room', id: r.id, x: 0, y, w: WING_W, h: y1 - y, top, k, rows, plaqueY: j ? top + 1 : WALL - 12,
       lanes, corridorX: WING_CX, doorIn: { x: WING_CX, y: door }, doorOut: { x: X + 1, y: door } });
     k += rows;
@@ -170,9 +175,12 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
   // departments wrapping west of the room's corridor. A room with nothing in the sequence (its placeholder dropped past
   // MAX_BAYS, planLayout) is not drawn.
   const known = new Set((wing ?? []).map(r => r.id)), inWing = d => !d.temp && known.has(d.room), rooms = [];
-  const doorRows = []; // the slot rows whose lane (the one under the row) holds a wing room's door (hallOf: by its middle)
+  // the break-out room starts below this row's lane, as before the rooms took the wing's height: the lane under the
+  // first desk row of the last room drawn, the rooms packed on their desk rows alone (-1: one room, its door then y0)
+  let doorRow = -1;
+  const COLS_W = compact ? 4 : 2, at = []; // at: per room drawn, its blocks' places from its top
   if (wing) {
-    const COLS = compact ? 4 : 2, WX0 = 3, at = []; // at: per room drawn, its blocks' places from its top
+    const WX0 = 3, COLS = COLS_W;
     let k = 0, full = false;
     for (const r of wing) {
       const inside = depts.filter(d => inWing(d) && d.room === r.id), mine = [];
@@ -188,32 +196,33 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
       }
       if (!bottom) continue; // nothing of it fits (full): nor of any room after it, all counted in the overflow
       const rows = (bottom + 8 - (y0 + SLOT_H * k)) / SLOT_H;
+      if (rooms.length) doorRow = k;
       rooms.push({ id: r.id, color: r.color, empty: inside.every(d => d.empty), rows });
       at.push(mine);
       k += rows;
     }
-    // the rooms share the wing's height (hallOf): each one's desks packed from its own first grid row
-    hallOf(bays, size, rooms).rooms.forEach((R, j) => {
-      for (const [d, gm, x, dy] of at[j]) place(d, gm, x, y0 + SLOT_H * R.k + dy, COLS);
-      if (R.doorOut.y > y0) doorRows.push((R.doorOut.y - y0 - 60) / SLOT_H); // y0, above every row: never in a fence
-    });
   }
   const hallDepts = depts.filter(d => !inWing(d) && !d.empty), COLS = G.cols;
   const all = hallDepts.map(d => geom(d, COLS));
-  // The break-out room's fence never takes in a wing door's lane (a walk from a door along its lane never crosses it):
-  // packed, then, while its rows (zonesOf: the lane under each inside) hold a door's, packed again from the row after it.
-  const mark = { blocks: blocks.length, desks: desks.length, consoles: consoles.length, overflow, seats: new Set(seats.keys()), cons: new Set(consoleSeats.keys()) };
-  for (let tempFrom = 0; ;) {
-    packHall(tempFrom);
-    const zb = blocks.slice(mark.blocks).filter(b => b.temp);
-    if (!zb.length) break;
-    const r0 = (Math.min(...zb.map(b => b.y)) - y0) / SLOT_H, r1 = (Math.max(...zb.map(b => b.y + b.h)) + 8 - y0) / SLOT_H - 1;
-    const hit = doorRows.filter(r => r >= r0 && r <= r1);
-    if (!hit.length) break;
-    tempFrom = Math.max(...hit) + 1; // strictly lower each round (r0 >= tempFrom): ends once the break-out room overflows
-    blocks.length = mark.blocks; desks.length = mark.desks; consoles.length = mark.consoles; overflow = mark.overflow;
-    for (const k of [...seats.keys()]) if (!mark.seats.has(k)) seats.delete(k);
-    for (const k of [...consoleSeats.keys()]) if (!mark.cons.has(k)) consoleSeats.delete(k);
+  packHall(doorRow + 1);
+  if (rooms.length) {
+    // Each room's door: the lane nearest its middle that the break-out room's fence (zonesOf: the lanes strictly inside
+    // it) does not take in, so a walk from a door along its lane never crosses the fence. The rooms share the wing's
+    // height (hallOf); each one's desks packed from its own first grid row, ahead of the hall's in every list.
+    // A room with every lane inside the fence (the spare rows took it down there): the spare share is capped so that
+    // every room starts above the fence (the fence starts below the last room's first desk row: doorRow).
+    const zb = blocks.filter(b => b.temp), fy0 = zb.length ? Math.min(...zb.map(b => b.y)) + 2 : 0, fy1 = zb.length ? Math.max(...zb.map(b => b.y + b.h)) + 6 : 0;
+    const free = l => !(l > fy0 && l < fy1);
+    if (hallOf(bays, size, rooms).rooms.some(R => !R.lanes.some(free))) {
+      const cap = Math.floor(((fy0 - 2 - y0) / SLOT_H - 1 - doorRow) / (rooms.length - 1)); // rows between doorRow and the fence's first
+      for (const r of rooms) r.share = cap;
+    }
+    hallOf(bays, size, rooms).rooms.forEach((R, j) => { rooms[j].door = doorLane(R.lanes, R.y + R.h / 2, free); });
+    const n = { blocks: blocks.length, desks: desks.length, consoles: consoles.length }, s0 = [...seats], c0 = [...consoleSeats];
+    seats.clear(); consoleSeats.clear();
+    hallOf(bays, size, rooms).rooms.forEach((R, j) => { for (const [d, gm, x, dy] of at[j]) place(d, gm, x, y0 + SLOT_H * R.k + dy, COLS_W); });
+    for (const [A, m] of [[blocks, n.blocks], [desks, n.desks], [consoles, n.consoles]]) A.unshift(...A.splice(m));
+    for (const [M, old] of [[seats, s0], [consoleSeats, c0]]) for (const [key, v] of old) M.set(key, v);
   }
   return { blocks, desks, seats, consoles, consoleSeats, overflow, wing: wing ? rooms : null };
 
@@ -222,6 +231,7 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
     hallDepts.forEach((d, i) => {
       const { slotsOf, w, h } = all[i], live = slotsOf.filter(k => k.id).length, key = zoneKey(d);
       if (key !== prevKey && x > x0) { x = x0; y += (rowH || SLOT_H - 8) + 8; rowH = 0; } // a zone begins or ends: a fresh row
+      // the break-out room starts at row tempFrom (doorRow above)
       if (key === 'temp' && key !== prevKey && y < y0 + SLOT_H * tempFrom) { x = x0; y = y0 + SLOT_H * tempFrom; rowH = 0; }
       // 39°: a zone never straddles the cogitator bank: east of it when the whole zone fits in the first row, else from row 1
       if (clearCog && key != null && key !== prevKey && y === y0) {
@@ -405,7 +415,7 @@ export function route(a, b, blocks = [], H = hallOf(0)) {
   const W = H.rooms ?? [], ra = roomOf(a, H), rb = roomOf(b, H), wingOf = r => W.find(R => `w:${R.id}` === r);
   // inside a west wing room: the hall's walk on the room's own lanes and corridor
   const inside = (p, q, R) => walk(p, q, blocks, R.lanes, R.corridorX, [], []);
-  // a door's hall side takes only its lane (layoutDepartments keeps the break-out room below every door's lane)
+  // a door's hall side takes only its lane (layoutDepartments keeps every door's lane out of the break-out room's fence)
   const fixed = W.length ? [H.wx + 1] : [];
   const clean = pts => pts.slice(1).filter((pt, i, arr) => pt.x !== (arr[i - 1] ?? a).x || pt.y !== (arr[i - 1] ?? a).y).map(pt => ({ x: pt.x, y: pt.y }));
   const near = pt => [pt].concat(pt.via ?? []); // a point and the step it takes to the lanes

@@ -459,10 +459,12 @@ In the hall the rooms make a west wing: a column of real rooms west of the scrip
 Refectorium and Sanctum on the east, stacked in rule order, with the hall's own walls and a door each in the
 scriptorium's west wall. The wing is there while at least one rule exists, and the hall is that much wider (pan to
 it as to the bays). A room holds its departments' desks, two a row (four lecterns when compact); its floor is in its
-rule's colour; it stays (one row, floor dimmed, door shut) while no session matches. The rooms fill the wing's full
-height: each gets the rows its desks need, and the rows left over are shared out evenly (the last room runs down to
-the hall's bottom). Each room's door sits at the scriptorium walk lane nearest the room's vertical middle; scribes
-come and go through it like everyone else's. Its plaque hangs on its top wall in the rule's colour: the department's own when it holds
+rule's colour; it stays (floor dimmed, door shut) while no session matches. The rooms fill the wing's full height:
+each gets the rows its desks need (an empty room, one), and the rows left over are shared out evenly, empty rooms
+included (the last room runs down to the hall's bottom; it takes the rest when an even share would leave a room no
+door lane clear of the break-out room's fence). Each room's door sits at the scriptorium walk lane nearest
+the room's vertical middle, or the nearest one clear of the break-out room's fence; scribes come and go through it
+like everyone else's. Its plaque hangs on its top wall in the rule's colour: the department's own when it holds
 one (branch shown, click opens the folder), else the room's name, the departments' plaques inside. A wing taller
 than the hall grows it by bays, and rooms count toward compact lecterns like any department. A department whose
 sessions match several rules goes to the first one; a temp folder stays in the break-out room. The desktop strip:

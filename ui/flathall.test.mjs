@@ -70,8 +70,11 @@ assert.equal(new Set(Object.values(got)).size, 10, 'each hall, theme and light d
     const [A3] = f3.rooms, [A4] = t3.rooms, c = new Cast();
     assert.ok(A4.rows < A3.rows, 'a shrinks');
     const low = { id: 'low', x: 40, y: A3.lanes.at(-1), path: [], destKey: 'x' }, door = { id: 'door', ...A3.doorIn, path: [], destKey: 'x' };
-    for (const o of [low, door]) c.actors.set(o.id, o);
+    const wall = { id: 'wall', x: f3.wx - 4, y: A3.doorOut.y, path: [], destKey: 'x' }; // crossing a's door
+    for (const o of [low, door, wall]) c.actors.set(o.id, o);
     c.resized(f3, t3);
+    assert.notEqual(A4.doorOut.y, A3.doorOut.y, 'a\'s door moved');
+    assert.deepEqual([wall.x, wall.y], [A4.doorOut.x, A4.doorOut.y], 'in the wall: at its door\'s new hall side');
     for (const o of [low, door]) {
       assert.equal(roomOf(o, t3), 'w:a', `${o.id}: still in its room`);
       assert.ok(A4.lanes.includes(o.y) && o.y >= A4.y && o.y < A4.y + A4.h, `${o.id}: on one of its room's lanes, at ${o.y}`);

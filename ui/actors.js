@@ -127,9 +127,16 @@ export class Cast {
   // everyone re-routes from where they stand (sync: the walks follow the new corridor, doors and lanes). The west wing
   // coming or going (layout.js hallOf wx) moves the scriptorium too; whoever stands in a wing room moves with its room
   // (rooms above it grew or shrank), onto its nearest lane if its room shrank from under it, and to the room's door
-  // (hall side) if the room went.
+  // (hall side) if the room went; whoever stands in the west wall (crossing a door) goes to that door's hall side.
   resized(from, to) {
     for (const a of this.actors.values()) {
+      if (from.wx && from.rooms.length && a.x >= from.wx - 8 && a.x <= from.wx + 1) { // in the west wall, crossing a door: at that door's hall side now
+        const R0 = from.rooms.reduce((p, q) => (Math.abs(q.doorOut.y - a.y) < Math.abs(p.doorOut.y - a.y) ? q : p));
+        const R1 = to.rooms?.find(R => R.id === R0.id);
+        Object.assign(a, R1 ? { x: R1.doorOut.x, y: R1.doorOut.y } : { x: R0.doorOut.x + (to.wx ?? 0) - from.wx, y: R0.doorOut.y });
+        a.destKey = '';
+        continue;
+      }
       const room = roomOf(a, from);
       if (room.startsWith('w:')) { // by the rows its room moved (layout.js SLOT_H); its room gone, at its door's hall side
         const R0 = from.rooms.find(R => `w:${R.id}` === room), R1 = to.rooms?.find(R => R.id === R0.id);
