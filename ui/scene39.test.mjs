@@ -71,7 +71,7 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
 // shadow under the drawn feet (the floor point the body stands on), not the seat
 {
   const hall = hallOf(0); sceneSize(hall);
-  for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault', 'darwin']) {
+  for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault', 'darwin', 'breakingbad']) {
     setTheme(id); use(hall);
     for (const kind of ['desk', 'lectern']) {
       const desk = { x: 40, y: 90, compact: kind === 'lectern' }, p = placeOf(kind, desk), a = { id: 's', x: desk.x + 11, y: desk.y + 30 }, s = frontShift(p, a);

@@ -529,7 +529,7 @@ const BB = { k: '#26282b', visor: '#2f3a40', skin: '#f0c8a0', goatee: '#7a5230',
   steel: '#9aa3a8', steelDark: '#6b767c', wall: '#e9edf0', floor: '#c7d0d4', base: '#9aa6ac', green: '#5f9e5a', liquid: '#8fd3ff' };
 const bbFace = (skin, specs, hair) => ({ t: skin, T: specs, z: hair, j: BB.visor, g: BB.steel, G: BB.steel });
 defineTheme({
-  id: 'breakingbad', world: 'breakingbad', name: 'Breaking Bad', art: ['scribe', 'adept', 'room-floor', 'room-walls', 'room-doors', 'room-pipes', 'workstations', 'walls', 'magos', 'sanctum', 'cogitator', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium', 'breakout', 'watch', 'watch39', 'suzerain', 'scribe39', 'adept39', 'magos39', 'skull39'],
+  id: 'breakingbad', world: 'breakingbad', name: 'Breaking Bad', art: ['scribe', 'adept', 'room-floor', 'room-walls', 'room-doors', 'room-pipes', 'workstations', 'walls', 'magos', 'sanctum', 'cogitator', 'skull', 'gate', 'fire', 'clutter', 'petitions', 'commits', 'refectorium', 'breakout', 'watch', 'watch39', 'suzerain', 'scribe39', 'adept39', 'magos39', 'skull39', 'honours', 'lift', 'enclave'],
   px: {
     k: BB.k, e: BB.visor, n: '#1b1d20',
     r: BB.yellow, R: BB.yellow, d: BB.yellow, t: BB.visor, T: BB.visor, z: BB.visor, j: BB.visor, // the suit; the face behind the visor
@@ -587,6 +587,7 @@ defineTheme({
   text: {
     watch: { name: 'Mike', button: 'Night Vigil: Mike shuts the PC down once every cook waits on you' },
     subtitle: 'Superlab · Under the laundry', motto: 'Say my name', breakout: 'The Yard',
+    honours: { title: 'Cooks of the Week', commits: 'Most batches shipped', longest: 'Longest cook', fast: 'Samples approved within the minute', busiest: 'Busiest shift' },
     rank: { high: 'Cook', standard: 'Partner', novice: 'Assistant' },
     status: { busy: 'Cooking', shell: 'At the reactor', idle: 'Batch done, awaiting input', waiting: 'Holding up a sample',
       background: 'Idle · Gale on errands', napping: 'Idle · asleep in the RV' },

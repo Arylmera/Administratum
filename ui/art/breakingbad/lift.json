@@ -1,0 +1,119 @@
+{
+  "frames": {
+    "SHAFT": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 16
+      }
+    },
+    "SHAFT_TOP": {
+      "frame": {
+        "x": 57,
+        "y": 0,
+        "w": 56,
+        "h": 12
+      }
+    },
+    "SHAFT_PIT": {
+      "frame": {
+        "x": 114,
+        "y": 0,
+        "w": 56,
+        "h": 8
+      }
+    },
+    "CABLE": {
+      "frame": {
+        "x": 171,
+        "y": 0,
+        "w": 2,
+        "h": 4
+      }
+    },
+    "CAR_BACK": {
+      "frame": {
+        "x": 174,
+        "y": 0,
+        "w": 52,
+        "h": 40
+      }
+    },
+    "CAR_FRONT.shut": {
+      "frame": {
+        "x": 0,
+        "y": 41,
+        "w": 52,
+        "h": 40
+      }
+    },
+    "CAR_FRONT.half": {
+      "frame": {
+        "x": 53,
+        "y": 41,
+        "w": 52,
+        "h": 40
+      }
+    },
+    "CAR_FRONT.open": {
+      "frame": {
+        "x": 106,
+        "y": 41,
+        "w": 52,
+        "h": 40
+      }
+    },
+    "SLAB": {
+      "frame": {
+        "x": 0,
+        "y": 82,
+        "w": 16,
+        "h": 12
+      }
+    },
+    "SLAB_L": {
+      "frame": {
+        "x": 17,
+        "y": 82,
+        "w": 8,
+        "h": 12
+      }
+    },
+    "SLAB_R": {
+      "frame": {
+        "x": 26,
+        "y": 82,
+        "w": 8,
+        "h": 12
+      }
+    },
+    "LAMP.off": {
+      "frame": {
+        "x": 35,
+        "y": 82,
+        "w": 6,
+        "h": 6
+      }
+    },
+    "LAMP.on": {
+      "frame": {
+        "x": 42,
+        "y": 82,
+        "w": 6,
+        "h": 6
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "lift.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 226,
+      "h": 94
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}
