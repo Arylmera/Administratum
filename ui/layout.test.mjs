@@ -774,4 +774,19 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   for (const q of H.rooms) assert.ok(!(q.doorOut.y > Z.y && q.doorOut.y < Z.y + Z.h), `${q.id}: its door outside the fence`);
 }
 
+// An empty open hall beside the west wing: the scriptorium narrows by the wing, so hall + wing keep the window's width;
+// a department in the open hall widens it back. Not the strip's lay (no `hall` tag).
+{
+  const rooms = [{ id: 'r1', color: '#aa0000' }], size = { w: 700, h: 400 };
+  const d = (name, room) => ({ name, color: '#123456', ids: [`${name}-1`], room });
+  const A = planLayout(null, [d('a', 'r1')], 0, {}, size, layoutDepartments, rooms);
+  assert.equal(A.size.w, 700 - WING_X, 'all in the wing: narrowed');
+  assert.equal(hallOf(A.bays, A.size, A.wing).w, 700, 'hall + wing fill the window');
+  const B = planLayout(null, [d('a', 'r1'), d('b')], 0, {}, size, layoutDepartments, rooms);
+  assert.equal(B.size.w, 700, 'someone in the open hall: full width');
+  assert.equal(planLayout(null, [], 0, {}, size, layoutDepartments, []).size.w, 700, 'no wing: untouched');
+  const S = planLayout(null, [d('a', 'r1')], 0, {}, size, (l, o) => { assert.equal(o.size.w, 700); return layoutDepartments(l, o); }, rooms);
+  assert.equal(S.size.w, 700, 'an untagged lay keeps the size');
+}
+
 console.log('layout ok');

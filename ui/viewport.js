@@ -1,5 +1,6 @@
 // The view: the scene's scale and size for the window, the stage's pan (drag, glide, coast, arrow keys), the back wall's parallax lag.
-import { SCENE, MAX_W } from './layout.js';
+import { SCENE, MAX_W, WING_X } from './layout.js';
+import { rooms } from './rooms.js';
 import { STRIP_H } from './strip.js';
 import { RES } from './sprites.js';
 import { view as scaleSetting } from './settings.js';
@@ -20,6 +21,7 @@ const FREE_W = 1920; // ponytail: an explicit Scale's widest scene (canvas cost)
 // with bays below the window, the stage shows a view of the scene that pans (drag, arrow keys, edge arrows;
 // double-click recentres). The 39° view at Auto: the scale shrinks until the whole projected hall fits the window
 // (the same logical hall, smaller pixels), so nothing is off-screen; an explicit Scale pans there as in the flat view.
+// Auto with a west wing: the scale also shrinks until the minimum hall and the wing fit the window's width.
 let autoScale = 0;
 export let stage; let world; // #stage, #world (initViewport)
 export const pan = { x: 0, y: 0, vx: 0, vy: 0, to: null }; // world offset in the stage (CSS px, <= 0), inertia (px/ms), glide target
@@ -68,6 +70,9 @@ export function fit(floor) { // floor: a floor point to centre on (a view switch
   const auto = scaleSetting.scale === 'auto', maxW = auto ? MAX_W : FREE_W;
   scale = auto ? autoScale : +scaleSetting.scale;
   if (auto && W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
+  // a west wing (custom rooms): smaller pixels until the minimum hall and the wing fit the width (the empty hall
+  // narrows to it, planLayout); a hall with someone in it still pans
+  if (auto && !iso() && rooms.list.length && W / scale < SCENE.w + WING_X) scale = W / (SCENE.w + WING_X);
   const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
   if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
   if (auto && iso()) { const S = scene(); scale = Math.min(scale, W / S.w, H / S.h); }

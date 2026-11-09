@@ -10,6 +10,7 @@ import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
 import { TAN39 } from './iso.js';
+import { JAMB_UP } from './isohall.js';
 import { scale, pan, viewW, viewH, pannable, centreOn, drag, coarse, stage } from './viewport.js';
 import { honoursAt } from './scene.js';
 import { PROP_AT } from './sprites.js';
@@ -36,6 +37,10 @@ function openDept(name) {
 // Plaques follow the gliding blocks every frame; elements are kept by key and only touched when they change.
 const plaques = new Map();
 const FLOOR39 = `matrix(1, ${1 / 3}, ${-TAN39}, ${TAN39 / 2}, 0, 0)`; // one floor px along x and y, as toScreen maps them in 39°
+// A sign on the scriptorium's west wall (its hall face), in 39°: one floor px north along the wall, one px down; centred
+// on its anchor, its foot on it (a west wing room's sign over its door)
+const WALL39 = `matrix(${TAN39}, ${-TAN39 / 2}, 0, 1, 0, 0) translate(-50%, -100%)`;
+const SIGN_W = 60; // a room's door sign, floor px along the wall (the doorway's 20 and 20 either side)
 const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
 // Subscription usage as claude-deck last wrote it (main.rs usage): session and weekly percent and the time to their
 // reset. Hidden when claude-deck is absent or its file is over 30 min old (it would show a stale percent).
@@ -58,9 +63,11 @@ export function renderPlaques(blocks) {
   const nameOf = id => { const r = rooms.list.find(q => q.id === id); return r ? r.name || r.pattern : ''; };
   for (const Z of strip() ? [] : zonesOf(blocks, hall())) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
   for (const R of strip() ? [] : wingZones(hall(), blocks)) {
-    const top = view.mode === '39' ? at(R.x + 4, R.y + 2) : at(R.x + 4, R.plaqueY), inside = depts.filter(b => b.room === R.id);
-    if (inside.length === 1) want.set(`b:${inside[0].name}`, ['plaque', inside[0].name, ...top, R.color, R.w - 8, shownBranch(deptHead(inside[0].name)?.branch)]);
-    else want.set(`r:${R.id}`, [`plaque room${R.empty ? ' dim' : ''}`, nameOf(R.id), ...top, R.color, R.w - 8]);
+    // 39°: a sign over the room's door on the wall's hall face (centred on the doorway, its foot on the jambs)
+    const sign = view.mode === '39', top = sign ? at(hall().wx, R.doorOut.y - 8, JAMB_UP) : at(R.x + 4, R.plaqueY), inside = depts.filter(b => b.room === R.id);
+    const fit = (branch = '') => (sign ? [undefined, branch, SIGN_W, false, true] : [R.w - 8, branch]); // maxWidth, branch, width, up, wall
+    if (inside.length === 1) want.set(`b:${inside[0].name}`, ['plaque', inside[0].name, ...top, R.color, ...fit(shownBranch(deptHead(inside[0].name)?.branch))]);
+    else want.set(`r:${R.id}`, [`plaque room${R.empty ? ' dim' : ''}`, nameOf(R.id), ...top, R.color, ...fit()]);
   }
   if (strip() && !col) for (const b of blocks.filter(b => b.cell)) want.set(`r:${b.room}`, [`plaque room${b.empty ? ' dim' : ''}`, nameOf(b.room), ...place(b), b.roomColor, b.w - 4 + GAP - 4, '', undefined, true]);
   const u = strip() && usageText(); // the subscription's usage on a banner over the Magos
@@ -73,16 +80,16 @@ export function renderPlaques(blocks) {
     want.set('empty', ['empty', t('empty'), mx - (x1 - x0) / 2, my, undefined, undefined, '', x1 - x0]);
   }
   for (const [k, el] of plaques) if (!want.has(k)) { el.remove(); plaques.delete(k); }
-  for (const [k, [cls, text, x, y, color, maxWidth, branch = '', width, up]] of want) {
+  for (const [k, [cls, text, x, y, color, maxWidth, branch = '', width, up, wall]] of want) {
     let el = plaques.get(k);
     if (!el) {
       el = document.createElement('div'); el.className = cls; overlay.appendChild(el); plaques.set(k, el);
       if (k.startsWith('b:') && !REMOTE) { el.classList.add('open'); el.title = 'Open the folder'; el.onclick = () => openDept(k.slice(2)); }
     }
     if (k.startsWith('r:')) el.classList.toggle('dim', cls.endsWith(' dim')); // a room fills or empties under its plaque
-    const floor = k.startsWith('b:') && view.mode === '39' && !strip(); // in 39° a department's name lies on the floor (P39's floor axes)
+    const floor = !wall && k.startsWith('b:') && view.mode === '39' && !strip(); // in 39° a department's name lies on the floor (P39's floor axes)
     const css = { left: `${x * scale}px`, top: `${y * scale}px`, maxWidth: maxWidth ? `${maxWidth * scale}px` : '', borderColor: color ?? '', color: color ?? '',
-      width: width ? `${width * scale}px` : '', transform: up ? 'translateY(-100%)' : floor ? FLOOR39 : '', transformOrigin: floor ? '0 0' : '' };
+      width: width ? `${width * scale}px` : '', transform: wall ? WALL39 : up ? 'translateY(-100%)' : floor ? FLOOR39 : '', transformOrigin: floor || wall ? '0 0' : '', textAlign: wall ? 'center' : '' };
     if (el.dataset.text !== `${text}|${branch}`) {
       el.dataset.text = `${text}|${branch}`;
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;

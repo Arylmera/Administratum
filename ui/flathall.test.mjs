@@ -41,7 +41,7 @@ for (const id of ['tier2', 'vault']) {
 }
 // The west wing (O10c): a hall with three rooms (one row, two rows, one row), recorded once looked at on screen.
 const WING = [{ id: 'a', color: '#c8a040', rows: 1 }, { id: 'b', color: '#40a0c8', rows: 2 }, { id: 'c', color: '#a040c8', rows: 1, empty: true }];
-const FLAT_WING = { 'tier2 wing': '495247623bbd', 'vault wing': '041417c189ff' }; // the rooms down to the hall's bottom (2026-11-09)
+const FLAT_WING = { 'tier2 wing': '501a9d77d1e1', 'vault wing': '57adf0c60916' }; // the rooms down to the hall's bottom, the wing's back wall furnished (2026-11-09)
 for (const id of ['tier2', 'vault']) {
   setTheme(id);
   const cv = fakeCanvas();

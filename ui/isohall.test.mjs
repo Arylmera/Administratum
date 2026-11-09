@@ -126,7 +126,7 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // The west wing (O10c): recorded once looked at on screen.
 const GRID = {
   'tier2 346x248 day': 'a330330e82d5', 'tier2 554x728 night': 'feaec8359e26', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'c7632cda3462',
-  'tier2 492x504 day wing': '37dcc3f1193e', 'vault 492x504 day wing': '845b2ebbf0a5', // the rooms down to the hall's bottom (2026-11-09)
+  'tier2 492x504 day wing': '771318e09176', 'vault 492x504 day wing': '7603a4e8496c', // the rooms down to the hall's bottom, the wing's windows (2026-11-09)
 };
 const got = {};
 for (const id of ['tier2', 'vault']) {

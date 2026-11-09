@@ -13,6 +13,7 @@ import { aoBands } from './depth.js';
 import { T, rgb, blendInto } from './theme.js';
 
 const SLAB_Z = 8; // a cutaway inner wall: 4 logical px, walls down (the rooms behind stay in view)
+export const JAMB_UP = (SLAB_Z + 4) / 2; // a doorway jamb's top, logical px over the floor (wingPlan): a room's sign stands on it (overlay.js)
 const FOOT = 8; // the wall foot, art rows (flat: 4 logical px)
 const STRIP = Math.ceil(4 * VS39); // a 4-row floor strip (channel, sill) across v: 4 screen rows
 const WALL_V0 = 4; // props against the back wall stand in front of the pipe run (v 1..4)

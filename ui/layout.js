@@ -316,6 +316,8 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
   plan = plan.filter(p => p.emptySince == null || now - p.emptySince < deptG);
   plan.sort((p, q) => p.temp - q.temp); // stable: arrival order, the break-out room's departments last
   let level = prev?.level ?? 0, shrinkSince = prev?.shrinkSince ?? null;
+  // A hall lay (lay.hall: not the strip's) with no department in the open hall (all in wing rooms): the scriptorium narrows by the wing, so the wing fits the window
+  if (wing && lay.hall && zoned(plan).every(d => d.room)) size = { ...size, w: Math.max(SCENE.w, size.w - WING_X) };
   let L = lay(zoned(plan), { ...levelOpt(level), size, wing });
   if (L.overflow) { // capacity forces it: drop the waiting empties now
     plan = plan.filter(p => p.emptySince == null);
@@ -338,7 +340,7 @@ export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = lay
       shrinkSince = null;
     }
   }
-  return { ...L, plan, seq, level, shrinkSince, ...levelOpt(level) };
+  return { ...L, plan, seq, level, shrinkSince, size, ...levelOpt(level) }; // size: the scene's, for hallOf
 }
 
 // The break-out room's art contract (ui/art/breakout.*, ui/art/<theme>/breakout.*), art px: the floor tile; the rail,
@@ -467,3 +469,4 @@ export function lightLevel(mode, hour, auto = phaseOf(hour)) {
     beams: phase === 'day',
   };
 }
+layoutDepartments.hall = true; // planLayout may narrow its scene (an empty open hall beside the west wing)

@@ -68,15 +68,23 @@ export { WIN_Y, wallArt }; // re-exported from ./wallart.js: layout.test.mjs sti
 // top at y 10) is listed as the HANGING (13 px) centred on it; drawStatic puts the banner back for a theme without
 // tall hangings (wallArt).
 const asHanging = x => ['HANGING', x - 0.5, HANG_Y];
+// The west wing's back wall (its first room's, layout.js wingHall): two windows, a shelf alcove (the second shelf
+// design) and a hanging between them, all west of the room's corridor (WING_CX).
+const wingFurniture = ({ rooms }) => (rooms.length ? {
+  props: [['SHELF', 34, 19 + WALL_DY, 1], ['PAPER_STACK', 38, 8 + WALL_DY], ['BOOKS', 48, 11 + WALL_DY], ['PAPER_STACK', 58, 9 + WALL_DY], asHanging(80)],
+  windows: [10, 98],
+} : { props: [], windows: [] });
 const furnished = new Map();
 export function propsOf(hall) {
   const key = hall.key ?? `${hall.w}x${hall.baseH}:${hall.bays}`;
   let F = furnished.get(key);
   if (F) return F;
   if (furnished.size > 8) furnished.clear();
-  if (hall.wx) { // a west wing (layout.js hallOf): the hall's own, moved east with the scriptorium; the wing has no props
-    const B = propsOf(hall.base), X = hall.wx;
-    F = { props: B.props.map(([name, x, ...more]) => [name, x + X, ...more]), windows: B.windows.map(x => x + X), channels: B.channels.map(x => x + X) };
+  if (hall.wx) { // a west wing (layout.js hallOf): the hall's own, moved east with the scriptorium, then the wing's back
+    // wall (its first room's): two windows, a shelf alcove and a hanging between them, west of the room's corridor
+    const B = propsOf(hall.base), X = hall.wx, W = wingFurniture(hall);
+    F = { props: B.props.map(([name, x, ...more]) => [name, x + X, ...more]), // the wing's props: drawWing (flat view only)
+      windows: [...B.windows.map(x => x + X), ...W.windows], channels: B.channels.map(x => x + X) };
     furnished.set(key, F);
     return F;
   }
@@ -118,7 +126,7 @@ export const STANDING = new Set(['SHELF', 'SHELF_B', 'CRATE', 'BRAZIER', 'THRONE
 // sanctum split..baseH); bays (dy) extend the scriptorium below baseH, the right column then gets a plain wall.
 // A west wing (layout.js hallOf wx): the hall without it, moved east, then the wing (drawWing).
 export function drawStatic(g, daylight, hall = hallOf(0)) {
-  if (hall.wx) { g.save(); g.translate(hall.wx, 0); drawStatic(g, daylight, hall.base); g.restore(); drawWing(g, hall); return; }
+  if (hall.wx) { g.save(); g.translate(hall.wx, 0); drawStatic(g, daylight, hall.base); g.restore(); drawWing(g, hall, daylight); return; }
   const { w, h, sw, rx, ox, dx, sd, sb, hy, split, baseH } = hall, ex = sw - 200, D = WALL_DY;
   const { props, windows, channels } = propsOf(hall);
   const d0 = 150 + sd, d1 = 186 + sd; // the sanctum's door in the east wall
@@ -181,7 +189,7 @@ export function drawStatic(g, daylight, hall = hallOf(0)) {
 // each further room's top wall the refectorium/sanctum divider (dark wall), the last room down to the hall's bottom
 // (dark wall and plates only while no room is drawn); the scriptorium's west wall as its east wall (dark, a pipe down
 // it), the doors drawn over it each frame (drawDoors). The rule's colour is the dynamic layer's (zoneFloor).
-function drawWing(g, { wx, h, rooms }) {
+function drawWing(g, { wx, h, rooms }, daylight) {
   const W = WING_W, last = rooms.at(-1), end = last ? last.y + last.h : WALL;
   tile(g, 'wall east', 0, 0, W, WALL); tile(g, 'wall foot', 0, WALL - 4, W, 4); tile(g, 'pipe h', 0, 4, W);
   for (const R of rooms) {
@@ -191,6 +199,14 @@ function drawWing(g, { wx, h, rooms }) {
   if (h > end) tile(g, 'wall dark', 0, end, W, Math.min(WING_DIV, h - end));
   if (h > end + WING_DIV) tile(g, 'wall', 0, end + WING_DIV, W, h - end - WING_DIV);
   tile(g, 'wall dark', wx - 8, 0, 8, h); tile(g, 'pipe v', wx - 5, 0, 3, h);
+  const { props, windows } = wingFurniture({ rooms }), art = wallArt();
+  windows.forEach(x => blit(g, art.win, x + art.winDx, WIN_Y, daylight ? I.windowDay : I.windowNight));
+  const named = props.map(([name, x, y, alt]) => [alt && name === 'SHELF' ? art.shelfB : name, x, y, alt]);
+  for (const [name, x, y] of named) if (STANDING.has(name)) contactShadow(g, shadowOf(MAPS[name], x, y), daylight ? 0.5 : 0.3);
+  for (const [name, x, y] of named) {
+    if (name === 'HANGING' && !art.tallHang) blit(g, MAPS.BANNER, x + 0.5, 10);
+    else blit(g, MAPS[name], x, y);
+  }
 }
 
 // A bay's seam (y: its first slot row's top, minus 2): a brass-edged iron sill across the floor between two

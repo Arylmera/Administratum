@@ -181,7 +181,7 @@ addEventListener('resize', () => {
 initViewport({ canvas, overlay, scene, iso, strip, at, relayout, setMouse: e => { mouse = e; } }); // scroll, drag-to-pan, double-click, arrow keys (viewport.js)
 // A new scene size: lay the hall out again (desks glide, scribes walk, the right rooms move with their actors).
 function relayout() {
-  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, size, layout.wing);
+  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays ?? 0, layout.size ?? size, layout.wing);
   onRoster(pending ?? roster);
 }
 
@@ -287,7 +287,7 @@ let roster = [];
 initCard({ cast, roster: () => roster });
 const colorOf = dept => T.sash[deptOrder.indexOf(dept) % T.sash.length];
 
-const layIso = (plan, o) => layoutDepartments(plan, { ...o, clearCog: true });
+const layIso = Object.assign((plan, o) => layoutDepartments(plan, { ...o, clearCog: true }), { hall: true });
 // A department's custom room (Settings > Rooms; each session's `room`, rooms.rs): the earliest rule among its sessions'
 // rooms; none once any of its sessions is a temp one (the break-out room wins).
 function roomOfDept(name) {
@@ -307,7 +307,7 @@ function onRoster(next) {
   // the column has no rooms yet: a room's departments are ordinary floors there
   const wx0 = hall.wx ?? 0, centre = column() || strip() ? null : centreFloor(viewMode.mode); // the view's floor point, before the wing comes or goes
   layout = planLayout(layout, depts, Date.now(), GRACE, size, column() ? layColumn : strip() ? layoutStrip : iso() ? layIso : layoutDepartments, column() ? [] : rooms.list);
-  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays, size, layout.wing); // the west wing's rooms (O10c)
+  hall = column() ? columnHall(layout.floors) : strip() ? stripOf(size.w) : hallOf(layout.bays, layout.size, layout.wing); // the west wing's rooms (O10c)
   // the west wing came or went: the scriptorium moved by its width, the view stays on the same floor point of it
   if (centre && (hall.wx ?? 0) !== wx0) fit([centre[0] + (hall.wx ?? 0) - wx0, centre[1]]);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
