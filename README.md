@@ -266,7 +266,7 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
 
 ![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
-Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111, Darwin)
+Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111, Darwin, Breaking Bad)
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
 banners in the Warhammer themes, each other world its own design), in both views. The remote view keeps its own View.
 
@@ -415,8 +415,8 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Setting | Default | Effect |
 |---|---|---|
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
-| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
-| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
+| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin, Breaking Bad. Each world outside 40k has its own art |
+| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin. Breaking Bad: Breaking Bad |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
