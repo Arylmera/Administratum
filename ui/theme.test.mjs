@@ -136,4 +136,33 @@ for (const k of ['summoned', 'summonedBy', 'lineage']) assert.ok(THEMES.breaking
 // Gale's coat trim shows his rank: never the outline colour
 for (const r of ['high', 'standard', 'novice']) assert.notEqual(T.rank[r].adept.J, T.px.k, `breakingbad: ${r} Gale's trim is not the outline`);
 setTheme('tier2');
+
+// Chrome contrast (WCAG ratio), every theme: each foreground the page draws over a fill (index.html), text >= 4.5,
+// icons and borders >= 3. A theme's ui over index.html's :root, var() resolved.
+{
+  const css = html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {')));
+  const ROOT = Object.fromEntries([...css.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
+  const lum = c => { const v = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16) / 255).map(u => (u <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const PAIRS = [ // [foreground, fill, minimum, where]
+    ['--light', '--bar', 4.5, '.count.ask, #quiet'], ['--light', '--edge', 3, '#vigil armed'], ['--light', '--label', 4.5, '.edge'],
+    ['--light', '--leather', 4.5, 'card and settings buttons'], ['--on-blood', '--blood', 4.5, 'Chronicon tab'], ['--ink-on-blood', '--blood', 4.5, '.lbl.stale'],
+    ['--flame', '--bar', 4.5, '.count.link'], ['--flame', '--wax', 4.5, '.count.alarm'], ['--flame', '--label', 4.5, '.edge.alarm, .lbl.stuck border'],
+    ['--pink', '--bar', 4.5, '.count.on'], ['--pink', '--bg', 4.5, 'pink on the page'], ['--pink', '--label', 4.5, '.lbl .sub'],
+    ['--dim', '--bar', 4.5, '.motto, .count'], ['--ink', '--label', 4.5, '.lbl'], ['--green', '--label-btn', 4.5, '.lbl .ans button'],
+  ];
+  // Known shortfalls in themes this check found already shipped: each must still fail, so fixing one forces its removal here.
+  const KNOWN = new Set(['night --dim/--bar', 'cyber --dim/--bar', 'synth --dim/--bar', 'orbital --flame/--wax', 'matrix --flame/--wax', 'tower --flame/--wax', 'vault --flame/--wax']);
+  const seenKnown = new Set();
+  for (const id of Object.keys(THEMES)) {
+    const ui = { ...ROOT, ...resolve(THEMES[id]).ui };
+    const val = k => { let v = ui[k]; for (let i = 0; i < 4 && v?.startsWith('var('); i++) v = ui[v.slice(4, -1).trim()]; return v; };
+    for (const [f, b, min, where] of PAIRS) {
+      const r = ratio(val(f), val(b)), key = `${id} ${f}/${b}`;
+      if (KNOWN.has(key)) { seenKnown.add(key); assert.ok(r < min, `${key} now passes (${r.toFixed(2)}): drop it from KNOWN`); }
+      else assert.ok(r >= min, `${id}: ${f} on ${b} (${where}) contrast ${r.toFixed(2)} < ${min}`);
+    }
+  }
+  assert.deepEqual([...seenKnown].sort(), [...KNOWN].sort(), 'every KNOWN shortfall names a real theme and pair');
+}
 console.log('theme ok');

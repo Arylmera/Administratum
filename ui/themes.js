@@ -572,15 +572,18 @@ defineTheme({
   light: { amber: 'rgba(255,240,200,.06)', green: 'rgba(95,158,90,.06)', red: 'rgba(224,58,42,.12)', lampOn: 'rgba(255,250,235,.15)',
     glint: 'rgba(255,255,255,.6)', spark: 'rgba(207,233,255,.8)', night: '20,24,32', beam: '255,250,235' },
   ui: {
-    '--bg': '#e9edf0', '--bar': '#dfe4e7', '--ink': '#26282b', '--dim': '#6b767c', '--light': '#ffffff', '--edge': '#c7d0d4', '--btn': '#f4f6f7',
-    '--copper': BB.green, '--outline': BB.k, '--bone': '#f4f6f7', '--iron': BB.steel, '--green': BB.green,
-    '--red': '#d0452f', '--pink': '#e07a5f', '--blood': '#8a2a1e', '--glow': BB.yellow, '--wax': BB.green, '--wax-deep': '#3f6e3b',
-    '--alarm': '#e03a2a', '--flame': '#cfe9ff', '--label': '#26282b', '--label-sel': '#3a3d42', '--label-btn': '#2f3a40', '--plaque': '#dfe4e7',
+    // light chrome: the "light" foregrounds (--light, --flame) are dark here, so what sits under them is light too
+    // (labels, leather buttons); text on --blood reads --on-blood
+    '--bg': '#e9edf0', '--bar': '#dfe4e7', '--ink': '#26282b', '--dim': '#525b60', '--light': '#26282b', '--edge': '#c7d0d4', '--btn': '#f4f6f7',
+    '--copper': BB.green, '--outline': BB.k, '--bone': '#f4f6f7', '--iron': BB.steel, '--green': '#3f6e3b',
+    '--red': '#d0452f', '--pink': '#a63a24', '--blood': '#8a2a1e', '--glow': BB.yellow, '--wax': BB.green, '--wax-deep': '#3f6e3b',
+    '--alarm': '#e03a2a', '--flame': '#0b2540', '--label': '#ffffff', '--label-sel': '#cfe9ff', '--label-btn': '#f4f6f7', '--plaque': '#dfe4e7',
+    '--on-blood': '#ffffff', '--ink-on-blood': '#ffffff',
     '--yes': BB.green, '--yes-deep': '#3f6e3b',
     // white lab sheets, the Br Ba green as the accent
     '--card': '#ffffff', '--paper': '#ffffff', '--paper-edge': '#c7d0d4', '--paper-hi': '#ffffff', '--paper-tab': '#f4f6f7', '--paper-q': '#f8fafb',
     '--paper-shade': '#dfe4e7', '--paper-line': '#c7d0d4', '--paper-ink': BB.k, '--paper-ink-2': '#3a3d42', '--paper-ink-3': '#6b767c',
-    '--paper-err': '#d0452f', '--leather': '#3a3d42', '--leather-deep': '#26282b', '--chart-new': BB.green, '--chart-cache': BB.blue,
+    '--paper-err': '#d0452f', '--leather': '#c7d0d4', '--leather-deep': '#9aa6ac', '--chart-new': BB.green, '--chart-cache': BB.blue,
     '--rod-hi': '#ffffff', '--rod': BB.steel, '--rod-lo': BB.steelDark, '--rod-edge': BB.k, '--rod-cap': '#ffffff',
     '--display': "'VT323', monospace", '--paper-accent': BB.green,
   },

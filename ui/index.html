@@ -26,6 +26,8 @@
     --bg: #060404; --bar: #120d0a; --ink: #d6c79f; --dim: #8a7a5c; --light: #f3e6c4; --edge: #3a2a1e; --btn: #1a120e; --copper: #b8742e; --outline: #0e0a08; --bone: #cfc3a8; --iron: #6a6f76; --green: #7cff9e;
     /* petitions and alarms */
     --red: #a0221a; --pink: #ff7a66; --blood: #4e110c; --glow: #be281c; --wax: #8e1c16; --wax-deep: #3a0d09; --alarm: #ff3a20; --flame: #ffe6a0;
+    /* text on a --blood fill (a light-chrome theme's --light is dark, its --blood stays dark: paper text) */
+    --on-blood: var(--light); --ink-on-blood: var(--ink);
     /* labels over the scene */
     --label: #1e0a08; --label-sel: #3a1410; --label-btn: #2a0d0a; --plaque: #140d09; --yes: #2e6b47; --yes-deep: #16301f;
     /* parchment: the card, the Chronicon, Settings */
@@ -98,8 +100,8 @@
   #overlay { position: absolute; inset: 0; pointer-events: none; }
   .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: var(--label); border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
   .lbl.below { transform: translate(-50%, 0); }
-  .lbl.stale { border-color: var(--alarm); background: var(--blood); }
-  .lbl.risky { border-color: var(--alarm); background: var(--blood); } .lbl.risky .sub { color: var(--ink); font-weight: bold; }
+  .lbl.stale { border-color: var(--alarm); background: var(--blood); color: var(--ink-on-blood); }
+  .lbl.risky { border-color: var(--alarm); background: var(--blood); color: var(--ink-on-blood); } .lbl.risky .sub { color: var(--ink-on-blood); font-weight: bold; }
   .lbl.sel { border-color: var(--green); background: var(--label-sel); }
   .lbl .sub { color: var(--pink); }
   /* A question at the end of a turn: parchment, not the red petition. */
@@ -193,13 +195,13 @@
   #chron .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: 2px; color: var(--blood); font: inherit; cursor: pointer; }
   /* Parchment ink is explicit everywhere: nothing on the sheet inherits the page's light --ink. */
   #chron .sheet, #chron .legend, #chron .row, #chron .row .n, #chron .stat, #chron .events li, #chron .events .who, #chron .events .d { color: var(--pk); }
-  #chron .close:hover { background: var(--blood); color: var(--light); }
+  #chron .close:hover { background: var(--blood); color: var(--on-blood); }
   #chron .events li:hover, #chron .row:hover { background: color-mix(in srgb, var(--leather) 12%, transparent); }
   #chron .tabs { flex: none; display: flex; gap: .25em; padding: 0 .9em; border-bottom: 2px solid var(--paper-line); overflow-x: auto; scrollbar-width: none; }
   #chron .tabs button { flex: none; padding: .25em .6em; background: var(--paper-tab); border: 1px solid var(--paper-line); border-bottom: none; border-radius: 2px 2px 0 0; color: var(--pm); font: inherit; cursor: pointer; }
   #chron .tabs button.none { background: transparent; border-style: dashed; color: var(--pm); }
   #chron .tabs button:hover { background: var(--paper-hi); color: var(--pk); }
-  #chron .tabs button[aria-selected="true"] { background: var(--blood); color: var(--light); border-color: var(--blood); }
+  #chron .tabs button[aria-selected="true"] { background: var(--blood); color: var(--on-blood); border-color: var(--blood); }
   #chron button:focus-visible, #chron select:focus-visible { outline: 2px solid var(--blood); outline-offset: 1px; }
   #chron .body { flex: 1; min-height: 0; overflow-y: auto; padding: .6em .9em .9em; scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; font-variant-numeric: tabular-nums; user-select: text; }
   #chron h3 { margin: 0 0 .3em; font-size: .85em; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
