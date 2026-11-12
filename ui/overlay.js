@@ -141,8 +141,9 @@ function syncHonours() {
   const [px, py] = p, fields = [A.title, A.row0, A.row1, A.row2, A.row3], name = t('honours.title').length;
   fields.forEach(([fx, fy, fw, fh], i) => {
     const [cx, cy] = at(px + fx + fw / 2, py + fy + fh / 2), size = i ? fh / 2.3 : Math.min(fh / 1.5, fw / (0.62 * name));
+    // in 39° the back wall rises 1 px every 3 (iso.js P39): the text sheared the same, so each line lies along its field
     setStyle(board.children[i], { left: `${cx * scale}px`, top: `${cy * scale}px`, width: `${fw * scale}px`, height: `${fh * scale}px`,
-      fontSize: `${(size * scale).toFixed(2)}px` });
+      fontSize: `${(size * scale).toFixed(2)}px`, transform: view.mode === '39' ? 'translate(-50%, -50%) matrix(1, 0.3333, 0, 1, 0, 0)' : '' });
   });
 }
 
