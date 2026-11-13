@@ -23,7 +23,7 @@ import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
 import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
 import { rooms } from './rooms.js';
-import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale } from './stripwin.js';
+import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale, colHeight } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
@@ -115,7 +115,7 @@ function toggleVigil() {
 vigilBtn.onclick = toggleVigil;
 renderVigil();
 
-initStripWin({ actorAt, fromStrip: stripKind(saved), toggleVigil });
+initStripWin({ actorAt, actorRects, fromStrip: stripKind(saved), toggleVigil });
 // The hall's floor point at its view centre, kept through a stay in the strip (the strip's view says nothing of it).
 // Leaving, the window is still strip-sized until place_hall lands: the first hall resize after (refloor) centres
 // on it again, the strip-sized fit in between having clamped it.
@@ -314,7 +314,7 @@ function onRoster(next) {
   // the column: a petitioner from a hidden floor still queues in the Sanctum (the petition is what the column is for)
   cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id) || (column() && (s.status === 'waiting' || isQuestion(s)))), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
   // settled once the window is the column (the layout made while it is still the hall's window would place them wrong)
-  if (settleNext && column() && (!tauri() || columnPlaced(size.h, screen.availHeight, colScale()))) { settleNext = false; cast.settle(); }
+  if (settleNext && column() && (!tauri() || columnPlaced(size.h, colHeight(), colScale()))) { settleNext = false; cast.settle(); }
   const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;
   const count = document.getElementById('count');
   const qs = t('questions', { n: nq });
@@ -357,6 +357,16 @@ function actorAt(e) {
     if (!a.leaving && Math.abs(px - a.x) <= hw && py >= a.y - ht && py <= a.y + 1 && (!best || a.y >= best.y)) best = a;
   }
   return best;
+}
+// The cast's rects in window CSS px, as actorAt tests them (the flat projection: the strip and the column).
+function actorRects() {
+  const r = canvas.getBoundingClientRect(), out = [];
+  for (const a of cast.actors.values()) {
+    if (a.leaving) continue;
+    const hw = (a.h ? 6 : 8) + 1, ht = (a.h ? 14 : 17) + 1;
+    out.push([r.left + (a.x - hw) * scale, r.top + (a.y - ht) * scale, r.left + (a.x + hw) * scale, r.top + (a.y + 1) * scale]);
+  }
+  return out;
 }
 canvas.onclick = e => {
   if (dragged) { setDragged(false); return; } // the end of a pan, not a click

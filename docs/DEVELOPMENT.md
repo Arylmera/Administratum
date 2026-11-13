@@ -39,7 +39,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `rooms.rs` | Custom rooms: `adm.rooms` rules (glob or `re:` regex, first match wins) compiled at setup and after each `settings_save`; `assign` sets each session's `room` once per tick after the roster merge (never for a temp session); `rooms_test` checks a pattern for the Settings tab |
 | `remote/` | The LAN remote view. `mod.rs` the HTTP server, pairing token and policy, with no Tauri in it; `app.rs` its settings, the backend it calls and the settings panel's commands (remote view, firewall rule). Its API: [remote-api.md](remote-api.md) |
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
-| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, or as the desktop column on a screen edge (`Shape`: `Bar` or `Column`, `place_strip` / `place_column`, `column_rect`; the watcher replays the last shape each second), click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s). None on Linux: Wayland lets no window place itself, so `strip_supported` is false and Settings removes the strip and the column (WebKitGTK's list shows a hidden option) |
+| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, or as the desktop column on a screen edge (`Shape`: `Bar` or `Column`, `place_strip` / `place_column`, `column_rect`; the watcher replays the last shape each second), click-through. OS calls in `windows.rs`, `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) and `linux.rs`. Linux: Wayland lets no window place itself, so the strip is a second window, `strip`, in a wlr-layer-shell surface (gtk-layer-shell) the compositor anchors to the edge; a shown window cannot become a layer surface, so entering opens `strip` and closes `main`, leaving does the reverse, and the UI starts again in its saved view. tao's fixed window size is freed before the window is shown, or the surface stays black. The UI's sizes and rects are CSS px, turned into GTK px there (WebKitGTK scales its pages by the font DPI over 96). No cursor poll there: `set_click_through` answers true and the UI sends the rects that take clicks (`set_strip_hits`, every 200 ms while they change), which become the surface's input region. `strip_supported` is true only where `gtk_layer_shell::is_supported()` is (not GNOME, not X11): elsewhere Settings removes the strip and the column (WebKitGTK's list shows a hidden option) |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
 | `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown) and `report_day` (armed before 04:00: the day before); `app.rs` arming, its tick, toast and Chronicon events, the day report capture on arm and on fire, the shutdown itself |
 
@@ -93,7 +93,7 @@ do not know which.
 
 Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --version "^2"`). On Linux, also the Tauri
 system libraries: on Debian or Ubuntu the `apt-get install` line of `.github/workflows/check.yml`, on Arch
-`webkit2gtk-4.1 libayatana-appindicator librsvg xdotool openssl`.
+`webkit2gtk-4.1 libayatana-appindicator librsvg xdotool openssl gtk-layer-shell`.
 
 ```sh
 cd src-tauri
@@ -272,7 +272,7 @@ can no longer update), its contents in the repository secret `TAURI_SIGNING_PRIV
 src-tauri/            Rust backend, tauri.conf.json, capabilities, icons, NSIS hooks
   src/                main, poller, chronicle, remote, firewall, settings, toast, quiet, git, demo
   src/registry/       pure parsing of Claude Code's session files and transcripts
-  src/strip/          the desktop strip window (OS calls in windows.rs, macos.rs)
+  src/strip/          the desktop strip window (OS calls in windows.rs, macos.rs, linux.rs)
 ui/                   the frontend, served as-is (ES modules, no build) + its *.test.mjs checks
   art/                sprite sheets (PNG + JSON) in the key palette; ui/art/<theme>/ for a theme's own art
   fonts/              bundled WOFF2 fonts and their OFL licences

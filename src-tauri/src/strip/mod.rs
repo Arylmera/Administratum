@@ -1,12 +1,16 @@
-//! The desktop strip: a thin transparent window on the taskbar (Windows) or above the Dock (macOS). The OS calls
-//! live in one file per OS: windows.rs, macos.rs.
+//! The desktop strip: a thin transparent window on the taskbar (Windows), above the Dock (macOS) or in a layer
+//! surface on the bottom edge (Linux, Wayland). The OS calls live in one file per OS: windows.rs, macos.rs, linux.rs.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+#[cfg(target_os = "linux")]
+mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(windows)]
 mod windows;
+#[cfg(target_os = "linux")]
+use self::linux as os;
 #[cfg(target_os = "macos")]
 use self::macos as os;
 #[cfg(windows)]
@@ -146,8 +150,17 @@ pub struct HallRect {
     pub h: u32,
 }
 
+/// Linux: ask once whether the compositor can hold the strip (setup, main thread; linux.rs).
+#[cfg(target_os = "linux")]
+pub fn init() {
+    os::init();
+}
+
 #[tauri::command]
 pub fn strip_supported() -> bool {
+    #[cfg(target_os = "linux")]
+    return os::supported(); // only where the compositor has wlr-layer-shell (linux.rs)
+    #[cfg(not(target_os = "linux"))]
     cfg!(any(windows, target_os = "macos"))
 }
 
@@ -186,6 +199,10 @@ pub fn place_column(window: tauri::WebviewWindow, width: f64, side: Side) -> Res
 /// Into the strip window as `shape`: the hall's rect the first time (kept by the UI for the way back), `None` while
 /// the strip window is already on (a resize, or the bar <-> column switch: never leave then enter).
 fn enter(window: &tauri::WebviewWindow, shape: Shape) -> Result<Option<HallRect>, String> {
+    #[cfg(target_os = "linux")]
+    if os::supported() {
+        return os::enter(window, shape); // a window of its own, in a layer surface
+    }
     // ON only once the strip is placed: a failure below leaves the hall's state (and its rect, captured
     // again on the next try) as it was.
     let hall = if ON.load(Ordering::SeqCst) {
@@ -216,6 +233,10 @@ fn enter(window: &tauri::WebviewWindow, shape: Shape) -> Result<Option<HallRect>
 
 #[tauri::command]
 pub fn place_hall(window: tauri::WebviewWindow, rect: Option<HallRect>) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if window.label() == os::LABEL {
+        return os::leave(&window); // the hall's own window comes back, this one closes
+    }
     // Safe against the watcher re-placing the strip over this: it only touches the window from
     // the main thread (run_on_main_thread), same as the set_size/set_position below, so whichever
     // of the two runs first on that single thread finishes before the other can start.
@@ -242,9 +263,28 @@ pub fn set_strip_menu(item: tauri::State<StripItem>, on: bool) -> Result<(), Str
     item.0.set_checked(on).map_err(|e| e.to_string())
 }
 
+/// The strip ignores the cursor (`on`) or takes it. Answers true where the window cannot do that from the cursor's
+/// place (Linux: under Wayland nobody tells a window where the cursor is outside it): the UI then sends the places
+/// that take clicks instead (`set_strip_hits`).
 #[tauri::command]
-pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<(), String> {
-    window.set_ignore_cursor_events(on).map_err(|e| e.to_string())
+pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<bool, String> {
+    #[cfg(target_os = "linux")]
+    if window.label() == os::LABEL {
+        return Ok(true);
+    }
+    window.set_ignore_cursor_events(on).map(|()| false).map_err(|e| e.to_string())
+}
+
+/// The strip's places that take clicks, `[left, top, right, bottom]` in window CSS px: everywhere else the clicks
+/// go to what is under the strip (Linux: the layer surface's input region; elsewhere the cursor poll does it).
+#[tauri::command]
+pub fn set_strip_hits(window: tauri::WebviewWindow, rects: Vec<[f64; 4]>) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if window.label() == os::LABEL {
+        return os::set_hits(&window, rects);
+    }
+    let _ = (window, rects);
+    Ok(())
 }
 
 /// Prints `msg` through `slot` unless it is the same text as last time through that same slot (a

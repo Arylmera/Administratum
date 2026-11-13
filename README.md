@@ -182,9 +182,12 @@ from Windows:
   An older Hyprland takes the same rules (float, pin, size, move) in its `hyprland.conf` syntax, see Hyprland's
   [window rules](https://wiki.hypr.land/configuring/core/rules/window-rules/). The header still drags the window and
   its edges resize it. *Always on top* is not offered under Wayland; in an X11 session it is, as on Windows.
-- **Desktop strip and column**: not available. Wayland lets no window place itself on a screen edge; only
-  layer-shell surfaces (bars, docks) may, and WebKitGTK draws nothing in one (tried with gtk-layer-shell on
-  Hyprland). Settings offers neither and the tray item stays greyed.
+- **Desktop strip and column**: on compositors with layer-shell (Hyprland, Sway, KDE Plasma; built and run on
+  Hyprland). Wayland lets no window place itself on a screen edge, so the strip is a layer surface, as bars and
+  docks are: it lies over the bottom of the screen (the column over a side), above the windows, on the monitor the
+  hall was on, and clicks between the characters go to the window under it. Switching between the hall and the
+  strip opens one window and closes the other, so the cast walks in again. On GNOME and in an X11 session there is
+  no layer-shell: Settings offers neither and the tray item stays greyed.
 - **Tray**: on Omarchy the icon sits in the bar's tray drawer, behind the `<`; pin it there to keep it in view.
   Launching Administratum again also brings a hidden window back.
 

@@ -267,7 +267,7 @@ fn main() {
         // First: a second launch just raises the running window, then exits.
         .plugin(tauri_plugin_single_instance::init(|app, _, _| window::reveal(app)))
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_window_state::Builder::default().with_denylist(&["strip"]).build()) // the strip's window (Linux): the compositor places it
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
@@ -312,6 +312,7 @@ fn main() {
             strip::place_column,
             strip::place_hall,
             strip::set_click_through,
+            strip::set_strip_hits,
             strip::set_strip_menu,
             window::on_top_supported,
             window::set_chime_menu
@@ -321,6 +322,8 @@ fn main() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
+            #[cfg(target_os = "linux")]
+            strip::init(); // before build_tray: the tray's strip item asks strip_supported
             window::build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
             let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });

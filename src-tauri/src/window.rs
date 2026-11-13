@@ -77,9 +77,14 @@ fn seen(w: &tauri::WebviewWindow) -> bool {
     return w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false);
 }
 
+/// The app's window: the hall's `main`, or on Linux the strip's own window while the strip is on (strip/linux.rs).
+fn current(app: &AppHandle) -> Option<tauri::WebviewWindow> {
+    app.get_webview_window("main").or_else(|| app.get_webview_window("strip"))
+}
+
 /// Bring the main window to the front: un-minimise, show, focus. Also what a second launch does.
 pub fn reveal(app: &AppHandle) {
-    if let Some(w) = app.get_webview_window("main") {
+    if let Some(w) = current(app) {
         let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
@@ -89,7 +94,7 @@ pub fn reveal(app: &AppHandle) {
 
 /// Tray "Show / hide": hide only a window the user can see; a minimised or covered one comes to the front.
 fn toggle_window(app: &AppHandle) {
-    match app.get_webview_window("main") {
+    match current(app) {
         Some(w) if seen(&w) => {
             let _ = w.hide();
             let _ = app.emit("visible", false);
@@ -112,7 +117,7 @@ pub fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show / hide", true, None::<&str>)?;
     let mute = CheckMenuItem::with_id(app, "mute", "Chime", true, true, None::<&str>)?; // the UI sets it (set_chime_menu)
     let light = MenuItem::with_id(app, "light", "Cycle lighting", true, None::<&str>)?;
-    let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", cfg!(any(windows, target_os = "macos")), false, None::<&str>)?;
+    let strip = CheckMenuItem::with_id(app, "strip", "Desktop strip", strip::strip_supported(), false, None::<&str>)?;
     let login_on = app.autolaunch().is_enabled().unwrap_or(false);
     let login = CheckMenuItem::with_id(app, "login", "Start at login", true, login_on, None::<&str>)?;
     let vigil = CheckMenuItem::with_id(app, "vigil", "Night Vigil", true, false, None::<&str>)?;
