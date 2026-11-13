@@ -87,7 +87,8 @@ fn open(app: &tauri::AppHandle, hall: &tauri::WebviewWindow, shape: Shape, base:
         .build()
         .map_err(|e| e.to_string())?;
     let gw = w.gtk_window().map_err(|e| e.to_string())?;
-    gw.init_layer_shell(); // before the window is realized
+    // Before the window is realized.
+    gw.init_layer_shell();
     // tao gives its window a fixed size; GTK then cannot take the size the layer is configured with, and nothing is
     // painted. Freed here, before the window is shown.
     gw.set_resizable(true);
@@ -134,9 +135,13 @@ pub fn leave(window: &tauri::WebviewWindow) -> Result<(), String> {
     let app = window.app_handle().clone();
     let (app2, w) = (app.clone(), window.clone());
     app.run_on_main_thread(move || {
-        let made = app2.config().app.windows.first().ok_or("no window in tauri.conf.json".to_string()).and_then(|c| {
-            tauri::WebviewWindowBuilder::from_config(&app2, c).and_then(|b| b.build()).map_err(|e| e.to_string())
-        });
+        let made = app2
+            .config()
+            .app
+            .windows
+            .first()
+            .ok_or("no window in tauri.conf.json".to_string())
+            .and_then(|c| tauri::WebviewWindowBuilder::from_config(&app2, c).and_then(|b| b.build()).map_err(|e| e.to_string()));
         match made {
             Ok(_) => {
                 let _ = w.destroy();
