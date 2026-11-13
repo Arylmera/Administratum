@@ -125,13 +125,11 @@ pub fn answer_petition(handle: String, choice: String) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     /// Linux: `orca` is GNOME's screen reader, which would start on any arguments.
     #[cfg(not(any(windows, target_os = "macos")))]
     #[test]
     fn linux_never_runs_the_screen_reader() {
-        let c = candidates();
+        let c = super::candidates();
         assert_eq!(c[0], "orca-ide");
         assert!(c.iter().all(|e| e.ends_with("orca-ide")), "{c:?}");
     }
