@@ -185,7 +185,8 @@ from Windows:
 - **Desktop strip and column**: on compositors with layer-shell (Hyprland, Sway, KDE Plasma; built and run on
   Hyprland). Wayland lets no window place itself on a screen edge, so the strip is a layer surface, as bars and
   docks are: it lies over the bottom of the screen (the column over a side), above the windows, on the monitor the
-  hall was on, and clicks between the characters go to the window under it. Switching between the hall and the
+  hall was on, and clicks between the characters go to the window under it. Settings → **Keep windows off the
+  strip** makes the compositor keep that edge free instead. Switching between the hall and the
   strip opens one window and closes the other, so the cast walks in again. On GNOME and in an X11 session there is
   no layer-shell: Settings offers neither and the tray item stays greyed.
 - **Tray**: on Omarchy the icon sits in the bar's tray drawer, behind the `<`; pin it there to keep it in view.
@@ -487,6 +488,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
 | Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3, or its − / + buttons, a quarter step per click) sets it, and a hall larger than the window pans |
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
+| Keep windows off the strip *(strip only, Linux)* | off | The strip takes its edge of the screen for itself and the other windows stop short of it, as they do for a bar (an open panel still lies over them); off, it lies over them |
 | Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
 | Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 

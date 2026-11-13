@@ -54,7 +54,8 @@ let bootStrip; // started in the strip: the window's rect is the last session's 
 // The column: its CSS width on its side (place_column); the bar: its CSS height (place_strip). Between the two the
 // window stays the strip's (the backend's ON): no hall rect comes back, adm.hallRect keeps the hall's.
 async function placeStrip(css) {
-  const r = await invoke(viewMode.column ? 'place_column' : 'place_strip', viewMode.column ? { width: css, side: settings.stripSide } : { height: css });
+  // base: its size with no panel open (what Linux keeps the other windows off, Settings' Keep windows off the strip)
+  const r = await invoke(viewMode.column ? 'place_column' : 'place_strip', viewMode.column ? { width: css, side: settings.stripSide, base: baseCss() } : { height: css, base: baseCss() });
   if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
   bootStrip = false;
   return r;

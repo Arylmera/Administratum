@@ -254,7 +254,8 @@ assert.equal(field('reportDir').value, '');
 assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disabled);
 
 // The desktop column's window (stripwin.js growStrip): placed by kind and side, a side change re-placed even with a
-// panel open (its key holds the side), the panels widening it, the handle's menu (inside the column) never.
+// panel open (its key holds the side), the panels widening it, the handle's menu (inside the column) never. base: its
+// width with no panel open, whatever is open.
 {
   const { setView } = await import('./view.js');
   const { growStrip } = await import('./stripwin.js');
@@ -267,15 +268,15 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   const places = () => invoked('place_column').map(c => c.args);
   const n0 = places().length;
   growStrip();
-  assert.deepEqual(places().slice(n0), [{ width: 256 + 208, side: 'right' }]);
+  assert.deepEqual(places().slice(n0), [{ width: 256 + 208, side: 'right', base: 256 }]);
   settings.stripSide = 'left';
   growStrip(); // same width, the other side: placed again
-  assert.deepEqual(places().slice(n0 + 1), [{ width: 256 + 208, side: 'left' }]);
+  assert.deepEqual(places().slice(n0 + 1), [{ width: 256 + 208, side: 'left', base: 256 }]);
   growStrip(); // nothing changed: not placed again
   assert.equal(places().length, n0 + 2);
   shown('card', 0); shown('strip-menu', 120); // the menu open alone: the column's own width
   growStrip();
-  assert.deepEqual(places().at(-1), { width: 256, side: 'left' });
+  assert.deepEqual(places().at(-1), { width: 256, side: 'left', base: 256 });
   shown('strip-menu', 0);
   setView('flat');
 }

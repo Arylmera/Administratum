@@ -6,13 +6,37 @@
 use super::{HallRect, Shape, Side};
 use gtk::prelude::*;
 use gtk_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use tauri::Manager;
 
 /// The strip window's label (capabilities/default.json lists it beside `main`).
 pub const LABEL: &str = "strip";
 
 static SUPPORTED: AtomicBool = AtomicBool::new(false);
+/// Settings' "Keep windows off the strip": the last choice the UI gave, for the next strip window too.
+static RESERVE: AtomicBool = AtomicBool::new(false);
+
+/// The strip's size with no panel open, GTK px: what the exclusive zone covers.
+static BASE: AtomicI32 = AtomicI32::new(0);
+
+/// The layer's exclusive zone: its size with no panel open (the compositor keeps the other windows off it, as off a
+/// bar; an open panel lies over them), or none (the whole strip lies over them).
+fn zone(gw: &gtk::ApplicationWindow) {
+    gw.set_exclusive_zone(if RESERVE.load(Ordering::SeqCst) { BASE.load(Ordering::SeqCst) } else { 0 });
+}
+
+/// Settings' choice, applied at once when `window` is the strip's.
+pub fn reserve(window: &tauri::WebviewWindow, on: bool) {
+    RESERVE.store(on, Ordering::SeqCst);
+    if window.label() == LABEL {
+        let w = window.clone();
+        let _ = window.app_handle().run_on_main_thread(move || {
+            if let Ok(gw) = w.gtk_window() {
+                zone(&gw);
+            }
+        });
+    }
+}
 
 /// Asks GTK once, on the main thread (setup), whether the compositor has wlr-layer-shell: Hyprland, Sway, KDE do;
 /// GNOME and X11 do not.
@@ -37,8 +61,9 @@ fn css_px() -> f64 {
 
 /// Anchors and size for a shape: the bar spans the bottom edge, `h` tall; the column spans its side, `w` wide. Only
 /// the short side is asked for: the compositor gives the long one.
-fn shape_window(gw: &gtk::ApplicationWindow, shape: Shape) {
+fn shape_window(gw: &gtk::ApplicationWindow, shape: Shape, base: f64) {
     let k = css_px();
+    BASE.store((base * k).round() as i32, Ordering::SeqCst);
     let (anchors, w, h) = match shape {
         Shape::Bar { h } => ([Edge::Bottom, Edge::Left, Edge::Right], -1, (h * k).round() as i32),
         Shape::Column { w, side } => ([Edge::Top, Edge::Bottom, if side == Side::Left { Edge::Left } else { Edge::Right }], (w * k).round() as i32, -1),
@@ -48,10 +73,11 @@ fn shape_window(gw: &gtk::ApplicationWindow, shape: Shape) {
     }
     gw.set_size_request(w, h);
     gw.resize(w.max(1), h.max(1)); // a smaller ask (a panel closed): GTK only shrinks a window when told to
+    zone(gw);
 }
 
 /// Opens the strip window as `shape` on the hall's monitor, then closes the hall's window.
-fn open(app: &tauri::AppHandle, hall: &tauri::WebviewWindow, shape: Shape) -> Result<(), String> {
+fn open(app: &tauri::AppHandle, hall: &tauri::WebviewWindow, shape: Shape, base: f64) -> Result<(), String> {
     let w = tauri::WebviewWindowBuilder::new(app, LABEL, tauri::WebviewUrl::App("index.html".into()))
         .title("Administratum")
         .decorations(false)
@@ -72,20 +98,20 @@ fn open(app: &tauri::AppHandle, hall: &tauri::WebviewWindow, shape: Shape) -> Re
     if let Some(m) = hall.gtk_window().ok().and_then(|g| g.window()).and_then(|g| g.display().monitor_at_window(&g)) {
         gw.set_monitor(&m);
     }
-    shape_window(&gw, shape);
+    shape_window(&gw, shape, base);
     w.show().map_err(|e| e.to_string())?;
     hall.destroy().map_err(|e| e.to_string())
 }
 
 /// Into the strip as `shape`. From the hall: its rect back (the UI keeps it), the strip window opened in its place.
 /// Already the strip window (a resize, the bar <-> column switch): re-shaped, `None`.
-pub fn enter(window: &tauri::WebviewWindow, shape: Shape) -> Result<Option<HallRect>, String> {
+pub fn enter(window: &tauri::WebviewWindow, shape: Shape, base: f64) -> Result<Option<HallRect>, String> {
     let app = window.app_handle().clone();
     let w = window.clone();
     if window.label() == LABEL {
         app.run_on_main_thread(move || {
             if let Ok(gw) = w.gtk_window() {
-                shape_window(&gw, shape);
+                shape_window(&gw, shape, base);
             }
         })
         .map_err(|e| e.to_string())?;
@@ -94,7 +120,7 @@ pub fn enter(window: &tauri::WebviewWindow, shape: Shape) -> Result<Option<HallR
     let (p, s) = (window.outer_position().map_err(|e| e.to_string())?, window.inner_size().map_err(|e| e.to_string())?);
     let app2 = app.clone();
     app.run_on_main_thread(move || {
-        if let Err(e) = open(&app2, &w, shape) {
+        if let Err(e) = open(&app2, &w, shape, base) {
             eprintln!("strip: {e}");
         }
     })

@@ -40,7 +40,7 @@ export const store = {
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
 const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (stripwin.js stripScale)
 const SIDES = ['left', 'right']; // the desktop column's screen edge (stripwin.js); right by default: desktop icons sit on the left
-const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, stripReserve: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
@@ -50,6 +50,7 @@ function load() {
   if (STRIP_SIZES.includes(saved.stripSize)) s.stripSize = saved.stripSize;
   if (SIDES.includes(saved.stripSide)) s.stripSide = saved.stripSide;
   if (typeof saved.stripBackdrop === 'boolean') s.stripBackdrop = saved.stripBackdrop;
+  if (typeof saved.stripReserve === 'boolean') s.stripReserve = saved.stripReserve;
   if (typeof saved.isoBackdrop === 'boolean') s.isoBackdrop = saved.isoBackdrop;
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
@@ -341,6 +342,7 @@ function syncForm(form, field, hooks, login) {
   field('stripSize').value = settings.stripSize;
   field('stripSide').value = settings.stripSide;
   field('stripBackdrop').checked = settings.stripBackdrop;
+  if (field('stripReserve')) field('stripReserve').checked = settings.stripReserve;
   for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
   field('isoBackdrop').checked = settings.isoBackdrop;
   field('chime').checked = !hooks.muted();
@@ -386,6 +388,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
   else if (k === 'stripSide') { settings.stripSide = SIDES.includes(el.value) ? el.value : 'right'; save(); hooks.sided?.(); }
   else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
+  else if (k === 'stripReserve') { settings.stripReserve = el.checked; save(); invoke('set_strip_reserve', { on: el.checked }).catch(() => {}); }
   else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
   else if (k === 'chime') hooks.setMuted(!el.checked);
   else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
@@ -446,6 +449,9 @@ export function initSettings(hooks) {
     // left hidden: WebKitGTK's list (Linux) shows a hidden option.
     const strips = ['strip', 'vstrip'].map(v => form.querySelector(`[value="${v}"]`));
     invoke('strip_supported').then(ok => { for (const o of strips) if (ok) o.hidden = false; else o.remove(); }, () => { for (const o of strips) o.remove(); });
+    // Keep windows off the strip: only where the strip is a layer surface (Linux), which may or may not take its edge
+    // of the screen for itself. Elsewhere the strip stands on the taskbar or above the Dock: the row goes.
+    invoke('set_strip_reserve', { on: settings.stripReserve }).then(ok => { if (!ok) field('stripReserve').closest('label').remove(); }, () => field('stripReserve').closest('label').remove());
     // Always on top: not under Wayland, where only the compositor stacks windows (a Hyprland rule, README).
     invoke('on_top_supported').then(ok => { if (!ok) field('onTop').closest('label').hidden = true; }, () => {});
     invoke('platform').then(os => {

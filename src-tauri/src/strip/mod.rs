@@ -186,23 +186,25 @@ pub fn replace(w: &tauri::WebviewWindow, shape: Shape) -> Result<Rect, String> {
 }
 
 #[tauri::command]
-pub fn place_strip(window: tauri::WebviewWindow, height: f64) -> Result<Option<HallRect>, String> {
-    enter(&window, Shape::Bar { h: height })
+pub fn place_strip(window: tauri::WebviewWindow, height: f64, base: Option<f64>) -> Result<Option<HallRect>, String> {
+    enter(&window, Shape::Bar { h: height }, base.unwrap_or(height))
 }
 
-/// The desktop column: `width` CSS px on the `side` edge, the work area's full height.
+/// The desktop column: `width` CSS px on the `side` edge, the work area's full height. `base` (here and in
+/// `place_strip`): the size with no panel open, which is what Linux keeps the other windows off.
 #[tauri::command]
-pub fn place_column(window: tauri::WebviewWindow, width: f64, side: Side) -> Result<Option<HallRect>, String> {
-    enter(&window, Shape::Column { w: width, side })
+pub fn place_column(window: tauri::WebviewWindow, width: f64, side: Side, base: Option<f64>) -> Result<Option<HallRect>, String> {
+    enter(&window, Shape::Column { w: width, side }, base.unwrap_or(width))
 }
 
 /// Into the strip window as `shape`: the hall's rect the first time (kept by the UI for the way back), `None` while
 /// the strip window is already on (a resize, or the bar <-> column switch: never leave then enter).
-fn enter(window: &tauri::WebviewWindow, shape: Shape) -> Result<Option<HallRect>, String> {
+fn enter(window: &tauri::WebviewWindow, shape: Shape, base: f64) -> Result<Option<HallRect>, String> {
     #[cfg(target_os = "linux")]
     if os::supported() {
-        return os::enter(window, shape); // a window of its own, in a layer surface
+        return os::enter(window, shape, base); // a window of its own, in a layer surface
     }
+    let _ = base;
     // ON only once the strip is placed: a failure below leaves the hall's state (and its rect, captured
     // again on the next try) as it was.
     let hall = if ON.load(Ordering::SeqCst) {
@@ -273,6 +275,20 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<bool,
         return Ok(true);
     }
     window.set_ignore_cursor_events(on).map(|()| false).map_err(|e| e.to_string())
+}
+
+/// Whether the strip keeps its edge of the screen for itself, the other windows stopping short of it (`on`), or lies
+/// over them. Only where the strip is a layer surface (Linux): answers false elsewhere, where it stands on the taskbar
+/// or above the Dock, and Settings drops the choice.
+#[tauri::command]
+pub fn set_strip_reserve(window: tauri::WebviewWindow, on: bool) -> bool {
+    #[cfg(target_os = "linux")]
+    if os::supported() {
+        os::reserve(&window, on);
+        return true;
+    }
+    let _ = (window, on);
+    false
 }
 
 /// The strip's places that take clicks, `[left, top, right, bottom]` in window CSS px: everywhere else the clicks

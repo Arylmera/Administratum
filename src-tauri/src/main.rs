@@ -313,6 +313,7 @@ fn main() {
             strip::place_hall,
             strip::set_click_through,
             strip::set_strip_hits,
+            strip::set_strip_reserve,
             strip::set_strip_menu,
             window::on_top_supported,
             window::set_chime_menu
