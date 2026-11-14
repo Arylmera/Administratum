@@ -63,9 +63,8 @@ Two ways of organising the work, chosen by the user:
 - Where in `layout.js` / `actors.js` the plan is read (one `hallPlan()` accessor, not scattered checks).
 - What happens to scribes mid-walk when the plan is switched (a rebuild like a window resize is enough).
 
-## Later (after the toggle works, one at a time)
+## Later (one at a time)
 
-- Smaller department labels, in a corner of their cell (bottom left or bottom right), so they no longer run out of
-  room (`HEST…`, `3. …`).
-- Room names no longer hidden behind the desks (`ENVIRONNEMENT`, `VIE HEUREUSE`).
+- Done 2026-11-14: a room's name small in its cell's bottom right corner (no desk stands on it); a department's plaque
+  may run past its block, to the next block on its row or its room's edge (`overlay.js` `plaqueRoom`).
 - Further polish Christian and Guillaume point out, each its own small change.

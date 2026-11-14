@@ -253,6 +253,15 @@ assert.deepEqual([...new Cast().napping([sess('n', 'a', 'idle', { sinceMs: nappe
   assert.ok(!asleep(a, now) && sleepText(a, now) === '', 'open space: a scribe at its desk is never a tagged sleeper (it naps on a bench)');
   setHallPlan('rooms');
 }
+// a department's plaque may run past its block: to the next block on its row, else to its room's edge
+{
+  const { plaqueRoom } = await import('./overlay.js');
+  const zone = { x: 10, y: 80, w: 200, h: 58 }, a = { x: 13, y: 80, w: 50, h: 56, zone }, b = { x: 67, y: 80, w: 50, h: 56, zone }, c = { x: 13, y: 144, w: 50, h: 56, zone };
+  assert.equal(plaqueRoom(a, [a, b, c]), b.x - 4 - (a.x + 2), 'up to the next block on its row');
+  assert.equal(plaqueRoom(b, [a, b, c]), zone.x + zone.w - 2 - (b.x + 2), 'the last on its row: up to the cell\'s edge');
+  assert.equal(plaqueRoom(c, [a, b, c]), zone.x + zone.w - 2 - (c.x + 2), 'alone on its row');
+  assert.ok(plaqueRoom(a, [a, b, c]) >= a.w - 4, 'never narrower than its block');
+}
 // no floor channel in the rooms plan: nothing runs through a room (flat props, 39° plan)
 {
   const { roomPlan } = await import('./isohall.js');

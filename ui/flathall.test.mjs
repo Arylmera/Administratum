@@ -54,7 +54,7 @@ for (const id of ['tier2', 'vault']) {
 const { setHallPlan } = await import('./hallplan.js');
 const CELLS = [{ kind: 'room', id: 'a', color: '#c8a040', open: true, empty: false, name: 'Alpha', x: 5, y: 80, w: 160, h: 58 },
   { kind: 'room', id: 'hors', color: '#8a8f98', open: true, empty: true, name: 'Elsewhere', x: 360, y: 80, w: 160, h: 58 }];
-const FLAT_ROOMS = { 'tier2 rooms day': '899fa875585e', 'tier2 rooms night': '6b7c4019688c', 'vault rooms day': '2be5d97a1e34', 'vault rooms night': '3ebe2564a0fc' };
+const FLAT_ROOMS = { 'tier2 rooms day': '97306d486796', 'tier2 rooms night': '42c38bcc1a15', 'vault rooms day': '1e97ed35376a', 'vault rooms night': '80bf36e2cba2' }; // a room's name small in its bottom right corner
 setHallPlan('rooms');
 for (const id of ['tier2', 'vault']) {
   setTheme(id);

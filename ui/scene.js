@@ -438,20 +438,20 @@ export function zoneFloor(g, Z) {
   const F = zoneArt(Z, 'FLOOR'), o = tintOfZone(Z);
   faded(Z, g1 => clipped(g1, Z.x, Z.y, Z.w, Z.h, g2 => { for (let y = Z.y; y < Z.y + Z.h; y += artH(F)) for (let x = Z.x; x < Z.x + Z.w; x += artW(F)) blit(g2, F, x, y, o); }))(g);
 }
-// An open cell's name (Z.name), painted on its floor at its middle in its rule's colour, dim while empty: the plaque font,
-// as large as fits (8 to 14 px), upper case.
+// An open cell's name (Z.name), painted small on its floor in its bottom right corner, in its rule's colour, dim while
+// empty: the plaque font, upper case. In the corner the desks never stand on it (they pack from the cell's top left, the
+// departments' plaques start at their block's left).
 const darker = (hex, k) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+export const ZONE_NAME_PX = 8;
 export function zoneName(g, Z) {
   if (!Z.name) return;
   const text = Z.name.toUpperCase();
   g.save();
-  g.font = '14px VT323';
-  const px = Math.max(8, Math.min(14, Math.floor(14 * (Z.w - 16) / Math.max(1, g.measureText(text).width))));
-  g.font = `${px}px VT323`;
-  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `${ZONE_NAME_PX}px VT323`;
+  g.textAlign = 'right'; g.textBaseline = 'alphabetic';
   const tint = Z.open && settings.roomTint; // on a tinted floor the name is the colour darkened, so it reads on its own tint
   g.fillStyle = tint ? darker(Z.color ?? '#8a8f98', 0.5) : Z.color; g.globalAlpha *= Z.empty ? 0.4 : tint ? 0.75 : 0.85;
-  g.fillText(text, Z.x + Z.w / 2, Z.y + Z.h / 2);
+  g.fillText(text, Z.x + Z.w - 4, Z.y + Z.h - 3, Z.w - 8); // never wider than the cell
   g.restore();
 }
 // Its fence, depth sorted with everyone (items: { y, draw }): rails along the top and bottom, sides down the west and

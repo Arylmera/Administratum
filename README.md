@@ -547,7 +547,7 @@ one scriptorium, the shared cogitator bank and Refectorium, the Sanctum to the e
 **Rooms** has only rooms, round the Sanctum: the Sanctum is an open column down the middle of the hall, behind a low
 rail, the Magos at its top and the petition line down it; the first half of the rules fill the left side from the
 top, the others the right side under one more room for the departments in no rule (*Elsewhere*). A room's floor is
-a soft tint of its colour with its name painted on it (*Soft tint floors* off: its tiles), and nothing else runs
+a soft tint of its colour with its name painted small in its bottom right corner (*Soft tint floors* off: its tiles), and nothing else runs
 through it. There a scribe leaves its room only to petition, or by the gate: it runs its shells at the room's own
 computer, on the room's Sanctum side, and dozes at its desk, half faded, under a tag saying for how long
 (`💤 12 min`). There is no Refectorium, cogitator bank or west wing in that plan. The switch applies at once, in

@@ -51,12 +51,20 @@ const pollUsage = () => invoke('usage').then(u => { usage = u; }, () => {});
 const until = iso => { const m = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60_000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
 const usageText = () => (usage?.session && usage?.weekly && Date.now() - Date.parse(usage.fetchedAt) < 30 * 60_000
   ? `session ${usage.session.percent}% · ${until(usage.session.resetsAt)} | week ${usage.weekly.percent}% · ${until(usage.weekly.resetsAt)}` : '');
+// The width a department's plaque may take in the rooms plan (b.zone: its room's cell, layout.js packMirror): to the next
+// block on its row, else to the cell's edge.
+export function plaqueRoom(b, blocks) {
+  const next = blocks.filter(o => o !== b && o.zone === b.zone && o.y === b.y && o.x > b.x).map(o => o.x - 4);
+  return Math.max(b.w - 4, Math.min(b.zone.x + b.zone.w - 2, ...next) - (b.x + 2));
+}
 export function renderPlaques(blocks) {
   // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
   // In the column (H.column) it lies on its floor's slab, under the floor line (the block's mat ends 1 px over it).
   const col = hall().column, place = b => (col ? [b.x + 2, b.y + b.h + 1] : strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7));
+  // the rooms plan: a plaque may run past its block, to the next block on its row or its room's edge (a one-desk block is
+  // 50 px wide, most names are longer)
   const depts = blocks.filter(b => !b.empty && !b.cell); // an empty room's placeholder, a strip room's cell: the room's plaque only
-  const want = new Map(depts.map(b => [`b:${b.name}`, ['plaque', b.name, ...place(b), b.color, b.w - 4 + (strip() && !col ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip() && !col]])); // the strip's plaque may run over the gap after it
+  const want = new Map(depts.map(b => [`b:${b.name}`, ['plaque', b.name, ...place(b), b.color, (b.zone ? plaqueRoom(b, blocks) : b.w - 4) + (strip() && !col ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip() && !col]])); // the strip's plaque may run over the gap after it
   if (layout().overflow) want.set('overflow', ['plaque', t('overflow', { n: layout().overflow }), ...(col ? [hall().side === 'right' ? hall().w - 96 : 4, hall().cog.y + 1] : hall().sanct ? at(hall().sanct.x0 + 4, hall().y1 - 10) : at(120 + hall().dx, hall().y1 - 10)), T.ink.overflowPlaque]); // the column's: on the cogitator floor's slab
   // The break-out room's name under its fence (it packs last; not in the strip: no room for it). A west wing room's
   // (hallOf().rooms) on its top wall in its rule's colour (39°: on its floor by that wall, the wall being low there):
