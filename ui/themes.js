@@ -137,6 +137,7 @@ const NEON = defineTheme({
     subtitle: 'Sector 7 · Netrunner Den', motto: 'Jack in, stay frosty', breakout: 'Sandbox',
     honours: { title: 'Leaderboard', commits: 'Most commits pushed', longest: 'Longest run', fast: 'Calls picked up within the minute', busiest: 'Busiest shift' },
     rank: { high: 'Netrunner', standard: 'Hacker', novice: 'Script kiddie' },
+    inRooms: { status: { shell: "At the room's terminal", napping: 'Idle · crashed at their desk' }, prefs: { nap: 'Crashed at the desk after', cog: 'Stay at the terminal for' } }, // the rooms plan's words
     status: { busy: 'Coding', shell: 'At the server rack', idle: 'Turn done, awaiting input', waiting: 'Request pinged',
       background: 'Idle · daemon running', napping: 'Idle · crashed in the lounge' },
     petitions: ['{n} request', '{n} requests'], petitioning: '{n} pinging', petitionLabel: '{name}, request: {want}',
@@ -212,6 +213,7 @@ defineTheme({
     subtitle: 'Low Earth Orbit · Station Deck', motto: 'Ad astra', breakout: 'Quarantine Bay',
     honours: { title: 'Crew Honours', commits: 'Most commits logged', longest: 'Longest burn', fast: 'Calls answered within the minute', busiest: 'Busiest shift' },
     rank: { high: 'Commander', standard: 'Astronaut', novice: 'Cadet' },
+    inRooms: { status: { shell: 'At the module console', napping: 'Idle · asleep at their station' }, prefs: { nap: 'Asleep at the station after', cog: 'Stay at the console for' } }, // the rooms plan's words
     status: { busy: 'Working', shell: 'At the airlock', idle: 'Turn done, awaiting input', waiting: 'Calling the Commander',
       background: 'Idle · bot on task', napping: 'Idle · asleep in the bunk' },
     petitions: ['{n} call', '{n} calls'], petitioning: '{n} calling', petitionLabel: '{name}, call: {want}',
@@ -346,6 +348,7 @@ defineTheme({
     subtitle: 'The Tower · Hall of Apprentices', motto: 'Knowledge is power', breakout: 'Summoning Circle',
     honours: { title: 'Roll of Laurels', commits: 'Most runes sealed', longest: 'Longest incantation', fast: 'Pleas heard within the minute', busiest: 'Busiest day' },
     rank: { high: 'Archmage', standard: 'Wizard', novice: 'Apprentice' },
+    inRooms: { status: { napping: 'Idle · dozing over the grimoire' }, prefs: { nap: 'Dozing at the desk after' } }, // the rooms plan's words
     status: { busy: 'Scribing spells', shell: 'At the scrying orb', idle: 'Turn done, awaiting input', waiting: 'Pleading to the Archmage',
       background: 'Idle · familiar at work', napping: 'Idle · dozing by the fire' },
     petitions: ['{n} plea', '{n} pleas'], petitioning: '{n} pleading', petitionLabel: '{name}, plea: {want}',
@@ -421,6 +424,7 @@ defineTheme({
     subtitle: "Vault 111 · Overseer's Office", motto: 'Prepare for the future', breakout: 'Test Chamber',
     honours: { title: 'Employee of the Week', commits: 'Most forms approved', longest: 'Longest shift task', fast: 'Requests answered within the minute', busiest: 'Busiest day' },
     rank: { high: 'Overseer', standard: 'Dweller', novice: 'Newcomer' },
+    inRooms: { status: { shell: "At the room's terminal", napping: 'Idle · asleep at their desk' }, prefs: { nap: 'Asleep at the desk after', cog: 'Stay at the terminal for' } }, // the rooms plan's words
     status: { busy: 'On shift', shell: 'At the mainframe', idle: 'Turn done, awaiting input', waiting: 'Requisition filed',
       background: 'Idle · robot on duty', napping: 'Idle · in the bunk' },
     petitions: ['{n} requisition', '{n} requisitions'], petitioning: '{n} requisitioning', petitionLabel: '{name}, requisition: {want}',
@@ -593,6 +597,7 @@ defineTheme({
     subtitle: 'Superlab · Under the laundry', motto: 'Say my name', breakout: 'The Yard',
     honours: { title: 'Cooks of the Week', commits: 'Most batches shipped', longest: 'Longest cook', fast: 'Samples approved within the minute', busiest: 'Busiest shift' },
     rank: { high: 'Cook', standard: 'Partner', novice: 'Assistant' },
+    inRooms: { status: { shell: "At the room's terminal", napping: 'Idle · asleep at the bench' }, prefs: { nap: 'Asleep at the bench after', cog: 'Stay at the terminal for' } }, // the rooms plan's words
     status: { busy: 'Cooking', shell: 'At the reactor', idle: 'Batch done, awaiting input', waiting: 'Holding up a sample',
       background: 'Idle · Gale on errands', napping: 'Idle · asleep in the RV' },
     petitions: ['{n} sample', '{n} samples'], petitioning: '{n} waiting on Heisenberg', petitionLabel: '{name}, sample: {want}',

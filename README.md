@@ -519,7 +519,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 **Rooms**
 
 Custom rooms group a work domain (several repositories under one name) and give it a fixed place in the hall. Each
-rule has a name, a folder pattern, a colour, ↑ / ↓ to order it and ✕ to delete it; at most 6. A pattern is a glob,
+rule has a name, a folder pattern, a colour, ↑ / ↓ to order it and ✕ to delete it; at most 8. A pattern is a glob,
 any case, `\` and `/` alike: `**/git/Terra/**` matches the Terra folder and everything under it; `*` stays within one
 folder, `?` is one character. `re:` before a regular expression matches anywhere in the folder path, written with `/` separators on every OS (`re:git/(terra|geneseed)$`).
 A pattern that does not compile turns red (its message on hover) and is not saved; the room keeps its last valid one.
@@ -541,6 +541,17 @@ than the hall grows it by bays, and rooms count toward compact lecterns like any
 sessions match several rules goes to the first one; a temp folder stays in the break-out room. The desktop strip:
 a bay with the room's plaque first. The desktop column shows a room's departments as ordinary floors for now. Reset
 to defaults leaves the rooms alone. The remote view shows them read only.
+
+**Hall plan** (under the rules) chooses between two halls. **Open space**, the default, is the hall described so far:
+one scriptorium, the shared cogitator bank and Refectorium, the Sanctum to the east, the rooms a west wing.
+**Rooms** has only rooms, round the Sanctum: the Sanctum is an open column down the middle of the hall, behind a low
+rail, the Magos at its top and the petition line down it; the first half of the rules fill the left side from the
+top, the others the right side under one more room for the departments in no rule (*Elsewhere*). A room's floor is
+a soft tint of its colour with its name painted on it (*Soft tint floors* off: its tiles), and nothing else runs
+through it. There a scribe leaves its room only to petition, or by the gate: it runs its shells at the room's own
+computer, on the room's Sanctum side, and dozes at its desk, half faded, under a tag saying for how long
+(`💤 12 min`). There is no Refectorium, cogitator bank or west wing in that plan. The switch applies at once, in
+the flat and 2.5D views; the desktop strip and column are the same in both.
 
 **System**
 

@@ -103,12 +103,15 @@ export function aoBands(hall) {
     { x: 0, y: WALL, w: sw, h: AO, side: 'n' }, // the scriptorium's back wall
     { x: sw - AO, y: WALL, w: AO, h: h - 3 - WALL, side: 'e' }, // its east wall
     { x: 0, y: h - 3 - AO, w: sw, h: AO, side: 's' }, // its bottom wall (the gate's)
+  ];
+  if (right <= 0) return bands; // the mirror hall (hallOf sanct): no east rooms
+  bands.push(
     { x: rx, y: WALL, w: right, h: AO, side: 'n' }, // the refectorium's back wall
     { x: rx, y: WALL, w: AO, h: split - 10 - WALL, side: 'w' },
     { x: rx, y: split - 10 - AO, w: right, h: AO, side: 's' }, // the wall between refectorium and sanctum
     { x: rx, y: split + 30, w: right, h: AO, side: 'n' }, // the sanctum's back wall
     { x: rx, y: split + 30, w: AO, h: baseH - split - 30, side: 'w' },
-  ];
+  );
   if (dy) bands.push({ x: rx, y: baseH - AO, w: right, h: AO, side: 's' }); // the sanctum's bottom wall, bays below
   return bands;
 }

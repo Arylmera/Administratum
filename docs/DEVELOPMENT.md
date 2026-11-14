@@ -70,6 +70,7 @@ do not know which.
 | `panel.js` | Open/close behaviour shared by the parchment panels |
 | `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log; the plaque's usage-window bar (`windowGauge`) and today's window line (`windowLine`); `openWeek` (the Hall of Honours' click) |
 | `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases; `zoneSequence` (custom rooms in rule order, the open hall, the break-out room), the west wing (`hallOf(bays, size, wing)`: the hall moved east by `wx`, `hall.base` the hall without it, `hall.rooms` each room's rect, lanes, corridor and door, geometry only: the rooms share the wing's full height, each its desk rows plus an even share of the spare rows, the last down to the hall's bottom, its door on the lane nearest its middle, or the layout's `wing[].door` clear of the break-out room's fence (`wing[].share` caps the share then); `wingZones` adds each room's colour and emptiness from the layout; `layoutDepartments` packs room departments there and returns `wing`), `zonesOf` (the break-out room's fence and gates) |
+| `hallplan.js` | The hall plan in force (`settings.hallPlan`): `open`, the open space, or `rooms`, the rooms round the Sanctum (`layout.js` `mirrorHall`, `packMirror`, `mirrorRoute`; `actors.js` `asleep` and the room computers; `theme.js` `inRooms` words). Everything else follows `hall.sanct` |
 | `rooms.js` | Custom rooms in force (`adm.rooms`): `roomsOf` (the lenient parse, `rooms.rs`'s caps), `setRooms`, `tintOf` (a rule's colour on the sash slot `y`) |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
@@ -142,6 +143,7 @@ when it loads. One file per module:
 
 | File | Checks |
 |---|---|
+| `hallplan.test.mjs` | The hall plan: the switch, the rooms plan's geometry, places, walks, props, shells at the room's computer, naps at the desk, words |
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |

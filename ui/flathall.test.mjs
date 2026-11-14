@@ -10,7 +10,8 @@ function fakeCanvas() {
   const log = [], cv = { width: 0, height: 0, log };
   const ser = v => (v?.log ? `cv:${v.width}x${v.height}:${sha(v.log.join('\n'))}` : v?.tag ?? (typeof v === 'object' ? JSON.stringify(v) : String(v)));
   const made = (k, a) => { const o = { tag: `${k}#${log.length}`, log }; o.setTransform = m => log.push(`${o.tag}.setTransform(${ser(m)})`); o.addColorStop = (...b) => log.push(`${o.tag}.stop(${b.join(',')})`); return o; };
-  const state = { canvas: cv, globalAlpha: 1, imageSmoothingEnabled: true, globalCompositeOperation: 'source-over' };
+  const state = { canvas: cv, globalAlpha: 1, imageSmoothingEnabled: true, globalCompositeOperation: 'source-over',
+    measureText: text => ({ width: 6 * String(text).length }) }; // a room's name on its floor (scene.js zoneName): 6 px a letter
   const g = new Proxy(state, {
     get: (t, k) => (k in t ? t[k] : (...a) => { log.push(`${String(k)}(${a.map(ser).join(',')})`); return k.startsWith('create') ? made(k, a) : undefined; }),
     set: (t, k, v) => { log.push(`${String(k)}=${ser(v)}`); t[k] = v; return true; },
@@ -48,10 +49,27 @@ for (const id of ['tier2', 'vault']) {
   drawStatic(cv.getContext('2d'), true, hallOf(4, undefined, WING)); // 4 bays: the wing's 6 rows fit
   got[`${id} wing`] = sha(cv.log.join('\n'));
 }
+// The rooms plan (hallplan.js): the mirror hall, the Sanctum's column in the middle, two open rooms on its floor, no
+// floor channel; recorded once looked at on screen (2026-11-14).
+const { setHallPlan } = await import('./hallplan.js');
+const CELLS = [{ kind: 'room', id: 'a', color: '#c8a040', open: true, empty: false, name: 'Alpha', x: 5, y: 80, w: 160, h: 58 },
+  { kind: 'room', id: 'hors', color: '#8a8f98', open: true, empty: true, name: 'Elsewhere', x: 360, y: 80, w: 160, h: 58 }];
+const FLAT_ROOMS = { 'tier2 rooms day': '899fa875585e', 'tier2 rooms night': '6b7c4019688c', 'vault rooms day': '2be5d97a1e34', 'vault rooms night': '3ebe2564a0fc' };
+setHallPlan('rooms');
+for (const id of ['tier2', 'vault']) {
+  setTheme(id);
+  for (const day of [true, false]) {
+    const cv = fakeCanvas();
+    drawStatic(cv.getContext('2d'), day, hallOf(0), CELLS);
+    got[`${id} rooms ${day ? 'day' : 'night'}`] = sha(cv.log.join('\n'));
+  }
+}
+setHallPlan('open');
 if (process.env.RECORD) console.log(got);
 for (const k in FLAT) assert.equal(got[k], FLAT[k], `${k}: the flat background changed`);
 for (const k in FLAT_WING) assert.equal(got[k], FLAT_WING[k], `${k}: the west wing's background changed`);
-assert.equal(new Set(Object.values(got)).size, 10, 'each hall, theme and light draws differently');
+for (const k in FLAT_ROOMS) assert.equal(got[k], FLAT_ROOMS[k], `${k}: the rooms plan's background changed`);
+assert.equal(new Set(Object.values(got)).size, 14, 'each hall, theme and light draws differently');
 
 // The wing reflows (Cast.resized): whoever stands in a room moves by the rows its room moved; its room gone (or the
 // whole wing), at that room's door, hall side; the scriptorium's actors move with the wing's width.

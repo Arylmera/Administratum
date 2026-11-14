@@ -1,5 +1,7 @@
 # Hall plan: open space or rooms around the Sanctum
 
+Status: built (2026-11-14) on `salle-au-centre`; the Later list is open.
+
 Decided with Christian on 2026-11-14. Turns his personal mirror hall (branch `zones-au-centre`, spec
 `2026-11-12-sanctum-au-coeur-design.md` on that branch) into an **option beside Guillaume's hall**, so it can be offered
 upstream. The 2026-11-12 spec stays the description of what the second plan looks like and how it behaves; this note
@@ -18,8 +20,8 @@ Two ways of organising the work, chosen by the user:
 
 ## Goals
 
-1. One setting, **Settings → Rooms → Hall plan: Open space | Rooms**, stored as `adm.hallPlan` (`'open'` default,
-   `'rooms'`), applied live (no restart), in both views (flat and 39°) and every world.
+1. One setting, **Settings → Rooms → Hall plan: Open space | Rooms**, stored as `hallPlan` in `adm.settings` (`'open'` default,
+   `'rooms'`; read through `ui/hallplan.js`), applied live (no restart), in both views (flat and 39°) and every world.
 2. **One toggle carries geometry and behaviour together** (Christian's ruling): under *Rooms*, everything the
    2026-11-12 spec describes (mirror plan, rooms on the floor grid with their colour and name, a computer per room,
    shell at the room's computer, nap at one's own desk with the `💤 12 min` tag, no refectory, no shared cogitator

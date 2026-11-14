@@ -5,6 +5,8 @@
 // WALL: the back wall's height (scriptorium and refectorium): the wall band 0..WALL, its foot WALL - 4..WALL, the floor
 // from WALL down. The positions here and in scene.js were measured on the original 346x226 hall with a 40 px wall:
 // whatever stands below that wall moves down by WALL_DY, and the minimum scene is WALL_DY taller.
+import { hallPlan } from './hallplan.js';
+
 export const WALL = 62;
 export const WALL_DY = WALL - 40;
 export const SCENE = { w: 346, h: 226 + WALL_DY };
@@ -24,6 +26,7 @@ export const MAX_BAYS = 6; // up to 6 more slot rows; past that, the plaque
 // of custom rooms (O10c), west of the scriptorium's own west wall; the hall is the one without it, every x moved by wx.
 const halls = new Map(), NO_ROOMS = Object.freeze([]); // one empty list: a hall without a wing never looks re-roomed (Cast.sync)
 export function hallOf(bays = 0, size = SCENE, wing = null) {
+  if (hallPlan.rooms) return mirrorHall(bays, size); // the rooms plan: no wing, the Sanctum in the middle
   if (wing) return wingHall(hallOf(bays, size), wing);
   const w = Math.max(SCENE.w, Math.round(size.w)), baseH = Math.max(SCENE.h, Math.round(size.h)), key = `${w}x${baseH}:${bays}`;
   let H = halls.get(key);
@@ -60,6 +63,44 @@ export function hallOf(bays = 0, size = SCENE, wing = null) {
     refOut: { x: corridorX, y: 92 + D }, refIn: { x: 216 + ox, y: 92 + D }, // scriptorium <-> refectorium
     recaff: { x: 222 + ox, y: 48 + D }, refectory, // idle scribes stop at the recaff, then doze on a bench
     cogSpots: [127, 142, 157, 172, 187].map(x => ({ x: x + dx, y: WALL + 17 })), // along the cogitator bank's front desk (y WALL..WALL + 11)
+    queue,
+  };
+  halls.set(key, H);
+  return H;
+}
+
+// The rooms plan's hall (hallplan.js), the mirror hall: no east column; the
+// Sanctum a full-height open column in the middle (sanct), a walking corridor each side of it (corridors), the rooms
+// left and right of those (sides). The Magos at the column's top (magos), the petition line two abreast down it
+// (queue), from under his desk. ox and sd place the sanctum's furniture (measured on the old east room) centred on the Magos; there is no
+// refectorium, recaff, cogitator bank or door. The hall is at least MAX_W wide (3 desks a row each side) and MIN_H
+// tall (four slot rows of rooms).
+export const SANCT_W = 104;
+export const COMPUTER_W = 20; // a room's computer strip, on its Sanctum side (layoutDepartments)
+export const HORS_COLOR = '#8a8f98'; // Hors zones: the departments in no rule
+export const MIN_H = WALL + 18 + 4 * SLOT_H + 30;
+function mirrorHall(bays, size) {
+  const w = Math.max(MAX_W, Math.round(size.w)), baseH = Math.max(SCENE.h, MIN_H, Math.round(size.h)), key = `m:${w}x${baseH}:${bays}`;
+  let H = halls.get(key);
+  if (H) return H;
+  if (halls.size > 64) halls.clear();
+  const dy = bays * BAY_H, h = baseH + dy;
+  const sw = w - 8, rx = w; // the scriptorium is 0..sw, its east wall sw..w
+  const D = WALL_DY, x0 = 3, x1 = sw - 3, y0 = WALL + 18, y1 = h - 30, aisleY = h - 20, corridorX = sw - 10;
+  const entry = { x: x0 + Math.floor((x1 - x0) / 2), y: h - 2 }, dx = entry.x - 100, hy = h - SCENE.h + D;
+  const rows = Math.floor((y1 - y0 + 8) / SLOT_H); // slot rows the hall holds
+  const sanct = { x0: entry.x - SANCT_W / 2, x1: entry.x + SANCT_W / 2 }, corridors = [sanct.x0 - 6, sanct.x1 + 6];
+  const sides = { L: { x0, x1: corridors[0] - 6 }, R: { x0: corridors[1] + 6, x1 } };
+  const magos = { x: entry.x, y: WALL + 34 }, ox = magos.x - 276, sd = magos.y - 120, split = sd + 110, sb = sd;
+  const queue = [];
+  for (let y = magos.y + 67; y <= aisleY - 22; y += 22) queue.push({ x: entry.x - 12, y }, { x: entry.x + 12, y });
+  H = {
+    key, wx: 0, rooms: NO_ROOMS, bays, dy, w, h, baseH, sw, rx, ox, dx, split, sd, sb, hy, rows,
+    x0, x1, y0, y1, aisleY, corridorX, entry, sanct, corridors, sides, magos,
+    // Walk lanes: horizontal ones above the desks, in the gap under each slot row (desk-free in every layout,
+    // see layoutDepartments: slot rows start at y0 + 64k) and the bottom aisle.
+    lanes: [y0, ...Array.from({ length: rows }, (_, k) => y0 + 60 + k * SLOT_H), aisleY],
+    doorOut: null, doorIn: null, refOut: null, refIn: null, recaff: null, refectory: [], cogSpots: [],
     queue,
   };
   halls.set(key, H);
@@ -122,6 +163,13 @@ export const HALL = { x0: 3, x1: 197, y0: WALL + 18, y1: SCENE.h - 30 };
 
 // Slot grids: normal desks 4 per row; compact lecterns (22 wide) 6 per row, same row height so the lanes hold.
 // Console grid inside an adept slot: 2x2 cells; console (14x10) top-left of its cell, adept feet below it.
+// The scriptorium's vertical coolant channels (scene.js draws them): every 200 px, one through the gate's axis (dx).
+export const channelsOf = (dx, sw) => {
+  const out = [];
+  for (let x = 98 + dx - 200 * Math.floor((88 + dx) / 200); x < sw - 20; x += 200) out.push(x);
+  return out;
+};
+
 const GRID = {
   normal: { w: 48, cols: 4, desk: 32, cell: { w: 22, h: 22, x0: 6, y0: 3 } },
   compact: { w: 31, cols: 6, desk: 22, cell: { w: 16, h: 22, x0: 1, y0: 3 } }, // 6 x 31: the last consoles stay west of the corridor
@@ -139,7 +187,7 @@ const GRID = {
 // sub-block each; the result's `wing` lists the rooms drawn, [{ id, color, empty, rows }] (hallOf's wing), null without.
 export function layoutDepartments(depts, { compact = false, bays = 0, size = SCENE, clearCog = false, wing = null } = {}) {
   const G = compact ? GRID.compact : GRID.normal, SLOT_W = G.w, CONSOLE_CELL = G.cell;
-  const { x0, x1, y0, y1, corridorX, dx } = hallOf(bays, size, wing && []);
+  const { x0, x1, y0, y1, aisleY, corridorX, dx } = hallOf(bays, size, wing && []);
   const blocks = [];
   const desks = [];
   const seats = new Map();
@@ -170,6 +218,8 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
       consoleSeats.set(id, seat);
     });
   };
+  const M = hallOf(bays, size);
+  if (M.sanct) return packMirror(M); // the rooms plan
   let overflow = 0;
   // The west wing: room by room in rule order, each from the grid row after the last one's (hallOf), its
   // departments wrapping west of the room's corridor. A room with nothing in the sequence (its placeholder dropped past
@@ -226,6 +276,66 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
   }
   return { blocks, desks, seats, consoles, consoleSeats, overflow, wing: wing ? rooms : null };
 
+  // The mirror hall (H.sanct): the room places (mirrorPlaces: the rules in sequence order, Hors zones for the departments
+  // in no rule) down each side of the Sanctum, a room per band of slot rows (at least one), its departments packed in
+  // its cell west to east, clear of a COMPUTER_W strip on the Sanctum side where its computer stands (computers: 3 spots
+  // a room). The hall's spare rows are shared out among each side's rooms, the last one down to the bottom aisle; the
+  // break-out room (temp) keeps its rows at the right side's bottom. Each block carries its cell (zone).
+  function packMirror(H) {
+    const computers = new Map(), list = depts.map(d => (d.temp || d.room ? d : { ...d, room: 'hors', roomColor: HORS_COLOR }));
+    if (!list.some(d => d.room === 'hors' && !d.temp)) list.push({ name: 'room:hors', room: 'hors', roomColor: HORS_COLOR, empty: true, ids: [], desks: [] });
+    const ruleIds = [...new Set(list.filter(d => d.room && d.room !== 'hors' && !d.temp).map(d => d.room))];
+    const temps = list.filter(d => d.temp);
+    let overflow = 0;
+    for (const side of ['L', 'R']) {
+      const S = H.sides[side], cols = Math.max(1, Math.min(G.cols, Math.floor((S.x1 - S.x0 - COMPUTER_W - 2) / SLOT_W)));
+      const bx0 = side === 'L' ? S.x0 + 3 : S.x0 + COMPUTER_W, bx1 = side === 'L' ? S.x1 - COMPUTER_W : compact ? H.corridorX - 5 : S.x1 + 1; // as the hall's own blocks: compact lecterns stay west of the east corridor
+      const places = mirrorPlaces(ruleIds).filter(q => q.side === side);
+      const cellOf = (key, top) => { // its blocks' places from row top, and the rows they take
+        const at = [];
+        let x = bx0, y = top, rh = 0;
+        for (const d of list.filter(d => d.room === key && !d.temp)) {
+          const gm = geom(d, cols);
+          if (x > bx0 && x + gm.w > bx1 + 1) { x = bx0; y += (rh || SLOT_H - 8) + 8; rh = 0; }
+          at.push([d, gm, x, y]); x += gm.w + 4; rh = Math.max(rh, gm.h);
+        }
+        return { at, rows: Math.max(1, Math.round((y + rh + 8 - top) / SLOT_H)) };
+      };
+      const need = places.map(q => cellOf(q.key, 0).rows);
+      let trows = 0;
+      if (side === 'R' && temps.length) { // the break-out room's rows, kept under the right side's rooms
+        let x = bx0, rh = 0, rows = 1;
+        for (const d of temps) { const gm = geom(d, cols); if (x > bx0 && x + gm.w > bx1 + 1) { rows += Math.round((rh + 8) / SLOT_H); x = bx0; rh = 0; } x += gm.w + 4; rh = Math.max(rh, gm.h); }
+        trows = rows - 1 + Math.round((rh + 8) / SLOT_H);
+      }
+      const spare = Math.max(0, H.rows - need.reduce((n, k) => n + k, 0) - trows);
+      need.forEach((k, r) => { need[r] = k + Math.floor(spare / places.length) + (r === places.length - 1 ? spare % places.length : 0); });
+      let y = y0, full = false;
+      places.forEach((q, r) => {
+        const last = r === places.length - 1 && !trows, rows = need[r];
+        const zone = { x: S.x0 + 2, y, w: S.x1 - S.x0 - 4, h: last ? Math.max(rows * SLOT_H - 6, aisleY - 6 - y) : rows * SLOT_H - 6 };
+        const cx = side === 'L' ? S.x1 - COMPUTER_W / 2 : S.x0 + COMPUTER_W / 2;
+        computers.set(q.key, [0, 1, 2].map(k => ({ x: cx, y: y + 16 + 16 * k })));
+        for (const [d, gm, bx, by] of cellOf(q.key, y).at) {
+          if (full || by + gm.h > y1) { full = true; overflow += d.empty ? 1 : gm.slotsOf.filter(k => k.id).length; continue; }
+          place(d, gm, bx, by, cols);
+          blocks.at(-1).zone = zone;
+        }
+        y += rows * SLOT_H;
+      });
+      if (side === 'R') {
+        let x = bx0, rh = 0;
+        for (const d of temps) {
+          const gm = geom(d, cols), live = gm.slotsOf.filter(k => k.id).length;
+          if (x > bx0 && x + gm.w > bx1 + 1) { x = bx0; y += (rh || SLOT_H - 8) + 8; rh = 0; }
+          if (full || y + gm.h > y1) { full = true; overflow += live; continue; }
+          place(d, gm, x, y, cols); x += gm.w + 4; rh = Math.max(rh, gm.h);
+        }
+      }
+    }
+    return { blocks, desks, seats, consoles, consoleSeats, overflow, wing: null, computers };
+  }
+
   function packHall(tempFrom) {
     let x = x0, y = y0, rowH = 0, full = false, prevKey = null;
     hallDepts.forEach((d, i) => {
@@ -259,6 +369,14 @@ const zoneKey = d => (d.temp ? 'temp' : null);
 // The packing order: per custom room in rule order (rooms.js rooms.list) its departments (d.room, by arrival), or one
 // placeholder for an empty room (it keeps the room's place), then the departments in no known room, then the break-out
 // room's (temp). A room member carries the rule's colour (roomColor); a stale room id (rule deleted) counts as none.
+// The hall's room places around the central Sanctum: the first ceil(n / 2) rules down the left, then Hors zones (the
+// departments in no rule) heading the right, the other rules under it, in rule order. Rows count from 0 on each side.
+export function mirrorPlaces(ruleIds) {
+  const half = Math.ceil(ruleIds.length / 2);
+  return ruleIds.slice(0, half).map((key, row) => ({ key, side: 'L', row }))
+    .concat(['hors', ...ruleIds.slice(half)].map((key, row) => ({ key, side: 'R', row })));
+}
+
 export function zoneSequence(depts, rooms = []) {
   const known = new Set(rooms.map(r => r.id)), roomOf = d => (!d.temp && known.has(d.room) ? d.room : null);
   const plain = d => (d.room ? { ...d, room: null } : d);
@@ -287,7 +405,7 @@ const MAX_LEVEL = 1 + MAX_BAYS;
 // The "+N in the stacks" overflow only remains past MAX_BAYS. lay: the layout function (layoutStrip in the desktop strip).
 // rooms: the custom rooms in force (rooms.js rooms.list; d.room their id): lay() gets zoneSequence(plan, rooms), never the plan.
 export function planLayout(prev, depts, now, grace = {}, size = SCENE, lay = layoutDepartments, rooms = []) {
-  const zoned = list => zoneSequence(list, rooms), wing = rooms.length ? rooms : null; // the west wing while a rule exists
+  const zoned = list => zoneSequence(list, rooms), wing = rooms.length && !hallPlan.rooms ? rooms : null; // the west wing while a rule exists (the open plan)
   const deskG = grace.desk ?? DESK_GRACE_MS, deptG = grace.dept ?? DEPT_GRACE_MS, shrinkG = grace.shrink ?? SHRINK_MS;
   const live = new Map(depts.map(d => [d.name, d]));
   let seq = prev?.seq ?? 0;
@@ -367,17 +485,30 @@ export const WATCH_SIZE = [32, 36];
 // (strip.js zonesOfStrip) or the column.
 export function zonesOf(blocks, H) {
   if (H.strip || H.column) return [];
-  const zb = blocks.filter(b => b.temp);
-  if (!zb.length) return [];
-  const x = Math.min(...zb.map(b => b.x)) - 2, y = Math.min(...zb.map(b => b.y)) + 2;
-  const x1 = Math.min(Math.max(...zb.map(b => b.x + b.w)) + 2, H.corridorX - 1), y1 = Math.max(...zb.map(b => b.y + b.h)) + 6;
-  return [{ kind: 'temp', id: 'temp', color: undefined, empty: false, x, y, w: x1 - x, h: y1 - y, gates: H.lanes.filter(l => l > y && l < y1).map(l => ({ x: x1, y: l })) }];
+  const out = [], zb = blocks.filter(b => b.temp);
+  if (zb.length) {
+    const x = Math.min(...zb.map(b => b.x)) - 2, y = Math.min(...zb.map(b => b.y)) + 2;
+    const x1 = Math.min(Math.max(...zb.map(b => b.x + b.w)) + 2, H.corridorX - 1), y1 = Math.max(...zb.map(b => b.y + b.h)) + 6;
+    const gx = H.sanct && x > H.entry.x ? x : x1; // its gates face its corridor: east, or west on the mirror hall's right side
+    out.push({ kind: 'temp', id: 'temp', color: undefined, empty: false, x, y, w: x1 - x, h: y1 - y, gates: H.lanes.filter(l => l > y && l < y1).map(l => ({ x: gx, y: l })) });
+  }
+  if (!H.sanct) return out;
+  // the rooms plan: each room's cell (layoutDepartments packMirror, b.zone), its floor, open (no fence, no gate: its
+  // walks cross it); id 'hors' for the departments in no rule
+  const cells = new Map();
+  for (const b of blocks) if (!b.temp && b.zone) (cells.get(b.room) ?? cells.set(b.room, []).get(b.room)).push(b);
+  for (const [id, bs] of cells) {
+    const Z = bs[0].zone;
+    out.push({ kind: 'room', id, color: bs[0].roomColor, empty: bs.every(b => b.empty), open: true, x: Z.x, y: Z.y, w: Z.w, h: Z.h, gates: [] });
+  }
+  return out;
 }
 
 // Rooms east of the scriptorium's east wall: the refectorium above the sanctum. Each opens onto the scriptorium.
 // West of its west wall (hallOf().rooms): the west wing's rooms, 'w:<id>', by their band (a wall belongs to the room under it).
 export function roomOf(p, H = hallOf(0)) {
   if (H.wx && p.x < H.wx - 4) { const R = H.rooms.find(q => p.y < q.y + q.h) ?? H.rooms.at(-1); if (R) return `w:${R.id}`; }
+  if (H.sanct) return p.x > H.sanct.x0 && p.x < H.sanct.x1 && p.y > WALL && p.y < H.aisleY ? 'sanct' : 'hall'; // the mirror hall's central column (the aisle and the gate under it are the hall's)
   return p.x <= H.sw ? 'hall' : p.y < H.split - 6 ? 'ref' : 'sanct';
 }
 
@@ -412,7 +543,38 @@ function walk(p, q, blocks, LANES, CX, Zs, fixed) {
   }
   return best ?? [{ x: p.x, y: LANES.at(-1) }, { x: q.x, y: LANES.at(-1) }]; // ponytail: boxed in on every side, old aisle walk
 }
+// The mirror hall's walks (H.sanct): the Sanctum an open floor behind a low rail, entered and left through the rail's
+// opening at a lane (the one nearest the point), from the corridor on the other end's side; in the hall a walk keeps to its own side's corridor (lanesOf, walk),
+// and from one side to the other it goes down to the bottom aisle, across under the Sanctum and up the other corridor.
+function mirrorRoute(a, b, blocks, H) {
+  const Zs = zonesOf(blocks, H).filter(Z => !Z.open), [cL, cR] = H.corridors;
+  const inS = p => roomOf(p, H) === 'sanct', corridorOf = p => (p.x < H.entry.x ? cL : cR);
+  if (inS(a) && inS(b)) return [{ x: b.x, y: b.y }];
+  // an end on the bottom aisle (the gate, a brazier's spot, the Watchman's post: under the Sanctum): from a desk down its
+  // own side's corridor then along the aisle; from the Sanctum out by its open bottom. Built from the other end, reversed
+  // for a walk that starts on the aisle.
+  const low = p => p.y >= H.aisleY;
+  if (low(a) || low(b)) {
+    const fwd = low(b), O = fwd ? a : b, L = fwd ? b : a, AY = H.aisleY;
+    let seq;
+    if (low(O) || inS(O)) seq = [O, { x: O.x, y: AY }, { x: L.x, y: AY }, L];
+    else {
+      const cx = corridorOf(O), start = [O].concat(O.via ?? []);
+      seq = start.concat(walk(start.at(-1), { x: cx, y: AY }, blocks, H.lanes, cx, Zs, []), { x: cx, y: AY }, { x: L.x, y: AY }, L);
+    }
+    if (!fwd) seq.reverse();
+    return seq.slice(1).filter((pt, i, arr) => pt.x !== (arr[i - 1] ?? a).x || pt.y !== (arr[i - 1] ?? a).y).map(pt => ({ x: pt.x, y: pt.y }));
+  }
+  const laneOf = pt => H.lanes.reduce((p, q) => (Math.abs(q - pt.y) < Math.abs(p - pt.y) ? q : p));
+  const end = (pt, other) => (inS(pt) ? [[pt, { x: pt.x, y: laneOf(pt) }, { x: corridorOf(other), y: laneOf(pt) }], corridorOf(other)] : [[pt].concat(pt.via ?? []), corridorOf(pt)]);
+  const [head, ca] = end(a, b), [tailR, cb] = end(b, a), tail = tailR.reverse();
+  const leg = (p, q, cx) => walk(p, q, blocks, H.lanes, cx, Zs, []);
+  const mid = ca === cb ? leg(head.at(-1), tail[0], ca)
+    : leg(head.at(-1), { x: ca, y: H.aisleY }, ca).concat({ x: ca, y: H.aisleY }, { x: cb, y: H.aisleY }, leg({ x: cb, y: H.aisleY }, tail[0], cb));
+  return head.concat(mid, tail).slice(1).filter((pt, i, arr) => pt.x !== (arr[i - 1] ?? a).x || pt.y !== (arr[i - 1] ?? a).y).map(pt => ({ x: pt.x, y: pt.y }));
+}
 export function route(a, b, blocks = [], H = hallOf(0)) {
+  if (H.sanct) return mirrorRoute(a, b, blocks, H);
   const DOORWAY = { sanct: [H.doorOut, H.doorIn], ref: [H.refOut, H.refIn] };
   const W = H.rooms ?? [], ra = roomOf(a, H), rb = roomOf(b, H), wingOf = r => W.find(R => `w:${R.id}` === r);
   // inside a west wing room: the hall's walk on the room's own lanes and corridor
