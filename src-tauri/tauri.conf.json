@@ -34,8 +34,11 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": ["nsis"],
+    "shortDescription": "Every Claude Code session on your PC as a character in a pixel-art office",
+    "longDescription": "Administratum watches Claude Code's own session files and never writes to them. A session waiting on you walks to the Sanctum and queues before the Magos: you get a desktop notification, and permission prompts in Orca terminals can be approved or denied from the widget.",
+    "targets": ["nsis", "deb", "appimage"],
     "windows": { "nsis": { "installerHooks": "./installer-hooks.nsh" } },
+    "linux": { "deb": { "depends": ["libgtk-layer-shell0"] } },
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
   }
 }

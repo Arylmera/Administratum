@@ -1,4 +1,4 @@
-import { WALL, lightLevel, planLayout, hallOf, layoutDepartments } from './layout.js';
+import { WALL, lightLevel, planLayout, hallOf, layoutDepartments, zonesOf } from './layout.js';
 import { stripOf, layoutStrip } from './strip.js';
 import { columnOf, layoutColumn, columnPlaced } from './column.js';
 import { outline } from './outline.js';
@@ -11,8 +11,8 @@ import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView, stripKind } from './view.js';
-import { buildHall39 } from './isohall.js';
-import { drawScene39, actorAt39, spriteOf, feetOf } from './scene39.js';
+import { buildHall39, floorMask } from './isohall.js';
+import { drawScene39, actorAt39, spriteOf, feetOf, zoneFloors39 } from './scene39.js';
 import { quietAt, hhmmOf, pad2 } from './quiet.js';
 import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
@@ -21,9 +21,9 @@ import { glide, gliding, clearGlides } from './glide.js';
 import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard, actionsOn, noActions } from './card.js';
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
-import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, watchTags, watchText } from './overlay.js';
+import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, sleepTags, sleepText, watchTags, watchText } from './overlay.js';
 import { rooms } from './rooms.js';
-import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale } from './stripwin.js';
+import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale, colHeight } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
 setTheme(store.get('adm.theme', 'tier2'));
@@ -76,8 +76,14 @@ function sizeCanvas() {
 sizeCanvas();
 
 const bg = {};
+// the cells' names are painted with the plaques' font: once it has loaded, the backgrounds are drawn again
+document.fonts?.load('14px VT323').then(() => { for (const k in bg) delete bg[k]; }, () => {});
 function background(day) {
-  const tag = `:${hall.key ?? `${hall.w}x${hall.h}`}`, k = `${T.id}:${day ? 'day' : 'night'}${tag}`; // key: the size, bays and west wing (layout.js)
+  // the custom rooms' open cells are its lowest layer (scene.js drawStatic, scene39.js zoneFloors39): a new key when they change
+  const nameOf = id => { const r = rooms.list.find(q => q.id === id); return id === 'hors' ? t('elsewhere') : r ? r.name || r.pattern : ''; }; // 'hors': the departments in no rule
+  const open = layout?.blocks && !strip() ? zonesOf(layout.blocks, hall).filter(Z => Z.open).map(Z => ({ ...Z, name: Z.name ?? nameOf(Z.id) })) : [];
+  const cells = open.map(Z => `${Z.id},${Z.x},${Z.y},${Z.w},${Z.h},${Z.color},${+Z.empty},${Z.name}`).join(';');
+  const tag = `:${hall.key ?? `${hall.w}x${hall.h}`}:${+settings.roomTint}:${cells}`, k = `${T.id}:${day ? 'day' : 'night'}${tag}`; // key: the size, bays and west wing (layout.js), the cells
   if (!bg[k]) {
     for (const o in bg) if (!o.endsWith(tag) || !o.startsWith(`${T.id}:`)) delete bg[o]; // only this size and theme's day and night
     const c = document.createElement('canvas'), S = scene();
@@ -87,11 +93,20 @@ function background(day) {
       // frame's lighting is cut to the hall's shape too, see frame())
       const h39 = buildHall39(hall, day);
       cg.drawImage(h39.canvas, 0, 0);
+      if (open.length) { // the cells' colour and names on the bare floor only: channels, clutter and props stay over them
+        const zc = document.createElement('canvas');
+        zc.width = c.width; zc.height = c.height;
+        const zg = zc.getContext('2d');
+        zg.setTransform(RES, 0, 0, RES, 0, 0); zg.imageSmoothingEnabled = false;
+        zoneFloors39(zg, hall, open);
+        zg.setTransform(1, 0, 0, 1, 0, 0); zg.globalCompositeOperation = 'destination-in'; zg.drawImage(floorMask(h39), 0, 0);
+        cg.drawImage(zc, 0, 0);
+      }
       c.anchors = h39.anchors; // where the dynamic layer slides the gate's leaves and the doors
     } else {
       cg.setTransform(RES, 0, 0, RES, 0, 0);
       cg.imageSmoothingEnabled = false;
-      drawStatic(cg, day, hall);
+      drawStatic(cg, day, hall, open);
     }
     bg[k] = c;
   }
@@ -115,7 +130,7 @@ function toggleVigil() {
 vigilBtn.onclick = toggleVigil;
 renderVigil();
 
-initStripWin({ actorAt, fromStrip: stripKind(saved), toggleVigil });
+initStripWin({ actorAt, actorRects, fromStrip: stripKind(saved), toggleVigil });
 // The hall's floor point at its view centre, kept through a stay in the strip (the strip's view says nothing of it).
 // Leaving, the window is still strip-sized until place_hall lands: the first hall resize after (refloor) centres
 // on it again, the strip-sized fit in between having clamped it.
@@ -263,6 +278,7 @@ function frame(now) {
   syncTags(sealTags, 'sealed', sealText, 0, -18);
   syncTags(stuckTags, 'stuck', stuckText, 0, -18);
   syncTags(sheetTags, 'sheets', sheetText, 10, -2);
+  syncTags(sleepTags, 'sleep', sleepText, 10, -2);
   syncTags(watchTags, 'petition', watchText, 0, -22);
   syncHover();
   syncEdges();
@@ -312,9 +328,9 @@ function onRoster(next) {
   if (centre && (hall.wx ?? 0) !== wx0) fit([centre[0] + (hall.wx ?? 0) - wx0, centre[1]]);
   // ponytail: sessions past the largest hall's capacity are not drawn; toast + counter still cover their petitions.
   // the column: a petitioner from a hidden floor still queues in the Sanctum (the petition is what the column is for)
-  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id) || (column() && (s.status === 'waiting' || isQuestion(s)))), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall);
+  cast.sync(roster.filter(s => layout.seats.has(s.id) || napping.has(s.id) || (column() && (s.status === 'waiting' || isQuestion(s)))), layout.seats, colorOf, layout.consoleSeats, layout.blocks, hall, layout.computers);
   // settled once the window is the column (the layout made while it is still the hall's window would place them wrong)
-  if (settleNext && column() && (!tauri() || columnPlaced(size.h, screen.availHeight, colScale()))) { settleNext = false; cast.settle(); }
+  if (settleNext && column() && (!tauri() || columnPlaced(size.h, colHeight(), colScale()))) { settleNext = false; cast.settle(); }
   const n = roster.filter(s => s.status === 'waiting').length, nq = roster.filter(isQuestion).length;
   const count = document.getElementById('count');
   const qs = t('questions', { n: nq });
@@ -357,6 +373,16 @@ function actorAt(e) {
     if (!a.leaving && Math.abs(px - a.x) <= hw && py >= a.y - ht && py <= a.y + 1 && (!best || a.y >= best.y)) best = a;
   }
   return best;
+}
+// The cast's rects in window CSS px, as actorAt tests them (the flat projection: the strip and the column).
+function actorRects() {
+  const r = canvas.getBoundingClientRect(), out = [];
+  for (const a of cast.actors.values()) {
+    if (a.leaving) continue;
+    const hw = (a.h ? 6 : 8) + 1, ht = (a.h ? 14 : 17) + 1;
+    out.push([r.left + (a.x - hw) * scale, r.top + (a.y - ht) * scale, r.left + (a.x + hw) * scale, r.top + (a.y + 1) * scale]);
+  }
+  return out;
 }
 canvas.onclick = e => {
   if (dragged) { setDragged(false); return; } // the end of a pan, not a click
@@ -403,7 +429,9 @@ renderMute();
 let refreshTithe = null;
 initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMuted: m => { if (m !== state.muted) toggleMute(); }, placed: () => { sunDay = ''; renderModes(); }, rescaled: () => { fit(); growStrip(); }, quieted: renderQuiet,
   sided: () => { if (!column()) return; resetCast(); settleNext = true; applyColumn(); fit(); relayout(); growStrip(); }, // the column's side: mirrored at once
-  roster: () => roster, roomsChanged: () => relayout() }); // Settings > Rooms: its live line, a rule saved
+  roster: () => roster, roomsChanged: () => relayout(),
+  // Settings > Rooms > Hall plan: another hall, so nobody walks across (as a switch into the strip); the wording follows
+  planChanged: () => { resetCast(); for (const k in bg) delete bg[k]; applyChrome(); fit(); relayout(); } }); // Settings > Rooms: its live line, a rule saved
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;

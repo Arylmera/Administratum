@@ -23,6 +23,7 @@ export function glide(layout, now) {
     blocks: layout.blocks.map(b => tween(`b:${b.name}`, b, now)),
     desks: layout.desks.map(d => tween(`d:${d.key}`, d, now)),
     consoles: layout.consoles.map(c => tween(`c:${c.id}`, c, now)),
+    computers: layout.computers, // the mirror hall's room computers (scene.js drawComputers): no glide
   };
   for (const [k, tw] of tweens) if (tw.seen !== now) tweens.delete(k); // gone from the layout
   return view;

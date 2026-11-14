@@ -5,7 +5,7 @@ import { install, replies, calls, invoked, tick, flush, emit } from './testdom.m
 install();
 Object.assign(replies, {
   settings_load: { 'adm.settings': JSON.stringify({ staleMin: 999, onTop: false, stripSize: 'XL' }), 'adm.scale': '2' },
-  platform: 'windows', strip_supported: true, start_at_login: true,
+  platform: 'windows', strip_supported: true, on_top_supported: true, start_at_login: true,
   check_update: { current: '0.6.5', available: '0.7.0' },
   remote_status: { enabled: false, actions_allowed: false, port: 8765, urls: [], qr_svg: null },
   firewall_status: ({ port }) => ({ detail: `rule for ${port}`, rule: 'on', network: 'private' }),
@@ -35,6 +35,7 @@ assert.deepEqual(last('set_question_prefs'), { enabled: true, toast: true });
 assert.deepEqual(last('set_quiet'), { enabled: false, fromMin: 1320, toMin: 480 });
 assert.equal(calls.find(c => c.name === 'setAlwaysOnTop').args, false);
 assert.equal(form.querySelector('[value="strip"]').hidden, false, 'strip offered where supported');
+assert.equal(field('onTop').closest('label').hidden, false, 'always on top offered where supported');
 assert.equal(form.querySelector('[value="vstrip"]').hidden, false, 'column offered where supported');
 // The desktop column's side: right by default (desktop icons sit on the left), saved, the window re-placed (sided).
 assert.equal(settings.stripSide, 'right');
@@ -89,6 +90,16 @@ assert.equal(invoked('settings_save').length, saves);
 tick(300);
 assert.equal(invoked('settings_save').length, saves + 1);
 assert.deepEqual(JSON.parse(last('settings_save').values['adm.settings']), { ...settings });
+// flush(): a pending change saved at once (before the strip's own window replaces this one on Linux)
+{
+  const n = invoked('settings_save').length;
+  store.set('adm.view', 'strip');
+  assert.equal(invoked('settings_save').length, n, 'a change waits 300 ms');
+  await store.flush();
+  assert.equal(invoked('settings_save').length, n + 1, 'flush saves now');
+  assert.equal(last('settings_save').values['adm.view'], 'strip');
+  store.set('adm.view', 'flat'); await store.flush();
+}
 assert.equal(JSON.parse(store.get('adm.settings')).napMin, 7);
 
 // Scale: the slider rescales while dragged, − / + step it, Auto disables both.
@@ -253,7 +264,8 @@ assert.equal(field('reportDir').value, '');
 assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disabled);
 
 // The desktop column's window (stripwin.js growStrip): placed by kind and side, a side change re-placed even with a
-// panel open (its key holds the side), the panels widening it, the handle's menu (inside the column) never.
+// panel open (its key holds the side), the panels widening it, the handle's menu (inside the column) never. base: its
+// width with no panel open, whatever is open.
 {
   const { setView } = await import('./view.js');
   const { growStrip } = await import('./stripwin.js');
@@ -266,15 +278,15 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   const places = () => invoked('place_column').map(c => c.args);
   const n0 = places().length;
   growStrip();
-  assert.deepEqual(places().slice(n0), [{ width: 256 + 208, side: 'right' }]);
+  assert.deepEqual(places().slice(n0), [{ width: 256 + 208, side: 'right', base: 256 }]);
   settings.stripSide = 'left';
   growStrip(); // same width, the other side: placed again
-  assert.deepEqual(places().slice(n0 + 1), [{ width: 256 + 208, side: 'left' }]);
+  assert.deepEqual(places().slice(n0 + 1), [{ width: 256 + 208, side: 'left', base: 256 }]);
   growStrip(); // nothing changed: not placed again
   assert.equal(places().length, n0 + 2);
   shown('card', 0); shown('strip-menu', 120); // the menu open alone: the column's own width
   growStrip();
-  assert.deepEqual(places().at(-1), { width: 256, side: 'left' });
+  assert.deepEqual(places().at(-1), { width: 256, side: 'left', base: 256 });
   shown('strip-menu', 0);
   setView('flat');
 }

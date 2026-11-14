@@ -9,11 +9,15 @@ import { invoke, tauri } from './bridge.js';
 const strip = () => viewMode.strip;
 export const stripScale = () => ({ S: 1.5, M: 2, L: 2.5 })[settings.stripSize] ?? 2;
 const stripCss = () => Math.round(STRIP_H * stripScale()); // the strip's CSS height
+// The height the column has, CSS px: the work area's. On Linux the strip is a window of its own (label strip, a
+// layer surface the compositor sizes), already that tall, and the screen's numbers there are not CSS px: its own.
+const ownWindow = () => tauri()?.window?.getCurrentWindow?.().label === 'strip';
+export const colHeight = () => (ownWindow() ? innerHeight : screen.availHeight);
 // The column's scale: the Strip size's, smaller on a short work area (column.js columnScale); its CSS width.
-export const colScale = () => columnScale(screen.availHeight, stripScale());
+export const colScale = () => columnScale(colHeight(), stripScale());
 const colCss = () => Math.round(COL_W * colScale());
 const baseCss = () => (viewMode.column ? colCss() : stripCss());
-let actorAt; // app.js's hit test on the cast (initStripWin)
+let actorAt, actorRects; // app.js's hit test on the cast and the cast's rects (initStripWin)
 // Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
 // is over the strip (it gets no pointer events while ignoring them).
 let through = null;
@@ -25,7 +29,22 @@ export function stripHit(x, y) {
 export function setThrough(on) {
   if (on === through) return;
   through = on;
-  invoke('set_click_through', { on }).catch(() => { through = null; });
+  invoke('set_click_through', { on }).then(byRects => { if (byRects) watchHits(); }, () => { through = null; });
+}
+// Linux (Wayland): nobody tells the window where the cursor is outside it, so no strip-cursor comes. The window is
+// told instead which places take clicks (the hit targets' rects and the cast's), every 200 ms while they change.
+let hitsTimer = 0, hitsSent = '';
+function watchHits() {
+  if (hitsTimer) return;
+  hitsSent = '';
+  hitsTimer = setInterval(() => {
+    if (!strip()) { clearInterval(hitsTimer); hitsTimer = 0; return; }
+    const rects = [...document.querySelectorAll(HIT)].filter(el => el.offsetParent || el.getClientRects().length)
+      .map(el => el.getBoundingClientRect()).map(r => [r.left, r.top, r.right, r.bottom]).concat(actorRects())
+      .map(r => r.map(Math.round));
+    const key = JSON.stringify(rects);
+    if (key !== hitsSent) { hitsSent = key; invoke('set_strip_hits', { rects }).catch(() => { hitsSent = ''; }); }
+  }, 200);
 }
 // Into the strip: the window moves onto the taskbar (place_strip returns the hall's rect the first time, kept for the
 // way back in adm.hallRect). Out: the hall's rect back (place_hall turns click-through off). The tray check follows.
@@ -35,13 +54,15 @@ let bootStrip; // started in the strip: the window's rect is the last session's 
 // The column: its CSS width on its side (place_column); the bar: its CSS height (place_strip). Between the two the
 // window stays the strip's (the backend's ON): no hall rect comes back, adm.hallRect keeps the hall's.
 async function placeStrip(css) {
-  const r = await invoke(viewMode.column ? 'place_column' : 'place_strip', viewMode.column ? { width: css, side: settings.stripSide } : { height: css });
+  // base: its size with no panel open (what Linux keeps the other windows off, Settings' Keep windows off the strip)
+  const r = await invoke(viewMode.column ? 'place_column' : 'place_strip', viewMode.column ? { width: css, side: settings.stripSide, base: baseCss() } : { height: css, base: baseCss() });
   if (r && !bootStrip) store.set('adm.hallRect', JSON.stringify(r));
   bootStrip = false;
   return r;
 }
 async function enterStrip() {
   grownTo = shapeKey(baseCss());
+  await store.flush(); // Linux opens the strip's own window, which starts in the view the file holds (adm.view)
   await placeStrip(baseCss());
   if (!strip()) return; // a leave was queued behind this enter: let it undo the move instead
   setThrough(true);
@@ -51,6 +72,7 @@ async function enterStrip() {
 async function leaveStrip() {
   through = null; grownTo = '';
   const r = store.get('adm.hallRect');
+  await store.flush(); // as placeStrip: the hall's window starts from the file
   await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
   applyTop(); // the strip's watcher re-asserts topmost every tick regardless of the user's setting
   if (strip()) return; // a newer enter is queued behind this leave: let it redo the move instead
@@ -89,8 +111,8 @@ export function toggleStrip() {
 // The handle: a cog at the strip's left end (over the gate) opening a small menu above it.
 let stripMenu, stripHandle;
 export const showMenu = on => { stripMenu.hidden = !on; stripHandle.setAttribute('aria-expanded', String(on)); };
-export function initStripWin({ actorAt: hit, fromStrip, toggleVigil }) {
-  actorAt = hit;
+export function initStripWin({ actorAt: hit, actorRects: rects, fromStrip, toggleVigil }) {
+  actorAt = hit; actorRects = rects;
   bootStrip = fromStrip;
   const panels = document.querySelectorAll('#card, #prefs, #chron, #strip-menu');
   const ro = new ResizeObserver(growStrip), mo = new MutationObserver(growStrip);

@@ -3,14 +3,22 @@ use crate::{no_window, registry};
 use std::process::Command;
 
 /// Where to look for the Orca CLI: "orca" on PATH first, then the known install paths (an app started from
-/// Finder or the Dock does not get the shell's PATH, so /usr/local/bin and Homebrew are listed too).
+/// Finder or the Dock does not get the shell's PATH, so /usr/local/bin and Homebrew are listed too). On Linux the
+/// CLI is `orca-ide`, and `orca` is never tried: there it is GNOME's screen reader, which ignores the arguments it
+/// does not know and starts. `orca-ide` on PATH, then the package's install path and the link Orca's CLI installer
+/// puts in ~/.local/bin (a launcher may leave that folder off PATH).
 fn candidates() -> Vec<String> {
-    #[cfg_attr(not(any(windows, target_os = "macos")), allow(unused_mut))]
+    #[cfg(any(windows, target_os = "macos"))]
     let mut c = vec!["orca".to_string()];
     #[cfg(windows)]
     c.extend(std::env::var("LOCALAPPDATA").map(|l| format!("{l}\\Programs\\orca\\resources\\bin\\orca.exe")));
     #[cfg(target_os = "macos")]
     c.extend(["/Applications/Orca.app/Contents/Resources/bin/orca", "/usr/local/bin/orca", "/opt/homebrew/bin/orca"].map(String::from));
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let c = ["orca-ide".to_string(), "/opt/Orca/resources/bin/orca-ide".to_string()]
+        .into_iter()
+        .chain(std::env::home_dir().map(|h| h.join(".local/bin/orca-ide").to_string_lossy().into_owned()))
+        .collect();
     c
 }
 
@@ -113,4 +121,16 @@ pub fn answer_petition(handle: String, choice: String) -> Result<(), String> {
         return Err("orca could not type into the terminal".into());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    /// Linux: `orca` is GNOME's screen reader, which would start on any arguments.
+    #[cfg(not(any(windows, target_os = "macos")))]
+    #[test]
+    fn linux_never_runs_the_screen_reader() {
+        let c = super::candidates();
+        assert_eq!(c[0], "orca-ide");
+        assert!(c.iter().all(|e| e.ends_with("orca-ide")), "{c:?}");
+    }
 }

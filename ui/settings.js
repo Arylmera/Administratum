@@ -10,12 +10,14 @@ import { T, THEMES, WORLDS, setTheme } from './theme.js';
 import { minutesOf, hhmmOf } from './quiet.js';
 import { view as viewMode, viewName, setView, onView, stripKind } from './view.js';
 import { rooms, roomsOf, setRooms, MAX_ROOMS } from './rooms.js';
+import { PLANS, setHallPlan } from './hallplan.js';
 
 const mem = {};
 let saved = null;
 try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
-const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err)), 300); };
+const write = () => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err));
+const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(write, 300); };
 const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme', 'adm.view']; // the remote view's own choices
 if (REMOTE) {
   if (saved && typeof saved === 'object') Object.assign(mem, saved);
@@ -34,13 +36,16 @@ export const store = {
     try { localStorage.setItem(k, v); } catch { /* storage blocked: memory + file */ }
     persist();
   },
+  // Saved now, not 300 ms on: before the window is replaced (Linux: the strip is a window of its own, stripwin.js), whose
+  // UI starts from the file.
+  flush() { if (REMOTE) return Promise.resolve(); clearTimeout(saveTimer); return write(); },
 };
 
 // Numbers: [default, min, max]. Context windows are in k tokens.
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
 const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (stripwin.js stripScale)
 const SIDES = ['left', 'right']; // the desktop column's screen edge (stripwin.js); right by default: desktop icons sit on the left
-const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, isoBackdrop: true, ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, stripReserve: false, isoBackdrop: true, roomTint: true, hallPlan: 'open', ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
@@ -50,12 +55,16 @@ function load() {
   if (STRIP_SIZES.includes(saved.stripSize)) s.stripSize = saved.stripSize;
   if (SIDES.includes(saved.stripSide)) s.stripSide = saved.stripSide;
   if (typeof saved.stripBackdrop === 'boolean') s.stripBackdrop = saved.stripBackdrop;
+  if (typeof saved.stripReserve === 'boolean') s.stripReserve = saved.stripReserve;
   if (typeof saved.isoBackdrop === 'boolean') s.isoBackdrop = saved.isoBackdrop;
+  if (PLANS.includes(saved.hallPlan)) s.hallPlan = saved.hallPlan; // open space, or rooms round the Sanctum (hallplan.js)
+  if (typeof saved.roomTint === 'boolean') s.roomTint = saved.roomTint; // a room's floor: a soft tint of its colour (else its tiles)
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
 }
 // Shared, read live by actors.js (thresholds) and card.js (context windows).
 export const settings = load();
+setHallPlan(settings.hallPlan); // in force from the start (layout.js, actors.js, theme.js read it)
 // 2.5D, Backdrop off: no plates round the hall, the transparent window shows the desktop (index.html html.bare).
 const applyBackdrop = () => globalThis.document?.documentElement?.classList.toggle('bare', !settings.isoBackdrop);
 applyBackdrop();
@@ -341,8 +350,12 @@ function syncForm(form, field, hooks, login) {
   field('stripSize').value = settings.stripSize;
   field('stripSide').value = settings.stripSide;
   field('stripBackdrop').checked = settings.stripBackdrop;
+  if (field('stripReserve')) field('stripReserve').checked = settings.stripReserve;
   for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
   field('isoBackdrop').checked = settings.isoBackdrop;
+  field('hallPlan').value = settings.hallPlan;
+  field('roomTint').checked = settings.roomTint;
+  field('roomTint').closest('label').hidden = settings.hallPlan !== 'rooms'; // the tint is the rooms plan's
   field('chime').checked = !hooks.muted();
   for (const k in NUM) if (document.activeElement !== field(k)) field(k).value = settings[k];
   for (const k in RANGE) if (document.activeElement !== field(k)) field(k).value = Number.isNaN(place[k]) ? '' : place[k];
@@ -386,6 +399,9 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k === 'stripSize') { settings.stripSize = STRIP_SIZES.includes(el.value) ? el.value : 'M'; save(); hooks.rescaled(); }
   else if (k === 'stripSide') { settings.stripSide = SIDES.includes(el.value) ? el.value : 'right'; save(); hooks.sided?.(); }
   else if (k === 'stripBackdrop') { settings.stripBackdrop = el.checked; save(); }
+  else if (k === 'stripReserve') { settings.stripReserve = el.checked; save(); invoke('set_strip_reserve', { on: el.checked }).catch(() => {}); }
+  else if (k === 'hallPlan') { settings.hallPlan = PLANS.includes(el.value) ? el.value : 'open'; save(); setHallPlan(settings.hallPlan); hooks.planChanged?.(); field('roomTint').closest('label').hidden = settings.hallPlan !== 'rooms'; }
+  else if (k === 'roomTint') { settings.roomTint = el.checked; save(); hooks.roomsChanged?.(); }
   else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
   else if (k === 'chime') hooks.setMuted(!el.checked);
   else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
@@ -442,8 +458,15 @@ export function initSettings(hooks) {
   } else {
     applyTop(); // tauri.conf.json starts on top; restore the saved choice
     pushStale(); pushQuestions(); pushQuiet();
-    // Desktop strip: offered only where the backend can place it (Windows, macOS).
-    invoke('strip_supported').then(ok => { if (ok) for (const v of ['strip', 'vstrip']) form.querySelector(`[value="${v}"]`).hidden = false; }, () => {});
+    // Desktop strip and column: offered only where the backend can place them (Windows, macOS). Removed elsewhere, not
+    // left hidden: WebKitGTK's list (Linux) shows a hidden option.
+    const strips = ['strip', 'vstrip'].map(v => form.querySelector(`[value="${v}"]`));
+    invoke('strip_supported').then(ok => { for (const o of strips) if (ok) o.hidden = false; else o.remove(); }, () => { for (const o of strips) o.remove(); });
+    // Keep windows off the strip: only where the strip is a layer surface (Linux), which may or may not take its edge
+    // of the screen for itself. Elsewhere the strip stands on the taskbar or above the Dock: the row goes.
+    invoke('set_strip_reserve', { on: settings.stripReserve }).then(ok => { if (!ok) field('stripReserve').closest('label').remove(); }, () => field('stripReserve').closest('label').remove());
+    // Always on top: not under Wayland, where only the compositor stacks windows (a Hyprland rule, README).
+    invoke('on_top_supported').then(ok => { if (!ok) field('onTop').closest('label').hidden = true; }, () => {});
     invoke('platform').then(os => {
       isWin = os === 'windows';
       if (isWin) return;

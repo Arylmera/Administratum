@@ -123,6 +123,7 @@
   .lbl.sealed { border-width: 3px; border-style: double; }
   .lbl.stuck { border-style: dashed; border-color: var(--flame); }
   .lbl.same { border-style: dotted; border-color: var(--flame); }
+  .lbl.sleep { font-size: calc(8px * var(--k, 1)); opacity: 0.8; }
   .lbl.sheets { font-size: calc(8px * var(--k, 1)); border-color: var(--green); }
   .tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: color-mix(in srgb, var(--outline) 85%, transparent); border: 1px solid var(--edge); border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
   .tip[hidden] { display: none; }
@@ -451,6 +452,7 @@
           <fieldset><legend>Switches</legend>
             <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
             <label class="strip-only" hidden><span>Strip backdrop</span><input type="checkbox" name="stripBackdrop"></label>
+            <label class="strip-only" hidden><span>Keep windows off the strip</span><input type="checkbox" name="stripReserve"></label>
             <label class="iso-only" hidden><span>Backdrop</span><input type="checkbox" name="isoBackdrop"></label>
           </fieldset>
           <fieldset><legend>Values</legend>
@@ -512,6 +514,9 @@
           <fieldset><legend>Rooms</legend>
             <div class="rooms wide"></div>
             <button type="button" class="clear room-add" data-host>Add room</button>
+            <label><span>Hall plan</span><select name="hallPlan"><option value="open">Open space</option><option value="rooms">Rooms</option></select></label>
+            <label><span>Soft tint floors</span><input type="checkbox" name="roomTint"></label>
+            <p class="hint">Open space: one hall, the rooms a west wing. Rooms: only rooms, round the Sanctum; each keeps its scribes, who doze at their desk and run their shells at the room's own computer, and the departments in no room share one more.</p>
             <p class="hint">A room groups every department whose sessions work in a folder matching its pattern, fenced, in rule order before the rest of the hall. Glob: <code>**/git/Terra/**</code> (any case, \ and / alike); <code>re:</code> before a regex, matched anywhere in the folder path written with <code>/</code> separators (<code>re:git/terra$</code>). The first matching rule wins; a temp folder stays in the break-out room.</p>
           </fieldset>
         </section>

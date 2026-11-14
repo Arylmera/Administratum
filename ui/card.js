@@ -2,7 +2,7 @@
 import { T, t } from './theme.js';
 import { rankOf } from './sprites.js';
 import { candleOf } from './scene.js';
-import { isQuestion } from './actors.js';
+import { isQuestion, asleep } from './actors.js';
 import { settings } from './settings.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { pad2 } from './quiet.js';
@@ -72,7 +72,9 @@ export function renderCard() {
   const title = card.querySelector('.title');
   title.textContent = s.title ?? '';
   title.hidden = !s.title;
-  const status = a?.target?.pose === 'nap' && !s.background ? t('status.napping') : statusOf(s);
+  // asleep: on a bench (strip, column) or, in the mirror hall, at the desk past napMin (overlay.js sleepText)
+  const napping = a?.target?.pose === 'nap' || (!!a && asleep(a));
+  const status = napping && !s.background ? t('status.napping') : statusOf(s);
   card.querySelector('.meta').textContent = `${status}${s.waitingFor ? ` (${s.waitingFor})` : ''} · ${ago(s.sinceMs)}`;
   card.querySelector('.ctx').textContent = `${contextLine(s.context)} · ${rankLine(s.context?.model)}`;
   card.querySelector('.task').textContent = s.status === 'waiting' && s.asks ? `Asks to: ${s.asks}` : s.limit ? s.limit.text : s.task;

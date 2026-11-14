@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-1c1d20?style=flat-square"></a>
 </p>
 
-A Windows and macOS desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
+A Windows, macOS and Linux desktop widget that shows every Claude Code session on your PC as a character in a pixel-art
 office, and calls you when one of them needs an answer. Pick your world: a tech-priest scribe in a Warhammer 40k
 scriptorium, a netrunner in a cyberpunk den, crew on an orbital station, an apprentice in a wizard's tower, a
 dweller in a Fallout vault or a chimpanzee at a typewriter in Darwin's Victorian laboratory ([Worlds and themes](#worlds-and-themes)).
@@ -36,14 +36,15 @@ permission prompts in Orca terminals you can approve or deny from the widget its
 |---|---|---|
 | **Windows 10 / 11** | Download `Administratum_<version>_x64-setup.exe` from the [latest release](https://github.com/Arylmera/Administratum/releases/latest) and run it | [Step by step](#windows) |
 | **macOS** (Apple silicon or Intel) | `brew install --cask arylmera/administratum/administratum` | [Step by step](#macos-with-homebrew-recommended), or [without Homebrew](#macos-without-homebrew) |
+| **Linux** (x86_64) | Download `Administratum_<version>_amd64.AppImage` (any distribution) or the `.deb` (Debian, Ubuntu) from the [latest release](https://github.com/Arylmera/Administratum/releases/latest) | [Step by step](#linux) |
 
 Then start a Claude Code session: its scribe walks in through the gate. To look around without any session, run
 the app with `--demo`.
 
 ### Requirements
 
-- Windows 10 or 11 (tested on Windows 11), or macOS (built and run on macOS 26, Apple silicon). Linux is not
-  supported.
+- Windows 10 or 11 (tested on Windows 11), macOS (built and run on macOS 26, Apple silicon), or Linux (built and run
+  on Omarchy 4.5: Arch Linux, Hyprland, Wayland).
 - Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
   missing.
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
@@ -53,12 +54,15 @@ the app with `--demo`.
   petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
   `%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe` (Windows), or at
   `/Applications/Orca.app/Contents/Resources/bin/orca`, `/usr/local/bin/orca` or `/opt/homebrew/bin/orca` (macOS;
-  an app started from the Dock or Finder does not see your shell's `PATH`).
+  an app started from the Dock or Finder does not see your shell's `PATH`). On Linux the CLI is `orca-ide`, on `PATH`
+  or at `/opt/Orca/resources/bin/orca-ide` or `~/.local/bin/orca-ide`; `orca` there is GNOME's screen reader and is
+  never run.
 
 Each [release](https://github.com/Arylmera/Administratum/releases/latest) ships the Windows installer
-`Administratum_<version>_x64-setup.exe` and two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
-silicon) and `Administratum_<version>_x64.dmg` (Intel). Neither is signed by Microsoft or Apple, so each OS warns
-once; the steps below get past it.
+`Administratum_<version>_x64-setup.exe`, two macOS disk images, `Administratum_<version>_aarch64.dmg` (Apple
+silicon) and `Administratum_<version>_x64.dmg` (Intel), and for Linux an AppImage and a Debian/Ubuntu package,
+`Administratum_<version>_amd64.AppImage` and `Administratum_<version>_amd64.deb`. The Windows and macOS ones are not
+signed by Microsoft or Apple, so each OS warns once; the steps below get past it.
 
 ### Windows
 
@@ -112,6 +116,32 @@ Chronicon stay in `%APPDATA%\com.arylmera.administratum` unless you tick the uni
 
 **Uninstall:** quit it from the tray menu, then drag `Administratum.app` to the Bin.
 
+### Linux
+
+1. From the [latest release](https://github.com/Arylmera/Administratum/releases/latest), download either:
+   - `Administratum_<version>_amd64.AppImage`, for any distribution. It carries its own libraries and needs FUSE 2
+     (`fuse2` on Arch, `libfuse2` on Ubuntu 22.04, `libfuse2t64` on 24.04). Make it executable and run it:
+     ```sh
+     chmod +x Administratum_*_amd64.AppImage && ./Administratum_*_amd64.AppImage
+     ```
+   - or `Administratum_<version>_amd64.deb`, on Debian or Ubuntu. It installs WebKitGTK and the tray library with
+     it, and a launcher entry:
+     ```sh
+     sudo apt install ./Administratum_<version>_amd64.deb
+     ```
+2. Under a tiling window manager the widget first opens as a tiled window: on Hyprland, add the window rule from
+   [What differs on Linux](#what-differs-on-linux) to make it a floating widget in a corner.
+3. It lives in the tray, which needs a StatusNotifier tray (most bars have one; on GNOME, the AppIndicator
+   extension). Petition toasts carry Approve and Deny where the notification server shows actions.
+4. Optional: tray menu or Settings → **Start at login** writes `~/.config/autostart/Administratum.desktop` (for the
+   AppImage, pointing at the `.AppImage` file), which XDG desktops and systemd-based sessions such as Omarchy's
+   start at login.
+5. Start a Claude Code session: its scribe walks in through the gate.
+
+**Updates:** Settings → System → Updates replaces the AppImage in place; the `.deb` installs through a password
+prompt (`pkexec`). **Uninstall:** delete the AppImage, or `sudo apt remove administratum`; settings stay in
+`~/.config/com.arylmera.administratum` and the Chronicon in `~/.local/share/com.arylmera.administratum`.
+
 ### What differs on macOS
 
 The widget has no Dock icon and no menu bar menu of its own: it lives in the menu bar's status area (the tray menu
@@ -127,6 +157,40 @@ from Windows:
   Administratum may control System Events (Automation); unanswered, the Mac stays on. Let one vigil run out while
   you are there and allow it (it then shows in *System Settings → Privacy & Security → Automation*). An app with
   unsaved work can still refuse the shutdown.
+
+### What differs on Linux
+
+Built and run on Omarchy 4.5 (Arch Linux, Hyprland 0.56, Wayland, WebKitGTK 2.54). Settings are in
+`~/.config/com.arylmera.administratum`, the Chronicon in `~/.local/share/com.arylmera.administratum`. Differences
+from Windows:
+
+- **The window under Wayland**: a Wayland window can neither place itself nor stay above the others; the compositor
+  does both. On Hyprland a window rule makes the hall a small floating widget in a corner, above tiled windows and
+  on every workspace (`pin`). In Hyprland's Lua config (0.55 and later; on Omarchy 4.5,
+  `~/.config/hypr/hyprland.lua`):
+
+  ```lua
+  hl.window_rule({
+    match = { class = "^administratum$" },
+    float = true,
+    pin = true,
+    size = { 700, 500 },
+    move = { "(monitor_w-window_w-40)", "(monitor_h-window_h-40)" },
+  })
+  ```
+
+  An older Hyprland takes the same rules (float, pin, size, move) in its `hyprland.conf` syntax, see Hyprland's
+  [window rules](https://wiki.hypr.land/configuring/core/rules/window-rules/). The header still drags the window and
+  its edges resize it. *Always on top* is not offered under Wayland; in an X11 session it is, as on Windows.
+- **Desktop strip and column**: on compositors with layer-shell (Hyprland, Sway, KDE Plasma; built and run on
+  Hyprland). Wayland lets no window place itself on a screen edge, so the strip is a layer surface, as bars and
+  docks are: it lies over the bottom of the screen (the column over a side), above the windows, on the monitor the
+  hall was on, and clicks between the characters go to the window under it. Settings → **Keep windows off the
+  strip** makes the compositor keep that edge free instead. Switching between the hall and the
+  strip opens one window and closes the other, so the cast walks in again. On GNOME and in an X11 session there is
+  no layer-shell: Settings offers neither and the tray item stays greyed.
+- **Tray**: on Omarchy the icon sits in the bar's tray drawer, behind the `<`; pin it there to keep it in view.
+  Launching Administratum again also brings a hidden window back.
 
 ---
 
@@ -310,7 +374,9 @@ Use **✓ / ✗** on the queue label, or **Approve / Always / Deny** on the card
 
 The petition toast itself carries **Approve** and **Deny** for the same prompts (permission, in Orca). A click runs
 the same check below. If the petition was already answered in the terminal, nothing is typed. *Always* stays on the
-card: on a toast it could be clicked without reading the prompt.
+card: on a toast it could be clicked without reading the prompt. On Linux the buttons are the notification's actions:
+GNOME Shell, KDE Plasma, Omarchy (4.5 and later), dunst, mako (`makoctl menu`) and swaync show them; a notification
+server that does not shows the toast without them, and the card still answers.
 
 What happens when you click:
 
@@ -422,6 +488,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
 | Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3, or its − / + buttons, a quarter step per click) sets it, and a hall larger than the window pans |
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
+| Keep windows off the strip *(strip only, Linux)* | off | The strip takes its edge of the screen for itself and the other windows stop short of it, as they do for a bar (an open panel still lies over them); off, it lies over them |
 | Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
 | Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 
@@ -452,7 +519,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 **Rooms**
 
 Custom rooms group a work domain (several repositories under one name) and give it a fixed place in the hall. Each
-rule has a name, a folder pattern, a colour, ↑ / ↓ to order it and ✕ to delete it; at most 6. A pattern is a glob,
+rule has a name, a folder pattern, a colour, ↑ / ↓ to order it and ✕ to delete it; at most 8. A pattern is a glob,
 any case, `\` and `/` alike: `**/git/Terra/**` matches the Terra folder and everything under it; `*` stays within one
 folder, `?` is one character. `re:` before a regular expression matches anywhere in the folder path, written with `/` separators on every OS (`re:git/(terra|geneseed)$`).
 A pattern that does not compile turns red (its message on hover) and is not saved; the room keeps its last valid one.
@@ -475,11 +542,22 @@ sessions match several rules goes to the first one; a temp folder stays in the b
 a bay with the room's plaque first. The desktop column shows a room's departments as ordinary floors for now. Reset
 to defaults leaves the rooms alone. The remote view shows them read only.
 
+**Hall plan** (under the rules) chooses between two halls. **Open space**, the default, is the hall described so far:
+one scriptorium, the shared cogitator bank and Refectorium, the Sanctum to the east, the rooms a west wing.
+**Rooms** has only rooms, round the Sanctum: the Sanctum is an open column down the middle of the hall, behind a low
+rail, the Magos at its top and the petition line down it; the first half of the rules fill the left side from the
+top, the others the right side under one more room for the departments in no rule (*Elsewhere*). A room's floor is
+a soft tint of its colour with its name painted small in its bottom right corner (*Soft tint floors* off: its tiles), and nothing else runs
+through it. There a scribe leaves its room only to petition, or by the gate: it runs its shells at the room's own
+computer, on the room's Sanctum side, and dozes at its desk, half faded, under a tag saying for how long
+(`💤 12 min`). There is no Refectorium, cogitator bank or west wing in that plan. The switch applies at once, in
+the flat and 2.5D views; the desktop strip and column are the same in both.
+
 **System**
 
 | Setting | Default | Effect |
 |---|---|---|
-| Always on top | on | Keeps the window above others |
+| Always on top | on | Keeps the window above others (not offered under Wayland: see *What differs on Linux*) |
 | Start at login | off | Starts the app at sign-in (same as the tray item) |
 | Pause when hidden or covered | on | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30: redraw rate while nothing moves (anything walking or animating runs at 30 fps). Lower = less CPU/GPU |

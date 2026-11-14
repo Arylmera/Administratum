@@ -2,13 +2,14 @@
 import { SCENE, WALL_DY, zonesOf, wingZones } from './layout.js';
 import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
-import { isStale, isQuestion } from './actors.js';
+import { isStale, isQuestion, asleep } from './actors.js';
 import { invoke, listen, REMOTE } from './bridge.js';
 import { sel, ago, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed } from './card.js';
 import { riskOfPetition } from './petition.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
+import { settings } from './settings.js';
 import { TAN39 } from './iso.js';
 import { JAMB_UP } from './isohall.js';
 import { scale, pan, viewW, viewH, pannable, centreOn, drag, coarse, stage } from './viewport.js';
@@ -42,6 +43,7 @@ const FLOOR39 = `matrix(1, ${1 / 3}, ${-TAN39}, ${TAN39 / 2}, 0, 0)`; // one flo
 const WALL39 = `matrix(${TAN39}, ${-TAN39 / 2}, 0, 1, 0, 0) translate(-50%, -100%)`;
 const SIGN_W = 60; // a room's door sign, floor px along the wall (the doorway's 20 and 20 either side)
 const STRIP_PAD = 3; // logical px between a department's plaque and its lecterns, in the strip
+export const ROOM_UP = 4; // a custom room's plaque: its top this far above the fence's top rail (zonesOf Z.y), over the rail
 // Subscription usage as claude-deck last wrote it (main.rs usage): session and weekly percent and the time to their
 // reset. Hidden when claude-deck is absent or its file is over 30 min old (it would show a stale percent).
 let usage = null;
@@ -49,19 +51,30 @@ const pollUsage = () => invoke('usage').then(u => { usage = u; }, () => {});
 const until = iso => { const m = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60_000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
 const usageText = () => (usage?.session && usage?.weekly && Date.now() - Date.parse(usage.fetchedAt) < 30 * 60_000
   ? `session ${usage.session.percent}% · ${until(usage.session.resetsAt)} | week ${usage.weekly.percent}% · ${until(usage.weekly.resetsAt)}` : '');
+// The width a department's plaque may take in the rooms plan (b.zone: its room's cell, layout.js packMirror): to the next
+// block on its row, else to the cell's edge.
+export function plaqueRoom(b, blocks) {
+  const next = blocks.filter(o => o !== b && o.zone === b.zone && o.y === b.y && o.x > b.x).map(o => o.x - 4);
+  return Math.max(b.w - 4, Math.min(b.zone.x + b.zone.w - 2, ...next) - (b.x + 2));
+}
 export function renderPlaques(blocks) {
   // In the strip the plaque hangs above its lecterns (they stand FLOOR - 30 high), its bottom STRIP_PAD over them.
   // In the column (H.column) it lies on its floor's slab, under the floor line (the block's mat ends 1 px over it).
   const col = hall().column, place = b => (col ? [b.x + 2, b.y + b.h + 1] : strip() ? [b.x + 2, FLOOR - 30 - STRIP_PAD] : at(b.x + 2, b.y + b.h - 7));
+  // the rooms plan: a plaque may run past its block, to the next block on its row or its room's edge (a one-desk block is
+  // 50 px wide, most names are longer)
   const depts = blocks.filter(b => !b.empty && !b.cell); // an empty room's placeholder, a strip room's cell: the room's plaque only
-  const want = new Map(depts.map(b => [`b:${b.name}`, ['plaque', b.name, ...place(b), b.color, b.w - 4 + (strip() && !col ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip() && !col]])); // the strip's plaque may run over the gap after it
-  if (layout().overflow) want.set('overflow', ['plaque', t('overflow', { n: layout().overflow }), ...(col ? [hall().side === 'right' ? hall().w - 96 : 4, hall().cog.y + 1] : at(120 + hall().dx, hall().y1 - 10)), T.ink.overflowPlaque]); // the column's: on the cogitator floor's slab
+  const want = new Map(depts.map(b => [`b:${b.name}`, ['plaque', b.name, ...place(b), b.color, (b.zone ? plaqueRoom(b, blocks) : b.w - 4) + (strip() && !col ? GAP - 4 : 0), shownBranch(deptHead(b.name)?.branch), undefined, strip() && !col]])); // the strip's plaque may run over the gap after it
+  if (layout().overflow) want.set('overflow', ['plaque', t('overflow', { n: layout().overflow }), ...(col ? [hall().side === 'right' ? hall().w - 96 : 4, hall().cog.y + 1] : hall().sanct ? at(hall().sanct.x0 + 4, hall().y1 - 10) : at(120 + hall().dx, hall().y1 - 10)), T.ink.overflowPlaque]); // the column's: on the cogitator floor's slab
   // The break-out room's name under its fence (it packs last; not in the strip: no room for it). A west wing room's
   // (hallOf().rooms) on its top wall in its rule's colour (39°: on its floor by that wall, the wall being low there):
   // its only department's own plaque (name, branch, opens the folder), else the room's name, dim while empty. In the
   // strip a room's name hangs over its leading cell (strip.js layoutStrip), as a department's.
   const nameOf = id => { const r = rooms.list.find(q => q.id === id); return r ? r.name || r.pattern : ''; };
-  for (const Z of strip() ? [] : zonesOf(blocks, hall())) want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
+  for (const Z of strip() ? [] : zonesOf(blocks, hall())) {
+    if (Z.kind === 'temp') want.set('breakout', ['plaque breakout', t('breakout'), ...at(Z.x + 2, Z.y + Z.h + 1), undefined, Z.w - 4]);
+    else if (!Z.open) want.set(`r:${Z.id}`, [`plaque room${Z.empty ? ' dim' : ''}`, nameOf(Z.id), ...at(Z.x + 4, Z.y - ROOM_UP), Z.color, Z.w - 8]); // an open cell's name is on its floor (scene.js zoneName)
+  }
   for (const R of strip() ? [] : wingZones(hall(), blocks)) {
     // 39°: a sign over the room's door on the wall's hall face (centred on the doorway, its foot on the jambs)
     const sign = view.mode === '39', top = sign ? at(hall().wx, R.doorOut.y - 8, JAMB_UP) : at(R.x + 4, R.plaqueY), inside = depts.filter(b => b.room === R.id);
@@ -141,8 +154,9 @@ function syncHonours() {
   const [px, py] = p, fields = [A.title, A.row0, A.row1, A.row2, A.row3], name = t('honours.title').length;
   fields.forEach(([fx, fy, fw, fh], i) => {
     const [cx, cy] = at(px + fx + fw / 2, py + fy + fh / 2), size = i ? fh / 2.3 : Math.min(fh / 1.5, fw / (0.62 * name));
+    // in 39° the back wall rises 1 px every 3 (iso.js P39): the text sheared the same, so each line lies along its field
     setStyle(board.children[i], { left: `${cx * scale}px`, top: `${cy * scale}px`, width: `${fw * scale}px`, height: `${fh * scale}px`,
-      fontSize: `${(size * scale).toFixed(2)}px` });
+      fontSize: `${(size * scale).toFixed(2)}px`, transform: view.mode === '39' ? 'translate(-50%, -50%) matrix(1, 0.3333, 0, 1, 0, 0)' : '' });
   });
 }
 
@@ -263,6 +277,9 @@ export const watchText = a => (a.watch && !a.leaving && vigil.countdownEnd != nu
 
 // A working scribe's files changed this turn, by its desk.
 export const sheetTags = new Map();
+// A scribe dozing at its desk (the mirror hall has no bench): idle past napMin, how long in whole minutes.
+export const sleepTags = new Map();
+export const sleepText = (a, now = Date.now()) => (asleep(a, now) ? `💤 ${Math.floor((now - a.s.sinceMs) / 60_000)} min` : '');
 export const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.status === 'busy' || a.s.status === 'shell') && filesOf(a.s.turn) ? `✎${filesOf(a.s.turn)}` : '');
 
 // Hover is re-tested every frame from the last mouse position: characters walk under a still cursor.
