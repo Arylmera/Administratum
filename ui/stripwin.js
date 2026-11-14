@@ -62,6 +62,7 @@ async function placeStrip(css) {
 }
 async function enterStrip() {
   grownTo = shapeKey(baseCss());
+  await store.flush(); // Linux opens the strip's own window, which starts in the view the file holds (adm.view)
   await placeStrip(baseCss());
   if (!strip()) return; // a leave was queued behind this enter: let it undo the move instead
   setThrough(true);
@@ -71,6 +72,7 @@ async function enterStrip() {
 async function leaveStrip() {
   through = null; grownTo = '';
   const r = store.get('adm.hallRect');
+  await store.flush(); // as placeStrip: the hall's window starts from the file
   await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
   applyTop(); // the strip's watcher re-asserts topmost every tick regardless of the user's setting
   if (strip()) return; // a newer enter is queued behind this leave: let it redo the move instead

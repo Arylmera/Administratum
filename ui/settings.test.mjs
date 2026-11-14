@@ -90,6 +90,16 @@ assert.equal(invoked('settings_save').length, saves);
 tick(300);
 assert.equal(invoked('settings_save').length, saves + 1);
 assert.deepEqual(JSON.parse(last('settings_save').values['adm.settings']), { ...settings });
+// flush(): a pending change saved at once (before the strip's own window replaces this one on Linux)
+{
+  const n = invoked('settings_save').length;
+  store.set('adm.view', 'strip');
+  assert.equal(invoked('settings_save').length, n, 'a change waits 300 ms');
+  await store.flush();
+  assert.equal(invoked('settings_save').length, n + 1, 'flush saves now');
+  assert.equal(last('settings_save').values['adm.view'], 'strip');
+  store.set('adm.view', 'flat'); await store.flush();
+}
 assert.equal(JSON.parse(store.get('adm.settings')).napMin, 7);
 
 // Scale: the slider rescales while dragged, − / + step it, Auto disables both.

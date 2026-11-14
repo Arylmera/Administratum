@@ -16,7 +16,8 @@ const mem = {};
 let saved = null;
 try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
-const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err)), 300); };
+const write = () => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err));
+const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(write, 300); };
 const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme', 'adm.view']; // the remote view's own choices
 if (REMOTE) {
   if (saved && typeof saved === 'object') Object.assign(mem, saved);
@@ -35,6 +36,9 @@ export const store = {
     try { localStorage.setItem(k, v); } catch { /* storage blocked: memory + file */ }
     persist();
   },
+  // Saved now, not 300 ms on: before the window is replaced (Linux: the strip is a window of its own, stripwin.js), whose
+  // UI starts from the file.
+  flush() { if (REMOTE) return Promise.resolve(); clearTimeout(saveTimer); return write(); },
 };
 
 // Numbers: [default, min, max]. Context windows are in k tokens.
