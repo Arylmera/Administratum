@@ -37,23 +37,24 @@ import { T, THEMES } from './theme.js';
 import { VS39 } from './iso.js';
 import { MAPS, ART } from './sprites.js';
 import { loadSheet } from './art.js';
+import { artRootOf } from './themes.js';
 
 export const VS = VS39; // v units per texel of a top face's rows and a side face's columns (39°)
 export const cols = d => Math.ceil(d / VS); // texels across a depth d
 
 const missing = e => e.code === 'ENOENT' || /HTTP 404/.test(e.message);
-async function load(dir) {
+async function load(id) {
   try {
-    const { frames, meta } = await loadSheet(`${dir}faces`);
+    const { frames, meta } = await loadSheet('faces', artRootOf(id));
     return { objects: meta.objects, frames };
   } catch (e) {
-    if (dir && missing(e)) return null; // a world without face sheets draws with the base ones; anything else throws
+    if (id !== 'tier2' && missing(e)) return null; // a world without face sheets draws with the base ones; anything else throws
     throw e;
   }
 }
-const base = await load('');
+const base = await load('tier2');
 const worlds = {};
-await Promise.all(Object.values(THEMES).filter(t => t.art).map(async t => { worlds[t.id] = await load(`${t.id}/`); }));
+await Promise.all(Object.values(THEMES).filter(t => t.art).map(async t => { worlds[t.id] = await load(t.id); }));
 // For the tests and the art tools: each folder's data, and the names of the objects with face sheets.
 export const FACES = { base, worlds };
 export const FACE_OBJECTS = Object.keys(base.objects);

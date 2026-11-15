@@ -84,7 +84,7 @@ do not know which.
 | `column.js`, `lift.js` | Desktop column: its floors, layout and routes (a cross-floor walk has one lift waypoint); the lift, a pure SCAN scheduler (FIFO calls, 3 riders, event-exact `step`) the cast rides (`actors.js`) |
 | `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder |
 | `room.js`, `wallart.js` | The room from tiles (fill rules), the back wall's window and hangings |
-| `theme.js`, `themes.js` | Themes: every colour and the wording; `setTheme`, `t()` |
+| `theme.js`, `themes.js`, `themepack.js` | Themes: every colour and the wording; `setTheme`, `t()`; the loader of the themes' `theme.json` files, their check and recolouring |
 | `quiet.js` | Quiet hours, the same rule as `quiet.rs` |
 | `vigil.js` | Night Vigil state (armed, deadline, countdown) as the backend emits it, and the 30 s bell rule |
 
@@ -147,6 +147,8 @@ when it loads. One file per module:
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
+| `themepack.test.mjs` | A theme from its JSON: the recolouring by hue range, the check and its refusals, the built theme of a world and of a style |
+| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder, a broken theme refused naming it (not JSON, no file, a style as a base) |
 | `theme.test.mjs` | Themes: complete palettes, runtime switch; chrome contrast in every theme (each foreground over the fill it sits on, text >= 4.5, icons and borders >= 3; a light-chrome theme sets `--on-blood` / `--ink-on-blood` / `--pink-on-blood` / `--green-on-blood` for text on `--blood`, `--flame-on-wax` for the alarm, `--honours-ink` for the Hall of Honours words, whose plaque fields it is checked against), with the shortfalls already shipped listed and asserted still failing |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
@@ -179,12 +181,26 @@ drawn in the key palette `ui/art/key.gpl` (one character per colour slot; load i
 JSON file with the frames, anchors and the tiles' fill rules. Colours are never in the art: every colour (the art's,
 the ones drawn in code, the page's chrome) and the wording come from the active theme.
 
-- `ui/theme.js` holds the base theme (Ordo Administratum) and `WORLDS`; `ui/themes.js` holds every other theme,
-  each with only what it changes.
+- `ui/theme.js` holds the base theme (Ordo Administratum) and `WORLDS`, in code. Every other theme is data: a folder
+  `ui/art/<id>/` with its `theme.json` (only what it changes) beside its own art, and its id in the ordered list
+  `ui/art/themes.json`. `ui/themes.js` loads them in that order, `ui/themepack.js` checks each file and builds the
+  theme from it. A theme is parsed (`JSON.parse`), never evaluated; a file that fails the check stops the load with
+  `theme <id>: <problem>`.
+- To add a theme: make its folder with a `theme.json` (`format: 1`, `name`, then `world` or `base`, and the parts it
+  changes: `px`, `rank`, `ink`, `light`, `ui`, `text`, `sash`, `art`, `notes` for the comments), and put its id in
+  `ui/art/themes.json`, after its base if it has one. A world theme may name a new world with `worldName`.
+- A **style** names a `base` (a world theme, or `tier2`) and `bands`: hue ranges, each `{ hue: [from, to], to, sat,
+  light }` (degrees; a range with from > to wraps past 360), turning every colour of the base's whole resolved look
+  whose hue falls in it to hue `to`, saturation x `sat`, lightness + `light`. Greys and colours outside every band
+  keep theirs, and so do skin (`:` `;`), the sashes and the base's art (`artOf`) and wording, so the alarm red and the
+  gold rank trim stay. Then the style's own parts lay over the result. The four Neon Grid styles (Corpo Tower, Rain
+  City, Green Code, Sunset Drive) recolour its pink neon, violet coolant, night-blue walls and cyan chrome this way;
+  each carries a few explicit `px` and `ink` overrides (the blended plate sheens, `lampDead`) so it comes out exactly
+  as it did when an accent recoloured only what Neon Grid declared.
 - A theme belongs to a **world** (Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout). Settings picks the world, then
   one of its themes as the **style**.
-- A theme with its own art lists the families it redraws in its `art` field; the files sit in `ui/art/<theme>/`
-  (`cyber`, `orbital`, `tower`, `vault`, `darwin`, `breakingbad`). Every other family falls back to the base art.
+- A theme with its own art lists the families it redraws in its `art` field (a name that is not a known family is
+  refused before any file is read); the files sit beside its `theme.json` in `ui/art/<theme>/`. Every other family falls back to the base art.
 - A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
   has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
   world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).

@@ -3,6 +3,7 @@
 // a git ref, and ui/art/themes.json (their order), then proves each one resolves exactly as before.
 //   node tools/themes_to_packs.mjs --from <git ref>           write the files, exit 0 only if every theme is identical
 //   node tools/themes_to_packs.mjs --from <git ref> --check   the same proof on the files as they are, nothing written
+// <git ref>: a commit whose ui/themes.js is still the old code (090de41, the last one before the loader).
 // An accent (a style of Neon Grid) recolours its base's resolved look where the old accent() recoloured only what the
 // base declared: every value where the two differ is written into the accent's file as an override.
 import assert from 'node:assert/strict';
@@ -12,7 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
-import { resolve } from '../ui/theme.js';
+import { resolve, THEMES } from '../ui/theme.js';
 import { checkTheme, themeOf } from '../ui/themepack.js';
 
 const arg = name => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -130,7 +131,9 @@ for (const [f, t] of Object.entries(text)) {
   else if (!fs.existsSync(at) || fs.readFileSync(at, 'utf8') !== t) { console.log(`${f}: differs from what ${ref} gives`); bad++; }
 }
 
-// 7. The proof, on the files as written (parsed back): checked, built, resolved as before.
+// 7. The proof, on the files as written (parsed back): checked, built, resolved as before; and once ui/themes.js is
+// the loader (it exports loadThemes), the themes it registered from those files resolve as before too.
+const loader = await import('../ui/themes.js');
 const read = f => JSON.parse(fs.existsSync(path.join(root, f)) ? fs.readFileSync(path.join(root, f), 'utf8') : 'null');
 assert.deepEqual(read('ui/art/themes.json'), ORDER, 'ui/art/themes.json');
 const disk = Object.fromEntries(ORDER.map(id => [id, read(`ui/art/${id}/theme.json`)]));
@@ -142,7 +145,12 @@ for (const id of ORDER) {
     const b = make(id), o = old[id].theme;
     assert.deepStrictEqual(resolve(b), old[id].look);
     assert.deepStrictEqual({ world: b.world, art: b.art, artOf: b.artOf }, { world: o.world, art: o.art, artOf: o.artOf });
-    console.log(`${id}: identical`);
+    if (loader.loadThemes) {
+      const l = THEMES[id];
+      assert.deepStrictEqual(resolve(l), old[id].look, 'the loader');
+      assert.deepStrictEqual({ world: l.world, art: l.art, artOf: l.artOf }, { world: o.world, art: o.art, artOf: o.artOf }, 'the loader');
+    }
+    console.log(`${id}: identical${loader.loadThemes ? ' (and as the loader registers it)' : ''}`);
   } catch (e) { console.log(`${id}: DIFFERS ${e.message.split('\n').slice(0, 12).join('\n  ')}`); bad++; }
 }
 if (bad) { console.log(`${bad} problems`); process.exit(1); }

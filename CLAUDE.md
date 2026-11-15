@@ -21,8 +21,9 @@ References the user may give:
 Where things live:
 - Art: `ui/art/<family>.png` + `.json` (frames, anchors, tile fill rules), drawn in the key palette
   `ui/art/key.gpl` (one char per colour slot). A theme's own art: `ui/art/<theme>/<family>.*`, holding only the
-  frames it redraws, listed in the theme's `art` in `ui/themes.js`.
-- Colours per theme: `ui/theme.js` (Ordo Administratum, `BASE`) and `ui/themes.js`.
+  frames it redraws, listed in the theme's `art` in `ui/art/<theme>/theme.json`.
+- Colours per theme: `ui/theme.js` (Ordo Administratum, `BASE`) and `ui/art/<theme>/theme.json` (the list:
+  `ui/art/themes.json`; loader `ui/themes.js`, format and check `ui/themepack.js`).
 - Sprite list shared by the viewer and the gallery: `tools/sprite_catalog.mjs`.
 - To read a sprite as text rows: `node -e "import('./ui/sprites.js').then(m => console.log(m.MAPS.SHELF.join('\n')))"`.
 - After an art change: run `node ui/art.test.mjs` and `node ui/sprites.test.mjs`, then regenerate the committed
