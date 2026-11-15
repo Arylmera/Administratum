@@ -230,6 +230,16 @@ installer, can hold a theme of the same name. A `base` is looked up in the same 
 - The size and count limits of a download.
 - Whether `art` could later be derived from the files present instead of listed.
 
+## Carried over from part A
+
+Found while building part A and left for part B, where packs make them matter:
+
+- The check should refuse an `art` name that is not a known family itself (today `sprites.js` does, before any read).
+- A colour's components are not range-checked (`rgb(300,0,0)` passes).
+- In the browser, an error on a theme's sheet names the file but not the theme's folder.
+- A style with its own `art` draws its own sprites but its base's face sheets (`faces.js`); no shipped style has
+  any.
+
 ## Later
 
 - The sprite viewer and the gallery on a pack.
