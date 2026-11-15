@@ -101,5 +101,8 @@
     "motto": "Suffer not the alien to live",
     "breakout": "Containment Cell"
   },
-  "notes": "Cold and clinical: black-green robes, silver instead of brass, teal screens and coolant, cold candlelight. ui/art/xenos/: the Containment Cell (glowing floor grid, stasis-field pylons, field rails)"
+  "notes": [
+    "Cold and clinical: black-green robes, silver instead of brass, teal screens and coolant, cold candlelight.",
+    "ui/art/xenos/: the Containment Cell (glowing floor grid, stasis-field pylons, field rails)"
+  ]
 }

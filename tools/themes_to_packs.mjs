@@ -45,17 +45,43 @@ try {
   authored = Object.fromEntries(ORDER.map(id => [id, accents[id] ?? was.THEMES[id]]));
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 
-// 4. A theme's notes: the // lines just above its call (over any helper constants in between), and its art: line's
-// trailing comment.
+// 4. A theme's notes, one entry per comment: the // paragraph just above its call (over any helper constants in
+// between), its art: line's trailing comment, then every comment inside its object in source order, prefixed with
+// the part it sits in ('px: ', 'rank.high: '), and the named colours of a helper constant ('palette: k #26282b, ...').
 const lines = src.split('\n');
+const commentAt = l => { // index of the // outside the quotes, or -1
+  for (let i = 0, q = null; i < l.length - 1; i++) {
+    if (q) { if (l[i] === '\\') i++; else if (l[i] === q) q = null; }
+    else if (`'"\``.includes(l[i])) q = l[i];
+    else if (l[i] === '/' && l[i + 1] === '/') return i;
+  }
+  return -1;
+};
 function notesOf(id) {
   const at = lines.findIndex(l => l.includes(`id: '${id}'`));
   let i = at; while (!/^(const \w+ = )?(defineTheme|accent)\(/.test(lines[i])) i--;
-  const call = i, above = [];
+  const call = i, above = [], palette = [];
   for (i--; i >= 0 && lines[i].trim() && !lines[i].startsWith('//'); i--);
+  const helpers = lines.slice(i + 1, call).join('\n');
+  for (const [, body] of helpers.matchAll(/^const \w+ = \{([^}]*)\};/gm))
+    palette.push('palette: ' + [...body.matchAll(/(\w+): '(#[0-9a-f]{6})'/gi)].map(([, k, v]) => `${k} ${v}`).join(', '));
   for (; i >= 0 && lines[i].startsWith('//'); i--) above.unshift(lines[i].replace(/^\/\/ ?/, ''));
-  const art = lines.slice(call).find(l => /\bart: \[/.test(l))?.match(/\],?\s*\/\/ ?(.*)$/)?.[1];
-  return [above.join(' '), art].filter(Boolean).join(' ');
+  let end = call; while (lines[end] !== '});') end++;
+  const notes = [above.join(' ')], inner = [], para = [];
+  let top, sub;
+  for (const l of lines.slice(call + 1, end)) {
+    const c = commentAt(l), code = c < 0 ? l : l.slice(0, c), text = c < 0 ? '' : l.slice(c + 2).trim();
+    if (!code.trim()) { if (text) para.push(text); continue; }
+    let m;
+    if ((m = code.match(/^ {2}(\w+):/))) [top, sub] = [m[1], undefined];
+    else if (/^ {4}\S/.test(code)) sub = code.match(/^ {4}([\w'-]+): \{/)?.[1];
+    const where = top ? `${top}${sub ? '.' + sub : ''}: ` : '';
+    if (para.length) inner.push(where + para.splice(0).join(' '));
+    if (text && /\bart: \[/.test(code)) notes.push(text);
+    else if (text) inner.push(where + text);
+  }
+  if (para.length) inner.push(para.join(' '));
+  return [...notes, ...inner, ...palette].filter(Boolean);
 }
 const ordered = o => Object.fromEntries(KEYS.filter(k => o[k] !== undefined).map(k => [k, o[k]]));
 function jsonOf(id) {

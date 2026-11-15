@@ -40,5 +40,8 @@
     "motto": "Trust not the thinking machine",
     "breakout": "Servitor Pen"
   },
-  "notes": "Ordo Machinum, hunters of the thinking machine. Molten industry: rust-dark plates, orange plasma in the floor channels, amber screens and cant. ui/art/forge/: the Servitor Pen (hazard-chevron deck plates, cable fence, cog-sigil barrier gate)"
+  "notes": [
+    "Ordo Machinum, hunters of the thinking machine. Molten industry: rust-dark plates, orange plasma in the floor channels, amber screens and cant.",
+    "ui/art/forge/: the Servitor Pen (hazard-chevron deck plates, cable fence, cog-sigil barrier gate)"
+  ]
 }

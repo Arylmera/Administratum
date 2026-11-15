@@ -16,5 +16,8 @@
     "motto": "It never stops raining down here",
     "breakout": "Back Alley"
   },
-  "notes": "Rain City: the lower levels in the rain. Sodium-amber neon, teal screens, burnt-orange coolant, blue-green smog. ui/art/rain/: the Back Alley (wet asphalt with a puddle, chain-link fence on galvanised posts, a flickering OUT sign over the gate)"
+  "notes": [
+    "Rain City: the lower levels in the rain. Sodium-amber neon, teal screens, burnt-orange coolant, blue-green smog.",
+    "ui/art/rain/: the Back Alley (wet asphalt with a puddle, chain-link fence on galvanised posts, a flickering OUT sign over the gate)"
+  ]
 }

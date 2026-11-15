@@ -16,5 +16,8 @@
     "motto": "Drive into the sunset",
     "breakout": "Arcade Corner"
   },
-  "notes": "Sunset Drive: synthwave. A purple dusk, magenta neon, the chrome and screens a sunset orange. ui/art/synth/: the Arcade Corner (a checkered floor, magenta velvet ropes on brass stanchions, a PLAY marquee gate)"
+  "notes": [
+    "Sunset Drive: synthwave. A purple dusk, magenta neon, the chrome and screens a sunset orange.",
+    "ui/art/synth/: the Arcade Corner (a checkered floor, magenta velvet ropes on brass stanchions, a PLAY marquee gate)"
+  ]
 }

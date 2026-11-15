@@ -75,5 +75,8 @@
     "motto": "Innocence proves nothing",
     "breakout": "Penitent Cage"
   },
-  "notes": "Ordo Hereticus, whose witch-light leaves no shadow: black, bone and blood red, the screens and coolant burning like a pyre. Accessibility first: pure black outlines, a lighter floor, bright robes, colour-blind-safe departments (Okabe-Ito), no wall weathering, strong glows, a high-contrast frame. ui/art/contrast/: the Penitent Cage (sandstone flagstones, iron bars under a red-leaded crossbar, a chained tome on the gate)"
+  "notes": [
+    "Ordo Hereticus, whose witch-light leaves no shadow: black, bone and blood red, the screens and coolant burning like a pyre. Accessibility first: pure black outlines, a lighter floor, bright robes, colour-blind-safe departments (Okabe-Ito), no wall weathering, strong glows, a high-contrast frame.",
+    "ui/art/contrast/: the Penitent Cage (sandstone flagstones, iron bars under a red-leaded crossbar, a chained tome on the gate)"
+  ]
 }

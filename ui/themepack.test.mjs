@@ -42,6 +42,10 @@ one({ ink: { brass: 12 } }, 'ink.brass');
 one({ ink: { windowDay: { u: 'blue' } } }, 'ink.windowDay');
 assert.deepEqual(checkTheme({ ...ok, ink: { windowDay: { u: '#102030' }, lamp: { on: ['#102030', '#ffffff'] } } }, { bases }), [], 'ink: sets of colours');
 one({ text: { nope: 'x' } }, 'text.nope');
+assert.deepEqual(checkTheme({ ...ok, notes: 'a note' }, { bases }), [], 'notes: a text');
+assert.deepEqual(checkTheme({ ...ok, notes: ['a note', 'px: another'] }, { bases }), [], 'notes: texts');
+one({ notes: ['a note', 3] }, 'notes');
+one({ notes: { a: 'x' } }, 'notes');
 one({ world: undefined, base: 'tier2', bands: [{ hue: [300], to: 10 }] }, 'bands[0].hue');
 assert.equal(checkTheme({ ...ok, bands: [{ hue: [0, 20], to: 10 }] }, { bases }).length, 1, 'bands on a world theme');
 

@@ -360,5 +360,33 @@
       "limitMany": "{n} cooks out of methylamine until {time}"
     }
   },
-  "notes": "Breaking Bad: the superlab under the laundry, drawn flat (docs/superpowers/specs/2026-11-08-breaking-bad-design.md): one outline colour, flat fills (every shadow slot equals its fill), a one-colour floor and wall, the Br Ba tiles as the one decoration. Cooks in hazmat suits, rank by suit and by who is behind the visor: the face is drawn in the rank slots t (skin), T (Walter's glasses and goatee), z (Jesse's hair), dark visor by default (the anonymous Assistant), recoloured per rank. Gale is the assistant (adept), Heisenberg the boss (magos), Mike the watchman."
+  "notes": [
+    "Breaking Bad: the superlab under the laundry, drawn flat (docs/superpowers/specs/2026-11-08-breaking-bad-design.md): one outline colour, flat fills (every shadow slot equals its fill), a one-colour floor and wall, the Br Ba tiles as the one decoration. Cooks in hazmat suits, rank by suit and by who is behind the visor: the face is drawn in the rank slots t (skin), T (Walter's glasses and goatee), z (Jesse's hair), dark visor by default (the anonymous Assistant), recoloured per rank. Gale is the assistant (adept), Heisenberg the boss (magos), Mike the watchman.",
+    "px: the suit; the face behind the visor",
+    "px: steel fittings instead of brass",
+    "px: V: Heisenberg's dark jacket",
+    "px: white paper, lab coats, skin",
+    "px: Gale's coat and its rank trim",
+    "px: white benches; blue, Br Ba green",
+    "px: screens, the blue flask, Bunsen flame",
+    "px: one-colour floor: no grate, no gap, no lip",
+    "px: one-colour wall, the baseboard",
+    "px: Heisenberg's corner, pillars",
+    "px: plain grey pipes and channels",
+    "px: the gate's dark, the red warning light",
+    "px: the Br Ba seal",
+    "sash: mid tones: none near a suit, the outline or the visor",
+    "rank.high: Walter: bald, glasses and goatee",
+    "rank.high: Gale's gold trim",
+    "rank.standard: Jesse: no glasses, dark hair",
+    "rank.novice: anonymous: a dark visor",
+    "ink: flat walls: no texture drawn by code",
+    "ink.windowDay: frosted lab glass by day, the New Mexico night beyond it",
+    "ink: the band around the hall: one flat colour, no seams, no rivets",
+    "light: soft glows: an additive glow on a pale floor reads as a white smudge, so the lights barely add (the darkness of the night shift still opens round them)",
+    "ui: light chrome: the \"light\" foregrounds (--light, --flame) are dark here, so what sits under them is light too (labels, leather buttons); text on --blood reads the *-on-blood colours, the alarm --flame-on-wax, the honours plaque's words --honours-ink (white over its dark fields, readable at night too)",
+    "ui: white lab sheets, the Br Ba green as the accent",
+    "text.inRooms: the rooms plan's words",
+    "palette: k #26282b, visor #2f3a40, skin #f0c8a0, goatee #7a5230, white #fafafa, blue #3a6ea5, yellow #f2c230, steel #9aa3a8, steelDark #6b767c, wall #e9edf0, floor #c7d0d4, base #9aa6ac, green #5f9e5a, liquid #8fd3ff"
+  ]
 }

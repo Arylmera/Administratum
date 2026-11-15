@@ -310,5 +310,20 @@
       "limitMany": "{n} dwellers off shift until {time}"
     }
   },
-  "notes": "Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green phosphor, Nuka-Cola red, warm incandescent light. Its own art replaces what only fits 40k. ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal, riveted viewports onto the wasteland, a Vault-Tec poster, steel supply shelves with cans and kits, Geiger dials, caged ceiling lamps, the Eyebot, the cog vault door in its hazard-striped frame and the dark tunnel beyond, barrel fires, a work lantern with road flares, G.O.A.T. forms in a wire tray, heaps of holotapes, Vault-Tec manuals, a Nuka-Cola crate, the G.O.A.T. sheet a dweller brings (a big red ? for a question), the clipboard with the APPROVED stamp, Vault Boy thumbs-up stickers, a bottle cap, the rubber APPROVED stamp, the Nuka-Cola vending machine, steel cafeteria tables with trays and blue vinyl benches, a diamond-plate deck with yellow-lit floor strips, the Overseer's checkered floor with a Vault-Tec gear in each corner, ribbed blue-grey wall panels under a yellow and white band with vent grilles, ribbed steel columns, a radiation alarm light, sliding bulkheads with hazard stripes, steel and yellow gas pipes with red valve wheels and gauges, the Watchman (a Vault-Tec security officer in a riot helmet, a baton on his belt and a flashlight in hand), the Employee of the Week board (Hall of Honours)"
+  "notes": [
+    "Vault 111, a Fallout vault, not 40k: Vault-Tec blue and yellow, riveted steel, concrete, rust, Pip-Boy green phosphor, Nuka-Cola red, warm incandescent light. Its own art replaces what only fits 40k.",
+    "ui/art/vault/: vault dwellers in the blue jumpsuit with the Pip-Boy, Mr. Handy robots, the Overseer with his clipboard, his office chair, steel desk with a RobCo terminal, the Vault-Tec 111 gear, Vault Boy badges, RobCo terminal desks with a Nuka-Cola and a desk lamp, wall terminals, Pip-Boy docks, the vault mainframe with tape reels and its big green terminal, riveted viewports onto the wasteland, a Vault-Tec poster, steel supply shelves with cans and kits, Geiger dials, caged ceiling lamps, the Eyebot, the cog vault door in its hazard-striped frame and the dark tunnel beyond, barrel fires, a work lantern with road flares, G.O.A.T. forms in a wire tray, heaps of holotapes, Vault-Tec manuals, a Nuka-Cola crate, the G.O.A.T. sheet a dweller brings (a big red ? for a question), the clipboard with the APPROVED stamp, Vault Boy thumbs-up stickers, a bottle cap, the rubber APPROVED stamp, the Nuka-Cola vending machine, steel cafeteria tables with trays and blue vinyl benches, a diamond-plate deck with yellow-lit floor strips, the Overseer's checkered floor with a Vault-Tec gear in each corner, ribbed blue-grey wall panels under a yellow and white band with vent grilles, ribbed steel columns, a radiation alarm light, sliding bulkheads with hazard stripes, steel and yellow gas pipes with red valve wheels and gauges, the Watchman (a Vault-Tec security officer in a riot helmet, a baton on his belt and a flashlight in hand), the Employee of the Week board (Hall of Honours)",
+    "px: jumpsuit, yellow stripe",
+    "px: Vault-Tec yellow",
+    "px: riveted steel",
+    "px: Mr. Handy eye glow, Pip-Boy green",
+    "px: concrete",
+    "px: Pip-Boy green, incandescent, Nuka-Cola red",
+    "sash: each far from the jumpsuit's blues, the collar's yellow and the others",
+    "rank.high: Overseer's robots: Vault-Tec yellow eyes",
+    "ink.windowDay: the wasteland viewport: dusty sky and hazy sun by day; dark and starless by night",
+    "ui: cream requisition cards over the dark blue bar",
+    "ui: terminal type for titles, Vault-Tec blue accent over the cream card",
+    "text.inRooms: the rooms plan's words"
+  ]
 }

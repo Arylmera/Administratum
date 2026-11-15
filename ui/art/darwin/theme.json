@@ -321,5 +321,29 @@
       "limitMany": "{n} monkeys out of bananas until {time}"
     }
   },
-  "notes": "Darwin, his Victorian laboratory (docs/superpowers/specs/2026-10-17-darwin-lab-design.md), not 40k: oak, walnut and brass, specimen glass, gaslight, green plaster, a dim black-and-white checker floor, ivory paper; chimpanzees at typewriters (the infinite monkey theorem) and Charles Darwin checking the work. Ranks are colour only: fur in r R d (ginger orang-utan, dark-brown chimpanzee, pale young monkey). Real apes, no clothes: the department colour y is the band of a lab collar with a numbered tag (t T); the capuchin's rank is a ribbon on its tail (J I). ui/art/darwin/: Darwin's Victorian laboratory (docs/superpowers/specs/2026-10-17-darwin-lab-design.md): bare chimpanzees in a lab collar with a numbered tag at oak lab benches, capuchin lab assistants, Charles Darwin himself checking the work from his armchair; brass microscopes, specimen jars, distilling apparatus, gas lamps, black-and-white tiles; the finch, the museum night keeper, the Fellows' Board (Hall of Honours)"
+  "notes": [
+    "Darwin, his Victorian laboratory (docs/superpowers/specs/2026-10-17-darwin-lab-design.md), not 40k: oak, walnut and brass, specimen glass, gaslight, green plaster, a dim black-and-white checker floor, ivory paper; chimpanzees at typewriters (the infinite monkey theorem) and Charles Darwin checking the work. Ranks are colour only: fur in r R d (ginger orang-utan, dark-brown chimpanzee, pale young monkey). Real apes, no clothes: the department colour y is the band of a lab collar with a numbered tag (t T); the capuchin's rank is a ribbon on its tail (J I).",
+    "ui/art/darwin/: Darwin's Victorian laboratory (docs/superpowers/specs/2026-10-17-darwin-lab-design.md): bare chimpanzees in a lab collar with a numbered tag at oak lab benches, capuchin lab assistants, Charles Darwin himself checking the work from his armchair; brass microscopes, specimen jars, distilling apparatus, gas lamps, black-and-white tiles; the finch, the museum night keeper, the Fellows' Board (Hall of Honours)",
+    "px: chimpanzee fur; the lab collar's tag (t enamel, T its number, z the brass ring; j spare)",
+    "px: brass",
+    "px: black typewriter enamel; V: Darwin's black frock coat",
+    "px: ivory paper, pink-tan faces",
+    "px: capuchin cream face ring and throat; its tail ribbon, red with a gold knot",
+    "px: walnut, green baize",
+    "px: specimen glass, gas lamp",
+    "px: the gate's sill",
+    "px: black-and-white floor tiles, aged and dim (a hall floor stays dark): ivory, black, the ivory's shade",
+    "px: green-painted plaster: light, base, shade",
+    "px: Darwin's carpet: crimson, dark, rose",
+    "px: Darwin's white beard and its shade, his oxblood armchair; H K: the benches",
+    "px: brass gas pipes; frosted glass",
+    "px: the gas lamp: cold globe, its shade; flame, lit globe",
+    "rank.high: orang-utan ginger; the collar tag as every rank's (the base ranks gild t T z)",
+    "rank.high: green tail ribbon",
+    "rank.novice: young monkey, pale grey-brown; the same collar tag",
+    "rank.novice: grey tail ribbon",
+    "ink.windowDay: the sash window: an English garden by day (blue sky, green lawn, sun); by night a moon over dark trees (u sky, x its haze over the trees, g the sun or moon, h its halo, v the lawn, c C the trees lit and shaded)",
+    "ui: ivory typed pages over the walnut bar",
+    "ui: typewriter type for titles, green baize accent over the ivory page"
+  ]
 }

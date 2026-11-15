@@ -307,5 +307,13 @@
       "limitMany": "{n} runners throttled until {time}"
     }
   },
-  "notes": "Not the 40k scriptorium: a neon netrunner den. Hooded robes read as hoodies, optics as visors; brass turns to chrome cyan, copper pipes to magenta neon tubes, coolant to violet floor light, parchment panels to dark glass. Its own art replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...). ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the shutter gate, the terminal bank, the hacker crew, the hologram daemons and the fixer, battlestations and a cyberdeck, a loading ring for a background shell, oil drums, datapads, holo-stickers, sliding doors, a server rack and data-rod clutter, a neon-grid floor and panelled walls under neon tubes, neon tube runs on dark clips, the night security guard (the Watchman), the Leaderboard screen (Hall of Honours)"
+  "notes": [
+    "Not the 40k scriptorium: a neon netrunner den. Hooded robes read as hoodies, optics as visors; brass turns to chrome cyan, copper pipes to magenta neon tubes, coolant to violet floor light, parchment panels to dark glass. Its own art replaces what only fits 40k (ui/art/cyber/: skull banners, the Cog, the servo-skull...).",
+    "ui/art/cyber/: neon signs, the hex-chip emblem, the drone, the shutter gate, the terminal bank, the hacker crew, the hologram daemons and the fixer, battlestations and a cyberdeck, a loading ring for a background shell, oil drums, datapads, holo-stickers, sliding doors, a server rack and data-rod clutter, a neon-grid floor and panelled walls under neon tubes, neon tube runs on dark clips, the night security guard (the Watchman), the Leaderboard screen (Hall of Honours)",
+    "px: hoodie, neon trim",
+    "px: chrome cyan for brass",
+    "ui: dark glass instead of parchment",
+    "ui: terminal type for titles, hot pink over the glass",
+    "text.inRooms: the rooms plan's words"
+  ]
 }

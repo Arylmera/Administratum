@@ -324,5 +324,15 @@
       "limitMany": "{n} crew grounded until {time}"
     }
   },
-  "notes": "A white orbital station, not 40k: off-white hull panels, safety orange and blue accents, cyan screens, Earth seen through the windows. Its own art replaces what only fits 40k. ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches, crew flight consoles, a rack terminal and a strapped-down laptop, a radar scope for a background shell, the flight-control screen wall, portholes, a mission poster, stowage nets, pressure gauges and pendant LED lamps, the floating camera drone, the airlock with its sliding hatch and the starfield beyond, air scrubbers and LED light strips, checklist cards and a clipboard, mission stickers on flight tags and the label scanner, velcroed checklists, cargo bags, strapped manuals, drifting pages and cargo containers, the galley food warmer and drink dispenser, galley tables and padded benches with foot loops, grid deck plates with LED floor strips, the command deck, the hatch tunnel floor, the module joint ring, padded wall cushions with handrails, galley stowage lockers, navy command-module padding, white columns, bulkhead posts, a rotating warning light, sliding module hatches with hazard-striped pockets and status lamps, cable trays on hangers and flex air ducts with clamp rings, the Watchman (a night-shift astronaut with a headlamp), the Crew Honours panel (Hall of Honours)"
+  "notes": [
+    "A white orbital station, not 40k: off-white hull panels, safety orange and blue accents, cyan screens, Earth seen through the windows. Its own art replaces what only fits 40k.",
+    "ui/art/orbital/: the astronaut crew, floating helper bots, the Commander with his robotic arm, the command chair, console and mission patches, crew flight consoles, a rack terminal and a strapped-down laptop, a radar scope for a background shell, the flight-control screen wall, portholes, a mission poster, stowage nets, pressure gauges and pendant LED lamps, the floating camera drone, the airlock with its sliding hatch and the starfield beyond, air scrubbers and LED light strips, checklist cards and a clipboard, mission stickers on flight tags and the label scanner, velcroed checklists, cargo bags, strapped manuals, drifting pages and cargo containers, the galley food warmer and drink dispenser, galley tables and padded benches with foot loops, grid deck plates with LED floor strips, the command deck, the hatch tunnel floor, the module joint ring, padded wall cushions with handrails, galley stowage lockers, navy command-module padding, white columns, bulkhead posts, a rotating warning light, sliding module hatches with hazard-striped pockets and status lamps, cable trays on hangers and flex air ducts with clamp rings, the Watchman (a night-shift astronaut with a headlamp), the Crew Honours panel (Hall of Honours)",
+    "px: flight suit, orange trim",
+    "px: blue accent for brass",
+    "px: the bot's eye light",
+    "ink.windowDay: the porthole's glass: Earth's limb by day; by night its dark side, the ocean specks and space dots turn to stars",
+    "ui: white-grey station panels instead of parchment or dark glass",
+    "ui: terminal type for titles, blue accent over the white card",
+    "text.inRooms: the rooms plan's words"
+  ]
 }

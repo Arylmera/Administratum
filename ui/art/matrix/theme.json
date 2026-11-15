@@ -16,5 +16,8 @@
     "motto": "Follow the white rabbit",
     "breakout": "The Construct"
   },
-  "notes": "Green Code: the mainframe seen from inside. Every neon, screen and wall turned phosphor green on black. ui/art/matrix/: The Construct (the white loading-program void, white light-bar rails, a white door onto green code rain)"
+  "notes": [
+    "Green Code: the mainframe seen from inside. Every neon, screen and wall turned phosphor green on black.",
+    "ui/art/matrix/: The Construct (the white loading-program void, white light-bar rails, a white door onto green code rain)"
+  ]
 }

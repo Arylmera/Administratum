@@ -16,5 +16,8 @@
     "motto": "The company owns the night",
     "breakout": "Temp Pool"
   },
-  "notes": "Corpo Tower: a megacorp's netsec floor. Black glass, blood-red neon, white chrome and white screens. ui/art/corpo/: the Temp Pool (grey carpet tiles, glass hot-desk partitions, a TEMPS lanyard sign on the door)"
+  "notes": [
+    "Corpo Tower: a megacorp's netsec floor. Black glass, blood-red neon, white chrome and white screens.",
+    "ui/art/corpo/: the Temp Pool (grey carpet tiles, glass hot-desk partitions, a TEMPS lanyard sign on the door)"
+  ]
 }

@@ -59,6 +59,8 @@ export function checkTheme(json, { bases = new Set() } = {}) {
     }
   };
   const one = k => k.length === 1;
+  if (json.notes !== undefined && typeof json.notes !== 'string' && !(Array.isArray(json.notes) && json.notes.every(n => typeof n === 'string')))
+    bad.push('notes: must be a text or an array of texts');
   if (json.px !== undefined) colours('px', json.px, one);
   if (json.ink !== undefined) { // a colour, or a set of them by slot or position (windowDay, lamp)
     const shade = v => isColour(v) || (v && typeof v === 'object' && Object.values(v).every(shade));

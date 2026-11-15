@@ -124,5 +124,8 @@
     "motto": "The hammer falls in the dark",
     "breakout": "Warded Circle"
   },
-  "notes": "Ordo Malleus, the vigil against the daemon: Grey Knight silver for brass, slate-blue robes, warded blue screens and coolant, pale violet witch-candles, the warp glowing beyond the gate. Kept dim and soft, easy on the eyes. ui/art/night/: the Warded Circle (hexagram-inlaid flagstones, witch-candle posts, purity-sealed bar)"
+  "notes": [
+    "Ordo Malleus, the vigil against the daemon: Grey Knight silver for brass, slate-blue robes, warded blue screens and coolant, pale violet witch-candles, the warp glowing beyond the gate. Kept dim and soft, easy on the eyes.",
+    "ui/art/night/: the Warded Circle (hexagram-inlaid flagstones, witch-candle posts, purity-sealed bar)"
+  ]
 }
