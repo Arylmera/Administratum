@@ -715,5 +715,6 @@ specs, plans and the [backlog](docs/backlog.md).
 | Pirata One, © 2012 Rodrigo Fuenzalida, Nicolas Massi | `pirata-one-latin.woff2` | `OFL-PirataOne.txt` |
 | VT323, © 2011 The VT323 Project Authors | `vt323-latin.woff2`, `vt323-latin-ext.woff2` | `OFL-VT323.txt` |
 
-Warhammer 40,000 and the Adeptus Mechanicus are trademarks of Games Workshop. Administratum is an unofficial fan
-project and is not affiliated with or endorsed by Games Workshop.
+Warhammer 40,000 and the Adeptus Mechanicus are trademarks of Games Workshop. Fallout, Vault-Tec, Nuka-Cola and
+Pip-Boy are trademarks of Bethesda Softworks, a ZeniMax Media company. Breaking Bad is a trademark of Sony Pictures
+Television. Administratum is an unofficial fan project and is not affiliated with or endorsed by any of them.
