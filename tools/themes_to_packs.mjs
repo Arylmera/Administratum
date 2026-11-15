@@ -3,7 +3,7 @@
 // a git ref, and ui/art/themes.json (their order), then proves each one resolves exactly as before.
 //   node tools/themes_to_packs.mjs --from <git ref>           write the files, exit 0 only if every theme is identical
 //   node tools/themes_to_packs.mjs --from <git ref> --check   the same proof on the files as they are, nothing written
-// <git ref>: a commit whose ui/themes.js is still the old code (090de41, the last one before the loader).
+// <git ref>: a commit whose ui/themes.js is still the old code (the last commit before themes.js became the loader).
 // An accent (a style of Neon Grid) recolours its base's resolved look where the old accent() recoloured only what the
 // base declared: every value where the two differ is written into the accent's file as an override.
 import assert from 'node:assert/strict';

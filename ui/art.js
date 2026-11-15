@@ -4,7 +4,7 @@
 import { decodePng } from './png.js';
 
 const node = typeof window === 'undefined';
-const ART = new URL('./art/', import.meta.url).href;
+export const ART = new URL('./art/', import.meta.url).href; // the art folder, ui/art/
 // A file of an art folder (`root`: a folder URL, default ui/art/), as bytes or parsed JSON. Works under Node (fs) and
 // in the page (fetch); a JSON that does not parse throws naming the file.
 export async function readArt(name, as, root = ART) {

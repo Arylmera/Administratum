@@ -48,6 +48,20 @@ one({ notes: ['a note', 3] }, 'notes');
 one({ notes: { a: 'x' } }, 'notes');
 one({ world: undefined, base: 'tier2', bands: [{ hue: [300], to: 10 }] }, 'bands[0].hue');
 assert.equal(checkTheme({ ...ok, bands: [{ hue: [0, 20], to: 10 }] }, { bases }).length, 1, 'bands on a world theme');
+// px, rank and sash are #rrggbb only (what theme.js rgb() reads); px, ink and light take only the keys of Ordo Administratum
+one({ px: { r: '#123' } }, 'px.r');
+one({ px: { r: 'rgba(1,2,3,.5)' } }, 'px.r');
+one({ ui: { '--bg': '#123' } }, 'ui.--bg');
+one({ sash: ['#102030', '#123'] }, 'sash');
+one({ rank: { high: { robe: { r: '10,20,30' } } } }, 'rank.high.robe.r');
+one({ ink: { windowDya: '#102030' } }, 'ink.windowDya');
+one({ light: { nihgt: '10,20,30' } }, 'light.nihgt');
+// world: a string, a known world or one brought with its worldName
+one({ world: 3 }, 'world');
+one({ world: 'mars' }, 'mars');
+assert.deepEqual(checkTheme({ ...ok, world: 'mars', worldName: 'Mars' }, { bases }), [], 'a new world with its name');
+assert.deepEqual(checkTheme({ ...ok, world: 'mars' }, { bases, worlds: new Set(['mars']) }), [], 'worlds: the known ones');
+one({ world: 'mars', worldName: 3 }, 'worldName');
 
 // themeOf
 assert.deepEqual(themeOf('x', { format: 1, name: 'X', world: 'w40k', notes: 'n', worldName: 'W', px: { r: '#102030' } }), { id: 'x', name: 'X', world: 'w40k', px: { r: '#102030' } });
@@ -58,4 +72,12 @@ assert.equal(s.artOf, 'tier2');
 assert.equal(resolve(s).px[':'], resolve(TIER_II).px[':']);
 assert.notEqual(resolve(s).px.x, resolve(TIER_II).px.x);
 assert.equal(resolve(themeOf('s', { ...j, px: { x: '#123456' } }, TIER_II)).px.x, '#123456');
+// a style's rank: its base's, recoloured, with its own keys laid over key by key, robe and adept apart
+const rb = resolve(TIER_II).rank, rs = themeOf('s', { ...j, rank: { high: { robe: { r: '#123456' } } } }, TIER_II).rank;
+for (const c of Object.keys(rb)) for (const p of ['robe', 'adept'])
+  for (const k of Object.keys(rb[c][p])) assert.equal(rs[c][p][k], c === 'high' && p === 'robe' && k === 'r' ? '#123456' : recolour(rb[c][p][k], j.bands), `rank.${c}.${p}.${k}`);
+// a style's text: its base's authored text, its own sections laid over whole (a shallow merge)
+const base = { ...TIER_II, text: { motto: 'base motto', prefs: { a: 'A', b: 'B' } } };
+const tx = themeOf('s', { ...j, text: { subtitle: 'own', prefs: { a: 'own A' } } }, base).text;
+assert.deepEqual(tx, { motto: 'base motto', subtitle: 'own', prefs: { a: 'own A' } });
 console.log('themepack ok');

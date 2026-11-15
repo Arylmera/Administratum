@@ -1,7 +1,7 @@
-// A theme from its JSON (themes/<id>/theme.json): checked, never evaluated, then turned into what defineTheme takes.
+// A theme from its JSON (ui/art/<id>/theme.json): checked, never evaluated, then turned into what defineTheme takes.
 // A world theme is its JSON as it stands; a style (it names a `base`) is its base's colours moved hue range by hue
 // range ("bands"), with its own parts laid over.
-import { resolve, TEXT } from './theme.js';
+import { resolve, TEXT, TIER_II, WORLDS } from './theme.js';
 
 export const FONTS = ["'VT323', monospace", "'Pirata One', serif"];
 
@@ -25,13 +25,17 @@ export const recolour = (v, bands) => typeof v === 'string'
   : v;
 
 const KEYS = ['format', 'name', 'world', 'worldName', 'base', 'bands', 'art', 'px', 'sash', 'rank', 'ink', 'light', 'ui', 'text', 'notes'];
-const COLOUR = /^(#[0-9a-f]{6}|#[0-9a-f]{3}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)|\d{1,3},\s*\d{1,3},\s*\d{1,3})$/i;
+const COLOUR = /^(#[0-9a-f]{6}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)|\d{1,3},\s*\d{1,3},\s*\d{1,3})$/i;
 const isColour = v => typeof v === 'string' && COLOUR.test(v);
+const isHex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v); // what theme.js rgb() reads: px, rank, sash
+// The keys a theme may set in px, ink and light: Ordo Administratum's, resolved.
+const REF = resolve(TIER_II), KNOWN = Object.fromEntries(['px', 'ink', 'light'].map(p => [p, new Set(Object.keys(REF[p]))]));
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 const kind = v => Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v;
 
-// The problems of a parsed theme.json (empty when valid). `bases`: the ids a style may name.
-export function checkTheme(json, { bases = new Set() } = {}) {
+// The problems of a parsed theme.json (empty when valid). `bases`: the ids a style may name; `worlds`: the known
+// world ids (a theme naming another world brings its `worldName`).
+export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.keys(WORLDS)) } = {}) {
   const bad = [];
   if (!isObj(json)) return ['theme: not an object'];
   for (const k of Object.keys(json)) if (!KEYS.includes(k)) bad.push(`${k}: unknown key`);
@@ -39,6 +43,9 @@ export function checkTheme(json, { bases = new Set() } = {}) {
   if (typeof json.name !== 'string' || !json.name) bad.push('name: required');
   if (json.world && json.base) bad.push('world, base: a theme has one, not both');
   else if (!json.world && !json.base) bad.push('world, base: a theme needs one');
+  if (json.world !== undefined && (typeof json.world !== 'string' || !json.world)) bad.push('world: must be a world id');
+  else if (json.world !== undefined && !worlds.has(json.world) && json.worldName === undefined) bad.push(`world: unknown world ${JSON.stringify(json.world)} without a worldName`);
+  if (json.worldName !== undefined && (typeof json.worldName !== 'string' || !json.worldName)) bad.push('worldName: must be a text');
   if (json.base !== undefined && !bases.has(json.base)) bad.push(`base: unknown base ${JSON.stringify(json.base)}`);
   if (json.bands !== undefined) {
     if (!json.base) bad.push('bands: only a style (with a base) has bands');
@@ -51,24 +58,24 @@ export function checkTheme(json, { bases = new Set() } = {}) {
       if (isObj(b) && b.light !== undefined && !n(b.light, -1, 1)) bad.push(`bands[${i}].light: must be a number from -1 to 1`);
     });
   }
-  const colours = (where, o, keyOk) => {
+  const colours = (where, o, keyOk, ok = isColour) => {
     if (!isObj(o)) return bad.push(`${where}: must be an object`);
     for (const [k, v] of Object.entries(o)) {
-      if (!keyOk(k)) bad.push(`${where}.${k}: bad key`);
-      else if (!isColour(v)) bad.push(`${where}.${k}: not a colour`);
+      if (!keyOk(k)) bad.push(`${where}.${k}: unknown key`);
+      else if (!ok(v)) bad.push(`${where}.${k}: ${ok === isHex ? 'not a #rrggbb colour' : 'not a colour'}`);
     }
   };
   const one = k => k.length === 1;
   if (json.notes !== undefined && typeof json.notes !== 'string' && !(Array.isArray(json.notes) && json.notes.every(n => typeof n === 'string')))
     bad.push('notes: must be a text or an array of texts');
-  if (json.px !== undefined) colours('px', json.px, one);
+  if (json.px !== undefined) colours('px', json.px, k => KNOWN.px.has(k), isHex);
   if (json.ink !== undefined) { // a colour, or a set of them by slot or position (windowDay, lamp)
     const shade = v => isColour(v) || (v && typeof v === 'object' && Object.values(v).every(shade));
     if (!isObj(json.ink)) bad.push('ink: must be an object');
-    else for (const [k, v] of Object.entries(json.ink)) if (!k) bad.push('ink.: bad key'); else if (!shade(v)) bad.push(`ink.${k}: not a colour`);
+    else for (const [k, v] of Object.entries(json.ink)) if (!KNOWN.ink.has(k)) bad.push(`ink.${k}: unknown key`); else if (!shade(v)) bad.push(`ink.${k}: not a colour`);
   }
-  if (json.light !== undefined) colours('light', json.light, k => k.length > 0);
-  if (json.sash !== undefined && !(Array.isArray(json.sash) && json.sash.every(isColour))) bad.push('sash: must be an array of colours');
+  if (json.light !== undefined) colours('light', json.light, k => KNOWN.light.has(k));
+  if (json.sash !== undefined && !(Array.isArray(json.sash) && json.sash.every(isHex))) bad.push('sash: must be an array of #rrggbb colours');
   if (json.art !== undefined && !(Array.isArray(json.art) && json.art.every(a => typeof a === 'string'))) bad.push('art: must be an array of names');
   if (json.ui !== undefined) {
     if (!isObj(json.ui)) bad.push('ui: must be an object');
@@ -83,7 +90,7 @@ export function checkTheme(json, { bases = new Set() } = {}) {
       if (!['high', 'standard', 'novice'].includes(c)) { bad.push(`rank.${c}: unknown rank`); continue; }
       if (!isObj(parts)) { bad.push(`rank.${c}: must be an object`); continue; }
       for (const [p, o] of Object.entries(parts)) {
-        if (p === 'robe' || p === 'adept') colours(`rank.${c}.${p}`, o, one);
+        if (p === 'robe' || p === 'adept') colours(`rank.${c}.${p}`, o, one, isHex);
         else bad.push(`rank.${c}.${p}: must be robe or adept`);
       }
     }

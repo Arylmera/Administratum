@@ -147,8 +147,8 @@ when it loads. One file per module:
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
-| `themepack.test.mjs` | A theme from its JSON: the recolouring by hue range, the check and its refusals, the built theme of a world and of a style |
-| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder, a broken theme refused naming it (not JSON, no file, a style as a base) |
+| `themepack.test.mjs` | A theme from its JSON: the recolouring by hue range, the check and its refusals (unknown keys, colour forms, worlds), the built theme of a world and of a style (its recoloured rank with its own keys over it, its text laid over its base's) |
+| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder (where it was loaded from), every theme folder listed in `themes.json` and every listed id on disk, a broken theme refused naming it and the cause (not JSON, no file, a style as a base) |
 | `theme.test.mjs` | Themes: complete palettes, runtime switch; chrome contrast in every theme (each foreground over the fill it sits on, text >= 4.5, icons and borders >= 3; a light-chrome theme sets `--on-blood` / `--ink-on-blood` / `--pink-on-blood` / `--green-on-blood` for text on `--blood`, `--flame-on-wax` for the alarm, `--honours-ink` for the Hall of Honours words, whose plaque fields it is checked against), with the shortfalls already shipped listed and asserted still failing |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
@@ -188,19 +188,22 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
   `theme <id>: <problem>`.
 - To add a theme: make its folder with a `theme.json` (`format: 1`, `name`, then `world` or `base`, and the parts it
   changes: `px`, `rank`, `ink`, `light`, `ui`, `text`, `sash`, `art`, `notes` for the comments), and put its id in
-  `ui/art/themes.json`, after its base if it has one. A world theme may name a new world with `worldName`.
+  `ui/art/themes.json`, after its base if it has one. A world theme naming a new world brings its `worldName`.
+  `px`, `rank` and `sash` colours are `#rrggbb`; `px`, `ink` and `light` take only the keys Ordo Administratum has.
 - A **style** names a `base` (a world theme, or `tier2`) and `bands`: hue ranges, each `{ hue: [from, to], to, sat,
   light }` (degrees; a range with from > to wraps past 360), turning every colour of the base's whole resolved look
   whose hue falls in it to hue `to`, saturation x `sat`, lightness + `light`. Greys and colours outside every band
   keep theirs, and so do skin (`:` `;`), the sashes and the base's art (`artOf`) and wording, so the alarm red and the
-  gold rank trim stay. Then the style's own parts lay over the result. The four Neon Grid styles (Corpo Tower, Rain
-  City, Green Code, Sunset Drive) recolour its pink neon, violet coolant, night-blue walls and cyan chrome this way;
-  each carries a few explicit `px` and `ink` overrides (the blended plate sheens, `lampDead`) so it comes out exactly
-  as it did when an accent recoloured only what Neon Grid declared.
+  gold rank trim stay. Then the style's own parts lay over the result. Its `text` lays over its base's authored text
+  section by section, a shallow merge: a style that sets one key of `prefs` replaces the base's whole `prefs`. The
+  four Neon Grid styles (Corpo Tower, Rain City, Green Code, Sunset Drive) recolour its pink neon, violet coolant,
+  night-blue walls and cyan chrome this way; each carries a few explicit `px` and `ink` overrides (the blended plate
+  sheens, `lampDead`) so it comes out exactly as it did when an accent recoloured only what Neon Grid declared.
 - A theme belongs to a **world** (Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout). Settings picks the world, then
   one of its themes as the **style**.
 - A theme with its own art lists the families it redraws in its `art` field (a name that is not a known family is
-  refused before any file is read); the files sit beside its `theme.json` in `ui/art/<theme>/`. Every other family falls back to the base art.
+  refused before any file is read); the files sit beside its `theme.json` in `ui/art/<theme>/`. Every other family
+  falls back to the base art.
 - A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
   has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
   world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).

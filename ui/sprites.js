@@ -86,7 +86,7 @@ const loaded = await Promise.all(FAMILIES.map(f => (FAMILIES39.includes(f) ? loa
 Object.keys(base).forEach((f, i) => { base[f] = loaded[i]; });
 // A theme's own art (theme.art: the families it redraws): ui/art/<theme>/<family>.png + .json holding only the frames it
 // changes, same sizes; anchors and fill rules it lists replace the default's. Everything else stays the default art.
-// A theme with artOf draws with that theme's art (an accent of Neon Grid: same sprites, its own colours).
+// A theme with artOf draws with that theme's art (a style of Neon Grid: same sprites, its own colours).
 const themed = {}; // art folder (theme id) -> family -> sheet
 const dirOf = id => THEMES[id]?.artOf ?? id;
 await Promise.all(Object.values(THEMES).flatMap(th => (th.art ?? []).map(async f => {
