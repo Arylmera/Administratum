@@ -1,0 +1,105 @@
+{
+  "format": 1,
+  "name": "Ordo Xenos",
+  "world": "w40k",
+  "art": ["breakout"],
+  "px": {
+    "1": "#1f2527",
+    "2": "#0d1112",
+    "3": "#2f3a3c",
+    "4": "#1e2426",
+    "5": "#202628",
+    "6": "#101416",
+    "r": "#1c2a24",
+    "R": "#2e4438",
+    "d": "#0e1612",
+    "t": "#2e4438",
+    "T": "#0e1612",
+    "z": "#1c2a24",
+    "j": "#1c2a24",
+    "g": "#9aa6a8",
+    "G": "#5a6466",
+    "h": "#d6e2e2",
+    "U": "#2a3233",
+    "w": "#2a2e30",
+    "W": "#181b1c",
+    "L": "#3c4244",
+    "D": "#13261f",
+    "E": "#0a1612",
+    "N": "#0f2019",
+    "S": "#151a1c",
+    "X": "#6a7e80",
+    "Y": "#a6bcbe",
+    "Z": "#3e4a4c",
+    "i": "#262e30",
+    "!": "#1f7a6a",
+    "+": "#6fe0c8",
+    "c": "#6fffd8",
+    "C": "#0f2e28",
+    "o": "#6fffd8",
+    "O": "#e0fff8",
+    "f": "#bfe0ff",
+    "F": "#ffffff",
+    "x": "#2a6a5a"
+  },
+  "rank": {
+    "high": {
+      "robe": { "r": "#24382e", "R": "#3c5a4a", "d": "#12201a" }
+    },
+    "novice": {
+      "robe": {
+        "r": "#3a3f3c",
+        "R": "#565c58",
+        "d": "#232725",
+        "z": "#3a3f3c",
+        "j": "#3a3f3c",
+        "t": "#565c58",
+        "T": "#232725"
+      }
+    }
+  },
+  "ink": {
+    "coolant": "#2fb89a",
+    "screenHot": "#c8fff0",
+    "screenDim": "#2fb89a",
+    "screenMark": "#1f7a6a",
+    "screenOff": "#1f5a4e",
+    "cant": "rgba(111,255,216,.32)"
+  },
+  "light": {
+    "amber": "rgba(170,215,255,.22)",
+    "green": "rgba(111,255,216,.16)",
+    "burn": "rgba(190,225,255,.5)"
+  },
+  "ui": {
+    "--bg": "#030606",
+    "--bar": "#0b1110",
+    "--edge": "#1e2a28",
+    "--btn": "#0f1817",
+    "--copper": "#9aa6a8",
+    "--green": "#6fffd8",
+    "--red": "#1f7a6a",
+    "--pink": "#6fe0c8",
+    "--blood": "#0f2e28",
+    "--glow": "#2fb89a",
+    "--wax": "#1f5a4e",
+    "--wax-deep": "#0a1612",
+    "--label": "#0a1612",
+    "--label-sel": "#123028",
+    "--label-btn": "#0d201b",
+    "--plaque": "#0a1210",
+    "--leather": "#3e4a4c",
+    "--leather-deep": "#1c2224",
+    "--rod-hi": "#c8d4d6",
+    "--rod": "#7a8688",
+    "--rod-lo": "#3a4446",
+    "--rod-edge": "#161c1d",
+    "--rod-cap": "#e6f0f0"
+  },
+  "text": {
+    "subtitle": "Ordo Xenos · Archive of the Inquisition",
+    "motto": "Suffer not the alien to live",
+    "breakout": "Containment Cell"
+  },
+  "notes": "Cold and clinical: black-green robes, silver instead of brass, teal screens and coolant, cold candlelight. ui/art/xenos/: the Containment Cell (glowing floor grid, stasis-field pylons, field rails)"
+}
