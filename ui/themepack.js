@@ -60,7 +60,11 @@ export function checkTheme(json, { bases = new Set() } = {}) {
   };
   const one = k => k.length === 1;
   if (json.px !== undefined) colours('px', json.px, one);
-  if (json.ink !== undefined) colours('ink', json.ink, k => k.length > 0);
+  if (json.ink !== undefined) { // a colour, or a set of them by slot or position (windowDay, lamp)
+    const shade = v => isColour(v) || (v && typeof v === 'object' && Object.values(v).every(shade));
+    if (!isObj(json.ink)) bad.push('ink: must be an object');
+    else for (const [k, v] of Object.entries(json.ink)) if (!k) bad.push('ink.: bad key'); else if (!shade(v)) bad.push(`ink.${k}: not a colour`);
+  }
   if (json.light !== undefined) colours('light', json.light, k => k.length > 0);
   if (json.sash !== undefined && !(Array.isArray(json.sash) && json.sash.every(isColour))) bad.push('sash: must be an array of colours');
   if (json.art !== undefined && !(Array.isArray(json.art) && json.art.every(a => typeof a === 'string'))) bad.push('art: must be an array of names');
