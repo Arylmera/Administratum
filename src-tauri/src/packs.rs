@@ -123,15 +123,17 @@ const STALE: Duration = Duration::from_secs(10 * 60);
 const LICENCES: [&str; 3] = ["LICENSE", "LICENSE.md", "LICENSE.txt"];
 
 /// What `unpack` keeps (`files`, each at most `file` bytes, `total` in all) and reads (`read` decompressed bytes,
-/// `entries` entries, the dropped ones included, so a compressed bomb of dropped entries ends too).
+/// `entries` entries, the dropped ones included, so a compressed bomb of dropped entries ends too; `ext` bytes for a
+/// long name or PAX header, which `tar` reads whole into memory).
 struct Limits {
     files: usize,
     file: u64,
     total: u64,
     read: u64,
     entries: usize,
+    ext: u64,
 }
-const LIMITS: Limits = Limits { files: 2000, file: MAX_FILE, total: 50 * 1024 * 1024, read: 500 * 1024 * 1024, entries: 100_000 };
+const LIMITS: Limits = Limits { files: 2000, file: MAX_FILE, total: 50 * 1024 * 1024, read: 200 * 1024 * 1024, entries: 100_000, ext: 64 * 1024 };
 
 /// The archive of `repo`'s default branch on GitHub, or None when `repo` is not one (`repo_ok`).
 pub fn archive_url(repo: &str) -> Option<String> {
@@ -188,24 +190,54 @@ impl<R: Read> Read for Capped<R> {
 /// Anything else (a link, a device, a `..`, a leading `.`, a deeper path, another top folder, a file too big, a
 /// second copy) is dropped, not an error. Each entry is decided from its type and its path's segments and written
 /// by hand, create-new, into folders made here (never `tar`'s own unpack, never through a link). Returns the number
-/// of files written; an error when the limits are passed (what is read is bounded too: 500 MiB decompressed,
-/// 100000 entries), the archive cannot be read, or no `<folder>/theme.json` was kept. On an error `dest` may hold
+/// of files written; an error when the limits are passed (what is read is bounded too: 200 MiB decompressed,
+/// 100000 entries, 64 KiB for a long name or PAX header), the archive cannot be read, or no `<folder>/theme.json` was kept. On an error `dest` may hold
 /// some files: the caller removes it.
 pub fn unpack(archive: &[u8], dest: &Path) -> Result<usize, String> {
     unpack_with(archive, dest, &LIMITS)
 }
 
+/// The archive as `unpack` reads it: gzip, capped, tar.
+type Tgz<'a, 'b> = tar::Archive<&'a mut Capped<flate2::read::GzDecoder<&'b [u8]>>>;
+
 fn unpack_with(archive: &[u8], dest: &Path, l: &Limits) -> Result<usize, String> {
-    let mut capped = Capped { inner: flate2::read::GzDecoder::new(archive), left: l.read, hit: false };
-    let kept = keep(&mut tar::Archive::new(&mut capped), dest, l);
-    if capped.hit {
-        return Err(format!("the archive is too large once unpacked (more than {} MiB read)", l.read >> 20));
+    // two passes, each bounded: the raw headers first (an extension's size seen before `tar` reads it whole), then
+    // the entries as `tar` folds them
+    let read = |pass: &dyn Fn(&mut Tgz) -> Result<usize, String>| {
+        let mut capped = Capped { inner: flate2::read::GzDecoder::new(archive), left: l.read, hit: false };
+        let done = pass(&mut tar::Archive::new(&mut capped));
+        if capped.hit {
+            return Err(format!("the archive is too large once unpacked (more than {} MiB read)", l.read >> 20));
+        }
+        done
+    };
+    read(&|ar| vet(ar, l))?;
+    read(&|ar| keep(ar, dest, l))
+}
+
+fn unreadable(e: io::Error) -> String {
+    format!("not a readable archive: {e}")
+}
+
+/// The raw entries of the archive, extensions unfolded: an error for one more than `l.entries`, or for a long name,
+/// long link or PAX header over `l.ext` bytes (`tar` would read it whole before handing out the entry it names).
+fn vet<R: Read>(ar: &mut tar::Archive<R>, l: &Limits) -> Result<usize, String> {
+    let mut n = 0;
+    for entry in ar.entries().map_err(unreadable)?.raw(true) {
+        let entry = entry.map_err(unreadable)?;
+        let t = entry.header().entry_type();
+        if (t.is_gnu_longname() || t.is_gnu_longlink() || t.is_pax_local_extensions() || t.is_pax_global_extensions()) && entry.size() > l.ext {
+            return Err(format!("the archive has a long name or PAX header over {} KiB", l.ext >> 10));
+        }
+        n += 1;
+        if n > l.entries {
+            return Err(format!("the archive has more than {} entries", l.entries));
+        }
     }
-    kept
+    Ok(n)
 }
 
 fn keep<R: Read>(ar: &mut tar::Archive<R>, dest: &Path, l: &Limits) -> Result<usize, String> {
-    let unreadable = |e: io::Error| format!("not a readable archive: {e}");
     let (mut top, mut files, mut total, mut theme) = (None::<String>, 0usize, 0u64, false);
     for (i, entry) in ar.entries().map_err(unreadable)?.enumerate() {
         if i >= l.entries {
@@ -286,9 +318,9 @@ fn work(root: &Path, prefix: &str, dir: &str) -> PathBuf {
     root.join(format!("{prefix}-{secs}-{:x}x{:x}-{dir}", std::process::id(), N.fetch_add(1, Ordering::Relaxed)))
 }
 
-/// Clear the work folders a crashed run left in `root`, older than `age` by the time in their name (a name that
-/// does not parse is left alone): a `.tmp-*` is removed; an `.old-*` (a pack moved aside) is put back as its pack
-/// when that folder is missing, else removed.
+/// Clear the work entries a crashed run left in `root`, older than `age` by the time in their name (a name that
+/// does not parse is left alone): a `.tmp-*` is removed; an `.old-*` folder (a pack moved aside) is put back as its
+/// pack when that folder is missing, else removed; a work entry that is a file or a link is removed.
 fn sweep(root: &Path, age: Duration) {
     let now = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
     let Ok(rd) = fs::read_dir(root) else { return };
@@ -301,14 +333,30 @@ fn sweep(root: &Path, age: Duration) {
         };
         let mut parts = rest.splitn(3, '-');
         let (Some(Ok(secs)), Some(_), Some(dir)) = (parts.next().map(str::parse::<u64>), parts.next(), parts.next()) else { continue };
-        if now.saturating_sub(secs) < age.as_secs() || !e.file_type().is_ok_and(|t| t.is_dir()) {
+        if now.saturating_sub(secs) < age.as_secs() {
             continue;
         }
         let at = e.path();
-        if old && plain(dir) && fs::symlink_metadata(root.join(dir)).is_err() && fs::rename(&at, root.join(dir)).is_ok() {
+        let folder = e.file_type().is_ok_and(|t| t.is_dir());
+        if old && folder && plain(dir) && fs::symlink_metadata(root.join(dir)).is_err() && fs::rename(&at, root.join(dir)).is_ok() {
             continue;
         }
-        let _ = fs::remove_dir_all(&at);
+        discard(&at);
+    }
+}
+
+/// At the app's start (no install can be running then: one instance): every work entry of an earlier run, however
+/// young, is cleared, and a pack left moved aside by a swap that could not put it back is in place again.
+pub fn recover(root: &Path) {
+    sweep(root, Duration::ZERO);
+}
+
+/// Delete `at` whatever it is: a real folder with all it holds, a file or a link (the link only).
+fn discard(at: &Path) {
+    if fs::symlink_metadata(at).is_ok_and(|m| m.is_dir()) {
+        let _ = fs::remove_dir_all(at);
+    } else if fs::remove_file(at).is_err() {
+        let _ = fs::remove_dir(at); // a link to a folder, on Windows
     }
 }
 
@@ -357,7 +405,7 @@ fn swap(root: &Path, dir: &str, tmp: &Path, rename: &impl Fn(&Path, &Path) -> io
         return Err(format!("cannot put the new pack in place: {e}"));
     }
     if let Some(old) = old {
-        let _ = fs::remove_dir_all(old);
+        discard(&old);
     }
     Ok(())
 }
@@ -372,13 +420,31 @@ pub fn origin(root: &Path, dir: &str) -> Result<String, String> {
 }
 
 /// Install the pack in `root/<dir>` again from `archive` (its repo's, `origin`), replacing it whole. A pack whose
-/// folder is not its repo's canonical one (made by hand) moves there: the old folder is removed once installed.
+/// folder is not its repo's canonical one (made by hand) moves there: the old folder is removed once installed,
+/// unless it is the same folder under another name (`same_folder`, decided before the install).
 pub fn update(root: &Path, dir: &str, archive: &[u8], now: &str) -> Result<Pack, String> {
-    let pack = install(root, &origin(root, dir)?, archive, now)?;
-    if pack.dir != dir {
+    let repo = origin(root, dir)?;
+    let canonical = folder_of(&repo).ok_or_else(|| format!("not a GitHub repository: {repo}"))?;
+    let same = same_folder(root, dir, &canonical);
+    let pack = install(root, &repo, archive, now)?;
+    if !same {
         remove(root, dir).map_err(|e| format!("installed as {}, but {e}", pack.dir))?;
     }
     Ok(pack)
+}
+
+/// Whether `root/<a>` and `root/<b>` are one folder: by identity (both canonical paths, so `Alice__T` and
+/// `alice__t` on a case-insensitive disk, or `p.` and `p` on Windows, are one), `b` missing meaning not; when `a`
+/// itself cannot be resolved, by name, case and trailing dots aside.
+fn same_folder(root: &Path, a: &str, b: &str) -> bool {
+    if a == b {
+        return true;
+    }
+    match (fs::canonicalize(root.join(a)), fs::canonicalize(root.join(b))) {
+        (Ok(x), Ok(y)) => x == y,
+        (Ok(_), Err(_)) => false,
+        (Err(_), _) => a.trim_end_matches('.').eq_ignore_ascii_case(b.trim_end_matches('.')),
+    }
 }
 
 /// Remove the pack folder `root/<dir>`, `dir` a plain name and a real folder (not a link, not a work folder): moved
@@ -537,6 +603,7 @@ mod tests {
         Dir,
         Link(&'a str),
         Hard(&'a str),
+        Raw(tar::EntryType, &'a [u8]),
     }
 
     fn tgz(entries: &[(&str, E)]) -> Vec<u8> {
@@ -548,6 +615,7 @@ mod tests {
                 E::Dir => (tar::EntryType::Directory, b""),
                 E::Link(_) => (tar::EntryType::Symlink, b""),
                 E::Hard(_) => (tar::EntryType::Link, b""),
+                E::Raw(kind, d) => (*kind, d),
             };
             h.set_entry_type(kind);
             h.set_size(data.len() as u64);
@@ -584,6 +652,7 @@ mod tests {
 
     fn clean() -> Vec<u8> {
         tgz(&[
+            ("pax_global_header", E::Raw(tar::EntryType::XGlobalHeader, b"52 comment=0123456789abcdef0123456789abcdef01234567\n")),
             ("r-abc/", E::Dir),
             ("r-abc/pack.json", E::File(b"{\"name\":\"R\"}")),
             ("r-abc/LICENSE", E::File(b"MIT")),
@@ -704,7 +773,23 @@ mod tests {
         assert!(unpack_with(&archive, &dest2, &few).unwrap_err().contains("entries"));
         let dest3 = tmp("bounded-ok");
         assert_eq!(unpack_with(&archive, &dest3, &LIMITS), Ok(1));
-        for d in [dest, dest2, dest3] {
+        assert_eq!(LIMITS.read, 200 * 1024 * 1024);
+        // a long name or a PAX header is read whole by `tar`: one over 64 KiB is refused before it is
+        let long = vec![b'a'; 100 * 1024];
+        for kind in [tar::EntryType::GNULongName, tar::EntryType::XHeader, tar::EntryType::XGlobalHeader, tar::EntryType::GNULongLink] {
+            let bomb = tgz(&[("././@LongLink", E::Raw(kind, &long)), ("r-abc/pink/theme.json", E::File(b"{}"))]);
+            assert!(unpack_with(&bomb, &dest3, &LIMITS).unwrap_err().contains("64 KiB"), "{kind:?}");
+        }
+        let fine = vec![b'a'; 1000];
+        let named = tgz(&[
+            ("././@LongLink", E::Raw(tar::EntryType::GNULongName, &[b"r-abc/pink/".as_slice(), &fine[..90], b".json\0"].concat())),
+            ("x", E::File(b"{}")),
+            ("r-abc/pink/theme.json", E::File(b"{}")),
+        ]);
+        let dest4 = tmp("bounded-long");
+        assert_eq!(unpack_with(&named, &dest4, &LIMITS), Ok(2), "a long name under the limit still names its entry");
+        assert!(dest4.join("pink").join(format!("{}.json", "a".repeat(90))).exists());
+        for d in [dest, dest2, dest3, dest4] {
             let _ = fs::remove_dir_all(d);
         }
     }
@@ -733,6 +818,7 @@ mod tests {
         assert_eq!(origin(&root, "odd").as_deref(), Ok("bob/x"));
         assert_eq!(update(&root, "odd", &clean(), "six").unwrap().dir, "bob__x");
         assert!(!root.join("odd").exists());
+        assert!(root.join("bob__x/pink/theme.json").exists(), "the new pack stays");
         assert_eq!(origin(&root, "../x"), Err("no pack ../x".into()));
         let _ = fs::remove_dir_all(&root);
     }
@@ -757,6 +843,54 @@ mod tests {
         let refuse = |_: &Path, _: &Path| Err(std::io::Error::other("cannot rename"));
         assert!(install_with(&root, "alice/t", &second, "two", refuse).is_err());
         assert_eq!(tree(&root), before);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn the_same_folder_by_identity_not_by_name() {
+        let root = tmp("same");
+        put(&root, "p/x", b"");
+        put(&root, "q/x", b"");
+        assert!(same_folder(&root, "p", "p"));
+        assert!(!same_folder(&root, "p", "q"));
+        assert!(!same_folder(&root, "p", "missing"), "a folder that is not there is not the pack's");
+        put(&root, "Alice__T/x", b"");
+        // on a case-insensitive disk both names open one folder: never two packs to remove one of
+        assert_eq!(same_folder(&root, "Alice__T", "alice__t"), fs::symlink_metadata(root.join("alice__t")).is_ok());
+        // when the pack's own folder cannot be resolved, the names decide, case and trailing dots aside
+        assert!(same_folder(&root, "Gone.", "gone"));
+        assert!(!same_folder(&root, "gone", "other"));
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(root.join("p"), root.join("alias")).unwrap();
+            assert!(same_folder(&root, "alias", "p"), "an alias of the same folder");
+        }
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_file_in_the_way_is_cleared() {
+        let root = tmp("file-in-way");
+        put(&root, "alice__t", b"a file, not a pack");
+        install(&root, "alice/t", &clean(), "one").unwrap();
+        assert!(tree(&root).iter().all(|p| !p.starts_with('.')), "{:?}", tree(&root));
+        put(&root, ".old-1-a-q", b"a stale file");
+        put(&root, ".tmp-1-a-q", b"a stale file");
+        sweep(&root, Duration::ZERO);
+        assert!(tree(&root).iter().all(|p| !p.starts_with('.')), "{:?}", tree(&root));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn recover_puts_back_a_pack_moved_aside_at_start() {
+        let root = tmp("recover");
+        let aside = work(&root, ".old", "alice__t"); // young: `install` would leave it ten minutes
+        put(&aside, "pink/theme.json", b"{}");
+        let tmp_left = work(&root, ".tmp", "alice__t");
+        put(&tmp_left, "pink/theme.json", b"{}");
+        recover(&root);
+        assert_eq!(tree(&root), ["alice__t", "alice__t/pink", "alice__t/pink/theme.json"]);
+        recover(&root.join("missing"));
         let _ = fs::remove_dir_all(&root);
     }
 

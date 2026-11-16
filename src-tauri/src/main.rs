@@ -414,6 +414,11 @@ fn main() {
             // No Dock icon or app menu: a widget that lives in the tray (skipTaskbar is ignored on macOS).
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            // a pack an interrupted install left moved aside is back before the UI lists the packs (single instance:
+            // no install is running now)
+            if let Ok(root) = themes_root(app.handle()) {
+                packs::recover(&root);
+            }
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
             #[cfg(target_os = "linux")]
             strip::init(); // before build_tray: the tray's strip item asks strip_supported
