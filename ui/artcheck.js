@@ -9,8 +9,9 @@
 //            [x, y], logical() recurses): a theme's has its base anchor's shape, a list of the same length, an object
 //            only the base's keys (laid over the base's)
 //   tiles    { name: rule } (room.js tile): fill 'repeat' | 'repeat-x' | 'repeat-y' | 'nine' | 'once', edge (a nine's
-//            corner, under half the tile), top (a frame at the tile's size), mix (frames at its size), glow (an ink
-//            name, a text here), glowPasses (1 to 8); a theme's rule only for a tile with a base rule, only its keys, of their kinds
+//            corner, from 1, under half the tile; a nine needs it), top (a frame at the tile's size), mix (frames at
+//            its size), glow (an ink name, a text here), glowPasses (1 to 8); a theme's rule only for a tile with a
+//            base rule, only its keys, of their kinds
 //   faces    meta.objects { NAME: { front, d, recess, details, flatOnly } } (faces.js header): every rect four whole
 //            numbers inside frame NAME, w and h at least 1; details of kind box | cyl | disc | top | bill | spire (a
 //            spire's parts, the same); faces.png frames named by an object's faces (checkFaces)
@@ -73,11 +74,13 @@ export function checkSheet(family, own, base) {
       if (kind(v) !== kind(b[k])) { bad.push(`${at}: ${k} must be ${kind(b[k]) === 'array' ? 'a list' : `a ${kind(b[k])}`}, not ${say(v)}`); continue; }
       const sized = m => { const g = frame(m); return !g ? `names no frame '${m}'` : f && sizeOf(g) !== sizeOf(f) ? `'${m}' is ${sizeOf(g)}, the tile ${sizeOf(f)}` : null; };
       if (k === 'fill' && !FILLS.includes(v)) bad.push(`${at}: fill '${v}' unknown`);
-      if (k === 'edge' && (!Number.isInteger(v) || v < 0 || (f && 2 * v >= Math.min(f.length, f[0].length)))) bad.push(`${at}: edge ${v} must be a whole number under half the tile`);
+      if (k === 'edge' && (!Number.isInteger(v) || v < 1 || (f && 2 * v >= Math.min(f.length, f[0].length)))) bad.push(`${at}: edge ${v} must be a whole number from 1, under half the tile`);
       if (k === 'glowPasses' && (!Number.isInteger(v) || v < 1 || v > 8)) bad.push(`${at}: glowPasses ${v} must be 1 to 8`);
       if (k === 'top') { const p = sized(v); if (p) bad.push(`${at}: top ${p}`); }
       if (k === 'mix') for (const m of v) { const p = typeof m === 'string' ? sized(m) : `holds ${say(m)}, not a frame name`; if (p) bad.push(`${at}: mix ${p}`); }
     }
+    // what the rule's fill needs (its own, else the default's): a nine its corner (room.js cuts W - 2 * edge wide parts)
+    if ((has(t, 'fill') ? t.fill : b.fill) === 'nine' && !has(t, 'edge')) bad.push(`${at}: a nine needs its edge`);
   }
   return out();
 }
@@ -85,7 +88,16 @@ export function checkSheet(family, own, base) {
 // ---- faces ---------------------------------------------------------------------------------------------------------
 const KINDS = ['box', 'cyl', 'disc', 'top', 'bill', 'spire'];
 const OBJECT_KEYS = ['front', 'd', 'recess', 'details', 'flatOnly'];
-const NUMS = ['d', 'depth', 't', 'u', 'v', 'z']; // a detail's numbers, where given
+// The numbers the 39° builder loops on or sizes its buffer by (scene39.js bake, IsoBuf.box, faces.js disc and the
+// recess loop, isohall.js depthOf): whole and capped, so a pack cannot make the drawing throw or hang. Shipped maxima
+// (base and every world): d 30 (an object's and a detail's), recess depth 6, disc t 14; u 148, v 24, z 90 (at most
+// 0.95 of their frame's larger side: TABLE leg 5's u, 87 of 92).
+const D_MAX = 96; // an object's or a box detail's depth, from 1
+const DEPTH_MAX = 16; // a recess's depth, from 1
+const T_MAX = 32; // a disc's thickness, from 1
+const SPAN = 2; // u, v, z: within SPAN x the frame's larger side, either way
+const NUMS = ['d', 't', 'u', 'v', 'z']; // a detail's numbers, where given
+const CAP = { d: D_MAX, t: T_MAX, depth: DEPTH_MAX };
 const cols = d => Math.ceil(d / VS39); // faces.js cols
 const DEEP = 6; // spires within spires
 
@@ -94,7 +106,8 @@ const DEEP = 6; // spires within spires
 // by one of its objects' faces. `exact`: each at its face's size (the base art's rule); else only what the drawing
 // reads (the builder reads side, top, rim and recess frames with ?., so any size draws; a box detail's drawn front
 // needs its rect's rows, and one the flat frame shows must not run off it). Each starts 'faces: '.
-export function checkFaces(own, base, frames, faceFrames, { exact = false } = {}) {
+export function checkFaces(own, base, frames, faceFrames, opts) {
+  const exact = isObj(opts) && opts.exact === true;
   const bad = [];
   if (!isObj(base)) return ['faces: no default objects'];
   if (!isObj(own)) return [`faces: the objects must be an object, not ${say(own)}`];
@@ -105,7 +118,10 @@ export function checkFaces(own, base, frames, faceFrames, { exact = false } = {}
     if (!has(base, name)) { bad.push(`${at}: not an object of the default faces`); continue; }
     if (!map || rowsBad(map)) { bad.push(`${at}: no frame '${name}' to cut it from`); continue; }
     if (!isObj(o)) { bad.push(`${at} must be an object, not ${say(o)}`); continue; }
-    const fw = map[0].length, fh = map.length;
+    const fw = map[0].length, fh = map.length, reach = SPAN * Math.max(fw, fh);
+    // a number's problem, or null: d, t, depth whole from 1 to their cap; u, v, z within reach
+    const num = (k, v) => (CAP[k] ? (Number.isInteger(v) && v >= 1 && v <= CAP[k] ? null : `${k} must be a whole number from 1 to ${CAP[k]}, not ${say(v)}`)
+      : typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= reach ? null : `${k} must be a number within ${reach} of the frame, not ${say(v)}`);
     // a rect inside the frame (and inside `box`, a recess's: the builder reads the box's rows under it)
     const rect = (r, where, box) => {
       if (!Array.isArray(r) || r.length !== 4 || !r.every(Number.isInteger)) { bad.push(`${at}: ${where} rect must be four whole numbers, not ${say(r)}`); return false; }
@@ -120,16 +136,18 @@ export function checkFaces(own, base, frames, faceFrames, { exact = false } = {}
     const recess = (v, where, pre, box, sized = true) => list(v, `${where} recess`).forEach((r, i) => {
       if (!named(r, `${where} recess ${i}`)) return;
       const ok = rect(r.rect, `${where} recess '${r.name}'`, box);
-      if (r.depth !== undefined && (!Number.isInteger(r.depth) || r.depth < 1)) bad.push(`${at}: ${where} recess '${r.name}' depth must be a whole number from 1, not ${say(r.depth)}`);
+      const dp = r.depth === undefined ? null : num('depth', r.depth);
+      if (dp) bad.push(`${at}: ${where} recess '${r.name}' ${dp}`);
       if (r.wall !== undefined && typeof r.wall !== 'string') bad.push(`${at}: ${where} recess '${r.name}' wall must be a colour char`);
-      if (ok && sized && r.depth > 1) { sizes[`${pre} ${r.name} wall`] = [r.depth - 1, r.rect[3]]; sizes[`${pre} ${r.name} floor`] = [r.rect[2], r.depth - 1]; }
+      if (ok && sized && !dp && r.depth > 1) { sizes[`${pre} ${r.name} wall`] = [r.depth - 1, r.rect[3]]; sizes[`${pre} ${r.name} floor`] = [r.rect[2], r.depth - 1]; }
     });
     const part = (p, where, key, deep, flat) => {
       if (!named(p, where)) return;
       const w = `${where} '${p.name}'`;
       if (!KINDS.includes(p.kind)) bad.push(`${at}: ${w} kind ${say(p.kind)} unknown (${KINDS.join(', ')})`);
       const ok = rect(p.rect, w);
-      for (const k of NUMS) if (p[k] !== undefined && (typeof p[k] !== 'number' || !Number.isFinite(p[k]))) bad.push(`${at}: ${w} ${k} must be a number, not ${say(p[k])}`);
+      for (const k of NUMS) { const e = p[k] === undefined ? null : num(k, p[k]); if (e) bad.push(`${at}: ${w} ${e}`); }
+      if (p.kind === 'box' && p.d === undefined) bad.push(`${at}: ${w} is a box without its depth d`);
       if (p.rim !== undefined && typeof p.rim !== 'string') bad.push(`${at}: ${w} rim must be a colour char`);
       recess(p.recess, w, `${name} ${key}`, ok ? p.rect : undefined);
       if (p.kind === 'spire' && (!Array.isArray(p.parts) || !p.parts.length)) bad.push(`${at}: ${w} is a spire without parts`);
@@ -147,7 +165,8 @@ export function checkFaces(own, base, frames, faceFrames, { exact = false } = {}
       fronts[`${name} ${key} front`] = { rows: p.kind === 'box' ? ph : 1, flat: flat ? fh - p.rect[1] : Infinity };
     };
     for (const k of Object.keys(o)) if (!OBJECT_KEYS.includes(k)) bad.push(`${at}: ${k} is not a key of an object`);
-    if (o.d !== undefined && (typeof o.d !== 'number' || !Number.isFinite(o.d))) bad.push(`${at}: d must be a number, not ${say(o.d)}`);
+    const od = o.d === undefined ? null : num('d', o.d);
+    if (od) bad.push(`${at}: ${od}`);
     const front = o.front !== undefined && rect(o.front, 'front');
     if (front) { sizes[`${name} side`] = [cols(o.d), o.front[3]]; sizes[`${name} top`] = [o.front[2], cols(o.d)]; }
     recess(o.recess, 'front', name, front ? o.front : undefined, front); // a main box's recess: inside it, its frames only with it

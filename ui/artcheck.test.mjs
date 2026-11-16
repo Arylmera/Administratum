@@ -8,9 +8,9 @@ import { THEMES, setTheme } from './theme.js';
 
 const rows = (w, h, c = 'k') => Array.from({ length: h }, () => c.repeat(w));
 const base = {
-  frames: { a: rows(4, 3), b: rows(2, 2), floor: rows(4, 4), 'floor vent': rows(4, 4), 'floor top': rows(4, 4) },
+  frames: { a: rows(4, 3), b: rows(2, 2), floor: rows(4, 4), 'floor vent': rows(4, 4), 'floor top': rows(4, 4), pad: rows(6, 6) },
   anchors: { feet: [2, 3], a: { screen: [0, 0, 2, 2], seals: [[0, 1], [1, 1]] }, door: { door: [1, 1] } },
-  tiles: { floor: { fill: 'repeat', top: 'floor top', mix: ['floor vent'] }, b: { fill: 'nine', edge: 0 } },
+  tiles: { floor: { fill: 'repeat', top: 'floor top', mix: ['floor vent'] }, pad: { fill: 'nine', edge: 1 } },
   meta: {},
 };
 const clean = { frames: { a: rows(4, 3, 'r') }, anchors: { feet: [1, 3], a: { screen: [1, 1, 2, 2] } }, tiles: { floor: { fill: 'repeat', mix: [] } }, meta: {} };
@@ -36,7 +36,12 @@ one({ tiles: { floor: { fill: 'repeat', mix: ['floor vent', 'gone'] } } }, 'gone
 one({ tiles: { floor: { fill: 'tile' } } }, 'fill');
 one({ tiles: { floor: { fill: 'repeat', mix: 'floor vent' } } }, 'mix');
 one({ tiles: { floor: { fill: 'repeat', glow: 'x' } } }, 'glow');
-one({ tiles: { b: { fill: 'nine', edge: 1 } } }, 'edge');
+one({ tiles: { pad: { fill: 'nine', edge: 3 } } }, 'edge');
+// a nine without a usable edge: a theme's rule replaces the default's whole, so room.js would cut a zero-wide part
+one({ tiles: { pad: { fill: 'nine' } } }, 'edge');
+one({ tiles: { pad: { fill: 'nine', edge: 0 } } }, 'edge');
+one({ tiles: { pad: {} } }, 'edge'); // its fill the default's nine
+assert.deepEqual(checkSheet('fam', { ...clean, tiles: { pad: { fill: 'nine', edge: 2 } } }, base), [], 'a nine with its edge');
 one({ tiles: { a: { fill: 'repeat' } } }, 'a');
 // a mix or top frame at another size than its tile
 one({ frames: { 'floor vent': rows(4, 4), b: rows(2, 2) }, tiles: { floor: { fill: 'repeat', mix: ['b'] } } }, 'b');
@@ -72,6 +77,19 @@ face({ recess: [{ name: 'screen', rect: [1, 3, 4, 2], depth: '2' }] }, 'depth');
 face({ flatOnly: 'shadow' }, 'flatOnly');
 face({ d: 'deep' }, 'd');
 face({ lid: true }, 'lid');
+// numbers the drawing loops on or sizes a buffer by: whole and bounded, so a pack cannot make it throw or hang
+face({ d: 1e9 }, 'd');
+face({ d: -5 }, 'd');
+face({ d: 2.5 }, 'd');
+face({ details: [{ name: 'cog', rect: [6, 0, 2, 2], kind: 'disc', t: 1e9 }] }, 't');
+face({ details: [{ name: 'cog', rect: [6, 0, 2, 2], kind: 'disc', t: 0 }] }, 't');
+face({ recess: [{ name: 'screen', rect: [1, 3, 4, 2], depth: 1e9 }] }, 'depth');
+face({ details: [{ name: 'slate', rect: [1, 0, 2, 2], kind: 'box', d: 1e9 }] }, 'd');
+face({ details: [{ name: 'slate', rect: [1, 0, 2, 2], kind: 'box' }] }, 'd'); // a box needs its depth (isohall.js depthOf)
+face({ details: [{ name: 'cup', rect: [1, 0, 2, 2], kind: 'cyl', u: 1e9 }] }, 'u');
+face({ details: [{ name: 'cup', rect: [1, 0, 2, 2], kind: 'cyl', v: -1e9 }] }, 'v');
+face({ details: [{ name: 'cup', rect: [1, 0, 2, 2], kind: 'cyl', z: 1e9 }] }, 'z');
+assert.ok(Array.isArray(checkFaces(objs, bObjs, sprite, undefined, null)), 'null options');
 assert.equal(checkFaces({ CRATE: objs.BOX }, bObjs, { ...sprite, CRATE: rows(10, 8) }).length, 1, 'an object the base lacks');
 assert.equal(checkFaces({ BOX: objs.BOX }, { BOX: objs.BOX }, {}).length, 1, 'an object without its frame');
 face({ recess: [{ name: 'screen', rect: [1, 1, 4, 2], depth: 2 }] }, 'screen'); // a recess outside its box
