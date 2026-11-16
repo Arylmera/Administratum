@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -335,4 +335,31 @@ try {
   assert.deepEqual(hung.themes, shipped);
   assert.match(hung.problems[0]?.message ?? '', /timed out/, JSON.stringify(hung.problems));
   assert.equal(hung.code, 'timed out');
+}
+
+// The author's check (tools/theme_pack.mjs): the template pack loads as the app loads it, art included; a broken copy
+// fails, naming its theme.
+{
+  const check = dir => spawnSync(process.execPath, ['tools/theme_pack.mjs', 'check', dir], { cwd: repo, encoding: 'utf8' });
+  const ok = check('docs/theme-pack-template');
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.match(ok.stdout, /^2 themes ok, 0 with problems$/m, ok.stdout);
+  const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'adm-pack-check-'));
+  try {
+    fs.cpSync(path.join(repo, 'docs', 'theme-pack-template'), copy, { recursive: true });
+    const at = path.join(copy, 'workshop', 'theme.json'), json = JSON.parse(fs.readFileSync(at, 'utf8'));
+    fs.writeFileSync(at, JSON.stringify({ ...json, px: { r: 'red' } }));
+    const bad = check(copy);
+    assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.match(bad.stdout, /^workshop: /m, bad.stdout);
+    // one theme folder is checked in its pack, the folder's parent
+    const one = check(path.join(copy, 'vault-pink'));
+    assert.equal(one.status, 0, one.stdout + one.stderr);
+    assert.match(one.stdout, /^1 theme ok, 0 with problems$/m, one.stdout);
+  } finally { fs.rmSync(copy, { recursive: true, force: true }); }
+}
+// The guide's list of families is the tool's, current.
+{
+  const table = execFileSync(process.execPath, ['tools/theme_pack.mjs', 'families'], { cwd: repo, encoding: 'utf8' }).trimEnd();
+  assert.ok(fs.readFileSync(path.join(repo, 'docs', 'theme-packs.md'), 'utf8').includes(table), 'docs/theme-packs.md: rerun node tools/theme_pack.mjs families');
 }

@@ -245,7 +245,7 @@ Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. It
 after *Restart to apply*. The same list updates or removes a pack. A pack is data only: colours, wording and pixel
 art, checked when it loads; it cannot run code, and a theme that does not load is left out with the reason on its
 pack's line. A folder of themes dropped by hand into the `themes` folder beside the app's Chronicon shows there
-too, as a local folder.
+too, as a local folder. To make your own: [Making a theme pack](docs/theme-packs.md).
 
 ---
 
