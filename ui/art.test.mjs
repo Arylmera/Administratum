@@ -9,6 +9,7 @@ import { THEMES, setTheme, t } from './theme.js';
 import { BREAKOUT_SIZES, ENCLAVE_SIZES } from './layout.js';
 import { markOf, bodyOf, bodyOf39, liftOf } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
+import { checkSheet } from './artcheck.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -116,12 +117,7 @@ const dirs = fs.readdirSync(new URL('./art/', import.meta.url), { withFileTypes:
 for (const id of dirs) assert.ok(THEMES[id]?.art?.length, `ui/art/${id}/ is no theme's art (theme.art)`);
 for (const [id, fams] of Object.entries(ART.themed)) for (const [fam, sh] of Object.entries(fams)) {
   assert.ok(fs.existsSync(new URL(`./art/${id}/${fam}.png`, import.meta.url)), `${id}/${fam}.png`);
-  for (const [n, f] of Object.entries(sh.frames)) {
-    const d = ART.base[fam].frames[n];
-    assert.ok(d, `${id}/${fam}: '${n}' is not a frame of ${fam}`);
-    assert.deepEqual([f.length, f[0].length], [d.length, d[0].length], `${id}/${fam}: '${n}' must keep the default's size`);
-  }
-  for (const [n, a] of Object.entries(sh.anchors)) for (const k of Object.keys(a)) assert.ok(ART.base[fam].anchors[n]?.[k] !== undefined, `${id}/${fam}: anchor ${n}.${k} unknown`);
+  assert.deepEqual(checkSheet(`${id}/${fam}`, sh, ART.base[fam]), [], `${id}/${fam}: frames of the default's at its size, anchors and fill rules of its shape (artcheck.js)`);
 }
 // The shell cog's turn (scene.js spinCog) is one set: a world that redraws one SHELL_COG frame redraws them all, so its
 // turn never mixes in the 40k cog's frames.
