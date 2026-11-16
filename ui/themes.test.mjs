@@ -271,3 +271,45 @@ try {
   for (const f of ['tall', 'wide', 'frac']) assert.ok(out.problems[f].startsWith(`${f}/breakout.json: frame 'BREAKOUT_FLOOR'`), out.problems[f]);
   for (const f of ['twice', 'bomb']) assert.ok(out.problems[f].startsWith(`${f}/breakout.png: `), out.problems[f]);
 }
+
+// At start, after the shipped themes: the packs the backend lists, read through its command (raw bytes), each read and
+// the list itself bounded by 10 s. A child process on the fake backend (ui/testdom.mjs), so themes.js meets it at import.
+{
+  const run = setup => JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
+    const { install, replies, calls, tick, flush } = await import('./ui/testdom.mjs');
+    install();
+    const files = { 'p/pink/theme.json': JSON.stringify({ format: 1, name: 'Pink', base: 'vault', art: [] }) };
+    replies.theme_pack_file = ({ path }) => (path in files ? new TextEncoder().encode(files[path]).buffer : new Error('not found'));
+    ${setup}
+    const loaded = import('./ui/themes.js');
+    const settle = async () => { for (let i = 0; i < 30; i++) { await flush(); tick(1000); } };
+    await settle();
+    const { PACKS, readPack } = await loaded;
+    const { THEMES } = await import('./ui/theme.js');
+    const read = readPack('p', 'pink/faces.json').then(() => 'read', e => e.code ?? e.message);
+    await settle();
+    const code = await read;
+    console.log(JSON.stringify({ themes: Object.keys(THEMES), packs: [...PACKS.keys()], problems: [...PACKS.values()].flatMap(p => p.problems),
+      reads: calls.filter(c => c.name === 'theme_pack_file').map(c => c.args.path), code }));`], { cwd: repo, encoding: 'utf8', timeout: 60_000 }));
+  const shipped = ['tier2', 'forge', 'xenos', 'night', 'contrast', 'cyber', 'orbital', 'corpo', 'rain', 'matrix', 'synth', 'tower', 'vault', 'darwin', 'breakingbad'];
+  const one = [{ id: 'a/p', dir: 'p', repo: 'a/p', installed: '2026-11-16T10:00:00Z', themes: ['pink'] }];
+  const ok = run(`replies.theme_packs = ${JSON.stringify(one)};`);
+  assert.deepEqual(ok.themes, [...shipped, 'a/p:pink'], JSON.stringify(ok));
+  assert.deepEqual(ok.problems, []);
+  assert.ok(ok.reads.includes('p/pink/theme.json'), JSON.stringify(ok.reads));
+  assert.equal(ok.code, 'ENOENT', 'a file the backend will not serve is a missing file');
+  for (const [why, setup] of [
+    ['the list call rejects', "replies.theme_packs = new Error('boom');"],
+    ['the list call hangs', 'replies.theme_packs = () => new Promise(() => {});'],
+    ['the list is not a list', "replies.theme_packs = 'nonsense';"],
+  ]) {
+    const out = run(setup);
+    assert.deepEqual(out.themes, shipped, why);
+    assert.deepEqual(out.packs, [], why);
+  }
+  // a read that never settles fails at 10 s: its theme is left out with the reason, the start goes on
+  const hung = run(`replies.theme_packs = ${JSON.stringify(one)}; replies.theme_pack_file = () => new Promise(() => {});`);
+  assert.deepEqual(hung.themes, shipped);
+  assert.match(hung.problems[0]?.message ?? '', /timed out/, JSON.stringify(hung.problems));
+  assert.equal(hung.code, 'timed out');
+}

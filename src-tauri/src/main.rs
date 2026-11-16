@@ -8,6 +8,7 @@ mod mask;
 mod monitor;
 mod opencode;
 mod orca;
+mod packs;
 mod poller;
 mod quiet;
 mod registry;
@@ -190,6 +191,24 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(app.path().app_config_dir().map_err(|e| e.to_string())?.join("settings.json"))
 }
 
+/// The theme packs' folder, `<app data>/themes/` (packs.rs).
+fn themes_root(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app.path().app_data_dir().map_err(|e| e.to_string())?.join("themes"))
+}
+
+/// The theme packs in the themes folder, for the UI's `loadPacks` (none when the folder is missing or unreadable).
+#[tauri::command(async)]
+fn theme_packs(app: AppHandle) -> Vec<packs::Pack> {
+    themes_root(&app).map(|root| packs::list(&root)).unwrap_or_default()
+}
+
+/// One file of a theme pack, `<dir>/pack.json` or `<dir>/<folder>/<name>.json|png`, as raw bytes; `not found` for
+/// anything `packs::read` will not serve (the UI reads that as a missing file).
+#[tauri::command(async)]
+fn theme_pack_file(path: String, app: AppHandle) -> Result<tauri::ipc::Response, String> {
+    packs::read(&themes_root(&app)?, &path).map(tauri::ipc::Response::new).ok_or_else(|| "not found".into())
+}
+
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
 /// Never includes the backend's `remote.*` keys (the remote view's token among them).
 #[tauri::command(async)]
@@ -295,6 +314,8 @@ fn main() {
             desktop_shortcut,
             settings_load,
             settings_save,
+            theme_packs,
+            theme_pack_file,
             rooms::rooms_test,
             remote::app::remote_status,
             remote::app::remote_set,

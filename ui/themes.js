@@ -5,6 +5,7 @@
 import { defineTheme, setTheme, T, THEMES, WORLDS } from './theme.js';
 import { checkTheme, scoped, themeOf } from './themepack.js';
 import { ART, readArt } from './art.js';
+import { invoke, REMOTE } from './bridge.js';
 
 // The folder of a theme's own files (theme.json, its art): where loadThemes read it from; else ui/art/<id>/, or
 // ui/art/ itself for Ordo Administratum. A pack's theme: its pack's reader over its folder (art.js takes either).
@@ -129,3 +130,26 @@ export const guarded = draw => function (...args) {
     setTheme('tier2');
   }
 };
+
+// ---- the packs at start --------------------------------------------------------------------------------------------
+// The packs in the themes folder, as the backend lists and serves them (packs.rs, docs/remote-api.md), loaded after the
+// shipped themes: the list from `theme_packs`, each file from `theme_pack_file` (raw bytes) on the host, from the
+// asset route /themes/<dir>/<path> on the phone. The backend is the guard on paths; a file it will not serve is a
+// missing one (ENOENT). A call that has not settled in 10 s fails, so a hung backend cannot hang the start; when the
+// list fails, the app starts with the shipped themes. No backend (the tools, the tests): no packs.
+const LIMIT = 10_000;
+const bounded = run => new Promise((ok, no) => {
+  const t = setTimeout(() => no(new Error('timed out')), LIMIT), done = f => v => { clearTimeout(t); f(v); };
+  Promise.resolve().then(run).then(done(ok), done(no));
+});
+const absent = () => Object.assign(new Error('not found'), { code: 'ENOENT' });
+const url = (dir, path) => `/themes/${[dir, ...path.split('/')].map(encodeURIComponent).join('/')}`;
+export const readPack = (dir, path) => bounded(() => (REMOTE
+  ? fetch(url(dir, path), { credentials: 'same-origin' }).then(async r => {
+    if (r.status === 404) throw absent();
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return new Uint8Array(await r.arrayBuffer());
+  })
+  : invoke('theme_pack_file', { path: `${dir}/${path}` }).then(b => new Uint8Array(b), e => { throw e === 'not found' ? absent() : new Error(say(e)); })));
+
+await loadPacks(await bounded(() => invoke('theme_packs')).catch(() => []), readPack);
