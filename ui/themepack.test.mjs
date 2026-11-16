@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { TIER_II, resolve } from './theme.js';
-import { recolour, checkTheme, themeOf, scoped, FONTS } from './themepack.js';
+import { recolour, checkTheme, themeOf, scoped, FONTS, LOCKED } from './themepack.js';
 
 // recolour: the arithmetic of the old rehue, pinned on five inputs (computed with the old themes.js code)
 const bands = [{ hue: [300, 345], to: 356, sat: 1, light: -0.04 }, { hue: [210, 260], to: 0, sat: 0.12 }];
@@ -74,6 +74,17 @@ one({ ui: { '--bg': 'rgb(300,0,0)' } }, 'ui.--bg');
 one({ ui: { '--bg': 'rgba(0,0,0,2)' } }, 'ui.--bg');
 one({ light: { night: '10,20,999' } }, 'light.night');
 assert.deepEqual(checkTheme({ ...ok, ui: { '--bg': 'rgba(255,170,80,.38)' }, light: { night: '10,20,30' } }, { bases }), []);
+
+// locked wording: a pack cannot reword the safety and pack-management texts; a shipped theme's check (no `locked`) may
+assert.deepEqual(LOCKED, ['risky', 'rejectAll', 'toast.failed', 'watch.button', 'prefs.packs']);
+for (const [key, text] of [['risky', { risky: 'ok: {reason}' }], ['rejectAll', { rejectAll: 'Fine' }], ['toast.failed', { toast: { failed: 'sent' } }],
+  ['watch.button', { watch: { button: 'Nothing' } }], ['prefs.packs', { prefs: { packs: { remove: 'Update' } } }], ['prefs.packs', { prefs: { packs: {} } }]]) {
+  const p = checkTheme({ ...ok, text }, { bases, locked: LOCKED });
+  assert.equal(p.length, 1, `${key}: ${JSON.stringify(p)}`);
+  assert.ok(p[0].startsWith(`text.${key}:`) && p[0].includes('a pack cannot reword'), p[0]);
+  assert.deepEqual(checkTheme({ ...ok, text }, { bases }), [], `${key}: a shipped theme may`);
+}
+assert.deepEqual(checkTheme({ ...ok, text: { toast: { petition: 'P {name}' }, watch: { name: 'Owl' }, prefs: { theme: 'Look' } } }, { bases, locked: LOCKED }), [], 'the keys beside them stay free');
 
 // scoped: a pack's theme gets pack-scoped ids; what it names in its own pack follows, what is shipped stays
 const shipped = ['w40k', 'vault'], own = ['pink', 'steam', 'rose'];

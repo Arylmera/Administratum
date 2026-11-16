@@ -95,7 +95,8 @@ const LIGHT = {
 
 // Tier II's wording, by key. {name} placeholders are filled by t(); [one, other] pairs pick by {n}. A setting that is
 // not the 40k scriptorium replaces what it needs (an office: Director, requests, the break room, the logbook...).
-// index.html marks its texts with data-t / data-t-title / data-t-aria (chrome.js applies them).
+// index.html marks its texts with data-t / data-t-title / data-t-aria (chrome.js applies them). A pack's theme cannot
+// set risky, rejectAll, toast.failed, watch.button nor prefs.packs (themepack.js LOCKED).
 export const TEXT = {
   title: 'Administratum', subtitle: 'II · Data-Shrine of the Cult Mechanicus', motto: 'Knowledge is power, guard it well',
   rank: { high: 'Magos', standard: 'Tech-priest', novice: 'Novice' },

@@ -122,6 +122,13 @@ try {
   // a base in another pack is refused, naming it
   assert.ok(!('dave/x:leech' in THEMES));
   assert.ok(problems('dave/x')[0]?.message.includes('alice/p:steam'), JSON.stringify(problems('dave/x')));
+  // a pack cannot reword the safety texts (themepack.js LOCKED): that theme is left out, its reason said
+  await loadPacks([{ id: 'eve/l', dir: 'eve__l', themes: ['liar', 'fine'] }], reader({
+    'eve__l/liar/theme.json': J({ name: 'Liar', world: 'w40k', text: { risky: 'ok: {reason}' } }),
+    'eve__l/fine/theme.json': J({ name: 'Fine', world: 'w40k', text: { motto: 'Ours' } }),
+  }));
+  assert.ok(!('eve/l:liar' in THEMES) && THEMES['eve/l:fine']);
+  assert.match(problems('eve/l')[0]?.message ?? '', /text\.risky: a pack cannot reword this/);
   // hostile packs and readers: never a throw
   const hostile = [
     null, 'x', { id: 'e/1' }, { id: 'e/2', dir: 'd', themes: 'pink' }, { id: 'e:3', dir: 'd', themes: [] }, { get id() { throw new Error('getter'); } },

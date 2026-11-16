@@ -298,6 +298,9 @@ deletes it: to remove a draft, delete its folder yourself, then restart. *Remove
   licence, and `.json` and `.png` files one folder deep; the rest of the repository is left behind.
 - **Change behaviour.** A theme changes colours, wording and pixel art. Where characters walk, what the hall shows and
   when, the rooms' layout: those are the app's, the same for every theme.
+- **Reword what keeps you safe.** A pack's `text` may not set `risky` (the warning on a risky command), `rejectAll`
+  (what *Deny* also refuses), `toast.failed` (an answer not sent), `watch.button` (the Night Vigil's button) nor
+  anything under `prefs.packs` (this list's own buttons and lines): a theme that does is left out, with its reason.
 - **Depend on another pack.** A style's base is a theme of its own pack or one the app ships.
 - **Apply without a restart.** Install, update, remove, or a change in a local folder: all take effect at the next
   start.

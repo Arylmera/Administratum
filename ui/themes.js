@@ -3,7 +3,7 @@
 // A theme is parsed, never evaluated. Picked in Settings (adm.theme); the gallery renders any of them
 // (node tools/sprite_sheet.mjs --theme <id>). Then the packs (loadPacks): themes from outside, never trusted.
 import { defineTheme, setTheme, T, THEMES, WORLDS } from './theme.js';
-import { checkTheme, scoped, themeOf } from './themepack.js';
+import { checkTheme, LOCKED, scoped, themeOf } from './themepack.js';
 import { ART, readArt } from './art.js';
 import { invoke, REMOTE } from './bridge.js';
 
@@ -89,7 +89,7 @@ async function loadPack({ id, dir, themes }, read) {
     try {
       const s = scoped(id, f, json, { own: folders, shipped: [...SHIPPED_WORLDS] });
       if (THEMES[s.id]) { problem(f, 'already registered'); continue; }
-      const bad = checkTheme(s.json, { bases: own, worlds });
+      const bad = checkTheme(s.json, { bases: own, worlds, locked: LOCKED }); // a pack cannot reword safety texts
       if (bad.length) { problem(f, `${f}/theme.json: ${bad.join('; ')}`); continue; }
       set = true;
       const t = defineTheme(themeOf(s.id, s.json, s.json.base && THEMES[s.json.base]));

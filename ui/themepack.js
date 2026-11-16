@@ -43,9 +43,13 @@ export const scoped = (pack, id, json, { own = [], shipped = [] } = {}) => {
   return { id: s(id), json: out };
 };
 
+// The wording a pack's theme cannot set (loadPacks passes it as `locked`): what warns of a risky command, what Deny
+// also refuses, an answer not sent, the Night Vigil's button, the packs' own buttons and lines. Shipped themes may.
+export const LOCKED = ['risky', 'rejectAll', 'toast.failed', 'watch.button', 'prefs.packs'];
+
 // The problems of a parsed theme.json (empty when valid). `bases`: the ids a style may name; `worlds`: the known
-// world ids (a theme naming another world brings its `worldName`).
-export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.keys(WORLDS)), families } = {}) {
+// world ids (a theme naming another world brings its `worldName`); `locked`: text keys (a whole subtree) refused.
+export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.keys(WORLDS)), families, locked = [] } = {}) {
   const bad = [];
   if (!isObj(json)) return ['theme: not an object'];
   for (const k of Object.keys(json)) if (!KEYS.includes(k)) bad.push(`${k}: unknown key`);
@@ -108,6 +112,8 @@ export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.ke
   }
   if (json.text !== undefined) {
     const walk = (where, v, ref) => {
+      const key = where.slice('text.'.length);
+      if (locked.some(l => key === l || key.startsWith(`${l}.`))) return bad.push(`${where}: a pack cannot reword this`);
       if (kind(v) !== kind(ref)) return bad.push(`${where}: must be a ${kind(ref)}`);
       if (isObj(v)) for (const [k, x] of Object.entries(v)) k in ref ? walk(`${where}.${k}`, x, ref[k]) : bad.push(`${where}.${k}: not a wording key`);
     };
