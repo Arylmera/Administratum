@@ -242,6 +242,19 @@ Found while building part A and left for part B, where packs make them matter:
 - A style with its own `art` draws its own sprites but its base's face sheets (`faces.js`); no shipped style has
   any.
 
+## Known edges, left as they are
+
+All need a pack folder copied or renamed by hand inside the themes folder:
+
+- Two folders naming one repository: the first by folder name keeps the repository's id and the other is listed as a
+  local pack, even when the other is the folder the app installed into. The canonical `<owner>__<repo>` folder
+  should win.
+- A folder at a repository's canonical name whose `pack-source.json` names another repository is replaced by an
+  install of that repository.
+- A pack file swapped for a pipe between the check and the read can block one backend thread (the start is not
+  held: reads time out after 10 s).
+- If every read of every pack hangs, the start waits about 10 s per pack rather than 10 s in all.
+
 ## Later
 
 - The sprite viewer and the gallery on a pack.
