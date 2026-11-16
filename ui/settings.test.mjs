@@ -192,6 +192,11 @@ up.querySelector('.up-install').click();
 await flush();
 assert.equal(up.querySelector('.up-line').textContent, 'Update failed: no network');
 assert.equal(up.querySelector('.up-install').disabled, false);
+// A check that fails keeps this build's version on the line.
+replies.check_update = new Error('no platform');
+up.querySelector('.up-check').click();
+await flush();
+assert.equal(up.querySelector('.up-line').textContent, 'Version 9.9.9. Update check failed: no platform');
 
 // Categories: one section at a time.
 const cat = name => document.querySelector(`#prefs .cats [data-cat="${name}"]`);
