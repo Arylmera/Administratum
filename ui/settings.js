@@ -300,14 +300,16 @@ function initFirewall(form, field, isWin) {
 function initUpdates(form, opener) {
   const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
   const upCheck = up.querySelector('.up-check'), upInstall = up.querySelector('.up-install');
+  let version = '', failure = '', checked = false; // this build's version stays on the line when a check fails (no release for this platform, no network)
   const showUpdate = st => {
+    failure = ''; checked = true;
     upLine.textContent = st.available ? `Version ${st.current}. Version ${st.available} is available.` : `Version ${st.current}, up to date.`;
     upInstall.hidden = !st.available;
     opener.classList.toggle('update', !!st.available);
   };
   const checkUpdate = () => {
     upCheck.disabled = true;
-    return invoke('check_update').then(showUpdate, err => { upLine.textContent = `Update check failed: ${err}`; })
+    return invoke('check_update').then(showUpdate, err => { failure = `Update check failed: ${err}`; upLine.textContent = version ? `Version ${version}. ${failure}` : failure; })
       .finally(() => { upCheck.disabled = false; });
   };
   upCheck.onclick = checkUpdate;
@@ -317,7 +319,7 @@ function initUpdates(form, opener) {
     invoke('install_update').catch(err => { upLine.textContent = `Update failed: ${err}`; upInstall.disabled = upCheck.disabled = false; });
   };
   if (!REMOTE) {
-    tauri()?.app?.getVersion().then(v => { upLine.textContent = `Version ${v}`; }).catch(() => {});
+    tauri()?.app?.getVersion().then(v => { version = v; if (failure) upLine.textContent = `Version ${v}. ${failure}`; else if (!checked) upLine.textContent = `Version ${v}`; }).catch(() => {});
     if (store.get('adm.updateCheck', '1') !== '0') checkUpdate();
   }
 }
