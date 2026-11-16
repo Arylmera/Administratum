@@ -264,7 +264,7 @@ async fn theme_pack_update(dir: String, app: AppHandle) -> Result<packs::Pack, S
     tauri::async_runtime::spawn_blocking(move || packs::update(&root, &dir, &archive, &now_utc())).await.map_err(|e| e.to_string())?
 }
 
-/// Remove the pack in the folder `dir` (`packs::remove`).
+/// Remove the pack in the folder `dir` (`packs::remove`); a local pack (a folder made by hand) is refused, never deleted.
 #[tauri::command(async)]
 fn theme_pack_remove(dir: String, app: AppHandle) -> Result<(), String> {
     packs::remove(&themes_root(&app)?, &dir)

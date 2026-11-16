@@ -398,7 +398,7 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   const repo = box.querySelector('.pk-repo'), install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
   const btn = (row, text) => row.querySelectorAll('button').find(b => b.textContent === text);
   assert.equal(repo.placeholder, 'owner/repo');
-  // the list: the repo with its count, Update and Remove; the local one tagged, no Update
+  // the list: the repo with its count, Update and Remove; the local one tagged, neither (a hint: the app never deletes it)
   assert.equal(rows().length, 2);
   const bob = rowOf('bob/worlds'), mine = rowOf('local/mine');
   assert.match(bob.textContent, /bob\/worlds/);
@@ -408,7 +408,8 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   assert.match(mine.textContent, /local folder/);
   assert.match(mine.textContent, /1 theme\b/);
   assert.equal(btn(mine, 'Update'), undefined);
-  assert.ok(btn(mine, 'Remove'));
+  assert.equal(btn(mine, 'Remove'), undefined);
+  assert.match(mine.textContent, /delete its folder by hand/);
   // a problem: the theme and the message on its row, as text
   assert.ok(PACKS.get('local/mine').problems.length, 'the broken theme recorded at start');
   assert.match(mine.textContent, /broken: .*<b>bad<\/b> bytes/);
@@ -436,13 +437,6 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   btn(rowOf('bob/worlds'), 'Update').click(); await flush();
   assert.deepEqual(last('theme_pack_update'), { dir: 'bob__worlds' });
   assert.equal(restart.hidden, false, 'a success: Restart to apply');
-  // Remove: the pack's dir, its row gone
-  replies.theme_pack_remove = ({ dir }) => { disk.splice(disk.findIndex(p => p.dir === dir), 1); };
-  btn(rowOf('local/mine'), 'Remove').click(); await flush();
-  assert.deepEqual(last('theme_pack_remove'), { dir: 'mine' });
-  assert.equal(rowOf('local/mine'), undefined);
-  assert.equal(rows().length, 1);
-  assert.equal(restart.hidden, false);
   // Install: Downloading… with the buttons greyed, then the new row (not loaded until the restart); Restart restarts
   let done;
   replies.theme_pack_install = ({ repo: r }) => new Promise(ok => { done = () => { const p = { id: r, dir: r.replace('/', '__'), repo: r, installed: '2026-11-16T11:00:00Z', themes: ['a', 'b', 'c'] }; disk.push(p); ok(p); }; });
@@ -454,6 +448,13 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   assert.match(rowOf('alice/adm-themes').textContent, /3 themes/);
   assert.equal(line.textContent, '');
   assert.equal(install.disabled, false);
+  assert.equal(restart.hidden, false);
+  // Remove: the pack's dir, its row gone
+  replies.theme_pack_remove = ({ dir }) => { disk.splice(disk.findIndex(p => p.dir === dir), 1); };
+  btn(rowOf('bob/worlds'), 'Remove').click(); await flush();
+  assert.deepEqual(last('theme_pack_remove'), { dir: 'bob__worlds' });
+  assert.equal(rowOf('bob/worlds'), undefined);
+  assert.equal(rows().length, 2);
   assert.equal(restart.hidden, false);
   replies.restart = null;
   restart.click(); await flush();

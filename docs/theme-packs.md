@@ -169,7 +169,10 @@ of wording, `ui/art/forge/theme.json` a short world. `ui/theme.js` holds the def
 | `breakingbad` | Breaking Bad | Breaking Bad (`breakingbad`) | yes |
 
 A style's base may also be a world theme of the same pack, by its folder name. Your pack's world and theme ids are
-your pack's own: two packs that both say `steampunk` make two worlds, and neither can touch the other.
+your pack's own: two packs that both say `steampunk` make two worlds, and neither can touch the other. In the app, a
+theme's full id is `<pack>:<folder>`, the pack being `owner/repo` for one installed from GitHub, lower-cased whatever
+case it was typed in (`Alice/Themes` and `alice/themes` are one pack, `alice/themes:pink`), or `local/<folder>` for a
+folder you put there yourself. Settings remembers the theme picked by that id.
 
 ---
 

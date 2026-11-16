@@ -18,8 +18,9 @@ pub const MAX_FILE: u64 = 2 * 1024 * 1024;
 const SOURCE: &str = "pack-source.json";
 const MAX_SOURCE: u64 = 64 * 1024;
 
-/// A pack as the UI loads it: `id` is `owner/repo` when its `pack-source.json` names a repo, else `local/<dir>`;
-/// `dir` its folder under the themes root; `themes` its sub-folders holding a `theme.json`, sorted.
+/// A pack as the UI loads it: `id` is `owner/repo` lower-cased when its `pack-source.json` names a repo (GitHub names
+/// ignore case: `Alice/T` and `alice/t` are one pack, one folder, one id), else `local/<dir>`; `repo` the repo as
+/// typed, for display; `dir` its folder under the themes root; `themes` its sub-folders holding a `theme.json`, sorted.
 #[derive(Debug, PartialEq, Serialize)]
 pub struct Pack {
     pub id: String,
@@ -72,7 +73,7 @@ pub fn list(root: &Path) -> Vec<Pack> {
             let at = root.join(&dir);
             let themes = folders(&at).into_iter().filter(|f| fs::symlink_metadata(at.join(f).join("theme.json")).is_ok_and(|m| m.is_file())).collect();
             let (repo, installed) = source(&at).map_or((None, None), |(r, i)| (Some(r), i));
-            Pack { id: repo.clone().unwrap_or_else(|| format!("local/{dir}")), dir, repo, installed, themes }
+            Pack { id: repo.as_deref().map_or_else(|| format!("local/{dir}"), str::to_ascii_lowercase), dir, repo, installed, themes }
         })
         .collect()
 }
@@ -363,7 +364,8 @@ fn discard(at: &Path) {
 /// Install `repo` (trimmed, `repo_ok`) from its `archive` (a gzip tar, `unpack`) into `root`: unpacked into a
 /// `.tmp-*` folder (hidden from `list`) with its `pack-source.json` (`{ "repo", "installed": now }`, the repo as
 /// typed), then swapped into `<owner>__<repo>` (lower-cased): the old folder moved aside to `.old-*` first and
-/// deleted after, put back if the swap fails. A failure leaves `root` as it was. Work folders have unique names and
+/// deleted after, put back if the swap fails; a local pack in that folder is refused (`swap`). A failure leaves `root`
+/// as it was. Work folders have unique names and
 /// are removed on every exit path; those of a crashed run, older than ten minutes, are swept first (`sweep`).
 /// Returns the pack as `list` sees it.
 pub fn install(root: &Path, repo: &str, archive: &[u8], now: &str) -> Result<Pack, String> {
@@ -391,8 +393,12 @@ fn install_with(root: &Path, repo: &str, archive: &[u8], now: &str, rename: impl
 }
 
 /// Put `tmp` in place as `root/<dir>`, the folder there moved aside first and removed after, put back on a failure.
+/// A folder there without a valid `pack-source.json` is a local pack (a draft made by hand): refused, left as it is.
 fn swap(root: &Path, dir: &str, tmp: &Path, rename: &impl Fn(&Path, &Path) -> io::Result<()>) -> Result<(), String> {
     let target = root.join(dir);
+    if fs::symlink_metadata(&target).is_ok_and(|m| m.is_dir()) && source(&target).is_none() {
+        return Err(format!("{dir} is a local pack: move or delete its folder yourself, then install again"));
+    }
     let old = fs::symlink_metadata(&target).is_ok().then(|| work(root, ".old", dir));
     if let Some(old) = &old {
         rename(&target, old).map_err(|e| format!("cannot move the installed pack aside: {e}"))?;
@@ -433,26 +439,42 @@ pub fn update(root: &Path, dir: &str, archive: &[u8], now: &str) -> Result<Pack,
     Ok(pack)
 }
 
-/// Whether `root/<a>` and `root/<b>` are one folder: by identity (both canonical paths, so `Alice__T` and
-/// `alice__t` on a case-insensitive disk, or `p.` and `p` on Windows, are one), `b` missing meaning not; when `a`
-/// itself cannot be resolved, by name, case and trailing dots aside.
+/// Whether `root/<a>` and `root/<b>` are one folder: by identity (`identity`, so `Alice__T` and `alice__t` on a
+/// case-insensitive disk, or `p.` and `p` on Windows, are one), `b` missing meaning not; when `a` itself cannot be
+/// resolved, by name, case and trailing dots aside.
 fn same_folder(root: &Path, a: &str, b: &str) -> bool {
     if a == b {
         return true;
     }
-    match (fs::canonicalize(root.join(a)), fs::canonicalize(root.join(b))) {
-        (Ok(x), Ok(y)) => x == y,
-        (Ok(_), Err(_)) => false,
-        (Err(_), _) => a.trim_end_matches('.').eq_ignore_ascii_case(b.trim_end_matches('.')),
+    match (identity(&root.join(a)), identity(&root.join(b))) {
+        (Some(x), Some(y)) => x == y,
+        (Some(_), None) => false,
+        (None, _) => a.trim_end_matches('.').eq_ignore_ascii_case(b.trim_end_matches('.')),
     }
 }
 
-/// Remove the pack folder `root/<dir>`, `dir` a plain name and a real folder (not a link, not a work folder): moved
-/// to a `.tmp-*` folder first, so `list` never sees half a pack, then deleted.
+/// What a folder is, whatever name opens it: on Unix its device and inode (on a case-insensitive Linux disk,
+/// `canonicalize` keeps the case it was given, so two names of one folder would differ), elsewhere its canonical path.
+#[cfg(unix)]
+fn identity(at: &Path) -> Option<(u64, u64)> {
+    use std::os::unix::fs::MetadataExt;
+    fs::metadata(at).ok().map(|m| (m.dev(), m.ino()))
+}
+#[cfg(not(unix))]
+fn identity(at: &Path) -> Option<PathBuf> {
+    fs::canonicalize(at).ok()
+}
+
+/// Remove the pack folder `root/<dir>`, `dir` a plain name and a real folder (not a link, not a work folder) installed
+/// from a repository (`origin`): moved to a `.tmp-*` folder first, so `list` never sees half a pack, then deleted. A
+/// local pack (no valid `pack-source.json`: a draft made by hand) is refused: the app never deletes one.
 pub fn remove(root: &Path, dir: &str) -> Result<(), String> {
     let at = root.join(dir);
     if !plain(dir) || !fs::symlink_metadata(&at).is_ok_and(|m| m.is_dir()) {
         return Err(format!("no pack {dir}"));
+    }
+    if source(&at).is_none() {
+        return Err(format!("{dir} is a local pack: delete its folder yourself"));
     }
     let gone = work(root, ".tmp", dir);
     fs::rename(&at, &gone).map_err(|e| format!("cannot remove {dir}: {e}"))?;
@@ -668,7 +690,7 @@ mod tests {
         let pack = install(&root, " alice/Adm-Themes ", &clean(), "2026-11-16T10:00:00Z").unwrap();
         assert_eq!(
             pack,
-            Pack { id: "alice/Adm-Themes".into(), dir: "alice__adm-themes".into(), repo: Some("alice/Adm-Themes".into()), installed: Some("2026-11-16T10:00:00Z".into()), themes: vec!["pink".into()] }
+            Pack { id: "alice/adm-themes".into(), dir: "alice__adm-themes".into(), repo: Some("alice/Adm-Themes".into()), installed: Some("2026-11-16T10:00:00Z".into()), themes: vec!["pink".into()] }
         );
         assert_eq!(
             tree(&root),
@@ -806,9 +828,9 @@ mod tests {
         assert_eq!(update(&root, "alice__t", &broken, "three"), Err("no theme in this repository".into()));
         assert_eq!(tree(&root), ["alice__t", "alice__t/blue", "alice__t/blue/theme.json", "alice__t/pack-source.json"]);
         assert_eq!(list(&root)[0].installed.as_deref(), Some("two"));
-        // the same repo typed in another case is the same pack
+        // the same repo typed in another case is the same pack: one folder, one id; the repo shown as last typed
         install(&root, "Alice/T", &clean(), "four").unwrap();
-        assert_eq!(list(&root).iter().map(|p| (p.dir.as_str(), p.id.as_str())).collect::<Vec<_>>(), [("alice__t", "Alice/T")]);
+        assert_eq!(list(&root).iter().map(|p| (p.dir.as_str(), p.id.as_str(), p.repo.as_deref())).collect::<Vec<_>>(), [("alice__t", "alice/t", Some("Alice/T"))]);
         // a local pack has nothing to update from; a hand-made folder naming a repo moves to its canonical folder
         put(&root, "mine/green/theme.json", b"{}");
         assert!(origin(&root, "mine").is_err());
@@ -862,8 +884,15 @@ mod tests {
         assert!(!same_folder(&root, "gone", "other"));
         #[cfg(unix)]
         {
+            use std::os::unix::fs::MetadataExt;
             std::os::unix::fs::symlink(root.join("p"), root.join("alias")).unwrap();
             assert!(same_folder(&root, "alias", "p"), "an alias of the same folder");
+            // by device and inode, not by the name's case (which `canonicalize` keeps on a case-insensitive disk)
+            let m = fs::metadata(root.join("p")).unwrap();
+            assert_eq!(identity(&root.join("p")), Some((m.dev(), m.ino())));
+            assert_eq!(identity(&root.join("alias")), identity(&root.join("p")));
+            assert_ne!(identity(&root.join("q")), identity(&root.join("p")));
+            assert_eq!(identity(&root.join("missing")), None);
         }
         let _ = fs::remove_dir_all(&root);
     }
@@ -958,9 +987,44 @@ mod tests {
     }
 
     #[test]
+    fn the_id_ignores_the_case_typed() {
+        let root = tmp("case");
+        let first = install(&root, "Alice/T", &clean(), "one").unwrap();
+        let again = install(&root, "alice/t", &clean(), "two").unwrap();
+        assert_eq!((first.id.as_str(), again.id.as_str()), ("alice/t", "alice/t"));
+        assert_eq!((first.repo.as_deref(), again.repo.as_deref()), (Some("Alice/T"), Some("alice/t")));
+        assert_eq!(list(&root).len(), 1);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_local_pack_is_never_deleted() {
+        let root = tmp("local");
+        put(&root, "mine/green/theme.json", b"{}");
+        assert_eq!(remove(&root, "mine"), Err("mine is a local pack: delete its folder yourself".into()));
+        assert!(root.join("mine/green/theme.json").exists());
+        // a source naming no valid repo is no source
+        put(&root, "odd/pack-source.json", br#"{"repo": "../evil"}"#);
+        assert!(remove(&root, "odd").is_err() && root.join("odd/pack-source.json").exists());
+        // a hand-made folder of the canonical name: an install over it is refused, the folder untouched
+        put(&root, "alice__t/green/theme.json", b"{\"draft\":1}");
+        let before = tree(&root);
+        assert!(install(&root, "alice/t", &clean(), "one").unwrap_err().contains("alice__t is a local pack"));
+        assert_eq!(tree(&root), before);
+        assert_eq!(fs::read(root.join("alice__t/green/theme.json")).unwrap(), b"{\"draft\":1}");
+        // nor can an update of another folder naming that repo land on it
+        put(&root, "other/pack-source.json", br#"{"repo": "alice/t"}"#);
+        put(&root, "other/blue/theme.json", b"{}");
+        assert!(update(&root, "other", &clean(), "two").is_err());
+        assert!(root.join("alice__t/green/theme.json").exists() && root.join("other/blue/theme.json").exists());
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn remove_takes_a_pack_folder_only() {
         let root = tmp("remove");
         put(&root, "p/pink/theme.json", b"{}");
+        put(&root, "p/pack-source.json", br#"{"repo": "a/p"}"#);
         put(&root, ".tmp/x", b"");
         put(&root, "f", b"a file");
         let outside = tmp("remove-outside");

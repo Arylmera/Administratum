@@ -338,8 +338,9 @@ export function repoOf(typed) {
 
 // Added themes (host only): the packs the backend lists (theme_packs), joined with what loaded at start (themes.js
 // PACKS: the themes, the problems); a pack installed this session is listed but loads at the restart. Install by
-// owner/repo, Update (a pack from a repository), Remove: the buttons greyed while one runs; any success re-reads the
-// list and shows Restart to apply until the restart. Everything a pack or the backend says is shown as text.
+// owner/repo, Update and Remove (a pack from a repository; a local one is the author's own, never deleted here: a hint
+// instead), the buttons greyed while one runs; any success re-reads the list and shows Restart to apply until the
+// restart. Everything a pack or the backend says is shown as text.
 function initPacks(form) {
   const box = form.querySelector('#packs'), list = box.querySelector('.pk-list'), repo = box.querySelector('.pk-repo');
   const install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
@@ -354,8 +355,8 @@ function initPacks(form) {
       head.append(el('span', null, p.repo ?? String(p.id).replace(/^local\//, '')),
         el('span', 'hint', local ? `${t('prefs.packs.count', { n })} · ${t('prefs.packs.local')}` : t('prefs.packs.count', { n })));
       const button = (text, cmd, saying) => { const b = el('button', 'clear', text); b.type = 'button'; b.disabled = busy; b.onclick = () => run(cmd, { dir: p.dir }, saying); head.append(b); };
-      if (!local) button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing'));
-      button(t('prefs.packs.remove'), 'theme_pack_remove');
+      if (local) head.append(el('span', 'hint', t('prefs.packs.localHint')));
+      else { button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing')); button(t('prefs.packs.remove'), 'theme_pack_remove'); }
       row.append(head);
       if (loaded?.themes.length) row.append(el('p', 'hint', loaded.themes.map(th => th.name).join(', ')));
       for (const { theme, message } of loaded?.problems ?? []) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));

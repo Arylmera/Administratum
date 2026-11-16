@@ -128,7 +128,7 @@ export const TEXT = {
     pauseHint: 'Near-zero CPU when unseen; petitions still alert.',
     // Settings > Hall > Added themes (settings.js initPacks): theme packs from outside
     packs: { title: 'Added themes', add: 'Add from GitHub', placeholder: 'owner/repo', install: 'Install', update: 'Update', remove: 'Remove',
-      local: 'local folder', count: ['{n} theme', '{n} themes'], restart: 'Restart to apply', none: 'None yet.', installing: 'Downloading…',
+      local: 'local folder', localHint: 'delete its folder by hand', count: ['{n} theme', '{n} themes'], restart: 'Restart to apply', none: 'None yet.', installing: 'Downloading…',
       bad: 'Not a repository name: owner/repo' },
     cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
