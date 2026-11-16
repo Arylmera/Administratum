@@ -84,7 +84,7 @@ do not know which.
 | `column.js`, `lift.js` | Desktop column: its floors, layout and routes (a cross-floor walk has one lift waypoint); the lift, a pure SCAN scheduler (FIFO calls, 3 riders, event-exact `step`) the cast rides (`actors.js`) |
 | `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder |
 | `room.js`, `wallart.js` | The room from tiles (fill rules), the back wall's window and hangings |
-| `theme.js`, `themes.js`, `themepack.js` | Themes: every colour and the wording; `setTheme`, `t()`; the loader of the themes' `theme.json` files, their check and recolouring |
+| `theme.js`, `themes.js`, `themepack.js`, `artcheck.js` | Themes: every colour and the wording; `setTheme`, `t()`; the loader of the themes' `theme.json` files and of the packs (`loadPacks`, `PACKS`, `guarded`), their check and recolouring; the shape of a theme's sheets |
 | `quiet.js` | Quiet hours, the same rule as `quiet.rs` |
 | `vigil.js` | Night Vigil state (armed, deadline, countdown) as the backend emits it, and the 30 s bell rule |
 
@@ -148,7 +148,7 @@ when it loads. One file per module:
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
 | `themepack.test.mjs` | A theme from its JSON: the recolouring by hue range, the check and its refusals (unknown keys, colour forms, worlds), the built theme of a world and of a style (its recoloured rank with its own keys over it, its text laid over its base's) |
-| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder (where it was loaded from), every theme folder listed in `themes.json` and every listed id on disk, a broken theme refused naming it and the cause (not JSON, no file, a style as a base) |
+| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder (where it was loaded from), every theme folder listed in `themes.json` and every listed id on disk, a broken theme refused naming it and the cause (not JSON, no file, a style as a base). Packs, over an in-memory reader: a style of a shipped world, a pack's own world and its style in either order, a broken theme left out with its reason while the rest of its pack and every shipped theme stay as they were, a base in another pack refused, a folder that is not a plain name never read, hostile packs and readers never throwing; a dropped world takes its styles; `guarded` falls back from a pack's theme and rethrows under a shipped one; in a child process, a pack's sheets and faces checked as `sprites.js` and `faces.js` load them (a frame the default lacks, a pixel off the palette, an unknown family, an unknown face kind), and a style's own faces |
 | `theme.test.mjs` | Themes: complete palettes, runtime switch; chrome contrast in every theme (each foreground over the fill it sits on, text >= 4.5, icons and borders >= 3; a light-chrome theme sets `--on-blood` / `--ink-on-blood` / `--pink-on-blood` / `--green-on-blood` for text on `--blood`, `--flame-on-wax` for the alarm, `--honours-ink` for the Hall of Honours words, whose plaque fields it is checked against), with the shortfalls already shipped listed and asserted still failing |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
@@ -203,7 +203,19 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
   one of its themes as the **style**.
 - A theme with its own art lists the families it redraws in its `art` field (a name that is not a known family is
   refused before any file is read); the files sit beside its `theme.json` in `ui/art/<theme>/`. Every other family
-  falls back to the base art.
+  falls back to the base art. A style with its own art and a `faces.json` draws its own face sheets, else its base's.
+- **Packs**: themes from outside, folders the backend lists (`<app data>/themes/`). `themes.js` `loadPacks(packs,
+  read)` registers them after the shipped themes, before `sprites.js` and `faces.js` load the art: each pack's theme
+  is `<pack>:<folder>` (`alice/p:pink`), its world `<pack>:<world>` unless it names a shipped world, which it joins
+  (`themepack.js` `scoped`). Those ids are registry keys only: a pack's files are read through its `read(dir,
+  '<folder>/<file>')`, the folder a plain name, never a path built from an id (`artRootOf` of a pack's theme is that
+  reader; `art.js` takes a folder URL or a reader). A pack's world themes register first, then its styles; a style's
+  base is a world of the same pack or a shipped one. Its sheets and faces are checked against the default
+  (`artcheck.js`), its PNGs at most 2048 px a side. Any problem (bad JSON, a failing check, a missing file, a reader
+  that rejects) leaves that theme out with its reason in `PACKS` (`dropTheme`; a dropped world takes its styles), and
+  never stops the app or changes a shipped theme; a shipped theme's failure still throws. The second net: the frame
+  functions of `app.js` and `mobile.js` run in `guarded`, so a draw that throws under a pack's theme leaves it out
+  and goes back to Ordo Administratum. An error on a sheet names `<theme folder>/<file>`.
 - A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
   has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
   world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).

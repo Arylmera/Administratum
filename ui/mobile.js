@@ -3,8 +3,8 @@
 // docs/remote-api.md). Only while the PC allows remote actions: Arm / Cancel, and Approve / Deny on a permission
 // petition once its prompt is shown (Always stays on the PC; questions and free-text petitions stay text).
 import { invoke, listen, remoteVigil } from './bridge.js';
-import { T, t, setTheme } from './theme.js';
-import './themes.js'; // registers the themes beyond Tier II
+import { T, t, setTheme, onTheme } from './theme.js';
+import { guarded } from './themes.js'; // registers the themes beyond Tier II
 import { applyChrome } from './chrome.js';
 import { fmtTok, fmtDur } from './chronicon.js';
 import { pad2 } from './quiet.js';
@@ -121,7 +121,10 @@ async function start() {
   let theme = saved?.['adm.theme'];
   try { theme = localStorage.getItem('adm.theme') ?? theme; } catch { /* storage blocked */ } // this browser's own pick (settings.js LOCAL)
   setTheme(typeof theme === 'string' ? theme : 'tier2');
-  applyChrome();
+  // what draws with the theme (chrome, wording) behind the second net: a throw under a pack's theme goes back to Ordo
+  // Administratum (themes.js guarded), whose chrome then applies
+  onTheme(() => applyChrome());
+  guarded(applyChrome)();
 
   const $ = id => document.getElementById(id);
   let roster = [], vigil = {}, actions = false, probed = 0;
@@ -200,8 +203,8 @@ async function start() {
     invoke(vigil.armed ? 'vigil_cancel' : 'vigil_arm').catch(err => { if (err === 'remote actions disabled') noActions(); else console.warn('vigil', err); })
       .finally(() => { b.disabled = false; renderVigil(); });
   };
-  listen('roster', e => { roster = Array.isArray(e.payload) ? e.payload : []; if (roster.some(answerable)) probe(); renderPetitions(); renderRoster(); });
-  listen('vigil', e => { vigil = e.payload ?? {}; probe(); renderVigil(); });
+  listen('roster', guarded(e => { roster = Array.isArray(e.payload) ? e.payload : []; if (roster.some(answerable)) probe(); renderPetitions(); renderRoster(); }));
+  listen('vigil', guarded(e => { vigil = e.payload ?? {}; probe(); renderVigil(); }));
   renderVigil(); probe();
   renderToday(); setInterval(renderToday, 60_000);
 }

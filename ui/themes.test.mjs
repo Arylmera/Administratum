@@ -56,3 +56,173 @@ try {
   await loadThemes(['w'], rootOf);
   assert.equal(artRootOf('w'), rootOf('w'));
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+
+// ---- packs (loadPacks): a folder of themes from outside, read through its reader, never trusted ----------------------
+{
+  const { loadPacks, PACKS, dropTheme, guarded } = await import('./themes.js');
+  const { resolve, WORLDS, T, setTheme } = await import('./theme.js');
+  const shipped = Object.keys(THEMES), looks = Object.fromEntries(shipped.map(id => [id, resolve(THEMES[id])])), worlds = { ...WORLDS };
+  // An in-memory pack reader: `${dir}/${path}` -> text; a missing file rejects as fs does (code ENOENT). `asked`: every path read.
+  const asked = [];
+  const reader = files => async (dir, p) => {
+    asked.push(`${dir}/${p}`);
+    if (!Object.hasOwn(files, `${dir}/${p}`)) throw Object.assign(new Error(`${p}: not found`), { code: 'ENOENT' });
+    const v = files[`${dir}/${p}`];
+    return typeof v === 'string' ? new TextEncoder().encode(v) : v;
+  };
+  const J = o => JSON.stringify({ format: 1, ...o });
+  const problems = id => PACKS.get(id).problems;
+  await loadPacks([
+    { id: 'alice/p', dir: 'alice__p', themes: ['rose', 'pink', 'steam'] }, // a style listed before its world
+    { id: 'bob/q', dir: 'bob__q', themes: ['steam', 'rose'] },
+    { id: 'carol/b', dir: 'carol__b', themes: ['bad', 'ok', '../x', '.hidden', 'gone', 'odd', 'twice', 'twice'] },
+    { id: 'dave/x', dir: 'dave__x', themes: ['leech'] },
+  ], reader({
+    'alice__p/pink/theme.json': J({ name: 'Pink vault', base: 'vault', bands: [{ hue: [0, 360], to: 330 }] }),
+    'alice__p/steam/theme.json': J({ name: 'Steam', world: 'steampunk', worldName: 'Steampunk' }),
+    'alice__p/rose/theme.json': J({ name: 'Rose', base: 'steam' }),
+    'bob__q/steam/theme.json': J({ name: 'Steam', world: 'steampunk', worldName: 'Bob steam' }),
+    'bob__q/rose/theme.json': J({ name: 'Rose', base: 'steam' }),
+    'carol__b/bad/theme.json': '{ not json',
+    'carol__b/ok/theme.json': J({ name: 'Ok', base: 'tier2' }),
+    'carol__b/odd/theme.json': '"a text"',
+    'carol__b/twice/theme.json': J({ name: 'Twice', world: 'w40k' }),
+    'dave__x/leech/theme.json': J({ name: 'Leech', base: 'alice/p:steam' }),
+  }));
+  // a style of a shipped world joins it; the pack's problems are empty
+  assert.equal(THEMES['alice/p:pink']?.world, 'vault');
+  assert.equal(THEMES['alice/p:pink'].artOf, 'vault');
+  assert.deepEqual(problems('alice/p'), []);
+  // a pack's world is its own (`<pack>:<world>`), with its style, whichever order the pack lists them in
+  for (const p of ['alice/p', 'bob/q']) {
+    assert.equal(THEMES[`${p}:steam`]?.world, `${p}:steampunk`, p);
+    assert.equal(THEMES[`${p}:rose`]?.world, `${p}:steampunk`, p);
+    assert.equal(THEMES[`${p}:rose`].artOf, `${p}:steam`, p);
+  }
+  assert.equal(WORLDS['alice/p:steampunk'], 'Steampunk');
+  assert.equal(WORLDS['bob/q:steampunk'], 'Bob steam');
+  // registered world themes first, then styles, each in the pack's order; the panel's list
+  assert.deepEqual(PACKS.get('alice/p').themes, [
+    { id: 'alice/p:steam', name: 'Steam', world: 'alice/p:steampunk', style: false },
+    { id: 'alice/p:rose', name: 'Rose', world: 'alice/p:steampunk', style: true },
+    { id: 'alice/p:pink', name: 'Pink vault', world: 'vault', style: true }]);
+  assert.equal(PACKS.get('alice/p').dir, 'alice__p');
+  // a broken theme is left out with its reason; the rest of its pack is registered
+  assert.ok(!('carol/b:bad' in THEMES));
+  const bad = problems('carol/b').find(p => p.theme === 'bad');
+  assert.ok(bad?.message.includes('bad/theme.json'), JSON.stringify(bad));
+  assert.ok(THEMES['carol/b:ok'], 'the pack\'s other theme');
+  assert.ok(THEMES['carol/b:twice'], 'a folder listed twice: the first');
+  const said = Object.fromEntries(problems('carol/b').map(p => [p.theme, p.message]));
+  assert.deepEqual(Object.keys(said).sort(), ['.hidden', '../x', 'bad', 'gone', 'odd', 'twice'].sort(), JSON.stringify(said));
+  assert.ok(said.gone.includes('gone/theme.json'), said.gone);
+  assert.ok(said.odd.includes('not an object'), said.odd);
+  // a folder that is not a plain name is never read
+  assert.ok(!asked.some(p => p.includes('..') || p.includes('.hidden')), asked.join(' '));
+  // a base in another pack is refused, naming it
+  assert.ok(!('dave/x:leech' in THEMES));
+  assert.ok(problems('dave/x')[0]?.message.includes('alice/p:steam'), JSON.stringify(problems('dave/x')));
+  // hostile packs and readers: never a throw
+  const hostile = [
+    null, 'x', { id: 'e/1' }, { id: 'e/2', dir: 'd', themes: 'pink' }, { id: 'e:3', dir: 'd', themes: [] }, { get id() { throw new Error('getter'); } },
+    { id: 'e/4', dir: 'd', themes: ['a', 'b', 'c', 'd', 7] }, { id: 'alice/p', dir: 'again', themes: [] },
+  ];
+  await loadPacks(hostile, (dir, p) => {
+    if (p === 'a/theme.json') throw new Error('sync throw');
+    if (p === 'b/theme.json') return 'not bytes';
+    if (p === 'c/theme.json') return Promise.reject(new Error('nope'));
+    return new TextEncoder().encode(J({ name: 'D', world: 'w40k', ui: { '--bg': 'url(x)' } }));
+  });
+  await loadPacks(null, () => {});
+  await loadPacks([{ id: 'e/5', dir: 'd', themes: ['a'] }], null);
+  assert.equal(PACKS.get('alice/p').dir, 'alice__p', 'a pack id seen twice: the first stays');
+  for (const f of ['a', 'b', 'c', 'd', '7']) assert.equal(PACKS.get('e/4').problems.filter(p => p.theme === f).length, 1, `e/4 ${f}`);
+  assert.equal(Object.keys(THEMES).filter(id => id.startsWith('e/')).length, 0);
+  // the shipped themes: the same, in the same order, looking the same; a shipped world keeps its name
+  assert.deepEqual(Object.keys(THEMES).slice(0, shipped.length), shipped);
+  for (const id of shipped) assert.deepEqual(resolve(THEMES[id]), looks[id], id);
+  for (const [w, name] of Object.entries(worlds)) assert.equal(WORLDS[w], name, w);
+  // dropTheme: a shipped theme cannot be dropped
+  assert.throws(() => dropTheme('vault', 'x'));
+  assert.ok(THEMES.vault);
+  // dropping a pack's world takes its styles with it, and the world when nothing is left in it
+  dropTheme('bob/q:steam', 'gone for the test');
+  assert.ok(!('bob/q:steam' in THEMES) && !('bob/q:rose' in THEMES));
+  assert.ok(!('bob/q:steampunk' in WORLDS));
+  assert.deepEqual(PACKS.get('bob/q').themes, []);
+  assert.deepEqual(PACKS.get('bob/q').problems.map(p => p.theme), ['steam', 'rose']);
+  // guarded: a draw that throws under a pack's theme falls back to Ordo Administratum and leaves that theme out
+  setTheme('alice/p:pink');
+  assert.equal(T.id, 'alice/p:pink');
+  const draw = guarded(x => { if (x) throw new Error('boom'); return 'drawn'; });
+  assert.equal(draw(0), 'drawn');
+  assert.doesNotThrow(() => draw(1));
+  assert.equal(T.id, 'tier2');
+  assert.ok(!('alice/p:pink' in THEMES));
+  assert.ok(problems('alice/p').some(p => p.theme === 'pink' && p.message.includes('boom')), JSON.stringify(problems('alice/p')));
+  // under a shipped theme it throws as before
+  setTheme('vault');
+  assert.throws(() => draw(1), /boom/);
+  assert.equal(T.id, 'vault');
+  setTheme('tier2');
+}
+
+// A pack's art, as sprites.js and faces.js load it (a child process: their top-level awaits walk THEMES once, so the
+// pack is registered first): read through the pack's reader, checked; a broken sheet leaves its theme out, named.
+{
+  const script = `
+    const fs = await import('node:fs');
+    const { loadPacks, PACKS } = await import('./ui/themes.js');
+    const disk = f => new Uint8Array(fs.readFileSync('ui/art/' + f));
+    const faces = JSON.parse(fs.readFileSync('ui/art/faces.json', 'utf8'));
+    const { deflateSync, crc32 } = await import('node:zlib');
+    const chunk = (type, data) => { const b = Buffer.alloc(12 + data.length), t = Buffer.concat([Buffer.from(type), data]); b.writeUInt32BE(data.length); t.copy(b, 4); b.writeUInt32BE(crc32(t), 8 + data.length); return b; };
+    const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(1); ihdr.writeUInt32BE(1, 4); ihdr[8] = 8; ihdr[9] = 6; // 1x1 RGBA, one pixel off the key palette
+    const red = new Uint8Array(Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(Buffer.from([0, 255, 0, 1, 255]))), chunk('IEND', Buffer.alloc(0))]));
+    const desk = d => JSON.stringify({ ...faces, meta: { ...faces.meta, objects: { ...faces.meta.objects, DESK: { ...faces.meta.objects.DESK, d } } } });
+    const files = {
+      'p/good/theme.json': JSON.stringify({ format: 1, name: 'Good', base: 'vault', art: ['breakout'] }),
+      'p/good/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/good/breakout.png': disk('vault/breakout.png'),
+      'p/extra/theme.json': JSON.stringify({ format: 1, name: 'Extra', base: 'vault', art: ['breakout'] }),
+      'p/extra/breakout.json': JSON.stringify({ frames: { NOT_A_FRAME: { frame: { x: 0, y: 0, w: 1, h: 1 } } }, meta: {} }), 'p/extra/breakout.png': disk('breakout.png'),
+      'p/pixel/theme.json': JSON.stringify({ format: 1, name: 'Pixel', base: 'vault', art: ['breakout'] }),
+      'p/pixel/breakout.json': JSON.stringify({ frames: { BREAKOUT_FLOOR: { frame: { x: 0, y: 0, w: 1, h: 1 } } }, meta: {} }), 'p/pixel/breakout.png': red,
+      'p/fam/theme.json': JSON.stringify({ format: 1, name: 'Fam', base: 'vault', art: ['constructor'] }),
+      'p/world/theme.json': JSON.stringify({ format: 1, name: 'World', world: 'w', worldName: 'W', art: ['breakout'] }),
+      'p/world/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/world/breakout.png': disk('vault/breakout.png'),
+      'p/world/faces.json': desk(7),
+      'p/world/faces.png': disk('faces.png'),
+      'p/own/theme.json': JSON.stringify({ format: 1, name: 'Own', base: 'world', art: ['breakout'] }),
+      'p/own/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/own/breakout.png': disk('vault/breakout.png'),
+      'p/own/faces.json': desk(9),
+      'p/own/faces.png': disk('faces.png'),
+      'p/inherit/theme.json': JSON.stringify({ format: 1, name: 'Inherit', base: 'world', art: ['breakout'] }),
+      'p/inherit/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/inherit/breakout.png': disk('vault/breakout.png'),
+      'p/sphere/theme.json': JSON.stringify({ format: 1, name: 'Sphere', world: 'w', art: ['breakout'] }),
+      'p/sphere/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/sphere/breakout.png': disk('vault/breakout.png'),
+      'p/sphere/faces.json': JSON.stringify({ ...faces, meta: { ...faces.meta, objects: { ...faces.meta.objects, DESK: { ...faces.meta.objects.DESK, details: [{ name: 'ball', kind: 'sphere', rect: [0, 0, 1, 1] }] } } } }),
+      'p/sphere/faces.png': disk('faces.png'),
+    };
+    const read = async (dir, p) => { if (!(dir + '/' + p in files)) throw Object.assign(new Error(p + ': not found'), { code: 'ENOENT' }); const v = files[dir + '/' + p]; return typeof v === 'string' ? new TextEncoder().encode(v) : v; };
+    await loadPacks([{ id: 'a/p', dir: 'p', themes: ['good', 'extra', 'pixel', 'fam', 'world', 'own', 'inherit', 'sphere'] }], read);
+    const { ART } = await import('./ui/sprites.js');
+    const { FACES, sheetOf } = await import('./ui/faces.js');
+    const { THEMES } = await import('./ui/theme.js');
+    const { MAPS } = await import('./ui/sprites.js');
+    const d = id => sheetOf('DESK', MAPS.DESK, id)?.d;
+    console.log(JSON.stringify({ themes: Object.keys(THEMES).filter(id => id.startsWith('a/p:')), problems: PACKS.get('a/p').problems,
+      good: Object.keys(ART.themed['a/p:good'] ?? {}), d: { world: d('a/p:world'), own: d('a/p:own'), inherit: d('a/p:inherit'), vault: d('vault') } }));`;
+  const out = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { cwd: repo, encoding: 'utf8' }));
+  assert.deepEqual(out.themes.sort(), ['a/p:good', 'a/p:inherit', 'a/p:own', 'a/p:world'].sort(), JSON.stringify(out));
+  const said = Object.fromEntries(out.problems.map(p => [p.theme, p.message]));
+  assert.deepEqual(Object.keys(said).sort(), ['extra', 'fam', 'pixel', 'sphere'], JSON.stringify(said));
+  assert.ok(said.extra.includes('breakout') && said.extra.includes('NOT_A_FRAME'), said.extra);
+  assert.ok(said.pixel.startsWith('pixel/breakout.png: pixel '), said.pixel);
+  assert.ok(said.fam.includes("'constructor'"), said.fam);
+  assert.ok(said.sphere.startsWith('sphere/faces') && said.sphere.includes('sphere'), said.sphere);
+  assert.deepEqual(out.good, ['breakout']);
+  // faces: a pack's world its own; a style with its own art its own faces.json, else its base's
+  assert.equal(out.d.world, 7);
+  assert.equal(out.d.own, 9);
+  assert.equal(out.d.inherit, 7);
+}

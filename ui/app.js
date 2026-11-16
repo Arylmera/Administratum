@@ -6,7 +6,7 @@ import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES } from './sprites.js';
 import { T, onTheme, setTheme, t, hexA } from './theme.js';
-import './themes.js'; // registers the themes beyond Tier II
+import { guarded } from './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
@@ -236,6 +236,11 @@ addEventListener('visibilitychange', wake);
 function frame(now) {
   if (paused()) { running = false; document.documentElement.classList.add('paused'); return; } // wake() restarts the loop
   requestAnimationFrame(frame);
+  draw(now);
+}
+// A frame's drawing: one that throws under a pack's theme leaves that theme out and goes back to Ordo Administratum
+// (themes.js guarded).
+const draw = guarded(now => {
   const ms = Math.min(100, now - last);
   acc += ms / 1000;
   last = now;
@@ -282,7 +287,7 @@ function frame(now) {
   syncTags(watchTags, 'petition', watchText, 0, -22);
   syncHover();
   syncEdges();
-}
+});
 
 renderModes();
 setInterval(() => paused() || renderModes(), 60_000);
