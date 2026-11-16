@@ -28,6 +28,9 @@ export async function decodePng(bytes, { max = Infinity } = {}) {
       w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); depth = data[8]; type = data[9];
       if (!w || !h || w > max || h > max) throw new Error(`${w}x${h} px: at most ${max} a side, at least 1`);
       if (data[12]) throw new Error('interlaced PNG: export without interlacing');
+      // what this decoder reads, refused here before anything is sized by it: 8-bit RGBA or RGB, indexed 1 to 8 bit
+      if (!(type === 3 ? [1, 2, 4, 8].includes(depth) : (type === 6 || type === 2) && depth === 8))
+        throw new Error(`PNG colour type ${type} / ${depth} bit: save as 8-bit RGBA, RGB or indexed`);
     } else if (name === 'PLTE') palette = data;
     else if (name === 'tRNS') trns = data;
     else if (name === 'IDAT') idat.push(data);
@@ -35,8 +38,9 @@ export async function decodePng(bytes, { max = Infinity } = {}) {
     p += 12 + len;
   }
   if (w === undefined) throw new Error('no IHDR');
+  if (!idat.length) throw new Error('no IDAT: no pixels');
+  if (type === 3 && !palette) throw new Error('indexed PNG without its PLTE');
   const channels = { 6: 4, 2: 3, 3: 1 }[type];
-  if (!channels || (type !== 3 && depth !== 8)) throw new Error(`PNG colour type ${type} / ${depth} bit: save as 8-bit RGBA, RGB or indexed`);
   const bits = channels * depth, bpp = Math.max(1, bits / 8), stride = Math.ceil(w * bits / 8);
   const joined = new Uint8Array(idat.reduce((n, d) => n + d.length, 0));
   idat.reduce((o, d) => (joined.set(d, o), o + d.length), 0);

@@ -44,8 +44,9 @@ const key = () => (keyP ??= readArt('key.gpl').then(bytes => {
 }));
 
 // A pack's sheet (a reader as root): its PNG at most PNG_MAX px a side (png.js reads it in the header, before inflating),
-// its frames PNG_MAX² px in all, so a few bytes cannot claim the memory of the start. The largest shipped sheet is 502x570.
-const PNG_MAX = 2048;
+// its frames at most FRAMES_MAX and PNG_MAX² px in all, so a few bytes cannot claim the memory of the start. The largest
+// shipped sheet is 502x570, the most frames in one 257.
+const PNG_MAX = 2048, FRAMES_MAX = 1024;
 const isWhole = n => Number.isInteger(n) && n >= 0;
 
 // -> { frames: { name: rows[] }, anchors (art px), tiles (fill rules, room.js), meta (the JSON's whole meta) }. Throws on a colour outside the key palette or a
@@ -55,13 +56,14 @@ export async function loadSheet(family, root) {
   const json = await readArt(`${family}.json`, 'json', root); // a sheet without frames (a world's face rects) has no PNG
   const fn = typeof root === 'function', png = `${family}.png`;
   const decode = b => (fn ? decodePng(b, { max: PNG_MAX }).catch(e => { throw new Error(`${png}: ${e.message}`, { cause: e }); }) : decodePng(b));
+  if (fn && Object.keys(json.frames ?? {}).length > FRAMES_MAX) throw new Error(`${family}.json: over ${FRAMES_MAX} frames`);
   const [img, map] = Object.keys(json.frames ?? {}).length ? await Promise.all([readArt(png, 'bytes', root).then(decode), key()]) : [];
   const frames = {};
-  // every rect whole numbers inside the image, checked before a row is built
+  // every rect whole numbers inside the image, at least 1x1, checked before a row is built
   let area = 0;
   for (const [name, { frame: r } = {}] of Object.entries(json.frames ?? {})) {
-    if (!r || ![r.x, r.y, r.w, r.h].every(isWhole) || r.x + r.w > img.w || r.y + r.h > img.h)
-      throw new Error(`${family}.json: frame '${name}' must be whole numbers inside the ${img.w}x${img.h} image, not ${JSON.stringify(r)}`);
+    if (!r || ![r.x, r.y, r.w, r.h].every(isWhole) || !r.w || !r.h || r.x + r.w > img.w || r.y + r.h > img.h)
+      throw new Error(`${family}.json: frame '${name}' must be whole numbers inside the ${img.w}x${img.h} image, at least 1x1, not ${JSON.stringify(r)}`);
     if (fn && (area += r.w * r.h) > PNG_MAX * PNG_MAX) throw new Error(`${family}.json: frames over ${PNG_MAX * PNG_MAX} px in all`);
   }
   for (const [name, { frame: r }] of Object.entries(json.frames ?? {})) {

@@ -249,6 +249,14 @@ try {
     const late = png(chunk('tEXt', Buffer.from('a')), ihdr(1, 1), chunk('IDAT', pixel));
     const said = async b => decodePng(b).then(() => 'decoded', e => e.message);
     const out = { twice: await said(twice), bomb: await said(bomb), late: await said(late), one: await said(png(ihdr(1, 1), chunk('IDAT', pixel))) };
+    // an indexed PNG of depth 255 (would size its rows at 255 bits a pixel), one without IDAT, one indexed without PLTE
+    const deep = Buffer.alloc(13); deep.writeUInt32BE(2048); deep.writeUInt32BE(2048, 4); deep[8] = 255; deep[9] = 3;
+    const t0 = Date.now();
+    out.deep = await said(png(chunk('IHDR', deep), chunk('PLTE', Buffer.alloc(3)), chunk('IDAT', pixel)));
+    out.deepMs = Date.now() - t0;
+    out.noIdat = await said(png(ihdr(1, 1)));
+    const idx = Buffer.alloc(13); idx.writeUInt32BE(1); idx.writeUInt32BE(1, 4); idx[8] = 8; idx[9] = 3;
+    out.noPlte = await said(png(chunk('IHDR', idx), chunk('IDAT', deflateSync(Buffer.from([0, 0])))));
     const sheet = rect => JSON.stringify({ frames: { BREAKOUT_FLOOR: { frame: rect } }, meta: {} });
     const files = {};
     const theme = (f, json, bytes) => { files['p/' + f + '/theme.json'] = JSON.stringify({ format: 1, name: f, base: 'vault', art: ['breakout'] }); files['p/' + f + '/breakout.json'] = json; files['p/' + f + '/breakout.png'] = bytes; };
@@ -257,8 +265,18 @@ try {
     theme('frac', sheet({ x: 0.5, y: 0, w: 1, h: 1 }), png(ihdr(1, 1), chunk('IDAT', pixel)));
     theme('twice', sheet({ x: 0, y: 0, w: 1, h: 1 }), twice);
     theme('bomb', sheet({ x: 0, y: 0, w: 1, h: 1 }), bomb);
+    // 20000 zero-width frames, each a column of 2048 empty rows, over a valid 2048x2048 image
+    const big = png(ihdr(2048, 2048), chunk('IDAT', deflateSync(Buffer.alloc((2048 * 4 + 1) * 2048))));
+    const zero = { frames: Object.fromEntries(Array.from({ length: 20000 }, (_, i) => ['F' + i, { frame: { x: 0, y: 0, w: 0, h: 2048 } }])), meta: {} };
+    theme('zero', JSON.stringify(zero), big);
+    // under the frame count: each zero-width frame refused for itself
+    const thin = { frames: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => ['F' + i, { frame: { x: 0, y: 0, w: 0, h: 2048 } }])), meta: {} };
+    theme('thin', JSON.stringify(thin), big);
+    theme('flat', sheet({ x: 0, y: 0, w: 1, h: 0 }), png(ihdr(1, 1), chunk('IDAT', pixel)));
+    const many = { frames: Object.fromEntries(Array.from({ length: 1025 }, (_, i) => ['F' + i, { frame: { x: 0, y: 0, w: 1, h: 1 } }])), meta: {} };
+    theme('many', JSON.stringify(many), png(ihdr(1, 1), chunk('IDAT', pixel)));
     const read = async (dir, p) => { if (!(dir + '/' + p in files)) throw Object.assign(new Error(p + ': not found'), { code: 'ENOENT' }); const v = files[dir + '/' + p]; return typeof v === 'string' ? new TextEncoder().encode(v) : v; };
-    await loadPacks([{ id: 'h/p', dir: 'p', themes: ['tall', 'wide', 'frac', 'twice', 'bomb'] }], read);
+    await loadPacks([{ id: 'h/p', dir: 'p', themes: ['tall', 'wide', 'frac', 'twice', 'bomb', 'zero', 'thin', 'flat', 'many'] }], read);
     await import('./ui/sprites.js');
     out.problems = Object.fromEntries(PACKS.get('h/p').problems.map(p => [p.theme, p.message]));
     console.log(JSON.stringify(out));`;
@@ -267,8 +285,13 @@ try {
   assert.match(out.bomb, /inflates past/, out.bomb);
   assert.match(out.late, /IHDR/, out.late);
   assert.equal(out.one, 'decoded');
-  assert.deepEqual(Object.keys(out.problems).sort(), ['bomb', 'frac', 'tall', 'twice', 'wide'], JSON.stringify(out.problems));
-  for (const f of ['tall', 'wide', 'frac']) assert.ok(out.problems[f].startsWith(`${f}/breakout.json: frame 'BREAKOUT_FLOOR'`), out.problems[f]);
+  assert.match(out.deep, /colour type 3 \/ 255 bit/, out.deep);
+  assert.ok(out.deepMs < 500, `depth 255 refused in ${out.deepMs} ms`);
+  assert.match(out.noIdat, /no IDAT/, out.noIdat);
+  assert.match(out.noPlte, /PLTE/, out.noPlte);
+  assert.deepEqual(Object.keys(out.problems).sort(), ['bomb', 'flat', 'frac', 'many', 'tall', 'thin', 'twice', 'wide', 'zero'], JSON.stringify(out.problems));
+  for (const f of ['many', 'zero']) assert.match(out.problems[f], new RegExp(`^${f}/breakout\\.json: over 1024 frames`), out.problems[f]);
+  for (const f of ['tall', 'wide', 'frac', 'thin', 'flat']) assert.ok(out.problems[f].startsWith(`${f}/breakout.json: frame '${f === 'thin' ? 'F0' : 'BREAKOUT_FLOOR'}'`), out.problems[f]);
   for (const f of ['twice', 'bomb']) assert.ok(out.problems[f].startsWith(`${f}/breakout.png: `), out.problems[f]);
 }
 
