@@ -52,9 +52,11 @@ const isFolder = f => typeof f === 'string' && /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/.
 const say = e => { try { return String(e?.message ?? e); } catch { return 'unreadable error'; } };
 
 // Registers the packs' themes after the shipped ones, each pack's world themes first, then its styles, in its order.
-// `packs`: [{ id, dir, themes: [folder] }]; `read(dir, path)`: the bytes of `<folder>/<file>` in pack folder `dir`
-// (a missing file rejects with code ENOENT). Call it before sprites.js and faces.js load: they read every theme's art
-// once. Never throws.
+// `packs`: [{ id, dir, themes: [folder] }], as the backend lists them. The reader's contract: `read(dir, path)` resolves
+// to the bytes (Uint8Array) of `path` = `<folder>/<file>` in the pack, and a missing file rejects with code 'ENOENT'
+// (absence: a world without faces, a 39° family not drawn yet); `dir` is the backend's own name for the pack's folder,
+// passed back to the reader verbatim and never used to build a path or URL here. Call it before sprites.js and
+// faces.js load: they read every theme's art once. Never throws.
 export async function loadPacks(packs, read) {
   for (const pack of Array.isArray(packs) ? packs : []) {
     try { await loadPack(pack, read); } catch (e) { console.error(`theme pack: ${say(e)}`); }
@@ -81,18 +83,25 @@ async function loadPack({ id, dir, themes }, read) {
   });
   const own = new Set(SHIPPED_BASES), worlds = new Set(Object.keys(WORLDS));
   for (const { f, json } of [...ok.filter(x => !x.json.base), ...ok.filter(x => x.json.base)]) {
+    const sid = `${id}:${f}`;
+    let set = false, named = null; // what this theme registered, undone if anything after it throws
     try {
       const s = scoped(id, f, json, { own: folders, shipped: [...SHIPPED_WORLDS] });
       if (THEMES[s.id]) { problem(f, 'already registered'); continue; }
       const bad = checkTheme(s.json, { bases: own, worlds });
       if (bad.length) { problem(f, `${f}/theme.json: ${bad.join('; ')}`); continue; }
+      set = true;
       const t = defineTheme(themeOf(s.id, s.json, s.json.base && THEMES[s.json.base]));
       packed.set(s.id, { pack: id, folder: f });
       roots.set(s.id, root(f));
-      if (!s.json.base) { own.add(s.id); worlds.add(s.json.world); }
-      if (s.json.worldName && !WORLDS[s.json.world]) WORLDS[s.json.world] = s.json.worldName;
+      if (!s.json.base) own.add(s.id);
+      if (s.json.worldName && !WORLDS[s.json.world]) { WORLDS[named = s.json.world] = s.json.worldName; worlds.add(named); }
       entry.themes.push({ id: s.id, name: t.name, world: t.world, style: !!s.json.base });
-    } catch (e) { delete THEMES[`${id}:${f}`]; packed.delete(`${id}:${f}`); problem(f, `${f}/theme.json: ${say(e)}`); }
+    } catch (e) {
+      if (set) { delete THEMES[sid]; packed.delete(sid); roots.delete(sid); own.delete(sid); entry.themes = entry.themes.filter(t => t.id !== sid); }
+      if (named) { delete WORLDS[named]; worlds.delete(named); }
+      problem(f, `${f}/theme.json: ${say(e)}`);
+    }
   }
 }
 

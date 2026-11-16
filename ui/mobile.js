@@ -123,8 +123,8 @@ async function start() {
   setTheme(typeof theme === 'string' ? theme : 'tier2');
   // what draws with the theme (chrome, wording) behind the second net: a throw under a pack's theme goes back to Ordo
   // Administratum (themes.js guarded), whose chrome then applies
-  onTheme(() => applyChrome());
   guarded(applyChrome)();
+  onTheme(guarded(applyChrome));
 
   const $ = id => document.getElementById(id);
   let roster = [], vigil = {}, actions = false, probed = 0;

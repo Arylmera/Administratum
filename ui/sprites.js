@@ -103,7 +103,8 @@ await Promise.all(Object.values(THEMES).filter(th => th.art?.length).map(async t
         sheets[f] = await loadSheet(f, artRootOf(th.id));
       } catch (e) {
         // A 39° family a theme lists before its own file is drawn: falls back to the base 39 family (itself maybe empty).
-        if (FAMILIES39.includes(f) && missing(e)) return;
+        // A pack's: only its JSON missing is absence (art.js names a reader's file first).
+        if (FAMILIES39.includes(f) && missing(e) && (!pack || e.message.startsWith(`${f}.json: `))) return;
         throw e;
       }
       const bad = pack ? checkSheet(f, sheets[f], base[f]) : [];

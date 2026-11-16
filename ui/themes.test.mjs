@@ -202,9 +202,12 @@ try {
       'p/sphere/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/sphere/breakout.png': disk('vault/breakout.png'),
       'p/sphere/faces.json': JSON.stringify({ ...faces, meta: { ...faces.meta, objects: { ...faces.meta.objects, DESK: { ...faces.meta.objects.DESK, details: [{ name: 'ball', kind: 'sphere', rect: [0, 0, 1, 1] }] } } } }),
       'p/sphere/faces.png': disk('faces.png'),
+      'p/nopng/theme.json': JSON.stringify({ format: 1, name: 'No PNG', world: 'w', art: ['breakout'] }),
+      'p/nopng/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/nopng/breakout.png': disk('vault/breakout.png'),
+      'p/nopng/faces.json': desk(7),
     };
     const read = async (dir, p) => { if (!(dir + '/' + p in files)) throw Object.assign(new Error(p + ': not found'), { code: 'ENOENT' }); const v = files[dir + '/' + p]; return typeof v === 'string' ? new TextEncoder().encode(v) : v; };
-    await loadPacks([{ id: 'a/p', dir: 'p', themes: ['good', 'extra', 'pixel', 'fam', 'world', 'own', 'inherit', 'sphere'] }], read);
+    await loadPacks([{ id: 'a/p', dir: 'p', themes: ['good', 'extra', 'pixel', 'fam', 'world', 'own', 'inherit', 'sphere', 'nopng'] }], read);
     const { ART } = await import('./ui/sprites.js');
     const { FACES, sheetOf } = await import('./ui/faces.js');
     const { THEMES } = await import('./ui/theme.js');
@@ -215,7 +218,8 @@ try {
   const out = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { cwd: repo, encoding: 'utf8' }));
   assert.deepEqual(out.themes.sort(), ['a/p:good', 'a/p:inherit', 'a/p:own', 'a/p:world'].sort(), JSON.stringify(out));
   const said = Object.fromEntries(out.problems.map(p => [p.theme, p.message]));
-  assert.deepEqual(Object.keys(said).sort(), ['extra', 'fam', 'pixel', 'sphere'], JSON.stringify(said));
+  assert.deepEqual(Object.keys(said).sort(), ['extra', 'fam', 'nopng', 'pixel', 'sphere'], JSON.stringify(said));
+  assert.ok(said.nopng.startsWith('nopng/faces.png: '), said.nopng); // its faces.json is there: a missing PNG is a fault, not absence
   assert.ok(said.extra.includes('breakout') && said.extra.includes('NOT_A_FRAME'), said.extra);
   assert.ok(said.pixel.startsWith('pixel/breakout.png: pixel '), said.pixel);
   assert.ok(said.fam.includes("'constructor'"), said.fam);
@@ -225,4 +229,45 @@ try {
   assert.equal(out.d.world, 7);
   assert.equal(out.d.own, 9);
   assert.equal(out.d.inherit, 7);
+}
+
+// Hostile art files, a few bytes each, that would claim the memory of the start: a frame rect far outside its image,
+// a second IHDR after a small first one, an IDAT inflating far past what its header holds. Refused before anything
+// large is allocated (a child process on a small heap, so a regression fails fast instead of hanging the suite).
+{
+  const script = `
+    const fs = await import('node:fs');
+    const { deflateSync, crc32 } = await import('node:zlib');
+    const { loadPacks, PACKS } = await import('./ui/themes.js');
+    const { decodePng } = await import('./ui/png.js');
+    const chunk = (type, data) => { const b = Buffer.alloc(12 + data.length), t = Buffer.concat([Buffer.from(type), data]); b.writeUInt32BE(data.length); t.copy(b, 4); b.writeUInt32BE(crc32(t), 8 + data.length); return b; };
+    const ihdr = (w, h) => { const d = Buffer.alloc(13); d.writeUInt32BE(w); d.writeUInt32BE(h, 4); d[8] = 8; d[9] = 6; return chunk('IHDR', d); };
+    const png = (...chunks) => new Uint8Array(Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), ...chunks, chunk('IEND', Buffer.alloc(0))]));
+    const pixel = deflateSync(Buffer.from([0, 0, 0, 0, 0]));
+    const twice = png(ihdr(1, 1), ihdr(8000, 8000), chunk('IDAT', pixel));
+    const bomb = png(ihdr(1, 1), chunk('IDAT', deflateSync(Buffer.alloc(64e6))));
+    const late = png(chunk('tEXt', Buffer.from('a')), ihdr(1, 1), chunk('IDAT', pixel));
+    const said = async b => decodePng(b).then(() => 'decoded', e => e.message);
+    const out = { twice: await said(twice), bomb: await said(bomb), late: await said(late), one: await said(png(ihdr(1, 1), chunk('IDAT', pixel))) };
+    const sheet = rect => JSON.stringify({ frames: { BREAKOUT_FLOOR: { frame: rect } }, meta: {} });
+    const files = {};
+    const theme = (f, json, bytes) => { files['p/' + f + '/theme.json'] = JSON.stringify({ format: 1, name: f, base: 'vault', art: ['breakout'] }); files['p/' + f + '/breakout.json'] = json; files['p/' + f + '/breakout.png'] = bytes; };
+    theme('tall', sheet({ x: 0, y: 0, w: 0, h: 5e7 }), png(ihdr(1, 1), chunk('IDAT', pixel)));
+    theme('wide', sheet({ x: 0, y: 0, w: 5e7, h: 1 }), png(ihdr(1, 1), chunk('IDAT', pixel)));
+    theme('frac', sheet({ x: 0.5, y: 0, w: 1, h: 1 }), png(ihdr(1, 1), chunk('IDAT', pixel)));
+    theme('twice', sheet({ x: 0, y: 0, w: 1, h: 1 }), twice);
+    theme('bomb', sheet({ x: 0, y: 0, w: 1, h: 1 }), bomb);
+    const read = async (dir, p) => { if (!(dir + '/' + p in files)) throw Object.assign(new Error(p + ': not found'), { code: 'ENOENT' }); const v = files[dir + '/' + p]; return typeof v === 'string' ? new TextEncoder().encode(v) : v; };
+    await loadPacks([{ id: 'h/p', dir: 'p', themes: ['tall', 'wide', 'frac', 'twice', 'bomb'] }], read);
+    await import('./ui/sprites.js');
+    out.problems = Object.fromEntries(PACKS.get('h/p').problems.map(p => [p.theme, p.message]));
+    console.log(JSON.stringify(out));`;
+  const out = JSON.parse(execFileSync(process.execPath, ['--max-old-space-size=64', '--input-type=module', '-e', script], { cwd: repo, encoding: 'utf8', timeout: 60_000 }));
+  assert.match(out.twice, /IHDR/, out.twice);
+  assert.match(out.bomb, /inflates past/, out.bomb);
+  assert.match(out.late, /IHDR/, out.late);
+  assert.equal(out.one, 'decoded');
+  assert.deepEqual(Object.keys(out.problems).sort(), ['bomb', 'frac', 'tall', 'twice', 'wide'], JSON.stringify(out.problems));
+  for (const f of ['tall', 'wide', 'frac']) assert.ok(out.problems[f].startsWith(`${f}/breakout.json: frame 'BREAKOUT_FLOOR'`), out.problems[f]);
+  for (const f of ['twice', 'bomb']) assert.ok(out.problems[f].startsWith(`${f}/breakout.png: `), out.problems[f]);
 }

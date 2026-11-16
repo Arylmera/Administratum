@@ -54,7 +54,9 @@ async function load(id) {
     if (bad.length) throw new Error(bad.join('; '));
     return { objects: meta.objects, frames };
   } catch (e) {
-    if (id !== 'tier2' && missing(e)) return null; // a world without face sheets draws with the base ones; anything else throws
+    // a world without face sheets draws with the base ones; anything else throws (a pack's: only a missing faces.json
+    // is absence, its PNG missing beside it a fault; art.js names a reader's file first)
+    if (id !== 'tier2' && missing(e) && (!pack || e.message.startsWith('faces.json: '))) return null;
     if (pack) { dropTheme(id, `${pack.folder}/${e.message}`); return null; }
     throw e;
   }

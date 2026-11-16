@@ -43,22 +43,27 @@ const key = () => (keyP ??= readArt('key.gpl').then(bytes => {
   return map;
 }));
 
-// A pack's PNG (a reader as root) at most PNG_MAX px a side, checked in its header before it is inflated: a small file
-// cannot claim a buffer the size of the screen many times over. The largest shipped sheet is 502x570.
+// A pack's sheet (a reader as root): its PNG at most PNG_MAX px a side (png.js reads it in the header, before inflating),
+// its frames PNG_MAX² px in all, so a few bytes cannot claim the memory of the start. The largest shipped sheet is 502x570.
 const PNG_MAX = 2048;
-const sized = (b, root, file) => {
-  const at = o => ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0, w = at(16), h = at(20);
-  if (typeof root === 'function' && b.length >= 24 && (w > PNG_MAX || h > PNG_MAX)) throw new Error(`${file}: ${w}x${h} px, at most ${PNG_MAX} a side`);
-  return b;
-};
+const isWhole = n => Number.isInteger(n) && n >= 0;
 
 // -> { frames: { name: rows[] }, anchors (art px), tiles (fill rules, room.js), meta (the JSON's whole meta) }. Throws on a colour outside the key palette or a
 // half-transparent pixel, naming the file and the pixel, so a bad export fails loudly (and in the tests). `root`: the
 // folder holding the sheet (a theme's own art: themes.js artRootOf; a pack's reader), default ui/art/.
 export async function loadSheet(family, root) {
   const json = await readArt(`${family}.json`, 'json', root); // a sheet without frames (a world's face rects) has no PNG
-  const [img, map] = Object.keys(json.frames ?? {}).length ? await Promise.all([readArt(`${family}.png`, 'bytes', root).then(b => decodePng(sized(b, root, `${family}.png`))), key()]) : [];
+  const fn = typeof root === 'function', png = `${family}.png`;
+  const decode = b => (fn ? decodePng(b, { max: PNG_MAX }).catch(e => { throw new Error(`${png}: ${e.message}`, { cause: e }); }) : decodePng(b));
+  const [img, map] = Object.keys(json.frames ?? {}).length ? await Promise.all([readArt(png, 'bytes', root).then(decode), key()]) : [];
   const frames = {};
+  // every rect whole numbers inside the image, checked before a row is built
+  let area = 0;
+  for (const [name, { frame: r } = {}] of Object.entries(json.frames ?? {})) {
+    if (!r || ![r.x, r.y, r.w, r.h].every(isWhole) || r.x + r.w > img.w || r.y + r.h > img.h)
+      throw new Error(`${family}.json: frame '${name}' must be whole numbers inside the ${img.w}x${img.h} image, not ${JSON.stringify(r)}`);
+    if (fn && (area += r.w * r.h) > PNG_MAX * PNG_MAX) throw new Error(`${family}.json: frames over ${PNG_MAX * PNG_MAX} px in all`);
+  }
   for (const [name, { frame: r }] of Object.entries(json.frames ?? {})) {
     frames[name] = Array.from({ length: r.h }, (_, j) => {
       let row = '';
@@ -66,7 +71,7 @@ export async function loadSheet(family, root) {
         const x = r.x + i, y = r.y + j, o = (y * img.w + x) * 4, a = img.rgba[o + 3];
         if (a === 0) { row += '.'; continue; }
         const c = a === 255 && map.get(`${img.rgba[o]},${img.rgba[o + 1]},${img.rgba[o + 2]}`);
-        if (!c) throw new Error(`${typeof root === 'function' ? `${family}.png` : new URL(`${family}.png`, root ?? ART).href.replace(ART, 'art/')}: pixel ${x},${y} (${name}) is ${a < 255 ? 'half transparent' : `rgb(${img.rgba[o]},${img.rgba[o + 1]},${img.rgba[o + 2]}), not a key.gpl colour`}`);
+        if (!c) throw new Error(`${fn ? png : new URL(`${family}.png`, root ?? ART).href.replace(ART, 'art/')}: pixel ${x},${y} (${name}) is ${a < 255 ? 'half transparent' : `rgb(${img.rgba[o]},${img.rgba[o + 1]},${img.rgba[o + 2]}), not a key.gpl colour`}`);
         row += c;
       }
       return row;
