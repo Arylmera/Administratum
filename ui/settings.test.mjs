@@ -416,7 +416,7 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   assert.equal(mine.querySelector('b'), null);
   assert.equal(restart.hidden, true);
   // not a repository name: said, nothing invoked
-  for (const typed of ['nope', 'local/x', 'LOCAL/x', 'a/..', 'a/.', '-a/b', 'a/b/c', 'https://gitlab.com/a/b']) {
+  for (const typed of ['nope', 'local/x', 'LOCAL/x', 'a/..', 'a/.', '-a/b', 'a/b/c', 'https://gitlab.com/a/b', 'https://github.com/alice/x/tree/main', 'github.com/alice/x']) {
     repo.value = typed; install.click();
     assert.equal(line.textContent, 'Not a repository name: owner/repo', typed);
   }
@@ -432,10 +432,16 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   // a pasted GitHub address is its owner/repo
   repo.value = ' https://github.com/carol/x.git/ '; install.click(); await flush();
   assert.deepEqual(last('theme_pack_install'), { repo: 'carol/x' });
+  // spaces around are trimmed; a typed .git is dropped as from an address
+  repo.value = ' alice/x '; install.click(); await flush();
+  assert.deepEqual(last('theme_pack_install'), { repo: 'alice/x' });
+  repo.value = 'alice/x.git'; install.click(); await flush();
+  assert.deepEqual(last('theme_pack_install'), { repo: 'alice/x' });
   // Update: the pack's dir
   replies.theme_pack_update = ({ dir }) => ({ ...disk.find(p => p.dir === dir) });
   btn(rowOf('bob/worlds'), 'Update').click(); await flush();
   assert.deepEqual(last('theme_pack_update'), { dir: 'bob__worlds' });
+  assert.equal(line.textContent, 'Updated bob/worlds: 2 themes. Restart to apply.');
   assert.equal(restart.hidden, false, 'a success: Restart to apply');
   // Install: Downloading… with the buttons greyed, then the new row (not loaded until the restart); Restart restarts
   let done;
@@ -446,7 +452,7 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   assert.ok(install.disabled && btn(rowOf('bob/worlds'), 'Update').disabled && btn(rowOf('bob/worlds'), 'Remove').disabled, 'greyed while it runs');
   done(); await flush();
   assert.match(rowOf('alice/adm-themes').textContent, /3 themes/);
-  assert.equal(line.textContent, '');
+  assert.equal(line.textContent, 'Installed alice/adm-themes: 3 themes. Restart to apply.');
   assert.equal(install.disabled, false);
   assert.equal(restart.hidden, false);
   // Remove: the pack's dir, its row gone
@@ -455,7 +461,12 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   assert.deepEqual(last('theme_pack_remove'), { dir: 'bob__worlds' });
   assert.equal(rowOf('bob/worlds'), undefined);
   assert.equal(rows().length, 2);
+  assert.equal(line.textContent, 'Removed bob/worlds. Restart to apply.');
   assert.equal(restart.hidden, false);
+  // one theme: the count in the singular
+  replies.theme_pack_install = ({ repo: r }) => { const p = { id: r, dir: r.replace('/', '__'), repo: r, installed: 'now', themes: ['a'] }; disk.push(p); return p; };
+  repo.value = 'dan/one'; install.click(); await flush();
+  assert.equal(line.textContent, 'Installed dan/one: 1 theme. Restart to apply.');
   replies.restart = null;
   restart.click(); await flush();
   assert.equal(invoked('restart').length, 1);

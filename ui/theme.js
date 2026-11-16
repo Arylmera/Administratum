@@ -130,7 +130,10 @@ export const TEXT = {
     // Settings > Hall > Added themes (settings.js initPacks): theme packs from outside
     packs: { title: 'Added themes', add: 'Add from GitHub', placeholder: 'owner/repo', install: 'Install', update: 'Update', remove: 'Remove',
       local: 'local folder', localHint: 'delete its folder by hand', count: ['{n} theme', '{n} themes'], restart: 'Restart to apply', none: 'None yet.', installing: 'Downloading…',
-      bad: 'Not a repository name: owner/repo' },
+      bad: 'Not a repository name: owner/repo',
+      installed: ['Installed {repo}: {n} theme. Restart to apply.', 'Installed {repo}: {n} themes. Restart to apply.'],
+      updated: ['Updated {repo}: {n} theme. Restart to apply.', 'Updated {repo}: {n} themes. Restart to apply.'],
+      removed: 'Removed {repo}. Restart to apply.' },
     cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',

@@ -40,8 +40,8 @@ my-pack/
 A theme folder's name is its theme's id inside the pack. Every name in a pack, folders and files, takes letters,
 digits, `-`, `_` and `.` only, not starting with `.`; a folder's name does not end with `.`, and no name is one
 Windows keeps for a device (`CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, with any extension). A
-theme folder named otherwise is not read, and other files named otherwise are left out by the installer: the check
-names both.
+theme folder named otherwise is not read (one ending in `.` or named for a device is read from a local folder, but
+the installer drops it), and other files named otherwise are left out by the installer: the check names both. `pack.json`'s `name` is informational: the app shows the repository's `owner/repo`, not that name.
 
 ---
 
@@ -286,6 +286,10 @@ check, but those files will not reach anyone who installs the pack.
 Others install it from Settings → Hall → **Added themes**: type `owner/repo`, *Install*, then *Restart to apply*. The
 app downloads the repository's default branch as it is at that moment. When you publish a change, they get it with
 *Update*; the app does not tell them there is one. There is no catalogue of packs: share your `owner/repo` yourself.
+
+Once your local draft is published and you install it from GitHub, its themes' ids change from
+`local/<folder>:<theme>` to `owner/repo:<theme>`: pick the theme again in Settings, and delete the draft folder yourself,
+or you have two copies.
 
 A local pack, a folder you put in the themes folder yourself, has no *Remove* button in Settings, and the app never
 deletes it: to remove a draft, delete its folder yourself, then restart. *Remove* is for packs installed from GitHub.

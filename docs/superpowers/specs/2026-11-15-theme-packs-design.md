@@ -1,6 +1,8 @@
 # Theme packs
 
-Status: design, not built. Two pull requests, in this order: **A. themes as data**, then **B. packs from outside**.
+Status: built, in two pull requests in this order: **A. themes as data** (plan
+`docs/superpowers/plans/2026-11-15-themes-as-data.md`), then **B. packs from outside** (plan
+`docs/superpowers/plans/2026-11-16-theme-packs-from-outside.md`).
 
 ## Intent
 

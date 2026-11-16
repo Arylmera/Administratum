@@ -24,6 +24,9 @@ Where things live:
   frames it redraws, listed in the theme's `art` in `ui/art/<theme>/theme.json`.
 - Colours per theme: `ui/theme.js` (Ordo Administratum, `BASE`) and `ui/art/<theme>/theme.json` (the list:
   `ui/art/themes.json`; loader `ui/themes.js`, format and check `ui/themepack.js`).
+- Theme packs (themes from outside, `docs/theme-packs.md`): loaded by `ui/themes.js` `loadPacks`, scoped and checked
+  by `ui/themepack.js` (`scoped`, `checkTheme` with `LOCKED`), their sheets' shape by `ui/artcheck.js`; the author's
+  check `node tools/theme_pack.mjs check <folder>`; the backend side `src-tauri/src/packs.rs`.
 - Sprite list shared by the viewer and the gallery: `tools/sprite_catalog.mjs`.
 - To read a sprite as text rows: `node -e "import('./ui/sprites.js').then(m => console.log(m.MAPS.SHELF.join('\n')))"`.
 - After an art change: run `node ui/art.test.mjs` and `node ui/sprites.test.mjs`, then regenerate the committed

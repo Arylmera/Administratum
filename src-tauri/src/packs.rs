@@ -65,14 +65,17 @@ fn source(dir: &Path) -> Option<(String, Option<String>)> {
     Some((repo, v["installed"].as_str().map(str::to_string)))
 }
 
-/// The packs under `root`, by folder name; a missing or unreadable root gives none.
+/// The packs under `root`, by folder name; a missing or unreadable root gives none. Two folders naming one repo (any
+/// case): the first by folder name is that repo's pack, the other is listed as a local pack (`local/<dir>`), so it is
+/// seen, never silently lost.
 pub fn list(root: &Path) -> Vec<Pack> {
+    let mut seen = std::collections::HashSet::new();
     folders(root)
         .into_iter()
         .map(|dir| {
             let at = root.join(&dir);
             let themes = folders(&at).into_iter().filter(|f| fs::symlink_metadata(at.join(f).join("theme.json")).is_ok_and(|m| m.is_file())).collect();
-            let (repo, installed) = source(&at).map_or((None, None), |(r, i)| (Some(r), i));
+            let (repo, installed) = source(&at).filter(|(r, _)| seen.insert(r.to_ascii_lowercase())).map_or((None, None), |(r, i)| (Some(r), i));
             Pack { id: repo.as_deref().map_or_else(|| format!("local/{dir}"), str::to_ascii_lowercase), dir, repo, installed, themes }
         })
         .collect()
@@ -122,6 +125,9 @@ pub const MAX_ARCHIVE: usize = 20 * 1024 * 1024;
 /// How old a `.tmp-*` / `.old-*` work folder must be before `install` takes it for a crashed run's.
 const STALE: Duration = Duration::from_secs(10 * 60);
 const LICENCES: [&str; 3] = ["LICENSE", "LICENSE.md", "LICENSE.txt"];
+
+/// What an archive without a theme is told (`keep`).
+const NO_THEME: &str = "no theme in this repository: a theme is a folder holding theme.json at the top of the repository";
 
 /// What `unpack` keeps (`files`, each at most `file` bytes, `total` in all) and reads (`read` decompressed bytes,
 /// `entries` entries, the dropped ones included, so a compressed bomb of dropped entries ends too; `ext` bytes for a
@@ -220,15 +226,28 @@ fn unreadable(e: io::Error) -> String {
     format!("not a readable archive: {e}")
 }
 
-/// The raw entries of the archive, extensions unfolded: an error for one more than `l.entries`, or for a long name,
-/// long link or PAX header over `l.ext` bytes (`tar` would read it whole before handing out the entry it names).
+/// The raw entries of the archive, extensions unfolded: an error for one more than `l.entries`, for a long name,
+/// long link or PAX header over `l.ext` bytes (`tar` would read it whole before handing out the entry it names), and
+/// for what would make `keep`'s walk differ from this one: a GNU sparse entry, or a PAX header giving a `size` (git
+/// archive's `path=` and `comment=` records pass).
 fn vet<R: Read>(ar: &mut tar::Archive<R>, l: &Limits) -> Result<usize, String> {
     let mut n = 0;
     for entry in ar.entries().map_err(unreadable)?.raw(true) {
-        let entry = entry.map_err(unreadable)?;
+        let mut entry = entry.map_err(unreadable)?;
         let t = entry.header().entry_type();
         if (t.is_gnu_longname() || t.is_gnu_longlink() || t.is_pax_local_extensions() || t.is_pax_global_extensions()) && entry.size() > l.ext {
             return Err(format!("the archive has a long name or PAX header over {} KiB", l.ext >> 10));
+        }
+        if t.is_gnu_sparse() {
+            return Err("the archive has a sparse file".into());
+        }
+        if t.is_pax_local_extensions() {
+            let pax = entry.pax_extensions().map_err(unreadable)?.into_iter().flatten();
+            for ext in pax {
+                if ext.map_err(unreadable)?.key_bytes() == b"size" {
+                    return Err("the archive has a PAX header giving a size".into());
+                }
+            }
         }
         n += 1;
         if n > l.entries {
@@ -280,7 +299,7 @@ fn keep<R: Read>(ar: &mut tar::Archive<R>, dest: &Path, l: &Limits) -> Result<us
         }
     }
     if !theme {
-        return Err("no theme in this repository".into());
+        return Err(NO_THEME.into());
     }
     Ok(files)
 }
@@ -761,7 +780,7 @@ mod tests {
     fn a_failed_install_leaves_nothing() {
         let root = tmp("fail");
         let no_theme = tgz(&[("r-abc/pack.json", E::File(b"{}")), ("r-abc/pink/breakout.png", E::File(b"x"))]);
-        assert_eq!(install(&root, "alice/t", &no_theme, "now"), Err("no theme in this repository".into()));
+        assert_eq!(install(&root, "alice/t", &no_theme, "now"), Err(NO_THEME.into()));
         assert_eq!(tree(&root), Vec::<String>::new());
         let many: Vec<String> = (0..2001).map(|i| format!("r-abc/pink/f{i}.json")).collect();
         let mut entries: Vec<(&str, E)> = vec![("r-abc/pink/theme.json", E::File(b"{}"))];
@@ -811,7 +830,17 @@ mod tests {
         let dest4 = tmp("bounded-long");
         assert_eq!(unpack_with(&named, &dest4, &LIMITS), Ok(2), "a long name under the limit still names its entry");
         assert!(dest4.join("pink").join(format!("{}.json", "a".repeat(90))).exists());
-        for d in [dest, dest2, dest3, dest4] {
+        // what would make the second pass walk the archive otherwise than the first: a PAX size, a GNU sparse entry
+        let sized = tgz(&[("r-abc/PaxHeaders/x", E::Raw(tar::EntryType::XHeader, b"12 size=100\n")), ("r-abc/pink/x.json", E::File(b"{}")), ("r-abc/pink/theme.json", E::File(b"{}"))]);
+        let dest5 = tmp("bounded-pax");
+        assert_eq!(unpack_with(&sized, &dest5, &LIMITS), Err("the archive has a PAX header giving a size".into()));
+        let sparse = tgz(&[("r-abc/pink/s.json", E::Raw(tar::EntryType::GNUSparse, b"")), ("r-abc/pink/theme.json", E::File(b"{}"))]);
+        assert_eq!(unpack_with(&sparse, &dest5, &LIMITS), Err("the archive has a sparse file".into()));
+        // git archive's own PAX records pass: a `path=` names its entry
+        let pathed = tgz(&[("r-abc/PaxHeaders/x", E::Raw(tar::EntryType::XHeader, b"30 path=r-abc/pink/theme.json\n")), ("x", E::File(b"{}"))]);
+        assert_eq!(unpack_with(&pathed, &dest5, &LIMITS), Ok(1));
+        assert!(dest5.join("pink/theme.json").exists());
+        for d in [dest, dest2, dest3, dest4, dest5] {
             let _ = fs::remove_dir_all(d);
         }
     }
@@ -825,7 +854,7 @@ mod tests {
         assert_eq!((pack.themes, pack.installed.as_deref()), (vec!["blue".to_string()], Some("two")));
         assert_eq!(tree(&root), ["alice__t", "alice__t/blue", "alice__t/blue/theme.json", "alice__t/pack-source.json"]);
         let broken = tgz(&[("t-def/pack.json", E::File(b"{}"))]);
-        assert_eq!(update(&root, "alice__t", &broken, "three"), Err("no theme in this repository".into()));
+        assert_eq!(update(&root, "alice__t", &broken, "three"), Err(NO_THEME.into()));
         assert_eq!(tree(&root), ["alice__t", "alice__t/blue", "alice__t/blue/theme.json", "alice__t/pack-source.json"]);
         assert_eq!(list(&root)[0].installed.as_deref(), Some("two"));
         // the same repo typed in another case is the same pack: one folder, one id; the repo shown as last typed
@@ -975,6 +1004,21 @@ mod tests {
         }
         assert_eq!(archive_url("alice/t").as_deref(), Some("https://codeload.github.com/alice/t/tar.gz/HEAD"));
         assert_eq!(archive_url("alice/../x"), None);
+    }
+
+    #[test]
+    fn two_folders_naming_one_repo_list_the_second_as_local() {
+        let root = tmp("twice");
+        put(&root, "alice__t/pack-source.json", br#"{"repo": "alice/t", "installed": "one"}"#);
+        put(&root, "copy/pack-source.json", br#"{"repo": "Alice/T", "installed": "two"}"#);
+        put(&root, "copy/pink/theme.json", b"{}");
+        let packs = list(&root);
+        assert_eq!(
+            packs.iter().map(|p| (p.id.as_str(), p.dir.as_str(), p.repo.as_deref(), p.installed.as_deref())).collect::<Vec<_>>(),
+            [("alice/t", "alice__t", Some("alice/t"), Some("one")), ("local/copy", "copy", None, None)]
+        );
+        assert_eq!(packs[1].themes, ["pink"], "still seen, with its themes");
+        let _ = fs::remove_dir_all(&root);
     }
 
     #[test]

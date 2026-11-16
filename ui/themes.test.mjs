@@ -378,6 +378,16 @@ try {
       assert.match(r.stdout, /^Bad Name: the app does not read this theme: /m, r.stdout);
       assert.match(r.stdout, /^0 themes ok, 1 with problems$/m, r.stdout);
     }
+    // a folder the app reads but the installer drops (a trailing ., a Windows device name): said so, counted once
+    for (const name of ['con', 'trail.']) {
+      const drop = path.join(copy, `drop-${name}`);
+      fs.mkdirSync(path.join(drop, name), { recursive: true });
+      fs.copyFileSync(path.join(copy, 'vault-pink', 'theme.json'), path.join(drop, name, 'theme.json'));
+      const r = check(drop);
+      assert.equal(r.status, 1, r.stdout);
+      assert.match(r.stdout, new RegExp(`^${name.replace('.', '\\.')}: the installer drops this theme: `, 'm'), r.stdout);
+      assert.match(r.stdout, /^0 themes ok, 1 with problems$/m, r.stdout);
+    }
     // a truncated PNG still gives a reason (the theme otherwise sound again)
     fs.writeFileSync(at, JSON.stringify(json));
     const png = path.join(copy, 'workshop', 'breakout.png');

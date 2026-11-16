@@ -225,11 +225,8 @@ async fn download_pack(repo: &str) -> Result<Vec<u8>, String> {
         .build()
         .map_err(|e| e.to_string())?;
     let mut res = client.get(&url).send().await.map_err(|e| format!("cannot reach GitHub: {e}"))?;
-    if res.status() == reqwest::StatusCode::NOT_FOUND {
-        return Err(format!("no public repository {repo}"));
-    }
-    if !res.status().is_success() {
-        return Err(format!("GitHub answered {} for {repo}", res.status()));
+    if let Some(e) = download_refused(res.status().as_u16(), repo) {
+        return Err(e);
     }
     let mut bytes = Vec::new();
     while let Some(chunk) = res.chunk().await.map_err(|e| format!("the download failed: {e}"))? {
@@ -239,6 +236,18 @@ async fn download_pack(repo: &str) -> Result<Vec<u8>, String> {
         bytes.extend_from_slice(&chunk);
     }
     Ok(bytes)
+}
+
+/// What an answer other than 2xx means, in our words only (none of GitHub's text): redirects are not followed, so a
+/// 3xx is a repository renamed or moved; 403 and 429 a refusal for now; 404 no such public repository.
+fn download_refused(status: u16, repo: &str) -> Option<String> {
+    match status {
+        200..=299 => None,
+        300..=399 => Some(format!("the repository {repo} has moved: type its new name")),
+        403 | 429 => Some("GitHub refused for now, try again later".into()),
+        404 => Some(format!("no public repository {repo}")),
+        s => Some(format!("the download of {repo} failed (GitHub answered {s})")),
+    }
 }
 
 fn now_utc() -> String {
@@ -788,6 +797,17 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn a_download_refused_is_said_in_our_words() {
+        assert_eq!(download_refused(200, "a/b"), None);
+        assert_eq!(download_refused(301, "a/b").as_deref(), Some("the repository a/b has moved: type its new name"));
+        assert_eq!(download_refused(302, "a/b").as_deref(), Some("the repository a/b has moved: type its new name"));
+        assert_eq!(download_refused(403, "a/b").as_deref(), Some("GitHub refused for now, try again later"));
+        assert_eq!(download_refused(429, "a/b").as_deref(), Some("GitHub refused for now, try again later"));
+        assert_eq!(download_refused(404, "a/b").as_deref(), Some("no public repository a/b"));
+        assert_eq!(download_refused(500, "a/b").as_deref(), Some("the download of a/b failed (GitHub answered 500)"));
     }
 
     #[test]

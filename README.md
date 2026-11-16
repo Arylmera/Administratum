@@ -651,7 +651,8 @@ which is wiped at each start.
 the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
 check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
-*Update* in Settings > Hall > Added themes (nothing is sent but the repository's name). The only other outbound
+*Update* in Settings > Hall > Added themes: that request goes to GitHub like any download, so GitHub sees your IP
+address and the app's user agent, and it names the repository; no session data is sent. The only other outbound
 action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an

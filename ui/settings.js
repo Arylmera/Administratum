@@ -326,12 +326,13 @@ function initUpdates(form, opener) {
 }
 
 // A repository as the backend takes it (packs.rs repo_ok), from what was typed or pasted: owner/repo, or its GitHub
-// address (a trailing / or .git dropped). null: not one. The owner `local` is the id of a pack dropped by hand.
+// address (a trailing / or .git dropped, also from owner/repo.git). null: not one. The owner `local` is the id of a pack dropped by hand.
 const REPO = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
 export function repoOf(typed) {
   let s = String(typed).trim();
   const url = s.match(/^https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?\/?$/i);
   if (url) s = url[1];
+  else s = s.replace(/\.git$/i, ''); // typed as a clone name: as the address form
   const [owner, name] = s.split('/');
   return REPO.test(s) && name !== '.' && name !== '..' && owner.toLowerCase() !== 'local' ? s : null;
 }
@@ -354,9 +355,12 @@ function initPacks(form) {
       row.dataset.pack = p.id;
       head.append(el('span', null, p.repo ?? String(p.id).replace(/^local\//, '')),
         el('span', 'hint', local ? `${t('prefs.packs.count', { n })} · ${t('prefs.packs.local')}` : t('prefs.packs.count', { n })));
-      const button = (text, cmd, saying) => { const b = el('button', 'clear', text); b.type = 'button'; b.disabled = busy; b.onclick = () => run(cmd, { dir: p.dir }, saying); head.append(b); };
+      const button = (text, cmd, saying, said) => { const b = el('button', 'clear', text); b.type = 'button'; b.disabled = busy; b.onclick = () => run(cmd, { dir: p.dir }, saying, said); head.append(b); };
       if (local) head.append(el('span', 'hint', t('prefs.packs.localHint')));
-      else { button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing')); button(t('prefs.packs.remove'), 'theme_pack_remove'); }
+      else {
+        button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing'), q => done('updated', q, p.repo));
+        button(t('prefs.packs.remove'), 'theme_pack_remove', '', () => t('prefs.packs.removed', { repo: p.repo }));
+      }
       row.append(head);
       if (loaded?.themes.length) row.append(el('p', 'hint', loaded.themes.map(th => th.name).join(', ')));
       for (const { theme, message } of loaded?.problems ?? []) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));
@@ -366,18 +370,21 @@ function initPacks(form) {
     install.disabled = busy;
   };
   const read = () => invoke('theme_packs').then(ps => { packs = Array.isArray(ps) ? ps : []; render(); }, err => { packs = []; render(); line.textContent = String(err); });
-  // One change at a time; resolves true on success (the list re-read), false on a refusal (its message on the line).
-  const run = (cmd, args, saying = '') => {
+  // What a success says: the repo and its theme count (the pack the backend answered), then Restart to apply.
+  const done = (key, q, repo) => t(`prefs.packs.${key}`, { repo: q?.repo ?? repo, n: Array.isArray(q?.themes) ? q.themes.length : 0 });
+  // One change at a time; resolves true on success (the list re-read, `said(answer)` on the line), false on a refusal
+  // (its message on the line).
+  const run = (cmd, args, saying = '', said = () => '') => {
     if (busy) return Promise.resolve(false);
     busy = true; render();
     line.textContent = saying;
-    return invoke(cmd, args).then(() => { busy = false; line.textContent = ''; restart.hidden = false; return read().then(() => true); },
+    return invoke(cmd, args).then(q => { busy = false; line.textContent = said(q); restart.hidden = false; return read().then(() => true); },
       err => { busy = false; line.textContent = String(err); render(); return false; });
   };
   install.onclick = () => {
     const r = repoOf(repo.value);
     if (!r) { line.textContent = t('prefs.packs.bad'); return; }
-    run('theme_pack_install', { repo: r }, t('prefs.packs.installing')).then(ok => { if (ok) repo.value = ''; });
+    run('theme_pack_install', { repo: r }, t('prefs.packs.installing'), q => done('installed', q, r)).then(ok => { if (ok) repo.value = ''; });
   };
   restart.onclick = () => invoke('restart').catch(err => { line.textContent = String(err); });
   render();

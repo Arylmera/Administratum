@@ -25,7 +25,8 @@ const art = f => f.endsWith('.json') || f.endsWith('.png');
 function dropped([d, f, ...deeper]) {
   if (f === undefined) return d === 'pack.json' || LICENCES.includes(d) ? null : 'only pack.json and a licence are kept at the top';
   if (deeper.length) return 'more than one folder deep';
-  if (!plain(d) || d.endsWith('.') || reserved(d)) return `the folder name ${JSON.stringify(d)} is not kept (letters, digits, . - _, no leading or trailing .)`;
+  if (!plain(d) || d.endsWith('.')) return `the folder name ${JSON.stringify(d)} is not kept (letters, digits, . - _, no leading or trailing .)`;
+  if (reserved(d)) return `the folder name ${JSON.stringify(d)} is not kept (a name Windows keeps for a device)`;
   if (!plain(f) || reserved(f)) return 'not a plain file name (letters, digits, . - _, no leading .)';
   if (!art(f)) return 'only .json and .png are kept';
   return null;
@@ -40,7 +41,8 @@ async function check(target) {
 
   // What the installer keeps, drops or refuses. The repository's own files at the top (a README, .git, .github) are
   // its business: only a misnamed folder there is worth a word.
-  // A theme folder whose name the app does not read is a problem, not a warning: that theme never loads.
+  // A theme folder whose name the app does not read is a problem, not a warning: that theme never loads. One the app
+  // reads but the installer drops (a trailing ., a device name) is one too: published, it never arrives.
   const warnings = [], problems = [], misnamed = [];
   let files = 0, total = 0;
   const walk = (abs, rel) => {
@@ -50,7 +52,7 @@ async function check(target) {
       if (e.isSymbolicLink()) { warnings.push(`${shown}: the installer drops it: a link`); continue; }
       if (e.isDirectory()) {
         const why = rel.length ? 'more than one folder deep' : dropped([e.name, 'x.json']); // a folder: as a file in it
-        if (why && !rel.length && isFile(path.join(p, 'theme.json'))) { misnamed.push(e.name); problems.push(`${e.name}: the app does not read this theme: ${why}`); }
+        if (why && !rel.length && isFile(path.join(p, 'theme.json'))) { misnamed.push(e.name); problems.push(`${e.name}: ${plain(e.name) ? 'the installer drops this theme' : 'the app does not read this theme'}: ${why}`); }
         else if (why) warnings.push(`${shown}/: the installer drops it: ${why}`); else walk(p, segs);
         continue;
       }
@@ -95,7 +97,7 @@ async function check(target) {
   // a reason the loader leaves empty (a truncated PNG's decoder says nothing) still says something
   const reason = m => (/:\s*$/.test(m) ? `${m.trimEnd()} ${/\.png:\s*$/.test(m) ? 'unreadable PNG' : 'unreadable'}` : m);
   for (const { theme, message } of entry.problems) if (theme === null ? !only : mine(theme)) problems.push(`${theme ?? 'pack'}: ${reason(message)}`);
-  const ok = entry.themes.filter(t => mine(t.id.slice(id.length + 1))).length;
+  const ok = entry.themes.filter(t => { const f = t.id.slice(id.length + 1); return mine(f) && !misnamed.includes(f); }).length; // a misnamed one: once, with problems
   const bad = new Set(entry.problems.filter(p => p.theme !== null && mine(p.theme)).map(p => p.theme)).size;
   report(warnings, problems, ok, bad + misnamed.filter(mine).length);
 }

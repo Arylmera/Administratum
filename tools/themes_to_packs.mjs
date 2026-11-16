@@ -13,7 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
-import { resolve, THEMES } from '../ui/theme.js';
+import { resolve, TEXT, THEMES } from '../ui/theme.js';
 import { checkTheme, themeOf } from '../ui/themepack.js';
 
 const arg = name => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -139,15 +139,23 @@ assert.deepEqual(read('ui/art/themes.json'), ORDER, 'ui/art/themes.json');
 const disk = Object.fromEntries(ORDER.map(id => [id, read(`ui/art/${id}/theme.json`)]));
 const bases = new Set(['tier2', ...ORDER.filter(id => disk[id] && !disk[id].base)]);
 const make = id => themeOf(id, disk[id], disk[id].base && make(disk[id].base));
+// Wording added to TEXT since <ref> (new Settings lines, the same in every theme) is no theme's look: left out of the
+// comparison, once checked to be TEXT's own in that theme (no theme rewords a key the ref did not have).
+const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+const known = (now, then, base = TEXT, where = '') => Object.fromEntries(Object.entries(now).flatMap(([k, v]) => {
+  if (!(k in then)) { assert.deepStrictEqual(v, base[k], `text.${where}${k}: added since ${ref}, as TEXT has it`); return []; }
+  return [[k, isObj(v) && isObj(then[k]) ? known(v, then[k], base[k], `${where}${k}.`) : v]];
+}));
+const asOld = (look, id) => ({ ...look, text: known(look.text, old[id].look.text) });
 for (const id of ORDER) {
   try {
     assert.deepEqual(checkTheme(disk[id], { bases }), [], 'checkTheme');
     const b = make(id), o = old[id].theme;
-    assert.deepStrictEqual(resolve(b), old[id].look);
+    assert.deepStrictEqual(asOld(resolve(b), id), old[id].look);
     assert.deepStrictEqual({ world: b.world, art: b.art, artOf: b.artOf }, { world: o.world, art: o.art, artOf: o.artOf });
     if (loader.loadThemes) {
       const l = THEMES[id];
-      assert.deepStrictEqual(resolve(l), old[id].look, 'the loader');
+      assert.deepStrictEqual(asOld(resolve(l), id), old[id].look, 'the loader');
       assert.deepStrictEqual({ world: l.world, art: l.art, artOf: l.artOf }, { world: o.world, art: o.art, artOf: o.artOf }, 'the loader');
     }
     console.log(`${id}: identical${loader.loadThemes ? ' (and as the loader registers it)' : ''}`);
