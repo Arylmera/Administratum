@@ -6,7 +6,8 @@
 // are read once and never written back: the view's own scale, lighting and chime stay in this browser.
 import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
-import { T, THEMES, WORLDS, setTheme } from './theme.js';
+import { T, THEMES, WORLDS, setTheme, t } from './theme.js';
+import { PACKS } from './themes.js';
 import { minutesOf, hhmmOf } from './quiet.js';
 import { view as viewMode, viewName, setView, onView, stripKind } from './view.js';
 import { rooms, roomsOf, setRooms, MAX_ROOMS } from './rooms.js';
@@ -324,6 +325,65 @@ function initUpdates(form, opener) {
   }
 }
 
+// A repository as the backend takes it (packs.rs repo_ok), from what was typed or pasted: owner/repo, or its GitHub
+// address (a trailing / or .git dropped). null: not one. The owner `local` is the id of a pack dropped by hand.
+const REPO = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
+export function repoOf(typed) {
+  let s = String(typed).trim();
+  const url = s.match(/^https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?\/?$/i);
+  if (url) s = url[1];
+  const [owner, name] = s.split('/');
+  return REPO.test(s) && name !== '.' && name !== '..' && owner.toLowerCase() !== 'local' ? s : null;
+}
+
+// Added themes (host only): the packs the backend lists (theme_packs), joined with what loaded at start (themes.js
+// PACKS: the themes, the problems); a pack installed this session is listed but loads at the restart. Install by
+// owner/repo, Update (a pack from a repository), Remove: the buttons greyed while one runs; any success re-reads the
+// list and shows Restart to apply until the restart. Everything a pack or the backend says is shown as text.
+function initPacks(form) {
+  const box = form.querySelector('#packs'), list = box.querySelector('.pk-list'), repo = box.querySelector('.pk-repo');
+  const install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
+  let packs = [], busy = false;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const render = () => {
+    repo.placeholder = t('prefs.packs.placeholder');
+    const rows = packs.map(p => {
+      const loaded = PACKS.get(p.id), local = !p.repo, n = Array.isArray(p.themes) ? p.themes.length : 0;
+      const row = el('div', 'pk-row wide'), head = el('div', 'btns');
+      row.dataset.pack = p.id;
+      head.append(el('span', null, p.repo ?? String(p.id).replace(/^local\//, '')),
+        el('span', 'hint', local ? `${t('prefs.packs.count', { n })} · ${t('prefs.packs.local')}` : t('prefs.packs.count', { n })));
+      const button = (text, cmd, saying) => { const b = el('button', 'clear', text); b.type = 'button'; b.disabled = busy; b.onclick = () => run(cmd, { dir: p.dir }, saying); head.append(b); };
+      if (!local) button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing'));
+      button(t('prefs.packs.remove'), 'theme_pack_remove');
+      row.append(head);
+      if (loaded?.themes.length) row.append(el('p', 'hint', loaded.themes.map(th => th.name).join(', ')));
+      for (const { theme, message } of loaded?.problems ?? []) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));
+      return row;
+    });
+    list.replaceChildren(...(rows.length ? rows : [el('p', 'hint', t('prefs.packs.none'))]));
+    install.disabled = busy;
+  };
+  const read = () => invoke('theme_packs').then(ps => { packs = Array.isArray(ps) ? ps : []; render(); }, err => { packs = []; render(); line.textContent = String(err); });
+  // One change at a time; resolves true on success (the list re-read), false on a refusal (its message on the line).
+  const run = (cmd, args, saying = '') => {
+    if (busy) return Promise.resolve(false);
+    busy = true; render();
+    line.textContent = saying;
+    return invoke(cmd, args).then(() => { busy = false; line.textContent = ''; restart.hidden = false; return read().then(() => true); },
+      err => { busy = false; line.textContent = String(err); render(); return false; });
+  };
+  install.onclick = () => {
+    const r = repoOf(repo.value);
+    if (!r) { line.textContent = t('prefs.packs.bad'); return; }
+    run('theme_pack_install', { repo: r }, t('prefs.packs.installing')).then(ok => { if (ok) repo.value = ''; });
+  };
+  restart.onclick = () => invoke('restart').catch(err => { line.textContent = String(err); });
+  render();
+  if (!REMOTE) read(); // the phone neither shows nor calls this
+  return { read: () => (REMOTE ? Promise.resolve() : read()), render };
+}
+
 // Categories: a side button shows its section of the form, one at a time.
 function initCategories(root, form) {
   const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
@@ -480,7 +540,8 @@ export function initSettings(hooks) {
 
   const syncRooms = initRooms(form, hooks);
   setInterval(syncRooms, 2000); // the live lines follow the roster
-  sync = () => { syncForm(form, field, hooks, login); syncRooms(); };
+  const packs = initPacks(form);
+  sync = () => { syncForm(form, field, hooks, login); syncRooms(); packs.render(); }; // render: the theme's wording
   const readLogin = (enable) => invoke('start_at_login', enable === undefined ? {} : { enable })
     .then(on => { login = on; }, () => { login = null; }).finally(sync);
   listen('autostart', e => { login = e.payload; sync(); });
@@ -507,9 +568,9 @@ export function initSettings(hooks) {
   initCategories(root, form);
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
-  form.querySelector('.clear').onclick = () => { setPlace(NaN, NaN); sync(); };
+  form.querySelector('.place-clear').onclick = () => { setPlace(NaN, NaN); sync(); };
   form.querySelector('.reset').onclick = () => resetAll(hooks, setPlace);
 
   onView(() => sync()); // the tray or the handle switched the view under an open panel
-  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); } sync(); } }); // readLogin: the tray may have changed it
+  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); packs.read(); } sync(); } }); // readLogin: the tray may have changed it; packs: one dropped by hand
 }

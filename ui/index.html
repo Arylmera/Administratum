@@ -449,6 +449,13 @@
             <label class="column-only" hidden><span>Column side</span><select name="stripSide"><option value="left">Left</option><option value="right">Right</option></select></label>
             <label class="strip-only" hidden><span>Strip size</span><select name="stripSize"><option value="S">Small</option><option value="M">Medium</option><option value="L">Large</option></select></label>
           </fieldset>
+          <fieldset data-host class="host-only" id="packs"><legend data-t="prefs.packs.title">Added themes</legend>
+            <fieldset class="pk-list"></fieldset>
+            <label class="wide"><span data-t="prefs.packs.add">Add from GitHub</span><input type="text" class="pk-repo" spellcheck="false" autocomplete="off" placeholder="owner/repo"></label>
+            <button type="button" class="clear pk-install" data-t="prefs.packs.install">Install</button>
+            <p class="hint pk-line" role="status" aria-live="polite"></p>
+            <button type="button" class="clear pk-restart" data-t="prefs.packs.restart" hidden>Restart to apply</button>
+          </fieldset>
           <fieldset><legend>Switches</legend>
             <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
             <label class="strip-only" hidden><span>Strip backdrop</span><input type="checkbox" name="stripBackdrop"></label>
@@ -463,7 +470,7 @@
             <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
             <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>
             <p class="hint">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
-            <button type="button" class="clear">Clear</button>
+            <button type="button" class="clear place-clear">Clear</button>
           </fieldset>
         </section>
         <section data-cat="petitions" hidden>

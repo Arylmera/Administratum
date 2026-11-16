@@ -239,6 +239,14 @@ office chair, the Br Ba tiles on the wall, the fly, Mike on the night shift and 
 </tr>
 </table>
 
+**Themes from others.** A theme pack is a GitHub repository holding one or more themes made by someone else: a new
+world, or a new style for a world the app ships. To add one, type its `owner/repo` (or paste its GitHub address) in
+Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the Theme and Style lists
+after *Restart to apply*. The same list updates or removes a pack. A pack is data only: colours, wording and pixel
+art, checked when it loads; it cannot run code, and a theme that does not load is left out with the reason on its
+pack's line. A folder of themes dropped by hand into the `themes` folder beside the app's Chronicon shows there
+too, as a local folder.
+
 ---
 
 ## What it shows
@@ -483,6 +491,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
 | Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin, Breaking Bad. Each world outside 40k has its own art |
 | Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin. Breaking Bad: Breaking Bad |
+| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove*. A change applies after *Restart to apply* (see *Themes from others*) |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
@@ -629,6 +638,7 @@ configuration, and installs no hooks. It reads:
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals, and its 5-minute token buckets (the usage window) |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
+| `themes\<owner>__<repo>\` | A theme pack you installed (Settings > Hall > Added themes): its themes' files only, removed with *Remove* |
 
 Outside that folder, the app writes only the day report, and only when you turn *Also write the day report to a
 folder* on and name an existing absolute folder: one `YYYY-MM-DD-administratum-day.md` per day (session names,
@@ -638,10 +648,11 @@ Chronicon files older than 7 days are deleted at startup. Demo mode uses a separ
 which is wiped at each start.
 
 **Nothing about your sessions leaves the machine**, unless you turn on the [remote view](#remote-view), which serves
-the hall to paired devices on your local network only. There is no telemetry. The only network call is the update
-check: it fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
-turned off) and when you click *Check now*. The only other outbound action is opening a `https://claude.ai/code/<id>`
-link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
+the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
+check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
+turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
+*Update* in Settings > Hall > Added themes (nothing is sent but the repository's name). The only other outbound
+action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an
 Orca terminal after you click, in the widget or on a toast. The safeguards:

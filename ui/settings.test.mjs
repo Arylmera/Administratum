@@ -10,6 +10,17 @@ Object.assign(replies, {
   remote_status: { enabled: false, actions_allowed: false, port: 8765, urls: [], qr_svg: null },
   firewall_status: ({ port }) => ({ detail: `rule for ${port}`, rule: 'on', network: 'private' }),
 });
+// The packs on disk (theme_packs), loaded at start by themes.js: an installed one (a world of its own, a style of a
+// shipped world) and one dropped by hand whose theme cannot be read (a message with markup in it).
+const disk = [
+  { id: 'bob/worlds', dir: 'bob__worlds', repo: 'bob/worlds', installed: '2026-11-16T10:00:00Z', themes: ['steam', 'pink'] },
+  { id: 'local/mine', dir: 'mine', repo: null, installed: null, themes: ['broken'] },
+];
+const packFile = o => [...new TextEncoder().encode(JSON.stringify({ format: 1, ...o }))];
+const FILES = { 'bob__worlds/steam/theme.json': packFile({ name: 'Steam', world: 'steampunk', worldName: 'Steampunk' }),
+  'bob__worlds/pink/theme.json': packFile({ name: 'Pink vault', base: 'vault' }) };
+replies.theme_packs = () => disk.map(p => ({ ...p }));
+replies.theme_pack_file = ({ path }) => FILES[path] ?? new Error(path === 'mine/broken/theme.json' ? '<b>bad</b> bytes' : 'not found');
 await import('./themes.js'); // every world's styles, as app.js loads them
 const { settings, store, view, quiet, place, initSettings, MONITOR } = await import('./settings.js');
 const { T } = await import('./theme.js');
@@ -123,7 +134,7 @@ change('lat', '91');
 assert.deepEqual(place, { lat: 90, lon: 4.3517 });
 assert.equal(store.get('adm.lat'), '90');
 assert.deepEqual(seen, [['placed']]);
-form.querySelector('fieldset .clear:not(.desk-icon)').click();
+form.querySelector('.place-clear').click();
 assert.ok(Number.isNaN(place.lat) && Number.isNaN(place.lon));
 assert.equal(store.get('adm.lat'), '');
 
@@ -375,3 +386,91 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   form.querySelector('.reset').click();
   assert.deepEqual(rooms.list.map(r => r.id), [second]);
 }
+
+// Settings > Hall > Added themes: the packs the backend lists, joined with what loaded at start (PACKS); install by
+// owner/repo, update, remove, each a backend call that greys the buttons while it runs; any success: Restart to apply.
+{
+  const { PACKS } = await import('./themes.js');
+  const box = form.querySelector('section[data-cat="hall"] #packs');
+  assert.ok(box && box.hasAttribute('data-host') && box.classList.contains('host-only'), 'host only');
+  assert.equal(form.querySelector('section[data-cat="hall"]').children[1], box, 'right after the first fieldset');
+  const rows = () => box.querySelectorAll('.pk-row'), rowOf = id => rows().find(r => r.dataset.pack === id);
+  const repo = box.querySelector('.pk-repo'), install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
+  const btn = (row, text) => row.querySelectorAll('button').find(b => b.textContent === text);
+  assert.equal(repo.placeholder, 'owner/repo');
+  // the list: the repo with its count, Update and Remove; the local one tagged, no Update
+  assert.equal(rows().length, 2);
+  const bob = rowOf('bob/worlds'), mine = rowOf('local/mine');
+  assert.match(bob.textContent, /bob\/worlds/);
+  assert.match(bob.textContent, /2 themes/);
+  assert.match(bob.textContent, /Steam, Pink vault/, 'the themes that loaded');
+  assert.ok(btn(bob, 'Update') && btn(bob, 'Remove'));
+  assert.match(mine.textContent, /local folder/);
+  assert.match(mine.textContent, /1 theme\b/);
+  assert.equal(btn(mine, 'Update'), undefined);
+  assert.ok(btn(mine, 'Remove'));
+  // a problem: the theme and the message on its row, as text
+  assert.ok(PACKS.get('local/mine').problems.length, 'the broken theme recorded at start');
+  assert.match(mine.textContent, /broken: .*<b>bad<\/b> bytes/);
+  assert.equal(mine.querySelector('b'), null);
+  assert.equal(restart.hidden, true);
+  // not a repository name: said, nothing invoked
+  for (const typed of ['nope', 'local/x', 'LOCAL/x', 'a/..', 'a/.', '-a/b', 'a/b/c', 'https://gitlab.com/a/b']) {
+    repo.value = typed; install.click();
+    assert.equal(line.textContent, 'Not a repository name: owner/repo', typed);
+  }
+  assert.equal(invoked('theme_pack_install').length, 0);
+  // a refusal: the backend's message, the button back
+  replies.theme_pack_install = new Error('no public repository x/y');
+  repo.value = 'x/y'; install.click();
+  assert.equal(install.disabled, true);
+  await flush();
+  assert.equal(line.textContent, 'no public repository x/y');
+  assert.equal(install.disabled, false);
+  assert.equal(restart.hidden, true);
+  // a pasted GitHub address is its owner/repo
+  repo.value = ' https://github.com/carol/x.git/ '; install.click(); await flush();
+  assert.deepEqual(last('theme_pack_install'), { repo: 'carol/x' });
+  // Update: the pack's dir
+  replies.theme_pack_update = ({ dir }) => ({ ...disk.find(p => p.dir === dir) });
+  btn(rowOf('bob/worlds'), 'Update').click(); await flush();
+  assert.deepEqual(last('theme_pack_update'), { dir: 'bob__worlds' });
+  assert.equal(restart.hidden, false, 'a success: Restart to apply');
+  // Remove: the pack's dir, its row gone
+  replies.theme_pack_remove = ({ dir }) => { disk.splice(disk.findIndex(p => p.dir === dir), 1); };
+  btn(rowOf('local/mine'), 'Remove').click(); await flush();
+  assert.deepEqual(last('theme_pack_remove'), { dir: 'mine' });
+  assert.equal(rowOf('local/mine'), undefined);
+  assert.equal(rows().length, 1);
+  assert.equal(restart.hidden, false);
+  // Install: Downloading… with the buttons greyed, then the new row (not loaded until the restart); Restart restarts
+  let done;
+  replies.theme_pack_install = ({ repo: r }) => new Promise(ok => { done = () => { const p = { id: r, dir: r.replace('/', '__'), repo: r, installed: '2026-11-16T11:00:00Z', themes: ['a', 'b', 'c'] }; disk.push(p); ok(p); }; });
+  repo.value = 'alice/adm-themes'; install.click();
+  assert.deepEqual(last('theme_pack_install'), { repo: 'alice/adm-themes' });
+  assert.equal(line.textContent, 'Downloading…');
+  assert.ok(install.disabled && btn(rowOf('bob/worlds'), 'Update').disabled && btn(rowOf('bob/worlds'), 'Remove').disabled, 'greyed while it runs');
+  done(); await flush();
+  assert.match(rowOf('alice/adm-themes').textContent, /3 themes/);
+  assert.equal(line.textContent, '');
+  assert.equal(install.disabled, false);
+  assert.equal(restart.hidden, false);
+  replies.restart = null;
+  restart.click(); await flush();
+  assert.equal(invoked('restart').length, 1);
+  // a list that fails: said on the line
+  replies.theme_packs = new Error('cannot read the themes folder');
+  document.getElementById('prefs-open').click(); document.getElementById('prefs-open').click(); await flush(); // closed, opened: read again
+  assert.equal(line.textContent, 'cannot read the themes folder');
+}
+
+// The world picker: a pack's world among the worlds, by its name; a pack's style of a shipped world among its styles.
+{
+  const w = field('world').options.find(o => o.value === 'bob/worlds:steampunk');
+  assert.equal(w?.textContent, 'Steampunk');
+  change('world', 'vault');
+  assert.ok(field('theme').options.some(o => o.textContent === 'Pink vault' && o.value === 'bob/worlds:pink'));
+  change('world', 'bob/worlds:steampunk');
+  assert.equal(T.id, 'bob/worlds:steam');
+}
+console.log('packs ok');
