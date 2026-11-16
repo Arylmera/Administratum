@@ -37,8 +37,11 @@ my-pack/
     breakout.png
 ```
 
-A theme folder's name is its theme's id inside the pack. It and the pack's own folder name take letters, digits, `-`,
-`_` and `.`, not starting with `.`; a folder named otherwise is not read.
+A theme folder's name is its theme's id inside the pack. Every name in a pack, folders and files, takes letters,
+digits, `-`, `_` and `.` only, not starting with `.`; a folder's name does not end with `.`, and no name is one
+Windows keeps for a device (`CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, with any extension). A
+theme folder named otherwise is not read, and other files named otherwise are left out by the installer: the check
+names both.
 
 ---
 
@@ -96,7 +99,7 @@ Every key but `format`, `name` and one of `world` / `base` is optional: a theme 
 | `name` | The theme's name in Settings |
 | `world`, `worldName` | A world theme: the world's id, and its name when the world is new. An id the app ships (below) joins that world |
 | `base` | A style: the theme it recolours, a folder of the same pack or a theme the app ships (below). It takes that theme's world, art and wording, and its whole look |
-| `bands` | A style: the hue ranges to turn, each `{ "hue": [from, to], "to": degrees, "sat": factor, "light": shift }`. `sat` multiplies the saturation (default 1), `light` adds to the lightness, from -1 to 1 (default 0). A range whose `from` is above its `to` wraps past red (`[345, 15]`). Greys, skin tones, the department sashes and the art are never turned |
+| `bands` | A style: the hue ranges to turn, each `{ "hue": [from, to], "to": degrees, "sat": factor, "light": shift }`. Hues are degrees, 0 to 360: `[from, to]` takes the hues from `from` up to, not including, `to`, and `to` is the hue they turn to. `sat` multiplies the saturation, 0 to 10 (default 1), `light` adds to the lightness, -1 to 1 (default 0). A range whose `from` is above its `to` wraps past red (`[345, 15]`). Greys, skin tones, the department sashes and the art are never turned |
 | `art` | The art families this folder redraws (see [Drawing art](#drawing-art)) |
 | `px` | The art's colours, one per palette slot: `{ "c": "#5aff7a" }`. `#rrggbb` |
 | `sash` | The department colours, a list of `#rrggbb` |
@@ -130,7 +133,8 @@ of wording, `ui/art/forge/theme.json` a short world. `ui/theme.js` holds the def
 }
 ```
 
-**A world theme** (the template's `workshop/theme.json`, shortened):
+**A world theme** (the template's `workshop/theme.json`, shortened). Its `art` lists `breakout`, so `breakout.png` and
+`breakout.json` must sit beside it, as in the template; without them, leave `art` out:
 
 ```json
 {
@@ -280,8 +284,8 @@ Others install it from Settings → Hall → **Added themes**: type `owner/repo`
 app downloads the repository's default branch as it is at that moment. When you publish a change, they get it with
 *Update*; the app does not tell them there is one. There is no catalogue of packs: share your `owner/repo` yourself.
 
-While you work on a draft in the local themes folder, keep your own copy elsewhere (your repository): *Remove* in
-Settings deletes the pack's folder from disk, a local one too.
+A local pack, a folder you put in the themes folder yourself, has no *Remove* button in Settings, and the app never
+deletes it: to remove a draft, delete its folder yourself, then restart. *Remove* is for packs installed from GitHub.
 
 ---
 

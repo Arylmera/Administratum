@@ -6,8 +6,8 @@
 // then its loadPacks with a reader on the file system that serves what the backend serves (packs.rs read), then
 // ui/sprites.js and ui/faces.js, which load and check every theme's art. One line per problem (`<theme>: <message>`),
 // then `<n> themes ok, <m> with problems`; exit 0 only when there is none. What the installer would drop or refuse
-// (packs.rs keepable and its limits) comes as `warning:` lines; a limit passed is a problem. The pack is parsed,
-// never evaluated.
+// (packs.rs keepable and its limits) comes as `warning:` lines; a limit passed, a theme folder misnamed or no theme at
+// all is a problem, since the installer or the app refuses it. The pack is parsed, never evaluated.
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadPacks, PACKS } from '../ui/themes.js'; // first: it registers the shipped themes
@@ -40,7 +40,8 @@ async function check(target) {
 
   // What the installer keeps, drops or refuses. The repository's own files at the top (a README, .git, .github) are
   // its business: only a misnamed folder there is worth a word.
-  const warnings = [], problems = [];
+  // A theme folder whose name the app does not read is a problem, not a warning: that theme never loads.
+  const warnings = [], problems = [], misnamed = [];
   let files = 0, total = 0;
   const walk = (abs, rel) => {
     for (const e of fs.readdirSync(abs, { withFileTypes: true })) {
@@ -49,7 +50,8 @@ async function check(target) {
       if (e.isSymbolicLink()) { warnings.push(`${shown}: the installer drops it: a link`); continue; }
       if (e.isDirectory()) {
         const why = rel.length ? 'more than one folder deep' : dropped([e.name, 'x.json']); // a folder: as a file in it
-        if (why) warnings.push(`${shown}/: the installer drops it: ${why}`); else walk(p, segs);
+        if (why && !rel.length && isFile(path.join(p, 'theme.json'))) { misnamed.push(e.name); problems.push(`${e.name}: the app does not read this theme: ${why}`); }
+        else if (why) warnings.push(`${shown}/: the installer drops it: ${why}`); else walk(p, segs);
         continue;
       }
       if (!e.isFile()) continue;
@@ -67,7 +69,13 @@ async function check(target) {
 
   // The pack as the backend lists it (packs.rs list): its plain-named folders holding a theme.json, sorted.
   const themes = fs.readdirSync(dir, { withFileTypes: true }).filter(e => e.isDirectory() && plain(e.name) && isFile(path.join(dir, e.name, 'theme.json'))).map(e => e.name).sort();
-  if (single && !themes.includes(only)) { console.error(`${only}: the app would not list it (its folder name: letters, digits, . - _, no leading .)`); process.exit(2); }
+  // One theme folder: only its own warnings and problems (the pack's limits stay: they refuse it too).
+  if (only) {
+    const own = w => w.startsWith(`${only}/`);
+    warnings.splice(0, Infinity, ...warnings.filter(own));
+    problems.splice(0, Infinity, ...problems.filter(p => p.startsWith(`${only}: `) || p.startsWith('pack: ')));
+  }
+  if (single && !themes.includes(only)) return report(warnings, problems, 0, 1);
   // The reader the backend is (packs.rs read): `<folder>/<name>.json|png`, plain segments, a regular file of at most
   // 2 MiB; anything else is a missing file.
   const absent = () => Object.assign(new Error('not found'), { code: 'ENOENT' });
@@ -84,9 +92,16 @@ async function check(target) {
   await import('../ui/faces.js');
 
   const entry = PACKS.get(id), mine = t => !only || t === only;
-  for (const { theme, message } of entry.problems) if (theme === null ? !only : mine(theme)) problems.push(`${theme ?? 'pack'}: ${message}`);
+  // a reason the loader leaves empty (a truncated PNG's decoder says nothing) still says something
+  const reason = m => (/:\s*$/.test(m) ? `${m.trimEnd()} ${/\.png:\s*$/.test(m) ? 'unreadable PNG' : 'unreadable'}` : m);
+  for (const { theme, message } of entry.problems) if (theme === null ? !only : mine(theme)) problems.push(`${theme ?? 'pack'}: ${reason(message)}`);
   const ok = entry.themes.filter(t => mine(t.id.slice(id.length + 1))).length;
   const bad = new Set(entry.problems.filter(p => p.theme !== null && mine(p.theme)).map(p => p.theme)).size;
+  report(warnings, problems, ok, bad + misnamed.filter(mine).length);
+}
+// The lines, the count, the exit code. No theme at all fails: the installer refuses a pack without one (packs.rs).
+function report(warnings, problems, ok, bad) {
+  if (!ok && !bad) problems.push('no theme found: a theme is a folder holding theme.json, at the top of the pack');
   for (const w of warnings) console.log(`warning: ${w}`);
   for (const p of problems) console.log(p);
   console.log(`${ok} theme${ok === 1 ? '' : 's'} ok, ${bad} with problems`);

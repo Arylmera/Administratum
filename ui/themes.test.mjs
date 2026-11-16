@@ -356,6 +356,26 @@ try {
     const one = check(path.join(copy, 'vault-pink'));
     assert.equal(one.status, 0, one.stdout + one.stderr);
     assert.match(one.stdout, /^1 theme ok, 0 with problems$/m, one.stdout);
+    // only that theme's warnings: the pack's others are not its
+    fs.writeFileSync(path.join(copy, 'workshop', 'tool.js'), '');
+    assert.doesNotMatch(check(path.join(copy, 'vault-pink')).stdout, /tool\.js/);
+    // no theme: an empty folder, or one whose only theme folder the app does not read, fails
+    const empty = path.join(copy, 'empty');
+    fs.mkdirSync(path.join(empty, 'Bad Name'), { recursive: true });
+    const none = check(empty);
+    assert.equal(none.status, 1, none.stdout);
+    assert.match(none.stdout, /^no theme found: /m, none.stdout);
+    fs.writeFileSync(path.join(empty, 'Bad Name', 'theme.json'), '{}');
+    for (const r of [check(empty), check(path.join(empty, 'Bad Name'))]) {
+      assert.equal(r.status, 1, r.stdout);
+      assert.match(r.stdout, /^Bad Name: the app does not read this theme: /m, r.stdout);
+      assert.match(r.stdout, /^0 themes ok, 1 with problems$/m, r.stdout);
+    }
+    // a truncated PNG still gives a reason (the theme otherwise sound again)
+    fs.writeFileSync(at, JSON.stringify(json));
+    const png = path.join(copy, 'workshop', 'breakout.png');
+    fs.writeFileSync(png, fs.readFileSync(png).subarray(0, 200));
+    assert.match(check(copy).stdout, /^workshop: workshop\/breakout\.png: unreadable PNG$/m);
   } finally { fs.rmSync(copy, { recursive: true, force: true }); }
 }
 // The guide's list of families is the tool's, current.
