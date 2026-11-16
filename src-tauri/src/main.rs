@@ -209,6 +209,73 @@ fn theme_pack_file(path: String, app: AppHandle) -> Result<tauri::ipc::Response,
     packs::read(&themes_root(&app)?, &path).map(tauri::ipc::Response::new).ok_or_else(|| "not found".into())
 }
 
+/// The archive of a public GitHub repository's default branch (`packs::archive_url`): HTTPS to codeload.github.com
+/// only, no redirect followed, 60 s in all, reading stopped past `packs::MAX_ARCHIVE` (whatever `Content-Length` says).
+async fn download_pack(repo: &str) -> Result<Vec<u8>, String> {
+    let url = packs::archive_url(repo).ok_or_else(|| format!("not a GitHub repository: {repo}"))?;
+    // reqwest is built without a crypto provider (as the updater uses it): install the one the updater installs
+    if rustls::crypto::CryptoProvider::get_default().is_none() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("Administratum/", env!("CARGO_PKG_VERSION"), " (theme packs)"))
+        .redirect(reqwest::redirect::Policy::none())
+        .https_only(true)
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut res = client.get(&url).send().await.map_err(|e| format!("cannot reach GitHub: {e}"))?;
+    if res.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err(format!("no public repository {repo}"));
+    }
+    if !res.status().is_success() {
+        return Err(format!("GitHub answered {} for {repo}", res.status()));
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = res.chunk().await.map_err(|e| format!("the download failed: {e}"))? {
+        if bytes.len() + chunk.len() > packs::MAX_ARCHIVE {
+            return Err(format!("the archive of {repo} is larger than {} MiB", packs::MAX_ARCHIVE >> 20));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
+fn now_utc() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+}
+
+/// Settings > Themes: install the pack of a public GitHub repository `owner/repo` (`packs::install`), or replace it.
+/// Host only (not on the remote view), as are the next three.
+#[tauri::command]
+async fn theme_pack_install(repo: String, app: AppHandle) -> Result<packs::Pack, String> {
+    let root = themes_root(&app)?;
+    let repo = repo.trim().to_string();
+    let archive = download_pack(&repo).await?;
+    tauri::async_runtime::spawn_blocking(move || packs::install(&root, &repo, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+}
+
+/// Install the pack in the folder `dir` again from the repository it came from (`packs::update`); a local pack is refused.
+#[tauri::command]
+async fn theme_pack_update(dir: String, app: AppHandle) -> Result<packs::Pack, String> {
+    let root = themes_root(&app)?;
+    let repo = packs::origin(&root, &dir)?;
+    let archive = download_pack(&repo).await?;
+    tauri::async_runtime::spawn_blocking(move || packs::update(&root, &dir, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+}
+
+/// Remove the pack in the folder `dir` (`packs::remove`).
+#[tauri::command(async)]
+fn theme_pack_remove(dir: String, app: AppHandle) -> Result<(), String> {
+    packs::remove(&themes_root(&app)?, &dir)
+}
+
+/// Restart the app (a pack installed, updated or removed is loaded at start).
+#[tauri::command]
+fn restart(app: AppHandle) {
+    app.restart();
+}
+
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
 /// Never includes the backend's `remote.*` keys (the remote view's token among them).
 #[tauri::command(async)]
@@ -316,6 +383,10 @@ fn main() {
             settings_save,
             theme_packs,
             theme_pack_file,
+            theme_pack_install,
+            theme_pack_update,
+            theme_pack_remove,
+            restart,
             rooms::rooms_test,
             remote::app::remote_status,
             remote::app::remote_set,

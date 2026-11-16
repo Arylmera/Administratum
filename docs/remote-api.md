@@ -95,7 +95,7 @@ Query values are percent-decoded.
 | `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}` |
 | `GET /api/theme_packs` | `theme_packs` -> `[{id, dir, repo, installed, themes}]`, the theme packs in the PC's themes folder (`id` `owner/repo` or `local/<dir>`; `repo` and `installed` null for a local pack; `themes` the folders holding a `theme.json`, sorted). Their files are served under `/themes/` (Static files); there is no remote install or removal |
 
-Not exposed: `open_session`, `settings_save`, `theme_pack_file` (the phone reads `/themes/` instead), `set_*`, `start_at_login`, the `remote_*` commands.
+Not exposed: `open_session`, `settings_save`, `theme_pack_file` (the phone reads `/themes/` instead), `theme_pack_install`, `theme_pack_update`, `theme_pack_remove`, `restart`, `set_*`, `start_at_login`, the `remote_*` commands.
 
 ## Action endpoint (POST)
 
