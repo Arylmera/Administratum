@@ -119,5 +119,5 @@ for (const [id, w] of Object.entries(FACES.worlds)) if (w) {
   assert.deepEqual(checkFaces(w.objects, FACES.base.objects, MAPS, w.frames), [], id);
 }
 setTheme('tier2');
-assert.ok(Object.values(FACES.worlds).filter(Boolean).length >= 6 && THEMES.cyber, 'found the worlds\' faces');
+assert.ok(Object.values(FACES.worlds).filter(Boolean).length >= 5 && THEMES.cyber, 'found the worlds\' faces');
 console.log('artcheck ok');

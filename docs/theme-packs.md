@@ -37,6 +37,10 @@ my-pack/
     breakout.png
 ```
 
+For a real pack holding a full world, see [`ChristianLemer/adm-themes`](https://github.com/ChristianLemer/adm-themes):
+its `breakingbad/` folder is Breaking Bad, a world the app used to ship, with every sheet of its own art. Install it by
+that name.
+
 A theme folder's name is its theme's id inside the pack. Every name in a pack, folders and files, takes letters,
 digits, `-`, `_` and `.` only, not starting with `.`; a folder's name does not end with `.`, and no name is one
 Windows keeps for a device (`CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, with any extension). A
@@ -166,7 +170,6 @@ of wording, `ui/art/forge/theme.json` a short world. `ui/theme.js` holds the def
 | `tower` | Arcane Tower | Fantasy (`arcane`) | yes |
 | `vault` | Vault 111 | Fallout (`vault`) | yes |
 | `darwin` | Darwin | Darwin (`darwin`) | yes |
-| `breakingbad` | Breaking Bad | Breaking Bad (`breakingbad`) | yes |
 
 A style's base may also be a world theme of the same pack, by its folder name. Your pack's world and theme ids are
 your pack's own: two packs that both say `steampunk` make two worlds, and neither can touch the other. In the app, a

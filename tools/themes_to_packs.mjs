@@ -1,6 +1,7 @@
 // One-off for the move of the themes to data files (docs/superpowers/specs/2026-11-15-theme-packs-design.md),
 // deletable once merged: writes ui/art/<id>/theme.json for every theme beyond Ordo Administratum from the JS themes of
-// a git ref, and ui/art/themes.json (their order), then proves each one resolves exactly as before.
+// a git ref, and ui/art/themes.json (their order), then proves each one resolves exactly as before. Once a theme of the
+// ref has left the app (ui/art/themes.json no longer lists it), it is named on a "no longer shipped" line, not proved.
 //   node tools/themes_to_packs.mjs --from <git ref>           write the files, exit 0 only if every theme is identical
 //   node tools/themes_to_packs.mjs --from <git ref> --check   the same proof on the files as they are, nothing written
 // <git ref>: a commit whose ui/themes.js is still the old code (the last commit before themes.js became the loader).
@@ -20,7 +21,9 @@ const arg = name => { const i = process.argv.indexOf(`--${name}`); return i > 0 
 const ref = arg('from'), check = process.argv.includes('--check');
 if (!ref) throw new Error('usage: node tools/themes_to_packs.mjs --from <git ref> [--check]');
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ORDER = ['forge', 'xenos', 'night', 'contrast', 'cyber', 'orbital', 'corpo', 'rain', 'matrix', 'synth', 'tower', 'vault', 'darwin', 'breakingbad'];
+// The themes still shipped, in order: ui/art/themes.json as it is now (the ref's own list when there is none yet).
+const listed = path.join(root, 'ui/art/themes.json');
+let ORDER = fs.existsSync(listed) ? JSON.parse(fs.readFileSync(listed, 'utf8')) : null;
 const RANGES = { pink: [300, 345], violet: [260, 300], night: [210, 260], cyan: [165, 210] }; // the old BANDS
 const KEYS = ['format', 'name', 'world', 'base', 'bands', 'art', 'px', 'sash', 'rank', 'ink', 'light', 'ui', 'text', 'notes'];
 const PARTS = ['px', 'rank', 'ink', 'light', 'ui']; // where an accent's overrides go
@@ -40,7 +43,10 @@ try {
   const was = await import(pathToFileURL(path.join(tmp, 'ui', 'theme.js')));
   await import(pathToFileURL(file));
   const ids = Object.keys(was.THEMES).filter(id => id !== 'tier2');
-  assert.deepEqual(ids, ORDER, 'the themes of the ref, in order');
+  ORDER ??= ids;
+  assert.deepEqual(ids.filter(id => ORDER.includes(id)), ORDER, 'the shipped themes are the ref\'s, in its order');
+  const gone = ids.filter(id => !ORDER.includes(id)); // moved out of the app (to a theme pack): reported, not proved
+  if (gone.length) console.log(`no longer shipped: ${gone.join(', ')}`);
   old = Object.fromEntries(ORDER.map(id => [id, { look: was.resolve(was.THEMES[id]), theme: was.THEMES[id] }]));
   const accents = Object.fromEntries(globalThis.ACCENTS.map(a => [a.id, a]));
   authored = Object.fromEntries(ORDER.map(id => [id, accents[id] ?? was.THEMES[id]]));

@@ -9,7 +9,7 @@ const { loadThemes, artRootOf } = await import('./themes.js');
 const { readArt } = await import('./art.js');
 
 // The shipped themes, registered over Ordo Administratum in the order of ui/art/themes.json.
-assert.deepEqual(Object.keys(THEMES), ['tier2', 'forge', 'xenos', 'night', 'contrast', 'cyber', 'orbital', 'corpo', 'rain', 'matrix', 'synth', 'tower', 'vault', 'darwin', 'breakingbad']);
+assert.deepEqual(Object.keys(THEMES), ['tier2', 'forge', 'xenos', 'night', 'contrast', 'cyber', 'orbital', 'corpo', 'rain', 'matrix', 'synth', 'tower', 'vault', 'darwin']);
 // A style draws with its base's art, in its base's world.
 assert.equal(THEMES.rain.artOf, 'cyber');
 assert.equal(THEMES.rain.world, 'cyber');
@@ -18,7 +18,7 @@ assert.equal(THEMES.rain.world, 'cyber');
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const n = execFileSync(process.execPath, ['--input-type=module', '-e',
   "await import('./ui/sprites.js'); console.log(Object.keys((await import('./ui/theme.js')).THEMES).length);"], { cwd: repo, encoding: 'utf8' });
-assert.equal(n.trim(), '15', 'sprites.js alone registers the 15 themes');
+assert.equal(n.trim(), '14', 'sprites.js alone registers the 14 themes');
 // An art name ends up in a file path: one that is not a known family is refused before anything is read.
 const art = execFileSync(process.execPath, ['--input-type=module', '-e',
   "const { defineTheme } = await import('./ui/theme.js'); defineTheme({ id: 'x', world: 'w40k', name: 'X', art: ['constructor'] });" +
@@ -321,7 +321,7 @@ try {
     const code = await read;
     console.log(JSON.stringify({ themes: Object.keys(THEMES), packs: [...PACKS.keys()], problems: [...PACKS.values()].flatMap(p => p.problems),
       reads: calls.filter(c => c.name === 'theme_pack_file').map(c => c.args.path), code }));`], { cwd: repo, encoding: 'utf8', timeout: 60_000 }));
-  const shipped = ['tier2', 'forge', 'xenos', 'night', 'contrast', 'cyber', 'orbital', 'corpo', 'rain', 'matrix', 'synth', 'tower', 'vault', 'darwin', 'breakingbad'];
+  const shipped = ['tier2', 'forge', 'xenos', 'night', 'contrast', 'cyber', 'orbital', 'corpo', 'rain', 'matrix', 'synth', 'tower', 'vault', 'darwin'];
   const one = [{ id: 'a/p', dir: 'p', repo: 'a/p', installed: '2026-11-16T10:00:00Z', themes: ['pink'] }];
   const ok = run(`replies.theme_packs = ${JSON.stringify(one)};`);
   assert.deepEqual(ok.themes, [...shipped, 'a/p:pink'], JSON.stringify(ok));
