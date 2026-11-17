@@ -4,24 +4,29 @@
 import { decodePng } from './png.js';
 
 const node = typeof window === 'undefined';
-async function read(name, as) {
-  const url = new URL(`./art/${name}`, import.meta.url);
+export const ART = new URL('./art/', import.meta.url).href; // the art folder, ui/art/
+// A file of an art folder (`root`: a folder URL, default ui/art/), as bytes or parsed JSON. Works under Node (fs) and
+// in the page (fetch); a JSON that does not parse throws naming the file.
+export async function readArt(name, as, root = ART) {
+  const url = new URL(name, root), json = buf => {
+    try { return JSON.parse(new TextDecoder().decode(buf)); } catch (e) { throw new Error(`${name}: ${e.message}`, { cause: e }); }
+  };
   if (node) {
     const { readFile } = await import('node:fs/promises');
     const buf = await readFile(url);
-    return as === 'json' ? JSON.parse(buf.toString('utf8')) : new Uint8Array(buf);
+    return as === 'json' ? json(buf) : new Uint8Array(buf);
   }
   const r = await fetch(url, { credentials: 'same-origin' });
   if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
   const buf = new Uint8Array(await r.arrayBuffer());
   // the installed app (Tauri) answers a missing file with index.html, status 200: that is a 404 too
   if (/^<!doctype/i.test(new TextDecoder().decode(buf.subarray(0, 9)))) throw new Error(`${name}: HTTP 404`);
-  return as === 'json' ? JSON.parse(new TextDecoder().decode(buf)) : buf;
+  return as === 'json' ? json(buf) : buf;
 }
 
 // key.gpl -> 'r,g,b' -> palette char (the first letter of each colour's name)
 let keyP = null;
-const key = () => (keyP ??= read('key.gpl').then(bytes => {
+const key = () => (keyP ??= readArt('key.gpl').then(bytes => {
   const text = new TextDecoder().decode(bytes), map = new Map();
   for (const line of text.split('\n')) {
     const m = line.match(/^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S)/);
@@ -31,10 +36,11 @@ const key = () => (keyP ??= read('key.gpl').then(bytes => {
 }));
 
 // -> { frames: { name: rows[] }, anchors (art px), tiles (fill rules, room.js), meta (the JSON's whole meta) }. Throws on a colour outside the key palette or a
-// half-transparent pixel, naming the file and the pixel, so a bad export fails loudly (and in the tests).
-export async function loadSheet(family) {
-  const json = await read(`${family}.json`, 'json'); // a sheet without frames (a world's face rects) has no PNG
-  const [img, map] = Object.keys(json.frames ?? {}).length ? await Promise.all([read(`${family}.png`).then(decodePng), key()]) : [];
+// half-transparent pixel, naming the file and the pixel, so a bad export fails loudly (and in the tests). `root`: the
+// folder holding the sheet (a theme's own art: themes.js artRootOf), default ui/art/.
+export async function loadSheet(family, root) {
+  const json = await readArt(`${family}.json`, 'json', root); // a sheet without frames (a world's face rects) has no PNG
+  const [img, map] = Object.keys(json.frames ?? {}).length ? await Promise.all([readArt(`${family}.png`, 'bytes', root).then(decodePng), key()]) : [];
   const frames = {};
   for (const [name, { frame: r }] of Object.entries(json.frames ?? {})) {
     frames[name] = Array.from({ length: r.h }, (_, j) => {
@@ -43,7 +49,7 @@ export async function loadSheet(family) {
         const x = r.x + i, y = r.y + j, o = (y * img.w + x) * 4, a = img.rgba[o + 3];
         if (a === 0) { row += '.'; continue; }
         const c = a === 255 && map.get(`${img.rgba[o]},${img.rgba[o + 1]},${img.rgba[o + 2]}`);
-        if (!c) throw new Error(`art/${family}.png: pixel ${x},${y} (${name}) is ${a < 255 ? 'half transparent' : `rgb(${img.rgba[o]},${img.rgba[o + 1]},${img.rgba[o + 2]}), not a key.gpl colour`}`);
+        if (!c) throw new Error(`${new URL(`${family}.png`, root ?? ART).href.replace(ART, 'art/')}: pixel ${x},${y} (${name}) is ${a < 255 ? 'half transparent' : `rgb(${img.rgba[o]},${img.rgba[o + 1]},${img.rgba[o + 2]}), not a key.gpl colour`}`);
         row += c;
       }
       return row;

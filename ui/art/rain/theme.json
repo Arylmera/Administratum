@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "name": "Rain City",
+  "base": "cyber",
+  "bands": [
+    { "hue": [300, 345], "to": 30, "sat": 1, "light": 0.02 },
+    { "hue": [260, 300], "to": 18, "sat": 0.8, "light": -0.04 },
+    { "hue": [210, 260], "to": 196, "sat": 0.7 },
+    { "hue": [165, 210], "to": 174, "sat": 0.75, "light": -0.04 }
+  ],
+  "art": ["breakout"],
+  "px": { "7": "#273134", "8": "#2a3538", "9": "#383b3a", "H": "#291f1a", "K": "#352f2a" },
+  "ink": { "lampDead": "#1c1d20" },
+  "text": {
+    "subtitle": "Lower Levels · Night market den",
+    "motto": "It never stops raining down here",
+    "breakout": "Back Alley"
+  },
+  "notes": [
+    "Rain City: the lower levels in the rain. Sodium-amber neon, teal screens, burnt-orange coolant, blue-green smog.",
+    "ui/art/rain/: the Back Alley (wet asphalt with a puddle, chain-link fence on galvanised posts, a flickering OUT sign over the gate)"
+  ]
+}

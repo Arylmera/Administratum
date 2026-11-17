@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "name": "Sunset Drive",
+  "base": "cyber",
+  "bands": [
+    { "hue": [300, 345], "to": 318, "sat": 1, "light": 0.02 },
+    { "hue": [260, 300], "to": 285, "sat": 1, "light": 0.02 },
+    { "hue": [210, 260], "to": 272, "sat": 1.4, "light": 0.01 },
+    { "hue": [165, 210], "to": 28, "sat": 1, "light": 0.02 }
+  ],
+  "art": ["breakout"],
+  "px": { "7": "#32213e", "8": "#362244", "9": "#3e3241", "H": "#38213e", "K": "#453243" },
+  "ink": { "lampDead": "#1c1d20" },
+  "text": {
+    "subtitle": "Outrun Strip · Midnight arcade",
+    "motto": "Drive into the sunset",
+    "breakout": "Arcade Corner"
+  },
+  "notes": [
+    "Sunset Drive: synthwave. A purple dusk, magenta neon, the chrome and screens a sunset orange.",
+    "ui/art/synth/: the Arcade Corner (a checkered floor, magenta velvet ropes on brass stanchions, a PLAY marquee gate)"
+  ]
+}

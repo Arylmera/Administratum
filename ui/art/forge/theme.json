@@ -1,0 +1,47 @@
+{
+  "format": 1,
+  "name": "Ordo Machinum",
+  "world": "w40k",
+  "art": ["breakout"],
+  "px": {
+    "1": "#2c2622",
+    "2": "#15110e",
+    "3": "#4e3422",
+    "4": "#2e2622",
+    "5": "#302824",
+    "6": "#1a1410",
+    "D": "#3a1a10",
+    "E": "#22100a",
+    "N": "#2a0e08",
+    "!": "#8a3a12",
+    "+": "#ffb05a",
+    "c": "#ffb347",
+    "C": "#3a2008",
+    "o": "#ffb347",
+    "O": "#fff2d8",
+    "X": "#d0702a",
+    "Y": "#ffa860",
+    "Z": "#8a3e14",
+    "i": "#5a240a"
+  },
+  "ink": {
+    "coolant": "#ff8a2a",
+    "screenHot": "#ffe0a8",
+    "screenDim": "#c87a2a",
+    "screenMark": "#8a4a18",
+    "screenFlicker": "rgba(58,32,8,.55)",
+    "screenOff": "#7a4a20",
+    "cant": "rgba(255,170,80,.38)"
+  },
+  "light": { "green": "rgba(255,170,80,.16)", "lampOn": "rgba(255,190,110,.55)" },
+  "ui": { "--green": "#ffb347", "--yes": "#7a4a20", "--yes-deep": "#3a2008" },
+  "text": {
+    "subtitle": "Ordo Machinum · Forge-archive of the Inquisition",
+    "motto": "Trust not the thinking machine",
+    "breakout": "Servitor Pen"
+  },
+  "notes": [
+    "Ordo Machinum, hunters of the thinking machine. Molten industry: rust-dark plates, orange plasma in the floor channels, amber screens and cant.",
+    "ui/art/forge/: the Servitor Pen (hazard-chevron deck plates, cable fence, cog-sigil barrier gate)"
+  ]
+}

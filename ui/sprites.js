@@ -2,7 +2,7 @@
 // rows, one char per colour of the active theme's px palette (theme.js), '.' transparent. The art started as the
 // Claude Design board "Tier II — Data-Shrine".
 import { BASE, T, THEMES, onTheme } from './theme.js';
-import './themes.js'; // the themes, and the art they bring (ui/art/<theme>/)
+import { artRootOf } from './themes.js'; // the themes, and the art they bring (ui/art/<theme>/)
 import { loadSheet } from './art.js';
 import { outline, outlined } from './outline.js';
 export { BASE };
@@ -86,13 +86,13 @@ const loaded = await Promise.all(FAMILIES.map(f => (FAMILIES39.includes(f) ? loa
 Object.keys(base).forEach((f, i) => { base[f] = loaded[i]; });
 // A theme's own art (theme.art: the families it redraws): ui/art/<theme>/<family>.png + .json holding only the frames it
 // changes, same sizes; anchors and fill rules it lists replace the default's. Everything else stays the default art.
-// A theme with artOf draws with that theme's art (an accent of Neon Grid: same sprites, its own colours).
+// A theme with artOf draws with that theme's art (a style of Neon Grid: same sprites, its own colours).
 const themed = {}; // art folder (theme id) -> family -> sheet
 const dirOf = id => THEMES[id]?.artOf ?? id;
 await Promise.all(Object.values(THEMES).flatMap(th => (th.art ?? []).map(async f => {
-  if (!base[f]) throw new Error(`theme ${th.id}: no art family '${f}'`);
+  if (!FAMILIES.includes(f)) throw new Error(`theme ${th.id}: no art family '${f}'`); // the name ends up in a file path
   try {
-    (themed[th.id] ??= {})[f] = await loadSheet(`${th.id}/${f}`);
+    (themed[th.id] ??= {})[f] = await loadSheet(f, artRootOf(th.id));
   } catch (e) {
     // A 39° family a theme lists before its own file is drawn: falls back to the base 39 family (itself maybe empty).
     if (FAMILIES39.includes(f) && missing(e)) return;
