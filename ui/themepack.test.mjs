@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { TIER_II, resolve } from './theme.js';
 import { recolour, checkTheme, themeOf, scoped, FONTS, LOCKED } from './themepack.js';
 
@@ -76,15 +77,22 @@ one({ light: { night: '10,20,999' } }, 'light.night');
 assert.deepEqual(checkTheme({ ...ok, ui: { '--bg': 'rgba(255,170,80,.38)' }, light: { night: '10,20,30' } }, { bases }), []);
 
 // locked wording: a pack cannot reword the safety and pack-management texts; a shipped theme's check (no `locked`) may
-assert.deepEqual(LOCKED, ['risky', 'rejectAll', 'toast.failed', 'watch.button', 'prefs.packs']);
+assert.deepEqual(LOCKED, ['risky', 'rejectAll', 'toast.failed', 'prefs.packs']);
 for (const [key, text] of [['risky', { risky: 'ok: {reason}' }], ['rejectAll', { rejectAll: 'Fine' }], ['toast.failed', { toast: { failed: 'sent' } }],
-  ['watch.button', { watch: { button: 'Nothing' } }], ['prefs.packs', { prefs: { packs: { remove: 'Update' } } }], ['prefs.packs', { prefs: { packs: {} } }]]) {
+  ['prefs.packs', { prefs: { packs: { remove: 'Update' } } }], ['prefs.packs', { prefs: { packs: {} } }]]) {
   const p = checkTheme({ ...ok, text }, { bases, locked: LOCKED });
   assert.equal(p.length, 1, `${key}: ${JSON.stringify(p)}`);
   assert.ok(p[0].startsWith(`text.${key}:`) && p[0].includes('a pack cannot reword'), p[0]);
   assert.deepEqual(checkTheme({ ...ok, text }, { bases }), [], `${key}: a shipped theme may`);
 }
-assert.deepEqual(checkTheme({ ...ok, text: { toast: { petition: 'P {name}' }, watch: { name: 'Owl' }, prefs: { theme: 'Look' } } }, { bases, locked: LOCKED }), [], 'the keys beside them stay free');
+assert.deepEqual(checkTheme({ ...ok, text: { toast: { petition: 'P {name}' }, watch: { name: 'Owl', button: 'Night Vigil: Owl watches' }, prefs: { theme: 'Look' } } }, { bases, locked: LOCKED }), [], 'the keys beside them stay free, the Night Vigil button too (it names the watchman)');
+
+// every shipped world passes the check a pack's theme gets: a full world can be a pack
+const artDir = new URL('./art/', import.meta.url);
+const listed = JSON.parse(readFileSync(new URL('themes.json', artDir), 'utf8'));
+const worldThemes = listed.map(id => [id, JSON.parse(readFileSync(new URL(`${id}/theme.json`, artDir), 'utf8'))]).filter(([, j]) => j.world !== undefined && j.base === undefined);
+assert.ok(worldThemes.length > 0 && worldThemes.some(([, j]) => j.text?.watch?.button), 'some shipped worlds reword the Night Vigil button');
+for (const [id, j] of worldThemes) assert.deepEqual(checkTheme(j, { bases: new Set(listed), locked: LOCKED }), [], `${id}: a shipped world as a pack`);
 
 // scoped: a pack's theme gets pack-scoped ids; what it names in its own pack follows, what is shipped stays
 const shipped = ['w40k', 'vault'], own = ['pink', 'steam', 'rose'];

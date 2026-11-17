@@ -44,8 +44,9 @@ export const scoped = (pack, id, json, { own = [], shipped = [] } = {}) => {
 };
 
 // The wording a pack's theme cannot set (loadPacks passes it as `locked`): what warns of a risky command, what Deny
-// also refuses, an answer not sent, the Night Vigil's button, the packs' own buttons and lines. Shipped themes may.
-export const LOCKED = ['risky', 'rejectAll', 'toast.failed', 'watch.button', 'prefs.packs'];
+// also refuses, an answer not sent, the packs' own buttons and lines. Shipped themes may. (A world may reword the Night Vigil's button:
+// it names the world's watchman.)
+export const LOCKED = ['risky', 'rejectAll', 'toast.failed', 'prefs.packs'];
 
 // The problems of a parsed theme.json (empty when valid). `bases`: the ids a style may name; `worlds`: the known
 // world ids (a theme naming another world brings its `worldName`); `locked`: text keys (a whole subtree) refused.
