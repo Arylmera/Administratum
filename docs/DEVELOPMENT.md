@@ -24,14 +24,14 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | Module | Job |
 |---|---|
 | `main.rs` | Plugins (notification, window-state, autostart, updater), setup, the 1 s poll loop and its toasts, the small commands (among them `platform`: the OS, `windows` / `macos`, so Settings hides what is Windows-only); every Tauri command is listed in its `generate_handler!`. Crate-wide helpers: `lock`, `no_window`, `emit`, `now_ms` |
-| `window.rs` | The main window: tray icon and menu, show / hide, the watcher that tells the UI when the window is seen |
+| `window.rs` | The main window: tray icon and menu, show / hide, the watcher that tells the UI when the window is seen, whether it can stay on top (`on_top_supported`: not under Wayland, where Settings hides the choice) |
 | `orca.rs` | Orca's CLI: switch to a session's terminal, read and answer its permission dialog |
 | `poller.rs` | Builds the live roster each tick: liveness of each session pid via Win32, the Orca handle per pid, transcript location, memoised tails and subagents |
 | `registry/` | Pure reading of Claude Code's files, no side effects. `sessions.rs` the session records, `tail.rs` a transcript tail (task, context, turn, question, petition, usage limit), `helpers.rs` subagents, `tracker.rs` what is new this tick (one notification per episode), `files.rs` file access, `prompt.rs` the permission-prompt parser and the validators for what goes to Orca or a shell, `risk.rs` the risky-command list (`risk_of`, read once by `tail::pending_risk` from the raw command of every unanswered call of the pending message, sent as `Session.risk`; main.rs fills OpenCode's from its request) |
 | `opencode/` | OpenCode 2.x, a second source beside `registry/`. `db.rs` reads its SQLite database read-only (only while its `-wal` exists, so no file is created in OpenCode's folder; one short transaction per read), `service.rs` its service registration (`~/.local/state/opencode/service.json`, loopback URLs and version 2+ only, the password never leaves the module) and a small `std::net` client for `/api/session/active`, pending permissions and replies, `mod.rs` the sessions it adds to the roster (running, waiting, idle while a TUI runs in its folder, 15 min at most), the rows the Chronicon reads, and `answer_opencode` |
 | `chronicle/` | Incremental transcript reader: Chronicon events, the token and working-time Tithe (per department, model, hour and session (a session's total is on the roster as `tokensToday`, card.js lineage), and per department its turns, longest turn (`max_turn_ms`) and edited files; fields added later are `serde(default)` so older day files still load), day files, retention; the usage window (`fine`: 288 five-minute buckets of new Anthropic tokens per day; `day_fine` places them at their real times across DST changes, `fineSince` marks a day file that predates them; `window_of`, pure, with ceilings from the `limit` events' `resetMs` / `hitMs`, kept only over complete kept days; `tithe_answer` adds `window` to today's `tithe_day` only); `opencode.rs` turns OpenCode rows into transcript lines; `conflict.rs` two live sessions on one file (the absolute paths each edited in the last 20 min, a subagent's under its parent; `pairs`, Windows paths compared case-insensitively; main.rs sets `sameFile`, one toast and a `conflict` event per pair and path, the first tick seeding) and `port_in_use` (a `port-in-use` event and the turn's `portInUse`); `honours.rs` the Hall of Honours (`honours` command: the four marks over the kept days, pure `honours` over day Tithes and events); `report.rs` the end-of-day report (`day_report` command), its markdown, and `write_capture`, the only write outside the app data dir (only with `adm.reportOn` and an existing absolute `adm.reportDir`) |
 | `monitor.rs` | Monitoring rules, pure: the config (`adm.tokenAlert`, ... read from `settings.json` at setup and after each `settings_save`, so the UI pushes nothing) and the per-session daily token alert (new tokens, cache reads left out; one toast and a `token-alert` event per session per day, seeded on the first tick). The app cannot see the subscription quota: the threshold is a count the user picks. Stuck sessions (`stuck_of`): busy (never at the shell) and either silent (no write to its transcripts, subagents' included, for `adm.stuckMin`, default 15 min; OpenCode sessions have no files and are never silent) or looping (`adm.stuckRepeat`, default 5, identical tool calls in a row that each got the same error, its volatile parts masked (`mask::volatile`), counted by `chronicle::track_turn`; a success or an edit ends the run; polling tools and bare `sleep` / `watch` never count); one toast and a `stuck` event per episode |
-| `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS: tauri-plugin-notification's actions (`toast::mac`, one `on_action` handler registered at setup, routed by toast id; two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first; only the bundled app has the right notification identity, `tauri dev` posts as Terminal). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
+| `toast.rs` | Toast wording, pushed by the UI from the active theme; toasts with buttons (petitions, Night Vigil). Windows: tauri-winrt-notification. macOS and Linux: tauri-plugin-notification's actions (`toast::actions`, one `on_action` handler registered at setup, routed by toast id; on macOS two buttons become an *Options* menu whose own button reports the first, so a petition lists Deny first there; only the bundled app has the right notification identity, `tauri dev` posts as Terminal; on Linux the buttons are D-Bus actions, drawn only by a notification server that draws actions). A toast with buttons that cannot be shown falls back to the plain one. In demo mode, `ADMINISTRATUM_TEST_TOAST=1` fires one test toast with buttons whose click is only logged (`test toast click: ...` on stderr) |
 | `quiet.rs` | Quiet hours, the same rule as `ui/quiet.js` |
 | `mask.rs` | Pure text rewrites. `mask`: secret-shaped strings (API keys, GitHub / Slack tokens, AWS key ids, private key blocks, JWTs, `password=` / `token=` / `secret=` / `api_key=` values, Bearer tokens) become `•••`; applied by `serialize_with` (`mask::ser`, `ser_opt`) on the roster's texts and `Event.detail`, so the WebView, the remote view and new Chronicon lines get the same masked text, and in `prompt.rs` on the peeked dialog. `volatile`: the parts of an error that change between runs (timestamps, durations, hex, 4+ digit numbers, temp paths) as `#`, for the loop rule |
 | `git.rs` | A working directory's branch, read from `.git/HEAD` (git is never run) |
@@ -39,7 +39,7 @@ as they are: no npm, no bundler, no build step. The same `ui/` files also serve 
 | `rooms.rs` | Custom rooms: `adm.rooms` rules (glob or `re:` regex, first match wins) compiled at setup and after each `settings_save`; `assign` sets each session's `room` once per tick after the roster merge (never for a temp session); `rooms_test` checks a pattern for the Settings tab |
 | `remote/` | The LAN remote view. `mod.rs` the HTTP server, pairing token and policy, with no Tauri in it; `app.rs` its settings, the backend it calls and the settings panel's commands (remote view, firewall rule). Its API: [remote-api.md](remote-api.md) |
 | `firewall.rs` | The Windows Firewall rule for the remote view (read unelevated, changed through one UAC prompt) |
-| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, or as the desktop column on a screen edge (`Shape`: `Bar` or `Column`, `place_strip` / `place_column`, `column_rect`; the watcher replays the last shape each second), click-through. OS calls in `windows.rs` and `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) |
+| `strip/` | The desktop strip window: placement on the taskbar or above the Dock, or as the desktop column on a screen edge (`Shape`: `Bar` or `Column`, `place_strip` / `place_column`, `column_rect`; the watcher replays the last shape each second), click-through. OS calls in `windows.rs`, `macos.rs` (the Dock's side and auto-hide, read from its `defaults` at most every 30 s) and `linux.rs`. Linux: Wayland lets no window place itself, so the strip is a second window, `strip`, in a wlr-layer-shell surface (gtk-layer-shell) the compositor anchors to the edge; a shown window cannot become a layer surface, so entering opens `strip` and closes `main`, leaving does the reverse, and the UI starts again in its saved view. tao's fixed window size is freed before the window is shown, or the surface stays black. The UI's sizes and rects are CSS px, turned into GTK px there (WebKitGTK scales its pages by the font DPI over 96). No cursor poll there: `set_click_through` answers true and the UI sends the rects that take clicks (`set_strip_hits`, every 200 ms while they change), which become the surface's input region. Settings' *Keep windows off the strip* (`set_strip_reserve`, false and the row removed on the other OSes) gives the layer an exclusive zone of the strip's size with no panel open (`base`, sent with `place_strip` / `place_column`). The column's height there is the window's own (`colHeight`), the screen's numbers not being CSS px. `strip_supported` is true only where `gtk_layer_shell::is_supported()` is (not GNOME, not X11): elsewhere Settings removes the strip and the column (WebKitGTK's list shows a hidden option) |
 | `demo.rs` | A scripted 60 s roster, events and usage for demo mode |
 | `vigil/` | Night Vigil. `mod.rs` the pure rule (arms once every session is stuck on a human, the 120 s countdown) and `report_day` (armed before 04:00: the day before); `app.rs` arming, its tick, toast and Chronicon events, the day report capture on arm and on fire, the shutdown itself |
 
@@ -70,6 +70,7 @@ do not know which.
 | `panel.js` | Open/close behaviour shared by the parchment panels |
 | `chronicon.js` | Chronicon: day tabs and a Week tab (the last 7 days added up, `sumTithes`), Tithe charts, the top sessions by new tokens, the folded day report, event log; the plaque's usage-window bar (`windowGauge`) and today's window line (`windowLine`); `openWeek` (the Hall of Honours' click) |
 | `layout.js` | Hall geometry: department blocks, desks and lecterns, consoles, bays, routes, light phases; `zoneSequence` (custom rooms in rule order, the open hall, the break-out room), the west wing (`hallOf(bays, size, wing)`: the hall moved east by `wx`, `hall.base` the hall without it, `hall.rooms` each room's rect, lanes, corridor and door, geometry only: the rooms share the wing's full height, each its desk rows plus an even share of the spare rows, the last down to the hall's bottom, its door on the lane nearest its middle, or the layout's `wing[].door` clear of the break-out room's fence (`wing[].share` caps the share then); `wingZones` adds each room's colour and emptiness from the layout; `layoutDepartments` packs room departments there and returns `wing`), `zonesOf` (the break-out room's fence and gates) |
+| `hallplan.js` | The hall plan in force (`settings.hallPlan`): `open`, the open space, or `rooms`, the rooms round the Sanctum (`layout.js` `mirrorHall`, `packMirror`, `mirrorRoute`; `actors.js` `asleep` and the room computers; `theme.js` `inRooms` words). Everything else follows `hall.sanct` |
 | `rooms.js` | Custom rooms in force (`adm.rooms`): `roomsOf` (the lenient parse, `rooms.rs`'s caps), `setRooms`, `tintOf` (a rule's colour on the sash slot `y`) |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
@@ -91,7 +92,9 @@ do not know which.
 
 ## Run
 
-Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --version "^2"`).
+Requires the Rust toolchain and the Tauri CLI (`cargo install tauri-cli --version "^2"`). On Linux, also the Tauri
+system libraries: on Debian or Ubuntu the `apt-get install` line of `.github/workflows/check.yml`, on Arch
+`webkit2gtk-4.1 libayatana-appindicator librsvg xdotool openssl gtk-layer-shell`.
 
 ```sh
 cd src-tauri
@@ -140,6 +143,7 @@ when it loads. One file per module:
 
 | File | Checks |
 |---|---|
+| `hallplan.test.mjs` | The hall plan: the switch, the rooms plan's geometry, places, walks, props, shells at the room's computer, naps at the desk, words |
 | `layout.test.mjs` | Layout, routes, stable desks, compact lecterns and bays |
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
@@ -235,13 +239,19 @@ Bundles are signed for the updater, so the key file must exist (see below). The 
 with `/S` (to `%LOCALAPPDATA%\Administratum`). The release profile uses LTO, `opt-level = "s"` and stripped
 symbols.
 
+On Linux the same `cargo tauri build` (with the Tauri system libraries, as in `check.yml`) makes
+`bundle/appimage/Administratum_<version>_amd64.AppImage` and `bundle/deb/Administratum_<version>_amd64.deb`, each
+with its `.sig`.
+
 ## Releasing
 
 Bump `version` in `src-tauri/Cargo.toml` and push to `main`. The `release` workflow tags `v<version>` and builds
-three legs: the signed NSIS installer on Windows, and on macOS a DMG plus a signed updater archive for each arch
+four legs: the signed NSIS installer on Windows, on macOS a DMG plus a signed updater archive for each arch
 (`Administratum_<version>_aarch64.dmg`, `Administratum_<version>_x64.dmg`, `Administratum_aarch64.app.tar.gz`,
-`Administratum_x64.app.tar.gz`). It then publishes a GitHub Release with `latest.json` (`windows-x86_64`,
-`darwin-aarch64`, `darwin-x86_64`), which installed copies read to offer the update. Every leg must succeed: a
+`Administratum_x64.app.tar.gz`), and on Linux (Ubuntu 22.04, so the bundles run on systems as old as it) the signed
+AppImage and .deb. It then publishes a GitHub Release with `latest.json` (`windows-x86_64`, `darwin-aarch64`,
+`darwin-x86_64`, `linux-x86_64` and `linux-x86_64-appimage` for the AppImage, `linux-x86_64-deb`), which installed
+copies read to offer the update. Every leg must succeed: a
 missing artifact or `.sig` fails the release, Windows included. A version with a `-` (`0.3.0-rc1`) becomes a
 pre-release that the updater never offers. To rebuild an existing tag: Actions > release > Run workflow, with the
 tag. A second workflow, `fmt`, checks `cargo fmt`.
@@ -264,7 +274,7 @@ can no longer update), its contents in the repository secret `TAURI_SIGNING_PRIV
 src-tauri/            Rust backend, tauri.conf.json, capabilities, icons, NSIS hooks
   src/                main, poller, chronicle, remote, firewall, settings, toast, quiet, git, demo
   src/registry/       pure parsing of Claude Code's session files and transcripts
-  src/strip/          the desktop strip window (OS calls in windows.rs, macos.rs)
+  src/strip/          the desktop strip window (OS calls in windows.rs, macos.rs, linux.rs)
 ui/                   the frontend, served as-is (ES modules, no build) + its *.test.mjs checks
   art/                sprite sheets (PNG + JSON) in the key palette; ui/art/<theme>/ for a theme's own art
   fonts/              bundled WOFF2 fonts and their OFL licences

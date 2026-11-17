@@ -2,6 +2,7 @@ import { SCRIBE, SCRIBE_AT, ADEPT, ADEPT_AT, SCRIBE39, SCRIBE39_AT, ADEPT39, ADE
 import { T, onTheme, hexA } from './theme.js';
 import { route, roomOf, hallOf, SLOT_H } from './layout.js';
 import { settings, questions } from './settings.js';
+import { hallPlan } from './hallplan.js';
 import { view } from './view.js';
 import { vigil } from './vigil.js';
 import { makeLift, setStops, call, cancel, retarget, step as liftStep, carY, slotOf, lineOf } from './lift.js';
@@ -22,6 +23,10 @@ export const isStale = s => s.status === 'waiting' && s.sinceMs > 0 && Date.now(
 // A turn that ended on a question (backend `question`, idle only) queues like a petition, behind the real ones.
 export const isQuestion = s => questions.on && !!s.question && s.status !== 'waiting';
 const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
+// Asleep at its desk (the rooms plan: the mirror hall has no bench): idle past napMin, no background shell, no limit, no question.
+export const asleep = (a, now = Date.now()) => hallPlan.rooms && !a.h && !a.watch && !a.leaving && a.pose === 'desk' && a.s?.status === 'idle' && !a.s.background && !a.s.limit
+  && !isQuestion(a.s) && !!a.s.sinceMs && now - a.s.sinceMs > NAP_MS();
+export const SLEEP_ALPHA = 0.55; // a sleeper is drawn half faded (both views)
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
@@ -43,7 +48,8 @@ export class Cast {
   constructor() { this.actors = new Map(); this.naps = new Map(); this.hall = hallOf(0); } // naps: scribe id -> hall.refectory index
 
   // hall: hallOf() of the scene's size and the layout's bays (rooms, gate, queue, aisle and lanes follow it).
-  sync(roster, seats, colorOf, consoleSeats, blocks, hall = hallOf(0)) {
+  // computers: the mirror hall's per-room computer spots (layoutDepartments), where a room's shells run.
+  sync(roster, seats, colorOf, consoleSeats, blocks, hall = hallOf(0), computers = null) {
     // The desktop column (column.js): one lift for the cast (lift.js), new on entry; its floors moved: everyone on them moves too.
     if (!hall.column) this.lift = null;
     else if (!this.lift || !this.hall.column) this.lift = makeLift(hall.stops, 'ref');
@@ -77,7 +83,7 @@ export class Cast {
     for (const s of roster) { const a = this.actors.get(s.id); if (s.status === 'shell') a.lastShell = now; }
     const atCog = s => s.status === 'shell' || (s.status === 'busy' && now - (this.actors.get(s.id).lastShell ?? 0) < COG_HOLD_MS());
     const shell = roster.filter(atCog).map(s => s.id);
-    this.last = { seats, waiting, shell, blocks }; // for a burner heading back between polls
+    this.last = { seats, waiting, shell, blocks, computers }; // for a burner heading back between polls
     // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
     const all = [...this.actors.values()];
     for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
@@ -148,7 +154,9 @@ export class Cast {
         a.destKey = '';
         continue;
       }
-      if (room !== 'hall') { a.x += to.ox - from.ox; if (room === 'sanct') a.y += to.sd - from.sd; }
+      if (from.sanct && to.sanct && room === 'hall') { // the mirror hall: a hall actor stays on its side (the right side moves with the Sanctum)
+        a.x = a.x < from.entry.x ? Math.min(a.x, to.corridors[0]) : Math.min(Math.max(a.x + to.entry.x - from.entry.x, to.corridors[1]), to.sides.R.x1);
+      } else if (room !== 'hall') { a.x += to.ox - from.ox; if (room === 'sanct') a.y += to.sd - from.sd; }
       else a.x = Math.min(a.x + (to.wx ?? 0) - (from.wx ?? 0), to.corridorX); // ponytail: a short hop, only when the window narrows
       a.destKey = '';
       if (a.burn) a.burn.fire = braziers(to.entry).reduce((p, q) => (Math.abs(q.x - a.x) < Math.abs(p.x - a.x) ? q : p));
@@ -218,7 +226,15 @@ export class Cast {
       return { ...QUEUE_SLOTS[queueIdx], pose: 'queue', queueIdx };
     }
     if (a.burn) return { x: a.burn.fire.x, y: AISLE_Y, pose: 'burn' };
-    if (shell.includes(a.id) && !a.s.temp) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' }; // the break-out room runs its shells at its desks
+    const pc = this.last?.computers;
+    if (shell.includes(a.id) && !a.s.temp && pc?.size) { // the mirror hall: at its own room's computer (a block's room, Hors zones when none)
+      const room = b => b && (b.room ?? 'hors'), mine = room(this.last.blocks.find(b => b.name === a.s.dept)), spots = pc.get(mine);
+      if (spots?.length) {
+        const k = shell.filter(id => { const o = this.actors.get(id)?.s; return o && !o.temp && room(this.last.blocks.find(b => b.name === o.dept)) === mine; }).indexOf(a.id);
+        return { ...spots[k % spots.length], pose: 'cog' };
+      }
+    }
+    if (shell.includes(a.id) && !a.s.temp && COG_SPOTS.length) return { ...COG_SPOTS[shell.indexOf(a.id) % COG_SPOTS.length], pose: 'cog' }; // the break-out room runs its shells at its desks
     if (refectory[this.naps.get(a.id)]) return { ...refectory[this.naps.get(a.id)], pose: 'nap' };
     const seat = seats.get(a.id);
     return seat ? { x: seat.x, y: seat.y, pose: 'desk' } : { ...ENTRY, pose: 'gone' };
@@ -383,6 +399,10 @@ export const bobOf = b => (b.step === 0 ? 0.5 : 0);
 
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
+  if (!asleep(a)) return drawAwake(g, a);
+  g.save(); g.globalAlpha *= SLEEP_ALPHA; drawAwake(g, a); g.restore();
+}
+function drawAwake(g, a) {
   const b = bodyOf(a);
   if (a.watch) { blit(g, b.map, b.x, b.y - bobOf(b)); return; }
   if (a.h) { // adept: typing bob of 1 art px at its console

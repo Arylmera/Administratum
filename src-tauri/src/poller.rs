@@ -171,9 +171,10 @@ fn is_claude_image(path: &str) -> bool {
     name.eq_ignore_ascii_case("claude.exe") || name == "claude" || (parts.next() == Some("versions") && parts.next() == Some("claude"))
 }
 
-/// The session record's `procStart` (FILETIME, decimal) against the process's creation time: a
-/// mismatch means the pid was reused. No or unreadable `procStart`: trust the name check alone.
-#[cfg_attr(not(windows), allow(dead_code))]
+/// The session record's `procStart` (Windows: FILETIME; Linux: clock ticks since boot; decimal) against the
+/// process's creation time in the same unit: a mismatch means the pid was reused. No or unreadable `procStart`: trust
+/// the name check alone.
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 fn same_start(proc_start: Option<&str>, created: u64) -> bool {
     proc_start.and_then(|s| s.parse::<u64>().ok()).is_none_or(|s| s == created)
 }
@@ -231,8 +232,26 @@ pub fn alive(pid: u32, proc_start: Option<&str>) -> bool {
     sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[pid]), true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet));
     sys.process(pid).is_some_and(|p| {
         let image = is_claude_image(&p.name().to_string_lossy()) || p.exe().is_some_and(|e| is_claude_image(&e.to_string_lossy()));
-        image && same_lstart(proc_start, p.start_time())
+        image && same_lstart(proc_start, p.start_time()) && same_ticks(pid.as_u32(), proc_start)
     })
+}
+
+/// Field 22 of a `/proc/<pid>/stat` line, the start time in clock ticks since boot: the 20th field after the
+/// command name, which is in parentheses and may hold spaces or parentheses itself (hence the last `)`).
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn stat_starttime(stat: &str) -> Option<u64> {
+    stat.rsplit_once(')')?.1.split_whitespace().nth(19)?.parse().ok()
+}
+
+/// Linux: the record's `procStart` is that field 22 (verified on v2.1.308), so it is compared exactly, as on
+/// Windows. An unreadable stat: the other checks alone.
+#[cfg(target_os = "linux")]
+fn same_ticks(pid: u32, proc_start: Option<&str>) -> bool {
+    std::fs::read_to_string(format!("/proc/{pid}/stat")).ok().as_deref().and_then(stat_starttime).is_none_or(|t| same_start(proc_start, t))
+}
+#[cfg(not(any(windows, target_os = "linux")))]
+fn same_ticks(_pid: u32, _proc_start: Option<&str>) -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -276,6 +295,26 @@ mod tests {
         assert!(lstart_secs(&lstart).is_some(), "parses {lstart:?}");
         assert!(same_lstart(Some(&lstart), started), "{lstart:?} vs {started}");
         assert!(!same_lstart(Some(&lstart), started + 60));
+    }
+
+    #[test]
+    fn stat_starttime_is_field_22() {
+        let stat = "1406261 (claude) S 1406139 1406261 1406139 34817 1406261 4194304 1 2 3 4 5 6 7 8 20 0 18 0 56120425 74 3";
+        assert_eq!(stat_starttime(stat), Some(56_120_425));
+        assert_eq!(stat_starttime("7 (a) b) c) S 1 7 7 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 3489 9"), Some(3489), "a ')' in the name");
+        assert_eq!(stat_starttime("7 (claude) S 1 7"), None, "too short");
+    }
+
+    /// Claude Code's own procStart (field 22) against /proc, on this test process.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn ticks_match_proc_for_a_real_process() {
+        let me = std::process::id();
+        let ticks = stat_starttime(&std::fs::read_to_string("/proc/self/stat").unwrap()).unwrap();
+        assert!(same_ticks(me, Some(&ticks.to_string())));
+        assert!(!same_ticks(me, Some(&(ticks + 1).to_string())), "same pid, another process");
+        assert!(same_ticks(me, None), "no procStart");
+        assert!(same_ticks(me, Some("Wed Oct 14 16:54:12 2026")), "lstart: same_lstart's job");
     }
 
     #[test]

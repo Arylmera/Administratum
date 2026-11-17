@@ -15,7 +15,7 @@ export const maxDeptFloors = h => Math.floor((h - TOP) / FH) - 3;
 // Items w wide from x 4, at most max apart, the last one clear of the lift's first line spot (LANDING_X - 4).
 const pitch = (n, max, w) => (n > 1 ? Math.min(max, Math.floor((LANDING_X - 4 - 4 - w) / (n - 1))) : max);
 // Entering the column: the cast settles once the window is the column (its height the work area's at the column's
-// scale, cssH: screen.availHeight), not on the layout made while the window is still the hall's.
+// scale, cssH: stripwin.js colHeight), not on the layout made while the window is still the hall's.
 export const columnPlaced = (h, cssH, scale) => h === Math.floor(cssH / scale);
 // The column's scale (CSS px per logical px): the Strip size's, dropped L -> M -> S until MIN_FLOORS department
 // floors fit the work area's height (cssH); the one writer viewport.js (fit) and stripwin.js (the window's width) read.

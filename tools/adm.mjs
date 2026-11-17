@@ -8,9 +8,15 @@
 //   node tools/adm.mjs chronicle [day]     the day's Chronicon events (YYYY-MM-DD, default today)
 //   node tools/adm.mjs days                the days the Chronicon holds
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const conf = JSON.parse(readFileSync(join(process.env.APPDATA, 'com.arylmera.administratum', 'settings.json'), 'utf8'));
+// The app's config folder (Tauri's app_config_dir): %APPDATA% on Windows, Application Support on macOS, the XDG
+// config folder elsewhere.
+const configDir = process.platform === 'win32' ? process.env.APPDATA
+  : process.platform === 'darwin' ? join(homedir(), 'Library', 'Application Support')
+  : process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
+const conf = JSON.parse(readFileSync(join(configDir, 'com.arylmera.administratum', 'settings.json'), 'utf8'));
 if (!conf['remote.enabled']) fail('remote view is off: enable it in Settings > Remote view');
 const host = `127.0.0.1:${conf['remote.port'] ?? 7770}`;
 const headers = { Cookie: `adm_t=${conf['remote.token']}` };

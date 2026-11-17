@@ -12,7 +12,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub const MAX_RULES: usize = 6;
+pub const MAX_RULES: usize = 8;
 pub const MAX_PATTERN: usize = 200;
 const MAX_NAME: usize = 32;
 
@@ -189,8 +189,8 @@ mod tests {
             ok("a", "**/a/**"),
         ];
         assert_eq!(ids(rules_from(&rooms(Value::Array(bad)))), ["b", "a"], "rule order, bad entries, a duplicate id and a bad regex dropped");
-        let many: Vec<Value> = (0..8).map(|i| ok(&format!("r{i}"), "**")).collect();
-        assert_eq!(ids(rules_from(&rooms(Value::Array(many)))), ["r0", "r1", "r2", "r3", "r4", "r5"], "the first six");
+        let many: Vec<Value> = (0..10).map(|i| ok(&format!("r{i}"), "**")).collect();
+        assert_eq!(ids(rules_from(&rooms(Value::Array(many)))), ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"], "the first eight");
     }
 
     #[test]

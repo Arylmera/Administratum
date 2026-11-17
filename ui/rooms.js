@@ -1,7 +1,7 @@
 // Custom rooms (Settings > Rooms): user rules mapping a folder pattern to a named room, in rule order. Saved as one
 // JSON string, adm.rooms (settings.js keeps it, the backend matches it: src-tauri/src/rooms.rs, which fills each
 // session's `room`). Each rule: { id ('r' + base-36 ms, set once), name (≤ 32), pattern (≤ 200), color (#rrggbb) }.
-export const MAX_ROOMS = 6;
+export const MAX_ROOMS = 8;
 const MAX_NAME = 32, MAX_PATTERN = 200;
 
 const shaped = (e, seen) => e && typeof e === 'object' && typeof e.id === 'string' && e.id !== '' && !seen.has(e.id)

@@ -11,6 +11,7 @@
 // A theme lists only what it changes from its base (default Tier II); px edits flow into the derived ink.
 
 // Tier II palette (ported from the Claude Design board "Tier II — Data-Shrine").
+import { hallPlan } from './hallplan.js';
 export const BASE = {
   k: '#0e0a08', g: '#b8742e', G: '#6e3f17', p: '#d6c79f', P: '#a8946a', w: '#4a3020', W: '#2e1c12',
   m: '#5a5e63', M: '#2a2c30', c: '#7cff9e', C: '#16301f', f: '#f0a83c', F: '#ffe6a0', x: '#8e1c16',
@@ -104,7 +105,9 @@ export const TEXT = {
   petitionLabel: '{name}, petition: {want}', adeptOf: '{kind} · adept of {owner}',
   summonedBy: 'Summoned by', summoned: 'Suzerain of', lineage: 'Lineage today',
   rejectAll: "Deny also refuses this session's other pending requests", // an OpenCode petition's card (OpenCode's rule)
-  overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen',
+  overflow: '+{n} in the stacks', empty: 'No scribes on duty', breakout: 'Menial Pen', elsewhere: 'Elsewhere', // elsewhere: the room of the departments in no rule (the rooms plan)
+  // the rooms plan (hallplan.js): what reads differently there, same keys, read first by t()
+  inRooms: { status: { shell: "At the room's cogitator", napping: 'Idle · dozing at their desk' }, prefs: { nap: 'Dozing at the desk after', cog: "Stay at the room's cogitator for" } },
   // the Hall of Honours plaque (overlay.js): its name, and each mark's (its row's tooltip)
   honours: { title: 'Honours of the Week', commits: 'Most purity seals', longest: 'Longest labour', fast: 'Petitions answered within the minute',
     busiest: 'Busiest day' },
@@ -137,6 +140,11 @@ const merge = (a, b) => { // deep merge of plain objects (b wins), arrays replac
   return out;
 };
 
+// The rooms plan's words for a theme (TEXT.inRooms, key by key): its own where it gives one, none where it rewords the
+// plain key alone (its word then stands in both plans, never the base's), else the base's.
+const roomsWords = (own, base = TEXT.inRooms, mine = own?.inRooms, plain = own) => Object.fromEntries(Object.entries(base).flatMap(([k, v]) => (
+  typeof v === 'object' ? [[k, roomsWords(own, v, mine?.[k], plain?.[k])]] : mine?.[k] !== undefined ? [[k, mine[k]]] : plain?.[k] !== undefined ? [] : [[k, v]])));
+
 export const TIER_II = {
   id: 'tier2', world: 'w40k', name: 'Ordo Administratum',
   px: BASE,
@@ -166,7 +174,7 @@ export function resolve(t) {
   for (const [k, r] of Object.entries(TIER_II.rank)) rank[k] = { robe: { ...r.robe, ...t.rank?.[k]?.robe }, adept: { ...r.adept, ...t.rank?.[k]?.adept } };
   const ink = inkOf(px);
   if (t.ink) Object.assign(ink, typeof t.ink === 'function' ? t.ink(px) : t.ink);
-  return { id: t.id, name: t.name, px, sash: t.sash ?? [...TIER_II.sash], rank, ink, light: { ...LIGHT, ...t.light }, ui: { ...t.ui }, text: merge(TEXT, t.text) };
+  return { id: t.id, name: t.name, px, sash: t.sash ?? [...TIER_II.sash], rank, ink, light: { ...LIGHT, ...t.light }, ui: { ...t.ui }, text: { ...merge(TEXT, t.text), inRooms: roomsWords(t.text) } };
 }
 
 // The active theme, read at draw time (T.ink.brass). T.px, T.ink and T.light are the same objects for the app's
@@ -204,7 +212,8 @@ export const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseIn
 // The active theme's wording for a dotted key ('log.title'), placeholders filled from vars; an [one, other] pair picks
 // by vars.n. An unknown key reads as itself, so a typo shows on screen instead of vanishing.
 export function t(key, vars = {}) {
-  let v = key.split('.').reduce((o, k) => o?.[k], T.text);
+  const at = root => key.split('.').reduce((o, k) => o?.[k], root);
+  let v = (hallPlan.rooms ? at(T.text.inRooms) : undefined) ?? at(T.text); // the rooms plan's own words first
   if (Array.isArray(v)) v = v[vars.n === 1 ? 0 : 1];
   if (typeof v !== 'string') return key;
   return v.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));

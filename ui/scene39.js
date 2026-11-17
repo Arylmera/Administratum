@@ -13,7 +13,7 @@ import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
 import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, blit, sprite, half, rect } from './sprites.js';
 import { T, onTheme, rgb, blendInto } from './theme.js';
-import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
+import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S, asleep, SLEEP_ALPHA } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
 
@@ -181,6 +181,13 @@ export function sitLevel(e, down, now) {
 const FRONT_GAP = 2;
 export const frontShift = (p, a) => Math.max(0, Math.round(a.y) - p.yb - FRONT_GAP);
 
+// The custom rooms' open cells (layout.js zonesOf, Z.open) on the floor, as drawScene39's floor pass projects them: app.js
+// keeps them on the background's bare floor only (buildHall39 floorMask), the lowest layer.
+export function zoneFloors39(g, hall, rooms) {
+  use(hall);
+  save(g, onFloor, g2 => { for (const Z of rooms) S.zoneFloor(g2, Z); for (const Z of rooms) S.zoneName(g2, Z); });
+}
+
 // One frame over the 39° background: layout (app.js glide(): blocks, desks, consoles; hall, level, anchors: the
 // background's isohall anchors), actors: Cast.actors, fillOf: context -> paper fill. Returns the frame's lights (flat
 // floor coords, as drawScene's: lighting.js projects them).
@@ -191,7 +198,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   const dark = layout.level?.dark ?? 0.18, shade = 0.5 - 0.33 * (dark - 0.18);
   const blockOf = dept => layout.blocks.find(b => b.name === dept);
   const Zs = zonesOf(layout.blocks, H);
-  for (const Z of wingZones(H, layout.blocks).concat(Zs)) floor.push(g2 => S.zoneFloor(g2, Z)); // the west wing's rooms, the break-out room: under the rugs, as in the flat view
+  for (const Z of wingZones(H, layout.blocks).concat(Zs)) if (!Z.open) floor.push(g2 => S.zoneFloor(g2, Z)); // the west wing's rooms, the break-out room: under the rugs, as in the flat view (an open cell is the background's)
   floor.push(g2 => S.drawRugs(g2, layout.blocks));
   floor.push(g2 => S.drawPlinths(g2, layout.desks, actors));
   floor.push(g2 => S.drawLinks(g2, layout.desks, actors, now));
@@ -237,6 +244,12 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     if (lit) sit(a, p);
     lights.push(S.consoleLight(c, lit));
   }
+  // the mirror hall's room computers (layout.computers, scene.js drawComputers): one console a room over its first spot
+  for (const [key, spots] of layout.computers ?? []) {
+    const c = { x: spots[0].x - 7, y: spots[0].y - 13 }, lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
+    furniture('console', c, `pc:${key}`, lit, 0, null, false, undefined);
+    lights.push(S.consoleLight(c, lit));
+  }
   for (const [id, e] of sits) {
     const a = actors.get(id), k = a ? sitLevel(e, e.seen, now) : 0;
     if (!a || (!k && !e.seen)) { sits.delete(id); continue; }
@@ -264,7 +277,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
       if (s && k) items.push({ foot: s, draw: g2 => drawBuf(g2, k.buf, k.cv, 0, 0) });
     }
   }
-  for (const Z of Zs) items.push(...fenceItems(Z, all));
+  for (const Z of Zs) if (!Z.open) items.push(...fenceItems(Z, all)); // a custom room is an open floor
   items.push(...gateItems(all, dt), magos(t, dt));
 
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
@@ -302,6 +315,7 @@ function drawActor39(g, a, r, fillOf) {
   const [fx0, fy0] = feetOf(a, r), x = Math.round(a.x), y = Math.round(a.y);
   g.save();
   upright(g, x, y, pin(fx0, fy0)); // flat coords around (x, y) stand on the drawn feet
+  if (!r.flat && asleep(a)) g.globalAlpha *= SLEEP_ALPHA; // a sleeper half faded (drawActor fades its own)
   if (r.flat) drawActor(g, a); // the flat frames, arms, scroll and Zs, standing on the projected feet
   else {
     const fx = x + r.dx, fy = y + r.dy - bobOf(r);
@@ -431,7 +445,7 @@ function brazierFoot(f) {
 // servo-skull leaves its perch to hover by the oldest stale petitioner, a red searchlight onto it. Returns its lights.
 function alarm(g, all, now) {
   const t = now / 1000, { on, who, BEACON, x, y0, y, hover, lights } = S.stepAlarm(all, now), bob = y - y0;
-  save(g, g2 => onFace(g2, 2 * (H.split - WALL) - 1, H.split + 30), g2 => S.drawBeacon(g2, t, on, BEACON));
+  save(g, g2 => (H.sanct ? onFace(g2, 0, WALL) : onFace(g2, 2 * (H.split - WALL) - 1, H.split + 30)), g2 => S.drawBeacon(g2, t, on, BEACON)); // the mirror hall's: on the back wall
   if (hover) { // hovering: the searchlight from its eye down onto the petitioner's feet
     const own = SKULL39.skull, c = own ? [SKULL39_AT.centre.x, SKULL39_AT.centre.y] : PROP_AT.SKULL.centre, b = own ? [SKULL39_AT.beam.x, SKULL39_AT.beam.y] : PROP_AT.SKULL.beam;
     const [hx, hy] = pin(x, y0 + FLY_H), bx = hx - c[0] + b[0], by = hy - FLY_H + bob - c[1] + b[1], [fx, fy] = pin(who.x, who.y);

@@ -145,8 +145,8 @@ fn toast_app_id(app: &AppHandle) -> String {
 }
 
 /// A toast with buttons: a click calls `on_click` with the button's argument (None: a click on the toast itself).
-/// Windows: tauri-winrt-notification. macOS: the plugin's actions (`mac`). Anywhere else, or when the toast with
-/// buttons cannot be shown, the plugin's plain toast without them.
+/// Windows: tauri-winrt-notification. macOS and Linux: the plugin's actions (`actions`). When the toast with buttons
+/// cannot be shown, the plugin's plain toast without them.
 pub fn with_buttons(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, &str)], on_click: impl Fn(Option<&str>) + Send + 'static) {
     #[cfg(windows)]
     {
@@ -161,25 +161,23 @@ pub fn with_buttons(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, 
             return;
         }
     }
-    #[cfg(target_os = "macos")]
-    match mac::show(app, title, body, buttons, on_click) {
+    #[cfg(not(windows))]
+    match actions::show(app, title, body, buttons, on_click) {
         Ok(()) => return,
         Err(e) => eprintln!("toast with buttons: {e}"),
     }
-    #[cfg(not(any(windows, target_os = "macos")))]
-    let _ = (buttons, on_click);
     let _ = app.notification().builder().title(title).body(body).show();
 }
 
-/// What a click on a toast with buttons calls back, by the toast's id (macOS: one plugin handler for every toast).
+/// What a click on a toast with buttons calls back, by the toast's id (macOS, Linux: one plugin handler for every toast).
 type Click = Box<dyn Fn(Option<&str>) + Send>;
 
 /// The toasts with buttons still waiting for a click.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[cfg_attr(windows, allow(dead_code))]
 #[derive(Default)]
 struct Pending(std::collections::HashMap<i32, Click>);
 
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[cfg_attr(windows, allow(dead_code))]
 impl Pending {
     /// ponytail: a toast closed without a click never reports back, so only the newest `KEEP` wait; a click on an
     /// older one does nothing. A real expiry if toasts start piling up.
@@ -201,16 +199,18 @@ impl Pending {
 }
 
 /// The plugin's action id -> `on_click`'s argument: `tap` (the toast itself) is None, as on Windows.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[cfg_attr(windows, allow(dead_code))]
 fn click_arg(action: &str) -> Option<&str> {
     (action != "tap").then_some(action)
 }
 
-/// macOS: toast buttons through tauri-plugin-notification's actions (NSUserNotification via notify-rust). The
-/// plugin reports every action to one handler, registered once by `hook` before the first toast; it is routed to
-/// the toast's own `on_click` by the toast's id. Each button's action id is its argument, as on Windows.
-#[cfg(target_os = "macos")]
-pub mod mac {
+/// macOS and Linux: toast buttons through tauri-plugin-notification's actions (macOS: NSUserNotification via
+/// notify-rust; Linux: the freedesktop notification server's actions over D-Bus, shown as buttons when the server
+/// offers them, the toast without them otherwise). The plugin reports every action to one handler, registered once by
+/// `hook` before the first toast; it is routed to the toast's own `on_click` by the toast's id. Each button's action
+/// id is its argument, as on Windows.
+#[cfg(not(windows))]
+pub mod actions {
     use super::{click_arg, Click, Pending};
     use std::sync::atomic::{AtomicI32, Ordering};
     use std::sync::Mutex;
@@ -220,12 +220,20 @@ pub mod mac {
     static PENDING: Mutex<Option<Pending>> = Mutex::new(None);
     static NEXT: AtomicI32 = AtomicI32::new(1);
 
-    /// Registers the action handler. Only on macOS: once a handler exists, the plugin shows every toast on a
-    /// thread of its own that waits for the click. Toasts shown before it report nothing.
+    /// Registers the action handler. Not on Windows: once a handler exists, the plugin waits for the click of every
+    /// toast (macOS: a thread per toast; Linux: one D-Bus connection for all). Toasts shown before it report nothing.
+    /// Linux: the server reports a click on a toast (`tap`) instead of raising the app, as macOS does, so `tap`
+    /// brings the window up here.
     pub fn hook(app: &AppHandle) {
-        let _ = app.notification().on_action(|p| {
+        #[cfg(not(target_os = "macos"))]
+        let handle = app.clone();
+        let _ = app.notification().on_action(move |p| {
             let id = p.notification().map(|n| n.id());
             eprintln!("toast click: {} on toast {id:?}", p.action_id()); // before routing: a click that arrives is seen
+            #[cfg(not(target_os = "macos"))]
+            if p.action_id() == "tap" {
+                crate::window::reveal(&handle);
+            }
             let Some(id) = id else { return };
             let click = crate::lock(&PENDING).get_or_insert_with(Pending::default).take(id);
             if let Some(click) = click {

@@ -1,5 +1,6 @@
 // The view: the scene's scale and size for the window, the stage's pan (drag, glide, coast, arrow keys), the back wall's parallax lag.
-import { SCENE, MAX_W, WING_X } from './layout.js';
+import { SCENE, MAX_W, WING_X, MIN_H } from './layout.js';
+import { hallPlan } from './hallplan.js';
 import { rooms } from './rooms.js';
 import { STRIP_H } from './strip.js';
 import { RES } from './sprites.js';
@@ -72,7 +73,8 @@ export function fit(floor) { // floor: a floor point to centre on (a view switch
   if (auto && W / scale > MAX_W) scale = Math.max(scale, Math.min(W / MAX_W, H / SCENE.h)); // ultra-wide: bigger pixels
   // a west wing (custom rooms): smaller pixels until the minimum hall and the wing fit the width (the empty hall
   // narrows to it, planLayout); a hall with someone in it still pans
-  if (auto && !iso() && rooms.list.length && W / scale < SCENE.w + WING_X) scale = W / (SCENE.w + WING_X);
+  if (auto && !iso() && !hallPlan.rooms && rooms.list.length && W / scale < SCENE.w + WING_X) scale = W / (SCENE.w + WING_X);
+  if (auto && !iso() && hallPlan.rooms) scale = Math.min(scale, W / MAX_W, H / MIN_H); // the rooms plan (layout.js mirrorHall): all of it in view, never panned
   const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
   if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
   if (auto && iso()) { const S = scene(); scale = Math.min(scale, W / S.w, H / S.h); }

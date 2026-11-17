@@ -267,7 +267,7 @@ fn main() {
         // First: a second launch just raises the running window, then exits.
         .plugin(tauri_plugin_single_instance::init(|app, _, _| window::reveal(app)))
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_window_state::Builder::default().with_denylist(&["strip"]).build()) // the strip's window (Linux): the compositor places it
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
@@ -312,7 +312,10 @@ fn main() {
             strip::place_column,
             strip::place_hall,
             strip::set_click_through,
+            strip::set_strip_hits,
+            strip::set_strip_reserve,
             strip::set_strip_menu,
+            window::on_top_supported,
             window::set_chime_menu
         ])
         .setup(move |app| {
@@ -320,6 +323,8 @@ fn main() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
+            #[cfg(target_os = "linux")]
+            strip::init(); // before build_tray: the tray's strip item asks strip_supported
             window::build_tray(app)?;
             // Demo mode keeps a throwaway chronicle of its own, wiped at each start.
             let dir = app.path().app_data_dir()?.join(if demo { "chronicon-demo" } else { "chronicon" });
@@ -332,8 +337,8 @@ fn main() {
             quiet::set(on, from, to);
             monitor::set(monitor::config_from(&saved));
             rooms::set(rooms::rules_from(&saved));
-            #[cfg(target_os = "macos")]
-            toast::mac::hook(app.handle()); // before the first toast: toasts shown earlier report no click
+            #[cfg(not(windows))]
+            toast::actions::hook(app.handle()); // before the first toast: toasts shown earlier report no click
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
                 toast::test_toast(app.handle());
             }

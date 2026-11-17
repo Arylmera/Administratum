@@ -27,6 +27,7 @@ export const fx = x => Math.round(2 * x), fy = y => Math.round(2 * (y - WALL));
 // foot: the wall foot band under it. Doors (the flat doors' y) are gaps between an east wall's slabs.
 export function roomPlan(hall) {
   if (hall.wx) return wingPlan(hall);
+  if (hall.sanct) return mirrorPlan(hall);
   const { w, h, sw, rx, ox, dx, sd, split, baseH, rows, bays, dy } = hall, D = WALL_DY;
   const U = 2 * w, V = fy(h), Z = 2 * WALL, S = [];
   const add = (kind, name, tex, u0, u1, v0, v1, z0, z1, more) => S.push({ kind, name, tex, u0, u1, v0, v1, z0, z1, ...more });
@@ -67,6 +68,37 @@ export function roomPlan(hall) {
   const fits = [20, 64, 110, 150, 190, ...Array.from({ length: Math.max(0, Math.ceil((sw - 236) / 40)) }, (_, i) => 230 + 40 * i), 230 + ox, 280 + ox, 330 + ox];
   for (const x of fits) add('box', 'fitting', 'fitting h', fx(x), fx(x) + 6, 1, 5, pz - 2, pz + 8);
   for (const x of [144 + dx, 194 + dx]) add('box', 'pipe', 'pipe v', fx(x), fx(x) + 6, 1, 4, 2 * 4, pz);
+  return { U, V, Z, surfaces: S };
+}
+
+// The mirror hall (the rooms plan, layout.js mirrorHall): one floor the window's width, the Sanctum's floor a strip
+// down the middle column to the bottom aisle, a low rail (a slab half a cutaway wall's height) down both its long sides
+// with an opening at every lane (layout.js mirrorRoute crosses there); the east edge a dark cutaway wall; no floor
+// channel (nothing runs through a room); the pipe run along the north wall.
+function mirrorPlan(hall) {
+  const { w, h, sw, sanct, lanes, aisleY, rows, bays } = hall, D = WALL_DY;
+  const U = 2 * w, V = fy(h), Z = 2 * WALL, S = [];
+  const add = (kind, name, tex, u0, u1, v0, v1, z0, z1, more) => S.push({ kind, name, tex, u0, u1, v0, v1, z0, z1, ...more });
+  const strip = (name, tex, u0, u1, v0, v1) => add('strip', name, tex, u0, u1, v0, v1, 0, 0);
+  add('floor', 'scriptorium', 'floor', 0, fx(sw), fy(WALL), V, 0, 0);
+  strip('sanctum', 'sanctum floor', fx(sanct.x0), fx(sanct.x1), 0, fy(aisleY));
+  add('wall', 'north', 'wall', 0, fx(sw), 0, 1, 0, Z, { foot: true });
+  add('wall', 'north east wall', 'wall dark', fx(sw), U, 0, 1, 0, Z);
+  add('wall', 'west', 'wall', 0, 1, 0, V, 0, Z, { foot: true });
+  add('slab', 'east', 'wall dark', fx(sw), U, 1, V, 0, SLAB_Z);
+  const RAIL = SLAB_Z / 2, top = WALL + 4;
+  for (const x of [sanct.x0, sanct.x1]) {
+    let y = top;
+    for (const l of lanes.filter(l => l > top && l < aisleY).concat(aisleY)) {
+      const y1 = l === aisleY ? aisleY : l - 5;
+      if (y1 > y) add('slab', 'sanctum rail', 'wall', fx(x) - 1, fx(x) + 1, fy(y), fy(y1), 0, RAIL);
+      y = l + 5;
+    }
+  }
+  for (let k = 1; k <= bays; k++) { const v = fy(56 + D + 64 * (rows - bays + k - 1)); strip('sill', 'sill', 0, fx(sw), v, v + STRIP); }
+  const pz = 2 * (WALL - 7);
+  add('box', 'pipe', 'pipe h', 0, fx(sw), 1, 4, pz, pz + 6);
+  for (let x = 20; x < sw - 6; x += 40) add('box', 'fitting', 'fitting h', fx(x), fx(x) + 6, 1, 5, pz - 2, pz + 8);
   return { U, V, Z, surfaces: S };
 }
 
@@ -277,5 +309,16 @@ export function buildHall39(hall, day = true) {
     blendInto(D, i, colour(c, buf.id[i] === ID.window), shade[i], shadow);
   }
   g.putImageData(img, 0, 0);
-  return { canvas: cv, ox, oy, anchors };
+  return { canvas: cv, ox, oy, anchors, ids: buf.id };
+}
+
+// The bare floor of a built hall (buildHall39: no channel, prop or anything else drawn over it) as an opaque mask, the
+// canvas's size: where a custom room's colour may go (app.js background).
+export function floorMask(h39) {
+  const { width: w, height: h } = h39.canvas, fm = document.createElement('canvas');
+  fm.width = w; fm.height = h;
+  const g = fm.getContext('2d'), img = g.createImageData(w, h);
+  for (let i = 0; i < h39.ids.length; i++) if (h39.ids[i] === ID.floor) img.data[4 * i + 3] = 255;
+  g.putImageData(img, 0, 0);
+  return fm;
 }
