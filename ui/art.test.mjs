@@ -9,6 +9,7 @@ import { THEMES, setTheme, t } from './theme.js';
 import { BREAKOUT_SIZES, ENCLAVE_SIZES } from './layout.js';
 import { markOf, bodyOf, bodyOf39, liftOf } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
+import { checkSheet } from './artcheck.js';
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -116,12 +117,7 @@ const dirs = fs.readdirSync(new URL('./art/', import.meta.url), { withFileTypes:
 for (const id of dirs) assert.ok(THEMES[id]?.art?.length, `ui/art/${id}/ is no theme's art (theme.art)`);
 for (const [id, fams] of Object.entries(ART.themed)) for (const [fam, sh] of Object.entries(fams)) {
   assert.ok(fs.existsSync(new URL(`./art/${id}/${fam}.png`, import.meta.url)), `${id}/${fam}.png`);
-  for (const [n, f] of Object.entries(sh.frames)) {
-    const d = ART.base[fam].frames[n];
-    assert.ok(d, `${id}/${fam}: '${n}' is not a frame of ${fam}`);
-    assert.deepEqual([f.length, f[0].length], [d.length, d[0].length], `${id}/${fam}: '${n}' must keep the default's size`);
-  }
-  for (const [n, a] of Object.entries(sh.anchors)) for (const k of Object.keys(a)) assert.ok(ART.base[fam].anchors[n]?.[k] !== undefined, `${id}/${fam}: anchor ${n}.${k} unknown`);
+  assert.deepEqual(checkSheet(`${id}/${fam}`, sh, ART.base[fam]), [], `${id}/${fam}: frames of the default's at its size, anchors and fill rules of its shape (artcheck.js)`);
 }
 // The shell cog's turn (scene.js spinCog) is one set: a world that redraws one SHELL_COG frame redraws them all, so its
 // turn never mixes in the 40k cog's frames.
@@ -163,7 +159,7 @@ assert.equal(MAGOS39.claw, undefined, 'tower: no base claw over its own 39° Mag
 // it), in both views; the 40k robe has none, so its art draws mechadendrites; a finished turn's scroll rises (liftOf),
 // eased up over 0.3 s
 const desk = status => ({ s: { status, context: null }, pose: 'desk', x: 50, y: 50, dir: 'up', wait: 0, fx: [] });
-for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin', 'breakingbad']) {
+for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin']) {
   setTheme(id);
   assert.deepEqual([MAPS.ARM, MAPS.ARM_L, SCRIBE39.arm, SCRIBE39.armL], [undefined, undefined, undefined, undefined], `${id}: its arms are its body's`);
   assert.equal(bodyOf(desk('busy')).map, SCRIBE.up[0], `${id}: at its desk, its back as it walks`);
@@ -193,7 +189,7 @@ assert.equal(bodyOf(adept('Plan')).map, marked(ADEPT.up[0], ADEPT, ADEPT_AT, 'up
 assert.equal(bodyOf39(adept('reviewer')).map, marked(ADEPT39.N[0], ADEPT39, ADEPT39_AT, 'N', 'custom'), 'a custom agent the generic one (39°)');
 setTheme('forge');
 assert.equal(Object.keys(ADEPT.marks).length, 4, 'forge: a palette-only theme wears the base glyphs');
-for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin', 'breakingbad']) { // a world's own adept wears its own glyphs, never the 40k ones
+for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin']) { // a world's own adept wears its own glyphs, never the 40k ones
   setTheme(id);
   assert.notDeepEqual([ADEPT.marks['glyph plan'], ADEPT39.marks['glyph plan']], basePlan, `${id}: its own glyphs`);
   kindsDrawn(id);
@@ -244,7 +240,7 @@ setTheme('tier2');
 // (where it is drawn at all) never the base sheet's; every theme draws its world's (an accent theme through artOf), and
 // the overlay's text fields are anchored on it.
 const mask = rows => rows.map(r => r.replace(/[^.]/g, '#')).join('\n');
-const WORLD_ART = ['cyber', 'orbital', 'tower', 'vault', 'darwin', 'breakingbad'];
+const WORLD_ART = ['cyber', 'orbital', 'tower', 'vault', 'darwin'];
 for (const id of WORLD_ART) {
   const own = ART.themed[id]?.honours?.frames.HONOURS;
   assert.ok(own, `${id}: its own HONOURS`);

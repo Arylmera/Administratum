@@ -6,7 +6,7 @@ use crate::{
     chronicle_day, chronicle_days, honours,
     opencode::answer_opencode,
     orca::{answer_petition, peek_petition},
-    remote, settings, settings_load, settings_path, tithe_day,
+    packs, remote, settings, settings_load, settings_path, themes_root, tithe_day,
     vigil::app::vigil_set,
 };
 use tauri::{AppHandle, Manager};
@@ -54,7 +54,8 @@ fn refused(roster: &[crate::registry::Session], c: &remote::Call) -> Option<Stri
 }
 
 /// The app as the remote view reaches it: the read commands, answer_petition and answer_opencode
-/// (gated by the server), and the embedded UI files. open_session and every settings write stay local.
+/// (gated by the server), the embedded UI files and the theme packs' files (read only). open_session and every
+/// settings write stay local.
 fn remote_backend(app: &AppHandle) -> remote::Backend {
     fn json<T: serde::Serialize>(r: Result<T, String>) -> Result<serde_json::Value, String> {
         r.and_then(|v| serde_json::to_value(v).map_err(|e| e.to_string()))
@@ -79,6 +80,7 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
                     v
                 }),
                 remote::Call::PeekPetition(handle) => json(peek_petition(handle)),
+                remote::Call::ThemePacks => json(Ok(themes_root(&a).map(|root| packs::list(&root)).unwrap_or_default())),
                 remote::Call::AnswerPetition { handle, choice } => json(answer_petition(handle, choice)),
                 remote::Call::AnswerOpenCode { session, request, choice } => json(answer_opencode(session, request, choice, a.state())),
                 remote::Call::Vigil { arm } => {
@@ -87,7 +89,11 @@ fn remote_backend(app: &AppHandle) -> remote::Backend {
                 }
             }
         }),
-        asset: Box::new(move |p| b.asset_resolver().get(p.to_string()).map(|x| (x.bytes, x.mime_type))),
+        // A pack's file is read from the themes folder by packs::read, its only guard; never an embedded file in its place.
+        asset: Box::new(move |p| match p.strip_prefix("themes/") {
+            Some(rel) => themes_root(&b).ok().and_then(|root| packs::read(&root, rel)).map(|bytes| (bytes, packs::mime(rel).to_string())),
+            None => b.asset_resolver().get(p.to_string()).map(|x| (x.bytes, x.mime_type)),
+        }),
     }
 }
 

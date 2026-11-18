@@ -10,6 +10,7 @@ Kept in step with the code.
 | Document | What it is |
 |---|---|
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Developer guide: architecture, modules, run, tests, sprites and themes, build, release |
+| [theme-packs.md](theme-packs.md) | Making a theme pack: the format, the key palette, the art families, trying, checking and publishing a pack; [a template](theme-pack-template/) to copy |
 | [remote-api.md](remote-api.md) | The remote view's HTTP API: server limits, pairing and auth, endpoints, events |
 | [backlog.md](backlog.md) | What was done recently, known limits, what's next, unscheduled ideas |
 | [sprites/](sprites/README.md) | Generated sprite gallery, one page per theme with its own art (`node tools/sprite_sheet.mjs`) |

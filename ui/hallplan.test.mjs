@@ -30,7 +30,7 @@ assert.equal(hallOf(0), open0, 'back to the open space: the very same hall');
   assert.equal(planLayout(null, D, 0, {}, SCENE, layoutDepartments, R).wing, null, 'rooms: no wing');
 }
 // the words follow the plan, world by world (theme.js inRooms)
-for (const [id, openShell, roomsShell] of [['tier2', 'At the cogitator', "At the room's cogitator"], ['breakingbad', 'At the reactor', "At the room's terminal"], ['darwin', 'At the specimen cabinet', 'At the specimen cabinet']]) {
+for (const [id, openShell, roomsShell] of [['tier2', 'At the cogitator', "At the room's cogitator"], ['vault', 'At the mainframe', "At the room's terminal"], ['darwin', 'At the specimen cabinet', 'At the specimen cabinet']]) {
   setTheme(id);
   setHallPlan('open'); assert.equal(t('status.shell'), openShell, `${id}, open`);
   setHallPlan('rooms'); assert.equal(t('status.shell'), roomsShell, `${id}, rooms`);

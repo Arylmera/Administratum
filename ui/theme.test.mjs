@@ -70,7 +70,7 @@ delete THEMES['test-blue'];
 // A theme lists each art family once.
 for (const [id, th] of Object.entries(THEMES)) if (th.art) assert.equal(new Set(th.art).size, th.art.length, `${id}: an art family listed twice`);
 // The shipped themes are there (and so checked by the completeness loop above).
-assert.deepEqual(Object.keys(THEMES).sort(), ['breakingbad', 'contrast', 'corpo', 'cyber', 'darwin', 'forge', 'matrix', 'night', 'orbital', 'rain', 'synth', 'tier2', 'tower', 'vault', 'xenos']);
+assert.deepEqual(Object.keys(THEMES).sort(), ['contrast', 'corpo', 'cyber', 'darwin', 'forge', 'matrix', 'night', 'orbital', 'rain', 'synth', 'tier2', 'tower', 'vault', 'xenos']);
 // Neon Grid's accents: its art, its colours rehued, but skin, the alarm and the sashes kept.
 for (const id of ['corpo', 'rain', 'matrix', 'synth']) {
   const a = resolve(THEMES[id]), n = resolve(THEMES.cyber);
@@ -80,11 +80,29 @@ for (const id of ['corpo', 'rain', 'matrix', 'synth']) {
 }
 for (const th of Object.values(THEMES)) assert.ok(th.world in WORLDS, `${th.id}: world ${th.world} is not in WORLDS`);
 
+// A light chrome (dark words on pale bars, light words on --blood and --wax), no shipped theme's since Breaking Bad
+// became a theme pack: its ui as that world had it, checked beside every theme below, so a pack can still draw one.
+const LIGHT_CHROME = {
+  '--bg': '#e9edf0', '--bar': '#dfe4e7', '--ink': '#26282b', '--dim': '#525b60', '--light': '#26282b',
+  '--edge': '#c7d0d4', '--btn': '#f4f6f7', '--copper': '#3f6e3b', '--outline': '#26282b', '--bone': '#f4f6f7',
+  '--iron': '#9aa3a8', '--green': '#3f6e3b', '--red': '#d0452f', '--pink': '#a63a24', '--blood': '#8a2a1e',
+  '--glow': '#f2c230', '--wax': '#3f6e3b', '--wax-deep': '#2a4a27', '--alarm': '#e03a2a', '--flame': '#0b2540',
+  '--label': '#ffffff', '--label-sel': '#cfe9ff', '--label-btn': '#f4f6f7', '--plaque': '#dfe4e7',
+  '--on-blood': '#ffffff', '--ink-on-blood': '#ffffff', '--pink-on-blood': '#ffd2c8', '--green-on-blood': '#c8f0c4',
+  '--flame-on-wax': '#ffffff', '--honours-ink': '#ffffff', '--yes': '#5f9e5a', '--yes-deep': '#3f6e3b',
+  '--card': '#ffffff', '--paper': '#ffffff', '--paper-edge': '#c7d0d4', '--paper-hi': '#ffffff',
+  '--paper-tab': '#f4f6f7', '--paper-q': '#f8fafb', '--paper-shade': '#dfe4e7', '--paper-line': '#c7d0d4',
+  '--paper-ink': '#26282b', '--paper-ink-2': '#3a3d42', '--paper-ink-3': '#525b60', '--paper-err': '#d0452f',
+  '--leather': '#c7d0d4', '--leather-deep': '#9aa6ac', '--chart-new': '#5f9e5a', '--chart-cache': '#3a6ea5',
+  '--rod-hi': '#ffffff', '--rod': '#9aa3a8', '--rod-lo': '#6b767c', '--rod-edge': '#26282b', '--rod-cap': '#ffffff',
+  '--display': "'VT323', monospace", '--paper-accent': '#3f6e3b',
+};
+const CHROMES = [...Object.keys(THEMES).map(id => [id, resolve(THEMES[id]).ui]), ['light chrome', LIGHT_CHROME]];
 // Chrome colours: a theme's ui keys are CSS variables index.html declares.
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const cssVars = new Set([...html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
 assert.ok(cssVars.size > 40, 'found the :root variables');
-for (const id of Object.keys(THEMES)) for (const [k, v] of Object.entries(resolve(THEMES[id]).ui)) {
+for (const [id, chrome] of CHROMES) for (const [k, v] of Object.entries(chrome)) {
   assert.ok(cssVars.has(k), `${id}: ui ${k} is not a :root variable`);
   // --display is the title font: a bundled family (index.html @font-face) with a generic fallback
   if (k === '--display') assert.match(v, /^'(VT323|Pirata One)', (serif|monospace)$/, `${id}: ui ${k}`);
@@ -120,21 +138,6 @@ assert.equal(t('rank.high'), 'Magos', 'a theme keeps the wording it does not cha
 // tag (the base ranks gild t T z, a robe's trim)
 setTheme('darwin');
 assert.deepEqual(['high', 'novice'].map(r => ['t', 'T', 'z'].map(k => ({ ...T.px, ...T.rank[r].robe })[k])), [['t', 'T', 'z'].map(k => T.px[k]), ['t', 'T', 'z'].map(k => T.px[k])], 'darwin: one collar tag at every rank');
-// Breaking Bad: the whole wording redone (every key darwin redoes, and the card's own below), no code-drawn texture on the flat walls, and every
-// department arm band readable on every suit colour (white Cook, blue Partner, yellow Assistant).
-setTheme('breakingbad');
-const deepKeys = o => Object.entries(o).flatMap(([k, v]) => v && typeof v === 'object' && !Array.isArray(v) ? deepKeys(v).map(s => `${k}.${s}`) : [k]).sort();
-{ const own = new Set(deepKeys(THEMES.breakingbad.text)); for (const k of deepKeys(THEMES.darwin.text)) assert.ok(own.has(k), `breakingbad: text.${k} (darwin has it)`); }
-assert.deepEqual(T.text.rank, { high: 'Cook', standard: 'Partner', novice: 'Assistant' });
-for (const k of ['scratch', 'scratchSheen', 'grime', 'cant']) assert.equal(T.ink[k], 'rgba(0,0,0,0)', `breakingbad: no ${k}`);
-const rgbOf = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), far = (a, b) => rgbOf(a).reduce((s, v, i) => s + Math.abs(v - rgbOf(b)[i]), 0) > 120;
-for (const r of ['high', 'standard', 'novice']) for (const y of T.sash) assert.ok(far(y, { ...T.px, ...T.rank[r].robe }.r), `breakingbad: sash ${y} vs the ${r} suit`);
-// ... and readable against the outline and the dark visor (the band touches both)
-for (const y of T.sash) for (const [what, c] of [['outline', T.px.k], ['visor', T.px.e]]) assert.ok(far(y, c), `breakingbad: sash ${y} vs the ${what}`);
-// the session card's own words (theme.js TEXT) are the lab's too, never the 40k fallback
-for (const k of ['summoned', 'summonedBy', 'lineage']) assert.ok(THEMES.breakingbad.text[k], `breakingbad: text.${k}`);
-// Gale's coat trim shows his rank: never the outline colour
-for (const r of ['high', 'standard', 'novice']) assert.notEqual(T.rank[r].adept.J, T.px.k, `breakingbad: ${r} Gale's trim is not the outline`);
 setTheme('tier2');
 
 // Chrome contrast (WCAG ratio), every theme: each foreground the page draws over a fill (index.html), text >= 4.5,
@@ -165,8 +168,8 @@ setTheme('tier2');
     if (/\.lbl\.(stale|risky)/.test(m[1])) assert.ok(m[1].includes(':where(:not(.sel))'), `index.html: '${m[1].trim()}' colours a selected label for --blood`);
   }
   const seenKnown = new Set();
-  for (const id of Object.keys(THEMES)) {
-    const ui = { ...ROOT, ...resolve(THEMES[id]).ui };
+  for (const [id, chrome] of CHROMES) {
+    const ui = { ...ROOT, ...chrome };
     const val = k => { let v = ui[k]; for (let i = 0; i < 4 && v?.startsWith('var('); i++) v = ui[v.slice(4, -1).trim()]; return v; };
     for (const [f, b, min, where] of PAIRS) {
       const r = ratio(val(f), val(b)), key = `${id} ${f}/${b}`;

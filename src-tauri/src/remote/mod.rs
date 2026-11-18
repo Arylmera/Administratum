@@ -41,6 +41,8 @@ pub enum Call {
     Honours,
     SettingsLoad,
     PeekPetition(String),
+    /// The theme packs in the themes folder (packs::list); their files are assets, `/themes/<dir>/...`.
+    ThemePacks,
     AnswerPetition {
         handle: String,
         choice: String,
@@ -56,7 +58,7 @@ pub enum Call {
     },
 }
 
-/// Looks up an embedded UI file by path: (bytes, mime).
+/// Looks up an embedded UI file by path, or a theme pack's file under `themes/`: (bytes, mime).
 pub type AssetFn = Box<dyn Fn(&str) -> Option<(Vec<u8>, String)> + Send + Sync>;
 
 /// What the server needs from the app: its commands, and its embedded UI files (bytes, mime).
@@ -209,6 +211,7 @@ fn route(req: &Req, token: &str, actions: bool) -> Route {
         ("GET", "/api/honours") => Route::Call(Call::Honours),
         ("GET", "/api/settings_load") => Route::Call(Call::SettingsLoad),
         ("GET", "/api/peek_petition") => with("handle", Call::PeekPetition),
+        ("GET", "/api/theme_packs") => Route::Call(Call::ThemePacks),
         ("POST", "/api/answer_petition") => action_gate(req, actions).map_or(Route::Answer, Route::Status),
         ("POST", "/api/vigil") => action_gate(req, actions).map_or(Route::Vigil, Route::Status),
         ("GET", p) if !p.starts_with("/api/") => asset_path(p).map_or(Route::Status(404), Route::Asset),
@@ -635,6 +638,27 @@ mod tests {
         assert_eq!(percent_decode("a%20b+c%C3%A9"), Some("a b cé".into()));
         assert_eq!(percent_decode("%4"), None);
         assert_eq!(percent_decode("%ff"), None);
+    }
+
+    #[test]
+    fn theme_packs_are_read_only_and_paired() {
+        let a = authed(&[]);
+        assert_eq!(get("/api/theme_packs", &a), Route::Call(Call::ThemePacks));
+        assert_eq!(get("/themes/p/pink/theme.json", &a), Route::Asset("themes/p/pink/theme.json".into()));
+        assert_eq!(get("/themes/p/pack.json", &a), Route::Asset("themes/p/pack.json".into()));
+        assert_eq!(get("/themes/p/../../settings.json", &a), Route::Status(404));
+        assert_eq!(get("/themes/p/%2e%2e/x.json", &a), Route::Status(404));
+        // unpaired: refused like every other route
+        let host = h(&[("host", "192.168.1.5:7770")]);
+        assert_eq!(get("/api/theme_packs", &host), Route::Unauthorized);
+        assert_eq!(get("/themes/p/pink/theme.json", &host), Route::Unauthorized);
+        assert_eq!(get("/themes/p/pink/theme.json", &h(&[("host", "192.168.1.5:7770"), ("cookie", "adm_t=0123456789abcdef0123456789abcdee")])), Route::Unauthorized);
+        // nothing writes: a POST anywhere under them is refused, actions allowed or not
+        for url in ["/api/theme_packs", "/themes/p/pink/theme.json", "/api/theme_pack_file"] {
+            let r = post_to(url, &authed(&[("x-adm", "1"), ("origin", "http://192.168.1.5:7770"), ("content-type", "application/json")]), true);
+            assert!(matches!(r, Route::Status(404 | 405)), "{url}: {r:?}");
+        }
+        assert_eq!(get("/api/theme_pack_file?path=p/pack.json", &a), Route::Status(404), "the host's command is not a remote call");
     }
 
     #[test]

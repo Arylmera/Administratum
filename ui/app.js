@@ -6,7 +6,7 @@ import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES } from './sprites.js';
 import { T, onTheme, setTheme, t, hexA } from './theme.js';
-import './themes.js'; // registers the themes beyond Tier II
+import { guarded } from './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
@@ -33,8 +33,10 @@ const saved = store.get('adm.view', 'flat');
 setView(hallView(stripKind(saved) ? store.get('adm.hallView', 'flat') : saved));
 document.documentElement.classList.toggle('iso', viewMode.mode === '39'); // the 39° view: no frame round the stage (index.html)
 if (stripKind(saved) && !REMOTE) invoke('strip_supported').then(ok => ok && setView(saved), () => {});
-applyChrome();
-onTheme(applyChrome);
+// the page's chrome in the theme's colours, behind the second net as the frames are (themes.js guarded)
+const chrome = guarded(applyChrome);
+chrome();
+onTheme(chrome);
 
 const MODES = ['auto', 'full', 'candles'];
 const state = { mode: store.get('adm.mode', 'auto'), muted: store.get('adm.muted', '0') === '1' };
@@ -236,6 +238,11 @@ addEventListener('visibilitychange', wake);
 function frame(now) {
   if (paused()) { running = false; document.documentElement.classList.add('paused'); return; } // wake() restarts the loop
   requestAnimationFrame(frame);
+  draw(now);
+}
+// A frame's drawing: one that throws under a pack's theme leaves that theme out and goes back to Ordo Administratum
+// (themes.js guarded).
+const draw = guarded(now => {
   const ms = Math.min(100, now - last);
   acc += ms / 1000;
   last = now;
@@ -282,7 +289,7 @@ function frame(now) {
   syncTags(watchTags, 'petition', watchText, 0, -22);
   syncHover();
   syncEdges();
-}
+});
 
 renderModes();
 setInterval(() => paused() || renderModes(), 60_000);
@@ -431,7 +438,7 @@ initSettings({ mode: () => state.mode, setMode, muted: () => state.muted, setMut
   sided: () => { if (!column()) return; resetCast(); settleNext = true; applyColumn(); fit(); relayout(); growStrip(); }, // the column's side: mirrored at once
   roster: () => roster, roomsChanged: () => relayout(),
   // Settings > Rooms > Hall plan: another hall, so nobody walks across (as a switch into the strip); the wording follows
-  planChanged: () => { resetCast(); for (const k in bg) delete bg[k]; applyChrome(); fit(); relayout(); } }); // Settings > Rooms: its live line, a rule saved
+  planChanged: () => { resetCast(); for (const k in bg) delete bg[k]; chrome(); fit(); relayout(); } }); // Settings > Rooms: its live line, a rule saved
 fit();
 requestAnimationFrame(frame);
 window.ADM_BOOTED = true;

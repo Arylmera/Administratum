@@ -74,6 +74,11 @@ checks these rules, and that the source writes no server text as HTML.
 plain names only (`[A-Za-z0-9._-]` segments, no `..`, no leading dot, no `%` escapes, no `\`); anything
 else is 404. Unknown names fall back to `index.html` (Tauri's resolver behaviour).
 
+`GET /themes/<dir>/pack.json` and `GET /themes/<dir>/<folder>/<name>.json|png`: a theme pack's file, from the
+themes folder on the PC (`<app data>/themes/`, `packs.rs` `read`), `application/json` or `image/png` by extension.
+Anything else under `/themes/` is 404 (never `index.html`): a deeper or shallower path, a name that is not plain, a
+file over 2 MiB, a link leading out of the themes folder, a pack's `pack-source.json`. Read only, like every file.
+
 ## Read endpoints (GET, cookie)
 
 Same results as the Tauri commands of the same name. 200 + JSON on success; 400 +
@@ -88,8 +93,9 @@ Query values are percent-decoded.
 | `GET /api/honours` | `honours` -> `{commits, longest, fast, busiest}`, the Hall of Honours over the kept 7 days: each `{dept, value}` or null (`value`: a count for `commits` and `fast`, ms for `longest`; `busiest` also has `day`, `YYYY-MM-DD`, its `value` that day's working time in ms). Department names only, no paths |
 | `GET /api/settings_load` | `settings_load` -> object (read only; there is no remote save) |
 | `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}` |
+| `GET /api/theme_packs` | `theme_packs` -> `[{id, dir, repo, installed, themes}]`, the theme packs in the PC's themes folder (`id` `owner/repo` or `local/<dir>`; `repo` and `installed` null for a local pack; `themes` the folders holding a `theme.json`, sorted). Their files are served under `/themes/` (Static files); there is no remote install or removal |
 
-Not exposed: `open_session`, `settings_save`, `set_*`, `start_at_login`, the `remote_*` commands.
+Not exposed: `open_session`, `settings_save`, `theme_pack_file` (the phone reads `/themes/` instead), `theme_pack_install`, `theme_pack_update`, `theme_pack_remove`, `restart`, `set_*`, `start_at_login`, the `remote_*` commands.
 
 ## Action endpoint (POST)
 

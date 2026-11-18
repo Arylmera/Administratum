@@ -14,7 +14,7 @@ open the live sprite viewer first and keep it open, so the discussion is about w
 References the user may give:
 - **Cell refs** like `C12`: column = theme in `THEMES` order (A Ordo Administratum, B Ordo Machinum, C Ordo Xenos,
   D Ordo Malleus, E Ordo Hereticus, F Neon Grid, G Orbital Station, H Corpo Tower,
-  I Rain City, J Green Code, K Sunset Drive, L Arcane Tower, M Vault 111, N Darwin, O Breaking Bad), row = sprite number (the same sprite in every column; one a world never draws is an empty "not in this world" cell). `node tools/sprite_sheet.mjs --list` prints the key;
+  I Rain City, J Green Code, K Sunset Drive, L Arcane Tower, M Vault 111, N Darwin), row = sprite number (the same sprite in every column; one a world never draws is an empty "not in this world" cell). `node tools/sprite_sheet.mjs --list` prints the key;
   `sprites.html#C12` jumps to and outlines the cell.
 - **Sprite ids** like `SCRIBE.high.left`, `WINDOW.night`, `ROOM.floor` (the viewer and `docs/sprites/` galleries).
 
@@ -24,6 +24,9 @@ Where things live:
   frames it redraws, listed in the theme's `art` in `ui/art/<theme>/theme.json`.
 - Colours per theme: `ui/theme.js` (Ordo Administratum, `BASE`) and `ui/art/<theme>/theme.json` (the list:
   `ui/art/themes.json`; loader `ui/themes.js`, format and check `ui/themepack.js`).
+- Theme packs (themes from outside, `docs/theme-packs.md`): loaded by `ui/themes.js` `loadPacks`, scoped and checked
+  by `ui/themepack.js` (`scoped`, `checkTheme` with `LOCKED`), their sheets' shape by `ui/artcheck.js`; the author's
+  check `node tools/theme_pack.mjs check <folder>`; the backend side `src-tauri/src/packs.rs`.
 - Sprite list shared by the viewer and the gallery: `tools/sprite_catalog.mjs`.
 - To read a sprite as text rows: `node -e "import('./ui/sprites.js').then(m => console.log(m.MAPS.SHELF.join('\n')))"`.
 - After an art change: run `node ui/art.test.mjs` and `node ui/sprites.test.mjs`, then regenerate the committed

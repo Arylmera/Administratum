@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { TIER_II, resolve } from './theme.js';
-import { recolour, checkTheme, themeOf, FONTS } from './themepack.js';
+import { recolour, checkTheme, themeOf, scoped, FONTS, LOCKED } from './themepack.js';
 
 // recolour: the arithmetic of the old rehue, pinned on five inputs (computed with the old themes.js code)
 const bands = [{ hue: [300, 345], to: 356, sat: 1, light: -0.04 }, { hue: [210, 260], to: 0, sat: 0.12 }];
@@ -62,6 +63,47 @@ one({ world: 'mars' }, 'mars');
 assert.deepEqual(checkTheme({ ...ok, world: 'mars', worldName: 'Mars' }, { bases }), [], 'a new world with its name');
 assert.deepEqual(checkTheme({ ...ok, world: 'mars' }, { bases, worlds: new Set(['mars']) }), [], 'worlds: the known ones');
 one({ world: 'mars', worldName: 3 }, 'worldName');
+
+// art: with `families` given, every entry is one of them (a pack's art is a file name: no path gets through)
+const art = { format: 1, name: 'X', world: 'w40k', art: ['scribe', '../x'] };
+const pa = checkTheme(art, { families: ['scribe'] });
+assert.equal(pa.length, 1); assert.ok(pa[0].includes('../x'), pa[0]);
+assert.deepEqual(checkTheme(art, {}), [], 'no families, no check');
+assert.deepEqual(checkTheme({ ...art, art: ['scribe'] }, { families: new Set(['scribe']) }), []);
+// a colour's components: 0 to 255, alpha 0 to 1
+one({ ui: { '--bg': 'rgb(300,0,0)' } }, 'ui.--bg');
+one({ ui: { '--bg': 'rgba(0,0,0,2)' } }, 'ui.--bg');
+one({ light: { night: '10,20,999' } }, 'light.night');
+assert.deepEqual(checkTheme({ ...ok, ui: { '--bg': 'rgba(255,170,80,.38)' }, light: { night: '10,20,30' } }, { bases }), []);
+
+// locked wording: a pack cannot reword the safety and pack-management texts; a shipped theme's check (no `locked`) may
+assert.deepEqual(LOCKED, ['risky', 'rejectAll', 'toast.failed', 'prefs.packs']);
+for (const [key, text] of [['risky', { risky: 'ok: {reason}' }], ['rejectAll', { rejectAll: 'Fine' }], ['toast.failed', { toast: { failed: 'sent' } }],
+  ['prefs.packs', { prefs: { packs: { remove: 'Update' } } }], ['prefs.packs', { prefs: { packs: {} } }]]) {
+  const p = checkTheme({ ...ok, text }, { bases, locked: LOCKED });
+  assert.equal(p.length, 1, `${key}: ${JSON.stringify(p)}`);
+  assert.ok(p[0].startsWith(`text.${key}:`) && p[0].includes('a pack cannot reword'), p[0]);
+  assert.deepEqual(checkTheme({ ...ok, text }, { bases }), [], `${key}: a shipped theme may`);
+}
+assert.deepEqual(checkTheme({ ...ok, text: { toast: { petition: 'P {name}' }, watch: { name: 'Owl', button: 'Night Vigil: Owl watches' }, prefs: { theme: 'Look' } } }, { bases, locked: LOCKED }), [], 'the keys beside them stay free, the Night Vigil button too (it names the watchman)');
+
+// every shipped world passes the check a pack's theme gets: a full world can be a pack
+const artDir = new URL('./art/', import.meta.url);
+const listed = JSON.parse(readFileSync(new URL('themes.json', artDir), 'utf8'));
+const worldThemes = listed.map(id => [id, JSON.parse(readFileSync(new URL(`${id}/theme.json`, artDir), 'utf8'))]).filter(([, j]) => j.world !== undefined && j.base === undefined);
+assert.ok(worldThemes.length > 0 && worldThemes.some(([, j]) => j.text?.watch?.button), 'some shipped worlds reword the Night Vigil button');
+for (const [id, j] of worldThemes) assert.deepEqual(checkTheme(j, { bases: new Set(listed), locked: LOCKED }), [], `${id}: a shipped world as a pack`);
+
+// scoped: a pack's theme gets pack-scoped ids; what it names in its own pack follows, what is shipped stays
+const shipped = ['w40k', 'vault'], own = ['pink', 'steam', 'rose'];
+const sc = (id, json) => scoped('alice/p', id, { format: 1, name: 'P', ...json }, { own, shipped });
+assert.deepEqual([sc('pink', { base: 'vault' }).id, sc('pink', { base: 'vault' }).json.base], ['alice/p:pink', 'vault']);
+assert.equal(sc('rose', { base: 'steam' }).json.base, 'alice/p:steam');
+assert.equal(sc('steam', { world: 'steampunk', worldName: 'Steampunk' }).json.world, 'alice/p:steampunk');
+assert.equal(sc('steam', { world: 'w40k' }).json.world, 'w40k');
+const frozen = Object.freeze({ format: 1, name: 'P', base: 'steam' });
+assert.equal(scoped('a/b', 'rose', frozen, { own, shipped }).json.base, 'a/b:steam');
+assert.equal(frozen.base, 'steam', 'the input is kept');
 
 // themeOf
 assert.deepEqual(themeOf('x', { format: 1, name: 'X', world: 'w40k', notes: 'n', worldName: 'W', px: { r: '#102030' } }), { id: 'x', name: 'X', world: 'w40k', px: { r: '#102030' } });

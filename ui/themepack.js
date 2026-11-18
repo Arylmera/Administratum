@@ -26,16 +26,31 @@ export const recolour = (v, bands) => typeof v === 'string'
 
 const KEYS = ['format', 'name', 'world', 'worldName', 'base', 'bands', 'art', 'px', 'sash', 'rank', 'ink', 'light', 'ui', 'text', 'notes'];
 const COLOUR = /^(#[0-9a-f]{6}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)|\d{1,3},\s*\d{1,3},\s*\d{1,3})$/i;
-const isColour = v => typeof v === 'string' && COLOUR.test(v);
+// A colour with its components in range: r, g, b 0 to 255, alpha 0 to 1.
+const isColour = v => typeof v === 'string' && COLOUR.test(v) && (v[0] === '#' || v.match(/[\d.]+/g).every((n, i) => +n <= (i < 3 ? 255 : 1)));
 const isHex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v); // what theme.js rgb() reads: px, rank, sash
 // The keys a theme may set in px, ink and light: Ordo Administratum's, resolved.
 const REF = resolve(TIER_II), KNOWN = Object.fromEntries(['px', 'ink', 'light'].map(p => [p, new Set(Object.keys(REF[p]))]));
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 const kind = v => Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v;
 
+// A pack's theme `id` with its json, given the pack's scope: the ids a pack names in itself take the scope
+// (`alice/p:steam`); a shipped base or world stays. `own`: the pack's theme folders; `shipped`: the shipped world ids.
+export const scoped = (pack, id, json, { own = [], shipped = [] } = {}) => {
+  const out = { ...json }, s = x => `${pack}:${x}`;
+  if (out.base !== undefined && own.includes(out.base)) out.base = s(out.base);
+  if (typeof out.world === 'string' && !shipped.includes(out.world)) out.world = s(out.world);
+  return { id: s(id), json: out };
+};
+
+// The wording a pack's theme cannot set (loadPacks passes it as `locked`): what warns of a risky command, what Deny
+// also refuses, an answer not sent, the packs' own buttons and lines. Shipped themes may. (A world may reword the Night Vigil's button:
+// it names the world's watchman.)
+export const LOCKED = ['risky', 'rejectAll', 'toast.failed', 'prefs.packs'];
+
 // The problems of a parsed theme.json (empty when valid). `bases`: the ids a style may name; `worlds`: the known
-// world ids (a theme naming another world brings its `worldName`).
-export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.keys(WORLDS)) } = {}) {
+// world ids (a theme naming another world brings its `worldName`); `locked`: text keys (a whole subtree) refused.
+export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.keys(WORLDS)), families, locked = [] } = {}) {
   const bad = [];
   if (!isObj(json)) return ['theme: not an object'];
   for (const k of Object.keys(json)) if (!KEYS.includes(k)) bad.push(`${k}: unknown key`);
@@ -77,6 +92,7 @@ export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.ke
   if (json.light !== undefined) colours('light', json.light, k => KNOWN.light.has(k));
   if (json.sash !== undefined && !(Array.isArray(json.sash) && json.sash.every(isHex))) bad.push('sash: must be an array of #rrggbb colours');
   if (json.art !== undefined && !(Array.isArray(json.art) && json.art.every(a => typeof a === 'string'))) bad.push('art: must be an array of names');
+  else if (families && json.art) for (const a of json.art) if (![...families].includes(a)) bad.push(`art: unknown family ${JSON.stringify(a)}`);
   if (json.ui !== undefined) {
     if (!isObj(json.ui)) bad.push('ui: must be an object');
     else for (const [k, v] of Object.entries(json.ui)) {
@@ -97,6 +113,8 @@ export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.ke
   }
   if (json.text !== undefined) {
     const walk = (where, v, ref) => {
+      const key = where.slice('text.'.length);
+      if (locked.some(l => key === l || key.startsWith(`${l}.`))) return bad.push(`${where}: a pack cannot reword this`);
       if (kind(v) !== kind(ref)) return bad.push(`${where}: must be a ${kind(ref)}`);
       if (isObj(v)) for (const [k, x] of Object.entries(v)) k in ref ? walk(`${where}.${k}`, x, ref[k]) : bad.push(`${where}.${k}: not a wording key`);
     };

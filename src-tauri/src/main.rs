@@ -8,6 +8,7 @@ mod mask;
 mod monitor;
 mod opencode;
 mod orca;
+mod packs;
 mod poller;
 mod quiet;
 mod registry;
@@ -190,6 +191,100 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(app.path().app_config_dir().map_err(|e| e.to_string())?.join("settings.json"))
 }
 
+/// The theme packs' folder, `<app data>/themes/` (packs.rs).
+fn themes_root(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app.path().app_data_dir().map_err(|e| e.to_string())?.join("themes"))
+}
+
+/// The theme packs in the themes folder, for the UI's `loadPacks` (none when the folder is missing or unreadable).
+#[tauri::command(async)]
+fn theme_packs(app: AppHandle) -> Vec<packs::Pack> {
+    themes_root(&app).map(|root| packs::list(&root)).unwrap_or_default()
+}
+
+/// One file of a theme pack, `<dir>/pack.json` or `<dir>/<folder>/<name>.json|png`, as raw bytes; `not found` for
+/// anything `packs::read` will not serve (the UI reads that as a missing file).
+#[tauri::command(async)]
+fn theme_pack_file(path: String, app: AppHandle) -> Result<tauri::ipc::Response, String> {
+    packs::read(&themes_root(&app)?, &path).map(tauri::ipc::Response::new).ok_or_else(|| "not found".into())
+}
+
+/// The archive of a public GitHub repository's default branch (`packs::archive_url`): HTTPS to codeload.github.com
+/// only, no redirect followed, 60 s in all, reading stopped past `packs::MAX_ARCHIVE` (whatever `Content-Length` says).
+async fn download_pack(repo: &str) -> Result<Vec<u8>, String> {
+    let url = packs::archive_url(repo).ok_or_else(|| format!("not a GitHub repository: {repo}"))?;
+    // reqwest is built without a crypto provider (as the updater uses it): install the one the updater installs
+    if rustls::crypto::CryptoProvider::get_default().is_none() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("Administratum/", env!("CARGO_PKG_VERSION"), " (theme packs)"))
+        .redirect(reqwest::redirect::Policy::none())
+        .https_only(true)
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut res = client.get(&url).send().await.map_err(|e| format!("cannot reach GitHub: {e}"))?;
+    if let Some(e) = download_refused(res.status().as_u16(), repo) {
+        return Err(e);
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = res.chunk().await.map_err(|e| format!("the download failed: {e}"))? {
+        if bytes.len() + chunk.len() > packs::MAX_ARCHIVE {
+            return Err(format!("the archive of {repo} is larger than {} MiB", packs::MAX_ARCHIVE >> 20));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
+/// What an answer other than 2xx means, in our words only (none of GitHub's text): redirects are not followed, so a
+/// 3xx is a repository renamed or moved; 403 and 429 a refusal for now; 404 no such public repository.
+fn download_refused(status: u16, repo: &str) -> Option<String> {
+    match status {
+        200..=299 => None,
+        300..=399 => Some(format!("the repository {repo} has moved: type its new name")),
+        403 | 429 => Some("GitHub refused for now, try again later".into()),
+        404 => Some(format!("no public repository {repo}")),
+        s => Some(format!("the download of {repo} failed (GitHub answered {s})")),
+    }
+}
+
+fn now_utc() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+}
+
+/// Settings > Themes: install the pack of a public GitHub repository `owner/repo` (`packs::install`), or replace it.
+/// Host only (not on the remote view), as are the next three.
+#[tauri::command]
+async fn theme_pack_install(repo: String, app: AppHandle) -> Result<packs::Pack, String> {
+    let root = themes_root(&app)?;
+    let repo = repo.trim().to_string();
+    let archive = download_pack(&repo).await?;
+    tauri::async_runtime::spawn_blocking(move || packs::install(&root, &repo, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+}
+
+/// Install the pack in the folder `dir` again from the repository it came from (`packs::update`); a local pack is refused.
+#[tauri::command]
+async fn theme_pack_update(dir: String, app: AppHandle) -> Result<packs::Pack, String> {
+    let root = themes_root(&app)?;
+    let repo = packs::origin(&root, &dir)?;
+    let archive = download_pack(&repo).await?;
+    tauri::async_runtime::spawn_blocking(move || packs::update(&root, &dir, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+}
+
+/// Remove the pack in the folder `dir` (`packs::remove`); a local pack (a folder made by hand) is refused, never deleted.
+#[tauri::command(async)]
+fn theme_pack_remove(dir: String, app: AppHandle) -> Result<(), String> {
+    packs::remove(&themes_root(&app)?, &dir)
+}
+
+/// Restart the app (a pack installed, updated or removed is loaded at start).
+#[tauri::command]
+fn restart(app: AppHandle) {
+    app.restart();
+}
+
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
 /// Never includes the backend's `remote.*` keys (the remote view's token among them).
 #[tauri::command(async)]
@@ -295,6 +390,12 @@ fn main() {
             desktop_shortcut,
             settings_load,
             settings_save,
+            theme_packs,
+            theme_pack_file,
+            theme_pack_install,
+            theme_pack_update,
+            theme_pack_remove,
+            restart,
             rooms::rooms_test,
             remote::app::remote_status,
             remote::app::remote_set,
@@ -322,6 +423,11 @@ fn main() {
             // No Dock icon or app menu: a widget that lives in the tray (skipTaskbar is ignored on macOS).
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            // a pack an interrupted install left moved aside is back before the UI lists the packs (single instance:
+            // no install is running now)
+            if let Ok(root) = themes_root(app.handle()) {
+                packs::recover(&root);
+            }
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
             #[cfg(target_os = "linux")]
             strip::init(); // before build_tray: the tray's strip item asks strip_supported
@@ -691,6 +797,17 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn a_download_refused_is_said_in_our_words() {
+        assert_eq!(download_refused(200, "a/b"), None);
+        assert_eq!(download_refused(301, "a/b").as_deref(), Some("the repository a/b has moved: type its new name"));
+        assert_eq!(download_refused(302, "a/b").as_deref(), Some("the repository a/b has moved: type its new name"));
+        assert_eq!(download_refused(403, "a/b").as_deref(), Some("GitHub refused for now, try again later"));
+        assert_eq!(download_refused(429, "a/b").as_deref(), Some("GitHub refused for now, try again later"));
+        assert_eq!(download_refused(404, "a/b").as_deref(), Some("no public repository a/b"));
+        assert_eq!(download_refused(500, "a/b").as_deref(), Some("the download of a/b failed (GitHub answered 500)"));
     }
 
     #[test]

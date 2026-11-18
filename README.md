@@ -222,22 +222,26 @@ Style: <i>Arcane Tower</i>.</td>
 <td><img src="docs/img/world-vault.png" alt="Fallout: the Overseer's office in Vault 111"><br>
 <b>Fallout</b>: vault dwellers at RobCo terminals, Mr. Handy robots, the Overseer with his clipboard, the cog vault
 door and a Nuka-Cola machine. Style: <i>Vault 111</i>.</td>
-<td>Every sprite of every world, side by side: the <a href="docs/sprites/README.md">sprite gallery</a>, or
-<code>tools/sprites.html</code> in a local checkout (one column per style). The remote view keeps its own theme, so
-a phone can show a different world than the PC.</td>
-</tr>
-<tr>
 <td><img src="docs/img/world-darwin.png" alt="Darwin: chimpanzees at their typewriters in a Victorian laboratory"><br>
 <b>Darwin</b>: chimpanzees at their typewriters (the infinite monkey theorem) on oak lab benches, capuchin lab assistants
 for subagents, Charles Darwin himself checking the work with his magnifying glass, specimen jars, brass microscopes and
 gaslight, and a Galapagos finch. Style: <i>Darwin</i>.</td>
-<td><img src="docs/img/world-breakingbad.png" alt="Breaking Bad: hazmat cooks at white lab benches in a flat, light superlab"><br>
-<b>Breaking Bad</b>: a flat, light superlab: cooks in hazmat suits (white with Walter behind the visor for Opus, blue
-with Jesse for Sonnet, yellow and anonymous for Haiku), Gale as the lab assistant for subagents, Heisenberg in his
-office chair, the Br Ba tiles on the wall, the fly, Mike on the night shift and a Los Pollos Hermanos corner. Style:
-<i>Breaking Bad</i>.</td>
+</tr>
+<tr>
+<td colspan="2">Every sprite of every world, side by side: the <a href="docs/sprites/README.md">sprite gallery</a>, or
+<code>tools/sprites.html</code> in a local checkout (one column per style). The remote view keeps its own theme, so
+a phone can show a different world than the PC.</td>
 </tr>
 </table>
+
+**Themes from others.** A theme pack is a GitHub repository holding one or more themes made by someone else: a new
+world, or a new style for a world the app ships. To add one, type its `owner/repo` (or paste its GitHub address) in
+Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the Theme and Style lists
+after *Restart to apply*. The same list updates or removes a pack. A pack is data only: colours, wording and pixel
+art, checked when it loads; it cannot run code, and a theme that does not load is left out with the reason on its
+pack's line. A folder of themes dropped by hand into the `themes` folder beside the app's Chronicon shows there
+too, as a local folder. The Breaking Bad world, once shipped with the app, is such a pack now:
+`ChristianLemer/adm-themes`. To make your own: [Making a theme pack](docs/theme-packs.md).
 
 ---
 
@@ -330,7 +334,7 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
 
 ![The desktop strip: scribes at their lecterns, the cogitator, and a petition queued before the Magos](docs/img/strip.png)
 
-Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111, Darwin, Breaking Bad)
+Both views draw from one art source, and every world (Warhammer, Neon Grid, Orbital Station, Arcane Tower, Vault 111, Darwin)
 has its own 39° art. Every world also has a tall window on the back wall and full-height hangings (gothic window and
 banners in the Warhammer themes, each other world its own design), in both views. The remote view keeps its own View.
 
@@ -481,8 +485,9 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Setting | Default | Effect |
 |---|---|---|
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
-| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin, Breaking Bad. Each world outside 40k has its own art |
-| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin. Breaking Bad: Breaking Bad |
+| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
+| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
+| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). A change applies after *Restart to apply* (see *Themes from others*) |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
@@ -629,6 +634,7 @@ configuration, and installs no hooks. It reads:
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals, and its 5-minute token buckets (the usage window) |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
+| `themes\<owner>__<repo>\` | A theme pack you installed (Settings > Hall > Added themes): its themes' files only, removed with *Remove* |
 
 Outside that folder, the app writes only the day report, and only when you turn *Also write the day report to a
 folder* on and name an existing absolute folder: one `YYYY-MM-DD-administratum-day.md` per day (session names,
@@ -638,10 +644,12 @@ Chronicon files older than 7 days are deleted at startup. Demo mode uses a separ
 which is wiped at each start.
 
 **Nothing about your sessions leaves the machine**, unless you turn on the [remote view](#remote-view), which serves
-the hall to paired devices on your local network only. There is no telemetry. The only network call is the update
-check: it fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
-turned off) and when you click *Check now*. The only other outbound action is opening a `https://claude.ai/code/<id>`
-link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
+the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
+check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
+turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
+*Update* in Settings > Hall > Added themes: that request goes to GitHub like any download, so GitHub sees your IP
+address and the app's user agent, and it names the repository; no session data is sent. The only other outbound
+action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an
 Orca terminal after you click, in the widget or on a toast. The safeguards:
@@ -716,5 +724,5 @@ specs, plans and the [backlog](docs/backlog.md).
 | VT323, © 2011 The VT323 Project Authors | `vt323-latin.woff2`, `vt323-latin-ext.woff2` | `OFL-VT323.txt` |
 
 Warhammer 40,000 and the Adeptus Mechanicus are trademarks of Games Workshop. Fallout, Vault-Tec, Nuka-Cola and
-Pip-Boy are trademarks of Bethesda Softworks, a ZeniMax Media company. Breaking Bad is a trademark of Sony Pictures
-Television. Administratum is an unofficial fan project and is not affiliated with or endorsed by any of them.
+Pip-Boy are trademarks of Bethesda Softworks, a ZeniMax Media company. Administratum is an unofficial
+fan project and is not affiliated with or endorsed by any of them.

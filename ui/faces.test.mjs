@@ -6,6 +6,7 @@ import { THEMES, setTheme } from './theme.js';
 import './themes.js';
 import { sheetOf, composeFlat, build39, cols, VS, inEllipse, FACES, FACE_OBJECTS } from './faces.js';
 import { ART } from './sprites.js';
+import { checkFaces } from './artcheck.js';
 
 const diff = (a, b) => { let n = 0; a.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== b[y]?.[x]) n++; }); return n; };
 
@@ -47,24 +48,12 @@ const broken = sheetOf('DESK');
 broken.details.shift();
 assert.notDeepEqual(composeFlat(broken), MAPS.DESK);
 
-// every frame of faces.png belongs to a box, cylinder, disc or recess and has its face's size ([w, h])
-const sizes = {};
-const recessSizes = (pre, list = []) => { for (const r of list) if (r.depth > 1) { sizes[`${pre} ${r.name} wall`] = [r.depth - 1, r.rect[3]]; sizes[`${pre} ${r.name} floor`] = [r.rect[2], r.depth - 1]; } };
-for (const [name, o] of Object.entries(FACES.base.objects)) {
-  if (o.front) { sizes[`${name} side`] = [cols(o.d), o.front[3]]; sizes[`${name} top`] = [o.front[2], cols(o.d)]; recessSizes(name, o.recess); }
-  const parts = (o.details ?? []).flatMap(d => (d.parts ? d.parts.map(p => [`${d.name}/${p.name}`, p]) : [[d.name, d]]));
-  for (const [key, p] of parts) {
-    const [, , w, h] = p.rect;
-    if (p.kind === 'box') { sizes[`${name} ${key} side`] = [cols(p.d), h]; sizes[`${name} ${key} top`] = [w, cols(p.d)]; recessSizes(`${name} ${key}`, p.recess); }
-    if (p.kind === 'cyl') sizes[`${name} ${key} top`] = [w, cols(w)];
-    if (p.kind === 'disc') sizes[`${name} ${key} rim`] = [w, h];
-    sizes[`${name} ${key} front`] = [w, h]; // a drawn front for a detail its frame shows only top-down (under a flat-only retouch)
-  }
-}
-for (const [k, f] of Object.entries(FACES.base.frames)) {
-  assert.ok(sizes[k], `faces.png: frame '${k}' belongs to no box, cylinder, disc or recess`);
-  assert.deepEqual([f[0].length, f.length], sizes[k], `faces.png: '${k}' size`);
-}
+// every frame of faces.png belongs to a box, cylinder, disc or recess and has its face's size ([w, h]); every object's
+// kinds and rects are sound (artcheck.js); a world's own faces likewise, its frames at any size the builder reads
+setTheme('tier2');
+assert.deepEqual(checkFaces(FACES.base.objects, FACES.base.objects, MAPS, FACES.base.frames, { exact: true }), [], 'faces.png: frames, sizes, kinds and rects');
+for (const [id, w] of Object.entries(FACES.worlds)) if (w) { setTheme(id); assert.deepEqual(checkFaces(w.objects, FACES.base.objects, MAPS, w.frames), [], `${id}/faces`); }
+setTheme('tier2');
 // the second shelf design is the same carcass: SHELF's side and top (the gallery lists them once, under SHELF)
 for (const f of ['side', 'top']) assert.deepEqual(FACES.base.frames[`SHELF_B ${f}`], FACES.base.frames[`SHELF ${f}`], `SHELF_B ${f}: SHELF's`);
 // a drawn front replaces the crop (the TABLE's mugs: top-down in the flat frame, seen from the side in 39°)

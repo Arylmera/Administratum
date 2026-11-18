@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "name": "Workshop",
+  "world": "workshop",
+  "worldName": "Workshop",
+  "art": ["breakout"],
+  "px": {
+    "1": "#3a2c20",
+    "2": "#241a12",
+    "3": "#5a4028",
+    "c": "#e0a040",
+    "o": "#e0a040",
+    "O": "#fff0d0"
+  },
+  "text": {
+    "subtitle": "Workshop · Benches and sawdust",
+    "motto": "Measure twice, cut once",
+    "breakout": "Tool Shed"
+  },
+  "notes": [
+    "A small world: warm wood and lamp light over the base art.",
+    "breakout.png / breakout.json: copied from Ordo Machinum (ui/art/forge/) as a starting point; redraw them in the key palette."
+  ]
+}

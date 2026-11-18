@@ -35,20 +35,29 @@
 // '<NAME> <detail> <recess> wall|floor'. faces.png and faces.json are hand-edited source (no generator).
 import { T, THEMES } from './theme.js';
 import { VS39 } from './iso.js';
-import { MAPS, ART } from './sprites.js';
+import { MAPS, ART, framesOf } from './sprites.js';
 import { loadSheet } from './art.js';
-import { artRootOf } from './themes.js';
+import { artRootOf, dropTheme, packOf } from './themes.js';
+import { checkFaces } from './artcheck.js';
 
 export const VS = VS39; // v units per texel of a top face's rows and a side face's columns (39°)
 export const cols = d => Math.ceil(d / VS); // texels across a depth d
 
 const missing = e => e.code === 'ENOENT' || /HTTP 404/.test(e.message);
+// A pack's theme (themes.js packOf): its faces read through its pack and checked (artcheck.js, against the frames it
+// draws); a problem leaves the theme out (dropTheme), where a shipped theme's throws.
 async function load(id) {
+  const pack = packOf(id);
   try {
     const { frames, meta } = await loadSheet('faces', artRootOf(id));
+    const bad = pack ? checkFaces(meta.objects, base.objects, framesOf(id), frames) : [];
+    if (bad.length) throw new Error(bad.join('; '));
     return { objects: meta.objects, frames };
   } catch (e) {
-    if (id !== 'tier2' && missing(e)) return null; // a world without face sheets draws with the base ones; anything else throws
+    // a world without face sheets draws with the base ones; anything else throws (a pack's: only a missing faces.json
+    // is absence, its PNG missing beside it a fault; art.js names a reader's file first)
+    if (id !== 'tier2' && missing(e) && (!pack || e.message.startsWith('faces.json: '))) return null;
+    if (pack) { dropTheme(id, `${pack.folder}/${e.message}`); return null; }
     throw e;
   }
 }
@@ -64,7 +73,7 @@ const crop = (map, [x, y, w, h]) => map.slice(y, y + h).map(r => r.slice(x, x + 
 // The face sheet of a sprite as the active theme (or theme id) draws it, cut from map (default: today's MAPS frame;
 // pass an animated copy, e.g. the cogitator's lit screens). null for a sprite without one.
 export function sheetOf(name, map = MAPS[name], id = T.id) {
-  const w = worlds[ART.dirOf(id)], own = w?.objects[name];
+  const w = worlds[id] ?? worlds[ART.dirOf(id)], own = w?.objects[name]; // a style with its own faces, else its base's
   const o = own ?? base.objects[name], F = own ? w.frames : base.frames;
   if (!o) return null;
   const [x0, above, bw, bh] = o.front ?? [0, 0, 0, 0];

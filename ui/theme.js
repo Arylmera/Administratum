@@ -95,7 +95,8 @@ const LIGHT = {
 
 // Tier II's wording, by key. {name} placeholders are filled by t(); [one, other] pairs pick by {n}. A setting that is
 // not the 40k scriptorium replaces what it needs (an office: Director, requests, the break room, the logbook...).
-// index.html marks its texts with data-t / data-t-title / data-t-aria (chrome.js applies them).
+// index.html marks its texts with data-t / data-t-title / data-t-aria (chrome.js applies them). A pack's theme cannot
+// set risky, rejectAll, toast.failed, watch.button nor prefs.packs (themepack.js LOCKED).
 export const TEXT = {
   title: 'Administratum', subtitle: 'II · Data-Shrine of the Cult Mechanicus', motto: 'Knowledge is power, guard it well',
   rank: { high: 'Magos', standard: 'Tech-priest', novice: 'Novice' },
@@ -126,6 +127,13 @@ export const TEXT = {
   prefs: { theme: 'Theme', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
     stale: 'Petition turns stale after', nap: 'Idle to the Refectorium after', cog: 'Stay at the cogitator for',
     pauseHint: 'Near-zero CPU when unseen; petitions still alert.',
+    // Settings > Hall > Added themes (settings.js initPacks): theme packs from outside
+    packs: { title: 'Added themes', add: 'Add from GitHub', placeholder: 'owner/repo', install: 'Install', update: 'Update', remove: 'Remove',
+      local: 'local folder', localHint: 'delete its folder by hand', count: ['{n} theme', '{n} themes'], restart: 'Restart to apply', none: 'None yet.', installing: 'Downloading…',
+      bad: 'Not a repository name: owner/repo',
+      installed: ['Installed {repo}: {n} theme. Restart to apply.', 'Installed {repo}: {n} themes. Restart to apply.'],
+      updated: ['Updated {repo}: {n} theme. Restart to apply.', 'Updated {repo}: {n} themes. Restart to apply.'],
+      removed: 'Removed {repo}. Restart to apply.' },
     cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',
@@ -161,7 +169,7 @@ export const TIER_II = {
 };
 
 // The settings a theme belongs to: Settings picks a world, then one of its themes as the style.
-export const WORLDS = { w40k: 'Warhammer 40k', cyber: 'Cyberpunk', space: 'Space', arcane: 'Fantasy', vault: 'Fallout', darwin: 'Darwin', breakingbad: 'Breaking Bad' };
+export const WORLDS = { w40k: 'Warhammer 40k', cyber: 'Cyberpunk', space: 'Space', arcane: 'Fantasy', vault: 'Fallout', darwin: 'Darwin' };
 // Registered themes by id. A theme: { id, world, name, px?, sash?, rank?, ink?, light? }, each part only what changes.
 export const THEMES = { [TIER_II.id]: TIER_II };
 export function defineTheme(t) { THEMES[t.id] = t; return t; }
