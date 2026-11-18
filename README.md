@@ -354,8 +354,10 @@ drag the header.
 ### Characters and the card
 
 - **Hover** a character to see its name.
-- **Click** a scribe or adept to open its card. If the session runs in an Orca terminal, that terminal is also
-  brought to the front. Click again, press **Escape**, or click elsewhere to close the card.
+- **Click** a scribe or adept to open its card, a small parchment at the bottom of the hall (above the desktop strip,
+  beside the desktop column). If the session runs in an Orca terminal, that terminal is also brought to the front. Click again, press **Escape**, or click elsewhere to close the card. With *Show the card when
+  I click a character* off (Settings > Hall), a click only brings the terminal to the front; the card still opens for
+  a petition it can answer, for a session outside Orca, and always in the remote view.
 - The card shows the scribe's name and department, state and time in state, context (`184k / 200k (92%)`),
   model and rank, the last task line, the turn (`Turn · 4 min · 23 tools · 5 files`, then the files it changed),
   and the project path. An adept's card shows its subagent type, its owner,
@@ -363,7 +365,9 @@ drag the header.
   and the tokens it spent today, a child's names its parent (`Summoned by …`); both end with the lineage's total
   (`Lineage today: 6.1M tokens`, the parent and its live children). Click a name to open that session's card.
 - **Open in Orca** switches Orca to the session's terminal. It is shown only for sessions started inside Orca,
-  which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process.
+  which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process, and not on a card
+  whose click already did it (it comes back when an answer fails, or when the terminal could not be opened). A card reached another way,
+  such as a name in a Suzerain's lineage, keeps it.
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
   only when the session record carries a claude.ai session id.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
@@ -499,6 +503,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
 | Keep windows off the strip *(strip only, Linux)* | off | The strip takes its edge of the screen for itself and the other windows stop short of it, as they do for a bar (an open panel still lies over them); off, it lies over them |
 | Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
+| Show the card when I click a character | on | Off: a click on a character only brings its Orca terminal to the front. The card still opens when the session has a petition the card can answer, when it has no terminal (outside Orca, the Watchman), and always in the remote view, where no terminal opens |
 | Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 
 **Petitions**

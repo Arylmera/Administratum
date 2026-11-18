@@ -264,10 +264,13 @@ function renderAnswer(card, s) {
 }
 
 function renderLinks(card, s) {
-  const [orca, web] = card.querySelectorAll('.links button');
-  orca.hidden = REMOTE || !s?.orca; web.hidden = !s?.web;
-  card.querySelector('.links .note').hidden = !REMOTE || !s?.orca; // the terminal is on the PC's screen
-  card.querySelector('.links').hidden = !s?.orca && web.hidden;
+  const [orca, web] = card.querySelectorAll('.links button'), note = card.querySelector('.links .note');
+  // the click that opened this card already opened the terminal (pick): no button for it, unless an answer failed
+  // (the prompt may not be on screen: its error says to open the terminal)
+  const err = s && answerErr.has(episode(s));
+  orca.hidden = REMOTE || !s?.orca || (opened === sel && !err); web.hidden = !s?.web;
+  note.hidden = !REMOTE || !s?.orca; // the terminal is on the PC's screen
+  card.querySelector('.links').hidden = orca.hidden && web.hidden && note.hidden;
   // the card has done its job once the terminal or the web session is open: close it (closeCard)
   orca.onclick = () => { openTarget(`orca:${s.orca}`); closeCard(); };
   web.onclick = () => { openTarget(`web:${s.web}`); closeCard(); };
@@ -275,20 +278,30 @@ function renderLinks(card, s) {
 
 function select(id) {
   sel = sel === id ? null : id;
+  if (sel !== opened) opened = null; // another card (a kin link): its terminal was not opened
   const s = rosterOf().find(r => r.id === id);
   if (sel && s?.status === 'waiting') navigator.clipboard?.writeText(`${s.name} ${s.cwd}`).catch(() => {});
   renderCard();
 }
 
 const ownerOf = a => rosterOf().find(r => r.id === (a.h ? a.owner : a.id));
-function openTarget(target) {
+function openTarget(target, failed) {
   if (REMOTE) { if (target.startsWith('web:')) window.open(target.slice(4), '_blank', 'noopener'); return; } // on this device
-  invoke('open_session', { target }).catch(err => console.warn('open_session', err));
+  invoke('open_session', { target }).catch(err => { console.warn('open_session', err); failed?.(); });
 }
+// Whether a click on character a (its session, or an adept's owner, s) shows its card. Settings' *Show the card when I
+// click a character* off: on the desktop the click only opens the terminal, unless the card has a petition to answer
+// or there is no terminal to open (the Watchman, a session outside Orca). The remote view opens no terminal: always.
+export const cardOnPick = (a, s, { on = true, remote = false } = {}) =>
+  on || remote || !s?.orca || (!a?.h && answerable(s));
 // Select a character: its card, plus the scribe's (or the adept owner's) Orca terminal.
+let opened = null; // the selected id whose terminal its click opened (renderLinks hides Open in Orca)
 export function pick(id) {
-  const a = cast.actors.get(id), s = a && ownerOf(a);
-  if (s?.orca) openTarget(`orca:${s.orca}`);
+  const a = cast.actors.get(id), s = a && ownerOf(a), orca = !REMOTE && !!s?.orca;
+  // the terminal did not open: Open in Orca comes back on its card
+  if (s?.orca) openTarget(`orca:${s.orca}`, () => { if (opened === id) { opened = null; renderCard(); } });
+  if (!cardOnPick(a, s, { on: settings.cardOnClick, remote: REMOTE })) { closeCard(); return; }
+  opened = orca && sel !== id ? id : null; // the card about to open (select toggles a second click shut)
   select(id);
 }
-export const closeCard = () => { if (sel) { sel = null; renderCard(); } };
+export const closeCard = () => { opened = null; if (sel) { sel = null; renderCard(); } };

@@ -395,8 +395,9 @@ canvas.onclick = e => {
   if (dragged) { setDragged(false); return; } // the end of a pan, not a click
   const a = actorAt(e); if (a) pick(a.id); else closeCard();
 };
-// Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own.
-addEventListener('click', e => { if (e.target !== canvas && !e.target.closest('#card, .lbl, .edge')) closeCard(); });
+// Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own. The event's
+// path, not its target's ancestors: a kin link or "+N more" is removed by its own click (the card re-renders).
+addEventListener('click', e => { const path = e.composedPath(); if (!path.includes(canvas) && !path.some(n => n.matches?.('#card, .lbl, .edge'))) closeCard(); });
 canvas.onpointerleave = () => { mouse = null; };
 addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 
