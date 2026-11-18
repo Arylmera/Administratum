@@ -26,7 +26,6 @@ const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
 // Asleep at its desk (the rooms plan: the mirror hall has no bench): idle past napMin, no background shell, no limit, no question.
 export const asleep = (a, now = Date.now()) => hallPlan.rooms && !a.h && !a.watch && !a.leaving && a.pose === 'desk' && a.s?.status === 'idle' && !a.s.background && !a.s.limit
   && !isQuestion(a.s) && !!a.s.sinceMs && now - a.s.sinceMs > NAP_MS();
-export const SLEEP_ALPHA = 0.55; // a sleeper is drawn half faded (both views)
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
@@ -399,10 +398,6 @@ export const bobOf = b => (b.step === 0 ? 0.5 : 0);
 
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
-  if (!asleep(a)) return drawAwake(g, a);
-  g.save(); g.globalAlpha *= SLEEP_ALPHA; drawAwake(g, a); g.restore();
-}
-function drawAwake(g, a) {
   const b = bodyOf(a);
   if (a.watch) { blit(g, b.map, b.x, b.y - bobOf(b)); return; }
   if (a.h) { // adept: typing bob of 1 art px at its console
