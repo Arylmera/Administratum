@@ -29,7 +29,8 @@ works if the worlds this repository ships are in the same format as a pack, whic
 
 - No in-app catalogue or search.
 - No style whose world lives in another repository. Copy the world instead.
-- No automatic updates of packs.
+- No update without asking. (Was "No automatic updates of packs"; a startup check that asks was added on
+  2026-11-18, see *Addition: update check*.)
 - No choosing inside a repository: installing takes all of it; the world and style pickers do the sorting.
 - No hot install: a pack appears after a restart.
 - No sprite viewer or gallery pointed at a pack (`tools/sprites.html`, `tools/sprite_sheet.mjs` stay on this
@@ -255,12 +256,25 @@ All need a pack folder copied or renamed by hand inside the themes folder:
   held: reads time out after 10 s).
 - If every read of every pack hangs, the start waits about 10 s per pack rather than 10 s in all.
 
+## Addition: update check (2026-11-18)
+
+Added in pull request #31, after part B. Still no update without asking:
+
+- A setting, *Check added themes for updates at startup*, on by default (`adm.packCheck`). When on, a few seconds
+  after start the app downloads each pack that has a repository, one after the other (20 s each), and compares it
+  with the installed one. It installs nothing; errors and timeouts are silent.
+- If at least one changed, a toast "Theme updates available" names them, with *Update* and *Later*. *Update* updates
+  the changed packs and restarts. *Later*, a tap on the toast, or a toast without buttons: nothing.
+- *Update all* in Settings → Hall → Added themes updates every pack from GitHub in turn, then restarts at once if one changed and none failed; after a failure
+  it shows the reasons and *Restart to apply* waits for a click.
+- An update whose download is identical to the installed pack replaces nothing. Local packs are never checked.
+
 ## Later
 
 - The sprite viewer and the gallery on a pack.
 - Install without restart.
 - `owner/repo@tag`.
-- A notice when an installed pack has a newer version.
+- A notice when an installed pack has a newer version. (Done 2026-11-18: *Addition: update check*.)
 
 ## Pull requests
 

@@ -287,8 +287,21 @@ check, but those files will not reach anyone who installs the pack.
 3. Run the check one last time and push.
 
 Others install it from Settings → Hall → **Added themes**: type `owner/repo`, *Install*, then *Restart to apply*. The
-app downloads the repository's default branch as it is at that moment. When you publish a change, they get it with
-*Update*; the app does not tell them there is one. There is no catalogue of packs: share your `owner/repo` yourself.
+app downloads the repository's default branch as it is at that moment. There is no catalogue of packs: share your `owner/repo`
+yourself.
+
+When you publish a change, others get it in one of three ways, all from GitHub, all followed by a restart:
+
+- *Update* on your pack's line in Settings → Hall → **Added themes**.
+- *Update all* under the list, for every pack installed from GitHub, one after the other. A pack that fails is
+  reported; the others carry on. If one changed and none failed, the app restarts at once.
+- The startup check, on by default (*Check added themes for updates at startup*). A few seconds after start, the app
+  downloads each pack from GitHub and compares it with the installed one; it installs nothing. If at least one
+  changed, a toast names them: *Update* updates those packs and restarts, *Later* (or ignoring the toast) leaves
+  everything as it is. A pack it cannot reach is skipped without a word.
+
+A download identical to the installed pack replaces nothing: the folder and its install date stay. A local pack is
+never checked nor updated.
 
 Once your local draft is published and you install it from GitHub, its themes' ids change from
 `local/<folder>:<theme>` to `owner/repo:<theme>`: pick the theme again in Settings, and delete the draft folder yourself,

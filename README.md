@@ -237,7 +237,9 @@ a phone can show a different world than the PC.</td>
 **Themes from others.** A theme pack is a GitHub repository holding one or more themes made by someone else: a new
 world, or a new style for a world the app ships. To add one, type its `owner/repo` (or paste its GitHub address) in
 Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the Theme and Style lists
-after *Restart to apply*. The same list updates or removes a pack. A pack is data only: colours, wording and pixel
+after *Restart to apply*. The same list updates or removes a pack; *Update all* updates every pack from GitHub at
+once. At start, the app checks the added packs for changes (*Check added themes for updates at startup*, on by
+default): if one changed, a toast offers *Update*, which updates them and restarts, or *Later*. A pack is data only: colours, wording and pixel
 art, checked when it loads; it cannot run code, and a theme that does not load is left out with the reason on its
 pack's line. A folder of themes dropped by hand into the `themes` folder beside the app's Chronicon shows there
 too, as a local folder. The Breaking Bad world, once shipped with the app, is such a pack now:
@@ -487,7 +489,8 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
 | Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
 | Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
-| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). A change applies after *Restart to apply* (see *Themes from others*) |
+| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). *Update all* updates every pack from GitHub. A change applies after *Restart to apply* (see *Themes from others*) |
+| Check added themes for updates at startup *(PC only)* | on | Downloads each pack from GitHub a few seconds after start and compares it with the installed one. If one changed, a toast: *Update* updates the changed packs and restarts, *Later* does nothing. Nothing is installed without that click |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
@@ -647,8 +650,11 @@ which is wiped at each start.
 the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
 check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
-*Update* in Settings > Hall > Added themes: that request goes to GitHub like any download, so GitHub sees your IP
-address and the app's user agent, and it names the repository; no session data is sent. The only other outbound
+*Update* (or *Update all*) in Settings > Hall > Added themes. When *Check added themes for updates at startup* is on
+(the default), the app also downloads each added pack from its GitHub repository at start, to compare it with the
+installed one; nothing is installed unless you click *Update* on the toast. Each of these requests goes to GitHub
+like any download, so GitHub sees your IP address and the app's user agent, and it names the repository; no session
+data is sent. The only other outbound
 action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an

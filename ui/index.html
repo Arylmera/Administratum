@@ -452,6 +452,8 @@
           </fieldset>
           <fieldset data-host class="host-only" id="packs"><legend data-t="prefs.packs.title">Added themes</legend>
             <fieldset class="pk-list"></fieldset>
+            <button type="button" class="clear pk-all" data-t="prefs.packs.updateAll" hidden>Update all</button>
+            <label class="wide"><span data-t="prefs.packs.check">Check added themes for updates at startup</span><input type="checkbox" name="packCheck"></label>
             <label class="wide"><span data-t="prefs.packs.add">Add from GitHub</span><input type="text" class="pk-repo" spellcheck="false" autocomplete="off" placeholder="owner/repo"></label>
             <button type="button" class="clear pk-install" data-t="prefs.packs.install">Install</button>
             <p class="hint pk-line" role="status" aria-live="polite"></p>
