@@ -74,6 +74,7 @@ do not know which.
 | `hallplan.js` | The hall plan in force (`settings.hallPlan`): `open`, the open space, or `rooms`, the rooms round the Sanctum (`layout.js` `mirrorHall`, `packMirror`, `mirrorRoute`; `actors.js` `asleep` and the room computers; `theme.js` `inRooms` words). Everything else follows `hall.sanct` |
 | `rooms.js` | Custom rooms in force (`adm.rooms`): `roomsOf` (the lenient parse, `rooms.rs`'s caps), `setRooms`, `tintOf` (a rule's colour on the sash slot `y`) |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
+| `gestures.js` | Pure: a seated scribe's optional gesture (`gestureOf`: think, wonder, stretch, their timings, a beat per scribe from its id), the frame names (`up think`... flat, `N think`... 2.5D); `actors.js` `gestureNow` asks it. The stretch only after a turn ends (`Cast.sync` sets `a.turnEnded` on busy or shell to idle, `Cast.update` spends it as the scribe dozes off at its desk: `a.dozeAt`), never on a pose change; the puzzled wonder once per tool error at the desk (`chronicle`: `a.puzzleAt`) |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
 | `scene.js` | Canvas drawing of the flat hall: the static background and each frame; `candleOf` the cache clock of a desk (no world has a low-candle frame: "low" is the lit desk with a smaller light pool), shared with `scene39.js`; with a west wing, the hall drawn moved east and `drawWing` (its walls, floors, the west wall; its doors in `drawDoors`) |
 | `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
@@ -166,6 +167,7 @@ when it loads. One file per module:
 | `column.test.mjs` | Column geometry (floor ys, floors moving, the right side mirrored, pitch, overflow, routes, the scale drop) and the cast in it (riding, a petition mid-ride, a floor move, settle, adepts never ride) |
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
+| `gestures.test.mjs` | Scribe gestures: the chooser (think and wonder recur at their pace, each scribe out of step, the stretch, the puzzled wonder after a tool error, nothing away from the desk or for a frame the world lacks), every shipped world without them, a pack's gesture frames accepted at the seated size and the warning for one without its seated frame, the frame replacing `up 0` / `N 0`; over `Cast.sync` / `update`: no stretch for a scribe first seen idle, on arriving, after `settle` or a reset, or on a walk back while idle; once at a turn's end, at the desk or on sitting after walking back; one wonder per tool error at the desk |
 | `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars; the usage-window bar (no window, empty frame, ticks with the lowest marked, clamped fill, "estimate" tooltip) and today's window line |
 | `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label; the same-file tag yields to them all; a risky petition through `card.js` `answer` (no *Always*, two clicks within 5 s); the Hall of Honours: when it is asked again, its lines and dashes |
 | `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls; the watch lines; the cache clock (`scene.js` `candleOf`: lit, low, out per time left over the TTL, only idle scribes at a desk) |
@@ -228,6 +230,13 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
 - A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
   has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
   world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).
+- A scribe's gestures at its desk (`gestures.js`, [theme-packs.md](theme-packs.md#gestures)): optional frames of the
+  scribe sheets, `up think` / `wonder` / `stretch` instead of `up 0`, `N ...` instead of `N 0`. `sprites.js` takes a
+  flat one only from the sheet that draws the world's `up 0` (`SCRIBE.gesture`, `SCRIBE39.gesture`); `artcheck.js`
+  accepts them in a pack's sheet at the seated frame's size though the default draws none, and `gestureWarnings`
+  (a `theme_pack.mjs check` warning) names one in a sheet without its own seated frame. Drawn as the body, they take
+  no arms overlay, no Zs and no pipe. In the viewer and `--list`, a sprite only other worlds draw gets a row after
+  column A's list.
 
 **Live viewer.** Every sprite of every theme side by side, read straight from `ui/art/`, walk cycles animated,
 zoom, pixel grid, backgrounds and a filter:

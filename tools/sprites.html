@@ -5,8 +5,8 @@
   Edit an art file, press R (or Reload) to see it. Each family links to its GitHub discussion issue; each sprite
   can open a new prefilled Sprite issue. The static gallery for issues is still tools/sprite_sheet.mjs.
   Cells are named like a spreadsheet: column = theme (A Ordo Administratum ... F Neon Grid), row = sprite number, so "C12" is
-  one sprite in one theme; #C12 in the URL jumps to it. Rows follow column A's list in every column; a sprite the hall
-  never draws in a world (the default art lends it, the world's own art has none) shows there as "not in this world". The same key in a terminal: node tools/sprite_sheet.mjs --list
+  one sprite in one theme; #C12 in the URL jumps to it. Rows follow column A's list in every column (then what only other worlds draw, such as a scribe's
+  optional gestures); a sprite the hall never draws in a world (the default art lends it, the world's own art has none) shows there as "not in this world". The same key in a terminal: node tools/sprite_sheet.mjs --list
 -->
 <!doctype html>
 <meta charset="utf-8">
@@ -92,7 +92,10 @@ for (const id of ids) {
     return rows.map(r => [...r].map(c => (c === '.' ? null : pal[c] ?? null)));
   }) }]));
 }
+// Rows: column A's list, then what another world draws that A does not (an optional frame, a scribe's gesture), in that
+// world's order, so the other columns show "not in this world" there (sprite_sheet.mjs --list numbers them the same).
 const order = [...byTheme[ids[0]].values()];
+for (const id of ids.slice(1)) for (const e of byTheme[id].values()) if (!order.some(o => o.id === e.id)) order.push(e);
 const col = id => String.fromCharCode(65 + ids.indexOf(id)); // A, B, ... in THEMES order, whatever is shown
 
 // Colour grid -> ImageData; cells laid side by side 2 px apart (as the PNG gallery), or one per frame when animated.

@@ -258,6 +258,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe at its desk, screen and candle lit | Session is working (`busy`) |
 | Scribe at the cogitator bank (back wall) | Session is running a shell command. It stays there 10 s after the last one so quick Bash calls don't send it back and forth |
 | Scribe dozing at the desk (`z z`), candle out | Turn done, waiting for your next prompt (`idle`) |
+| Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Petitions) |
 | Small brass cog turning on the desk corner | Idle, but a background shell it started is still running. The scribe stays at its desk |
 | Scribe at the recaff dispenser, then asleep on a Refectorium bench | Idle for more than 2 min with no background shell. If every bench is taken, it dozes at its desk |
 | Scribe queued in the Sanctum holding a sealed scroll, red label above it | **Petition**: the session is waiting on you. The label says what it wants (`approve Bash`, `input needed`...) and for how long |

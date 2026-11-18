@@ -13,6 +13,7 @@ import { cellFrame, halfOf } from '../ui/room.js';
 import { wallArt } from '../ui/wallart.js';
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 import { ENCLAVE_SIZES } from '../ui/layout.js';
+import { GESTURES } from '../ui/gestures.js';
 
 // What each map is in the hall (README "What it shows"), for whoever discusses it.
 const ABOUT = {
@@ -49,6 +50,7 @@ const ABOUT = {
   ENCLAVE_GATE: 'Custom room gate, closed, in the side', ENCLAVE_GATE_OPEN: 'Custom room gate leaf, swung open',
   ENCLAVE_GATE_FRONT: 'Custom room gate facing the viewer (strip, 39° view)', ENCLAVE_GATE_FRONT_OPEN: 'Custom room gate facing the viewer, open',
 };
+const GESTURE_ABOUT = { think: 'thinking, now and then while it works', wonder: 'puzzled, once after a tool error, or now and then while its question waits', stretch: 'stretching, once, as its turn ends and it dozes off' };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
 
 export function catalog() {
@@ -170,5 +172,10 @@ export function catalog() {
   for (const name of ['SHAFT', 'SHAFT_TOP', 'SHAFT_PIT', 'CABLE', 'CAR_BACK', 'CAR_FRONT.shut', 'CAR_FRONT.half', 'CAR_FRONT.open', 'SLAB', 'SLAB_L', 'SLAB_R', 'LAMP.off', 'LAMP.on']) add(name, 'Desktop column (lift)', SHEET_OF[name], [{ rows: MAPS[name], over: {} }], false, ABOUT[name]);
   // Custom rooms (O10), after the lift so every earlier cell ref keeps its row: as drawn, then dyed in two rule colours.
   for (const name of Object.keys(ENCLAVE_SIZES)) add(name, 'Custom rooms', SHEET_OF[name], [{}, { y: theme.sash[1] }, { y: theme.sash[2] }].map(over => ({ rows: MAPS[name], over })), false, ABOUT[name]);
+  // The scribe's optional gestures at its desk (gestures.js), after the custom rooms so every earlier cell ref keeps its
+  // row: only where the world draws them (the viewer gives the others a "not in this world" cell), each in the three ranks.
+  const robes = RANKS.map(r => ({ ...theme.rank[r].robe, y: sash }));
+  for (const g of GESTURES) if (SCRIBE.gesture[g]) add(`SCRIBE.up.${g}`, 'Scribe (one per session)', srcOf('scribe'), robes.map(over => ({ rows: SCRIBE.gesture[g], over })), false, `Gesture at the desk, seen from behind (\`up ${g}\`, instead of \`up 0\`): ${GESTURE_ABOUT[g]}; high, standard, novice`);
+  for (const g of GESTURES) if (SCRIBE39.gesture?.[g]) add(`SCRIBE39.N.${g}`, '39° characters', srcOf('scribe39'), [{ rows: SCRIBE39.gesture[g], over: {} }], false, `SCRIBE39, gesture at the desk (\`N ${g}\`, instead of \`N 0\`): ${GESTURE_ABOUT[g]}`);
   return out;
 }

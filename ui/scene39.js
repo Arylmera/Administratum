@@ -319,8 +319,8 @@ function drawActor39(g, a, r, fillOf) {
   else {
     const fx = x + r.dx, fy = y + r.dy - bobOf(r);
     blit(g, r.map, fx, fy + (a.h && a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), r.over);
-    if (!a.h && !a.watch && a.pose !== 'burn') drawCarried(g, a, CARRIED39, fx, fy, r.over);
-    const P = pipeOf(a, r.face);
+    if (!a.h && !a.watch && a.pose !== 'burn') drawCarried(g, a, CARRIED39, fx, fy, r.over, r.gesture);
+    const P = !r.gesture && pipeOf(a, r.face);
     if (P) pipe(g, fx, fy, P, a.t);
   }
   if (a.burn) S.bundle(g, a, fillOf(a.burn.old));

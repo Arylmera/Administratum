@@ -22,8 +22,10 @@ setTheme(themeId); // the theme's palette and its own art (sprites.js), where it
 if (process.argv.includes('--list')) { // "C12" -> theme C, sprite 12, numbered over the default theme's list as in the viewer
   const ids = Object.keys(THEMES);
   console.log(ids.map((id, i) => `${String.fromCharCode(65 + i)} ${THEMES[id].name}`).join('\n'));
-  setTheme(ids[0]);
-  catalog().forEach((e, i) => console.log(`${String(i + 1).padStart(3)} ${e.id.padEnd(28)} ${e.family}`));
+  // column A's list, then what only another world draws (as the viewer orders its rows)
+  const rows = new Map();
+  for (const id of ids) { setTheme(id); for (const e of catalog()) if (!rows.has(e.id)) rows.set(e.id, e); }
+  [...rows.values()].forEach((e, i) => console.log(`${String(i + 1).padStart(3)} ${e.id.padEnd(28)} ${e.family}`));
   process.exit(0);
 }
 

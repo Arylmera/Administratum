@@ -4,7 +4,8 @@
 //
 // What the drawing code reads, so what is checked:
 //   frames   { name: rows }, rows a non-empty list of strings of one non-zero length (sprites.js sprite, faces.js
-//            crop); a theme's frame is a frame of the base, at its size (sprites.js sheetOf lays it over the base's)
+//            crop); a theme's frame is a frame of the base, at its size (sprites.js sheetOf lays it over the base's),
+//            or one of its family's optional gesture frames (gestures.js), at the size of the seated frame it replaces
 //   anchors  { name: anchor }, an anchor a number, a list or an object of anchors (sprites.js anchorsOf destructures
 //            [x, y], logical() recurses): a theme's has its base anchor's shape, a list of the same length, an object
 //            only the base's keys (laid over the base's)
@@ -16,6 +17,7 @@
 //            numbers inside frame NAME, w and h at least 1; details of kind box | cyl | disc | top | bill | spire (a
 //            spire's parts, the same); faces.png frames named by an object's faces (checkFaces)
 import { VS39 } from './iso.js';
+import { GESTURE_FRAMES, SEATED_FRAME } from './gestures.js';
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const kind = v => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
@@ -44,6 +46,15 @@ function shape(v, b, at, bad) {
   bad.push(`${at}: the default's anchor has no shape`);
 }
 
+// What a theme's own sheet of `family` (frames: its frame names) holds that loads but is never drawn, as warnings: a
+// gesture frame (gestures.js) without the seated frame it replaces in the same sheet (sprites.js takes a gesture only
+// with the body it was drawn for).
+export function gestureWarnings(family, frames) {
+  const fam = String(family).split('/').pop(), seat = SEATED_FRAME[fam], names = Array.isArray(frames) ? frames : [];
+  const lone = (GESTURE_FRAMES[fam] ?? []).filter(n => names.includes(n));
+  return lone.length && !names.includes(seat) ? [`${family}: ${lone.map(n => `'${n}'`).join(', ')} never played: this sheet has no '${seat}' of its own`] : [];
+}
+
 const FILLS = ['repeat', 'repeat-x', 'repeat-y', 'nine', 'once'];
 // The problems of a theme's own sheet of `family` (its frames, anchors, fill rules) against the base sheet, each
 // starting `${family}: `.
@@ -54,8 +65,11 @@ export function checkSheet(family, own, base) {
   if (!isObj(own)) return [`${family}: not a sheet`];
   for (const k of ['frames', 'anchors', 'tiles']) if (!isObj(own[k])) bad.push(`${k} must be an object`);
   if (bad.length) return out();
+  // an optional gesture frame (gestures.js) the default may not draw: at the size of the seated frame it replaces
+  // (family may carry its folder, 'tower/scribe', as the tests name it)
+  const fam = family.split('/').pop(), optional = n => (GESTURE_FRAMES[fam]?.includes(n) && has(base.frames, SEATED_FRAME[fam]) ? base.frames[SEATED_FRAME[fam]] : null);
   for (const [n, f] of Object.entries(own.frames)) {
-    const d = has(base.frames, n) ? base.frames[n] : null, r = rowsBad(f);
+    const d = has(base.frames, n) ? base.frames[n] : optional(n), r = rowsBad(f);
     if (!d) bad.push(`'${n}' is not a frame of the default art`);
     else if (r) bad.push(`'${n}': ${r}`);
     else if (f.length !== d.length || f[0].length !== d[0].length) bad.push(`'${n}' must keep the default's size (${sizeOf(d)}, not ${sizeOf(f)})`);

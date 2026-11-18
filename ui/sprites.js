@@ -6,6 +6,7 @@ import { artRootOf, dropTheme, packOf } from './themes.js'; // the themes, and t
 import { loadSheet } from './art.js';
 import { checkSheet } from './artcheck.js';
 import { outline, outlined } from './outline.js';
+import { GESTURES, GESTURE_FRAMES } from './gestures.js';
 export { BASE };
 
 // Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
@@ -130,6 +131,9 @@ const logical = v => (Array.isArray(v) ? v.map(logical) : typeof v === 'number' 
 const walk = (sheet, dir) => [0, 1, 2].map(i => sheet.frames[`${dir} ${i}`]);
 const walker = sheet => ({ up: walk(sheet, 'up'), down: walk(sheet, 'down'), right: walk(sheet, 'right'), left: walk(sheet, 'right').map(mirror) });
 const marksOf = (frames, mine = () => true) => Object.fromEntries(Object.entries(frames).filter(([n]) => n.startsWith('glyph ') && mine(n)));
+// The gesture frames a scribe sheet draws (gestures.js: `up think`... flat, `N think`... 2.5D), by gesture; mine(name):
+// whether to take it (only with the body it was drawn for). A gesture the sheet lacks is left out: never played.
+const gesturesOf = (family, frames, mine = () => true) => Object.fromEntries(GESTURES.map((g, i) => [g, GESTURE_FRAMES[family][i]]).filter(([, n]) => frames[n] && mine(n)).map(([g, n]) => [g, frames[n]]));
 const refill = (target, from) => { for (const k of Object.keys(target)) delete target[k]; return Object.assign(target, from); };
 
 // 39° walk frames: E along +u (the back wall, to the right), W = -u, S = +v (toward the viewer), N = -v (away). No
@@ -179,7 +183,7 @@ export function resolve39(family, themedSheet, baseSheet, where) {
 // The exports below are the same objects for the app's life, refilled for the active theme's art (the drawing code
 // reads them at draw time; the sprite cache is per theme too).
 // Scribe (one per session): 16x17 logical, 3 walk frames a direction (left mirrors right), and the arm drawn over the
-// desk. SCRIBE_AT: its anchor points, logical px from the frame's top-left (feet: the actor's position).
+// desk. gesture: the optional gesture frames its world draws, by gesture ({ think, wonder, stretch }, actors.js bodyOf). SCRIBE_AT: its anchor points, logical px from the frame's top-left (feet: the actor's position).
 export const SCRIBE = {}, SCRIBE_AT = {};
 // Adept (one per subagent): 12x14 logical, bone robe with red hem trim, one green optic, data-slate. marks: its
 // subagent kind's glyphs ('glyph <kind>'), only those drawn with the body, so a world's own adept stays unmarked;
@@ -213,7 +217,7 @@ export const WATCH39 = {}, WATCH39_AT = {};
 const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d)]));
 // How to build each family's export object from its (complete) sheet, and which [obj, at] pair to refill.
 const BUILD39 = {
-  scribe39: sheet => ({ ...walker39(sheet), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll }),
+  scribe39: sheet => ({ ...walker39(sheet), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll, gesture: gesturesOf('scribe39', sheet.frames) }), // gesture: as SCRIBE.gesture
   adept39: sheet => ({ ...walker39(sheet), marks: marksOf(sheet.frames) }), // marks: optional, as ADEPT.marks (whole sheets: no gate)
   magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm, claw: sheet.frames.claw }), // claw: optional, as MAGOS.claw
   skull39: sheet => ({ skull: sheet.frames.skull }),
@@ -227,7 +231,7 @@ function useArt(id) {
   // a frame drawn over a body (a glyph, the claw, the arms) only with the body it was drawn for: never the base art's
   // over a world's own body
   const own = (f, n, body) => src(f, n) === src(f, body);
-  refill(SCRIBE, walker(S.scribe)); refill(SCRIBE_AT, anchorsOf(S.scribe));
+  refill(SCRIBE, { ...walker(S.scribe), gesture: gesturesOf('scribe', S.scribe.frames, n => own('scribe', n, 'up 0')) }); refill(SCRIBE_AT, anchorsOf(S.scribe));
   refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => own('adept', n, 'down 0')) }); refill(ADEPT_AT, anchorsOf(S.adept));
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: own('magos', 'claw', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
   refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));

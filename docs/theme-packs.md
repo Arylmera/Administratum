@@ -217,11 +217,12 @@ your own you see in the app.
 
 **The families and their frames**, from the default art. Regenerate this table with
 `node tools/theme_pack.mjs families`. A frame you redraw keeps the size given here (width x height, in art pixels);
-the families marked 2.5D are the characters of the 2.5D view.
+the families marked 2.5D are the characters of the 2.5D view. The frames listed as optional are the scribe's
+gestures (below): the default art does not draw them.
 
 | Family | Frames (name width x height, in art pixels) |
 |---|---|
-| `scribe` | `down 0` 32x34, `down 1` 32x34, `down 2` 32x34, `up 0` 32x34, `up 1` 32x34, `up 2` 32x34, `right 0` 32x34, `right 1` 32x34, `right 2` 32x34, `arm` 8x16 |
+| `scribe` | `down 0` 32x34, `down 1` 32x34, `down 2` 32x34, `up 0` 32x34, `up 1` 32x34, `up 2` 32x34, `right 0` 32x34, `right 1` 32x34, `right 2` 32x34, `arm` 8x16; optional: `up think` 32x34, `up wonder` 32x34, `up stretch` 32x34 |
 | `adept` | `down 0` 24x28, `down 1` 24x28, `down 2` 24x28, `up 0` 24x28, `up 1` 24x28, `up 2` 24x28, `right 0` 24x28, `right 1` 24x28, `right 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5 |
 | `magos` | `body` 48x48, `arm` 10x48, `claw` 6x3 |
 | `watch` | `down 0` 32x36, `down 1` 32x36, `down 2` 32x36, `up 0` 32x36, `up 1` 32x36, `up 2` 32x36, `right 0` 32x36, `right 1` 32x36, `right 2` 32x36, `ring` 32x36 |
@@ -245,11 +246,32 @@ the families marked 2.5D are the characters of the 2.5D view.
 | `room-walls` | `wall top` 24x20, `wall` 24x20, `wall east top` 24x20, `wall east` 24x20, `wall sanctum top` 24x20, `wall sanctum` 24x20, `wall foot` 4x4, `wall dark` 4x4, `wall base` 4x6, `sanctum base` 4x6, `pillar` 20x8, `pilaster` 8x39, `beacon off` 14x20, `beacon on` 14x20, `beacon cage` 14x20 |
 | `room-pipes` | `pipe h` 8x6, `pipe v` 6x8, `fitting h` 6x10, `fitting v` 10x6, `fitting wide` 20x4 |
 | `room-doors` | `door sanctum closed` 20x80, `door sanctum half` 20x80, `door sanctum open` 20x80, `door refectory closed` 20x48, `door refectory half` 20x48, `door refectory open` 20x48 |
-| `scribe39` (2.5D) | `E 0` 32x34, `E 1` 32x34, `E 2` 32x34, `W 0` 32x34, `W 1` 32x34, `W 2` 32x34, `S 0` 32x34, `S 1` 32x34, `S 2` 32x34, `N 0` 32x34, `N 1` 32x34, `N 2` 32x34, `arm` 10x16, `armL` 8x16, `scroll` 10x14 |
+| `scribe39` (2.5D) | `E 0` 32x34, `E 1` 32x34, `E 2` 32x34, `W 0` 32x34, `W 1` 32x34, `W 2` 32x34, `S 0` 32x34, `S 1` 32x34, `S 2` 32x34, `N 0` 32x34, `N 1` 32x34, `N 2` 32x34, `arm` 10x16, `armL` 8x16, `scroll` 10x14; optional: `N think` 32x34, `N wonder` 32x34, `N stretch` 32x34 |
 | `adept39` (2.5D) | `E 0` 24x28, `E 1` 24x28, `E 2` 24x28, `W 0` 24x28, `W 1` 24x28, `W 2` 24x28, `S 0` 24x28, `S 1` 24x28, `S 2` 24x28, `N 0` 24x28, `N 1` 24x28, `N 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5 |
 | `magos39` (2.5D) | `body` 48x48, `arm` 10x48, `claw` 6x3 |
 | `skull39` (2.5D) | `skull` 20x20 |
 | `watch39` (2.5D) | `E 0` 32x36, `E 1` 32x36, `E 2` 32x36, `W 0` 32x36, `W 1` 32x36, `W 2` 32x36, `S 0` 32x36, `S 1` 32x36, `S 2` 32x36, `N 0` 32x36, `N 1` 32x36, `N 2` 32x36, `ring` 32x36 |
+
+### Gestures
+
+A scribe sitting at its desk can move a little, if your world draws it. Three optional frames, a closed list, each
+with one meaning in every world. Draw any of them, or none: a gesture your world does not draw is simply not played,
+and the scribe keeps its seated frame.
+
+| Gesture | Flat (`scribe`) | 2.5D (`scribe39`) | When the app plays it |
+|---|---|---|---|
+| think | `up think` | `N think` | The session is working (`busy`) and the scribe is at its desk: every 8 to 15 s, for 2.5 s |
+| wonder | `up wonder` | `N wonder` | Puzzled, at its desk: once after a tool error (just after the sparks on its screen), for 2 s; and while its turn's question waits at the desk (when questions do not queue in the Sanctum), every 10 to 15 s, for 2 s |
+| stretch | `up stretch` | `N stretch` | Once, when its turn ends (busy, then idle) and it dozes off at its desk, for 2 s, before the Zs. Never just for sitting down |
+
+- Each is the scribe seen from behind at its desk, the size of the frame it replaces (`up 0` flat, `N 0` 2.5D) with the
+  feet at the same place: draw it over a copy of that frame.
+- Each scribe keeps its own beat, so a department never thinks in unison.
+- A gesture frame is the whole scribe: the arms the default robe lays over a seated scribe and the dozing Zs are not
+  drawn over it. The ranks recolour it like every scribe frame.
+- They go in the sheet that holds your own scribe (`up 0` flat; the 2.5D sheet is always whole), with `scribe` (or
+  `scribe39`) in `art`. A gesture is played only with the body it was drawn for: one in a sheet without your own
+  `up 0` (or `N 0`) is never seen, and `node tools/theme_pack.mjs check` warns about it.
 
 ---
 
