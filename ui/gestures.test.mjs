@@ -5,7 +5,7 @@ import { gestureOf, recurs, hash01, GESTURES, GESTURE_FRAMES, THINK, WONDER, STR
 import { planLayout, layoutDepartments, hallOf, SCENE } from './layout.js';
 import { SCRIBE, SCRIBE39, ART } from './sprites.js';
 import { Cast, bodyOf, bodyOf39, gestureNow } from './actors.js';
-import { checkSheet, gestureWarnings } from './artcheck.js';
+import { checkSheet, gestureWarnings, knownFrames } from './artcheck.js';
 import { THEMES, setTheme } from './theme.js';
 import './themes.js';
 
@@ -80,6 +80,14 @@ assert.match(checkSheet('scribe', sheet({ 'up think': rows(30, 34) }), ART.base.
 assert.match(checkSheet('scribe', sheet({ 'up yawn': rows(32, 34) }), ART.base.scribe).join(), /'up yawn' is not a frame of the default art/);
 assert.match(checkSheet('scribe', sheet({ 'N think': rows(32, 34) }), ART.base.scribe).join(), /'N think' is not a frame/, 'a 2.5D name in the flat sheet');
 assert.match(checkSheet('adept', sheet({ 'up think': rows(24, 28) }), ART.base.adept).join(), /'up think' is not a frame/, 'scribes only');
+// in a pack's sheet (knownFrames, before checkSheet), a frame this version does not know is left out, not refused
+{
+  const { sheet: kept, unknown } = knownFrames('w/scribe', sheet({ 'up think': rows(32, 34), 'up yawn': rows(32, 34), 'N think': rows(32, 34) }), ART.base.scribe);
+  assert.deepEqual(unknown, ['up yawn', 'N think']);
+  assert.deepEqual(Object.keys(kept.frames), ['up think']);
+  assert.deepEqual(checkSheet('w/scribe', kept, ART.base.scribe), []);
+  assert.deepEqual(knownFrames('adept', sheet({ 'up think': rows(24, 28) }), ART.base.adept).unknown, ['up think'], 'scribes only');
+}
 
 // a gesture in a sheet without its own seated frame loads but never plays: a warning (tools/theme_pack.mjs check)
 assert.deepEqual(gestureWarnings('w/scribe', ['up 0', 'up think']), []);

@@ -2,9 +2,9 @@
 // rows, one char per colour of the active theme's px palette (theme.js), '.' transparent. The art started as the
 // Claude Design board "Tier II — Data-Shrine".
 import { BASE, T, THEMES, onTheme } from './theme.js';
-import { artRootOf, dropTheme, packOf } from './themes.js'; // the themes, and the art they bring (ui/art/<theme>/)
+import { artRootOf, dropTheme, packOf, warnTheme } from './themes.js'; // the themes, and the art they bring (ui/art/<theme>/)
 import { loadSheet } from './art.js';
-import { checkSheet } from './artcheck.js';
+import { checkSheet, knownFrames } from './artcheck.js';
 import { outline, outlined } from './outline.js';
 import { GESTURES, GESTURE_FRAMES } from './gestures.js';
 export { BASE };
@@ -90,7 +90,9 @@ Object.keys(base).forEach((f, i) => { base[f] = loaded[i]; });
 // changes, same sizes; anchors and fill rules it lists replace the default's. Everything else stays the default art.
 // A theme with artOf draws with that theme's art (a style of Neon Grid: same sprites, its own colours). A pack's theme
 // (themes.js packOf): read through its pack, each sheet checked against the default (artcheck.js); any problem leaves
-// the theme out with its reason (dropTheme) instead of stopping the app. A shipped theme's still throws.
+// the theme out with its reason (dropTheme) instead of stopping the app. A shipped theme's still throws. A frame this
+// version does not know (a pack drawn for a newer app, or a typo) is left out of the sheet before the check, with a
+// warning (warnTheme): the theme loads without it. Its rect and pixels were still read and held to the limits (art.js).
 const themed = {}; // art folder (theme id) -> family -> sheet
 const dirOf = id => THEMES[id]?.artOf ?? id;
 await Promise.all(Object.values(THEMES).filter(th => th.art?.length).map(async th => {
@@ -108,7 +110,11 @@ await Promise.all(Object.values(THEMES).filter(th => th.art?.length).map(async t
         if (FAMILIES39.includes(f) && missing(e) && (!pack || e.message.startsWith(`${f}.json: `))) return;
         throw e;
       }
-      const bad = pack ? checkSheet(f, sheets[f], base[f]) : [];
+      if (!pack) return;
+      const { sheet, unknown } = knownFrames(f, sheets[f], base[f]);
+      sheets[f] = sheet;
+      if (unknown.length) warnTheme(th.id, `${pack.folder}/${f}: ${unknown.map(n => `'${n}'`).join(', ')} ${unknown.length === 1 ? 'is not a frame' : 'are not frames'} this version of the app knows: ignored`);
+      const bad = checkSheet(f, sheet, base[f]);
       if (bad.length) throw new Error(bad.join('; '));
     }));
   } catch (e) {

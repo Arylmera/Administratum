@@ -6,8 +6,9 @@
 // then its loadPacks with a reader on the file system that serves what the backend serves (packs.rs read), then
 // ui/sprites.js and ui/faces.js, which load and check every theme's art. One line per problem (`<theme>: <message>`),
 // then `<n> themes ok, <m> with problems`; exit 0 only when there is none. What the installer would drop or refuse
-// (packs.rs keepable and its limits), and a scribe's gesture frame that would never play (artcheck.js gestureWarnings),
-// come as `warning:` lines; a limit passed, a theme folder misnamed or no theme at
+// (packs.rs keepable and its limits), a scribe's gesture frame that would never play (artcheck.js gestureWarnings) and
+// a frame this version of the app does not know, which it ignores (a pack drawn for a newer app, or a typo: themes.js
+// PACKS warnings), come as `warning:` lines; a limit passed, a theme folder misnamed or no theme at
 // all is a problem, since the installer or the app refuses it. The pack is parsed, never evaluated.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -107,6 +108,7 @@ async function check(target) {
   const entry = PACKS.get(id), mine = t => !only || t === only;
   // a reason the loader leaves empty (a truncated PNG's decoder says nothing) still says something
   const reason = m => (/:\s*$/.test(m) ? `${m.trimEnd()} ${/\.png:\s*$/.test(m) ? 'unreadable PNG' : 'unreadable'}` : m);
+  for (const { theme, message } of entry.warnings) if (mine(theme)) warnings.push(`${theme}: ${message}`);
   for (const { theme, message } of entry.problems) if (theme === null ? !only : mine(theme)) problems.push(`${theme ?? 'pack'}: ${reason(message)}`);
   const ok = entry.themes.filter(t => { const f = t.id.slice(id.length + 1); return mine(f) && !misnamed.includes(f); }).length; // a misnamed one: once, with problems
   const bad = new Set(entry.problems.filter(p => p.theme !== null && mine(p.theme)).map(p => p.theme)).size;

@@ -339,7 +339,7 @@ export function repoOf(typed) {
 }
 
 // Added themes (host only): the packs the backend lists (theme_packs), joined with what loaded at start (themes.js
-// PACKS: the themes, the problems); a pack installed this session is listed but loads at the restart. Install by
+// PACKS: the themes, the problems, then the warnings: what a theme that loads leaves out); a pack installed this session is listed but loads at the restart. Install by
 // owner/repo, Update and Remove (a pack from a repository; a local one is the author's own, never deleted here: a hint
 // instead), the buttons greyed while one runs; any success that replaced something (an update whose archive is the
 // same answers changed: false) re-reads the list and shows Restart to apply until the restart. Update all updates the
@@ -367,7 +367,7 @@ function initPacks(form) {
       }
       row.append(head);
       if (loaded?.themes.length) row.append(el('p', 'hint', loaded.themes.map(th => th.name).join(', ')));
-      for (const { theme, message } of loaded?.problems ?? []) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));
+      for (const { theme, message } of [...loaded?.problems ?? [], ...loaded?.warnings ?? []]) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));
       return row;
     });
     list.replaceChildren(...(rows.length ? rows : [el('p', 'hint', t('prefs.packs.none'))]));

@@ -204,6 +204,11 @@ holds real colours: the theme's `px` says what colour each slot is, so the same 
   frame in the PNG). Put both in the theme's folder and add the family to `art`.
 - A sheet holds only the frames you redraw, each named and sized as the default art's (the table below). Every frame
   you leave out stays the default one.
+- A frame name this version of the app does not know is ignored, with a warning: the theme still loads, without that
+  frame. So a pack drawn for a newer Administratum, whose sheets carry frames added since, still works in an older
+  one (the older one just does not show them). The same goes for a misspelt name, so read the warnings: the check
+  below lists them. Everything else stays a refusal: a known frame at another size, a fill rule or anchor naming a
+  frame or key the default lacks, a pixel off the palette, the limits.
 - The `.json` may also carry `meta.anchors` (where a character holds its scroll, where a light sits) and, for the
   room's tiles, `meta.tiles` (how a tile fills: `repeat`, `nine`...), each with the default's shape. The simplest
   start is the default's own file: `ui/art/<family>.json`, or the same family in a world's folder.
@@ -294,8 +299,10 @@ workshop: workshop/theme.json: px.r: not a #rrggbb colour
 ```
 
 It ends with exit code 0 only when there is none. Lines starting `warning:` name the files the installer would leave
-out (a `.js`, a file two folders deep, a file over 2 MiB) and a missing `pack.json` or licence; they do not fail the
-check, but those files will not reach anyone who installs the pack.
+out (a `.js`, a file two folders deep, a file over 2 MiB), a missing `pack.json` or licence, and a frame this version
+of the app does not know (`is not a frame this version of the app knows: ignored`: a frame of a newer version, or a
+typo). They do not fail the check, but those files will not reach anyone who installs the pack, and those frames are
+not drawn by this version. The app says the same under Settings > Added themes, on the pack's line.
 
 ---
 

@@ -191,7 +191,14 @@ try {
       'p/good/theme.json': JSON.stringify({ format: 1, name: 'Good', base: 'vault', art: ['breakout'] }),
       'p/good/breakout.json': fs.readFileSync('ui/art/vault/breakout.json', 'utf8'), 'p/good/breakout.png': disk('vault/breakout.png'),
       'p/extra/theme.json': JSON.stringify({ format: 1, name: 'Extra', base: 'vault', art: ['breakout'] }),
-      'p/extra/breakout.json': JSON.stringify({ frames: { NOT_A_FRAME: { frame: { x: 0, y: 0, w: 1, h: 1 } } }, meta: {} }), 'p/extra/breakout.png': disk('breakout.png'),
+      // a frame this version does not know (drawn for a newer app): left out with a warning, the theme kept
+      'p/extra/breakout.json': (() => { const j = JSON.parse(fs.readFileSync('ui/art/vault/breakout.json', 'utf8')); j.frames.NOT_A_FRAME = { frame: { x: 0, y: 0, w: 3, h: 2 } }; return JSON.stringify(j); })(), 'p/extra/breakout.png': disk('vault/breakout.png'),
+      // a known frame at the wrong size: still refused
+      'p/small/theme.json': JSON.stringify({ format: 1, name: 'Small', base: 'vault', art: ['breakout'] }),
+      'p/small/breakout.json': JSON.stringify({ frames: { BREAKOUT_FLOOR: { frame: { x: 0, y: 0, w: 1, h: 1 } }, LATER: { frame: { x: 0, y: 0, w: 1, h: 1 } } }, meta: {} }), 'p/small/breakout.png': disk('breakout.png'),
+      // an unknown frame cannot be reached from a fill rule: still refused
+      'p/tiled/theme.json': JSON.stringify({ format: 1, name: 'Tiled', base: 'vault', art: ['room-floor'] }),
+      'p/tiled/room-floor.json': (() => { const j = JSON.parse(fs.readFileSync('ui/art/room-floor.json', 'utf8')); j.frames.LATER = { frame: j.frames.floor.frame }; j.meta.tiles = { floor: { mix: ['LATER'] } }; return JSON.stringify(j); })(), 'p/tiled/room-floor.png': disk('room-floor.png'),
       'p/pixel/theme.json': JSON.stringify({ format: 1, name: 'Pixel', base: 'vault', art: ['breakout'] }),
       'p/pixel/breakout.json': JSON.stringify({ frames: { BREAKOUT_FLOOR: { frame: { x: 0, y: 0, w: 1, h: 1 } } }, meta: {} }), 'p/pixel/breakout.png': red,
       'p/fam/theme.json': JSON.stringify({ format: 1, name: 'Fam', base: 'vault', art: ['constructor'] }),
@@ -214,20 +221,26 @@ try {
       'p/nopng/faces.json': desk(7),
     };
     const read = async (dir, p) => { if (!(dir + '/' + p in files)) throw Object.assign(new Error(p + ': not found'), { code: 'ENOENT' }); const v = files[dir + '/' + p]; return typeof v === 'string' ? new TextEncoder().encode(v) : v; };
-    await loadPacks([{ id: 'a/p', dir: 'p', themes: ['good', 'extra', 'pixel', 'fam', 'world', 'own', 'inherit', 'sphere', 'nopng'] }], read);
+    await loadPacks([{ id: 'a/p', dir: 'p', themes: ['good', 'extra', 'small', 'tiled', 'pixel', 'fam', 'world', 'own', 'inherit', 'sphere', 'nopng'] }], read);
     const { ART } = await import('./ui/sprites.js');
     const { FACES, sheetOf } = await import('./ui/faces.js');
     const { THEMES } = await import('./ui/theme.js');
     const { MAPS } = await import('./ui/sprites.js');
     const d = id => sheetOf('DESK', MAPS.DESK, id)?.d;
-    console.log(JSON.stringify({ themes: Object.keys(THEMES).filter(id => id.startsWith('a/p:')), problems: PACKS.get('a/p').problems,
+    console.log(JSON.stringify({ themes: Object.keys(THEMES).filter(id => id.startsWith('a/p:')), problems: PACKS.get('a/p').problems, warnings: PACKS.get('a/p').warnings,
+      extra: Object.keys(ART.themed['a/p:extra']?.breakout?.frames ?? {}),
       good: Object.keys(ART.themed['a/p:good'] ?? {}), d: { world: d('a/p:world'), own: d('a/p:own'), inherit: d('a/p:inherit'), vault: d('vault') } }));`;
   const out = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { cwd: repo, encoding: 'utf8' }));
-  assert.deepEqual(out.themes.sort(), ['a/p:good', 'a/p:inherit', 'a/p:own', 'a/p:world'].sort(), JSON.stringify(out));
+  assert.deepEqual(out.themes.sort(), ['a/p:extra', 'a/p:good', 'a/p:inherit', 'a/p:own', 'a/p:world'].sort(), JSON.stringify(out));
   const said = Object.fromEntries(out.problems.map(p => [p.theme, p.message]));
-  assert.deepEqual(Object.keys(said).sort(), ['extra', 'fam', 'nopng', 'pixel', 'sphere'], JSON.stringify(said));
+  assert.deepEqual(Object.keys(said).sort(), ['fam', 'nopng', 'pixel', 'small', 'sphere', 'tiled'], JSON.stringify(said));
+  // forward compatibility: an unknown frame is a warning, the theme loads without it; a known frame keeps its size
+  assert.deepEqual(out.warnings.filter(w => w.theme === 'extra'), [{ theme: 'extra', message: "extra/breakout: 'NOT_A_FRAME' is not a frame this version of the app knows: ignored" }], JSON.stringify(out.warnings));
+  assert.ok(out.extra.length && !out.extra.includes('NOT_A_FRAME'), JSON.stringify(out.extra));
+  assert.match(said.small, /^small\/breakout: 'BREAKOUT_FLOOR' must keep the default's size/, said.small);
+  assert.ok(out.warnings.some(w => w.theme === 'small' && w.message.includes("'LATER'")), 'a refused theme still says what it would have ignored');
+  assert.match(said.tiled, /mix names no frame 'LATER'/, said.tiled);
   assert.ok(said.nopng.startsWith('nopng/faces.png: '), said.nopng); // its faces.json is there: a missing PNG is a fault, not absence
-  assert.ok(said.extra.includes('breakout') && said.extra.includes('NOT_A_FRAME'), said.extra);
   assert.ok(said.pixel.startsWith('pixel/breakout.png: pixel '), said.pixel);
   assert.ok(said.fam.includes("'constructor'"), said.fam);
   assert.ok(said.sphere.startsWith('sphere/faces') && said.sphere.includes('sphere'), said.sphere);
