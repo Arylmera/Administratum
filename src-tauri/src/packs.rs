@@ -444,18 +444,73 @@ pub fn origin(root: &Path, dir: &str) -> Result<String, String> {
     source(&root.join(dir)).map(|(repo, _)| repo).ok_or_else(|| format!("{dir} is a local pack: there is no repository to update it from"))
 }
 
-/// Install the pack in `root/<dir>` again from `archive` (its repo's, `origin`), replacing it whole. A pack whose
-/// folder is not its repo's canonical one (made by hand) moves there: the old folder is removed once installed,
-/// unless it is the same folder under another name (`same_folder`, decided before the install).
-pub fn update(root: &Path, dir: &str, archive: &[u8], now: &str) -> Result<Pack, String> {
+/// What `update` did: the pack as `list` sees it after, and whether anything was replaced (`changed`: false when the
+/// archive holds what the pack already holds, nothing touched). Serialized as the pack's fields plus `changed`.
+#[derive(Debug, PartialEq, Serialize)]
+pub struct Updated {
+    #[serde(flatten)]
+    pub pack: Pack,
+    pub changed: bool,
+}
+
+/// Install the pack in `root/<dir>` again from `archive` (its repo's, `origin`), replacing it whole; when the archive
+/// holds what the pack already holds (`changed`) and the pack is in its repo's folder, nothing is replaced: the folder
+/// and its `installed` date stay. A pack whose folder is not its repo's canonical one (made by hand) moves there: the
+/// old folder is removed once installed, unless it is the same folder under another name (`same_folder`, decided
+/// before the install).
+pub fn update(root: &Path, dir: &str, archive: &[u8], now: &str) -> Result<Updated, String> {
     let repo = origin(root, dir)?;
     let canonical = folder_of(&repo).ok_or_else(|| format!("not a GitHub repository: {repo}"))?;
     let same = same_folder(root, dir, &canonical);
+    if same && !changed(root, dir, archive)? {
+        let pack = list(root).into_iter().find(|p| p.dir == dir).ok_or_else(|| format!("{dir} is not listed"))?;
+        return Ok(Updated { pack, changed: false });
+    }
     let pack = install(root, &repo, archive, now)?;
     if !same {
         remove(root, dir).map_err(|e| format!("installed as {}, but {e}", pack.dir))?;
     }
-    Ok(pack)
+    Ok(Updated { pack, changed: true })
+}
+
+/// Whether `archive` holds other files than the pack in `root/<dir>` (a pack installed from a repository, `origin`;
+/// an error for a local pack): unpacked as `install` would (`unpack`, same filters) into a `.tmp-*` work folder, hidden
+/// from `list` and removed on every exit path, then its kept files compared with the pack's (`kept`). Never touches
+/// the installed pack. An archive `install` would refuse is an error here too.
+pub fn changed(root: &Path, dir: &str, archive: &[u8]) -> Result<bool, String> {
+    origin(root, dir)?;
+    let tmp = work(root, ".tmp", dir);
+    fs::create_dir(&tmp).map_err(|e| format!("cannot unpack the pack: {e}"))?;
+    let fresh = unpack(archive, &tmp).map(|_| kept(&tmp));
+    let _ = fs::remove_dir_all(&tmp);
+    Ok(fresh? != kept(&root.join(dir)))
+}
+
+/// The files of a pack folder that `unpack` would keep, its digest: each regular file at its top or one folder down
+/// (no link followed) whose path `keepable` allows, its `/`-separated path and its bytes, sorted by path. What
+/// `unpack` never writes is left out (`pack-source.json`, the install's own; a `.DS_Store`, a `desktop.ini`, a note
+/// dropped in by hand), so it never makes a pack differ. A file that cannot be read is missing from it, so it
+/// differs and an update writes it again.
+fn kept(at: &Path) -> Vec<(String, Vec<u8>)> {
+    fn files(at: &Path, folder: Option<&str>, out: &mut Vec<(String, Vec<u8>)>) {
+        let Ok(rd) = fs::read_dir(at) else { return };
+        for e in rd.flatten() {
+            let Ok(name) = e.file_name().into_string() else { continue };
+            let Ok(t) = e.file_type() else { continue };
+            let rel: Vec<&str> = folder.into_iter().chain([name.as_str()]).collect();
+            if t.is_file() && keepable(&rel) {
+                if let Ok(bytes) = fs::read(e.path()) {
+                    out.push((rel.join("/"), bytes));
+                }
+            } else if t.is_dir() && folder.is_none() {
+                files(&e.path(), Some(&name), out);
+            }
+        }
+    }
+    let mut out = Vec::new();
+    files(at, None, &mut out);
+    out.sort();
+    out
 }
 
 /// Whether `root/<a>` and `root/<b>` are one folder: by identity (`identity`, so `Alice__T` and `alice__t` on a
@@ -850,7 +905,7 @@ mod tests {
         let root = tmp("update");
         install(&root, "alice/t", &clean(), "one").unwrap();
         let second = tgz(&[("t-def/blue/theme.json", E::File(b"{\"v\":2}"))]);
-        let pack = update(&root, "alice__t", &second, "two").unwrap();
+        let pack = update(&root, "alice__t", &second, "two").unwrap().pack;
         assert_eq!((pack.themes, pack.installed.as_deref()), (vec!["blue".to_string()], Some("two")));
         assert_eq!(tree(&root), ["alice__t", "alice__t/blue", "alice__t/blue/theme.json", "alice__t/pack-source.json"]);
         let broken = tgz(&[("t-def/pack.json", E::File(b"{}"))]);
@@ -867,10 +922,71 @@ mod tests {
         put(&root, "odd/pack-source.json", br#"{"repo": "bob/x"}"#);
         put(&root, "odd/green/theme.json", b"{}");
         assert_eq!(origin(&root, "odd").as_deref(), Ok("bob/x"));
-        assert_eq!(update(&root, "odd", &clean(), "six").unwrap().dir, "bob__x");
+        assert_eq!(update(&root, "odd", &clean(), "six").unwrap().pack.dir, "bob__x");
         assert!(!root.join("odd").exists());
         assert!(root.join("bob__x/pink/theme.json").exists(), "the new pack stays");
         assert_eq!(origin(&root, "../x"), Err("no pack ../x".into()));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn an_identical_archive_changes_nothing() {
+        let root = tmp("changed");
+        install(&root, "alice/t", &clean(), "one").unwrap();
+        let before = tree(&root);
+        #[cfg(unix)]
+        let inode = identity(&root.join("alice__t"));
+        // the same files under another top folder, in another order, with what `unpack` drops: the same pack
+        let same = tgz(&[
+            ("t-xyz/pink/breakout.png", E::File(b"\x89PNG")),
+            ("t-xyz/pink/theme.json", E::File(b"{}")),
+            ("t-xyz/README.md", E::File(b"# changed, but not kept")),
+            ("t-xyz/LICENSE", E::File(b"MIT")),
+            ("t-xyz/pack.json", E::File(b"{\"name\":\"R\"}")),
+        ]);
+        assert_eq!(changed(&root, "alice__t", &same), Ok(false));
+        assert_eq!(tree(&root), before, "the check leaves no work folder and touches nothing");
+        // what `unpack` never writes, dropped in by the system or by hand, is no change
+        for junk in ["alice__t/.DS_Store", "alice__t/pink/.DS_Store", "alice__t/pink/desktop.ini", "alice__t/notes.txt", "alice__t/pink/con.json"] {
+            put(&root, junk, b"junk");
+            assert_eq!(changed(&root, "alice__t", &same), Ok(false), "{junk}");
+            fs::remove_file(root.join(junk)).unwrap();
+        }
+        let up = update(&root, "alice__t", &same, "two").unwrap();
+        assert_eq!((up.changed, up.pack.installed.as_deref()), (false, Some("one")), "the installed date stays");
+        assert_eq!(tree(&root), before);
+        #[cfg(unix)]
+        assert_eq!(identity(&root.join("alice__t")), inode, "the folder itself stays");
+        let json = serde_json::to_value(&up).unwrap();
+        assert_eq!(json, serde_json::json!({ "id": "alice/t", "dir": "alice__t", "repo": "alice/t", "installed": "one", "themes": ["pink"], "changed": false }));
+        // a file changed, added or gone: changed
+        let edited = tgz(&[
+            ("t-xyz/pack.json", E::File(b"{\"name\":\"R\"}")),
+            ("t-xyz/LICENSE", E::File(b"MIT")),
+            ("t-xyz/pink/theme.json", E::File(b"{\"v\":2}")),
+            ("t-xyz/pink/breakout.png", E::File(b"\x89PNG")),
+        ]);
+        let fewer = tgz(&[("t-xyz/pink/theme.json", E::File(b"{}")), ("t-xyz/pink/breakout.png", E::File(b"\x89PNG")), ("t-xyz/LICENSE", E::File(b"MIT"))]);
+        let more = tgz(&[
+            ("t-xyz/pack.json", E::File(b"{\"name\":\"R\"}")),
+            ("t-xyz/LICENSE", E::File(b"MIT")),
+            ("t-xyz/pink/theme.json", E::File(b"{}")),
+            ("t-xyz/pink/breakout.png", E::File(b"\x89PNG")),
+            ("t-xyz/blue/theme.json", E::File(b"{}")),
+        ]);
+        for a in [&edited, &fewer, &more] {
+            assert_eq!(changed(&root, "alice__t", a), Ok(true));
+        }
+        assert_eq!(tree(&root), before);
+        let up = update(&root, "alice__t", &edited, "three").unwrap();
+        assert_eq!((up.changed, up.pack.installed.as_deref()), (true, Some("three")));
+        assert_eq!(fs::read(root.join("alice__t/pink/theme.json")).unwrap(), b"{\"v\":2}");
+        // an archive `install` would refuse is an error, not a change; a local pack has nothing to compare with
+        assert_eq!(changed(&root, "alice__t", &tgz(&[("t-xyz/pack.json", E::File(b"{}"))])), Err(NO_THEME.into()));
+        put(&root, "mine/pink/theme.json", b"{}");
+        assert!(changed(&root, "mine", &clean()).unwrap_err().contains("local pack"));
+        assert!(changed(&root, "missing", &clean()).is_err());
+        assert!(tree(&root).iter().all(|p| !p.starts_with('.')), "{:?}", tree(&root));
         let _ = fs::remove_dir_all(&root);
     }
 

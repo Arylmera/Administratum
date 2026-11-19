@@ -210,8 +210,8 @@ fn theme_pack_file(path: String, app: AppHandle) -> Result<tauri::ipc::Response,
 }
 
 /// The archive of a public GitHub repository's default branch (`packs::archive_url`): HTTPS to codeload.github.com
-/// only, no redirect followed, 60 s in all, reading stopped past `packs::MAX_ARCHIVE` (whatever `Content-Length` says).
-async fn download_pack(repo: &str) -> Result<Vec<u8>, String> {
+/// only, no redirect followed, `timeout` in all, reading stopped past `packs::MAX_ARCHIVE` (whatever `Content-Length` says).
+async fn download_pack(repo: &str, timeout: Duration) -> Result<Vec<u8>, String> {
     let url = packs::archive_url(repo).ok_or_else(|| format!("not a GitHub repository: {repo}"))?;
     // reqwest is built without a crypto provider (as the updater uses it): install the one the updater installs
     if rustls::crypto::CryptoProvider::get_default().is_none() {
@@ -221,7 +221,7 @@ async fn download_pack(repo: &str) -> Result<Vec<u8>, String> {
         .user_agent(concat!("Administratum/", env!("CARGO_PKG_VERSION"), " (theme packs)"))
         .redirect(reqwest::redirect::Policy::none())
         .https_only(true)
-        .timeout(Duration::from_secs(60))
+        .timeout(timeout)
         .build()
         .map_err(|e| e.to_string())?;
     let mut res = client.get(&url).send().await.map_err(|e| format!("cannot reach GitHub: {e}"))?;
@@ -260,17 +260,95 @@ fn now_utc() -> String {
 async fn theme_pack_install(repo: String, app: AppHandle) -> Result<packs::Pack, String> {
     let root = themes_root(&app)?;
     let repo = repo.trim().to_string();
-    let archive = download_pack(&repo).await?;
+    let archive = download_pack(&repo, PACK_DOWNLOAD).await?;
     tauri::async_runtime::spawn_blocking(move || packs::install(&root, &repo, &archive, &now_utc())).await.map_err(|e| e.to_string())?
 }
 
-/// Install the pack in the folder `dir` again from the repository it came from (`packs::update`); a local pack is refused.
+/// Install the pack in the folder `dir` again from the repository it came from (`packs::update`); a local pack is
+/// refused. The pack as `theme_packs` lists it, plus `changed`: false when the repository holds what is installed
+/// (nothing replaced, no restart needed).
 #[tauri::command]
-async fn theme_pack_update(dir: String, app: AppHandle) -> Result<packs::Pack, String> {
-    let root = themes_root(&app)?;
+async fn theme_pack_update(dir: String, app: AppHandle) -> Result<packs::Updated, String> {
+    update_pack(themes_root(&app)?, dir).await
+}
+
+/// How long a pack's download may take when asked for in Settings, and in the check at start (per pack).
+const PACK_DOWNLOAD: Duration = Duration::from_secs(60);
+const PACK_CHECK: Duration = Duration::from_secs(20);
+
+async fn update_pack(root: PathBuf, dir: String) -> Result<packs::Updated, String> {
     let repo = packs::origin(&root, &dir)?;
-    let archive = download_pack(&repo).await?;
+    let archive = download_pack(&repo, PACK_DOWNLOAD).await?;
     tauri::async_runtime::spawn_blocking(move || packs::update(&root, &dir, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+}
+
+/// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository is downloaded again,
+/// one after the other (`PACK_CHECK` each), and compared with what is installed (`packs::changed`); nothing is
+/// installed. Any error (offline, GitHub refusing, a broken archive) only skips that pack, in the log. When some
+/// changed, a toast asks: "Update" updates those packs (`update_pack`, `update_changed`); "Later" or a click on the
+/// toast does nothing. In quiet hours the toast is dropped, as the others are: the next start checks again.
+async fn check_packs(app: AppHandle) {
+    let Ok(root) = themes_root(&app) else { return };
+    let mut found: Vec<(String, String)> = Vec::new(); // (dir, repo)
+    for pack in packs::list(&root) {
+        let Some(repo) = pack.repo else { continue };
+        let archive = match download_pack(&repo, PACK_CHECK).await {
+            Ok(a) => a,
+            Err(e) => {
+                eprintln!("pack check: {repo}: {e}");
+                continue;
+            }
+        };
+        let (r, d) = (root.clone(), pack.dir.clone());
+        match tauri::async_runtime::spawn_blocking(move || packs::changed(&r, &d, &archive)).await {
+            Ok(Ok(true)) => found.push((pack.dir, repo)),
+            Ok(Ok(false)) => {}
+            Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),
+            Err(e) => eprintln!("pack check: {repo}: {e}"),
+        }
+    }
+    if found.is_empty() || quiet::active() {
+        return;
+    }
+    let names = found.iter().map(|(_, repo)| repo.as_str()).collect::<Vec<_>>().join(", ");
+    let body = format!("{names}: Update installs them and restarts.");
+    // macOS shows the buttons as an "Options" menu whose own click reports the first: Later first there, so a
+    // stray click never updates and restarts (as `toast::petition_buttons` puts Deny first)
+    let buttons = if cfg!(target_os = "macos") { [("Later", "later"), ("Update", "update")] } else { [("Update", "update"), ("Later", "later")] };
+    let handle = app.clone();
+    toast::with_buttons(&app, "Theme updates available", &body, &buttons, move |arg| {
+        if arg == Some("update") {
+            tauri::async_runtime::spawn(update_changed(handle.clone(), root.clone(), found.clone()));
+        }
+    });
+}
+
+/// The startup toast's "Update": each pack of `found` (dir, repo) updated in turn, a failure not stopping the rest.
+/// All went well and one was replaced: restart at once. One failed: no restart, a toast names the failed repos and
+/// why (and says to restart to apply what was replaced).
+async fn update_changed(app: AppHandle, root: PathBuf, found: Vec<(String, String)>) {
+    let (mut replaced, mut failed) = (false, Vec::new());
+    for (dir, repo) in found {
+        match update_pack(root.clone(), dir).await {
+            Ok(up) => replaced |= up.changed,
+            Err(e) => {
+                eprintln!("pack update: {repo}: {e}");
+                let short: String = if e.chars().count() > 80 { e.chars().take(79).chain(['…']).collect() } else { e };
+                failed.push(format!("{repo}: {short}"));
+            }
+        }
+    }
+    if failed.is_empty() {
+        if replaced {
+            app.restart();
+        }
+        return;
+    }
+    let mut body = failed.join("; ");
+    if replaced {
+        body.push_str(". The others are updated: restart to apply them.");
+    }
+    let _ = app.notification().builder().title("Theme update failed").body(body).show();
 }
 
 /// Remove the pack in the folder `dir` (`packs::remove`); a local pack (a folder made by hand) is refused, never deleted.
@@ -451,6 +529,14 @@ fn main() {
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             remote::app::start_saved(app.handle());
+            // theme packs changed on GitHub: asked about in a toast, a few seconds after start (check_packs)
+            if !demo && saved["adm.packCheck"].as_str() != Some("0") {
+                let handle = app.handle().clone();
+                thread::spawn(move || {
+                    thread::sleep(Duration::from_secs(5));
+                    tauri::async_runtime::block_on(check_packs(handle));
+                });
+            }
             #[cfg(windows)]
             {
                 let handle = app.handle().clone();

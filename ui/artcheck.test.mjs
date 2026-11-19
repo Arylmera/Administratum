@@ -1,7 +1,7 @@
 // The shape of a theme's sheets (artcheck.js): small hand-built sheets, one problem each, then every shipped theme's
 // sheets and faces. Run: node ui/artcheck.test.mjs
 import assert from 'node:assert/strict';
-import { checkSheet, checkFaces } from './artcheck.js';
+import { checkSheet, checkFaces, knownFrames } from './artcheck.js';
 import { ART, MAPS } from './sprites.js';
 import { FACES } from './faces.js';
 import { THEMES, setTheme } from './theme.js';
@@ -53,6 +53,21 @@ for (const bad of [null, 'sheet', 3, [], { frames: 'x' }, { frames: { a: 'kkkk' 
   assert.ok(p.length && p.every(m => typeof m === 'string' && m.startsWith('fam: ')), `${JSON.stringify(bad)}: ${JSON.stringify(p)}`);
 }
 assert.ok(checkSheet('fam', clean, null).length, 'no base sheet');
+// knownFrames (a pack's sheet, before checkSheet): a frame the default does not know is left out and named, not refused;
+// the rest of the sheet is untouched, so a known frame's size and everything else is still checkSheet's
+{
+  const { sheet, unknown } = knownFrames('fam', { ...clean, frames: { a: rows(4, 3), zz: rows(9, 9), b: rows(3, 3) } }, base);
+  assert.deepEqual(unknown, ['zz']);
+  assert.deepEqual(Object.keys(sheet.frames), ['a', 'b']);
+  assert.equal(sheet.anchors, clean.anchors);
+  assert.match(checkSheet('fam', sheet, base).join(), /'b' must keep the default's size/);
+  assert.deepEqual(knownFrames('fam', clean, base), { sheet: { ...clean }, unknown: [] });
+  for (const bad of [null, 'sheet', 3, [], { frames: 'x' }, { frames: null }]) assert.deepEqual(knownFrames('fam', bad, base), { sheet: bad, unknown: [] }, JSON.stringify(bad));
+  assert.deepEqual(knownFrames('fam', clean, null).unknown, [], 'no base sheet: checkSheet says so');
+  const proto = knownFrames('fam', JSON.parse('{"frames":{"__proto__":["kk"],"a":["kkkk","kkkk","kkkk"]},"anchors":{},"tiles":{}}'), base);
+  assert.deepEqual(proto.unknown, ['__proto__']);
+  assert.equal(Object.getPrototypeOf(proto.sheet.frames), Object.prototype);
+}
 
 // checkFaces: own and base are meta.objects, frames the sprite frames the objects are cut from, faceFrames faces.png's
 const sprite = { BOX: rows(10, 8) };

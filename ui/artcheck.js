@@ -4,7 +4,9 @@
 //
 // What the drawing code reads, so what is checked:
 //   frames   { name: rows }, rows a non-empty list of strings of one non-zero length (sprites.js sprite, faces.js
-//            crop); a theme's frame is a frame of the base, at its size (sprites.js sheetOf lays it over the base's)
+//            crop); a theme's frame is a frame of the base, at its size (sprites.js sheetOf lays it over the base's),
+//            or one of its family's optional gesture frames (gestures.js), at the size of the seated frame it replaces;
+//            in a pack's sheet, a frame of neither is left out with a warning (knownFrames), never drawn
 //   anchors  { name: anchor }, an anchor a number, a list or an object of anchors (sprites.js anchorsOf destructures
 //            [x, y], logical() recurses): a theme's has its base anchor's shape, a list of the same length, an object
 //            only the base's keys (laid over the base's)
@@ -16,6 +18,7 @@
 //            numbers inside frame NAME, w and h at least 1; details of kind box | cyl | disc | top | bill | spire (a
 //            spire's parts, the same); faces.png frames named by an object's faces (checkFaces)
 import { VS39 } from './iso.js';
+import { GESTURE_FRAMES, SEATED_FRAME } from './gestures.js';
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const kind = v => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
@@ -44,9 +47,38 @@ function shape(v, b, at, bad) {
   bad.push(`${at}: the default's anchor has no shape`);
 }
 
+// What a theme's own sheet of `family` (frames: its frame names) holds that loads but is never drawn, as warnings: a
+// gesture frame (gestures.js) without the seated frame it replaces in the same sheet (sprites.js takes a gesture only
+// with the body it was drawn for).
+export function gestureWarnings(family, frames) {
+  const fam = String(family).split('/').pop(), seat = SEATED_FRAME[fam], names = Array.isArray(frames) ? frames : [];
+  const lone = (GESTURE_FRAMES[fam] ?? []).filter(n => names.includes(n));
+  return lone.length && !names.includes(seat) ? [`${family}: ${lone.map(n => `'${n}'`).join(', ')} never played: this sheet has no '${seat}' of its own`] : [];
+}
+
+// The default's rows a frame named `n` of `family` is held to, or null when this version of the app knows no such
+// frame: a frame of the base sheet, or one of its family's optional gesture frames (gestures.js), at the size of the
+// seated frame it replaces (family may carry its folder, 'tower/scribe', as the tests name it).
+function knownAs(family, n, base) {
+  if (has(base.frames, n)) return base.frames[n];
+  const fam = String(family).split('/').pop(), seat = SEATED_FRAME[fam];
+  return GESTURE_FRAMES[fam]?.includes(n) && has(base.frames, seat) ? base.frames[seat] : null;
+}
+
+// A pack's sheet of `family` without the frames this version of the app does not know (a pack drawn for a newer app,
+// whose optional frames this one has never heard of; or a typo): { sheet, unknown: their names }. The sheet is a copy,
+// its other keys as they were (checkSheet judges them); one that is not a sheet comes back as it is, unknown []. Only a
+// pack's sheet goes through it: the shipped art's unknown frame stays a checkSheet problem (art.test.mjs).
+export function knownFrames(family, own, base) {
+  if (!isObj(own) || !isObj(own.frames) || !isObj(base) || !isObj(base.frames)) return { sheet: own, unknown: [] };
+  const all = Object.entries(own.frames), unknown = all.filter(([n]) => !knownAs(family, n, base)).map(([n]) => n);
+  return { sheet: { ...own, frames: Object.fromEntries(all.filter(([n]) => !unknown.includes(n))) }, unknown };
+}
+
 const FILLS = ['repeat', 'repeat-x', 'repeat-y', 'nine', 'once'];
 // The problems of a theme's own sheet of `family` (its frames, anchors, fill rules) against the base sheet, each
-// starting `${family}: `.
+// starting `${family}: `. Strict: a frame the default does not know is a problem (a pack's sheet goes through
+// knownFrames first, which leaves such a frame out with a warning).
 export function checkSheet(family, own, base) {
   const bad = [];
   const out = () => bad.map(m => `${family}: ${m}`);
@@ -55,7 +87,7 @@ export function checkSheet(family, own, base) {
   for (const k of ['frames', 'anchors', 'tiles']) if (!isObj(own[k])) bad.push(`${k} must be an object`);
   if (bad.length) return out();
   for (const [n, f] of Object.entries(own.frames)) {
-    const d = has(base.frames, n) ? base.frames[n] : null, r = rowsBad(f);
+    const d = knownAs(family, n, base), r = rowsBad(f);
     if (!d) bad.push(`'${n}' is not a frame of the default art`);
     else if (r) bad.push(`'${n}': ${r}`);
     else if (f.length !== d.length || f[0].length !== d[0].length) bad.push(`'${n}' must keep the default's size (${sizeOf(d)}, not ${sizeOf(f)})`);

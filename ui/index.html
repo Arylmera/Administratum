@@ -89,6 +89,7 @@
   html.vstrip.right #stage { left: auto; right: 0; }
   html.vstrip :is(#card, #prefs, #chron) { top: 8px; bottom: auto; left: calc(var(--colw, 256px) + 8px); right: auto; }
   html.vstrip.right :is(#card, #prefs, #chron) { left: auto; right: calc(var(--colw, 256px) + 8px); }
+  html.vstrip #card { width: min(21em, 80%); } /* beside the column, as wide as before (the window grows by it) */
   html.vstrip #strip-handle { left: calc(2 * var(--px)); bottom: calc(4 * var(--px)); }
   html.vstrip.right #strip-handle { left: auto; right: calc(2 * var(--px)); }
   html.vstrip #strip-menu { top: auto; bottom: calc(18 * var(--px)); left: calc(2 * var(--px)); }
@@ -152,7 +153,9 @@
   .honours:hover { filter: brightness(1.25); }
   header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
   .empty { position: absolute; left: 0; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
-  #card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(12px * var(--k, 1)); width: min(25em, 80%); padding: .67em 1em; background: var(--card); color: var(--paper-ink); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 4px 0 var(--outline); display: flex; flex-direction: column; gap: .25em; } /* em: scales with --k like the labels */
+  #card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(11px * var(--k, 1)); width: min(21em, calc(100% - 16px)); padding: .5em .75em; background: var(--card); color: var(--paper-ink); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 3px 0 var(--outline); display: flex; flex-direction: column; gap: .2em; overflow-wrap: anywhere; animation: card-in .14s ease-out; } /* em: scales with --k like the labels */
+  @keyframes card-in { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { #card { animation: none; } }
   #card[hidden], #card .asks[hidden] { display: none; }
   #card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: var(--blood); }
   #card .turn { color: var(--paper-ink-2); }
@@ -452,6 +455,8 @@
           </fieldset>
           <fieldset data-host class="host-only" id="packs"><legend data-t="prefs.packs.title">Added themes</legend>
             <fieldset class="pk-list"></fieldset>
+            <button type="button" class="clear pk-all" data-t="prefs.packs.updateAll" hidden>Update all</button>
+            <label class="wide"><span data-t="prefs.packs.check">Check added themes for updates at startup</span><input type="checkbox" name="packCheck"></label>
             <label class="wide"><span data-t="prefs.packs.add">Add from GitHub</span><input type="text" class="pk-repo" spellcheck="false" autocomplete="off" placeholder="owner/repo"></label>
             <button type="button" class="clear pk-install" data-t="prefs.packs.install">Install</button>
             <p class="hint pk-line" role="status" aria-live="polite"></p>
@@ -462,6 +467,8 @@
             <label class="strip-only" hidden><span>Strip backdrop</span><input type="checkbox" name="stripBackdrop"></label>
             <label class="strip-only" hidden><span>Keep windows off the strip</span><input type="checkbox" name="stripReserve"></label>
             <label class="iso-only" hidden><span>Backdrop</span><input type="checkbox" name="isoBackdrop"></label>
+            <label class="wide host-only"><span>Show the card when I click a character</span><input type="checkbox" name="cardOnClick"></label>
+            <p class="hint host-only">Off: a click only brings the session's Orca terminal to the front; the card still opens for a petition to answer, or when there is no terminal.</p>
           </fieldset>
           <fieldset><legend>Values</legend>
             <label class="wide" for="prefs-scale"><span>Scale</span><button type="button" class="step" data-step="-1" aria-label="Smaller">−</button><input type="range" id="prefs-scale" name="scale" min="1" max="3" step="0.25" value="2"><button type="button" class="step" data-step="1" aria-label="Larger">+</button><output name="scaleOut"></output></label>

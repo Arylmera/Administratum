@@ -7,6 +7,7 @@ import { view } from './view.js';
 import { vigil } from './vigil.js';
 import { makeLift, setStops, call, cancel, retarget, step as liftStep, carY, slotOf, lineOf } from './lift.js';
 import { floorAt } from './column.js';
+import { gestureOf } from './gestures.js';
 
 const SPEED = 80; // logical px per second
 // The strip spans the whole screen, so a walk there takes twice the hall's speed (a wide screen's crossing stays short).
@@ -26,7 +27,6 @@ const isPetitioner = s => s.status === 'waiting' || isQuestion(s);
 // Asleep at its desk (the rooms plan: the mirror hall has no bench): idle past napMin, no background shell, no limit, no question.
 export const asleep = (a, now = Date.now()) => hallPlan.rooms && !a.h && !a.watch && !a.leaving && a.pose === 'desk' && a.s?.status === 'idle' && !a.s.background && !a.s.limit
   && !isQuestion(a.s) && !!a.s.sinceMs && now - a.s.sinceMs > NAP_MS();
-export const SLEEP_ALPHA = 0.55; // a sleeper is drawn half faded (both views)
 export const BURN_S = 1.5; // a compacted pile burns this long at the brazier
 export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scribe is away
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
@@ -67,6 +67,9 @@ export class Cast {
     for (const s of roster) {
       const a = this.actors.get(s.id); // a.s is still last poll's session here
       if (a && s.compactedAt && s.compactedAt !== a.s.compactedAt) this.compacted(a); // a new actor's past compactions don't count
+      // its turn ended (busy or at the shell -> idle): it stretches once as it next dozes off at its desk (update); a new
+      // actor, first seen idle, never does, and a turn that starts again calls it off
+      if (a) a.turnEnded = s.status === 'idle' && (a.turnEnded || a.s.status === 'busy' || a.s.status === 'shell');
       upsert(s.id, { s, sash: colorOf(s.dept) });
     }
     for (const s of roster) for (const h of s.helpers ?? []) {
@@ -212,6 +215,7 @@ export class Cast {
     if (e.kind === 'tests-pass' || e.kind === 'tests-fail') { a.lamp = { ok: e.kind === 'tests-pass', t: 0 }; return true; }
     if (!FX_S[e.kind]) return false;
     if (e.kind === 'commit' && !a.h) a.seals = Math.min(3, (a.seals ?? 0) + 1); // the newest shows once stamped
+    if (e.kind === 'tool-error' && !a.h && a.pose === 'desk') a.puzzleAt = a.t; // puzzled once at its desk (gestureNow)
     (a.fx ??= []).push({ kind: e.kind, t: 0, slot: Math.max(0, (a.seals ?? 1) - 1) }); // slot: the seal a push takes
     return true;
   }
@@ -300,6 +304,12 @@ export class Cast {
         a.pose = a.target.pose;
         if (a.pose === 'gone') this.actors.delete(a.id);
       }
+      if (!a.h && !a.watch && a.s) { // its stretch (gestureNow): dozing off at the desk after its turn ended, never on a pose change alone
+        const d = dozes(a);
+        if (d && !a.dozing && a.turnEnded) { a.dozeAt = a.t; a.turnEnded = false; }
+        if (!d) a.dozeAt = null;
+        a.dozing = d;
+      }
       if (a.puff > 0) a.puff -= dt;
       if (a.lamp) a.lamp.t += dt;
       if (a.fx?.length) a.fx = a.fx.filter(f => {
@@ -332,18 +342,29 @@ export function liftOf(a) {
   const done = a.pose === 'desk' && a.fx?.find(f => f.kind === 'task-done');
   return { done, lift: done ? Math.round(8 * Math.min(1, done.t / 0.3, (FX_S['task-done'] - done.t) / 0.3)) / 2 : 0 };
 }
+// Seated at its desk and dozing (the Zs): idle, no background shell running, not holding up a finished turn's scroll.
+const dozes = a => a.pose === 'desk' && a.s.status === 'idle' && !a.s.background && !liftOf(a).done;
+// The gesture a scribe makes now at its desk (gestures.js), or null; has(gesture): whether the view's art draws it. The
+// stretch is timed from when it dozed off after its turn ended (Cast.sync a.turnEnded, Cast.update a.dozeAt), the
+// puzzled wonder from a tool error at its desk (chronicle: a.puzzleAt).
+export function gestureNow(a, has) {
+  if (a.h || a.watch || !a.s || a.pose !== 'desk') return null;
+  return gestureOf({ id: a.id, desk: true, busy: a.s.status === 'busy', question: !!a.s.question && a.s.status !== 'waiting', done: !!liftOf(a).done,
+    dozedFor: a.dozing && a.dozeAt != null ? a.t - a.dozeAt : null, puzzledFor: a.puzzleAt != null ? a.t - a.puzzleAt : null }, a.t, has);
+}
 // What a scribe carries over its body, in either view (V: its art, CARRIED / CARRIED39): its arms when its body has
 // none of its own (the 40k robe: two mechadendrites raised over the desk, lifted with a finished turn's scroll), in
 // the body's colours; the petition scroll on its way to and in the queue; that scroll held up; the dozing Z.
-// Feet-relative top-left (fx, fy), as drawActor.
-export function drawCarried(g, a, V, fx, fy, over) {
+// Feet-relative top-left (fx, fy), as drawActor. gesture: the gesture frame drawn as its body (bodyOf), which draws
+// its own arms and comes before the Zs: neither is laid over it.
+export function drawCarried(g, a, V, fx, fy, over, gesture = null) {
   const A = V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll;
   if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); return; }
   const { done, lift } = liftOf(a);
-  if (V.arm) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift, over); }
+  if (V.arm && !gesture) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift, over); }
   if (done) V.held(g, fx, fy - lift);
   if (a.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y);
-  if (a.pose === 'nap' || (!done && a.pose === 'desk' && a.s.status === 'idle' && !a.s.background)) dozing(g, fx + 11, fy - 2, a.t);
+  if (!gesture && (a.pose === 'nap' || dozes(a))) dozing(g, fx + 11, fy - 2, a.t);
 }
 // The two views' art for it, read live (a theme switch refills the maps in place).
 const CARRIED = { get at() { return SCRIBE_AT; }, get arm() { return MAPS.ARM; }, get armL() { return MAPS.ARM_L; }, get scroll() { return MAPS.SCROLL; },
@@ -351,7 +372,8 @@ const CARRIED = { get at() { return SCRIBE_AT; }, get arm() { return MAPS.ARM; }
 export const CARRIED39 = { get at() { return SCRIBE39_AT; }, get arm() { return SCRIBE39.arm; }, get armL() { return SCRIBE39.armL; }, get scroll() { return SCRIBE39.scroll; },
   held: (g, x, y) => blit(g, MAPS.SCROLL_HELD, x + 1.5, y - 4) };
 // The body frame an actor is drawn with and its top-left (feet at a.x, a.y), for drawActor and its floor shadow
-// (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing.
+// (depth.js). step: the walk frame (0 passing, 1-2 strides), -1 standing. A scribe at its desk: gesture, the gesture
+// whose frame it shows instead of `up 0` (null: none, gestures.js).
 export function bodyOf(a) {
   const walk = a.pose === 'walk';
   if (a.watch) { // the Watchman: 16x18, his bell raised for RING_S at each 30 s mark of the countdown
@@ -365,8 +387,9 @@ export function bodyOf(a) {
   }
   const still = a.wait > 0 || a.still || a.ride === 'in'; // paused at the recaff, in the lift's line, riding the car
   const i = still ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
-  const map = a.pose === 'burn' || a.ride === 'in' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : SCRIBE.up[0];
-  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !still ? i : -1 };
+  const gesture = gestureNow(a, n => !!SCRIBE.gesture?.[n]);
+  const map = a.pose === 'burn' || a.ride === 'in' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : gesture ? SCRIBE.gesture[gesture] : SCRIBE.up[0];
+  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !still ? i : -1, gesture };
 }
 
 // The 39° view's facing, from the walk direction in floor space: E = +x, W = -x, S = +y (toward the viewer), N = -y.
@@ -374,8 +397,8 @@ const FACE39 = { right: 'E', left: 'W', down: 'S', up: 'N' };
 export const face39 = dir => FACE39[dir] ?? 'N';
 // bodyOf for the 39° view: the 39° frame (walking: the walk direction's; seated, queued, at the cogitator or a console:
 // facing N, its back to the viewer, as the flat view's 'up'; burning: facing S), its top-left relative to the feet
-// (dx, dy, logical px), the palette and walk step of bodyOf. null while the theme has no 39° art for this actor (the
-// caller draws the flat frame upright).
+// (dx, dy, logical px), the palette and walk step of bodyOf; a scribe at its desk, its gesture (its 39° frame instead
+// of `N 0`), as bodyOf. null while the theme has no 39° art for this actor (the caller draws the flat frame upright).
 export function bodyOf39(a) {
   const F = a.watch ? WATCH39 : a.h ? ADEPT39 : SCRIBE39, A = a.watch ? WATCH39_AT : a.h ? ADEPT39_AT : SCRIBE39_AT;
   if (!F.E) return null;
@@ -385,7 +408,9 @@ export function bodyOf39(a) {
     return { map: a.ring > 0 ? F.ring : F[face][walk ? i : 0], dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
   }
   const face = walk ? face39(a.dir) : a.pose === 'burn' ? 'S' : a.h ? face39(a.target?.dir) : 'N';
-  return { map: a.h ? marked(F[face][walk ? i : 0], F, A, face, markOf(a.h.kind)) : F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+  if (a.h) return { map: marked(F[face][walk ? i : 0], F, A, face, markOf(a.h.kind)), over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+  const gesture = gestureNow(a, n => !!F.gesture?.[n]);
+  return { map: gesture ? F.gesture[gesture] : F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face, gesture };
 }
 
 // The Watchman's lantern in the flat view (floor coords): WATCH_AT.light, mirrored with the frame when he faces left.
@@ -399,19 +424,16 @@ export const bobOf = b => (b.step === 0 ? 0.5 : 0);
 
 // A scribe's sprite top-left is its position minus SCRIBE_AT.feet; arms and scroll hang off its other anchors.
 export function drawActor(g, a) {
-  if (!asleep(a)) return drawAwake(g, a);
-  g.save(); g.globalAlpha *= SLEEP_ALPHA; drawAwake(g, a); g.restore();
-}
-function drawAwake(g, a) {
   const b = bodyOf(a);
   if (a.watch) { blit(g, b.map, b.x, b.y - bobOf(b)); return; }
   if (a.h) { // adept: typing bob of 1 art px at its console
     blit(g, b.map, b.x, b.y - bobOf(b) + (a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), b.over);
     return;
   }
-  const fx = b.x, fy = b.y - bobOf(b), P = pipeOf(a, a.pose === 'burn' ? 'down' : a.pose === 'walk' ? a.dir : 'up');
+  // a gesture frame draws its own head: no pipe over it
+  const fx = b.x, fy = b.y - bobOf(b), P = !b.gesture && pipeOf(a, a.pose === 'burn' ? 'down' : a.pose === 'walk' ? a.dir : 'up');
   blit(g, b.map, fx, fy, b.over);
-  if (a.pose !== 'burn') drawCarried(g, a, CARRIED, fx, fy, b.over); // burning: standing over the brazier (bundle + flare: scene.js)
+  if (a.pose !== 'burn') drawCarried(g, a, CARRIED, fx, fy, b.over, b.gesture); // burning: standing over the brazier (bundle + flare: scene.js)
   if (P) pipe(g, fx, fy, P, a.t);
 }
 

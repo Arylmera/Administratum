@@ -44,7 +44,9 @@ await loadThemes(await readArt('themes.json', 'json'), shipped);
 // are `<pack>:<folder>`, its worlds `<pack>:<world>` unless a shipped world's (themepack.js scoped). Those ids are
 // registry keys only: a pack's files are read through its reader, by `<folder>/<file>`, never by a path built from an
 // id. A pack's failure is recorded in PACKS and leaves that theme out; it never throws, never touches a shipped theme.
-// PACKS: pack id -> { dir, themes: [{ id, name, world, style }], problems: [{ theme: folder | null, message }] }.
+// What loads but is left out (a frame this version does not know: warnTheme) is a warning, the theme kept.
+// PACKS: pack id -> { dir, themes: [{ id, name, world, style }], problems: [{ theme: folder | null, message }],
+// warnings: [{ theme: folder, message }] }.
 export const PACKS = new Map();
 const packed = new Map(); // a pack's theme id -> { pack, folder }
 export const packOf = id => packed.get(id);
@@ -65,7 +67,7 @@ export async function loadPacks(packs, read) {
 }
 async function loadPack({ id, dir, themes }, read) {
   if (typeof id !== 'string' || !id || id.includes(':') || PACKS.has(id) || typeof dir !== 'string') throw new Error(`refused: ${JSON.stringify(id)}`);
-  const entry = { dir, themes: [], problems: [] }, problem = (theme, message) => entry.problems.push({ theme, message });
+  const entry = { dir, themes: [], problems: [], warnings: [] }, problem = (theme, message) => entry.problems.push({ theme, message });
   PACKS.set(id, entry);
   if (!Array.isArray(themes)) return problem(null, 'themes: must be a list of folders');
   const folders = [];
@@ -118,6 +120,14 @@ export function dropTheme(id, message) {
   entry.problems.push({ theme: p.folder, message: String(message) });
   for (const t of Object.values(THEMES)) if (t.artOf === id && packed.has(t.id)) dropTheme(t.id, `its base ${p.folder} is left out`);
   if (!SHIPPED_WORLDS.has(world) && !Object.values(THEMES).some(t => t.world === world)) delete WORLDS[world];
+}
+
+// Records what a pack's theme holds that this version of the app leaves out (a frame it does not know), on its pack's
+// line; the theme stays. Throws for a shipped theme (nothing changes).
+export function warnTheme(id, message) {
+  const p = packed.get(id);
+  if (!p) throw new Error(`warnTheme: ${id} is not a pack's theme`);
+  PACKS.get(p.pack).warnings.push({ theme: p.folder, message: String(message) });
 }
 
 // A frame function behind the second net: when it throws under a pack's theme, that theme is left out and the hall

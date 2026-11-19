@@ -13,7 +13,7 @@ import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
 import { MAPS, PROP_AT, ROOM, RES, MAGOS, MAGOS_AT, MAGOS39, MAGOS39_AT, SKULL39, SKULL39_AT, blit, sprite, half, rect } from './sprites.js';
 import { T, onTheme, rgb, blendInto } from './theme.js';
-import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S, asleep, SLEEP_ALPHA } from './actors.js';
+import { drawActor, drawCarried, CARRIED39, bodyOf, bodyOf39, bobOf, pipe, pipeOf, BURN_S, PUFF_S, FX_S, PICK_S } from './actors.js';
 import { shadowOf, contactShadow, castShadow, casterOf, FLY_H } from './depth.js';
 import * as S from './scene.js';
 
@@ -315,13 +315,12 @@ function drawActor39(g, a, r, fillOf) {
   const [fx0, fy0] = feetOf(a, r), x = Math.round(a.x), y = Math.round(a.y);
   g.save();
   upright(g, x, y, pin(fx0, fy0)); // flat coords around (x, y) stand on the drawn feet
-  if (!r.flat && asleep(a)) g.globalAlpha *= SLEEP_ALPHA; // a sleeper half faded (drawActor fades its own)
   if (r.flat) drawActor(g, a); // the flat frames, arms, scroll and Zs, standing on the projected feet
   else {
     const fx = x + r.dx, fy = y + r.dy - bobOf(r);
     blit(g, r.map, fx, fy + (a.h && a.pose !== 'walk' && Math.sin(a.t * 11) > 0.3 ? 0.5 : 0), r.over);
-    if (!a.h && !a.watch && a.pose !== 'burn') drawCarried(g, a, CARRIED39, fx, fy, r.over);
-    const P = pipeOf(a, r.face);
+    if (!a.h && !a.watch && a.pose !== 'burn') drawCarried(g, a, CARRIED39, fx, fy, r.over, r.gesture);
+    const P = !r.gesture && pipeOf(a, r.face);
     if (P) pipe(g, fx, fy, P, a.t);
   }
   if (a.burn) S.bundle(g, a, fillOf(a.burn.old));

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { answerable, answerCall, kinOf, lineageOf, stuckLine, watchLines, cacheLine } from './card.js';
+import { answerable, answerCall, kinOf, lineageOf, stuckLine, watchLines, cacheLine, cardOnPick } from './card.js';
 import { candleOf } from './scene.js';
 
 // Claude Code: a permission prompt in an Orca terminal.
@@ -34,6 +34,20 @@ const cyc = [{ id: 'x', parent: 'y', tokensToday: 1 }, { id: 'y', parent: 'x', t
 assert.equal(lineageOf(cyc[0], cyc).tokens, 3, 'a cycle is summed once and terminates');
 assert.equal(lineageOf(other, tok), null, 'orphan: no lineage');
 assert.equal(lineageOf({ id: 'z' }, tok), null, 'a plain scribe');
+// A click's card (Settings: Show the card when I click a character). On: always. Off, on the desktop: only for a petition
+// to answer, or with no terminal to open; an adept's card answers nothing. The remote view opens no terminal: always.
+{
+  const scribe = { id: 's1' }, adept = { id: 's1|h1', h: { kind: 'Explore' } }, idle = { ...claude, status: 'idle' }, off = { on: false };
+  assert.ok(cardOnPick(scribe, idle), 'default on');
+  assert.ok(!cardOnPick(scribe, idle, off), 'off: the terminal only');
+  assert.ok(cardOnPick(scribe, claude, off), 'off: a petition to answer still shows it');
+  assert.ok(!cardOnPick(scribe, { ...claude, waitingFor: 'input needed' }, off), 'off: a free-text petition is answered in the terminal');
+  assert.ok(cardOnPick(scribe, oc, off), 'off: an OpenCode request outside Orca');
+  assert.ok(cardOnPick(scribe, { ...idle, orca: null }, off), 'off: no terminal to open');
+  assert.ok(cardOnPick({ id: 'watch', watch: true }, undefined, off), 'off: the Watchman (no session)');
+  assert.ok(!cardOnPick(adept, claude, off), "off: an adept's card answers nothing");
+  assert.ok(cardOnPick(scribe, idle, { on: false, remote: true }), 'remote: always');
+}
 console.log('card ok');
 
 // A stuck session (monitor.rs): silent since its last write, or looping on one call.

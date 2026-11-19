@@ -6,7 +6,8 @@
 // command refused) and a fixed roster sent every second, for screenshots of the hall.
 // Serve the repo root (python -m http.server 8123) and open /tools/preview.html?mode=candles&theme=vault
 // (mode: auto|full|candles, theme: a theme id, n: scribes, 1..40, view: flat|39, 39 being 2.5D,
-// temp=1: the Noosphere scribes are temp sessions, in the break-out room).
+// temp=1: the Noosphere scribes are temp sessions, in the break-out room; orca=1: every session in an Orca terminal, so
+// its petitions get Approve / Deny and a click goes the Orca way, the terminal's opening refused).
 const q = new URLSearchParams(location.search);
 for (const [k, key] of [['mode', 'adm.mode'], ['theme', 'adm.theme'], ['scale', 'adm.scale'], ['view', 'adm.view']]) {
   if (q.has(k)) localStorage.setItem(key, q.get(k));
@@ -15,7 +16,7 @@ localStorage.setItem('adm.pauseHidden', '0'); // a background tab still draws (w
 const n = Math.max(1, Math.min(40, +(q.get('n') ?? 9)));
 const fake = `
   window.__ROSTER_N = ${n};
-  const TEMP = ${q.get('temp') === '1'};
+  const TEMP = ${q.get('temp') === '1'}, ORCA = ${q.get('orca') === '1'};
   const H = {};
   // A tab in the background gets no animation frames: drive the loop with timers (throttled, but it moves).
   window.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 16);
@@ -31,7 +32,7 @@ const fake = `
     id: 's' + i, pid: 0, name: DEPTS[i % 4].toLowerCase() + '-' + (10 + i), dept: DEPTS[i % 4], cwd: 'C:/git/' + DEPTS[i % 4],
     status: STATUS[i % STATUS.length], waitingFor: 'approve Bash', sinceMs: t0 + i * 1000, task: 'Edit · app.js', title: null, asks: null,
     helpers: i % 3 === 0 ? [{ id: 'h' + i, kind: 'Explore', task: 'grep', model: 'haiku', context: { tokens: 20000, model: MODELS[2] } }] : [],
-    context: { tokens: 60000 + 90000 * i, model: MODELS[i % 3] }, orca: null, web: null, background: false, compactedAt: null,
+    context: { tokens: 60000 + 90000 * i, model: MODELS[i % 3] }, orca: ORCA ? 'term_' + i : null, web: null, background: false, compactedAt: null,
     question: null, branch: 'main', limit: null, turn: null, temp: TEMP && i % 4 === 3,
     parent: i === 4 || i === 8 ? 's0' : null, // s0 forked s4 and s8: a Suzerain on its plinth
     stuck: i === 1 ? { kind: 'silent', sinceMs: t0 - 960_000, tool: null, count: 0 } : i === 6 ? { kind: 'loop', sinceMs: t0, tool: 'Bash', count: 5 } : null, // monitor.rs

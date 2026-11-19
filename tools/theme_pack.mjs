@@ -6,11 +6,15 @@
 // then its loadPacks with a reader on the file system that serves what the backend serves (packs.rs read), then
 // ui/sprites.js and ui/faces.js, which load and check every theme's art. One line per problem (`<theme>: <message>`),
 // then `<n> themes ok, <m> with problems`; exit 0 only when there is none. What the installer would drop or refuse
-// (packs.rs keepable and its limits) comes as `warning:` lines; a limit passed, a theme folder misnamed or no theme at
+// (packs.rs keepable and its limits), a scribe's gesture frame that would never play (artcheck.js gestureWarnings) and
+// a frame this version of the app does not know, which it ignores (a pack drawn for a newer app, or a typo: themes.js
+// PACKS warnings), come as `warning:` lines; a limit passed, a theme folder misnamed or no theme at
 // all is a problem, since the installer or the app refuses it. The pack is parsed, never evaluated.
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadPacks, PACKS } from '../ui/themes.js'; // first: it registers the shipped themes
+import { gestureWarnings } from '../ui/artcheck.js';
+import { GESTURE_FRAMES } from '../ui/gestures.js';
 
 const [cmd, arg] = process.argv.slice(2);
 const usage = () => { console.error('usage: node tools/theme_pack.mjs check <folder> | families'); process.exit(2); };
@@ -93,9 +97,18 @@ async function check(target) {
   await import('../ui/sprites.js'); // the art, checked; a theme whose art fails is dropped with its reason
   await import('../ui/faces.js');
 
+  // a gesture frame that loads but never plays (artcheck.js gestureWarnings): the sheet's JSON, parsed, never run
+  for (const t of themes.filter(t => !only || t === only)) for (const f of Object.keys(GESTURE_FRAMES)) {
+    const p = path.join(dir, t, `${f}.json`);
+    if (!isFile(p)) continue;
+    let frames = [];
+    try { frames = Object.keys(JSON.parse(fs.readFileSync(p, 'utf8')).frames ?? {}); } catch { continue; } // a broken sheet is the loader's problem
+    warnings.push(...gestureWarnings(`${t}/${f}`, frames));
+  }
   const entry = PACKS.get(id), mine = t => !only || t === only;
   // a reason the loader leaves empty (a truncated PNG's decoder says nothing) still says something
   const reason = m => (/:\s*$/.test(m) ? `${m.trimEnd()} ${/\.png:\s*$/.test(m) ? 'unreadable PNG' : 'unreadable'}` : m);
+  for (const { theme, message } of entry.warnings) if (mine(theme)) warnings.push(`${theme}: ${message}`);
   for (const { theme, message } of entry.problems) if (theme === null ? !only : mine(theme)) problems.push(`${theme ?? 'pack'}: ${reason(message)}`);
   const ok = entry.themes.filter(t => { const f = t.id.slice(id.length + 1); return mine(f) && !misnamed.includes(f); }).length; // a misnamed one: once, with problems
   const bad = new Set(entry.problems.filter(p => p.theme !== null && mine(p.theme)).map(p => p.theme)).size;
@@ -114,10 +127,14 @@ function report(warnings, problems, ok, bad) {
 // The default art, as sprites.js loaded it: each family's frames with their sizes (a theme's frame keeps its size).
 async function families() {
   const { ART, FAMILIES39 } = await import('../ui/sprites.js');
+  const { GESTURE_FRAMES, SEATED_FRAME } = await import('../ui/gestures.js');
   console.log('| Family | Frames (name width x height, in art pixels) |\n|---|---|');
   for (const [f, sheet] of Object.entries(ART.base)) {
-    const frames = Object.entries(sheet.frames).map(([n, rows]) => `\`${n}\` ${rows[0].length}x${rows.length}`);
-    console.log(`| \`${f}\`${FAMILIES39.includes(f) ? ' (2.5D)' : ''} | ${frames.join(', ') || '(none yet)'} |`);
+    const size = rows => `${rows[0].length}x${rows.length}`, seated = sheet.frames[SEATED_FRAME[f]];
+    const frames = Object.entries(sheet.frames).map(([n, rows]) => `\`${n}\` ${size(rows)}`);
+    // the optional gestures (gestures.js) the default does not draw, at its seated frame's size
+    const optional = seated ? (GESTURE_FRAMES[f] ?? []).filter(n => !sheet.frames[n]).map(n => `\`${n}\` ${size(seated)}`) : [];
+    console.log(`| \`${f}\`${FAMILIES39.includes(f) ? ' (2.5D)' : ''} | ${frames.join(', ') || '(none yet)'}${optional.length ? `; optional: ${optional.join(', ')}` : ''} |`);
   }
 }
 

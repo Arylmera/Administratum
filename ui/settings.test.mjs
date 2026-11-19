@@ -68,6 +68,12 @@ assert.equal(settings.stripSide, 'right');
   change('view', 'flat');
   assert.equal(store.get('adm.stripKind'), 'strip'); // a hall view leaves it
 }
+// Show the card when I click a character: on by default, saved (card.js cardOnPick reads it), back on at reset (below).
+assert.equal(settings.cardOnClick, true);
+assert.equal(field('cardOnClick').checked, true);
+change('cardOnClick', false);
+assert.equal(settings.cardOnClick, false);
+assert.equal(JSON.parse(store.get('adm.settings')).cardOnClick, false);
 // Updates: the startup check only offers the install.
 const up = form.querySelector('#updates');
 assert.equal(up.querySelector('.up-line').textContent, 'Version 0.6.5. Version 0.7.0 is available.');
@@ -263,6 +269,8 @@ seen.length = 0;
 form.querySelector('.reset').click();
 assert.equal(settings.staleMin, 5);
 assert.equal(settings.onTop, true);
+assert.equal(settings.cardOnClick, true);
+assert.equal(field('cardOnClick').checked, true);
 assert.deepEqual(quiet, { on: false, from: 1320, to: 480 });
 assert.equal(view.scale, 'auto');
 assert.equal(T.id, 'tier2');

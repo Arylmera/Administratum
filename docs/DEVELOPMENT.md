@@ -63,7 +63,7 @@ do not know which.
 | `viewport.js` | The view: scale and scene size for the window, pan (drag, glide, coast, arrow keys), parallax lag |
 | `overlay.js` | DOM over the canvas, synced each frame: plaques, the Hall of Honours' marks over its plaque, petition labels, tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server |
-| `card.js` | The selected character's card, and answering permission petitions (a risky one: red, no *Always*, *Approve* armed by a first click, sent by a second within 5 s); a Suzerain's lineage (`lineageOf`); the watch lines (`same file`, a port in use, the cache clock) |
+| `card.js` | The selected character's card (`pick`: a click; `cardOnPick`, whether it shows, *Show the card when I click a character*; *Open in Orca* hidden when the click opened the terminal, back if it failed), and answering permission petitions (a risky one: red, no *Always*, *Approve* armed by a first click, sent by a second within 5 s); a Suzerain's lineage (`lineageOf`); the watch lines (`same file`, a port in use, the cache clock) |
 | `petition.js` | Pure: which petitions can be answered and how; `riskOfPetition` (the backend's `risk` field), `allowed` (which answers each surface offers; a remote client gets the phone's rule), `armStep` (the two-click Approve: 400 ms to 5 s apart, a double-click holds) |
 | `mobile.html` / `mobile.js` | The remote view's phone page (index.html's head redirects a narrow remote screen to it, `/?hall` stays): petitions (Approve / Deny on a shown permission prompt while remote actions are allowed), Night Vigil, sessions, today's totals |
 | `chrome.js` | The page follows the theme: CSS colours, marked texts, toast wording |
@@ -74,6 +74,7 @@ do not know which.
 | `hallplan.js` | The hall plan in force (`settings.hallPlan`): `open`, the open space, or `rooms`, the rooms round the Sanctum (`layout.js` `mirrorHall`, `packMirror`, `mirrorRoute`; `actors.js` `asleep` and the room computers; `theme.js` `inRooms` words). Everything else follows `hall.sanct` |
 | `rooms.js` | Custom rooms in force (`adm.rooms`): `roomsOf` (the lenient parse, `rooms.rs`'s caps), `setRooms`, `tintOf` (a rule's colour on the sash slot `y`) |
 | `actors.js` | Scribes and adepts: destinations, walking, napping, compaction ritual, chronicle reactions |
+| `gestures.js` | Pure: a seated scribe's optional gesture (`gestureOf`: think, wonder, stretch, their timings, a beat per scribe from its id), the frame names (`up think`... flat, `N think`... 2.5D); `actors.js` `gestureNow` asks it. The stretch only after a turn ends (`Cast.sync` sets `a.turnEnded` on busy or shell to idle, `Cast.update` spends it as the scribe dozes off at its desk: `a.dozeAt`), never on a pose change; the puzzled wonder once per tool error at the desk (`chronicle`: `a.puzzleAt`) |
 | `glide.js` | Furniture easing to its new place when the hall reflows |
 | `scene.js` | Canvas drawing of the flat hall: the static background and each frame; `candleOf` the cache clock of a desk (no world has a low-candle frame: "low" is the lit desk with a smaller light pool), shared with `scene39.js`; with a west wing, the hall drawn moved east and `drawWing` (its walls, floors, the west wall; its doors in `drawDoors`) |
 | `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
@@ -85,7 +86,7 @@ do not know which.
 | `column.js`, `lift.js` | Desktop column: its floors, layout and routes (a cross-floor walk has one lift waypoint); the lift, a pure SCAN scheduler (FIFO calls, 3 riders, event-exact `step`) the cast rides (`actors.js`) |
 | `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder |
 | `room.js`, `wallart.js` | The room from tiles (fill rules), the back wall's window and hangings |
-| `theme.js`, `themes.js`, `themepack.js`, `artcheck.js` | Themes: every colour and the wording; `setTheme`, `t()`; the loader of the themes' `theme.json` files and of the packs (`loadPacks`, `PACKS`, `guarded`; at start the backend's packs, `readPack`), their check and recolouring; the shape of a theme's sheets |
+| `theme.js`, `themes.js`, `themepack.js`, `artcheck.js` | Themes: every colour and the wording; `setTheme`, `t()`; the loader of the themes' `theme.json` files and of the packs (`loadPacks`, `PACKS` and its warnings, `guarded`; at start the backend's packs, `readPack`), their check and recolouring; the shape of a theme's sheets |
 | `quiet.js` | Quiet hours, the same rule as `quiet.rs` |
 | `vigil.js` | Night Vigil state (armed, deadline, countdown) as the backend emits it, and the 30 s bell rule |
 
@@ -111,7 +112,8 @@ $env:ADMINISTRATUM_DEMO = 1; cargo tauri dev
 
 To look at the hall in a browser without the backend (a fixed roster of scribes, adepts and petitions), serve the
 repo root and open the preview. Query parameters: `mode` (auto, full, candles), `theme` (a theme id), `n` (scribes,
-1 to 40), `view` (flat, 39), `scale`.
+1 to 40), `view` (flat, 39), `scale`, `temp=1` (temp sessions), `orca=1` (every session in an Orca terminal: the
+card answers petitions, a click takes the Orca path).
 
 ```sh
 python -m http.server 8123        # from the repo root
@@ -149,7 +151,7 @@ when it loads. One file per module:
 | `sprites.test.mjs` | Sprite sizes, palette chars, symmetry |
 | `art.test.mjs` | Art files: PNG decoder, key palette, sheets; each world's Hall of Honours plaque is its own silhouette, never the base one; each world's lift its own frames at the base sizes |
 | `themepack.test.mjs` | A theme from its JSON: the recolouring by hue range, the check and its refusals (unknown keys, colour forms, worlds, the wording a pack cannot set: `LOCKED`), the built theme of a world and of a style (its recoloured rank with its own keys over it, its text laid over its base's) |
-| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder (where it was loaded from), every theme folder listed in `themes.json` and every listed id on disk, a broken theme refused naming it and the cause (not JSON, no file, a style as a base). Packs, over an in-memory reader: a style of a shipped world, a pack's own world and its style in either order, a broken theme left out with its reason while the rest of its pack and every shipped theme stay as they were, a base in another pack refused, a theme rewording a locked text refused, a folder that is not a plain name never read, hostile packs and readers never throwing; a dropped world takes its styles; `guarded` falls back from a pack's theme and rethrows under a shipped one; in a child process, a pack's sheets and faces checked as `sprites.js` and `faces.js` load them (a frame the default lacks, a pixel off the palette, an unknown family, an unknown face kind, a faces.json without its PNG), and a style's own faces; on a small heap, hostile files a few bytes each refused before they allocate (a frame rect outside its image or of zero width, too many frames, a second IHDR, an indexed PNG of depth 255 or without PLTE, no IDAT, an IDAT inflating past its header); at start, on the fake backend, a listed pack's theme registered after the shipped ones, a file the backend will not serve read as ENOENT, and a list call that rejects, hangs past 10 s or answers nonsense, or a read that hangs, leaving the shipped fifteen as they are |
+| `themes.test.mjs` | The loader: the shipped themes in order, a style's art and world, `sprites.js` alone brings them, an unknown art family refused before any read, each theme's folder (where it was loaded from), every theme folder listed in `themes.json` and every listed id on disk, a broken theme refused naming it and the cause (not JSON, no file, a style as a base). Packs, over an in-memory reader: a style of a shipped world, a pack's own world and its style in either order, a broken theme left out with its reason while the rest of its pack and every shipped theme stay as they were, a base in another pack refused, a theme rewording a locked text refused, a folder that is not a plain name never read, hostile packs and readers never throwing; a dropped world takes its styles; `guarded` falls back from a pack's theme and rethrows under a shipped one; in a child process, a pack's sheets and faces checked as `sprites.js` and `faces.js` load them (a frame this version does not know left out with a warning, the theme kept; a known frame at another size, or a fill rule naming an unknown frame, refused; a pixel off the palette, an unknown family, an unknown face kind, a faces.json without its PNG), and a style's own faces; on a small heap, hostile files a few bytes each refused before they allocate (a frame rect outside its image or of zero width, too many frames, a second IHDR, an indexed PNG of depth 255 or without PLTE, no IDAT, an IDAT inflating past its header); at start, on the fake backend, a listed pack's theme registered after the shipped ones, a file the backend will not serve read as ENOENT, and a list call that rejects, hangs past 10 s or answers nonsense, or a read that hangs, leaving the shipped fifteen as they are |
 | `theme.test.mjs` | Themes: complete palettes, runtime switch; chrome contrast in every theme (each foreground over the fill it sits on, text >= 4.5, icons and borders >= 3; a light-chrome theme sets `--on-blood` / `--ink-on-blood` / `--pink-on-blood` / `--green-on-blood` for text on `--blood`, `--flame-on-wax` for the alarm, `--honours-ink` for the Hall of Honours words, whose plaque fields it is checked against), with the shortfalls already shipped listed and asserted still failing |
 | `sun.test.mjs` | Sun times and *Auto* phases |
 | `quiet.test.mjs` | Quiet hours, windows across midnight |
@@ -166,11 +168,12 @@ when it loads. One file per module:
 | `column.test.mjs` | Column geometry (floor ys, floors moving, the right side mirrored, pitch, overflow, routes, the scale drop) and the cast in it (riding, a petition mid-ride, a floor move, settle, adepts never ride) |
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
+| `gestures.test.mjs` | Scribe gestures: the chooser (think and wonder recur at their pace, each scribe out of step, the stretch, the puzzled wonder after a tool error, nothing away from the desk or for a frame the world lacks), every shipped world without them, a pack's gesture frames accepted at the seated size and the warning for one without its seated frame, the frame replacing `up 0` / `N 0`; over `Cast.sync` / `update`: no stretch for a scribe first seen idle, on arriving, after `settle` or a reset, or on a walk back while idle; once at a turn's end, at the desk or on sitting after walking back; one wonder per tool error at the desk |
 | `chronicon.test.mjs` | The Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars; the usage-window bar (no window, empty frame, ticks with the lowest marked, clamped fill, "estimate" tooltip) and today's window line |
 | `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label; the same-file tag yields to them all; a risky petition through `card.js` `answer` (no *Always*, two clicks within 5 s); the Hall of Honours: when it is asked again, its lines and dashes |
-| `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls; the watch lines; the cache clock (`scene.js` `candleOf`: lit, low, out per time left over the TTL, only idle scribes at a desk) |
+| `card.test.mjs` | Answerable petitions (Orca prompt, OpenCode request) and the answer command each one calls; the watch lines; the cache clock (`scene.js` `candleOf`: lit, low, out per time left over the TTL, only idle scribes at a desk); whether a click shows the card (`cardOnPick`: the setting, a petition to answer, no terminal, the remote view) |
 | `petition.test.mjs` | The risk is the backend's field; the gates: no *Always*, the phone's Deny only, the two-click window and its double-click hold (the risky commands themselves: `registry/risk.rs` tests) |
-| `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, Monitoring fields, reset; Added themes (the rows, a problem shown as text, a name refused before any call, a refusal, update, remove, install with its buttons greyed, restart) and a pack's world and style in the pickers |
+| `settings.test.mjs` | Settings panel (host): saved values clamped, pushes to the backend, scale slider, location, quiet hours, remote view, firewall, token regeneration, updates, categories, Monitoring fields, the card on a click, reset; Added themes (the rows, a problem shown as text, a name refused before any call, a refusal, update, remove, install with its buttons greyed, restart) and a pack's world and style in the pickers |
 | `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped; `openWeek` (open or closed panel, an open that fails) |
 
 ---
@@ -213,7 +216,12 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
   reader; `art.js` takes a folder URL or a reader). A pack's world themes register first, then its styles; a style's
   base is a world of the same pack or a shipped one. Its sheets and faces are checked against the default
   (`artcheck.js`), its PNGs at most 2048 px a side (one IHDR, first; never inflated past what it holds), its frame
-  rects whole numbers inside their image, at least 1x1, at most 1024 frames and 2048² px in all. Any problem (bad JSON, a failing check, a missing file, a reader
+  rects whole numbers inside their image, at least 1x1, at most 1024 frames and 2048² px in all. Forward compatibility:
+  a frame name this version does not know (a pack drawn for a newer app, or a typo) is left out of the sheet before
+  the check (`artcheck.js` `knownFrames`), with a warning in `PACKS` (`warnTheme`; Added themes and `theme_pack.mjs
+  check` show it, the latter exit 0); the theme loads without it. Its rect and pixels are still read and count toward
+  the limits, it can be named by nothing (a fill rule naming it is refused), and the shipped art stays strict
+  (`checkSheet` alone, `art.test.mjs`). Any problem (bad JSON, a failing check, a missing file, a reader
   that rejects) leaves that theme out with its reason in `PACKS` (`dropTheme`; a dropped world takes its styles), and
   never stops the app or changes a shipped theme; a shipped theme's failure still throws. The second net: the frame
   functions of `app.js` and `mobile.js` run in `guarded`, so a draw that throws under a pack's theme leaves it out
@@ -228,6 +236,13 @@ the ones drawn in code, the page's chrome) and the wording come from the active 
 - A scribe's arms (`actors.js` `drawCarried`): a world's own body has them, so it draws none separately; the 40k robe
   has none, so the base art draws two mechadendrites over the desk (`arm`, mirrored for the left), never lent to a
   world's own scribe. A finished long turn raises the scroll, the mechadendrites with it (`liftOf`).
+- A scribe's gestures at its desk (`gestures.js`, [theme-packs.md](theme-packs.md#gestures)): optional frames of the
+  scribe sheets, `up think` / `wonder` / `stretch` instead of `up 0`, `N ...` instead of `N 0`. `sprites.js` takes a
+  flat one only from the sheet that draws the world's `up 0` (`SCRIBE.gesture`, `SCRIBE39.gesture`); `artcheck.js`
+  accepts them in a pack's sheet at the seated frame's size though the default draws none, and `gestureWarnings`
+  (a `theme_pack.mjs check` warning) names one in a sheet without its own seated frame. Drawn as the body, they take
+  no arms overlay, no Zs and no pipe. In the viewer and `--list`, a sprite only other worlds draw gets a row after
+  column A's list.
 
 **Live viewer.** Every sprite of every theme side by side, read straight from `ui/art/`, walk cycles animated,
 zoom, pixel grid, backgrounds and a filter:

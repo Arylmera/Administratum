@@ -46,7 +46,7 @@ export const store = {
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
 const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (stripwin.js stripScale)
 const SIDES = ['left', 'right']; // the desktop column's screen edge (stripwin.js); right by default: desktop icons sit on the left
-const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, stripReserve: false, isoBackdrop: true, roomTint: true, hallPlan: 'open', ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, stripReserve: false, isoBackdrop: true, roomTint: true, cardOnClick: true, hallPlan: 'open', ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
@@ -60,10 +60,11 @@ function load() {
   if (typeof saved.isoBackdrop === 'boolean') s.isoBackdrop = saved.isoBackdrop;
   if (PLANS.includes(saved.hallPlan)) s.hallPlan = saved.hallPlan; // open space, or rooms round the Sanctum (hallplan.js)
   if (typeof saved.roomTint === 'boolean') s.roomTint = saved.roomTint; // a room's floor: a soft tint of its colour (else its tiles)
+  if (typeof saved.cardOnClick === 'boolean') s.cardOnClick = saved.cardOnClick; // off: a click only opens the terminal (card.js cardOnPick)
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
 }
-// Shared, read live by actors.js (thresholds) and card.js (context windows).
+// Shared, read live by actors.js (thresholds) and card.js (context windows, the card on a click).
 export const settings = load();
 setHallPlan(settings.hallPlan); // in force from the start (layout.js, actors.js, theme.js read it)
 // 2.5D, Backdrop off: no plates round the hall, the transparent window shows the desktop (index.html html.bare).
@@ -338,13 +339,16 @@ export function repoOf(typed) {
 }
 
 // Added themes (host only): the packs the backend lists (theme_packs), joined with what loaded at start (themes.js
-// PACKS: the themes, the problems); a pack installed this session is listed but loads at the restart. Install by
+// PACKS: the themes, the problems, then the warnings: what a theme that loads leaves out); a pack installed this session is listed but loads at the restart. Install by
 // owner/repo, Update and Remove (a pack from a repository; a local one is the author's own, never deleted here: a hint
-// instead), the buttons greyed while one runs; any success re-reads the list and shows Restart to apply until the
-// restart. Everything a pack or the backend says is shown as text.
+// instead), the buttons greyed while one runs; any success that replaced something (an update whose archive is the
+// same answers changed: false) re-reads the list and shows Restart to apply until the restart. Update all updates the
+// packs from a repository one after the other: a refusal is said and the rest go on. Everything a pack or the backend
+// says is shown as text.
 function initPacks(form) {
   const box = form.querySelector('#packs'), list = box.querySelector('.pk-list'), repo = box.querySelector('.pk-repo');
   const install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
+  const all = box.querySelector('.pk-all');
   let packs = [], busy = false;
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const render = () => {
@@ -358,33 +362,53 @@ function initPacks(form) {
       const button = (text, cmd, saying, said) => { const b = el('button', 'clear', text); b.type = 'button'; b.disabled = busy; b.onclick = () => run(cmd, { dir: p.dir }, saying, said); head.append(b); };
       if (local) head.append(el('span', 'hint', t('prefs.packs.localHint')));
       else {
-        button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing'), q => done('updated', q, p.repo));
+        button(t('prefs.packs.update'), 'theme_pack_update', t('prefs.packs.installing'), q => done(q?.changed === false ? 'same' : 'updated', q, p.repo));
         button(t('prefs.packs.remove'), 'theme_pack_remove', '', () => t('prefs.packs.removed', { repo: p.repo }));
       }
       row.append(head);
       if (loaded?.themes.length) row.append(el('p', 'hint', loaded.themes.map(th => th.name).join(', ')));
-      for (const { theme, message } of loaded?.problems ?? []) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));
+      for (const { theme, message } of [...loaded?.problems ?? [], ...loaded?.warnings ?? []]) row.append(el('p', 'hint', theme ? `${theme}: ${message}` : String(message)));
       return row;
     });
     list.replaceChildren(...(rows.length ? rows : [el('p', 'hint', t('prefs.packs.none'))]));
-    install.disabled = busy;
+    install.disabled = all.disabled = busy;
+    all.hidden = !packs.some(p => p.repo);
   };
   const read = () => invoke('theme_packs').then(ps => { packs = Array.isArray(ps) ? ps : []; render(); }, err => { packs = []; render(); line.textContent = String(err); });
   // What a success says: the repo and its theme count (the pack the backend answered), then Restart to apply.
   const done = (key, q, repo) => t(`prefs.packs.${key}`, { repo: q?.repo ?? repo, n: Array.isArray(q?.themes) ? q.themes.length : 0 });
-  // One change at a time; resolves true on success (the list re-read, `said(answer)` on the line), false on a refusal
-  // (its message on the line).
+  // One change at a time; resolves true on success (the list re-read, `said(answer)` on the line, Restart unless the
+  // answer says nothing changed), false on a refusal (its message on the line).
   const run = (cmd, args, saying = '', said = () => '') => {
     if (busy) return Promise.resolve(false);
     busy = true; render();
     line.textContent = saying;
-    return invoke(cmd, args).then(q => { busy = false; line.textContent = said(q); restart.hidden = false; return read().then(() => true); },
+    return invoke(cmd, args).then(q => { busy = false; line.textContent = said(q); if (q?.changed !== false) restart.hidden = false; return read().then(() => true); },
       err => { busy = false; line.textContent = String(err); render(); return false; });
   };
   install.onclick = () => {
     const r = repoOf(repo.value);
     if (!r) { line.textContent = t('prefs.packs.bad'); return; }
     run('theme_pack_install', { repo: r }, t('prefs.packs.installing'), q => done('installed', q, r)).then(ok => { if (ok) repo.value = ''; });
+  };
+  all.onclick = async () => {
+    if (busy) return;
+    const todo = packs.filter(p => p.repo), said = [];
+    let changed = 0, failed = 0;
+    busy = true; render();
+    for (const [i, p] of todo.entries()) {
+      line.textContent = t('prefs.packs.updating', { i: i + 1, n: todo.length });
+      try { if ((await invoke('theme_pack_update', { dir: p.dir }))?.changed !== false) changed++; }
+      catch (err) { failed++; said.push(t('prefs.packs.failed', { repo: p.repo, error: String(err) })); }
+    }
+    busy = false;
+    // what changed is applied at once, no question; after a failure the line stays up and Restart waits for a click
+    if (changed && !failed) return invoke('restart').catch(err => { line.textContent = String(err); });
+    if (changed) { said.push(t('prefs.packs.allUpdated', { n: changed })); restart.hidden = false; }
+    else if (!failed) said.push(t('prefs.packs.allSame'));
+    else if (failed < todo.length) said.push(t('prefs.packs.restSame'));
+    await read();
+    line.textContent = said.join(' ');
   };
   restart.onclick = () => invoke('restart').catch(err => { line.textContent = String(err); });
   render();
@@ -423,6 +447,7 @@ function syncForm(form, field, hooks, login) {
   if (field('stripReserve')) field('stripReserve').checked = settings.stripReserve;
   for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
   field('isoBackdrop').checked = settings.isoBackdrop;
+  field('cardOnClick').checked = settings.cardOnClick;
   field('hallPlan').value = settings.hallPlan;
   field('roomTint').checked = settings.roomTint;
   field('roomTint').closest('label').hidden = settings.hallPlan !== 'rooms'; // the tint is the rooms plan's
@@ -447,6 +472,7 @@ function syncForm(form, field, hooks, login) {
   field('login').checked = !!login;
   field('login').disabled = login === null;
   field('updateCheck').checked = store.get('adm.updateCheck', '1') !== '0';
+  field('packCheck').checked = store.get('adm.packCheck', '1') !== '0'; // read by the backend at start (main.rs)
   for (const k in MONITOR) {
     const el = field(k);
     if (el.type === 'checkbox') el.checked = monitorGet(k) === '1';
@@ -473,6 +499,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k === 'hallPlan') { settings.hallPlan = PLANS.includes(el.value) ? el.value : 'open'; save(); setHallPlan(settings.hallPlan); hooks.planChanged?.(); field('roomTint').closest('label').hidden = settings.hallPlan !== 'rooms'; }
   else if (k === 'roomTint') { settings.roomTint = el.checked; save(); hooks.roomsChanged?.(); }
   else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
+  else if (k === 'cardOnClick') { settings.cardOnClick = el.checked; save(); }
   else if (k === 'chime') hooks.setMuted(!el.checked);
   else if (k === 'idleFps' || k === 'pauseHidden') setPerf(field('idleFps').value, field('pauseHidden').checked);
   else if (k === 'questions' || k === 'questionToast') { setQuestions(field('questions').checked, field('questionToast').checked); pushQuestions(); }
@@ -483,7 +510,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k === 'vigilDeadline') store.set('adm.vigilDeadline', String(minutesOf(el.value) ?? '')); // read by the backend at arm time
   else if (k === 'openWith' || k === 'openCmd') store.set(`adm.${k}`, el.value);
   else if (k === 'login') { el.disabled = true; readLogin(el.checked); return; }
-  else if (k === 'updateCheck') store.set('adm.updateCheck', el.checked ? '1' : '0');
+  else if (k === 'updateCheck' || k === 'packCheck') store.set(`adm.${k}`, el.checked ? '1' : '0');
   else if (k in MONITOR) {
     store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : monitorNorm(k, el.value.trim()));
     if (el.type !== 'checkbox') el.value = monitorGet(k); // show what is used, even while focused
@@ -502,6 +529,7 @@ function resetAll(hooks, setPlace) {
   setQuiet(false, 1320, 480);
   store.set('adm.openWith', 'explorer');
   store.set('adm.updateCheck', '1');
+  store.set('adm.packCheck', '1');
   store.set('adm.vigilDeadline', '');
   for (const k in MONITOR) store.set(`adm.${k}`, MONITOR[k]);
   setScale('auto'); hooks.rescaled();

@@ -133,7 +133,9 @@ export const TEXT = {
       bad: 'Not a repository name: owner/repo',
       installed: ['Installed {repo}: {n} theme. Restart to apply.', 'Installed {repo}: {n} themes. Restart to apply.'],
       updated: ['Updated {repo}: {n} theme. Restart to apply.', 'Updated {repo}: {n} themes. Restart to apply.'],
-      removed: 'Removed {repo}. Restart to apply.' },
+      removed: 'Removed {repo}. Restart to apply.', same: '{repo} is up to date.',
+      updateAll: 'Update all', updating: 'Updating themes… {i}/{n}', failed: '{repo}: {error}', allSame: 'All up to date.', restSame: 'The others are up to date.',
+      allUpdated: ['Updated {n} pack. Restart to apply.', 'Updated {n} packs. Restart to apply.'], check: 'Check added themes for updates at startup' },
     cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',

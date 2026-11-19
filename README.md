@@ -237,7 +237,9 @@ a phone can show a different world than the PC.</td>
 **Themes from others.** A theme pack is a GitHub repository holding one or more themes made by someone else: a new
 world, or a new style for a world the app ships. To add one, type its `owner/repo` (or paste its GitHub address) in
 Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the Theme and Style lists
-after *Restart to apply*. The same list updates or removes a pack. A pack is data only: colours, wording and pixel
+after *Restart to apply*. The same list updates or removes a pack; *Update all* updates every pack from GitHub at
+once. At start, the app checks the added packs for changes (*Check added themes for updates at startup*, on by
+default): if one changed, a toast offers *Update*, which updates them and restarts, or *Later*. A pack is data only: colours, wording and pixel
 art, checked when it loads; it cannot run code, and a theme that does not load is left out with the reason on its
 pack's line. A folder of themes dropped by hand into the `themes` folder beside the app's Chronicon shows there
 too, as a local folder. The Breaking Bad world, once shipped with the app, is such a pack now:
@@ -256,6 +258,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe at its desk, screen and candle lit | Session is working (`busy`) |
 | Scribe at the cogitator bank (back wall) | Session is running a shell command. It stays there 10 s after the last one so quick Bash calls don't send it back and forth |
 | Scribe dozing at the desk (`z z`), candle out | Turn done, waiting for your next prompt (`idle`) |
+| Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Petitions) |
 | Small brass cog turning on the desk corner | Idle, but a background shell it started is still running. The scribe stays at its desk |
 | Scribe at the recaff dispenser, then asleep on a Refectorium bench | Idle for more than 2 min with no background shell. If every bench is taken, it dozes at its desk |
 | Scribe queued in the Sanctum holding a sealed scroll, red label above it | **Petition**: the session is waiting on you. The label says what it wants (`approve Bash`, `input needed`...) and for how long |
@@ -351,8 +354,10 @@ drag the header.
 ### Characters and the card
 
 - **Hover** a character to see its name.
-- **Click** a scribe or adept to open its card. If the session runs in an Orca terminal, that terminal is also
-  brought to the front. Click again, press **Escape**, or click elsewhere to close the card.
+- **Click** a scribe or adept to open its card, a small parchment at the bottom of the hall (above the desktop strip,
+  beside the desktop column). If the session runs in an Orca terminal, that terminal is also brought to the front. Click again, press **Escape**, or click elsewhere to close the card. With *Show the card when
+  I click a character* off (Settings > Hall), a click only brings the terminal to the front; the card still opens for
+  a petition it can answer, for a session outside Orca, and always in the remote view.
 - The card shows the scribe's name and department, state and time in state, context (`184k / 200k (92%)`),
   model and rank, the last task line, the turn (`Turn · 4 min · 23 tools · 5 files`, then the files it changed),
   and the project path. An adept's card shows its subagent type, its owner,
@@ -360,7 +365,9 @@ drag the header.
   and the tokens it spent today, a child's names its parent (`Summoned by …`); both end with the lineage's total
   (`Lineage today: 6.1M tokens`, the parent and its live children). Click a name to open that session's card.
 - **Open in Orca** switches Orca to the session's terminal. It is shown only for sessions started inside Orca,
-  which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process.
+  which Administratum detects from the `ORCA_TERMINAL_HANDLE` variable of the `claude.exe` process, and not on a card
+  whose click already did it (it comes back when an answer fails, or when the terminal could not be opened). A card reached another way,
+  such as a name in a Suzerain's lineage, keeps it.
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
   only when the session record carries a claude.ai session id.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
@@ -487,7 +494,8 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
 | Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
 | Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
-| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). A change applies after *Restart to apply* (see *Themes from others*) |
+| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). *Update all* updates every pack from GitHub. A change applies after *Restart to apply* (see *Themes from others*) |
+| Check added themes for updates at startup *(PC only)* | on | Downloads each pack from GitHub a few seconds after start and compares it with the installed one. If one changed, a toast: *Update* updates the changed packs and restarts, *Later* does nothing. Nothing is installed without that click |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
 | Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
@@ -495,6 +503,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
 | Keep windows off the strip *(strip only, Linux)* | off | The strip takes its edge of the screen for itself and the other windows stop short of it, as they do for a bar (an open panel still lies over them); off, it lies over them |
 | Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
+| Show the card when I click a character | on | Off: a click on a character only brings its Orca terminal to the front. The card still opens when the session has a petition the card can answer, when it has no terminal (outside Orca, the Watchman), and always in the remote view, where no terminal opens |
 | Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 
 **Petitions**
@@ -554,7 +563,7 @@ rail, the Magos at its top and the petition line down it; the first half of the 
 top, the others the right side under one more room for the departments in no rule (*Elsewhere*). A room's floor is
 a soft tint of its colour with its name painted small in its bottom right corner (*Soft tint floors* off: its tiles), and nothing else runs
 through it. There a scribe leaves its room only to petition, or by the gate: it runs its shells at the room's own
-computer, on the room's Sanctum side, and dozes at its desk, half faded, under a tag saying for how long
+computer, on the room's Sanctum side, and dozes at its desk under a tag saying for how long
 (`💤 12 min`). There is no Refectorium, cogitator bank or west wing in that plan. The switch applies at once, in
 the flat and 2.5D views; the desktop strip and column are the same in both.
 
@@ -647,8 +656,11 @@ which is wiped at each start.
 the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
 check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
-*Update* in Settings > Hall > Added themes: that request goes to GitHub like any download, so GitHub sees your IP
-address and the app's user agent, and it names the repository; no session data is sent. The only other outbound
+*Update* (or *Update all*) in Settings > Hall > Added themes. When *Check added themes for updates at startup* is on
+(the default), the app also downloads each added pack from its GitHub repository at start, to compare it with the
+installed one; nothing is installed unless you click *Update* on the toast. Each of these requests goes to GitHub
+like any download, so GitHub sees your IP address and the app's user agent, and it names the repository; no session
+data is sent. The only other outbound
 action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an
