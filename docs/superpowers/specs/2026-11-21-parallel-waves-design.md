@@ -215,8 +215,8 @@ Depends on nothing (PR Arylmera/Administratum#39 merged first or rebased onto).
   does not touch `app.js` `hhmm`: `format.js` exists only from W2, so F12 for `app.js` goes to L3a.
 - **L1c I6 core.** Only if the user approves I6 (Q2). The I6 spec's pure parts: push output parsing, remote URL,
   ref lookup, verdict, the watch state machine with an injected clock, the `gh` runner behind a trait (stubbed in
-  tests); the `CiPush` side record from `chronicle/mod.rs` `classify_call`; `monitor.rs` `Config` fields `ci`,
-  `ciToast`; `registry/mod.rs` `Session.ci: Option<CiState>` (additive, `serde(default)`). In `main.rs`: the
+  tests); the `CiPush` side record from `chronicle/mod.rs` `classify_call`; `monitor.rs` `Config` field `ci`
+  (no `ciToast`: I6 has no toast, Q2); `registry/mod.rs` `Session.ci: Option<CiState>` (additive, `serde(default)`). In `main.rs`: the
   `mod ci;` append line only. No thread, no toast, no UI.
 
 Merge order: L1a, then L1b, then L1c (L1c's `main.rs` line is the only append). Proof after each.
