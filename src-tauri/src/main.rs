@@ -363,18 +363,35 @@ async fn update_changed(app: AppHandle, root: PathBuf, found: std::sync::Arc<Vec
     for (repo, e) in &failed {
         eprintln!("pack update: {repo}: {e}");
     }
-    let failed: Vec<String> = failed.iter().map(|(repo, e)| format!("{repo}: {}", short(e, 80))).collect();
-    if failed.is_empty() {
-        if replaced {
-            app.restart();
+    match updated(replaced, &failed) {
+        Updated::Restart => app.restart(),
+        Updated::Failed(body) => {
+            let _ = app.notification().builder().title("Theme update failed").body(body).show();
         }
-        return;
+        Updated::Nothing => {}
     }
-    let mut body = failed.join("; ");
+}
+
+/// What the startup toast's Update does once every pack was tried (`update_changed`).
+#[derive(Debug, PartialEq)]
+enum Updated {
+    /// All went well and one was replaced: restart at once, to load it.
+    Restart,
+    /// One failed: no restart; the toast's body names each failed repo and why (cut short), and asks for a restart
+    /// when the others replaced something.
+    Failed(String),
+    /// Nothing replaced, nothing failed (the packs were already as checked).
+    Nothing,
+}
+fn updated(replaced: bool, failed: &[(String, String)]) -> Updated {
+    if failed.is_empty() {
+        return if replaced { Updated::Restart } else { Updated::Nothing };
+    }
+    let mut body = failed.iter().map(|(repo, e)| format!("{repo}: {}", short(e, 80))).collect::<Vec<_>>().join("; ");
     if replaced {
         body.push_str(". The others are updated: restart to apply them.");
     }
-    let _ = app.notification().builder().title("Theme update failed").body(body).show();
+    Updated::Failed(body)
 }
 
 /// Remove the pack in the folder `dir` (`packs::remove`); a local pack (a folder made by hand) is refused, never deleted.
@@ -936,6 +953,22 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn the_startup_update_restarts_only_when_all_went_well() {
+        let f = |r: &str, e: &str| (r.to_string(), e.to_string());
+        assert_eq!(updated(true, &[]), Updated::Restart, "one replaced, none failed: restart");
+        assert_eq!(updated(false, &[]), Updated::Nothing, "nothing replaced: no restart");
+        assert_eq!(updated(false, &[f("a/b", "no public repository a/b")]), Updated::Failed("a/b: no public repository a/b".into()));
+        assert_eq!(
+            updated(true, &[f("a/b", "x"), f("c/d", "y")]),
+            Updated::Failed("a/b: x; c/d: y. The others are updated: restart to apply them.".into()),
+            "a failure never restarts; what was replaced waits for a restart"
+        );
+        let Updated::Failed(body) = updated(false, &[f("a/b", &"e".repeat(200))]) else { panic!() };
+        assert_eq!(body.chars().count(), "a/b: ".len() + 80, "a long error cut to 80");
+        assert!(body.ends_with('…'));
     }
 
     #[test]
