@@ -1,0 +1,28 @@
+/* Bundled fonts (SIL OFL, see fonts/OFL-*.txt); VT323 is a single 400 weight; size-adjust lifts it to the old body size. */
+@font-face { font-family: 'VT323'; font-weight: 400; font-display: swap; size-adjust: 125%; src: url(../fonts/vt323-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'VT323'; font-weight: 400; font-display: swap; size-adjust: 125%; src: url(../fonts/vt323-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Pirata One'; font-weight: 400; font-display: swap; src: url(../fonts/pirata-one-latin.woff2) format('woff2'); }
+/* Chrome colours, named by role. A theme overrides any of them (theme.js `ui`, applied by chrome.js); these are Tier II. */
+:root {
+  /* the header and the hall's frame */
+  --bg: #060404; --bar: #120d0a; --ink: #d6c79f; --dim: #8a7a5c; --light: #f3e6c4; --edge: #3a2a1e; --btn: #1a120e; --copper: #b8742e; --outline: #0e0a08; --bone: #cfc3a8; --iron: #6a6f76; --green: #7cff9e;
+  /* petitions and alarms */
+  --red: #a0221a; --pink: #ff7a66; --blood: #4e110c; --glow: #be281c; --wax: #8e1c16; --wax-deep: #3a0d09; --alarm: #ff3a20; --flame: #ffe6a0;
+  /* text on a --blood fill (a light-chrome theme's --light is dark, its --blood stays dark: paper text) */
+  --on-blood: var(--light); --ink-on-blood: var(--ink); --pink-on-blood: var(--pink); --green-on-blood: var(--green);
+  /* the alarm's text on its --wax fill (and on --wax-deep at the blink) */
+  --flame-on-wax: var(--flame);
+  /* the Hall of Honours' words over its plaque art (the night darkens the art, never the words) */
+  --honours-ink: var(--light);
+  /* labels over the scene */
+  --label: #1e0a08; --label-sel: #3a1410; --label-btn: #2a0d0a; --plaque: #140d09; --yes: #2e6b47; --yes-deep: #16301f;
+  /* parchment: the card, the Chronicon, Settings */
+  --card: #cdbb8f; --paper: #d8c79c; --paper-edge: #c2ac78; --paper-hi: #e3d4ac; --paper-tab: #bfa877; --paper-q: #d6c79f; --paper-shade: #a8946a; --paper-line: #8a6a3a; --paper-ink: #1a120c; --paper-ink-2: #5a3c16; --paper-ink-3: #3a2810; --paper-err: #621009; --leather: #6e3f17; --leather-deep: #3a200c; --chart-new: #a8281c; --chart-cache: #127a5c;
+  /* titles (header, Chronicon, Settings) and the accent over the parchment */
+  --display: 'Pirata One', serif; --paper-accent: var(--blood);
+  /* the scroll rods */
+  --rod-hi: #d8a050; --rod: #8a5320; --rod-lo: #4a2a0e; --rod-edge: #2a1606; --rod-cap: #f0d080;
+}
+button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }

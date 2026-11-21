@@ -1,0 +1,153 @@
+html, body { margin: 0; height: 100%; background-color: var(--bg); color: var(--ink); font-family: 'VT323', monospace; font-synthesis: none; overflow: hidden; user-select: none; }
+body { overflow: clip; } /* not a scroll container: focus() or scrollIntoView() cannot shift the header and the stage */
+body { display: flex; flex-direction: column; background-size: 100% 100%, var(--tile, 40px) var(--tile, 40px); image-rendering: pixelated; }
+header { flex: none; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 12px; background: var(--bar); border-bottom: 2px solid var(--blood); }
+header h1 { margin: 0; font: 400 22px/1 var(--display); }
+.tier { display: flex; flex-direction: column; font-size: 10px; color: var(--green); }
+.tier { min-width: 0; } .tier span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tier .motto { color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+.grow { flex: 1; align-self: stretch; }
+.count { padding: 3px 8px; border: 1px solid var(--edge); border-radius: 3px; font-size: 11px; color: var(--dim); white-space: nowrap; }
+.count.on { position: relative; border-color: var(--red); color: var(--pink); font-weight: 600; }
+/* Petition glow: a fixed shadow on ::after whose opacity pulses (compositor-only, no repaint per frame). */
+.count.on::after, .lbl::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--glow) 80%, transparent); opacity: 0; pointer-events: none; animation: pulse 1.8s ease-in-out infinite; }
+.count.alarm::after { display: none; }
+.count.ask { border-color: var(--paper-shade); color: var(--light); } /* questions only: parchment, no glow */
+.count.alarm { background: var(--wax); border-color: var(--alarm); color: var(--flame-on-wax); animation: alarm 1s steps(1) infinite; }
+.icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: var(--copper); cursor: pointer; padding: 0; }
+#prefs-open.update { position: relative; }
+#prefs-open.update::after { content: ''; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--paper-accent); }
+.icon:hover { filter: brightness(1.3); }
+#mute .off { display: none; } #mute.muted .on { display: none; } #mute.muted .off { display: block; }
+#quiet { color: var(--light); font-size: 16px; cursor: default; } #quiet[hidden] { display: none; }
+#vigil[hidden] { display: none; } #vigil[aria-pressed="true"] { color: var(--light); background: var(--edge); } /* armed: the moon lit */
+/* clip: the world moves by its pan transform only; max-*: never past the window, even before viewport.js's debounced fit (42 px: the header) */
+#stage { position: relative; margin: auto; overflow: clip; min-width: 0; min-height: 0; max-width: calc(100% - 24px); max-height: calc(100% - 66px); box-shadow: 0 0 0 2px var(--outline), 0 0 0 4px var(--copper), 0 0 0 5px var(--leather), 0 0 0 7px var(--outline), 0 10px 30px 6px rgba(0,0,0,.8); }
+/* strip mode: no header, no brass frame around the stage, the window itself transparent so the desktop shows
+   through; the stage (and its canvas) stays, Task 4 draws into it. html/body otherwise keep their opaque --bg. */
+html.strip, html.strip body { background: transparent !important; }
+html.strip header { display: none; }
+html.iso.bare, html.iso.bare body { background: transparent !important; } /* 2.5D, Backdrop off: the desktop shows round the hall */
+html.iso #stage { box-shadow: none; } /* the 39° hall floats on the backdrop, its corners transparent */
+html.strip #stage { box-shadow: none; position: fixed; left: 0; bottom: 0; margin: 0; max-width: none; max-height: none; overflow: visible; }
+/* The panels open above the strip (stripwin.js growStrip makes the window taller while one is open). */
+html.strip :is(#card, #prefs, #chron, #strip-menu) { top: auto; bottom: calc(100% + 4px); left: 4px; transform: none; max-height: none; }
+html.strip #chron { height: 30em; }
+/* The handle: a 12 logical px cog over the gate, at the strip's left end, and its menu. */
+#strip-handle, #strip-menu { display: none; }
+html.strip #strip-handle { display: flex; position: absolute; z-index: 4; left: calc(6 * var(--px)); bottom: calc(4 * var(--px)); width: calc(12 * var(--px)); height: calc(12 * var(--px)); padding: 0; align-items: center; justify-content: center; background: color-mix(in srgb, var(--bar) 70%, transparent); border: 1px solid var(--copper); border-radius: 2px; color: var(--copper); cursor: pointer; }
+html.strip #strip-handle svg { width: 75%; height: 75%; }
+html.strip #strip-menu:not([hidden]) { display: flex; flex-direction: column; position: absolute; z-index: 7; padding: 3px; background: var(--card); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 4px 0 var(--outline); font-size: calc(12px * var(--k, 1)); }
+/* The desktop column (html.vstrip, also html.strip): the stage pinned to the outer screen edge (html.right: the right
+   one), the panels beside it at the top (growStrip widens the window by the open panel), the handle on the bottom
+   floor at the outer corner. --colw: the column's CSS width (stripwin.js). */
+html.vstrip #stage { top: 0; bottom: auto; }
+html.vstrip.right #stage { left: auto; right: 0; }
+html.vstrip :is(#card, #prefs, #chron) { top: 8px; bottom: auto; left: calc(var(--colw, 256px) + 8px); right: auto; }
+html.vstrip.right :is(#card, #prefs, #chron) { left: auto; right: calc(var(--colw, 256px) + 8px); }
+html.vstrip #card { width: min(21em, 80%); } /* beside the column, as wide as before (the window grows by it) */
+html.vstrip #strip-handle { left: calc(2 * var(--px)); bottom: calc(4 * var(--px)); }
+html.vstrip.right #strip-handle { left: auto; right: calc(2 * var(--px)); }
+html.vstrip #strip-menu { top: auto; bottom: calc(18 * var(--px)); left: calc(2 * var(--px)); }
+html.vstrip.right #strip-menu { left: auto; right: calc(2 * var(--px)); }
+#strip-menu button { padding: .3em .9em; background: none; border: none; color: var(--paper-ink); font: inherit; text-align: left; cursor: pointer; }
+#strip-menu button:hover { background: var(--leather); color: var(--light); }
+#strip-menu button[aria-checked="true"]::before { content: "✓ "; }
+#world { position: absolute; left: 0; top: 0; }
+#scene { display: block; image-rendering: pixelated; touch-action: none; }
+#world { touch-action: none; -webkit-touch-callout: none; }
+.count.link { color: var(--flame); border-color: var(--copper); }
+#card .note { color: var(--paper-ink-2); font-style: italic; }
+#overlay { position: absolute; inset: 0; pointer-events: none; }
+.lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: 3px; padding: 0 4px; background: var(--label); border: 1px solid var(--red); border-radius: 2px; color: var(--ink); font: inherit; font-size: calc(9px * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
+.lbl.below { transform: translate(-50%, 0); }
+/* the on-blood colours only while the fill is --blood: a selected label is on --label-sel (:where keeps the specificity) */
+.lbl.stale { border-color: var(--alarm); background: var(--blood); } .lbl.stale:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.stale:where(:not(.sel)) .sub { color: var(--pink-on-blood); }
+.lbl.risky { border-color: var(--alarm); background: var(--blood); } .lbl.risky:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.risky .sub { color: var(--ink); font-weight: bold; } .lbl.risky:where(:not(.sel)) .sub { color: var(--ink-on-blood); }
+.lbl.sel { border-color: var(--green); background: var(--label-sel); }
+.lbl .sub { color: var(--pink); }
+/* A question at the end of a turn: parchment, not the red petition. */
+.lbl.question { background: var(--paper-q); border-color: var(--leather); color: var(--paper-ink); }
+.lbl.question::after { display: none; }
+.lbl.question .sub { color: var(--paper-ink-2); }
+.lbl.question.sel { border-color: var(--yes); background: var(--paper-hi); }
+.lbl .who { display: flex; flex-direction: column; align-items: center; padding: 0; background: none; border: none; color: inherit; font: inherit; line-height: inherit; cursor: pointer; }
+.lbl .ans { display: flex; flex-direction: column; gap: 1px; }
+.lbl .ans button { padding: 0 2px; background: var(--label-btn); border: 1px solid currentColor; border-radius: 2px; color: var(--green); font: inherit; font-size: .9em; line-height: 1; cursor: pointer; }
+.lbl .ans button + button { color: var(--pink); }
+.lbl .ans button:hover { background: var(--blood); color: var(--green-on-blood); } .lbl .ans button + button:hover { color: var(--pink-on-blood); }
+.lbl.tag { pointer-events: none; cursor: default; }
+.lbl.sealed { border-width: 3px; border-style: double; }
+.lbl.stuck { border-style: dashed; border-color: var(--flame); }
+.lbl.same { border-style: dotted; border-color: var(--flame); }
+.lbl.sleep { font-size: calc(8px * var(--k, 1)); opacity: 0.8; }
+.lbl.sheets { font-size: calc(8px * var(--k, 1)); border-color: var(--green); }
+.tip { position: absolute; transform: translate(-50%, -100%); padding: 0 4px; background: color-mix(in srgb, var(--outline) 85%, transparent); border: 1px solid var(--edge); border-radius: 2px; color: var(--ink); font-size: calc(9px * var(--k, 1)); white-space: nowrap; }
+.tip[hidden] { display: none; }
+/* Edge arrows: characters beyond the panned view (overlay.js syncEdges). */
+.edge { position: absolute; z-index: 2; transform: translate(-50%, -50%); display: flex; align-items: center; gap: .3em; padding: .1em .45em; background: color-mix(in srgb, var(--label) 90%, transparent); border: 1px solid var(--copper); border-radius: 2px; box-shadow: 0 2px 0 var(--outline); color: var(--light); font: inherit; font-size: calc(10px * var(--k, 1)); line-height: 1.2; cursor: pointer; }
+.edge.left, .edge.right { flex-direction: column; gap: 0; padding: .3em .2em; }
+.edge[hidden] { display: none; }
+.edge:hover { filter: brightness(1.3); }
+.edge.alarm { border-color: var(--alarm); color: var(--flame); animation: alarm 1s steps(1) infinite; }
+.plaque { position: absolute; padding: 1px 6px; background: var(--plaque); border: 2px solid; font-size: calc(10px * var(--k, 1)); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+.plaque.open { pointer-events: auto; cursor: pointer; }
+.plaque.open:hover { filter: brightness(1.25); }
+.plaque.err { border-style: dashed; }
+.plaque.dim { opacity: .5; } /* an empty custom room: its place kept, dimly lit */
+.plaque.usage { z-index: 1; } /* the strip's usage banner stays readable over the petition labels under it */
+.plaque .branch { display: block; font-size: .8em; letter-spacing: 1px; text-transform: none; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
+/* the Hall of Honours over its plaque (overlay.js syncHonours): each field placed and sized in JS, flat in 39° too */
+.honours { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--honours-ink); pointer-events: auto; cursor: pointer; }
+.honours[hidden] { display: none; }
+.honours .title, .honours .mark { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; justify-content: center; overflow: hidden; line-height: 1.05; text-align: left; white-space: nowrap; text-shadow: 0 1px 0 var(--outline); }
+.honours .title { align-items: center; text-transform: uppercase; }
+.honours .mark { padding-left: .25em; box-sizing: border-box; }
+.honours b, .honours span span { overflow: hidden; text-overflow: ellipsis; }
+.honours b { font-weight: normal; text-transform: uppercase; }
+.honours span span { opacity: .85; }
+.honours:hover { filter: brightness(1.25); }
+header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
+.empty { position: absolute; left: 0; text-align: center; color: var(--dim); font-size: calc(14px * var(--k, 1)); }
+#card { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: calc(11px * var(--k, 1)); width: min(21em, calc(100% - 16px)); padding: .5em .75em; background: var(--card); color: var(--paper-ink); border: 2px solid var(--leather); border-radius: 2px; box-shadow: 0 3px 0 var(--outline); display: flex; flex-direction: column; gap: .2em; overflow-wrap: anywhere; animation: card-in .14s ease-out; } /* em: scales with --k like the labels */
+@keyframes card-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #card { animation: none; } }
+#card[hidden], #card .asks[hidden] { display: none; }
+#card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: var(--blood); }
+#card .turn { color: var(--paper-ink-2); }
+#card .turn[hidden], #card .files[hidden], #card .stuck[hidden] { display: none; }
+#card .stuck { color: var(--blood); font-weight: bold; }
+#card.risky { border-color: var(--red); } #card .risk { color: var(--blood); font-weight: bold; } #card .risk[hidden], #card .watch[hidden] { display: none; }
+#card .watch { color: var(--paper-ink-2); white-space: pre-line; }
+#card .files { margin: 0; padding: 0 0 0 1em; font-family: ui-monospace, Consolas, monospace; font-size: .85em; max-height: 9em; overflow-y: auto; overflow-wrap: anywhere; }
+#card .files .more { padding: 0; background: none; border: none; color: var(--paper-accent); font: inherit; cursor: pointer; text-decoration: underline; }
+#card .name { font-size: 1.17em; font-weight: 600; }
+#card .title { font-style: italic; margin-top: -.2em; }
+#card .title[hidden] { display: none; }
+#card .meta, #card .ctx, #card .path { color: var(--paper-ink-2); }
+#card .kin[hidden] { display: none; } #card .kin .child { padding-left: 8px; }
+#card .kin button { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+#card .links, #card .answer { display: flex; gap: .5em; margin-top: .25em; }
+#card .links[hidden], #card .links button[hidden], #card .answer[hidden], #card .answer button[hidden], #card .q[hidden], #card .err[hidden] { display: none; }
+#card .answer button[data-choice="yes"] { background: var(--yes); border-color: var(--yes-deep); }
+#card .answer button[data-choice="no"] { background: var(--wax); border-color: var(--wax-deep); }
+#card button:disabled { opacity: .5; cursor: progress; }
+#card .q { margin-top: .25em; font-weight: 600; }
+#card .q.hint { font-weight: normal; font-style: italic; }
+#card .err { color: var(--wax); font-weight: 600; }
+#card .links button, #card .answer button { padding: .27em .73em; background: var(--leather); color: var(--light); border: 1px solid var(--leather-deep); border-radius: 2px; font: inherit; font-size: .92em; cursor: pointer; }
+#card .links button:hover, #card .answer button:hover { filter: brightness(1.2); }
+.tithe { font-variant-numeric: tabular-nums; cursor: pointer; background: transparent; font-family: inherit; }
+.tithe:hover { color: var(--ink); border-color: var(--copper); }
+/* Usage-window bar under the plaque text: fill = this PC's window tokens / highest ceiling, a tick per ceiling. */
+.tithe .gauge { position: relative; display: block; height: 3px; margin-top: 2px; border: 1px solid currentColor; opacity: .8; }
+.tithe .gauge i { position: absolute; inset: 0 auto 0 0; background: var(--copper); }
+.tithe .gauge .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: currentColor; }
+.tithe .gauge .tick.low { background: var(--wax); width: 2px; }
+@media (max-width: 600px) { .tithe { display: none; } }
+@media (max-width: 760px) { header { gap: 5px; } .icon { width: 26px; } } /* room for the gear at 700 px */
+@keyframes alarm { 50% { background: var(--wax-deep); color: var(--flame-on-wax); box-shadow: 0 0 14px 3px color-mix(in srgb, var(--alarm) 90%, transparent); } }
+@keyframes pulse { 50% { opacity: 1; } }
+html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; } /* hidden or covered: app.js */
+@media (prefers-reduced-motion: reduce) { .count.on::after, .lbl::after, .count.alarm, .edge.alarm { animation: none; } }
+@media (max-width: 760px) { .tier { display: none; } }

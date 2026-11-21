@@ -102,7 +102,10 @@ const LIGHT_CHROME = {
 const CHROMES = [...Object.keys(THEMES).map(id => [id, resolve(THEMES[id]).ui]), ['light chrome', LIGHT_CHROME]];
 // Chrome colours: a theme's ui keys are CSS variables index.html declares.
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-const cssVars = new Set([...html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
+const base = fs.readFileSync(new URL('./css/base.css', import.meta.url), 'utf8'); // the :root defaults
+const styles = ['base', 'hall', 'panels'].map(f => fs.readFileSync(new URL(`./css/${f}.css`, import.meta.url), 'utf8')).join('
+');
+const cssVars = new Set([...base.slice(base.indexOf(':root {'), base.indexOf('}', base.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
 assert.ok(cssVars.size > 40, 'found the :root variables');
 for (const [id, chrome] of CHROMES) for (const [k, v] of Object.entries(chrome)) {
   assert.ok(cssVars.has(k), `${id}: ui ${k} is not a :root variable`);
@@ -143,9 +146,9 @@ assert.deepEqual(['high', 'novice'].map(r => ['t', 'T', 'z'].map(k => ({ ...T.px
 setTheme('tier2');
 
 // Chrome contrast (WCAG ratio), every theme: each foreground the page draws over a fill (index.html), text >= 4.5,
-// icons and borders >= 3. A theme's ui over index.html's :root, var() resolved.
+// icons and borders >= 3. A theme's ui over base.css's :root, var() resolved.
 {
-  const css = html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {')));
+  const css = base.slice(base.indexOf(':root {'), base.indexOf('}', base.indexOf(':root {')));
   const ROOT = Object.fromEntries([...css.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
   const lum = c => { const v = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16) / 255).map(u => (u <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
@@ -166,8 +169,8 @@ setTheme('tier2');
     'xenos --wax/--card', 'night --wax/--card', 'cyber --wax/--card', 'orbital --wax/--card', 'corpo --wax/--card', 'rain --wax/--card', 'synth --wax/--card', 'tower --wax/--card', 'vault --wax/--card',
     'corpo --paper-accent/--card']);
   // the on-blood colours apply only while the label's fill is --blood: never to a selected label (on --label-sel)
-  for (const m of html.matchAll(/([^{}]*)\{[^}]*color: var\(--(?:ink|pink)-on-blood\)/g)) {
-    if (/\.lbl\.(stale|risky)/.test(m[1])) assert.ok(m[1].includes(':where(:not(.sel))'), `index.html: '${m[1].trim()}' colours a selected label for --blood`);
+  for (const m of styles.matchAll(/([^{}]*)\{[^}]*color: var\(--(?:ink|pink)-on-blood\)/g)) {
+    if (/\.lbl\.(stale|risky)/.test(m[1])) assert.ok(m[1].includes(':where(:not(.sel))'), `css: '${m[1].trim()}' colours a selected label for --blood`);
   }
   const seenKnown = new Set();
   for (const [id, chrome] of CHROMES) {
