@@ -116,7 +116,7 @@ export function checkTheme(json, { bases = new Set(), worlds = new Set(Object.ke
       const key = where.slice('text.'.length);
       if (locked.some(l => key === l || key.startsWith(`${l}.`))) return bad.push(`${where}: a pack cannot reword this`);
       if (kind(v) !== kind(ref)) return bad.push(`${where}: must be a ${kind(ref)}`);
-      if (isObj(v)) for (const [k, x] of Object.entries(v)) k in ref ? walk(`${where}.${k}`, x, ref[k]) : bad.push(`${where}.${k}: not a wording key`);
+      if (isObj(v)) for (const [k, x] of Object.entries(v)) Object.hasOwn(ref, k) ? walk(`${where}.${k}`, x, ref[k]) : bad.push(`${where}.${k}: not a wording key`);
     };
     if (!isObj(json.text)) bad.push('text: must be an object'); else walk('text', json.text, TEXT);
   }

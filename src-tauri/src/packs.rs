@@ -54,15 +54,48 @@ fn folders(dir: &Path) -> Vec<String> {
     out
 }
 
-/// `{ "repo", "installed" }` from a pack's `pack-source.json`, when it is there, small, and names a valid repo.
-fn source(dir: &Path) -> Option<(String, Option<String>)> {
+/// A pack's `pack-source.json`, parsed, when it is there, small, and names a valid repo.
+fn source_json(dir: &Path) -> Option<serde_json::Value> {
     let p = dir.join(SOURCE);
     if !fs::symlink_metadata(&p).is_ok_and(|m| m.is_file() && m.len() <= MAX_SOURCE) {
         return None;
     }
     let v: serde_json::Value = serde_json::from_slice(&fs::read(p).ok()?).ok()?;
-    let repo = v["repo"].as_str().filter(|r| repo_ok(r))?.to_string();
-    Some((repo, v["installed"].as_str().map(str::to_string)))
+    v["repo"].as_str().is_some_and(repo_ok).then_some(v)
+}
+
+/// `{ "repo", "installed" }` from a pack's `pack-source.json` (`source_json`).
+fn source(dir: &Path) -> Option<(String, Option<String>)> {
+    let v = source_json(dir)?;
+    Some((v["repo"].as_str()?.to_string(), v["installed"].as_str().map(str::to_string)))
+}
+
+/// How often the startup check downloads a pack again (main.rs `check_packs`, `due`).
+pub const CHECK_EVERY: Duration = Duration::from_secs(6 * 3600);
+
+/// Whether the startup check downloads the pack in `root/<dir>` again at `now`: when neither its install nor its last
+/// check that found it unchanged (`checked`, `mark_checked`) is under `CHECK_EVERY` old. A date that does not parse,
+/// or one in the future (a clock set back), does not count. A changed pack is never marked, so it is asked about again.
+pub fn due(root: &Path, dir: &str, now: chrono::DateTime<chrono::Utc>) -> bool {
+    let Some(v) = source_json(&root.join(dir)) else { return true };
+    let at = |k: &str| v[k].as_str().and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()).map(|d| d.with_timezone(&chrono::Utc));
+    let every = chrono::Duration::from_std(CHECK_EVERY).unwrap_or(chrono::Duration::hours(6));
+    ![at("installed"), at("checked")].into_iter().flatten().any(|d| d <= now && now - d < every)
+}
+
+/// Record in the pack's `pack-source.json` that the startup check found it unchanged at `now` (`checked`, RFC 3339),
+/// its other keys kept. Written beside it and renamed over it, so a crash never leaves a broken source, which would
+/// make the pack a local one.
+pub fn mark_checked(root: &Path, dir: &str, now: &str) -> Result<(), String> {
+    let at = root.join(dir);
+    let mut v = source_json(&at).ok_or_else(|| format!("{dir} is a local pack"))?;
+    v["checked"] = serde_json::Value::String(now.to_string());
+    let tmp = at.join(format!(".{SOURCE}.tmp"));
+    fs::write(&tmp, serde_json::to_vec_pretty(&v).unwrap_or_default()).map_err(|e| format!("cannot write {SOURCE}: {e}"))?;
+    fs::rename(&tmp, at.join(SOURCE)).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        format!("cannot write {SOURCE}: {e}")
+    })
 }
 
 /// The packs under `root`, by folder name; a missing or unreadable root gives none. Two folders naming one repo (any
@@ -161,11 +194,13 @@ fn reserved(name: &str) -> bool {
 }
 
 /// A path under the archive's top folder that `unpack` keeps: `pack.json`, a licence, or `<folder>/<name>.json|png`
-/// one level deep, every segment plain (a folder not ending in `.`, which Windows would drop), no device name.
+/// one level deep, every segment plain (a folder not ending in `.`, which Windows would drop), no device name, no
+/// folder named as a file of the top (`pack-source.json`, which `install` writes there, `pack.json`, a licence).
 fn keepable(rel: &[&str]) -> bool {
+    let top_file = |d: &str| d == SOURCE || d == "pack.json" || LICENCES.contains(&d);
     match rel {
         [f] => *f == "pack.json" || LICENCES.contains(f),
-        [d, f] => plain(d) && !d.ends_with('.') && !reserved(d) && plain(f) && !reserved(f) && (f.ends_with(".json") || f.ends_with(".png")),
+        [d, f] => plain(d) && !d.ends_with('.') && !reserved(d) && !top_file(d) && plain(f) && !reserved(f) && (f.ends_with(".json") || f.ends_with(".png")),
         _ => false,
     }
 }
@@ -471,6 +506,27 @@ pub fn update(root: &Path, dir: &str, archive: &[u8], now: &str) -> Result<Updat
         remove(root, dir).map_err(|e| format!("installed as {}, but {e}", pack.dir))?;
     }
     Ok(Updated { pack, changed: true })
+}
+
+/// A pack the startup check found changed (main.rs `check_packs`): its folder, its repo, and the very archive it
+/// compared, which `apply` installs: never a second download, whose content the check never saw.
+pub struct Checked {
+    pub dir: String,
+    pub repo: String,
+    pub archive: Vec<u8>,
+}
+
+/// The startup toast's Update: each pack of `checked` updated from its checked archive (`update`), in turn, a failure
+/// not stopping the rest. Whether any pack was replaced, and each failure as (repo, error).
+pub fn apply(root: &Path, checked: &[Checked], now: &str) -> (bool, Vec<(String, String)>) {
+    let (mut replaced, mut failed) = (false, Vec::new());
+    for c in checked {
+        match update(root, &c.dir, &c.archive, now) {
+            Ok(up) => replaced |= up.changed,
+            Err(e) => failed.push((c.repo.clone(), e)),
+        }
+    }
+    (replaced, failed)
 }
 
 /// Whether `archive` holds other files than the pack in `root/<dir>` (a pack installed from a repository, `origin`;
@@ -813,6 +869,8 @@ mod tests {
             ("r-abc/README.md", E::File(b"# hi")),
             ("r-abc/pink/con.json", E::File(b"{}")),
             ("r-abc/pink./theme.json", E::File(b"{}")),
+            ("r-abc/pack-source.json/theme.json", E::File(b"{}")), // a folder named as the install's own file
+            ("r-abc/LICENSE/theme.json", E::File(b"{}")),
             ("r-abc/dir.json/", E::Dir),
             ("r-abc/out", E::Link(&out_link)),
             ("r-abc/out/theme.json", E::File(b"{}")),
@@ -987,6 +1045,54 @@ mod tests {
         assert!(changed(&root, "mine", &clean()).unwrap_err().contains("local pack"));
         assert!(changed(&root, "missing", &clean()).is_err());
         assert!(tree(&root).iter().all(|p| !p.starts_with('.')), "{:?}", tree(&root));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_pack_is_checked_again_after_six_hours() {
+        let root = tmp("due");
+        let t = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&chrono::Utc);
+        install(&root, "alice/t", &clean(), "2026-11-21T08:00:00Z").unwrap();
+        let before = kept(&root.join("alice__t"));
+        assert!(!due(&root, "alice__t", t("2026-11-21T13:59:59Z")), "installed under 6 h ago: not again");
+        assert!(due(&root, "alice__t", t("2026-11-21T14:00:00Z")), "6 h after the install: again");
+        mark_checked(&root, "alice__t", "2026-11-21T14:00:00Z").unwrap();
+        assert!(!due(&root, "alice__t", t("2026-11-21T19:00:00Z")), "found unchanged under 6 h ago: not again");
+        assert!(due(&root, "alice__t", t("2026-11-21T20:00:00Z")));
+        assert!(due(&root, "alice__t", t("2026-11-21T07:00:00Z")), "a date in the future (clock set back) does not count");
+        let p = list(&root).into_iter().find(|p| p.dir == "alice__t").unwrap();
+        assert_eq!((p.repo.as_deref(), p.installed.as_deref()), (Some("alice/t"), Some("2026-11-21T08:00:00Z")), "the source keeps its keys");
+        assert_eq!(kept(&root.join("alice__t")), before, "the mark is no change to the pack");
+        assert_eq!(changed(&root, "alice__t", &clean()), Ok(false));
+        assert!(tree(&root).iter().all(|p| !p.contains(".tmp")), "{:?}", tree(&root));
+        // a broken date, a pack never installed from a repository
+        put(&root, "alice__t/pack-source.json", b"{\"repo\":\"alice/t\",\"installed\":\"soon\",\"checked\":7}");
+        assert!(due(&root, "alice__t", t("2026-11-21T08:00:01Z")), "no date that parses: due");
+        put(&root, "mine/pink/theme.json", b"{}");
+        assert!(mark_checked(&root, "mine", "2026-11-21T08:00:00Z").is_err(), "a local pack is never written to");
+        assert!(!root.join("mine/pack-source.json").exists());
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn the_update_installs_the_archive_the_check_compared() {
+        let root = tmp("apply");
+        install(&root, "alice/t", &clean(), "one").unwrap();
+        install(&root, "bob/u", &clean(), "one").unwrap();
+        let checked = tgz(&[("t-1/pink/theme.json", E::File(b"{\"v\":\"checked\"}"))]);
+        assert_eq!(changed(&root, "alice__t", &checked), Ok(true));
+        let packs = [
+            Checked { dir: "alice__t".into(), repo: "alice/t".into(), archive: checked },
+            Checked { dir: "gone".into(), repo: "carol/v".into(), archive: clean() },
+            Checked { dir: "bob__u".into(), repo: "bob/u".into(), archive: clean() },
+        ];
+        let (replaced, failed) = apply(&root, &packs, "two");
+        assert!(replaced, "one pack replaced");
+        assert_eq!(fs::read(root.join("alice__t/pink/theme.json")).unwrap(), b"{\"v\":\"checked\"}", "exactly the archive the check compared");
+        assert_eq!(failed.iter().map(|(r, _)| r.as_str()).collect::<Vec<_>>(), ["carol/v"], "a failure is named, the rest go on");
+        assert_eq!(list(&root).iter().find(|p| p.dir == "bob__u").unwrap().installed.as_deref(), Some("one"), "an identical archive replaces nothing");
+        let (replaced, failed) = apply(&root, &packs[2..], "three");
+        assert!(!replaced && failed.is_empty(), "nothing changed: nothing replaced, nothing failed");
         let _ = fs::remove_dir_all(&root);
     }
 

@@ -287,7 +287,7 @@ function select(id) {
 const ownerOf = a => rosterOf().find(r => r.id === (a.h ? a.owner : a.id));
 function openTarget(target, failed) {
   if (REMOTE) { if (target.startsWith('web:')) window.open(target.slice(4), '_blank', 'noopener'); return; } // on this device
-  invoke('open_session', { target }).catch(err => { console.warn('open_session', err); failed?.(); });
+  invoke('open_session', { target }).catch(err => { console.warn('open_session', err); failed?.(err); });
 }
 // Whether a click on character a (its session, or an adept's owner, s) shows its card. Settings' *Show the card when I
 // click a character* off: on the desktop the click only opens the terminal, unless the card has a petition to answer
@@ -298,9 +298,13 @@ export const cardOnPick = (a, s, { on = true, remote = false } = {}) =>
 let opened = null; // the selected id whose terminal its click opened (renderLinks hides Open in Orca)
 export function pick(id) {
   const a = cast.actors.get(id), s = a && ownerOf(a), orca = !REMOTE && !!s?.orca;
-  // the terminal did not open: Open in Orca comes back on its card
-  if (s?.orca) openTarget(`orca:${s.orca}`, () => { if (opened === id) { opened = null; renderCard(); } });
-  if (!cardOnPick(a, s, { on: settings.cardOnClick, remote: REMOTE })) { closeCard(); return; }
+  const shown = cardOnPick(a, s, { on: settings.cardOnClick, remote: REMOTE });
+  // the terminal did not open: Open in Orca comes back on its card; with no card for this click (the setting off), a
+  // toast says so (main.rs open_failed), or the click would seem to do nothing
+  if (s?.orca) openTarget(`orca:${s.orca}`, err => {
+    if (opened === id) { opened = null; renderCard(); } else if (!shown) invoke('open_failed', { name: String(s.name ?? ''), error: String(err) }).catch(() => {});
+  });
+  if (!shown) { closeCard(); return; }
   opened = orca && sel !== id ? id : null; // the card about to open (select toggles a second click shut)
   select(id);
 }

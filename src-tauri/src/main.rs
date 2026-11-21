@@ -261,7 +261,16 @@ async fn theme_pack_install(repo: String, app: AppHandle) -> Result<packs::Pack,
     let root = themes_root(&app)?;
     let repo = repo.trim().to_string();
     let archive = download_pack(&repo, PACK_DOWNLOAD).await?;
-    tauri::async_runtime::spawn_blocking(move || packs::install(&root, &repo, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::install(&root, &repo, &archive, &now_utc()))).await.map_err(|e| e.to_string())?
+}
+
+/// One change to the themes folder at a time: the startup toast's Update, Settings' Update, Update all, Install and
+/// Remove may be asked for together, and two swaps of one pack would race (`packs::swap` puts the old pack back, but
+/// one of them fails and an `.old-*` folder waits for the next start). The downloads run outside it, in parallel.
+static PACK_DISK: Mutex<()> = Mutex::new(());
+fn on_pack_disk<T>(f: impl FnOnce() -> T) -> T {
+    let _held = lock(&PACK_DISK);
+    f()
 }
 
 /// Install the pack in the folder `dir` again from the repository it came from (`packs::update`); a local pack is
@@ -279,19 +288,27 @@ const PACK_CHECK: Duration = Duration::from_secs(20);
 async fn update_pack(root: PathBuf, dir: String) -> Result<packs::Updated, String> {
     let repo = packs::origin(&root, &dir)?;
     let archive = download_pack(&repo, PACK_DOWNLOAD).await?;
-    tauri::async_runtime::spawn_blocking(move || packs::update(&root, &dir, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::update(&root, &dir, &archive, &now_utc()))).await.map_err(|e| e.to_string())?
 }
 
-/// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository is downloaded again,
-/// one after the other (`PACK_CHECK` each), and compared with what is installed (`packs::changed`); nothing is
+/// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository and not installed nor
+/// found unchanged in the last `packs::CHECK_EVERY` (`packs::due`) is downloaded again, one after the other
+/// (`PACK_CHECK` each), and compared with what is installed (`packs::changed`); nothing is
 /// installed. Any error (offline, GitHub refusing, a broken archive) only skips that pack, in the log. When some
-/// changed, a toast asks: "Update" updates those packs (`update_pack`, `update_changed`); "Later" or a click on the
-/// toast does nothing. In quiet hours the toast is dropped, as the others are: the next start checks again.
+/// changed, a toast asks: "Update" installs those packs from the archives just compared (`update_changed`: what the
+/// toast announced, not a later push, and no second download); "Later" or a click on the toast does nothing, and the
+/// archives are kept with the toast until then. In quiet hours the toast is dropped, as the others are: the next
+/// start checks again.
 async fn check_packs(app: AppHandle) {
     let Ok(root) = themes_root(&app) else { return };
-    let mut found: Vec<(String, String)> = Vec::new(); // (dir, repo)
+    let mut found: Vec<packs::Checked> = Vec::new();
     for pack in packs::list(&root) {
         let Some(repo) = pack.repo else { continue };
+        // installed or found unchanged under packs::CHECK_EVERY ago: not downloaded again (a restart, the restart after
+        // an update)
+        if !packs::due(&root, &pack.dir, chrono::Utc::now()) {
+            continue;
+        }
         let archive = match download_pack(&repo, PACK_CHECK).await {
             Ok(a) => a,
             Err(e) => {
@@ -300,9 +317,19 @@ async fn check_packs(app: AppHandle) {
             }
         };
         let (r, d) = (root.clone(), pack.dir.clone());
-        match tauri::async_runtime::spawn_blocking(move || packs::changed(&r, &d, &archive)).await {
-            Ok(Ok(true)) => found.push((pack.dir, repo)),
-            Ok(Ok(false)) => {}
+        // found unchanged: marked checked (packs::mark_checked); a changed pack is not, so the next start asks again
+        let compare = move || {
+            let c = packs::changed(&r, &d, &archive)?;
+            if !c {
+                if let Err(e) = packs::mark_checked(&r, &d, &now_utc()) {
+                    eprintln!("pack check: {d}: {e}");
+                }
+            }
+            Ok::<_, String>((c, archive))
+        };
+        match tauri::async_runtime::spawn_blocking(move || on_pack_disk(compare)).await {
+            Ok(Ok((true, archive))) => found.push(packs::Checked { dir: pack.dir, repo, archive }),
+            Ok(Ok((false, _))) => {}
             Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),
             Err(e) => eprintln!("pack check: {repo}: {e}"),
         }
@@ -310,7 +337,8 @@ async fn check_packs(app: AppHandle) {
     if found.is_empty() || quiet::active() {
         return;
     }
-    let names = found.iter().map(|(_, repo)| repo.as_str()).collect::<Vec<_>>().join(", ");
+    let names = found.iter().map(|c| c.repo.as_str()).collect::<Vec<_>>().join(", ");
+    let found = std::sync::Arc::new(found);
     let body = format!("{names}: Update installs them and restarts.");
     // macOS shows the buttons as an "Options" menu whose own click reports the first: Later first there, so a
     // stray click never updates and restarts (as `toast::petition_buttons` puts Deny first)
@@ -323,44 +351,85 @@ async fn check_packs(app: AppHandle) {
     });
 }
 
-/// The startup toast's "Update": each pack of `found` (dir, repo) updated in turn, a failure not stopping the rest.
-/// All went well and one was replaced: restart at once. One failed: no restart, a toast names the failed repos and
-/// why (and says to restart to apply what was replaced).
-async fn update_changed(app: AppHandle, root: PathBuf, found: Vec<(String, String)>) {
-    let (mut replaced, mut failed) = (false, Vec::new());
-    for (dir, repo) in found {
-        match update_pack(root.clone(), dir).await {
-            Ok(up) => replaced |= up.changed,
-            Err(e) => {
-                eprintln!("pack update: {repo}: {e}");
-                let short: String = if e.chars().count() > 80 { e.chars().take(79).chain(['…']).collect() } else { e };
-                failed.push(format!("{repo}: {short}"));
-            }
-        }
+/// The startup toast's "Update": each pack of `found` installed from the archive the check compared (`packs::apply`),
+/// a failure not stopping the rest. All went well and one was replaced: restart at once. One failed: no restart, a
+/// toast names the failed repos and why (and says to restart to apply what was replaced).
+async fn update_changed(app: AppHandle, root: PathBuf, found: std::sync::Arc<Vec<packs::Checked>>) {
+    let applied = tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::apply(&root, &found, &now_utc()))).await;
+    let (replaced, failed) = match applied {
+        Ok(r) => r,
+        Err(e) => (false, vec![("theme packs".to_string(), e.to_string())]),
+    };
+    for (repo, e) in &failed {
+        eprintln!("pack update: {repo}: {e}");
     }
+    match updated(replaced, &failed) {
+        Updated::Restart => app.restart(),
+        Updated::Failed(body) => {
+            let _ = app.notification().builder().title("Theme update failed").body(body).show();
+        }
+        Updated::Nothing => {}
+    }
+}
+
+/// What the startup toast's Update does once every pack was tried (`update_changed`).
+#[derive(Debug, PartialEq)]
+enum Updated {
+    /// All went well and one was replaced: restart at once, to load it.
+    Restart,
+    /// One failed: no restart; the toast's body names each failed repo and why (cut short), and asks for a restart
+    /// when the others replaced something.
+    Failed(String),
+    /// Nothing replaced, nothing failed (the packs were already as checked).
+    Nothing,
+}
+fn updated(replaced: bool, failed: &[(String, String)]) -> Updated {
     if failed.is_empty() {
-        if replaced {
-            app.restart();
-        }
-        return;
+        return if replaced { Updated::Restart } else { Updated::Nothing };
     }
-    let mut body = failed.join("; ");
+    let mut body = failed.iter().map(|(repo, e)| format!("{repo}: {}", short(e, 80))).collect::<Vec<_>>().join("; ");
     if replaced {
         body.push_str(". The others are updated: restart to apply them.");
     }
-    let _ = app.notification().builder().title("Theme update failed").body(body).show();
+    Updated::Failed(body)
 }
 
 /// Remove the pack in the folder `dir` (`packs::remove`); a local pack (a folder made by hand) is refused, never deleted.
 #[tauri::command(async)]
 fn theme_pack_remove(dir: String, app: AppHandle) -> Result<(), String> {
-    packs::remove(&themes_root(&app)?, &dir)
+    let root = themes_root(&app)?;
+    on_pack_disk(|| packs::remove(&root, &dir))
 }
 
 /// Restart the app (a pack installed, updated or removed is loaded at start).
 #[tauri::command]
 fn restart(app: AppHandle) {
     app.restart();
+}
+
+/// `s` cut to at most `max` characters, the last one an ellipsis when it was cut.
+fn short(s: &str, max: usize) -> String {
+    if s.chars().count() > max {
+        s.chars().take(max.saturating_sub(1)).chain(['…']).collect()
+    } else {
+        s.to_string()
+    }
+}
+
+/// The toast of a click that only opens a session's terminal and could not (`open_failed`): (title, body).
+fn open_failed_toast(name: &str, error: &str) -> (&'static str, String) {
+    let name = short(name.trim(), 60);
+    let error = short(error.trim(), 120);
+    ("Terminal not opened", if name.is_empty() { error } else { format!("{name}: {error}") })
+}
+
+/// A click on a character that shows no card (Settings > Show the card when I click a character, off: card.js `pick`)
+/// whose terminal did not open: said in a toast, or the click would seem to do nothing. Host only, as every command
+/// outside the remote view's list; the texts come from the page, so they are cut short and shown as text.
+#[tauri::command]
+fn open_failed(name: String, error: String, app: AppHandle) {
+    let (title, body) = open_failed_toast(&name, &error);
+    let _ = app.notification().builder().title(title).body(body).show();
 }
 
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
@@ -474,6 +543,7 @@ fn main() {
             theme_pack_update,
             theme_pack_remove,
             restart,
+            open_failed,
             rooms::rooms_test,
             remote::app::remote_status,
             remote::app::remote_set,
@@ -883,6 +953,56 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn the_startup_update_restarts_only_when_all_went_well() {
+        let f = |r: &str, e: &str| (r.to_string(), e.to_string());
+        assert_eq!(updated(true, &[]), Updated::Restart, "one replaced, none failed: restart");
+        assert_eq!(updated(false, &[]), Updated::Nothing, "nothing replaced: no restart");
+        assert_eq!(updated(false, &[f("a/b", "no public repository a/b")]), Updated::Failed("a/b: no public repository a/b".into()));
+        assert_eq!(
+            updated(true, &[f("a/b", "x"), f("c/d", "y")]),
+            Updated::Failed("a/b: x; c/d: y. The others are updated: restart to apply them.".into()),
+            "a failure never restarts; what was replaced waits for a restart"
+        );
+        let Updated::Failed(body) = updated(false, &[f("a/b", &"e".repeat(200))]) else { panic!() };
+        assert_eq!(body.chars().count(), "a/b: ".len() + 80, "a long error cut to 80");
+        assert!(body.ends_with('…'));
+    }
+
+    #[test]
+    fn pack_changes_run_one_at_a_time() {
+        use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+        static IN: AtomicUsize = AtomicUsize::new(0);
+        static MOST: AtomicUsize = AtomicUsize::new(0);
+        let runs: Vec<_> = (0..4)
+            .map(|_| {
+                thread::spawn(|| {
+                    on_pack_disk(|| {
+                        MOST.fetch_max(IN.fetch_add(1, SeqCst) + 1, SeqCst);
+                        thread::sleep(Duration::from_millis(30));
+                        IN.fetch_sub(1, SeqCst);
+                    })
+                })
+            })
+            .collect();
+        for r in runs {
+            r.join().unwrap();
+        }
+        assert_eq!(MOST.load(SeqCst), 1, "never two changes to the themes folder at once");
+        assert_eq!(on_pack_disk(|| 7), 7, "the result comes back");
+    }
+
+    #[test]
+    fn a_terminal_not_opened_is_said_short() {
+        assert_eq!(open_failed_toast("Scribe 1", "orca not found"), ("Terminal not opened", "Scribe 1: orca not found".to_string()));
+        assert_eq!(open_failed_toast("  ", "orca not found").1, "orca not found", "no name: the error alone");
+        let (_, body) = open_failed_toast(&"n".repeat(100), &"e".repeat(500));
+        assert_eq!(body.chars().count(), 60 + 2 + 120, "both cut short");
+        assert!(body.ends_with('…'));
+        assert_eq!(short("abc", 3), "abc");
+        assert_eq!(short("abcd", 3), "ab…");
     }
 
     #[test]

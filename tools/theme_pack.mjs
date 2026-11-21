@@ -31,6 +31,7 @@ function dropped([d, f, ...deeper]) {
   if (deeper.length) return 'more than one folder deep';
   if (!plain(d) || d.endsWith('.')) return `the folder name ${JSON.stringify(d)} is not kept (letters, digits, . - _, no leading or trailing .)`;
   if (reserved(d)) return `the folder name ${JSON.stringify(d)} is not kept (a name Windows keeps for a device)`;
+  if (d === 'pack-source.json' || d === 'pack.json' || LICENCES.includes(d)) return `the folder name ${JSON.stringify(d)} is not kept (the name of a file at the top of the pack)`;
   if (!plain(f) || reserved(f)) return 'not a plain file name (letters, digits, . - _, no leading .)';
   if (!art(f)) return 'only .json and .png are kept';
   return null;

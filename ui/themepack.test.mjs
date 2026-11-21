@@ -86,6 +86,12 @@ for (const [key, text] of [['risky', { risky: 'ok: {reason}' }], ['rejectAll', {
   assert.deepEqual(checkTheme({ ...ok, text }, { bases }), [], `${key}: a shipped theme may`);
 }
 assert.deepEqual(checkTheme({ ...ok, text: { toast: { petition: 'P {name}' }, watch: { name: 'Owl', button: 'Night Vigil: Owl watches' }, prefs: { theme: 'Look' } } }, { bases, locked: LOCKED }), [], 'the keys beside them stay free, the Night Vigil button too (it names the watchman)');
+// a wording key is the reference's own, never one it inherits: a parsed theme.json can hold __proto__ as its own key
+for (const text of [JSON.parse('{"__proto__":{}}'), JSON.parse('{"prefs":{"__proto__":{}}}'), { constructor: {} }, { toString: 'x' }, { prefs: { hasOwnProperty: {} } }]) {
+  const p = checkTheme({ ...ok, text }, { bases, locked: LOCKED });
+  assert.equal(p.length, 1, JSON.stringify(p));
+  assert.match(p[0], /: not a wording key$/, p[0]);
+}
 
 // every shipped world passes the check a pack's theme gets: a full world can be a pack
 const artDir = new URL('./art/', import.meta.url);

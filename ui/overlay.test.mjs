@@ -86,6 +86,31 @@ assert.equal(sealText(waiting), '', 'and so does the sealed tag');
   }
 }
 
+// A click whose terminal does not open: with the card on a click (the default), the card is up and says nothing more
+// (Open in Orca comes back on it); with it off (Settings), no card shows, so a toast says so (main.rs open_failed).
+{
+  const { initCard, pick, closeCard } = await import('./card.js');
+  const { settings } = await import('./settings.js');
+  const s = { id: 'of', name: 'Scribe of', status: 'idle', source: 'claude', orca: 'term_of', sinceMs: 1 };
+  initCard({ cast: { actors }, roster: () => [s] });
+  actors.set(s.id, { id: s.id, s, leaving: false });
+  const card = document.getElementById('card'), toasts = () => invoked('open_failed').length, base = toasts();
+  replies.open_session = new Error('orca not found');
+  pick(s.id); await flush();
+  assert.equal(card.hidden, false, 'on: the card is up');
+  assert.equal(toasts(), base, 'on: no toast, the card shows it');
+  closeCard();
+  settings.cardOnClick = false;
+  pick(s.id); await flush();
+  assert.equal(card.hidden, true, 'off: no card for this click');
+  assert.equal(toasts(), base + 1, 'off: the failure is said in a toast');
+  assert.deepEqual(invoked('open_failed').at(-1).args, { name: 'Scribe of', error: 'orca not found' });
+  replies.open_session = undefined;
+  pick(s.id); await flush();
+  assert.equal(toasts(), base + 1, 'a terminal that opens: no toast');
+  settings.cardOnClick = true; actors.delete(s.id); delete replies.open_session;
+}
+
 // Away, leaving or helper actors carry no tag at all.
 assert.equal(stuckText({ ...plain, leaving: true }), '');
 assert.equal(stuckText({ ...plain, h: {} }), '');
