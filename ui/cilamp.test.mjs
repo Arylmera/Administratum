@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { frameOf, lamps, lampOf, lampsAt, setLamps, start, restart, BLINK_MS } from './cilamp.js';
+import { frameOf, lamps, lampOf, lampsAt, setLamps, start, restart, BLINK_MS, LENS } from './cilamp.js';
+import { THEMES, setTheme, T } from './theme.js';
+import { MAPS, loadAllArt } from './sprites.js';
+await loadAllArt();
 
 const row = (dept, state, extra = {}) => ({ dept, cwd: `C:/w/${dept}`, state, branch: 'main', sha7: 'abc1234', failed: null, ...extra });
 const tick = () => new Promise(r => setTimeout(r, 0));
@@ -62,5 +65,25 @@ assert.deepEqual(lampsAt(spots, 0), [], 'the feature off: nothing drawn');
   start({ listen: () => Promise.resolve(() => {}), invoke: () => Promise.reject('ci_lamps is not available remotely') });
   await tick();
   assert.deepEqual(lamps(), [], 'the remote view has no command: the list waits for the event');
+}
+
+// The lens keeps its signal colour in every world: the sprite is drawn with the fixed LENS colours over the theme's
+// palette, so green reads green, amber amber and red red whatever a theme or a pack does to the key slots.
+{
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const lensOf = frame => { const ch = MAPS[frame][5][4], c = { ...T.px, ...LENS[frame] }[ch]; return rgb(c); }; // the lens's lit centre
+  const seen = {};
+  for (const id of Object.keys(THEMES)) {
+    setTheme(id);
+    const [g, a, d, r] = ['CILAMP.green', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.red'].map(lensOf);
+    assert.ok(g[1] > g[0] + 60 && g[1] > g[2] + 60, `${id}: green is green-dominant ${g}`);
+    assert.ok(a[0] > 200 && a[1] > 120 && a[1] < a[0] && a[2] < 120, `${id}: amber is red + green, low blue ${a}`);
+    assert.ok(d[0] > d[2] + 60 && d[1] > d[2] && d[0] < a[0], `${id}: the dim beat is a darker amber ${d}`);
+    assert.ok(r[0] > r[1] + 120 && r[0] > r[2] + 120, `${id}: red is red-dominant ${r}`);
+    (seen[id] = { g, a, d, r });
+  }
+  const first = Object.values(seen)[0];
+  for (const [id, s] of Object.entries(seen)) assert.deepEqual(s, first, `${id}: the same lens colours as every world`);
+  assert.equal(LENS['CILAMP.off'], undefined, 'unlit: the dark glass of the theme');
 }
 console.log('cilamp ok');

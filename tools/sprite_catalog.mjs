@@ -11,6 +11,7 @@ import {
 import { T } from '../ui/theme.js';
 import { cellFrame, halfOf } from '../ui/room.js';
 import { wallArt } from '../ui/wallart.js';
+import { LENS } from '../ui/cilamp.js'; // the CI lamp's lens keeps its signal colours in every world
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 import { ENCLAVE_SIZES } from '../ui/layout.js';
 import { GESTURES } from '../ui/gestures.js';
@@ -185,6 +186,6 @@ export function catalog() {
   for (const [name, F, f, over] of [['SCRIBE39', SCRIBE39, 'scribe39', r => ({ ...theme.rank[r].robe, y: sash })], ['ADEPT39', ADEPT39, 'adept39', r => theme.rank[r].adept]])
     for (const r of RANKS) if (F.rank?.[r]) for (const d of ['E', 'W', 'S', 'N']) add(`${name}.${r}.${d}`, '39° characters', srcOf(f), F.rank[r][d].map(rows => ({ rows, over: over(r) })), true, `${name}, ${theme.text.rank[r]}, 39° view, walking ${d}, 3 frames`);
   // The CI lamp (I6, ui/cilamp.js), after the rank bodies so every earlier cell ref keeps its row.
-  for (const name of ['CILAMP.off', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.green', 'CILAMP.red']) add(name, 'CI lamp', SHEET_OF[name], [{ rows: MAPS[name], over: {} }], false, ABOUT[name]);
+  for (const name of ['CILAMP.off', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.green', 'CILAMP.red']) add(name, 'CI lamp', SHEET_OF[name], [{ rows: MAPS[name], over: LENS[name] ?? {} }], false, ABOUT[name]);
   return out;
 }
