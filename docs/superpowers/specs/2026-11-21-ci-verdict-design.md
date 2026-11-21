@@ -3,17 +3,21 @@
 After a session pushes, Administratum asks GitHub for the CI result of the pushed commit and tells the user the
 verdict, so they know whether CI passes without opening GitHub. Opt-in, through the user's own `gh` CLI.
 
+Status: draft. Amended 2026-11-21 with the user's answer (joint spec
+`2026-11-21-parallel-waves-design.md`, Q2): no toast; the verdict is a lamp drawn in each theme's own art, one per
+folder (department), in every hall plan and view.
+
 ## Intent
 
 The user pushes from many sessions and looks at the hall only now and then. Today the hall shows the push (the
 servo-skull flies a seal out of the gate) and then nothing: to learn whether CI passed, the user opens GitHub. This
-feature closes that gap. The verdict matters more than any lamp: it must reach the user when they do not look at the
-hall, so it comes as a toast first.
+feature closes that gap. The user wants it in the hall, not as a notification: a lamp in the theme's own design, one
+per folder, green, amber or red.
 
 **Goals**
-- A verdict (pass / fail) for each push a live session makes to a GitHub repository, as a toast, without the user
-  doing anything after turning the feature on.
-- The state also visible in the hall and on the card while CI runs and after.
+- A verdict (pass / fail) for each push a live session makes to a GitHub repository, shown by the lamp of that
+  session's folder, without the user doing anything after turning the feature on.
+- The state also on the card of the pushing session while CI runs and after.
 
 **Non-goals**
 - PR status, reviews, mergeability. The unit is the pushed commit, not the PR: a push to a branch with no PR also
@@ -27,6 +31,7 @@ hall, so it comes as a toast first.
 - The app storing, reading or logging a GitHub token. Authentication is `gh`'s own.
 - Constant polling of GitHub: calls happen only after a push and only while that push's CI runs.
 - Breaking the "read-only towards Claude Code" stance: nothing is sent to a session.
+- A toast for a CI verdict (the user's choice).
 
 ## Constraints
 
@@ -53,7 +58,7 @@ The user chose `gh`, opt-in.
 ### 1. Setting
 
 - `adm.ci`, default `"0"` (off). In Settings > Petitions > Monitoring, next to the stuck-session settings
-  (`ui/settings.js` `MONITOR`), with its own toast switch `adm.ciToast` (default `"1"`, disabled while `adm.ci` is off).
+  (`ui/settings.js` `MONITOR`). No toast switch: I6 has no toast.
 - Read by `monitor::config_from` like the other `adm.*` keys (new `Config` fields), so a save takes effect at once.
 - When turned on, the app runs `gh auth status` once and shows the result under the switch: `gh ready`,
   `gh not found`, or `gh not logged in: run gh auth login`. No other UI for `gh`.
@@ -90,7 +95,7 @@ From the push, the watch needs `owner/repo`, the branch, and the full commit SHA
 - Each poll: `check-runs` (`?per_page=100`) and the legacy combined `status`. Both are needed: Actions reports
   check-runs, some external CIs report statuses only.
 - **No CI:** no check-run and no status after 3 min: the watch ends silently (the repo has no CI for that branch).
-- **Cap:** 30 min after the push with no verdict: the watch ends with the state `timeout`; no toast.
+- **Cap:** 30 min after the push with no verdict: the watch ends with the state `timeout`.
 - App quit ends all watches; they do not survive a restart.
 
 ### 4. Verdict
@@ -107,30 +112,37 @@ Over every check-run and status of the commit:
 
 ### 5. What the user sees
 
-- **Toast** (the existing toast module, quiet hours respected, `adm.ciToast` on): `CI passed · <dept> · <branch>` or
-  `CI failed · <dept> · <branch> · <check name>` (the first failed check). Clicking it opens the commit's checks page
-  on GitHub (`https://github.com/<owner>/<repo>/commit/<sha>/checks`). `orca.rs` `open_url` is private and
-  `open_session` accepts only claude.ai URLs, so this needs its own path: the backend builds the URL itself from the
-  watch (never from UI input) and checks it against `^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/commit/[0-9a-f]{40}/checks$`
-  before handing it to the opener (no `&` or `%` can reach `cmd /c start`). Wording per theme in the theme's text
-  table, like the other toasts.
-- **A session that ends mid-CI:** the watch keeps the session's name and dept from the push, so the toast and the
-  Chronicon event still go out; only the card line is gone with the card.
+- **A session that ends mid-CI:** the watch keeps the session's name, dept and folder from the push, so the lamp and
+  the Chronicon event still change; only the card line is gone with the card.
 - **Card** of the pushing session: one line `CI · <branch> · <sha7> · running 3/5` / `passed` / `failed: <check>` /
   `no verdict after 30 min`. It stays until the session's next push or the session ends.
-- **Hall:** a small lamp on the department plaque, drawn in code (no new art, like the test lamp): amber blinking while
-  running, green for 10 min after a pass, red until the department's next push or 1 h. Desktop strip and column:
-  the same lamp on their plaque. Theme colours.
+- **Card** line click: opens the commit's checks page on GitHub
+  (`https://github.com/<owner>/<repo>/commit/<sha>/checks`). The backend builds the URL itself from the watch (never
+  from UI input) and checks it against `^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/commit/[0-9a-f]{40}/checks$`
+  before it calls `orca.rs` `open_url` (made `pub(crate)`; no `&` or `%` can reach `cmd /c start`).
+- **The lamp, one per folder.** The unit is the department (one working folder, the dept key the roster already
+  groups by). Its state is the verdict of that folder's latest live push: amber while CI runs, green after a pass, red
+  after a fail; unlit when no push was seen since the app started, after `timeout`, `error` or no CI. The state stays
+  until that folder's next push or the app quits. Where it stands follows the hall in force:
+  - open hall: in each department's zone, on its block (beside the plaque or on the back wall above it);
+  - rooms plan and custom rooms: in each room, one lamp per department the room holds;
+  - Flat 3/4 and 39°: the same lamp, its 39° volume built like the other props;
+  - desktop strip and column: on each department's plaque cell.
+  The lamp is **theme art**, not a code-drawn dot: a new art family (`CILAMP`, frames `off`, `amber`, `green`, `red`,
+  flat and 39°) in the base art, which every world uses until it redraws it in its own style
+  (`ui/art/<theme>/cilamp.*`), theme packs included. Amber blinks while running (frame swap). A hover or a click on
+  the lamp shows `<branch> · <sha7> · <state>`.
 - **Chronicon:** events `ci-pass` / `ci-fail` with the branch and the failed check name, so the day's record and the
   day report carry them.
 - **Remote view:** the card line, read-only.
 
 ### 6. Errors
 
-- `gh` not found, not logged in, or a 401/403/404 from the API (no access to that repo): the watch ends, and one
-  toast per app run names the cause (`CI check skipped: gh not logged in`). The Settings line shows the same.
+- `gh` not found, not logged in, or a 401/403/404 from the API (no access to that repo): the watch ends, the lamp
+  stays unlit, and the `gh` entry of Settings > Status (`integration_status`) names the cause
+  (`CI check skipped: gh not logged in`). The Settings line shows the same. No toast.
 - A rate-limit answer (403/429 with a rate-limit message): every watch pauses until the reset time `gh` reports,
-  then resumes; no toast.
+  then resumes.
 - Any other failure of a `gh` call: retry at the next poll; after 3 failures in a row the watch ends with the state
   `error` on the card.
 - `gh` output is parsed as JSON only; nothing from it is passed to a shell or logged beyond the check names shown.
@@ -142,8 +154,8 @@ Over every check-run and status of the commit:
   calls).
 - The poll loop in `main.rs` drives the watches on its own tick; `Session` (or the card's data) gets an additive
   `ci: Option<CiState>`.
-- UI: `ui/settings.js` (the two switches and the `gh` line), the card, the plaque lamp in `ui/scene.js` /
-  `ui/scene39.js` / the strip, the theme text entries.
+- UI: `ui/settings.js` (the switch and the `gh` line), the card line, the lamp in `ui/scene.js` / `ui/scene39.js` /
+  the strip and column, its art family under `ui/art/`, the theme text entries.
 - Docs in the same change: README (What it shows table, Settings, Privacy and safety + its file table),
   `docs/remote-api.md` if the remote payload grows.
 
@@ -162,10 +174,10 @@ Over every check-run and status of the commit:
 
 - Exact candidate paths for `gh` per OS (Windows `Program Files\GitHub CLI\gh.exe`, Homebrew paths on macOS,
   `/usr/bin/gh` on Linux, plus `PATH`).
-- The lamp's pixel size and placement on the plaque in each view, within the theme's colours.
+- The lamp's pixel size and its exact spot in each zone and view; drawn with the live sprite viewer open (CLAUDE.md).
 - The CI watcher runs on its own thread (decided): it owns the timer and the serialized `gh` calls, the poll loop only
   hands it `CiPush` records and reads its states. `gh auth status` on enabling also runs there, never in the
   settings-save path. Its channel and locking are the builder's.
 - `gh api` gets the real `repos/<owner>/<repo>/...` path, never the `{owner}/{repo}` placeholders (which `gh` would
   fill from its own cwd).
-- Theme wording for the toasts and the card line, per world.
+- Theme wording for the card line, the lamp's tip and the Settings line, per world.

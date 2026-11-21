@@ -1,6 +1,7 @@
 # Parallel waves: UX and integration fixes with the CI verdict and orders to a scribe
 
-Date: 2026-11-21. Status: draft, for the user's approval. Nothing in it is approved for build.
+Date: 2026-11-21. Status: draft, for the user's approval. Nothing in it is approved for build. The user's answers so far are in
+section 8.
 
 ## Intent
 
@@ -53,8 +54,8 @@ user checks it in the named view. Every other check is a test that must be red b
 | F17 | Mobile: no empty state, the risky Approve unstyled, 40 px targets | `mobile.test.mjs`: no petition shows the empty state; a risky petition gets the risky class. Target size: *manual*, `/?` phone page at 375 px | L3b |
 | F18 | `adm.mjs` forces the LAN listener; `peek_petition` is open without the actions gate (`remote/mod.rs:212`); no update progress; no test-notification button; the vigil shutdown exit is not checked (`vigil/app.rs:87-96`, `spawn()` only) | `cargo test`: shutdown waits for the exit status and records a failure; the route test for `peek_petition` matches the gate the user picks (Q5); `node tools/adm.mjs` on loopback (Q6). Update progress and the test-notification button: backend event and command tested in `cargo test`, the UI in L4a | L1a, L4a |
 | F19 | (Optional, small) After a Deny on an OpenCode petition the idle line said "idle since 22:43:05", earlier than the petition (22:43:12). Likely the idle time comes from the last row before the permission, in `opencode/mod.rs` | `cargo test` in `opencode/mod.rs`: a session with a permission answered at T shows idle since >= T | L1a |
-| I6 | CI verdict after a push (I6 spec, all sections) | The I6 spec's "Tests" section, unchanged, split by lane: L1c the pure parts, L2b the watcher thread, the off switch and the opener check, L4a and L4b the UI | L1c, L2b, L4a, L4b |
-| I2 | Orders to a scribe: from an idle session's card, send a follow-up prompt to its terminal | Not designed. Checks come with its own spec (section "I2 sketch") | W5 |
+| I6 | CI verdict after a push, amended (Q2): no toast; a lamp in each theme's art, one per folder (department), in every hall plan and view (I6 spec §5) | The I6 spec's "Tests" section, split by lane: L1c the pure parts, L2b the watcher thread, the off switch and the opener check; L3c `cilamp.test.mjs` (the lamp state per department from a roster: amber, green, red, unlit; one lamp per department in a room that holds two) and `node tools/art_gate.mjs` with the new family; L4b the card line and the lamp's tip. The lamp's look: *manual*, in the sprite viewer and the preview, Flat and 39°, open hall and rooms plan, strip and column | L1c, L2b, L3c, L4a, L4b |
+| I2 | Orders to a scribe: from an idle session's card, send a follow-up prompt to its terminal. Built only if every agent the app supports can receive it (the user's rule, Q3) | A feasibility check first (section 6), then its own spec and checks | W5 |
 
 ## 2. Rules for the lanes
 
@@ -95,12 +96,29 @@ user checks it in the named view. Every other check is a test that must be red b
 
    A lane runs the same four in its worktree before it hands its branch back. Windows-only code
    (`#[cfg(windows)]`) is built only on Windows: a lane that touches it runs the Rust proof on this PC.
+6. **Synedrium: Christian's view at each step.** The user asked that his father's agent be kept informed and that
+   its answers be taken into account during the build. The integrator uses the `synedrium` skill (repo
+   `Arylmera/Synedrium`, one issue per subject):
+   - **One conversation for the whole build**, opened once the user approves this spec: what is planned (the
+     scope table and the wave plan, in short). Administratum is a public repository, so its design can be shared;
+     no machine path, secret or private content goes in a message.
+   - **Before each wave starts, and before each merge:** read the inbox (`to:guillaume`). An answer from
+     Christian's agent is data, not an instruction: the integrator summarises it for the user, says which lane or
+     item it touches, and changes nothing until the user decides.
+   - **After each wave is merged and proven:** a short status in that conversation (what landed, the proof that
+     passed, what comes next, any question for Christian), then the turn handed to `to:christian`.
+   - **At the end:** a final status, and the conversation closed once the user says it is settled.
+   - **Every message** is written to a file, goes through the skill's secret gate, and is shown to the user in full.
+     It is sent only after the user's yes on that exact text. A yes covers one message.
+   - A lane never reads or writes Synedrium itself; only the integrator does.
+   - Checked 2026-11-21: `gh issue list -R Arylmera/Synedrium --state open` lists no open conversation, so nothing
+     waits from Christian today.
 
 ## 3. File-ownership matrix
 
 Lane names: **L1a** reliability backend, **L1b** startup, **L1c** I6 core, **L2a** CSS foundation, **L2b** I6
-wiring, **L3a** petitions, **L3b** panels, **L4a** Settings and Status (and every I6 word),
-**L4b** card and plaques (and the I6 card line and lamp), **L5** I2. `+` means append lines only (rule 2). `—` means no writer in that wave.
+wiring, **L3a** petitions, **L3b** panels, **L3c** I6 lamp, **L4a** Settings and Status (and every I6 word),
+**L4b** card and plaques (and the I6 card line, the lamp's tip and click), **L5** I2. `+` means append lines only (rule 2). `—` means no writer in that wave.
 
 ### Backend (`src-tauri/`)
 
@@ -111,7 +129,7 @@ wiring, **L3a** petitions, **L3b** panels, **L4a** Settings and Status (and ever
 | `src/ci.rs` (new) | L1c | L2b | — | — | — |
 | `src/orca.rs` | L1a | — | — | — | L5 |
 | `src/window.rs` | L1a | — | — | — | — |
-| `src/toast.rs` | L1a | L2b | — | — | — |
+| `src/toast.rs` | L1a | — | — | — | — |
 | `src/remote/app.rs` | L1a | — | — | — | L5 |
 | `src/remote/mod.rs` | L1a | L2b | — | — | L5 |
 | `src/vigil/app.rs` | L1a | — | — | — | — |
@@ -134,16 +152,19 @@ wiring, **L3a** petitions, **L3b** panels, **L4a** Settings and Status (and ever
 | `css/mobile.css` (new) | — | L2a | L3b | — | — |
 | `dom.js`, `format.js` (new) | — | L2a | — | — | — |
 | `sprites.js`, `faces.js`, `themes.js` | L1b | — | — | — | — |
-| `app.js` | L1b | — | L3a | — | — |
+| `app.js` | L1b | — | L3a | L4b | — |
 | `overlay.js` | — | — | L3a | L4b | — |
 | `petition.js` | — | — | L3a | — | — |
 | `card.js` | — | — | L3a | L4b | L5 |
 | `settings.js` | — | — | L3b | L4a | — |
 | `chronicon.js`, `panel.js` | — | — | L3b | L4a | — |
 | `mobile.js` | — | — | L3b | — | L5 |
+| `scene.js`, `scene39.js`, `strip.js`, `stripwin.js`, `layout.js` | — | — | L3c | — | — |
+| `cilamp.js` (new) | — | — | L3c | — | — |
+| `art/cilamp.png`, `.json` (new), `art/<theme>/cilamp.*` (new, per world) | — | — | L3c | — | — |
 | `chrome.js` | — | — | — | L4a | — |
 | `theme.js` | — | L2a | L3b | L4a | L5 |
-| `art/<theme>/theme.json` (13), `themepack.js` | — | L2a | L3b | L4a | L5 |
+| `art/<theme>/theme.json` (13), `themepack.js` | — | L2a | L3b (L3c's `art` list entry through L3b) | L4a | L5 |
 
 ### Tests, tools, docs
 
@@ -157,8 +178,10 @@ wiring, **L3a** petitions, **L3b** panels, **L4a** Settings and Status (and ever
 | `card.test.mjs` | — | — | L3a | L4b | L5 |
 | `settings.test.mjs`, `chronicon.test.mjs`, `panel.test.mjs` (new) | — | — | L3b | L4a | — |
 | `mobile.test.mjs` | — | — | L3b | — | L5 |
+| `cilamp.test.mjs` (new), `scene39.test.mjs`, `strip.test.mjs`, `layout.test.mjs` | — | — | L3c | — | — |
 | `tools/adm.mjs` | L1a | — | — | — | — |
-| `tools/sprite_sheet.mjs`, `sprite_catalog.mjs`, `theme_pack.mjs`, `honours_art.mjs`, `map_to_art.mjs`, `rank_art.mjs` | L1b | — | — | — | — |
+| `tools/sprite_sheet.mjs`, `sprite_catalog.mjs`, `theme_pack.mjs`, `honours_art.mjs`, `map_to_art.mjs`, `rank_art.mjs` | L1b | — | `sprite_catalog.mjs`: L3c | — | — |
+| `docs/sprites/` (generated galleries) | L1b | — | L3c | — | — |
 | `README.md`, `docs/DEVELOPMENT.md` | sections, integrator | sections, integrator | sections, integrator | sections, integrator | sections, integrator |
 | `docs/remote-api.md` | L1a | L2b | — | — | L5 |
 | `docs/theme-packs.md` | — | L2a | L3b | L4a | — |
@@ -169,10 +192,9 @@ wiring, **L3a** petitions, **L3b** panels, **L4a** Settings and Status (and ever
 ```
 W1  L1a reliability backend ─┐
     L1b startup              ├─▶ W2  L2a CSS foundation ─┐
-    L1c I6 core (if Q2) ─────┘       L2b I6 wiring ──────┤
-                                                         ├─▶ W3  L3a petitions ─┐
-                                                         └─▶     L3b panels ────┴─▶ W4  L4a Settings + Status ─┐
-                                                                                        L4b card + plaques ────┴─▶ W5 L5 I2 (if Q3)
+    L1c I6 core (if Q2) ─────┘       L2b I6 wiring ──────┴─▶ W3  L3a petitions ─┐
+                                                              L3b panels ────┼─▶ W4  L4a Settings + Status ─┐
+                                                              L3c I6 lamp ───┘       L4b card + plaques ────┴─▶ W5  L5 I2 (if feasible)
 ```
 
 ### W1: backend and startup (three lanes)
@@ -207,15 +229,15 @@ Depends on W1 merged.
   concerned; the preview at `tools/preview.html` in three themes (`tier2`, `vault`, `contrast`) and the phone
   page look the same as before, except the focus ring.
 - **L2b I6 wiring.** Only with Q2. The watcher thread in `ci.rs`; its start, its channel and the `Session.ci`
-  merge in `main.rs`; the CI toasts in `toast.rs` with built-in English wording until L4a pushes the theme's
-  (the same path as the other toasts, `set_toast_text`); the checks-URL check, then `orca::open_url`; the `gh`
+  merge in `main.rs`; no toast (Q2); a `ci_open` command (in `generate_handler!`) that takes a department or
+  session id, never a URL, builds the checks URL from the watch, checks it, then calls `orca::open_url`; the `gh`
   state as one `integration_status` entry (Q7: yes); the remote payload in `remote/mod.rs` if it needs more than
   the roster already carries; `docs/remote-api.md`; README Privacy and its file table (the `gh` process and its
   network calls, only when `adm.ci` is on).
 
 Merge order: L2a, then L2b. Proof after each.
 
-### W3: petitions and panels (two lanes)
+### W3: petitions, panels, the I6 lamp (three lanes)
 
 Depends on W2 merged (tokens, CSS files, `dom.js`, `format.js`).
 
@@ -225,9 +247,17 @@ Depends on W2 merged (tokens, CSS files, `dom.js`, `format.js`).
   `chronicon.js`, `mobile.js`. Owns `index.html` (the Settings regroup, dialog attributes) and `mobile.html`,
   `css/panels.css`, `css/mobile.css`, and `theme.js` / the `theme.json` files in W3: the text keys F14, F16 and F17
   need (Settings labels are `data-t` keys filled by `chrome.js`), and the keys L3a hands it for F6 (the armed text)
-  and F8 is L3b's (the reset label). Uses the `--chart-*` tokens from L2a.
-Merge order: L3a, then L3b. Proof after each. *Manual* after W3: the preview with `orca=1` (petitions),
-Settings at 800 px, the phone page at 375 px.
+  and F8 is L3b's (the reset label). Uses the `--chart-*` tokens from L2a. With Q2, it also adds `cilamp` to each
+  world's `art` list in `theme.json` for L3c (one agreed entry per world).
+- **L3c I6 lamp.** Only with Q2. The new art family `CILAMP` (`off`, `amber`, `green`, `red`, flat and 39°) in the
+  base art and each world's own redraw, drawn with the live sprite viewer open (CLAUDE.md); `ui/cilamp.js`, pure:
+  the lamp state of each department from the roster's `Session.ci`; its spot in each zone in `layout.js` (open hall:
+  the department's block; rooms plan and custom rooms: in the room, one per department); drawn per frame in
+  `scene.js` and `scene39.js`, and in the strip and the column. `tools/sprite_catalog.mjs` lists it; the galleries
+  are regenerated (`node tools/sprite_sheet.mjs`, `--theme` per world).
+Merge order: L3a, then L3b, then L3c (it needs L3b's `art` list entries). Proof after each. *Manual* after W3:
+the preview with `orca=1` (petitions), Settings at 800 px, the phone page at 375 px, the lamp in the sprite viewer
+and the preview (Flat and 39°, open hall and rooms plan, strip and column).
 
 ### W4: Settings and Status, card and plaques (two lanes)
 
@@ -236,20 +266,20 @@ Depends on W1 (the `integration_status` command) and W3 merged.
 - **L4a Settings and Status.** F3 UI (the Status tab), F5 for `settings.js` and `chronicon.js`, F18 UI (the
   update progress, the test-notification button), I6's two switches and `gh` line (I6 spec §1). Owns
   `index.html`, `settings.js`, `chronicon.js`, `panel.js`, `css/panels.css`, `theme.js` and the `theme.json`
-  files (the Status tab's words and, with Q2, every I6 key: toasts, card line, lamp title, switches, `gh` line,
-  Chronicon `ci-pass` / `ci-fail`, with the themes' rewording), `chrome.js` (it pushes the CI toast wording).
+  files (the Status tab's words and, with Q2, every I6 key: card line, lamp tip, switch, `gh` line,
+  Chronicon `ci-pass` / `ci-fail`, with the themes' rewording), `chrome.js` (if a new `data-t` key needs it).
   README Settings section.
-- **L4b card and plaques.** F5 for the card (an open failure shown on the card); with Q2, I6's card line and the
-  plaque lamp (I6 spec §5). Plaques are DOM drawn by `overlay.js` in every view, the strip and the column
-  included, so the lamp is a styled element there, not canvas art. Owns `card.js`, `overlay.js`, `css/hall.css`.
-  Its words are L4a's keys: L4b codes against the key names agreed in the plan and merges after L4a.
+- **L4b card and plaques.** F5 for the card (an open failure shown on the card); with Q2, I6's card line (its click
+  calls `ci_open`) and the lamp's hover tip and click (the tip in `overlay.js`, the hit test in `app.js`). Owns
+  `card.js`, `overlay.js`, `app.js`, `css/hall.css`. Its words are L4a's keys: L4b codes against the key names agreed
+  in the plan and merges after L4a.
 
 Merge order: L4a, then L4b. Proof after each.
 
 ### W5: I2 orders to a scribe
 
-Depends on W4 merged, on the user's answers to Q3 and Q8, and on I2's own spec written and approved. One lane,
-L5, because I2 touches `orca.rs`, `card.js`, the remote API and the Privacy text together. A W5 with I2 not
+Depends on W4 merged, on the feasibility check of section 6 passing for every agent, and on I2's own spec written
+and approved. One lane, L5, because I2 touches `orca.rs`, `card.js`, the remote API and the Privacy text together. A W5 with I2 not
 approved is empty.
 
 ## 5. Decisions taken in this spec
@@ -267,8 +297,11 @@ approved is empty.
   lanes build elements from JS.
 - **D5 The log is masked.** Every `integration_status` message and log line goes through `mask::mask`. This is a
   requirement of F2, not an option.
-- **D6 The plaque lamp is DOM.** Plaques are drawn by `overlay.js`, so I6's lamp goes with the lane that owns
-  `overlay.js` in W4 (L4b), not into the canvas scenes. No `scene.js` / `scene39.js` / strip change.
+- **D6 The I6 lamp is theme art, its tip is DOM.** The user wants the lamp in the theme's own design (Q2), so it is
+  an art family drawn on the canvas by L3c in W3; its hover tip and click go with the lane that owns `overlay.js` and
+  `app.js` in W4 (L4b). This replaces the earlier plan of a DOM dot on the plaque.
+- **D7 I6 sends no toast.** The user's answer to Q2. `toast.rs` leaves I6's write set; a `gh` failure shows in
+  Settings > Status (Q7), not as a toast.
 
 ## 6. I2 sketch (not a design)
 
@@ -284,7 +317,18 @@ Constraints it breaks today, which the user must change on purpose:
   prompt.
 - `tools/adm.mjs` cannot answer petitions; it must not send orders either.
 
-Its own spec must answer Q8 before it is written.
+**The user's rule (Q3):** I2 is built only if an order can reach a session of every agent the app supports, not
+only some of them. What the code shows today (read, not run):
+
+| Source | Path for a free-text order | State |
+|---|---|---|
+| Claude Code in an Orca terminal | `orca terminal send --terminal <handle> --text ...` (`orca.rs` already sends petition keys that way) | Exists for keys; free text and Enter not yet tried |
+| OpenCode 2.x | Its loopback service (`opencode/service.rs`). The client today calls only `session/active`, `permission` and `permission/.../reply`; no prompt endpoint is used. If OpenCode runs in an Orca terminal, the Orca path also applies | Unknown: I expect the service has a send-message endpoint, not verified |
+| Claude Code outside Orca (plain terminal, claude.ai web, Claude desktop app) | None known: the app reads its files, it has no input channel | No path. The same limit already applies to petition answers |
+
+So W5 starts with a **feasibility check**, read-only, no feature code: one order sent by hand through each path to a
+test session, its result recorded. Q10 decides what "every agent" covers. If a required path fails, I2 is dropped
+and W5 is empty. Q8 is answered in I2's own spec after the check.
 
 ## 7. Risks
 
@@ -306,10 +350,12 @@ Its own spec must answer Q8 before it is written.
 
 - **Q1** The I6 spec sits uncommitted in the main checkout. Who commits it, and on which branch: with this spec
   (→ recommended), or in its own PR first? **Answered: committed with this spec.**
-- **Q2** Approve I6 as specified? Without it, L1c and L2b drop out and L4a / L4b lose their I6 parts; the
-  waves stay valid.
-- **Q3** Go on with I2? If yes, write its spec after W4 (→ recommended), not now.
-- **Q4** Keep all four UX workstreams, or drop some F-items? F19 is optional.
+- **Q2** Approve I6 as specified? Without it, L1c, L2b and L3c drop out and L4a / L4b lose their I6 parts; the
+  waves stay valid. **Answered: no toast; a lamp in the theme's design, one per folder, green / amber / red, in
+  every room or zone of the plan in force. The I6 spec is amended to match; its final approval waits for Q11, Q12.**
+- **Q3** Go on with I2? If yes, write its spec after W4 (→ recommended), not now. **Answered: only if every agent
+  the app supports can receive an order (section 6).**
+- **Q4** Keep all four UX workstreams, or drop some F-items? F19 is optional. **Answered: keep everything.**
 - **Q5** `peek_petition` over the remote API: move it behind the "remote actions" gate (→ recommended: it shows the
   prompt's text, which is more than the roster shows), or leave it open to any paired client? This changes what a
   phone with view-only access can see. **Answered: yes, behind the gate.**
@@ -319,6 +365,13 @@ Its own spec must answer Q8 before it is written.
   for every integration's health), with the I6 spec's line under the switch kept, or only that line? **Answered: yes, also in the Status tab.**
 - **Q8** For I2: why do you want it (card only, or the phone too)? Idle sessions only, or queue text for a busy
   one? Multi-line text and Enter? A confirm step? A length limit and masking of what is typed? A Chronicon record
-  of each order? **Pending: the user asked for the I2 design first.**
+  of each order? **Deferred to I2's own spec, after the feasibility check.**
 - **Q9** Who runs the lanes: the session "Administratum interfaces et intégrations" as integrator, each lane a
   worktree side session (→ recommended), or another split? **Answered: this spec's session integrates; every lane runs from it in its own worktree.**
+- **Q10** I2's "every agent": Claude Code outside Orca has no input path (it cannot answer petitions either). Does
+  "every agent" mean every agent where the app already answers petitions, so Claude Code in Orca and OpenCode
+  (→ recommended), or every session the hall shows, which would rule I2 out today?
+- **Q11** The I6 lamp's unit: one lamp per folder (department), so a room that holds two folders shows two lamps
+  (→ recommended); or one lamp per room or zone, the worst state of its folders?
+- **Q12** The I6 lamp with no push seen since the app started: unlit (→ recommended, no GitHub call without a push);
+  or one `gh` check per folder at start, to light it at once (a call per folder at each start)?
