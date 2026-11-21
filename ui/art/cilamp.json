@@ -1,0 +1,66 @@
+{
+  "frames": {
+    "CILAMP.off": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 10,
+        "h": 20
+      }
+    },
+    "CILAMP.amber": {
+      "frame": {
+        "x": 11,
+        "y": 0,
+        "w": 10,
+        "h": 20
+      }
+    },
+    "CILAMP.amber_dim": {
+      "frame": {
+        "x": 22,
+        "y": 0,
+        "w": 10,
+        "h": 20
+      }
+    },
+    "CILAMP.green": {
+      "frame": {
+        "x": 33,
+        "y": 0,
+        "w": 10,
+        "h": 20
+      }
+    },
+    "CILAMP.red": {
+      "frame": {
+        "x": 44,
+        "y": 0,
+        "w": 10,
+        "h": 20
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "cilamp.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 54,
+      "h": 20
+    },
+    "palette": "key.gpl",
+    "anchors": {
+      "CILAMP": {
+        "foot": [
+          5,
+          20
+        ],
+        "lens": [
+          5,
+          5
+        ]
+      }
+    }
+  }
+}

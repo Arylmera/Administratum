@@ -49,6 +49,9 @@ const ABOUT = {
   ENCLAVE_SIDE: 'Custom room side rail, seen from above', ENCLAVE_POST: 'Custom room post: corners and beside each gate',
   ENCLAVE_GATE: 'Custom room gate, closed, in the side', ENCLAVE_GATE_OPEN: 'Custom room gate leaf, swung open',
   ENCLAVE_GATE_FRONT: 'Custom room gate facing the viewer (strip, 39° view)', ENCLAVE_GATE_FRONT_OPEN: 'Custom room gate facing the viewer, open',
+  'CILAMP.off': 'CI lamp, one per department (Settings > CI): unlit, before the start check answers, after a timeout or an error, or with no CI',
+  'CILAMP.amber': 'CI lamp while the last push of its department is still in CI (blinks with `CILAMP.amber_dim`, once a second); in the 39° view the same frame stands upright',
+  'CILAMP.amber_dim': 'CI lamp, the off beat of the blink while CI runs', 'CILAMP.green': 'CI lamp, the last push passed', 'CILAMP.red': 'CI lamp, the last push failed',
 };
 const GESTURE_ABOUT = { think: 'thinking, now and then while it works', wonder: 'puzzled, once after a tool error, or now and then while its question waits', stretch: 'stretching, once, as its turn ends and it dozes off' };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
@@ -121,7 +124,7 @@ export function catalog() {
   // world's own art; false = never drawn in this world.
   const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$|^ENCLAVE_/.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
+    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$|^ENCLAVE_|^CILAMP\./.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
@@ -181,5 +184,7 @@ export function catalog() {
   // row: only the ranks the world draws, each walking in its rank's colours.
   for (const [name, F, f, over] of [['SCRIBE39', SCRIBE39, 'scribe39', r => ({ ...theme.rank[r].robe, y: sash })], ['ADEPT39', ADEPT39, 'adept39', r => theme.rank[r].adept]])
     for (const r of RANKS) if (F.rank?.[r]) for (const d of ['E', 'W', 'S', 'N']) add(`${name}.${r}.${d}`, '39° characters', srcOf(f), F.rank[r][d].map(rows => ({ rows, over: over(r) })), true, `${name}, ${theme.text.rank[r]}, 39° view, walking ${d}, 3 frames`);
+  // The CI lamp (I6, ui/cilamp.js), after the rank bodies so every earlier cell ref keeps its row.
+  for (const name of ['CILAMP.off', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.green', 'CILAMP.red']) add(name, 'CI lamp', SHEET_OF[name], [{ rows: MAPS[name], over: {} }], false, ABOUT[name]);
   return out;
 }

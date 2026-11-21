@@ -7,7 +7,8 @@
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
-import { WALL, WALL_DY, zonesOf, wingZones } from './layout.js';
+import { WALL, WALL_DY, zonesOf, wingZones, lampSpots } from './layout.js';
+import { lampsAt, LAMP_SIZE } from './cilamp.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
@@ -256,6 +257,14 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     e.seen = false;
     // a scribe getting up walks off while it eases: never drawn into the desk it leaves (feet kept south of its front)
     seated.set(id, Math.min(e.shift * k, Math.max(0, Math.round(a.y) - e.yb - FRONT_GAP)));
+  }
+
+  // the CI lamps (cilamp.js): one a department, upright on its projected foot like the skull and the flames (a flat
+  // billboard, no 39° volume), depth sorted by its small footprint; none while the list is empty
+  for (const s of lampsAt(lampSpots(layout.blocks, H), now)) {
+    const map = MAPS[s.frame], x = half(s.x - LAMP_SIZE[0] / 2), y = s.y - LAMP_SIZE[1], v = 2 * (s.y - WALL);
+    items.push({ foot: { u0: 2 * s.x - 3, u1: 2 * s.x + 3, v0: v - 2, v1: v }, draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y)) });
+    floor.push(g2 => contactShadow(g2, shadowOf(map, x, y), shade));
   }
 
   // actors, their contact and cast shadows

@@ -265,3 +265,13 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="enclave_gate_open"></a>`ENCLAVE_GATE_OPEN` | 8×5 | Custom room gate leaf, swung open. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_GATE_OPEN.png" height="40"> |
 | <a id="enclave_gate_front"></a>`ENCLAVE_GATE_FRONT` | 8×10 | Custom room gate facing the viewer (strip, 39° view). Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_GATE_FRONT.png" height="80"> |
 | <a id="enclave_gate_front_open"></a>`ENCLAVE_GATE_FRONT_OPEN` | 8×10 | Custom room gate facing the viewer, open. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_GATE_FRONT_OPEN.png" height="80"> |
+
+## CI lamp
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="cilamp-off"></a>`CILAMP.off` | 5×10 | CI lamp, one per department (Settings > CI): unlit, before the start check answers, after a timeout or an error, or with no CI. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.off.png" height="80"> |
+| <a id="cilamp-amber"></a>`CILAMP.amber` | 5×10 | CI lamp while the last push of its department is still in CI (blinks with `CILAMP.amber_dim`, once a second); in the 39° view the same frame stands upright. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.amber.png" height="80"> |
+| <a id="cilamp-amber_dim"></a>`CILAMP.amber_dim` | 5×10 | CI lamp, the off beat of the blink while CI runs. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.amber_dim.png" height="80"> |
+| <a id="cilamp-green"></a>`CILAMP.green` | 5×10 | CI lamp, the last push passed. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.green.png" height="80"> |
+| <a id="cilamp-red"></a>`CILAMP.red` | 5×10 | CI lamp, the last push failed. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.red.png" height="80"> |
