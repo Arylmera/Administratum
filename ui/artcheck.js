@@ -19,6 +19,7 @@
 //            spire's parts, the same); faces.png frames named by an object's faces (checkFaces)
 import { VS39 } from './iso.js';
 import { GESTURE_FRAMES, SEATED_FRAME } from './gestures.js';
+import { RANKS, RANK_FAMILIES, ranked, rankPart } from './ranks.js';
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const kind = v => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
@@ -56,12 +57,29 @@ export function gestureWarnings(family, frames) {
   return lone.length && !names.includes(seat) ? [`${family}: ${lone.map(n => `'${n}'`).join(', ')} never played: this sheet has no '${seat}' of its own`] : [];
 }
 
+// What a theme's own sheet of a character family (frames: its frame names) holds about ranks that is likely a slip, as
+// warnings: a rank's gesture without that rank's seated frame (never played: the rank keeps the plain gestures), and a
+// rank drawn in this view while the theme's sheet of the other view (otherFrames; null: it has none) draws none.
+export function rankWarnings(family, frames, otherFrames) {
+  const fam = String(family).split('/').pop(), seat = SEATED_FRAME[fam], names = Array.isArray(frames) ? frames : [], out = [];
+  const other = fam.endsWith('39') ? fam.slice(0, -2) : `${fam}39`, of = (list, r) => list.some(n => rankPart(n)?.[0] === r);
+  for (const r of RANKS) {
+    const lone = (GESTURE_FRAMES[fam] ?? []).map(n => `${r} ${n}`).filter(n => names.includes(n));
+    if (lone.length && !names.includes(`${r} ${seat}`)) out.push(`${family}: ${lone.map(n => `'${n}'`).join(', ')} never played: this sheet has no '${r} ${seat}'`);
+    if (Array.isArray(otherFrames) && of(names, r) && !of(otherFrames, r)) out.push(`${family}: rank ${r} drawn here, not in ${other}: that view shows the plain body`);
+  }
+  return out;
+}
+
 // The default's rows a frame named `n` of `family` is held to, or null when this version of the app knows no such
 // frame: a frame of the base sheet, or one of its family's optional gesture frames (gestures.js), at the size of the
 // seated frame it replaces (family may carry its folder, 'tower/scribe', as the tests name it).
 function knownAs(family, n, base) {
   if (has(base.frames, n)) return base.frames[n];
   const fam = String(family).split('/').pop(), seat = SEATED_FRAME[fam];
+  // a rank's own body ('high up 0', ranks.js): a frame the family ranks, at its plain frame's size; one rank word only
+  const rp = rankPart(n);
+  if (rp) return RANK_FAMILIES.includes(fam) && ranked(rp[1]) && !rankPart(rp[1]) ? knownAs(family, rp[1], base) : null;
   return GESTURE_FRAMES[fam]?.includes(n) && has(base.frames, seat) ? base.frames[seat] : null;
 }
 
@@ -92,7 +110,14 @@ export function checkSheet(family, own, base) {
     else if (r) bad.push(`'${n}': ${r}`);
     else if (f.length !== d.length || f[0].length !== d[0].length) bad.push(`'${n}' must keep the default's size (${sizeOf(d)}, not ${sizeOf(f)})`);
   }
-  for (const [n, a] of Object.entries(own.anchors)) has(base.anchors, n) ? shape(a, base.anchors[n], n, bad) : bad.push(`anchor ${n} unknown`);
+  const plain = Object.fromEntries(Object.entries(base.anchors).filter(([k]) => !RANKS.includes(k))), fam = String(family).split('/').pop();
+  for (const [n, a] of Object.entries(own.anchors)) {
+    // a rank's anchors (ranks.js): an object of the family's plain anchors, each of its base shape
+    if (RANKS.includes(n) && RANK_FAMILIES.includes(fam)) {
+      if (!isObj(a)) { bad.push(`anchor ${n} must be an object, not ${say(a)}`); continue; }
+      for (const [k, v] of Object.entries(a)) has(plain, k) ? shape(v, plain[k], `${n}.${k}`, bad) : bad.push(`anchor ${n}.${k} unknown`);
+    } else has(base.anchors, n) ? shape(a, base.anchors[n], n, bad) : bad.push(`anchor ${n} unknown`);
+  }
   // the frames as the theme sees them: a rule's frames are the default's or its own (sound ones only)
   const frames = { ...base.frames };
   for (const [n, f] of Object.entries(own.frames)) if (has(base.frames, n) && !rowsBad(f)) frames[n] = f;

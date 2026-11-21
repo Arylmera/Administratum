@@ -9,10 +9,8 @@ import { outline, outlined } from './outline.js';
 import { GESTURES, GESTURE_FRAMES, SEATED_FRAME } from './gestures.js';
 export { BASE };
 
-// Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
-// Its colours (robe, adept) are the theme's T.rank[rank], its name the theme's wording t(`rank.${rank}`).
-export const rankOf = model => (/opus|fable/i.test(model ?? '') ? 'high' : /haiku/i.test(model ?? '') ? 'novice' : 'standard');
-export const RANKS = ['high', 'standard', 'novice'];
+import { RANKS, RANK_FAMILIES, rankOf } from './ranks.js'; // the ranks (ranks.js), and who has one
+export { RANKS, rankOf };
 
 export const RES = 2; // art pixels per logical pixel
 export const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
@@ -252,7 +250,6 @@ const BUILD39 = {
   skull39: sheet => ({ skull: sheet.frames.skull }),
   watch39: sheet => ({ ...walker39(sheet), ring: sheet.frames.ring }),
 };
-const RANK39 = ['scribe39', 'adept39']; // the 39° families with a rank layer
 const EXPORT39 = { scribe39: [SCRIBE39, SCRIBE39_AT], adept39: [ADEPT39, ADEPT39_AT], magos39: [MAGOS39, MAGOS39_AT], skull39: [SKULL39, SKULL39_AT], watch39: [WATCH39, WATCH39_AT] };
 
 function useArt(id) {
@@ -270,7 +267,7 @@ function useArt(id) {
   for (const f of FAMILIES39) {
     const sheet = resolve39(f, themed[dir]?.[f], base[f], `theme '${id}'`), [obj, at] = EXPORT39[f], complete = Object.keys(sheet.frames).length > 0;
     refill(obj, complete ? BUILD39[f](sheet) : {});
-    refill(at, complete ? { ...anchorsOf(sheet), ...(RANK39.includes(f) && { rank: rankAnchors(sheet) }) } : {});
+    refill(at, complete ? { ...anchorsOf(sheet), ...(RANK_FAMILIES.includes(f) && { rank: rankAnchors(sheet) }) } : {});
   }
   // the arms (actors.js drawCarried): a world's own scribe has them in its body; the 40k robe has none, so its art draws
   // two mechadendrites (the left one the right mirrored)
