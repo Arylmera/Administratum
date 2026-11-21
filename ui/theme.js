@@ -161,11 +161,12 @@ export const TIER_II = {
   px: BASE,
   sash: ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'],
   rank: {
-    // the 40k ranks, one look in every Ordo (spec 2026-11-21-rank-art): high a rich purple under heavy gilt, standard the
-    // Ordo's own robe, novice a low machine agent in pale iron; the three apart at a glance (theme.test.mjs)
-    high: { robe: gilt('#7a1e8a', '#9c3cae', '#46104f'), adept: { q: '#7a1e8a', Q: '#46104f', b: '#9c3cae', x: '#e8b45a', J: '#e8b45a', I: '#6e3f17' } },
+    // the 40k ranks, one look in every Ordo (spec 2026-11-21-rank-art), the Administratum's own ladder from dark to light
+    // (Lexicanum: the lowliest scribe in black, rising through greys to pure white): novice a machine agent in black,
+    // standard the Ordo's own robe, high in ivory white under a crimson mantle, little gold (theme.test.mjs)
+    high: { robe: { r: '#d8d2c4', R: '#f0ebe0', d: '#9a9284', t: '#c89a48', T: '#9a9284', z: '#c89a48', j: '#6e3f17', g: '#9a7a3a', G: '#6a5228' }, adept: { q: '#d8d2c4', Q: '#9a9284', b: '#f0ebe0', x: '#8e1c16', J: '#c89a48', I: '#6e3f17' } },
     standard: { robe: {}, adept: {} },
-    novice: { robe: plain('#7a7e82', '#9a9ea2', '#4a4e52'), adept: { q: '#5a5e62', Q: '#3a3c40', b: '#7a7e82', x: '#3a3c40', J: '#5a5e62', I: '#5a5e62' } },
+    novice: { robe: plain('#1e1e22', '#34343a', '#0e0e10'), adept: { q: '#1e1e22', Q: '#0e0e10', b: '#34343a', x: '#3a3c40', J: '#1e1e22', I: '#1e1e22' } },
   },
   ink: inkOf,
   light: LIGHT,

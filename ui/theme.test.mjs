@@ -197,22 +197,26 @@ setTheme('tier2');
   assert.deepEqual(low, ['cyber title', 'corpo title', 'rain title', 'matrix title', 'synth title'], 'Hall of Honours words over their fields');
 }
 // 40k ranks (spec 2026-11-21-rank-art): one high look and one novice look in every Ordo, standard the Ordo's own robe;
+// the ladder dark to light: the novice's robe darker than every Ordo's, the high's lighter;
 // the three ranks apart at a glance (RGB distance of the robe, and of the adept's bone), and high's gilt never a sash colour
 {
   const ORDOS = ['tier2', 'forge', 'xenos', 'night', 'contrast'], KEYS = ['r', 'R', 'd', 't', 'T', 'z', 'j', 'g', 'G'], AKEYS = ['q', 'Q', 'b', 'x', 'J', 'I'];
   const robe = (t, r) => ({ ...t.px, ...t.rank[r].robe }), adept = (t, r) => ({ ...t.px, ...t.rank[r].adept });
   const dist = (a, b) => Math.hypot(...[1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)));
   const all = ORDOS.map(id => resolve(THEMES[id]));
+  const lum = h => [1, 3, 5].reduce((a, i, k) => a + [0.299, 0.587, 0.114][k] * parseInt(h.slice(i, i + 2), 16), 0);
   for (const r of ['high', 'novice']) {
     for (const k of KEYS) assert.equal(new Set(all.map(t => robe(t, r)[k])).size, 1, `one ${r} in every Ordo: robe ${k}`);
     for (const k of AKEYS) assert.equal(new Set(all.map(t => adept(t, r)[k])).size, 1, `one ${r} in every Ordo: adept ${k}`);
   }
   for (const t of all) {
     for (const [a, b] of [['high', 'standard'], ['high', 'novice'], ['standard', 'novice']]) {
-      assert.ok(dist(robe(t, a).r, robe(t, b).r) >= 80, `${t.id}: ranks apart, robe ${a}/${b} (${robe(t, a).r} ${robe(t, b).r})`);
+      // the novice's black robe beside an Ordo's dark one: its machine body tells them apart (rankart.test.mjs), not the cloth
+      if (b !== 'novice' || a !== 'standard') assert.ok(dist(robe(t, a).r, robe(t, b).r) >= 80, `${t.id}: ranks apart, robe ${a}/${b} (${robe(t, a).r} ${robe(t, b).r})`);
       assert.ok(dist(adept(t, a).q, adept(t, b).q) >= 80, `${t.id}: ranks apart, adept ${a}/${b} (${adept(t, a).q} ${adept(t, b).q})`);
     }
     for (const k of ['t', 'T', 'z', 'j', 'g', 'G']) assert.ok(!t.sash.includes(robe(t, 'high')[k]), `${t.id}: high's gilt ${k} is no sash colour`);
+    assert.ok(lum(robe(t, 'novice').r) < lum(robe(t, 'standard').r) && lum(robe(t, 'standard').r) < lum(robe(t, 'high').r), `${t.id}: dark to light, novice < standard < high`);
   }
 }
 console.log('theme ok');

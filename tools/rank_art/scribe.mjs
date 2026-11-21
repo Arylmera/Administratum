@@ -1,8 +1,8 @@
 // The 40k scribe's rank bodies (flat, 32x34 art px), drawn from each plain frame (tools/rank_art.mjs):
 //   novice  a low machine agent: an iron cowl with rivets, one great optic, a cable and a spine tube down the back, a
 //           narrower body whose lower half is segmented iron plates, iron shoulder plates and hem
-//   high    pompous: a crimson mantle over the shoulders and the back, a broad gold collar, a gilt crest on the hood,
-//           rubies in the cogs, a gold stole down the front, an embroidered gold panel on the back, a double gold hem
+//   high    refined: broad shoulders under a crimson mantle that covers the back, a purple robe, gold kept to a fine
+//           hood rim, the cogs (rubies at their hubs), a small seal on the back and a bronze hem
 // The department sash (y) is never painted over: it reads on every rank.
 import { grid, rows, put, paint, widen, narrow, ROBE } from './kit.mjs';
 
@@ -34,31 +34,26 @@ function novice(plain, name) {
 
 function high(plain, name) {
   const g = grid(plain), dir = dirOf(name);
-  widen(g, 18, 21, 'h'); // broad shoulders under the mantle, a gold edge
-  paint(g, { y0: 18, y1: 18, from: 'Tzt' }, (x) => (x % 2 ? 'h' : 'g')); // the broad gold collar
-  paint(g, { y0: 1, y1: 1, from: 'rR' }, (x) => (x % 2 ? 'h' : 'g')); // a gilt crest on the hood
+  widen(g, 18, 21, 'x'); // broad shoulders under the mantle
   paint(g, { from: 'j' }, () => 'a'); // rubies in the cogs
-  // a gold border along the hood's edge (the cloth cells next to its outline)
-  const edge = (x, y) => g[y][x - 1] === 'k' || g[y][x + 1] === 'k' || g[y - 1]?.[x] === 'k';
-  paint(g, { y0: 2, y1: 17, from: ROBE }, (x, y) => (edge(x, y) ? 'g' : null));
   // the crimson mantle: over the shoulders, and the whole back
   paint(g, { y0: 19, y1: 21, from: ROBE }, (x, y, c) => (c === 'd' ? 'W' : 'x'));
+  if (dir !== 'up') { // a crimson lining in the hood's opening, around its rim
+    const rim = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => g[y + dy]?.[x + dx] === 't');
+    paint(g, { y0: 4, y1: 15, from: ROBE }, (x, y) => (rim(x, y) ? 'x' : null));
+  }
   if (dir === 'up') {
     paint(g, { y0: 24, y1: 29, from: ROBE }, (x, y, c) => (c === 'd' ? 'W' : 'x'));
-    // the embroidered back panel: a gold frame, a gold cross, a ruby at its heart
-    paint(g, { y0: 24, y1: 29, x0: 11, x1: 20, from: 'xW' }, (x, y) => (x === 11 || x === 20 || y === 24 || y === 29 ? 'g' : (x === 15 || x === 16 || y === 26 || y === 27) ? 'h' : null));
-    put(g, 15, 26, 'a'); put(g, 16, 27, 'a');
+    for (const [x, y, c] of [[16, 25, 'g'], [17, 25, 'g'], [15, 26, 'g'], [16, 26, 'a'], [17, 26, 'a'], [18, 26, 'g'], [16, 27, 'g'], [17, 27, 'g']]) put(g, x, y, c); // a small seal on the mantle
   }
   if (dir === 'down') {
-    paint(g, { y0: 22, y1: 29, from: ROBE }, (x, y, c) => (x <= 7 || x >= 24 ? (c === 'd' ? 'W' : 'x') : null)); // the mantle's two fronts
-    paint(g, { y0: 19, y1: 29, from: ROBE + 'xW' }, (x) => (x === 8 || x === 22 ? 'g' : x === 9 || x === 23 ? 'h' : null)); // the gold stole
+    paint(g, { y0: 16, y1: 17, from: ROBE }, (x, y, c) => (c === 'd' ? 'W' : 'x')); // the mantle's collar under the hood
+    paint(g, { y0: 22, y1: 29, from: ROBE }, (x, y, c) => (x <= 9 || x >= 22 ? (c === 'd' ? 'W' : 'x') : null)); // the mantle's two fronts
   }
   if (dir === 'right') {
-    paint(g, { y0: 24, y1: 29, from: ROBE }, (x, y, c) => (x < 13 ? (c === 'd' ? 'W' : 'x') : null)); // the mantle falls behind
-    paint(g, { y0: 19, y1: 29, x0: 18, x1: 19, from: ROBE + 'xW' }, (x) => (x === 18 ? 'g' : 'h')); // the stole in front
+    paint(g, { y0: 16, y1: 17, from: ROBE }, (x, y, c) => (c === 'd' ? 'W' : 'x')); // the mantle's collar
+    paint(g, { y0: 22, y1: 29, from: ROBE }, (x, y, c) => (x < 19 ? (c === 'd' ? 'W' : 'x') : null)); // the mantle falls behind
   }
-  paint(g, { y0: 30, y1: 30, from: 'gG' }, (x) => (x % 2 ? 'h' : 'g')); // a bright gold hem
-  paint(g, { y0: 29, y1: 29, from: ROBE + 'xW' }, (x) => (x % 2 ? 'G' : 'g')); // and a second one above it
   return rows(g);
 }
 
