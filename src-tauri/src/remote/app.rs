@@ -130,16 +130,29 @@ pub fn remote_status(app: AppHandle) -> Result<RemoteStatus, String> {
 /// The integration's name in the status store.
 const STATUS: &str = "remote";
 
-/// Listen on `port`: on every interface when `lan`, else on 127.0.0.1 only. The outcome goes to the status store.
-fn serve(app: &AppHandle, lan: bool, port: u16) -> Result<u16, String> {
-    let bound = remote::start(remote::bind_addr(lan, port), remote_backend(app));
-    match &bound {
+/// Record the outcome of a bind in the status store: a LAN view that is on but did not bind is an error (what the
+/// user sees in Settings > Status); a failed local-only listener only costs `tools/adm.mjs`, a warning.
+fn record_bind(lan: bool, bound: &Result<u16, String>) {
+    match bound {
         Ok(p) if lan => status::report(STATUS, status::State::Ok, format!("serving the LAN view on port {p}")),
         Ok(p) => status::report(STATUS, status::State::Ok, format!("listening on 127.0.0.1:{p} only (the LAN view is off)")),
         Err(e) if lan => status::report(STATUS, status::State::Error, format!("the LAN view is on but not running: {e}")),
         Err(e) => status::report(STATUS, status::State::Warn, format!("no local listener: {e}")),
     }
+}
+
+/// Listen on `port`: on every interface when `lan`, else on 127.0.0.1 only. The outcome goes to the status store.
+fn serve(app: &AppHandle, lan: bool, port: u16) -> Result<u16, String> {
+    let bound = remote::start(remote::bind_addr(lan, port), remote_backend(app));
+    record_bind(lan, &bound);
     bound
+}
+
+/// The LAN bind failed (`remote::start` had stopped the server first): the app still listens on this machine, as it
+/// does with the LAN view off, so `tools/adm.mjs` keeps working. Silent: the error entry stays as `serve` left it.
+/// On the same port a taken port fails here too, which costs nothing.
+fn fall_back_to_loopback(app: &AppHandle, port: u16) {
+    let _ = remote::start(remote::bind_addr(false, port), remote_backend(app));
 }
 
 /// Serve the LAN view on `port` (or only on this machine, `enabled` false: the listener stays for `tools/adm.mjs`),
@@ -160,7 +173,7 @@ pub fn remote_set(enabled: bool, port: u16, actions_allowed: bool, app: AppHandl
             Ok(())
         }
         (true, Some(p)) if p == port && remote::lan_on() => Ok(()),
-        (true, _) => serve(&app, true, port).map(|_| ()),
+        (true, _) => serve(&app, true, port).map(|_| ()).inspect_err(|_| fall_back_to_loopback(&app, port)),
     };
     let on = enabled && run.is_ok();
     settings::update(&path, |mut v| {
@@ -216,7 +229,9 @@ pub fn start_saved(app: &AppHandle) {
         Ok((enabled, port, actions, token)) => {
             remote::set_token(&token);
             remote::set_actions(actions);
-            let _ = serve(app, enabled, port);
+            if serve(app, enabled, port).is_err() && enabled {
+                fall_back_to_loopback(app, port); // the view stays saved on, with its error entry; the local listener is up if it can be
+            }
         }
         Err(e) => status::report(STATUS, status::State::Error, format!("remote view settings: {e}")),
     }
@@ -224,7 +239,8 @@ pub fn start_saved(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::{refused, remote_tithe};
+    use super::{record_bind, refused, remote_tithe};
+    use crate::status::{entry, State};
     use crate::{registry::Session, remote::Call};
     use serde_json::json;
 
@@ -243,6 +259,23 @@ mod tests {
         assert_eq!(refused(&roster, &orca("term_b", "yes")), None, "a safe petition is not refused here");
         assert_eq!(refused(&roster, &orca("term_zz", "yes")), None, "unknown: left to the answer's own checks");
         assert_eq!(refused(&roster, &Call::Honours), None);
+    }
+
+    #[test]
+    fn a_failed_bind_sets_the_remote_entry_to_error() {
+        record_bind(true, &Err("cannot listen on port 7770: address in use".into()));
+        let e = entry("remote").expect("recorded");
+        assert_eq!(e.state, State::Error, "the LAN view on but not running");
+        assert!(e.message.contains("not running") && e.message.contains("port 7770"), "{}", e.message);
+        // only the local listener failing is a warning: the LAN view is off, nothing the user asked for is missing
+        record_bind(false, &Err("cannot listen on port 7770: address in use".into()));
+        assert_eq!(entry("remote").unwrap().state, State::Warn);
+        // and a bind that works clears it
+        record_bind(true, &Ok(7770));
+        let ok = entry("remote").unwrap();
+        assert_eq!((ok.state, ok.message.as_str()), (State::Ok, "serving the LAN view on port 7770"));
+        record_bind(false, &Ok(7770));
+        assert!(entry("remote").unwrap().message.contains("127.0.0.1:7770 only"));
     }
 
     #[test]

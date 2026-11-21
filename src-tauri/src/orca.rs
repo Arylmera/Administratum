@@ -135,8 +135,9 @@ pub(crate) fn open_url(url: &str) -> std::io::Result<std::process::Child> {
 
 /// Switch Orca's foreground terminal to `handle`, open `url` in the default browser, or open that claude.ai
 /// session in the Claude desktop app. `target` is "orca:<handle>", "web:<url>" or "app:<url>"; every branch
-/// validates before touching the shell so a malformed roster entry can never inject arguments.
-#[tauri::command]
+/// validates before touching the shell so a malformed roster entry can never inject arguments. Off the main thread
+/// (async): the switch waits for Orca, up to its timeout.
+#[tauri::command(async)]
 pub fn open_session(target: String) -> Result<(), String> {
     if let Some(handle) = target.strip_prefix("orca:") {
         if !registry::valid_orca_handle(handle) {
