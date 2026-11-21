@@ -111,6 +111,24 @@ assert.equal(sealText(waiting), '', 'and so does the sealed tag');
   settings.cardOnClick = true; actors.delete(s.id); delete replies.open_session;
 }
 
+// The claude.ai link: with the Claude desktop app running (s.app) it says so and opens the session in the app.
+{
+  const { initCard, pick, closeCard } = await import('./card.js');
+  const card = document.getElementById('card');
+  const link = () => card.querySelectorAll('.links button')[1];
+  for (const [app, label, target] of [[true, 'Open in Claude', 'app:'], [false, 'Open on claude.ai', 'web:']]) {
+    const s = { id: `w${app}`, name: 'Scribe w', status: 'idle', source: 'claude', web: 'https://claude.ai/code/session_01w', app, sinceMs: 1 };
+    initCard({ cast: { actors }, roster: () => [s] });
+    actors.set(s.id, { id: s.id, s, leaving: false });
+    pick(s.id); await flush();
+    assert.equal(link().hidden, false, 'the link is shown');
+    assert.equal(link().textContent, label);
+    link().click(); await flush();
+    assert.deepEqual(invoked('open_session').at(-1).args, { target: `${target}https://claude.ai/code/session_01w` });
+    closeCard(); actors.delete(s.id);
+  }
+}
+
 // Away, leaving or helper actors carry no tag at all.
 assert.equal(stuckText({ ...plain, leaving: true }), '');
 assert.equal(stuckText({ ...plain, h: {} }), '');

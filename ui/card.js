@@ -272,8 +272,12 @@ function renderLinks(card, s) {
   note.hidden = !REMOTE || !s?.orca; // the terminal is on the PC's screen
   card.querySelector('.links').hidden = orca.hidden && web.hidden && note.hidden;
   // the card has done its job once the terminal or the web session is open: close it (closeCard)
+  // the Claude desktop app runs on this PC (s.app): the session opens in it, not in the browser; the remote view's
+  // link opens on its own device, so it stays the web page
+  const app = !REMOTE && !!s?.app;
+  web.textContent = app ? 'Open in Claude' : 'Open on claude.ai';
   orca.onclick = () => { openTarget(`orca:${s.orca}`); closeCard(); };
-  web.onclick = () => { openTarget(`web:${s.web}`); closeCard(); };
+  web.onclick = () => { openTarget(`${app ? 'app' : 'web'}:${s.web}`); closeCard(); };
 }
 
 function select(id) {
