@@ -18,6 +18,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Output, Stdio},
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{channel, Receiver},
         Arc, Condvar, Mutex,
     },
@@ -239,7 +240,9 @@ pub fn resolve_push(cwd: &Path, command: &str, output: &str) -> Option<Target> {
         Some(arg) => by_name(&arg)?,
         None => to.as_ref().and_then(|to| remotes.iter().find(|(_, u)| parse_remote_url(u).as_ref() == Some(to)).copied()).or_else(|| by_name("origin"))?,
     };
-    let repo = to.or_else(|| parse_remote_url(remote.1))?;
+    // the configured remote's url, never the transcript's `To` line: that only helped pick the remote above, so crafted
+    // output cannot point `gh` at another repository (a url git rewrote, `insteadOf`, is no GitHub url here: no watch)
+    let repo = parse_remote_url(remote.1)?;
     let sha = read_ref(&dirs.common, &format!("refs/remotes/{}/{}", remote.0, pushed.branch))?;
     if pushed.short.as_deref().is_some_and(|s| !sha.starts_with(s)) {
         return None;
@@ -316,9 +319,13 @@ fn status_outcome(s: &Value) -> Outcome {
 pub fn evaluate(check_runs: &str, status: &str) -> Result<Snapshot, String> {
     let runs: Value = serde_json::from_str(check_runs).map_err(|_| "check-runs: not JSON".to_string())?;
     let stat: Value = serde_json::from_str(status).map_err(|_| "status: not JSON".to_string())?;
+    let runs_total = runs["total_count"].as_u64();
     let runs = runs["check_runs"].as_array().ok_or("check-runs: no check_runs list")?;
     // the combined `state` of a commit with no statuses is "pending": only the list is read
+    let stats_total = stat["total_count"].as_u64();
     let stats = stat["statuses"].as_array().ok_or("status: no statuses list")?;
+    // one page only (`per_page=100`, and the status list's own default): checks beyond it were not seen
+    let unseen = runs_total.map_or(0, |n| n.saturating_sub(runs.len() as u64)) + stats_total.map_or(0, |n| n.saturating_sub(stats.len() as u64));
     let all = runs.iter().map(|r| ("run", r["name"].as_str(), run_outcome(r))).chain(stats.iter().map(|s| ("status", s["context"].as_str(), status_outcome(s))));
     let (mut ids, mut done, mut failed) = (vec![], 0, None);
     for (kind, name, outcome) in all {
@@ -333,10 +340,11 @@ pub fn evaluate(check_runs: &str, status: &str) -> Result<Snapshot, String> {
         ids.push(format!("{kind}:{}", name.unwrap_or("")));
     }
     ids.sort();
-    let total = ids.len() as u32;
+    let total = ids.len() as u32 + unseen.min(u32::MAX as u64 / 2) as u32;
     let verdict = match failed {
         Some(check) => Verdict::Fail(check),
         None if total == 0 => Verdict::NoCi,
+        // an incomplete set never passes: `total` counts what was not returned, so `done` stays below it
         None if done == total => Verdict::Pass,
         None => Verdict::Running,
     };
@@ -648,7 +656,14 @@ impl Watcher {
 
     /// Runs every due poll, one `gh` call at a time, and returns the watches that ended. With `enabled` false every
     /// watch and its lamp are dropped and no call is made. While a rate limit pauses, nothing runs.
+    #[cfg(test)]
     pub fn tick(&mut self, gh: &dyn Gh, now_ms: i64, enabled: bool) -> Vec<Finished> {
+        self.tick_with(gh, now_ms, enabled, &mut |_| {})
+    }
+
+    /// `tick`, calling `after_poll` with the watcher after each poll, so a slow `gh` call does not hold back what the
+    /// polls before it learned.
+    pub fn tick_with(&mut self, gh: &dyn Gh, now_ms: i64, enabled: bool, after_poll: &mut dyn FnMut(&Watcher)) -> Vec<Finished> {
         if !enabled {
             self.watches.clear();
             self.entries.clear();
@@ -677,6 +692,7 @@ impl Watcher {
                     break;
                 }
             }
+            after_poll(self);
         }
         finished
     }
@@ -897,7 +913,13 @@ pub struct Worker {
 impl Worker {
     /// One round: the hand-in, then every due poll. With `enabled` false no `gh` call is made and every watch is dropped;
     /// turning it on runs `gh auth status` once (never in the settings-save path: this runs on the watcher thread).
+    #[cfg(test)]
     pub fn step(&mut self, gh: &dyn Gh, now_ms: i64, input: Input) -> Step {
+        self.step_with(gh, now_ms, input, &mut |_| {})
+    }
+
+    /// `step`, calling `after_poll` with the watches after each poll (the hub publishes the cards and lamps then).
+    pub fn step_with(&mut self, gh: &dyn Gh, now_ms: i64, input: Input, after_poll: &mut dyn FnMut(&Watcher)) -> Step {
         let mut notes = vec![];
         if input.enabled && !self.on {
             notes.push(match auth_status(gh) {
@@ -914,7 +936,7 @@ impl Worker {
         for (dept, cwd) in &input.folders {
             self.watcher.start_check(input.enabled, dept, cwd, now_ms);
         }
-        let finished = self.watcher.tick(gh, now_ms, input.enabled);
+        let finished = self.watcher.tick_with(gh, now_ms, input.enabled, after_poll);
         for f in &finished {
             match &f.ended {
                 Ended::Skipped(reason) => notes.push((status::State::Warn, format!("CI check skipped: {reason}"))),
@@ -939,6 +961,9 @@ impl Worker {
 /// No lock is held across a `gh` call.
 #[derive(Default)]
 pub struct Hub {
+    /// `adm.ci` as the poll loop last said it, read before every `gh` call: the inbox's own flag is behind a lock the
+    /// worker only takes between steps, and a batch of polls must stop the moment the setting goes off.
+    on: AtomicBool,
     inbox: Mutex<Input>,
     wake: Condvar,
     view: Mutex<View>,
@@ -960,6 +985,7 @@ impl Hub {
     pub fn submit(&self, enabled: bool, pushes: Vec<CiPush>, folders: Vec<(String, String)>) {
         let mut inbox = crate::lock(&self.inbox);
         inbox.enabled = enabled;
+        self.on.store(enabled, Ordering::SeqCst);
         if enabled {
             inbox.pushes.extend(pushes);
             for (dept, cwd) in folders {
@@ -1011,12 +1037,17 @@ impl Hub {
         Input { enabled: inbox.enabled, pushes: std::mem::take(&mut inbox.pushes), folders: std::mem::take(&mut inbox.folders) }
     }
 
-    fn publish(&self, worker: &Worker, finished: Vec<Finished>) {
+    /// What the watches show now: the cards, the lamps and what `ci_open` may open.
+    fn publish_watches(&self, w: &Watcher) {
         let mut v = crate::lock(&self.view);
-        v.cards = worker.watcher.cards();
-        v.lamps = worker.watcher.lamp_rows();
-        v.links = worker.watcher.links();
-        v.verdicts.extend(finished);
+        v.cards = w.cards();
+        v.lamps = w.lamp_rows();
+        v.links = w.links();
+    }
+
+    fn publish(&self, worker: &Worker, finished: Vec<Finished>) {
+        self.publish_watches(&worker.watcher);
+        crate::lock(&self.view).verdicts.extend(finished);
     }
 
     /// The watcher thread's loop: it owns the `Watcher`, the clock and every `gh` call (one at a time).
@@ -1025,7 +1056,11 @@ impl Hub {
         loop {
             let input = self.next();
             // transcripts are untrusted input: a panic is logged and skipped, the watcher goes on
-            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| worker.step(gh, crate::now_ms(), input))) {
+            let gated = Gated { inner: gh, on: &self.on };
+            let stepped = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| worker.step_with(&gated, crate::now_ms(), input, &mut |w| self.publish_watches(w))));
+            match stepped {
+                // the setting went off during the step: what it learned or complained of is moot (the next step drops it all)
+                Ok(_) if !self.on.load(Ordering::SeqCst) => self.publish(&worker, vec![]),
                 Ok(step) => {
                     for (state, message) in step.notes {
                         status::report_change("gh", state, message);
@@ -1035,6 +1070,21 @@ impl Hub {
                 Err(_) => status::report("gh", status::State::Error, "CI watcher panicked, skipped"),
             }
         }
+    }
+}
+
+/// A `gh` runner that refuses every call once the setting is off: no process is spawned for the rest of a batch.
+struct Gated<'a> {
+    inner: &'a dyn Gh,
+    on: &'a AtomicBool,
+}
+
+impl Gh for Gated<'_> {
+    fn run(&self, args: &[&str]) -> Result<String, GhError> {
+        if !self.on.load(Ordering::SeqCst) {
+            return Err(GhError::Other("CI checks are off".into()));
+        }
+        self.inner.run(args)
     }
 }
 
@@ -2099,5 +2149,107 @@ mod tests {
         assert_eq!(first_of(&[me()], fake("404"), Duration::from_secs(20)).unwrap_err(), GhError::NoAccess);
         assert_eq!(first_of(&[nowhere], fake("ok"), Duration::from_secs(1)).unwrap_err(), GhError::Missing);
         assert_eq!(first_of(&[], fake("ok"), Duration::from_secs(1)).unwrap_err(), GhError::Missing);
+    }
+
+    // ---- review fixes: the switch mid-batch, a publish per poll, the repo's source, a truncated list ----
+
+    /// Records each call and flips the switch off during the first one.
+    struct Flip<'a> {
+        calls: RefCell<Vec<String>>,
+        on: &'a AtomicBool,
+    }
+
+    impl Gh for Flip<'_> {
+        fn run(&self, args: &[&str]) -> Result<String, GhError> {
+            self.calls.borrow_mut().push(args.join(" "));
+            self.on.store(false, Ordering::SeqCst);
+            Ok(runs(&[("a", "in_progress", None)]))
+        }
+    }
+
+    /// Two watches in two folders of one fake repo, both due at `T0 + 20 s`.
+    fn two_watches(name: &str) -> (PathBuf, Watcher) {
+        let d = temp(name);
+        let r = repo(&d, "b0", "git@github.com:o/r.git", None);
+        let mut w = Watcher::default();
+        for i in 0..2 {
+            let branch = format!("b{i}");
+            let sha = format!("{i:x}").repeat(40);
+            fs::write(r.join(".git/refs/remotes/origin").join(&branch), format!("{sha}\n")).unwrap();
+            let out = format!("To github.com:o/r.git\n   1a2b3c4..{}  {branch} -> {branch}\n", &sha[..7]);
+            let push = CiPush { session_id: format!("s{i}"), name: format!("n{i}"), dept: format!("D{i}"), cwd: r.to_string_lossy().into_owned(), command: "git push".into(), output: out };
+            assert!(w.on_push(true, &push, T0));
+        }
+        (d, w)
+    }
+
+    #[test]
+    fn a_batch_stops_at_the_switch_no_gh_call_after_it_goes_off() {
+        let (d, mut w) = two_watches("flip");
+        let on = AtomicBool::new(true);
+        let flip = Flip { calls: RefCell::default(), on: &on };
+        let gated = Gated { inner: &flip, on: &on };
+        w.tick(&gated, T0 + 20_000, true);
+        assert_eq!(flip.calls.borrow().len(), 1, "the call that flipped it was the last: {:?}", flip.calls.borrow());
+        w.tick(&gated, T0 + 50_000, true);
+        assert_eq!(flip.calls.borrow().len(), 1, "and none on the next round either");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn the_hub_gate_follows_submit() {
+        let hub = Hub::default();
+        let stub = Stub::always(Ok("x".into()));
+        let gated = Gated { inner: &stub, on: &hub.on };
+        hub.submit(true, vec![], vec![]);
+        assert!(gated.run(&["api", "x"]).is_ok());
+        hub.submit(false, vec![], vec![]);
+        assert!(gated.run(&["api", "x"]).is_err());
+        assert_eq!(stub.log().len(), 1, "the refused call never reached gh");
+    }
+
+    #[test]
+    fn the_watches_are_published_after_each_poll() {
+        let (d, mut w) = two_watches("per-poll");
+        let mut script = poll_answers(&[("a", "in_progress", None)], &[]);
+        script.extend(poll_answers(&[("a", "in_progress", None)], &[]));
+        let gh = Stub::new(script);
+        let mut seen = vec![];
+        w.tick_with(&gh, T0 + 20_000, true, &mut |w| seen.push(gh.log().len() + 100 * w.len()));
+        assert_eq!(seen, [202, 204], "called after the first poll's two gh calls, then after the second's");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn the_repo_comes_from_the_configured_remote_not_from_the_push_output() {
+        let d = temp("repo-source");
+        let r = repo(&d, "main", "git@github.com:o/r.git", Some(("main", SHA)));
+        let evil = "To github.com:evil/x.git\n   1a2b3c4..5d6e7f8  main -> main\n";
+        for command in ["git push", "git push origin"] {
+            let t = resolve_push(&r, command, evil).expect(command);
+            assert_eq!(t.repo.slug(), "o/r", "{command}: `To` did not choose the repository");
+        }
+        assert_eq!(resolve_push(&r, "git push", PUSHED).unwrap().repo.slug(), "o/r");
+        // a configured remote that is not GitHub: nothing to watch, whatever the output says
+        let g = repo(&d.join("g"), "main", "git@gitlab.com:o/r.git", Some(("main", SHA)));
+        assert!(resolve_push(&g, "git push", evil).is_none());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_truncated_check_list_never_passes() {
+        let page = |n: usize, total: usize| {
+            let r: Vec<Value> = (0..n).map(|i| json!({"name": format!("c{i}"), "status": "completed", "conclusion": "success"})).collect();
+            json!({"total_count": total, "check_runs": r}).to_string()
+        };
+        let snap = evaluate(&page(100, 150), &statuses(&[])).unwrap();
+        assert_eq!((snap.verdict, snap.done, snap.total), (Verdict::Running, 100, 150), "50 checks were not seen");
+        assert_eq!(evaluate(&page(100, 100), &statuses(&[])).unwrap().verdict, Verdict::Pass, "a full set still passes");
+        // statuses are cut too (30 per page by default)
+        let st = json!({"state": "success", "total_count": 45, "statuses": [{"context": "ci", "state": "success"}]}).to_string();
+        assert_eq!(evaluate(&runs(&[ok("a")]), &st).unwrap().verdict, Verdict::Running);
+        // a failure in the page is still a failure
+        let bad = json!({"total_count": 150, "check_runs": [{"name": "x", "status": "completed", "conclusion": "failure"}]}).to_string();
+        assert_eq!(evaluate(&bad, &statuses(&[])).unwrap().verdict, Verdict::Fail("x".into()));
     }
 }
