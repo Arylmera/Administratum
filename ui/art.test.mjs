@@ -10,6 +10,8 @@ import { BREAKOUT_SIZES, ENCLAVE_SIZES } from './layout.js';
 import { markOf, bodyOf, bodyOf39, liftOf } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
 import { checkSheet } from './artcheck.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {

@@ -59,7 +59,7 @@ const say = e => { try { return String(e?.message ?? e); } catch { return 'unrea
 // to the bytes (Uint8Array) of `path` = `<folder>/<file>` in the pack, and a missing file rejects with code 'ENOENT'
 // (absence: a world without faces, a 39° family not drawn yet); `dir` is the backend's own name for the pack's folder,
 // passed back to the reader verbatim and never used to build a path or URL here. Call it before sprites.js and
-// faces.js load: they read every theme's art once. Never throws.
+// faces.js load: they read the packs' art at start, and the other themes' when they are switched to. Never throws.
 export async function loadPacks(packs, read) {
   for (const pack of Array.isArray(packs) ? packs : []) {
     try { await loadPack(pack, read); } catch (e) { console.error(`theme pack: ${say(e)}`); }

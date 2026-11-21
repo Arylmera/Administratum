@@ -5,6 +5,8 @@ import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, ART, marked, rankLay
 import { bodyOf, bodyOf39 } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
 import { THEMES, setTheme } from './theme.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 // A frame whose every pixel is `c`, w x h art px: identity is checkable by its char.
 const F = (c, w = 4, h = 3) => Array.from({ length: h }, () => c.repeat(w));

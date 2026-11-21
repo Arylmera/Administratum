@@ -3,6 +3,8 @@ import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DE
 import { propsOf, WIN_Y, wallArt } from './scene.js';
 import { MAPS, RES, ART } from './sprites.js';
 import { setTheme, THEMES } from './theme.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
