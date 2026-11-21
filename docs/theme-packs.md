@@ -272,12 +272,18 @@ and the scribe keeps its seated frame.
 
 - Each is the scribe seen from behind at its desk, the size of the frame it replaces (`up 0` flat, `N 0` 2.5D) with the
   feet at the same place: draw it over a copy of that frame.
+- The 2.5D gestures may be copies of the flat ones when your 2.5D scribe reuses the flat drawing (your `N 0` is your
+  `up 0`). Otherwise draw each over your own `N 0`.
 - Each scribe keeps its own beat, so a department never thinks in unison.
 - A gesture frame is the whole scribe: the arms the default robe lays over a seated scribe and the dozing Zs are not
-  drawn over it. The ranks recolour it like every scribe frame.
-- They go in the sheet that holds your own scribe (`up 0` flat; the 2.5D sheet is always whole), with `scribe` (or
-  `scribe39`) in `art`. A gesture is played only with the body it was drawn for: one in a sheet without your own
-  `up 0` (or `N 0`) is never seen, and `node tools/theme_pack.mjs check` warns about it.
+  drawn over it. So draw the arms into the gesture frame yourself (the app's `arm` flat, `arm` and `armL` 2.5D are
+  not added). The ranks recolour it like every scribe frame.
+- They go in the sheet that holds your own scribe: the flat sheet with your `up 0`, the 2.5D sheet (which always holds
+  every 2.5D frame, `N 0` among them, or none), with `scribe` (or `scribe39`) in `art`. A gesture is played only with
+  the body it was drawn for: one in a sheet without your own `up 0` (or `N 0`) is never seen, and
+  `node tools/theme_pack.mjs check` warns about it.
+- An app older than 0.10.0 does not know the gesture frames and refuses a theme whose sheet carries them. From 0.10.0
+  on, a frame the app does not know is ignored with a warning (see Drawing art).
 
 ### Ranks
 
