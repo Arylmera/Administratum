@@ -110,6 +110,12 @@ user checks it in the named view. Every other check is a test that must be red b
    - **At the end:** a final status, and the conversation closed once the user says it is settled.
    - **Every message** is written to a file, goes through the skill's secret gate, and is shown to the user in full.
      It is sent only after the user's yes on that exact text. A yes covers one message.
+   - **This build's autonomous run:** on 2026-11-21 the user, away during the build, told the integrator in chat
+     to notify through Synedrium. For this run only, factual statuses (what landed, which proof passed, what comes
+     next, what is important for Christian to know) go out after the secret gate without a per-message yes. Every
+     sent text is logged word for word in the session's shared notes for the user's end review. A message that asks
+     Christian a decision, or decides anything on the user's behalf, still waits for the user. A reply from
+     Christian that asks for a plan change is recorded for the end review, not acted on.
    - A lane never reads or writes Synedrium itself; only the integrator does.
    - Checked 2026-11-21: `gh issue list -R Arylmera/Synedrium --state open` lists no open conversation, so nothing
      waits from Christian today.
@@ -248,7 +254,8 @@ Depends on W2 merged (tokens, CSS files, `dom.js`, `format.js`).
   and F8 is L3b's (the reset label). Uses the `--chart-*` tokens from L2a. With Q2, it also adds `cilamp` to each
   world's `art` list in `theme.json` for L3c (one agreed entry per world).
 - **L3c I6 lamp.** Only with Q2. The new art family `CILAMP` (`off`, `amber`, `green`, `red`, flat and 39°) in the
-  base art and each world's own redraw, drawn with the live sprite viewer open (CLAUDE.md); `ui/cilamp.js`, pure:
+  base art, which every world uses until it redraws it (per-world redraws are a later art task, so L3c needs no
+  `theme.json` entry from L3b), drawn with the live sprite viewer open (CLAUDE.md); `ui/cilamp.js`, pure:
   the lamp state of each department from the roster's `Session.ci`; its spot in each zone in `layout.js` (open hall:
   the department's block; rooms plan and custom rooms: in the room, one per department); drawn per frame in
   `scene.js` and `scene39.js`, and in the strip and the column. `tools/sprite_catalog.mjs` lists it; the galleries
