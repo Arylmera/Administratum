@@ -8,6 +8,8 @@ const faceOf = n => n.split(' ')[0];
 const GLYPH = { S: [5, 14], E: [11, 14], N: [8, 14], W: [9, 14] };
 const VIEW = { N: { back: true, cable: 17 }, W: { back: true, cable: 19 }, S: { front: true, cable: 17, lining: [6, 17] }, E: { side: true, cable: 6, lining: [9, 19] } };
 const inGlyph = (f, x, y) => { const [gx, gy] = GLYPH[f]; return x >= gx && x < gx + 10 && y >= gy && y < gy + 5; };
+// the glyph's place as the plain frame draws it, whatever the rank's drawing did around it
+const keepGlyph = (g, plain, f) => { const [gx, gy] = GLYPH[f]; for (let y = gy; y < gy + 5; y++) for (let x = gx; x < gx + 10; x++) g[y][x] = plain[y][x]; };
 
 function novice(plain, name) {
   const g = grid(plain), f = faceOf(name), v = VIEW[f];
@@ -17,6 +19,7 @@ function novice(plain, name) {
   paint(g, { y0: 19, y1: 23, from: CLOTH }, (x, y) => (inGlyph(f, x, y) ? null : y % 3 === 0 ? 'M' : (x + y) % 6 === 0 ? 'l' : 'm'));
   paint(g, { y0: 24, y1: 24, from: 'x' }, (x) => (x % 2 ? 'M' : 'm'));
   paint(g, { y0: 12, y1: 23, x0: v.cable, x1: v.cable, from: CLOTH + 'mMl' }, (x, y) => (inGlyph(f, x, y) ? null : 'C'));
+  keepGlyph(g, plain, f);
   return rows(g);
 }
 
@@ -33,6 +36,7 @@ function high(plain, name) {
     paint(g, { y0: 4, y1: 11, x0, x1, from: CLOTH }, (x, y) => (near(x, y) ? 'x' : null));
   }
   paint(g, { y0: 24, y1: 24, from: 'x' }, () => 'G');
+  keepGlyph(g, plain, f);
   return rows(g);
 }
 
