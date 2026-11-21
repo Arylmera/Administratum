@@ -103,8 +103,7 @@ const CHROMES = [...Object.keys(THEMES).map(id => [id, resolve(THEMES[id]).ui]),
 // Chrome colours: a theme's ui keys are CSS variables index.html declares.
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const base = fs.readFileSync(new URL('./css/base.css', import.meta.url), 'utf8'); // the :root defaults
-const styles = ['base', 'hall', 'panels'].map(f => fs.readFileSync(new URL(`./css/${f}.css`, import.meta.url), 'utf8')).join('
-');
+const styles = ['base', 'hall', 'panels'].map(f => fs.readFileSync(new URL(`./css/${f}.css`, import.meta.url), 'utf8')).join('\n');
 const cssVars = new Set([...base.slice(base.indexOf(':root {'), base.indexOf('}', base.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
 assert.ok(cssVars.size > 40, 'found the :root variables');
 for (const [id, chrome] of CHROMES) for (const [k, v] of Object.entries(chrome)) {
