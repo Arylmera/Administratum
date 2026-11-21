@@ -7,7 +7,7 @@ const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
 import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, lampSpots } from './layout.js';
-import { lampsAt, LAMP_SIZE, LENS } from './cilamp.js';
+import { lampsAt, lampLights, LAMP_SIZE, LENS } from './cilamp.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
@@ -383,7 +383,9 @@ export function drawScene(g, layout, actors, fillOf, now) {
     lights.push(consoleLight(c, lit));
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now, floor);
   }
-  for (const s of lampsAt(lampSpots(layout.blocks, H), now)) { // the CI lamps (cilamp.js): one a department, behind its desks; none while the list is empty
+  const lamps = lampsAt(lampSpots(layout.blocks, H, layout.desks), now);
+  lights.push(...lampLights(lamps)); // the lenses glow
+  for (const s of lamps) { // the CI lamps (cilamp.js): one a department, behind its desks; none while the list is empty
     const map = MAPS[s.frame], x = half(s.x - LAMP_SIZE[0] / 2), y = s.y - LAMP_SIZE[1];
     items.push({ y: s.y, draw: g2 => blit(g2, map, x, y, LENS[s.frame]) });
     floor.push(() => footShadow(g, shadowOf(map, x, y), shade));
