@@ -261,7 +261,16 @@ async fn theme_pack_install(repo: String, app: AppHandle) -> Result<packs::Pack,
     let root = themes_root(&app)?;
     let repo = repo.trim().to_string();
     let archive = download_pack(&repo, PACK_DOWNLOAD).await?;
-    tauri::async_runtime::spawn_blocking(move || packs::install(&root, &repo, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::install(&root, &repo, &archive, &now_utc()))).await.map_err(|e| e.to_string())?
+}
+
+/// One change to the themes folder at a time: the startup toast's Update, Settings' Update, Update all, Install and
+/// Remove may be asked for together, and two swaps of one pack would race (`packs::swap` puts the old pack back, but
+/// one of them fails and an `.old-*` folder waits for the next start). The downloads run outside it, in parallel.
+static PACK_DISK: Mutex<()> = Mutex::new(());
+fn on_pack_disk<T>(f: impl FnOnce() -> T) -> T {
+    let _held = lock(&PACK_DISK);
+    f()
 }
 
 /// Install the pack in the folder `dir` again from the repository it came from (`packs::update`); a local pack is
@@ -279,7 +288,7 @@ const PACK_CHECK: Duration = Duration::from_secs(20);
 async fn update_pack(root: PathBuf, dir: String) -> Result<packs::Updated, String> {
     let repo = packs::origin(&root, &dir)?;
     let archive = download_pack(&repo, PACK_DOWNLOAD).await?;
-    tauri::async_runtime::spawn_blocking(move || packs::update(&root, &dir, &archive, &now_utc())).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::update(&root, &dir, &archive, &now_utc()))).await.map_err(|e| e.to_string())?
 }
 
 /// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository is downloaded again,
@@ -300,7 +309,7 @@ async fn check_packs(app: AppHandle) {
             }
         };
         let (r, d) = (root.clone(), pack.dir.clone());
-        match tauri::async_runtime::spawn_blocking(move || packs::changed(&r, &d, &archive)).await {
+        match tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::changed(&r, &d, &archive))).await {
             Ok(Ok(true)) => found.push((pack.dir, repo)),
             Ok(Ok(false)) => {}
             Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),
@@ -354,7 +363,8 @@ async fn update_changed(app: AppHandle, root: PathBuf, found: Vec<(String, Strin
 /// Remove the pack in the folder `dir` (`packs::remove`); a local pack (a folder made by hand) is refused, never deleted.
 #[tauri::command(async)]
 fn theme_pack_remove(dir: String, app: AppHandle) -> Result<(), String> {
-    packs::remove(&themes_root(&app)?, &dir)
+    let root = themes_root(&app)?;
+    on_pack_disk(|| packs::remove(&root, &dir))
 }
 
 /// Restart the app (a pack installed, updated or removed is loaded at start).
@@ -909,6 +919,29 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn pack_changes_run_one_at_a_time() {
+        use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+        static IN: AtomicUsize = AtomicUsize::new(0);
+        static MOST: AtomicUsize = AtomicUsize::new(0);
+        let runs: Vec<_> = (0..4)
+            .map(|_| {
+                thread::spawn(|| {
+                    on_pack_disk(|| {
+                        MOST.fetch_max(IN.fetch_add(1, SeqCst) + 1, SeqCst);
+                        thread::sleep(Duration::from_millis(30));
+                        IN.fetch_sub(1, SeqCst);
+                    })
+                })
+            })
+            .collect();
+        for r in runs {
+            r.join().unwrap();
+        }
+        assert_eq!(MOST.load(SeqCst), 1, "never two changes to the themes folder at once");
+        assert_eq!(on_pack_disk(|| 7), 7, "the result comes back");
     }
 
     #[test]
