@@ -25,4 +25,17 @@
   /* the scroll rods */
   --rod-hi: #d8a050; --rod: #8a5320; --rod-lo: #4a2a0e; --rod-edge: #2a1606; --rod-cap: #f0d080;
 }
+
+/* Scales (F9): every spacing, type size, radius and layer the pages use, built from the values in use. The px steps are
+   named by their pixels; the em steps (--spe-: spacing, --fse-: type, by hundredths of an em) scale with the font size of
+   the panel or label they sit in (--k). css.test.mjs fails on a raw length for these properties outside this block. */
+:root {
+  --sp-1: 1px; --sp-2: 2px; --sp-3: 3px; --sp-4: 4px; --sp-6: 6px; --sp-8: 8px; --sp-10: 10px; --sp-12: 12px; --sp-16: 16px; --sp-24: 24px;
+  --spe-10: .1em; --spe-20: .2em; --spe-25: .25em; --spe-30: .3em; --spe-40: .4em; --spe-50: .5em; --spe-60: .6em; --spe-75: .75em;
+  --spe-80: .8em; --spe-90: .9em; --spe-100: 1em; --spe-120: 1.2em; --spe-150: 1.5em;
+  --fs-8: 8px; --fs-9: 9px; --fs-10: 10px; --fs-11: 11px; --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px; --fs-20: 20px; --fs-22: 22px; --fs-24: 24px;
+  --fse-80: .8em; --fse-85: .85em; --fse-90: .9em; --fse-100: 1em; --fse-110: 1.1em; --fse-170: 1.7em; --fse-190: 1.9em;
+  --r-2: 2px; --r-3: 3px; --r-4: 4px; --r-rod: .45em; --r-round: 50%;
+  --z-usage: 1; --z-edge: 2; --z-card: 3; --z-handle: 4; --z-chron: 5; --z-prefs: 6; --z-menu: 7;
+}
 button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
