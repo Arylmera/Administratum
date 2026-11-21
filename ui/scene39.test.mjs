@@ -7,6 +7,8 @@ import { use, pin, placeOf, actorFoot, actorAt39, frontShift, sitLevel, spriteOf
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf, doorFrame } from './scene.js';
 import { SCRIBE, SCRIBE39 } from './sprites.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 // facing from movement: E = +x, W = -x, S = +y, N = -y (floor space), from Cast.update's walk direction
 const cast = new Cast();

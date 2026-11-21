@@ -6,7 +6,7 @@
 // are read once and never written back: the view's own scale, lighting and chime stay in this browser.
 import { panel } from './panel.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
-import { T, THEMES, WORLDS, setTheme, t } from './theme.js';
+import { T, THEMES, WORLDS, switchTheme, t } from './theme.js';
 import { PACKS } from './themes.js';
 import { minutesOf, hhmmOf } from './quiet.js';
 import { view as viewMode, viewName, setView, onView, stripKind } from './view.js';
@@ -219,7 +219,7 @@ const setScale = v => { view.scale = okScale(String(v)); store.set('adm.scale', 
 
 // The panel's writes: the theme and view pickers, the saved settings, and what the backend is told.
 const styles = world => Object.values(THEMES).filter(th => th.world === world); // theme.js + themes.js
-const pickTheme = id => { store.set('adm.theme', id); setTheme(id); };
+const pickTheme = id => { store.set('adm.theme', id); return switchTheme(id).then(() => sync()); }; // its art loads first (sprites.js); sync when it is in
 const pickView = mode => {
   if (stripKind(mode) && !viewMode.strip) store.set('adm.hallView', viewMode.mode); // the way back (stripwin.js toggleStrip)
   if (stripKind(mode)) store.set('adm.stripKind', mode); // the tray's strip item goes back to it

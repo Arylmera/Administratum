@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import { BASE, TIER_II, THEMES, WORLDS, T, TEXT, resolve, defineTheme, setTheme, onTheme, themed, hexA, t } from './theme.js';
 import './themes.js';
 import { MAPS, SCRIBE, ADEPT } from './sprites.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const COLOR = /^(#[0-9a-f]{6}|rgba\(\d+,\d+,\d+,[\d.]+\))$/;
 const RGB = /^\d+,\d+,\d+$/;

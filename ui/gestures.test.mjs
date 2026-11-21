@@ -8,6 +8,8 @@ import { Cast, bodyOf, bodyOf39, gestureNow } from './actors.js';
 import { checkSheet, gestureWarnings, knownFrames } from './artcheck.js';
 import { THEMES, setTheme } from './theme.js';
 import './themes.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 // ---- the chooser ----
 const at = (s, t, has) => gestureOf({ id: 'sess-1', desk: true, busy: false, question: false, done: false, dozedFor: null, ...s }, t, has);

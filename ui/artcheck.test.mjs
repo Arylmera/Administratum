@@ -5,6 +5,8 @@ import { checkSheet, checkFaces, knownFrames, rankWarnings } from './artcheck.js
 import { ART, MAPS } from './sprites.js';
 import { FACES } from './faces.js';
 import { THEMES, setTheme } from './theme.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const rows = (w, h, c = 'k') => Array.from({ length: h }, () => c.repeat(w));
 const base = {

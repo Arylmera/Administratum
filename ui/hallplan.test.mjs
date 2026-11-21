@@ -12,6 +12,8 @@ import { settings, questions } from './settings.js';
 import { t, setTheme } from './theme.js';
 import './themes.js';
 import { sleepText } from './overlay.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 

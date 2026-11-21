@@ -84,7 +84,7 @@ do not know which.
 | `lighting.js`, `sun.js` | Darkness, light pools and glows; sunrise and sunset (NOAA) for *Auto* lighting |
 | `strip.js`, `stripwin.js`, `outline.js` | Desktop strip: its geometry, its window (the bar or the column, `adm.stripKind`), the 1 px outline around sprites |
 | `column.js`, `lift.js` | Desktop column: its floors, layout and routes (a cross-floor walk has one lift waypoint); the lift, a pure SCAN scheduler (FIFO calls, 3 riders, event-exact `step`) the cast rides (`actors.js`) |
-| `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder |
+| `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder. At start only the base art, the active theme's and the packs' load; another theme's loads when `theme.js` `switchTheme` asks (the old theme stays until it is in), and `loadAllArt()` loads every world (the art tools, the gallery, the tests that visit every theme). `faces.js` follows the same split |
 | `room.js`, `wallart.js` | The room from tiles (fill rules), the back wall's window and hangings |
 | `theme.js`, `themes.js`, `themepack.js`, `artcheck.js` | Themes: every colour and the wording; `setTheme`, `t()`; the loader of the themes' `theme.json` files and of the packs (`loadPacks`, `PACKS` and its warnings, `guarded`; at start the backend's packs, `readPack`), their check and recolouring; the shape of a theme's sheets |
 | `quiet.js` | Quiet hours, the same rule as `quiet.rs` |
@@ -159,6 +159,7 @@ when it loads. One file per module:
 | `lighting.test.mjs` | Flat lighting unchanged, 39° light heights |
 | `view.test.mjs` | Flat identity, 39° projection, scene size, inverse |
 | `iso.test.mjs` | 39° z-buffer: projection, boxes, decals, outline, depth sort |
+| `lazyart.test.mjs` | Lazy theme art: with a counting `fetch` stub, the start asks for the base sheets and the active theme's only; a switch waits for the new theme's sheets (the old theme stays meanwhile) and asks for those only; a switch back asks for nothing; the last of two overlapping switches wins; `loadAllArt()` loads every theme |
 | `faces.test.mjs` | Face sheets: flat frames rebuilt exactly, 39° volumes |
 | `flathall.test.mjs` | Flat hall: the static background's draw calls (hashes) |
 | `isohall.test.mjs` | 39° hall: room plan, prop placement, render (pixel hashes) |

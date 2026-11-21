@@ -214,6 +214,17 @@ export function setTheme(id) {
   Object.assign(T, { id: next.id, name: next.name, sash: next.sash, rank: next.rank, ui: next.ui, text: next.text, gen: T.gen + 1 });
   for (const f of listeners) f(T);
 }
+// Switches to theme `id` once what it draws with is in: a loader (beforeTheme: sprites.js, its art) returns a promise while
+// it has something to load, else nothing, and then the switch is immediate. The old theme stays until then, so nothing
+// draws half-loaded; of overlapping calls the last wins; a loader that fails sends the hall back to Tier II.
+const loaders = new Set();
+export const beforeTheme = fn => { loaders.add(fn); };
+let wanted = null;
+export function switchTheme(id) {
+  const mine = wanted = {}, pending = [...loaders].map(f => f(id)).filter(Boolean);
+  if (!pending.length) { setTheme(id); return Promise.resolve(); }
+  return Promise.all(pending).catch(e => { console.error(`theme ${id}: ${e?.message ?? e}`); id = 'tier2'; }).then(() => { if (wanted === mine) setTheme(id); });
+}
 // fn(T) after every theme change (drop caches drawn with the old colours).
 export const onTheme = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 // A value built from the active theme, rebuilt once after each change: keeps a stable identity in between, so the

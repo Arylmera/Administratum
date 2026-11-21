@@ -5,7 +5,7 @@ import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
 import { RES } from './sprites.js';
-import { T, onTheme, setTheme, t, hexA } from './theme.js';
+import { T, onTheme, switchTheme, t, hexA } from './theme.js';
 import { guarded } from './themes.js'; // registers the themes beyond Tier II
 import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
 import { initChronicon } from './chronicon.js';
@@ -26,7 +26,7 @@ import { rooms } from './rooms.js';
 import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale, colHeight } from './stripwin.js';
 
 // The saved theme first: everything below draws in its colours and words (Settings changes it, adm.theme).
-setTheme(store.get('adm.theme', 'tier2'));
+await switchTheme(store.get('adm.theme', 'tier2')); // its art loads first (sprites.js: only the saved theme's at start)
 // The saved view (adm.view): flat or 39°, switched live (caches dropped like a theme change). The strip and the column
 // wait for the backend's yes (strip_supported); the hall view draws meanwhile.
 const saved = store.get('adm.view', 'flat');

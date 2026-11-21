@@ -35,7 +35,7 @@
 // '<NAME> <detail> <recess> wall|floor'. faces.png and faces.json are hand-edited source (no generator).
 import { T, THEMES } from './theme.js';
 import { VS39 } from './iso.js';
-import { MAPS, ART, framesOf } from './sprites.js';
+import { MAPS, ART, framesOf, onLoadArt } from './sprites.js';
 import { loadSheet } from './art.js';
 import { artRootOf, dropTheme, packOf } from './themes.js';
 import { checkFaces } from './artcheck.js';
@@ -63,7 +63,15 @@ async function load(id) {
 }
 const base = await load('tier2');
 const worlds = {};
-await Promise.all(Object.values(THEMES).filter(t => t.art).map(async t => { worlds[t.id] = await load(t.id); }));
+// The faces of theme `id` (and the folder it borrows, artOf), read once: at start the active theme's and the packs' (as
+// sprites.js loads their sheets), then each other theme's when sprites.js loadArt asks (a switch, loadAllArt).
+const reading = new Map();
+const loadFaces = id => Promise.all([...new Set([id, ART.dirOf(id)])].map(i => THEMES[i]).filter(t => t?.art).map(t => {
+  if (!reading.has(t.id)) reading.set(t.id, load(t.id).then(w => { worlds[t.id] = w; }, e => { reading.delete(t.id); throw e; }));
+  return reading.get(t.id);
+}));
+onLoadArt(loadFaces);
+await Promise.all([T.id, ...Object.keys(THEMES).filter(packOf)].map(loadFaces));
 // For the tests and the art tools: each folder's data, and the names of the objects with face sheets.
 export const FACES = { base, worlds };
 export const FACE_OBJECTS = Object.keys(base.objects);
