@@ -22,7 +22,7 @@ import { hhmmLocale } from './format.js';
 import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard, actionsOn, noActions } from './card.js';
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
-import { initOverlay, renderPlaques, syncLabels, syncScribeKeys, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, sleepTags, sleepText, watchTags, watchText } from './overlay.js';
+import { initOverlay, renderPlaques, syncLabels, syncScribeKeys, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, sleepTags, sleepText, watchTags, watchText, syncLampKeys, litLamps, lampHit, openLamp } from './overlay.js';
 import { rooms } from './rooms.js';
 import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale, colHeight } from './stripwin.js';
 
@@ -283,6 +283,7 @@ const draw = guarded(now => {
   renderPlaques(view.blocks);
   syncLabels();
   syncScribeKeys(); // after the labels: a petitioner's label has its own button
+  syncLampKeys();
   syncTags(sealTags, 'sealed', sealText, 0, -18);
   syncTags(stuckTags, 'stuck', stuckText, 0, -18);
   syncTags(sheetTags, 'sheets', sheetText, 10, -2);
@@ -359,7 +360,7 @@ function consolesOf(dept) {
   return order;
 }
 
-initOverlay({ cast, canvas, overlay, at, feet, strip, hall: () => hall, layout: () => layout, roster: () => roster, mouse: () => mouse, actorAt, paused, hhmm: hhmmLocale }); // plaques, labels, tags, edges, tip (overlay.js)
+initOverlay({ cast, canvas, overlay, at, feet, strip, hall: () => hall, layout: () => layout, roster: () => roster, mouse: () => mouse, actorAt, lampAt, paused, hhmm: hhmmLocale }); // plaques, labels, tags, edges, tip (overlay.js)
 
 listen('strip-cursor', ({ payload: p }) => {
   if (!strip()) return;
@@ -382,6 +383,13 @@ function actorAt(e) {
   }
   return best;
 }
+// The lit CI lamp under a pointer (overlay.js lampHit over the lamps' spots and states), through `at` so the 39° view's
+// projected feet count too; its rect is 5 x 10 px, so a touch pointer gets a wider margin.
+const lampPad = () => (coarse.matches ? 5 : 2);
+function lampAt(e) {
+  const r = canvas.getBoundingClientRect();
+  return lampHit(litLamps(), (e.clientX - r.left) / scale, (e.clientY - r.top) / scale, at, lampPad());
+}
 // The cast's rects in window CSS px, as actorAt tests them (the flat projection: the strip and the column).
 function actorRects() {
   const r = canvas.getBoundingClientRect(), out = [];
@@ -390,11 +398,16 @@ function actorRects() {
     const hw = (a.h ? 6 : 8) + 1, ht = (a.h ? 14 : 17) + 1;
     out.push([r.left + (a.x - hw) * scale, r.top + (a.y - ht) * scale, r.left + (a.x + hw) * scale, r.top + (a.y + 1) * scale]);
   }
+  if (!REMOTE) for (const { s } of litLamps()) { // the lit lamps take clicks too (lampAt's rect): the strip's window passes the rest through
+    const [fx, fy] = at(s.x, s.y), p = lampPad();
+    out.push([r.left + (fx - 2.5 - p) * scale, r.top + (fy - 10 - p) * scale, r.left + (fx + 2.5 + p) * scale, r.top + (fy + p) * scale]);
+  }
   return out;
 }
 canvas.onclick = e => {
   if (dragged) { setDragged(false); return; } // the end of a pan, not a click
-  const a = actorAt(e); if (a) pick(a.id); else closeCard();
+  const a = actorAt(e), l = !a && !REMOTE && lampAt(e);
+  if (a) pick(a.id); else if (l) openLamp(l.dept); else closeCard();
 };
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own. The event's
 // path, not its target's ancestors: a kin link or "+N more" is removed by its own click (the card re-renders).

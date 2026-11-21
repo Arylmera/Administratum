@@ -41,6 +41,7 @@ export function renderCard() {
     renderAnswer(card, null);
     card.querySelector('.noact').hidden = actions; // remote, actions off: no Cancel, the note says why
     renderLinks(card, null);
+    renderCi(card, null);
     card.querySelector('.kin').hidden = true;
     return;
   }
@@ -57,6 +58,7 @@ export function renderCard() {
     renderTurn(card, null);
     renderAnswer(card, null);
     renderLinks(card, owner);
+    renderCi(card, null);
     card.querySelector('.kin').hidden = true;
     return;
   }
@@ -83,6 +85,7 @@ export function renderCard() {
   renderTurn(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
+  renderCi(card, s);
   renderKin(card, s);
 }
 
@@ -263,6 +266,44 @@ function renderAnswer(card, s) {
   }
 }
 
+// What a card (or a lamp's tip) says of a CI state (I6; the words are theme.js `ci.*`, placeholders {branch} {sha} {done}
+// {total} {check}): '' for no state or none. `ci` is Session.ci, or a lamp's { state, branch, sha7, failed }.
+export const ciLine = ci => (!ci || !ci.state || ci.state === 'none' ? ''
+  : t(`ci.${ci.state}`, { branch: ci.branch ?? '', sha: ci.sha7 ?? '', done: ci.done ?? '', total: ci.total ?? '', check: ci.failed ?? '' }));
+// The CI line of a card: one button (the remote view: plain text, it has no command) that opens the commit's checks page
+// from the session id; the backend finds the page, a rejection shows on the card like a failed open. After the links.
+function renderCi(card, s) {
+  let row = card.querySelector('.ci');
+  if (!row) {
+    row = document.createElement('div'); row.className = 'ci';
+    card.querySelector('.links').after(row);
+    const err = document.createElement('div'); err.className = 'open-err'; err.hidden = true;
+    row.after(err);
+  }
+  const text = ciLine(s?.ci), err = card.querySelector('.open-err');
+  row.hidden = !text;
+  if (text && row.dataset.text !== `${REMOTE}|${text}`) {
+    row.dataset.text = `${REMOTE}|${text}`;
+    if (REMOTE) row.replaceChildren(text);
+    else {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ci-line'; b.textContent = text; b.title = t('ci.open');
+      row.replaceChildren(b);
+    }
+  }
+  const b = row.querySelector('.ci-line');
+  if (b && s) b.onclick = () => { clearOpenErr(); invoke('ci_open', { who: s.id }).catch(e => showOpenErr(s.id, e)); };
+  err.textContent = s && openErr?.id === s.id ? openErr.text : '';
+  err.hidden = !err.textContent;
+}
+// A failed open (the terminal, the claude.ai session, the checks page): its error on the card, until the next action or
+// pick. The links close the card on a click, so a failure selects that session's card again.
+let openErr = null;
+const clearOpenErr = () => { openErr = null; };
+function showOpenErr(id, e) {
+  openErr = { id, text: String(e) };
+  sel = id; renderCard();
+}
+
 function renderLinks(card, s) {
   const [orca, web] = card.querySelectorAll('.links button'), note = card.querySelector('.links .note');
   // the click that opened this card already opened the terminal (pick): no button for it, unless an answer failed
@@ -276,11 +317,12 @@ function renderLinks(card, s) {
   // link opens on its own device, so it stays the web page
   const app = !REMOTE && !!s?.app;
   web.textContent = app ? 'Open in Claude' : 'Open on claude.ai';
-  orca.onclick = () => { openTarget(`orca:${s.orca}`); closeCard(); };
-  web.onclick = () => { openTarget(`${app ? 'app' : 'web'}:${s.web}`); closeCard(); };
+  orca.onclick = () => { clearOpenErr(); openTarget(`orca:${s.orca}`, e => showOpenErr(s.id, e)); closeCard(); };
+  web.onclick = () => { clearOpenErr(); openTarget(`${app ? 'app' : 'web'}:${s.web}`, e => showOpenErr(s.id, e)); closeCard(); };
 }
 
 function select(id) {
+  clearOpenErr();
   sel = sel === id ? null : id;
   if (sel !== opened) opened = null; // another card (a kin link): its terminal was not opened
   const s = rosterOf().find(r => r.id === id);
@@ -306,7 +348,7 @@ export function pick(id) {
   // the terminal did not open: Open in Orca comes back on its card; with no card for this click (the setting off), a
   // toast says so (main.rs open_failed), or the click would seem to do nothing
   if (s?.orca) openTarget(`orca:${s.orca}`, err => {
-    if (opened === id) { opened = null; renderCard(); } else if (!shown) invoke('open_failed', { name: String(s.name ?? ''), error: String(err) }).catch(() => {});
+    if (opened === id) { opened = null; showOpenErr(id, err); } else if (!shown) invoke('open_failed', { name: String(s.name ?? ''), error: String(err) }).catch(() => {});
   });
   if (!shown) { closeCard(); return; }
   opened = orca && sel !== id ? id : null; // the card about to open (select toggles a second click shut)

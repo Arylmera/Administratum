@@ -87,3 +87,81 @@ assert.deepEqual(watchLines({}), []);
   assert.equal(cacheLine(at('idle', now + M, 5 * M, 'nap'), now), '');
   assert.deepEqual(watchLines({}, at('idle', now - 1), now), ['cache cold']);
 }
+
+// I6: the CI line of a card (words: theme.js `ci.*`, set here as lane L4a's placeholders {branch} {sha} {done} {total} {check}).
+{
+  const { install, flush, invoked, replies } = await import('./testdom.mjs');
+  const { T } = await import('./theme.js');
+  const { ciLine, initCard, pick, closeCard } = await import('./card.js');
+  install();
+  T.text.ci = { open: 'Open the checks page', running: 'CI · {branch} · {sha} · running {done}/{total}', pass: 'CI · {branch} · {sha} · passed',
+    fail: 'CI · {branch} · {sha} · failed: {check}', timeout: 'CI · {branch} · {sha} · no verdict after 30 min', error: 'CI · {branch} · {sha} · could not be read' };
+  const ci = (state, extra = {}) => ({ repo: 'a/b', branch: 'feat', sha7: '5d6e7f8', state, done: 3, total: 5, failed: null, ...extra });
+  assert.equal(ciLine(ci('running')), 'CI · feat · 5d6e7f8 · running 3/5');
+  assert.equal(ciLine(ci('pass')), 'CI · feat · 5d6e7f8 · passed');
+  assert.equal(ciLine(ci('fail', { failed: 'build' })), 'CI · feat · 5d6e7f8 · failed: build');
+  assert.equal(ciLine(ci('timeout')), 'CI · feat · 5d6e7f8 · no verdict after 30 min');
+  assert.equal(ciLine(ci('error')), 'CI · feat · 5d6e7f8 · could not be read');
+  assert.equal(ciLine(ci('none')), '', 'no CI found: no line');
+  assert.equal(ciLine(null), '', 'a session that never pushed');
+
+  const actors = new Map(), card = document.getElementById('card');
+  let list = [];
+  initCard({ cast: { actors }, roster: () => list });
+  const show = async s => { list = [s]; actors.set(s.id, { id: s.id, s, leaving: false }); pick(s.id); await flush(); };
+  const row = () => card.querySelector('.ci'), line = () => card.querySelector('.ci-line'), openErr = () => card.querySelector('.open-err');
+  const base = { id: 'c1', name: 'Scribe c', dept: 'D', status: 'idle', source: 'claude', sinceMs: 1 };
+  for (const [state, want] of [['running', 'CI · feat · 5d6e7f8 · running 3/5'], ['pass', 'CI · feat · 5d6e7f8 · passed'], ['fail', 'CI · feat · 5d6e7f8 · failed: build'],
+    ['timeout', 'CI · feat · 5d6e7f8 · no verdict after 30 min'], ['error', 'CI · feat · 5d6e7f8 · could not be read']]) {
+    await show({ ...base, ci: ci(state, { failed: 'build' }) });
+    assert.equal(row().hidden, false, `${state}: the line shows`);
+    assert.equal(line().textContent, want);
+    assert.equal(line().localName, 'button', 'a real button: keyboard reachable');
+    assert.equal(line().title, 'Open the checks page');
+    closeCard(); actors.clear();
+  }
+  for (const s of [{ ...base, ci: null }, { ...base, ci: ci('none') }, { ...base }]) {
+    await show(s);
+    assert.equal(card.hidden, false);
+    assert.equal(row().hidden, true, 'no line for a null or none ci');
+    closeCard(); actors.clear();
+  }
+
+  // the click: ci_open with the session id, never a URL; a rejection shows on the card, the next pick clears it
+  await show({ ...base, ci: ci('pass') });
+  const before = invoked('ci_open').length;
+  line().click(); await flush();
+  assert.equal(invoked('ci_open').length, before + 1);
+  assert.deepEqual(invoked('ci_open').at(-1).args, { who: 'c1' }, 'the session id, nothing else');
+  assert.ok(!JSON.stringify(invoked('ci_open').at(-1).args).includes('http'), 'never a URL');
+  assert.equal(openErr().hidden, true, 'it opened: no error');
+  replies.ci_open = new Error('could not open the checks page: no browser');
+  line().click(); await flush();
+  assert.equal(openErr().hidden, false);
+  assert.equal(openErr().textContent, 'could not open the checks page: no browser', 'the error is on the card');
+  pick('c1'); pick('c1'); await flush(); // closes it, then reopens it: the next pick
+  assert.equal(openErr().hidden, true, 'cleared on the next pick');
+  delete replies.ci_open;
+  closeCard(); actors.clear();
+
+  // F5: a failed open from the card (the terminal a pick opens, the Open in Orca and claude.ai buttons) shows its error on the
+  // card, not only in the console; the buttons close the card on a click, so a failure shows it again
+  for (const [i, extra, msg] of [[0, { orca: 'term_x' }, 'orca not found'], [1, { web: 'https://claude.ai/code/session_01x' }, 'no claude.ai']]) {
+    replies.open_session = new Error(msg);
+    await show({ ...base, id: `o${i}`, ...extra }); // an Orca session: the pick's own open fails here
+    const button = () => card.querySelectorAll('.links button')[i];
+    assert.equal(card.hidden, false);
+    if (i === 0) assert.equal(openErr().textContent, msg, 'the pick that could not open the terminal says so on the card');
+    else assert.equal(openErr().hidden, true, 'nothing failed yet');
+    assert.equal(button().hidden, false, 'the link is offered');
+    button().click(); await flush();
+    assert.equal(card.hidden, false, 'the failure shows the card again');
+    assert.equal(openErr().textContent, msg, 'on the card, not only in the console');
+    replies.open_session = undefined;
+    button().click(); await flush();
+    assert.equal(card.hidden, true, 'the next action opened: the card is done');
+    pick(`o${i}`); await flush();
+    assert.equal(openErr().hidden, true, 'and the error did not come back');
+    closeCard(); actors.clear(); delete replies.open_session;
+  }
+}
