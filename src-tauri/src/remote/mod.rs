@@ -1,6 +1,7 @@
 //! Remote view: the widget served to devices on the local network (docs/remote-api.md).
 //!
-//! A minimal std HTTP/1.1 server (one request per connection), bound only while enabled. Every request must come from a loopback or
+//! A minimal std HTTP/1.1 server (one request per connection), always listening: on every interface while the LAN view
+//! is on, on 127.0.0.1 only while it is off (for `tools/adm.mjs`), on the same port. Every request must come from a loopback or
 //! private peer, name an IP or localhost as its Host, and carry the pairing token (query `t`
 //! once, then an HttpOnly SameSite=Strict cookie). The decision is `route` (pure, tested); the
 //! I/O around it is `handle`. Live events fan out to `/events` clients through bounded channels.
@@ -189,6 +190,16 @@ fn action_gate(req: &Req, actions: bool) -> Option<u16> {
     }
 }
 
+/// The gate of `GET /api/peek_petition`: the remote actions switch, like answering. It reads the screen of a
+/// terminal (the question a command asks), so it is not open to a client that may not act. A GET carries no body, and
+/// a browser adds no `Origin` to a same-origin GET, so only what the browser does send is checked: a cross-origin
+/// `Origin` or `Sec-Fetch-Site` is refused.
+fn peek_gate(req: &Req, actions: bool) -> Option<u16> {
+    let h = |n| header(req.headers, n);
+    let same_origin = h("origin").is_none_or(|o| h("host").is_some_and(|host| o == format!("http://{host}"))) && h("sec-fetch-site").is_none_or(|s| s == "same-origin");
+    (!actions || !same_origin).then_some(403)
+}
+
 fn route(req: &Req, token: &str, actions: bool) -> Route {
     if !req.peer.is_some_and(allowed_peer) || !header(req.headers, "host").is_some_and(host_ok) {
         return Route::Status(403);
@@ -210,7 +221,7 @@ fn route(req: &Req, token: &str, actions: bool) -> Route {
         ("GET", "/api/chronicle_days") => Route::Call(Call::ChronicleDays),
         ("GET", "/api/honours") => Route::Call(Call::Honours),
         ("GET", "/api/settings_load") => Route::Call(Call::SettingsLoad),
-        ("GET", "/api/peek_petition") => with("handle", Call::PeekPetition),
+        ("GET", "/api/peek_petition") => peek_gate(req, actions).map_or_else(|| with("handle", Call::PeekPetition), Route::Status),
         ("GET", "/api/theme_packs") => Route::Call(Call::ThemePacks),
         ("POST", "/api/answer_petition") => action_gate(req, actions).map_or(Route::Answer, Route::Status),
         ("POST", "/api/vigil") => action_gate(req, actions).map_or(Route::Vigil, Route::Status),
@@ -271,6 +282,8 @@ static ACTIONS: AtomicBool = AtomicBool::new(false);
 
 struct Running {
     port: u16,
+    /// Listening on every interface (the LAN view is on), not on 127.0.0.1 only.
+    lan: bool,
     stop: Arc<AtomicBool>,
     thread: thread::JoinHandle<()>,
 }
@@ -290,6 +303,16 @@ pub fn set_actions(on: bool) {
 
 pub fn running_port() -> Option<u16> {
     crate::lock(&SERVER).as_ref().map(|r| r.port)
+}
+
+/// Whether the server listens on every interface (the LAN view), not only on this machine.
+pub fn lan_on() -> bool {
+    crate::lock(&SERVER).as_ref().is_some_and(|r| r.lan)
+}
+
+/// Where the server listens: every interface while the LAN view is on, 127.0.0.1 only while it is off.
+pub fn bind_addr(lan: bool, port: u16) -> SocketAddr {
+    SocketAddr::from((if lan { Ipv4Addr::UNSPECIFIED } else { Ipv4Addr::LOCALHOST }, port))
 }
 
 /// (Re)start on `addr`; returns the bound port. One thread blocked in accept; one short-lived
@@ -322,7 +345,7 @@ pub fn start(addr: SocketAddr, backend: Backend) -> Result<u16, String> {
             });
         }
     });
-    *crate::lock(&SERVER) = Some(Running { port, stop, thread });
+    *crate::lock(&SERVER) = Some(Running { port, lan: !addr.ip().is_loopback(), stop, thread });
     Ok(port)
 }
 
@@ -561,6 +584,11 @@ mod tests {
         route(&Req { method: "GET", url, headers, peer: Some("192.168.1.20".parse().unwrap()) }, TOK, false)
     }
 
+    /// A GET with the remote actions switch on.
+    fn get_acting(url: &str, headers: &[(String, String)]) -> Route {
+        route(&Req { method: "GET", url, headers, peer: Some("192.168.1.20".parse().unwrap()) }, TOK, true)
+    }
+
     fn authed(extra: &[(&str, &str)]) -> Vec<(String, String)> {
         let mut v = h(&[("host", "192.168.1.5:7770"), ("cookie", &format!("theme=x; adm_t={TOK}"))]);
         v.extend(h(extra));
@@ -626,8 +654,8 @@ mod tests {
         assert_eq!(get("/api/chronicle_days", &a), Route::Call(Call::ChronicleDays));
         assert_eq!(get("/api/honours", &a), Route::Call(Call::Honours));
         assert_eq!(get("/api/settings_load", &a), Route::Call(Call::SettingsLoad));
-        assert_eq!(get("/api/peek_petition?handle=term_ab%2D1", &a), Route::Call(Call::PeekPetition("term_ab-1".into())));
-        assert_eq!(get("/api/peek_petition?handle=%zz", &a), Route::Status(400));
+        assert_eq!(get_acting("/api/peek_petition?handle=term_ab%2D1", &a), Route::Call(Call::PeekPetition("term_ab-1".into())));
+        assert_eq!(get_acting("/api/peek_petition?handle=%zz", &a), Route::Status(400));
         assert_eq!(get("/api/open_session?target=x", &a), Route::Status(404));
         assert_eq!(get("/api/answer_petition", &a), Route::Status(404));
         assert_eq!(get("/remote.js", &a), Route::RemoteJs);
@@ -638,6 +666,32 @@ mod tests {
         assert_eq!(percent_decode("a%20b+c%C3%A9"), Some("a b cé".into()));
         assert_eq!(percent_decode("%4"), None);
         assert_eq!(percent_decode("%ff"), None);
+    }
+
+    #[test]
+    fn peek_petition_is_behind_the_remote_actions_gate() {
+        let a = authed(&[]);
+        let url = "/api/peek_petition?handle=term_1";
+        assert_eq!(get(url, &a), Route::Status(403), "actions off: the terminal's screen is not read");
+        assert_eq!(get_acting(url, &a), Route::Call(Call::PeekPetition("term_1".into())));
+        // what a browser adds to a same-origin GET passes; a cross-origin one does not
+        assert_eq!(get_acting(url, &authed(&[("origin", "http://192.168.1.5:7770"), ("sec-fetch-site", "same-origin")])), Route::Call(Call::PeekPetition("term_1".into())));
+        assert_eq!(get_acting(url, &authed(&[("origin", "http://evil.example")])), Route::Status(403));
+        assert_eq!(get_acting(url, &authed(&[("sec-fetch-site", "cross-site")])), Route::Status(403));
+        // the other gates still come first: not paired, not a private peer
+        assert_eq!(get_acting(url, &h(&[("host", "192.168.1.5:7770")])), Route::Unauthorized);
+        let far = route(&Req { method: "GET", url, headers: &a, peer: Some("8.8.8.8".parse().unwrap()) }, TOK, true);
+        assert_eq!(far, Route::Status(403));
+        // the read routes without a screen stay open to a paired client with actions off
+        assert_eq!(get("/api/honours", &a), Route::Call(Call::Honours));
+    }
+
+    #[test]
+    fn the_server_listens_on_loopback_only_while_the_lan_view_is_off() {
+        assert_eq!(bind_addr(false, 7770), "127.0.0.1:7770".parse().unwrap());
+        assert!(bind_addr(false, 7770).ip().is_loopback());
+        assert_eq!(bind_addr(true, 7770), "0.0.0.0:7770".parse().unwrap());
+        assert!(!bind_addr(true, 7770).ip().is_loopback(), "on: every interface, loopback included");
     }
 
     #[test]
@@ -789,7 +843,12 @@ mod tests {
             let c = if cookie { format!("Cookie: adm_t={TOK}\r\n") } else { String::new() };
             send(format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n{c}Connection: close\r\n\r\n"))
         };
+        // the loopback listener (what the LAN view being off leaves) pairs like any other: no token, no answer
+        assert!(!lan_on(), "a loopback bind is not the LAN view");
         assert!(get("/", false).starts_with("HTTP/1.1 401"));
+        assert!(get("/api/chronicle_days", false).starts_with("HTTP/1.1 401"), "no token: no data");
+        assert!(get("/events", false).starts_with("HTTP/1.1 401"));
+        assert!(get("/api/chronicle_days", false).contains("Not paired") && !get("/api/chronicle_days", false).contains("ChronicleDays"));
         let paired = get(&format!("/?t={TOK}"), false);
         assert!(paired.starts_with("HTTP/1.1 200") && paired.contains("url=/") && paired.contains(&format!("Set-Cookie: adm_t={TOK}; Path=/; HttpOnly; SameSite=Strict")), "{paired}");
         let page = get("/", true);
@@ -803,7 +862,10 @@ mod tests {
             ))
         };
         assert!(answer("{}").starts_with("HTTP/1.1 403"));
+        assert!(get("/api/peek_petition?handle=term_1", true).starts_with("HTTP/1.1 403"), "peek: actions off");
         set_actions(true);
+        let peek = get("/api/peek_petition?handle=term_1", true);
+        assert!(peek.starts_with("HTTP/1.1 200") && peek.contains("PeekPetition"), "{peek}");
         assert!(answer(&big).starts_with("HTTP/1.1 413"));
         assert!(answer("{\"handle\":\"term_1\"}").starts_with("HTTP/1.1 400"));
         let ok = answer("{\"handle\":\"term_1\",\"choice\":\"yes\"}");

@@ -15,6 +15,7 @@ mod registry;
 mod remote;
 mod rooms;
 mod settings;
+mod status;
 mod strip;
 mod toast;
 mod vigil;
@@ -313,7 +314,7 @@ async fn check_packs(app: AppHandle) {
         let archive = match download_pack(&repo, PACK_CHECK).await {
             Ok(a) => a,
             Err(e) => {
-                eprintln!("pack check: {repo}: {e}");
+                status::report("packs", status::State::Warn, format!("pack check: {repo}: {e}"));
                 continue;
             }
         };
@@ -323,7 +324,7 @@ async fn check_packs(app: AppHandle) {
             let c = packs::changed(&r, &d, &archive)?;
             if !c {
                 if let Err(e) = packs::mark_checked(&r, &d, &now_utc()) {
-                    eprintln!("pack check: {d}: {e}");
+                    status::report("packs", status::State::Warn, format!("pack check: {d}: {e}"));
                 }
             }
             Ok::<_, String>((c, archive))
@@ -331,8 +332,8 @@ async fn check_packs(app: AppHandle) {
         match tauri::async_runtime::spawn_blocking(move || on_pack_disk(compare)).await {
             Ok(Ok((true, archive))) => found.push(packs::Checked { dir: pack.dir, repo, archive }),
             Ok(Ok((false, _))) => {}
-            Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),
-            Err(e) => eprintln!("pack check: {repo}: {e}"),
+            Ok(Err(e)) => status::report("packs", status::State::Warn, format!("pack check: {repo}: {e}")),
+            Err(e) => status::report("packs", status::State::Warn, format!("pack check: {repo}: {e}")),
         }
     }
     if found.is_empty() || quiet::active() {
@@ -362,7 +363,7 @@ async fn update_changed(app: AppHandle, root: PathBuf, found: std::sync::Arc<Vec
         Err(e) => (false, vec![("theme packs".to_string(), e.to_string())]),
     };
     for (repo, e) in &failed {
-        eprintln!("pack update: {repo}: {e}");
+        status::report("packs", status::State::Warn, format!("pack update: {repo}: {e}"));
     }
     match updated(replaced, &failed) {
         Updated::Restart => app.restart(),
@@ -471,8 +472,35 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
     use tauri_plugin_updater::UpdaterExt;
     let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
     let update = update.ok_or("already up to date")?;
-    update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
+    let mut progress = UpdateProgress::default();
+    let events = app.clone();
+    update
+        .download_and_install(
+            move |chunk, total| {
+                let _ = events.emit("update-progress", progress.add(chunk, total)); // the PC's own UI only, never the remote view
+            },
+            || {},
+        )
+        .await
+        .map_err(|e| e.to_string())?;
     app.restart();
+}
+
+/// The `update-progress` event's payload while the update downloads: bytes so far, and the total when the server
+/// said it (None: unknown).
+#[derive(serde::Serialize, Clone, Debug, Default, PartialEq)]
+struct UpdateProgress {
+    downloaded: u64,
+    total: Option<u64>,
+}
+
+impl UpdateProgress {
+    /// One more chunk of `chunk` bytes arrived; the payload to emit.
+    fn add(&mut self, chunk: usize, total: Option<u64>) -> UpdateProgress {
+        self.downloaded += chunk as u64;
+        self.total = total;
+        self.clone()
+    }
 }
 
 /// Emit to the webview, and mirror to the remote view's `/events` clients.
@@ -566,7 +594,9 @@ fn main() {
             strip::set_strip_reserve,
             strip::set_strip_menu,
             window::on_top_supported,
-            window::set_chime_menu
+            window::set_chime_menu,
+            status::integration_status,
+            toast::test_notification
         ])
         .setup(move |app| {
             // No Dock icon or app menu: a widget that lives in the tray (skipTaskbar is ignored on macOS).
@@ -576,6 +606,9 @@ fn main() {
             // no install is running now)
             if let Ok(root) = themes_root(app.handle()) {
                 packs::recover(&root);
+            }
+            if let Ok(dir) = app.path().app_data_dir() {
+                status::init(&dir); // the log file, before the first thing that can fail
             }
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
             #[cfg(target_os = "linux")]
@@ -661,6 +694,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut seen_pairs = std::collections::HashSet::new(); // (a, b, path key) already toasted: one toast per pair and path
     let mut last_tick = Instant::now();
     let mut last_t = 0;
+    let mut tip: Option<usize> = None; // the waiting count the tray tooltip shows
     loop {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
@@ -743,10 +777,15 @@ fn poll_loop(app: AppHandle, demo: bool) {
             lock(&app.state::<Live>()).clone_from(&roster);
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
+            let waiting = window::waiting_count(&roster);
+            if tip != Some(waiting) {
+                tip = Some(waiting);
+                window::set_tray_tooltip(&app, waiting);
+            }
             prev = roster;
         }));
         if tick.is_err() {
-            eprintln!("poll tick panicked, skipped");
+            status::report("poll", status::State::Error, "poll tick panicked, skipped");
             app.state::<Chron>().clear_poison(); // keep the Chronicon commands working
             app.state::<vigil::app::VigilBox>().clear_poison();
         }
@@ -1139,5 +1178,15 @@ mod tests {
         files.insert("b".into(), vec![f(20)]);
         files.insert("c".into(), vec![]);
         assert_eq!(last_write(&files), 30);
+    }
+
+    #[test]
+    fn the_update_progress_payload_adds_up_the_chunks() {
+        let mut p = UpdateProgress::default();
+        assert_eq!(p.add(1000, Some(4000)), UpdateProgress { downloaded: 1000, total: Some(4000) });
+        assert_eq!(p.add(500, Some(4000)), UpdateProgress { downloaded: 1500, total: Some(4000) });
+        assert_eq!(p.add(10, None), UpdateProgress { downloaded: 1510, total: None }, "an unknown total stays unknown");
+        let j = serde_json::to_value(p.add(0, Some(4000))).unwrap();
+        assert_eq!((j["downloaded"].as_u64(), j["total"].as_u64()), (Some(1510), Some(4000)), "the shape the UI reads");
     }
 }

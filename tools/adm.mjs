@@ -1,5 +1,6 @@
 // Command-line client for the running app, over its local remote API (docs/remote-api.md), for scripts and Claude.
-// Reads the port and token from the app's settings.json, so it needs the remote view enabled (Settings > Remote view);
+// Reads the port and token from the app's settings.json and talks to the app's listener on 127.0.0.1: the app always
+// listens there (with the same pairing token), whether or not the LAN remote view (Settings > Remote view) is on.
 // `vigil` also needs remote actions allowed. Petitions are deliberately not answerable from here: an agent must never
 // approve its own permission prompts.
 //
@@ -17,7 +18,6 @@ const configDir = process.platform === 'win32' ? process.env.APPDATA
   : process.platform === 'darwin' ? join(homedir(), 'Library', 'Application Support')
   : process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
 const conf = JSON.parse(readFileSync(join(configDir, 'com.arylmera.administratum', 'settings.json'), 'utf8'));
-if (!conf['remote.enabled']) fail('remote view is off: enable it in Settings > Remote view');
 const host = `127.0.0.1:${conf['remote.port'] ?? 7770}`;
 const headers = { Cookie: `adm_t=${conf['remote.token']}` };
 
