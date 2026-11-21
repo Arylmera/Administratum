@@ -363,6 +363,31 @@ fn restart(app: AppHandle) {
     app.restart();
 }
 
+/// `s` cut to at most `max` characters, the last one an ellipsis when it was cut.
+fn short(s: &str, max: usize) -> String {
+    if s.chars().count() > max {
+        s.chars().take(max.saturating_sub(1)).chain(['…']).collect()
+    } else {
+        s.to_string()
+    }
+}
+
+/// The toast of a click that only opens a session's terminal and could not (`open_failed`): (title, body).
+fn open_failed_toast(name: &str, error: &str) -> (&'static str, String) {
+    let name = short(name.trim(), 60);
+    let error = short(error.trim(), 120);
+    ("Terminal not opened", if name.is_empty() { error } else { format!("{name}: {error}") })
+}
+
+/// A click on a character that shows no card (Settings > Show the card when I click a character, off: card.js `pick`)
+/// whose terminal did not open: said in a toast, or the click would seem to do nothing. Host only, as every command
+/// outside the remote view's list; the texts come from the page, so they are cut short and shown as text.
+#[tauri::command]
+fn open_failed(name: String, error: String, app: AppHandle) {
+    let (title, body) = open_failed_toast(&name, &error);
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
 /// UI settings from the config dir ({} if missing or corrupt); localStorage is only a cache.
 /// Never includes the backend's `remote.*` keys (the remote view's token among them).
 #[tauri::command(async)]
@@ -474,6 +499,7 @@ fn main() {
             theme_pack_update,
             theme_pack_remove,
             restart,
+            open_failed,
             rooms::rooms_test,
             remote::app::remote_status,
             remote::app::remote_set,
@@ -883,6 +909,17 @@ mod tests {
     }
     fn kinds(ev: &[Event]) -> Vec<&str> {
         ev.iter().map(|e| e.kind.as_str()).collect()
+    }
+
+    #[test]
+    fn a_terminal_not_opened_is_said_short() {
+        assert_eq!(open_failed_toast("Scribe 1", "orca not found"), ("Terminal not opened", "Scribe 1: orca not found".to_string()));
+        assert_eq!(open_failed_toast("  ", "orca not found").1, "orca not found", "no name: the error alone");
+        let (_, body) = open_failed_toast(&"n".repeat(100), &"e".repeat(500));
+        assert_eq!(body.chars().count(), 60 + 2 + 120, "both cut short");
+        assert!(body.ends_with('…'));
+        assert_eq!(short("abc", 3), "abc");
+        assert_eq!(short("abcd", 3), "ab…");
     }
 
     #[test]
