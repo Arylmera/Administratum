@@ -6,14 +6,16 @@
 // then its loadPacks with a reader on the file system that serves what the backend serves (packs.rs read), then
 // ui/sprites.js and ui/faces.js, which load and check every theme's art. One line per problem (`<theme>: <message>`),
 // then `<n> themes ok, <m> with problems`; exit 0 only when there is none. What the installer would drop or refuse
-// (packs.rs keepable and its limits), a scribe's gesture frame that would never play (artcheck.js gestureWarnings) and
+// (packs.rs keepable and its limits), a scribe's gesture frame that would never play (artcheck.js gestureWarnings), a
+// rank frame that never plays or a rank drawn in one view only (rankWarnings) and
 // a frame this version of the app does not know, which it ignores (a pack drawn for a newer app, or a typo: themes.js
 // PACKS warnings), come as `warning:` lines; a limit passed, a theme folder misnamed or no theme at
 // all is a problem, since the installer or the app refuses it. The pack is parsed, never evaluated.
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadPacks, PACKS } from '../ui/themes.js'; // first: it registers the shipped themes
-import { gestureWarnings } from '../ui/artcheck.js';
+import { gestureWarnings, rankWarnings } from '../ui/artcheck.js';
+import { RANK_FAMILIES } from '../ui/ranks.js';
 import { GESTURE_FRAMES } from '../ui/gestures.js';
 
 const [cmd, arg] = process.argv.slice(2);
@@ -106,6 +108,13 @@ async function check(target) {
     try { frames = Object.keys(JSON.parse(fs.readFileSync(p, 'utf8')).frames ?? {}); } catch { continue; } // a broken sheet is the loader's problem
     warnings.push(...gestureWarnings(`${t}/${f}`, frames));
   }
+  // a rank frame that never plays, or a rank drawn in one view only (artcheck.js rankWarnings)
+  const sheetJson = (t, f) => { const p = path.join(dir, t, `${f}.json`); if (!isFile(p)) return null; try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
+  const namesOf = (t, f) => { const j = sheetJson(t, f); return j ? Object.keys(j.frames ?? {}) : null; };
+  for (const t of themes.filter(t => !only || t === only)) for (const f of RANK_FAMILIES) {
+    const frames = namesOf(t, f);
+    if (frames) warnings.push(...rankWarnings(`${t}/${f}`, frames, namesOf(t, f.endsWith('39') ? f.slice(0, -2) : `${f}39`), Object.keys(sheetJson(t, f)?.meta?.anchors ?? {})));
+  }
   const entry = PACKS.get(id), mine = t => !only || t === only;
   // a reason the loader leaves empty (a truncated PNG's decoder says nothing) still says something
   const reason = m => (/:\s*$/.test(m) ? `${m.trimEnd()} ${/\.png:\s*$/.test(m) ? 'unreadable PNG' : 'unreadable'}` : m);
@@ -132,10 +141,12 @@ async function families() {
   console.log('| Family | Frames (name width x height, in art pixels) |\n|---|---|');
   for (const [f, sheet] of Object.entries(ART.base)) {
     const size = rows => `${rows[0].length}x${rows.length}`, seated = sheet.frames[SEATED_FRAME[f]];
-    const frames = Object.entries(sheet.frames).map(([n, rows]) => `\`${n}\` ${size(rows)}`);
+    const { rankPart, RANK_FAMILIES } = await import('../ui/ranks.js');
+    const frames = Object.entries(sheet.frames).filter(([n]) => !rankPart(n)).map(([n, rows]) => `\`${n}\` ${size(rows)}`);
     // the optional gestures (gestures.js) the default does not draw, at its seated frame's size
     const optional = seated ? (GESTURE_FRAMES[f] ?? []).filter(n => !sheet.frames[n]).map(n => `\`${n}\` ${size(seated)}`) : [];
-    console.log(`| \`${f}\`${FAMILIES39.includes(f) ? ' (2.5D)' : ''} | ${frames.join(', ') || '(none yet)'}${optional.length ? `; optional: ${optional.join(', ')}` : ''} |`);
+    const ranks = RANK_FAMILIES.includes(f) ? '; ranks: `<rank> <frame>` at its frame size (see Ranks)' : '';
+    console.log(`| \`${f}\`${FAMILIES39.includes(f) ? ' (2.5D)' : ''} | ${frames.join(', ') || '(none yet)'}${optional.length ? `; optional: ${optional.join(', ')}` : ''}${ranks} |`);
   }
 }
 

@@ -79,15 +79,159 @@
         "w": 8,
         "h": 16
       }
+    },
+    "high down 0": {
+      "frame": {
+        "x": 0,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high down 1": {
+      "frame": {
+        "x": 33,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high down 2": {
+      "frame": {
+        "x": 66,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high up 0": {
+      "frame": {
+        "x": 99,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high up 1": {
+      "frame": {
+        "x": 132,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high up 2": {
+      "frame": {
+        "x": 165,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high right 0": {
+      "frame": {
+        "x": 198,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high right 1": {
+      "frame": {
+        "x": 231,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high right 2": {
+      "frame": {
+        "x": 264,
+        "y": 52,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice down 0": {
+      "frame": {
+        "x": 0,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice down 1": {
+      "frame": {
+        "x": 33,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice down 2": {
+      "frame": {
+        "x": 66,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice up 0": {
+      "frame": {
+        "x": 99,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice up 1": {
+      "frame": {
+        "x": 132,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice up 2": {
+      "frame": {
+        "x": 165,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice right 0": {
+      "frame": {
+        "x": 198,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice right 1": {
+      "frame": {
+        "x": 231,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice right 2": {
+      "frame": {
+        "x": 264,
+        "y": 87,
+        "w": 32,
+        "h": 34
+      }
     }
   },
   "meta": {
-    "app": "tools/map_to_art.mjs",
+    "app": "tools/rank_art.mjs",
     "image": "scribe.png",
     "format": "RGBA8888",
     "size": {
       "w": 296,
-      "h": 51
+      "h": 121
     },
     "palette": "key.gpl",
     "anchors": {

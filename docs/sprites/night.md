@@ -85,6 +85,22 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="watch39-s"></a>`WATCH39.S` | 16×18 | WATCH39, 39° view, walking S, 3 frames. Source: `ui/art/watch39.png` | <img src="night/WATCH39.S.png" height="144"> |
 | <a id="watch39-n"></a>`WATCH39.N` | 16×18 | WATCH39, 39° view, walking N, 3 frames. Source: `ui/art/watch39.png` | <img src="night/WATCH39.N.png" height="144"> |
 | <a id="watch39-ring"></a>`WATCH39.ring` | 16×18 | WATCH39, ring. Source: `ui/art/watch39.png` | <img src="night/WATCH39.ring.png" height="144"> |
+| <a id="scribe39-high-e"></a>`SCRIBE39.high.E` | 16×17 | SCRIBE39, Magos, 39° view, walking E, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.high.E.png" height="136"> |
+| <a id="scribe39-high-w"></a>`SCRIBE39.high.W` | 16×17 | SCRIBE39, Magos, 39° view, walking W, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.high.W.png" height="136"> |
+| <a id="scribe39-high-s"></a>`SCRIBE39.high.S` | 16×17 | SCRIBE39, Magos, 39° view, walking S, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.high.S.png" height="136"> |
+| <a id="scribe39-high-n"></a>`SCRIBE39.high.N` | 16×17 | SCRIBE39, Magos, 39° view, walking N, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.high.N.png" height="136"> |
+| <a id="scribe39-novice-e"></a>`SCRIBE39.novice.E` | 16×17 | SCRIBE39, Novice, 39° view, walking E, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.novice.E.png" height="136"> |
+| <a id="scribe39-novice-w"></a>`SCRIBE39.novice.W` | 16×17 | SCRIBE39, Novice, 39° view, walking W, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.novice.W.png" height="136"> |
+| <a id="scribe39-novice-s"></a>`SCRIBE39.novice.S` | 16×17 | SCRIBE39, Novice, 39° view, walking S, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.novice.S.png" height="136"> |
+| <a id="scribe39-novice-n"></a>`SCRIBE39.novice.N` | 16×17 | SCRIBE39, Novice, 39° view, walking N, 3 frames. Source: `ui/art/scribe39.png` | <img src="night/SCRIBE39.novice.N.png" height="136"> |
+| <a id="adept39-high-e"></a>`ADEPT39.high.E` | 12×14 | ADEPT39, Magos, 39° view, walking E, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.high.E.png" height="112"> |
+| <a id="adept39-high-w"></a>`ADEPT39.high.W` | 12×14 | ADEPT39, Magos, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.high.W.png" height="112"> |
+| <a id="adept39-high-s"></a>`ADEPT39.high.S` | 12×14 | ADEPT39, Magos, 39° view, walking S, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.high.S.png" height="112"> |
+| <a id="adept39-high-n"></a>`ADEPT39.high.N` | 12×14 | ADEPT39, Magos, 39° view, walking N, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.high.N.png" height="112"> |
+| <a id="adept39-novice-e"></a>`ADEPT39.novice.E` | 12×14 | ADEPT39, Novice, 39° view, walking E, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.novice.E.png" height="112"> |
+| <a id="adept39-novice-w"></a>`ADEPT39.novice.W` | 12×14 | ADEPT39, Novice, 39° view, walking W, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.novice.W.png" height="112"> |
+| <a id="adept39-novice-s"></a>`ADEPT39.novice.S` | 12×14 | ADEPT39, Novice, 39° view, walking S, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.novice.S.png" height="112"> |
+| <a id="adept39-novice-n"></a>`ADEPT39.novice.N` | 12×14 | ADEPT39, Novice, 39° view, walking N, 3 frames. Source: `ui/art/adept39.png` | <img src="night/ADEPT39.novice.N.png" height="112"> |
 
 ## Props and furniture
 

@@ -168,6 +168,7 @@ when it loads. One file per module:
 | `column.test.mjs` | Column geometry (floor ys, floors moving, the right side mirrored, pitch, overflow, routes, the scale drop) and the cast in it (riding, a petition mid-ride, a floor move, settle, adepts never ride) |
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
+| `rankart.test.mjs` | Rank art: the rank layer (a rank's own frame, the plain one where it drew none, left mirrored, its gestures only with its own seat, 39°), the same-source rule, per-rank anchors, the actors' body, feet and glyph at their rank, the viewer's rank rows; no shipped world outside the 40k Ordos with a rank frame |
 | `gestures.test.mjs` | Scribe gestures: the chooser (think and wonder recur at their pace, each scribe out of step, the stretch, the puzzled wonder after a tool error, nothing away from the desk or for a frame the world lacks), every shipped world without them, a pack's gesture frames accepted at the seated size and the warning for one without its seated frame, the frame replacing `up 0` / `N 0`; over `Cast.sync` / `update`: no stretch for a scribe first seen idle, on arriving, after `settle` or a reset, or on a walk back while idle; once at a turn's end, at the desk or on sitting after walking back; one wonder per tool error at the desk |
 | `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped; `openWeek` (open or closed panel, an open that fails); the Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars; the usage-window bar (no window, empty frame, ticks with the lowest marked, clamped fill, "estimate" tooltip) and today's window line |
 | `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label; the same-file tag yields to them all; a risky petition through `card.js` `answer` (no *Always*, two clicks within 5 s); a click whose terminal does not open (the card up with the card on a click, else the `open_failed` toast); the Hall of Honours: when it is asked again, its lines and dashes |
@@ -183,7 +184,9 @@ when it loads. One file per module:
 Sprites and the room's tiles (floor, walls, pipes, doors) are art files in `ui/art/`: one PNG sheet per family,
 drawn in the key palette `ui/art/key.gpl` (one character per colour slot; load it in Aseprite or Piskel), plus a
 JSON file with the frames, anchors and the tiles' fill rules. Colours are never in the art: every colour (the art's,
-the ones drawn in code, the page's chrome) and the wording come from the active theme.
+the ones drawn in code, the page's chrome) and the wording come from the active theme. A rank (`ui/ranks.js`) may
+draw its own body: frames `<rank> <frame>` in the scribe and adept sheets, used only from the plain frame's own source
+(`ui/sprites.js` `rankLayer`; format in [theme-packs.md](theme-packs.md), "Ranks").
 
 - `ui/theme.js` holds the base theme (Ordo Administratum) and `WORLDS`, in code. Every other theme is data: a folder
   `ui/art/<id>/` with its `theme.json` (only what it changes) beside its own art, and its id in the ordered list

@@ -228,8 +228,8 @@ gestures (below): the default art does not draw them.
 
 | Family | Frames (name width x height, in art pixels) |
 |---|---|
-| `scribe` | `down 0` 32x34, `down 1` 32x34, `down 2` 32x34, `up 0` 32x34, `up 1` 32x34, `up 2` 32x34, `right 0` 32x34, `right 1` 32x34, `right 2` 32x34, `arm` 8x16; optional: `up think` 32x34, `up wonder` 32x34, `up stretch` 32x34 |
-| `adept` | `down 0` 24x28, `down 1` 24x28, `down 2` 24x28, `up 0` 24x28, `up 1` 24x28, `up 2` 24x28, `right 0` 24x28, `right 1` 24x28, `right 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5 |
+| `scribe` | `down 0` 32x34, `down 1` 32x34, `down 2` 32x34, `up 0` 32x34, `up 1` 32x34, `up 2` 32x34, `right 0` 32x34, `right 1` 32x34, `right 2` 32x34, `arm` 8x16; optional: `up think` 32x34, `up wonder` 32x34, `up stretch` 32x34; ranks: `<rank> <frame>` at its frame size (see Ranks) |
+| `adept` | `down 0` 24x28, `down 1` 24x28, `down 2` 24x28, `up 0` 24x28, `up 1` 24x28, `up 2` 24x28, `right 0` 24x28, `right 1` 24x28, `right 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5; ranks: `<rank> <frame>` at its frame size (see Ranks) |
 | `magos` | `body` 48x48, `arm` 10x48, `claw` 6x3 |
 | `watch` | `down 0` 32x36, `down 1` 32x36, `down 2` 32x36, `up 0` 32x36, `up 1` 32x36, `up 2` 32x36, `right 0` 32x36, `right 1` 32x36, `right 2` 32x36, `ring` 32x36 |
 | `workstations` | `DESK` 64x42, `LECTERN` 44x42, `CONSOLE` 28x20, `SHELL_COG_0` 12x12, `SHELL_COG_1` 12x12, `SHELL_COG_2` 12x12, `SHELL_COG_3` 12x12, `SHELL_COG_4` 12x12, `SHELL_COG_5` 12x12, `SHELL_COG_6` 12x12, `SHELL_COG_7` 12x12, `SHELL_COG_8` 12x12, `SHELL_COG_9` 12x12, `SHELL_COG_10` 12x12, `SHELL_COG_11` 12x12, `SHELL_COG_12` 12x12, `SHELL_COG_13` 12x12, `SHELL_COG_14` 12x12, `SHELL_COG_15` 12x12 |
@@ -252,8 +252,8 @@ gestures (below): the default art does not draw them.
 | `room-walls` | `wall top` 24x20, `wall` 24x20, `wall east top` 24x20, `wall east` 24x20, `wall sanctum top` 24x20, `wall sanctum` 24x20, `wall foot` 4x4, `wall dark` 4x4, `wall base` 4x6, `sanctum base` 4x6, `pillar` 20x8, `pilaster` 8x39, `beacon off` 14x20, `beacon on` 14x20, `beacon cage` 14x20 |
 | `room-pipes` | `pipe h` 8x6, `pipe v` 6x8, `fitting h` 6x10, `fitting v` 10x6, `fitting wide` 20x4 |
 | `room-doors` | `door sanctum closed` 20x80, `door sanctum half` 20x80, `door sanctum open` 20x80, `door refectory closed` 20x48, `door refectory half` 20x48, `door refectory open` 20x48 |
-| `scribe39` (2.5D) | `E 0` 32x34, `E 1` 32x34, `E 2` 32x34, `W 0` 32x34, `W 1` 32x34, `W 2` 32x34, `S 0` 32x34, `S 1` 32x34, `S 2` 32x34, `N 0` 32x34, `N 1` 32x34, `N 2` 32x34, `arm` 10x16, `armL` 8x16, `scroll` 10x14; optional: `N think` 32x34, `N wonder` 32x34, `N stretch` 32x34 |
-| `adept39` (2.5D) | `E 0` 24x28, `E 1` 24x28, `E 2` 24x28, `W 0` 24x28, `W 1` 24x28, `W 2` 24x28, `S 0` 24x28, `S 1` 24x28, `S 2` 24x28, `N 0` 24x28, `N 1` 24x28, `N 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5 |
+| `scribe39` (2.5D) | `E 0` 32x34, `E 1` 32x34, `E 2` 32x34, `W 0` 32x34, `W 1` 32x34, `W 2` 32x34, `S 0` 32x34, `S 1` 32x34, `S 2` 32x34, `N 0` 32x34, `N 1` 32x34, `N 2` 32x34, `arm` 10x16, `armL` 8x16, `scroll` 10x14; optional: `N think` 32x34, `N wonder` 32x34, `N stretch` 32x34; ranks: `<rank> <frame>` at its frame size (see Ranks) |
+| `adept39` (2.5D) | `E 0` 24x28, `E 1` 24x28, `E 2` 24x28, `W 0` 24x28, `W 1` 24x28, `W 2` 24x28, `S 0` 24x28, `S 1` 24x28, `S 2` 24x28, `N 0` 24x28, `N 1` 24x28, `N 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5; ranks: `<rank> <frame>` at its frame size (see Ranks) |
 | `magos39` (2.5D) | `body` 48x48, `arm` 10x48, `claw` 6x3 |
 | `skull39` (2.5D) | `skull` 20x20 |
 | `watch39` (2.5D) | `E 0` 32x36, `E 1` 32x36, `E 2` 32x36, `W 0` 32x36, `W 1` 32x36, `W 2` 32x36, `S 0` 32x36, `S 1` 32x36, `S 2` 32x36, `N 0` 32x36, `N 1` 32x36, `N 2` 32x36, `ring` 32x36 |
@@ -278,6 +278,36 @@ and the scribe keeps its seated frame.
 - They go in the sheet that holds your own scribe (`up 0` flat; the 2.5D sheet is always whole), with `scribe` (or
   `scribe39`) in `art`. A gesture is played only with the body it was drawn for: one in a sheet without your own
   `up 0` (or `N 0`) is never seen, and `node tools/theme_pack.mjs check` warns about it.
+
+### Ranks
+
+A rank is the session's model: high (Opus, Fable), standard (Sonnet and any other), novice (Haiku). Each rank has its
+own colours (`rank` in `theme.json`). It can also have its **own drawing**: optional frames named `<rank> <frame>`, in
+the scribe and adept sheets (`scribe`, `adept`, `scribe39`, `adept39`).
+
+| Example | Replaces | For |
+|---|---|---|
+| `high up 0`, `high up 1`, `high up 2` | `up 0`, `up 1`, `up 2` | an Opus scribe walking away, and seated (`up 0`) |
+| `novice N 0` | `N 0` | a Haiku scribe at its desk, 2.5D |
+| `high up think` | `up think` | an Opus scribe's gesture |
+
+- A rank frame has the size of the frame it replaces, and the same feet. Draw it over a copy of that frame.
+- Draw any of them, or none. A frame your rank does not draw is the plain one: a rank that draws only `high up 0`
+  sits in its own body and walks in the plain one. Flat `left` is `right` mirrored, as for every scribe.
+- A rank frame is used only with the body it belongs to: it must be in the same sheet as the plain frame it replaces.
+  A world with its own scribe never wears the default robe's rank bodies.
+- A rank's gestures play only with that rank's own seated frame (`high up 0`, `high N 0`). Without it, the rank keeps
+  the plain gestures.
+- The arms, the scroll and the subagent kind glyphs are never drawn per rank: they lie over any body. Move them on a
+  rank's body with that rank's anchors in the sheet's JSON, `"anchors": { "high": { "arm": [26, 18] } }`: only the
+  sheet's own anchor names, each in its usual shape.
+- `standard` frames are allowed, but rarely needed: the plain frames are standard.
+- A rank's anchors follow the same rule: only those of the sheet that draws the body are used.
+- `node tools/theme_pack.mjs check` warns about a rank gesture without its rank seat, a rank drawn in one view (flat or
+  2.5D) but not in the other, a rank frame whose plain frame your sheet does not draw (never shown), and a rank's
+  anchors with no frame of that rank.
+- A world outside Warhammer 40k keeps the rank colours it always had: the 40k ladder (black novice, ivory high) is only
+  the Ordos' own.
 
 ---
 

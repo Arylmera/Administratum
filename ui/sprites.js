@@ -6,13 +6,11 @@ import { artRootOf, dropTheme, packOf, warnTheme } from './themes.js'; // the th
 import { loadSheet } from './art.js';
 import { checkSheet, knownFrames } from './artcheck.js';
 import { outline, outlined } from './outline.js';
-import { GESTURES, GESTURE_FRAMES } from './gestures.js';
+import { GESTURES, GESTURE_FRAMES, SEATED_FRAME } from './gestures.js';
 export { BASE };
 
-// Rank by model: opus/fable high, haiku novice, anything else (sonnet, unknown) standard. Edit here.
-// Its colours (robe, adept) are the theme's T.rank[rank], its name the theme's wording t(`rank.${rank}`).
-export const rankOf = model => (/opus|fable/i.test(model ?? '') ? 'high' : /haiku/i.test(model ?? '') ? 'novice' : 'standard');
-export const RANKS = ['high', 'standard', 'novice'];
+import { RANKS, RANK_FAMILIES, rankOf } from './ranks.js'; // the ranks (ranks.js), and who has one
+export { RANKS, rankOf };
 
 export const RES = 2; // art pixels per logical pixel
 export const half = v => Math.round(v * 2) / 2; // snap to the art-pixel grid
@@ -132,7 +130,12 @@ function sheetOf(id, f) {
   for (const [k, v] of Object.entries(o.anchors)) anchors[k] = v && typeof v === 'object' && !Array.isArray(v) && anchors[k] && !Array.isArray(anchors[k]) ? { ...anchors[k], ...v } : v;
   return { frames: { ...d.frames, ...o.frames }, anchors, tiles: { ...d.tiles, ...o.tiles } };
 }
-const anchorsOf = sheet => Object.fromEntries(Object.entries(sheet.anchors).map(([k, [x, y]]) => [k, { x: x / RES, y: y / RES }]));
+// A sheet's anchors in logical px; the rank keys (per-rank anchors, rankAnchors) are left out.
+export const anchorsOf = sheet => Object.fromEntries(Object.entries(sheet.anchors).filter(([k]) => !RANKS.includes(k)).map(([k, [x, y]]) => [k, { x: x / RES, y: y / RES }]));
+// Per-rank anchors (meta.anchors.<rank>: base anchor keys only), each the sheet's anchors with the rank's laid over, in
+// logical px: { [rank]: anchors }, only the ranks that set some.
+export const rankAnchors = sheet => Object.fromEntries(RANKS.filter(r => sheet.anchors?.[r] && typeof sheet.anchors[r] === 'object' && !Array.isArray(sheet.anchors[r]))
+  .map(r => [r, { ...anchorsOf(sheet), ...anchorsOf({ anchors: sheet.anchors[r] }) }]));
 const logical = v => (Array.isArray(v) ? v.map(logical) : typeof v === 'number' ? v / RES : Object.fromEntries(Object.entries(v).map(([k, w]) => [k, logical(w)])));
 const walk = (sheet, dir) => [0, 1, 2].map(i => sheet.frames[`${dir} ${i}`]);
 const walker = sheet => ({ up: walk(sheet, 'up'), down: walk(sheet, 'down'), right: walk(sheet, 'right'), left: walk(sheet, 'right').map(mirror) });
@@ -140,6 +143,24 @@ const marksOf = (frames, mine = () => true) => Object.fromEntries(Object.entries
 // The gesture frames a scribe sheet draws (gestures.js: `up think`... flat, `N think`... 2.5D), by gesture; mine(name):
 // whether to take it (only with the body it was drawn for). A gesture the sheet lacks is left out: never played.
 const gesturesOf = (family, frames, mine = () => true) => Object.fromEntries(GESTURES.map((g, i) => [g, GESTURE_FRAMES[family][i]]).filter(([, n]) => frames[n] && mine(n)).map(([g, n]) => [g, frames[n]]));
+// The rank layer of a character family (scribe, adept, scribe39, adept39; spec 2026-11-21-rank-art): per rank, its walk
+// frames where it drew `<rank> <frame>`, the plain frame where it did not (flat: up down right, left the right mirrored;
+// 39°: E W S N), and its gestures, each only with that rank's own seated frame (null when it drew no seat). same(name): whether the rank frame
+// `name` comes from the source of its plain frame (a world's own scribe never wears the base art's rank frames). A rank
+// with no walk frame of its own is absent: { [rank]: { [dir]: rows[], gesture: { [g]: rows } } }.
+export function rankLayer(family, frames, same) {
+  const dirs = family.endsWith('39') ? DIRS39 : ['up', 'down', 'right'], seat = SEATED_FRAME[family], out = {};
+  for (const r of RANKS) {
+    const own = n => !!frames[`${r} ${n}`] && same(`${r} ${n}`), pick = n => (own(n) ? frames[`${r} ${n}`] : frames[n]);
+    if (!dirs.some(d => [0, 1, 2].some(i => own(`${d} ${i}`)))) continue;
+    const layer = Object.fromEntries(dirs.map(d => [d, [0, 1, 2].map(i => pick(`${d} ${i}`))]));
+    if (!family.endsWith('39')) layer.left = layer.right.map(mirror);
+    // null: the rank did not draw its seated frame, so the plain gestures (drawn for the plain seat) still play
+    layer.gesture = seat && own(seat) ? Object.fromEntries(GESTURES.map((g, i) => [g, GESTURE_FRAMES[family][i]]).filter(([, n]) => own(n)).map(([g, n]) => [g, frames[`${r} ${n}`]])) : null;
+    out[r] = layer;
+  }
+  return out;
+}
 const refill = (target, from) => { for (const k of Object.keys(target)) delete target[k]; return Object.assign(target, from); };
 
 // 39° walk frames: E along +u (the back wall, to the right), W = -u, S = +v (toward the viewer), N = -v (away). No
@@ -223,8 +244,8 @@ export const WATCH39 = {}, WATCH39_AT = {};
 const walker39 = sheet => Object.fromEntries(DIRS39.map(d => [d, walk39(sheet, d)]));
 // How to build each family's export object from its (complete) sheet, and which [obj, at] pair to refill.
 const BUILD39 = {
-  scribe39: sheet => ({ ...walker39(sheet), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll, gesture: gesturesOf('scribe39', sheet.frames) }), // gesture: as SCRIBE.gesture
-  adept39: sheet => ({ ...walker39(sheet), marks: marksOf(sheet.frames) }), // marks: optional, as ADEPT.marks (whole sheets: no gate)
+  scribe39: sheet => ({ ...walker39(sheet), rank: rankLayer('scribe39', sheet.frames, () => true), arm: sheet.frames.arm, armL: sheet.frames.armL, scroll: sheet.frames.scroll, gesture: gesturesOf('scribe39', sheet.frames) }), // gesture: as SCRIBE.gesture
+  adept39: sheet => ({ ...walker39(sheet), rank: rankLayer('adept39', sheet.frames, () => true), marks: marksOf(sheet.frames) }), // marks: optional, as ADEPT.marks (whole sheets: no gate)
   magos39: sheet => ({ body: sheet.frames.body, arm: sheet.frames.arm, claw: sheet.frames.claw }), // claw: optional, as MAGOS.claw
   skull39: sheet => ({ skull: sheet.frames.skull }),
   watch39: sheet => ({ ...walker39(sheet), ring: sheet.frames.ring }),
@@ -237,14 +258,22 @@ function useArt(id) {
   // a frame drawn over a body (a glyph, the claw, the arms) only with the body it was drawn for: never the base art's
   // over a world's own body
   const own = (f, n, body) => src(f, n) === src(f, body);
-  refill(SCRIBE, { ...walker(S.scribe), gesture: gesturesOf('scribe', S.scribe.frames, n => own('scribe', n, 'up 0')) }); refill(SCRIBE_AT, anchorsOf(S.scribe));
-  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => own('adept', n, 'down 0')) }); refill(ADEPT_AT, anchorsOf(S.adept));
+  // a rank frame only from its plain frame's own source (rankLayer)
+  const same = f => n => src(f, n) === src(f, n.slice(n.indexOf(' ') + 1));
+  // a rank's anchors by the same rule: only those of the sheet that draws the plain body (its own folder's, else the
+  // base's), laid over the anchors as the theme sees them
+  const rankAt = (f, body) => {
+    const from = src(f, body) === f ? base[f] : themed[id]?.[f] ?? themed[dir]?.[f], own = Object.fromEntries(RANKS.filter(r => from?.anchors?.[r]).map(r => [r, from.anchors[r]]));
+    return rankAnchors({ anchors: { ...Object.fromEntries(Object.entries(S[f].anchors).filter(([k]) => !RANKS.includes(k))), ...own } });
+  };
+  refill(SCRIBE, { ...walker(S.scribe), gesture: gesturesOf('scribe', S.scribe.frames, n => own('scribe', n, 'up 0')), rank: rankLayer('scribe', S.scribe.frames, same('scribe')) }); refill(SCRIBE_AT, { ...anchorsOf(S.scribe), rank: rankAt('scribe', 'up 0') });
+  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => own('adept', n, 'down 0')), rank: rankLayer('adept', S.adept.frames, same('adept')) }); refill(ADEPT_AT, { ...anchorsOf(S.adept), rank: rankAt('adept', 'down 0') });
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: own('magos', 'claw', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
   refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));
   for (const f of FAMILIES39) {
     const sheet = resolve39(f, themed[dir]?.[f], base[f], `theme '${id}'`), [obj, at] = EXPORT39[f], complete = Object.keys(sheet.frames).length > 0;
     refill(obj, complete ? BUILD39[f](sheet) : {});
-    refill(at, complete ? anchorsOf(sheet) : {});
+    refill(at, complete ? { ...anchorsOf(sheet), ...(RANK_FAMILIES.includes(f) && { rank: rankAnchors(sheet) }) } : {});
   }
   // the arms (actors.js drawCarried): a world's own scribe has them in its body; the 40k robe has none, so its art draws
   // two mechadendrites (the left one the right mirrored)

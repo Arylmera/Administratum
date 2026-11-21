@@ -99,7 +99,7 @@ assert.deepEqual(gestureWarnings('w/scribe', null), [], 'untrusted: never throws
 
 // ---- wiring: the gesture frame replaces up 0 / N 0 only at the desk and only when drawn ----
 const think = rows(32, 34), stretch = rows(32, 34).map(r => r.replace(/^k/, 'r'));
-const scribe = (s, more) => ({ id: 'sess-1', x: 100, y: 100, path: [], pose: 'desk', t: 0, dir: 'up', s: { status: 'busy', context: { model: 'opus' }, ...s }, ...more });
+const scribe = (s, more) => ({ id: 'sess-1', x: 100, y: 100, path: [], pose: 'desk', t: 0, dir: 'up', s: { status: 'busy', context: { model: 'sonnet' }, ...s }, ...more }); // standard: the plain body and its gestures (a rank drawn its own seat plays only its own, rankart.test.mjs)
 const thinkAt = (() => { for (let t = 0; t < 30; t += 0.05) if (at({ busy: true }, t) === 'think') return t; })(), calmAt = (() => { for (let t = 0; t < 30; t += 0.05) if (at({ busy: true }, t) === null) return t; })();
 SCRIBE.gesture = {}; // the world draws none: nothing changes
 assert.equal(bodyOf(scribe({}, { t: thinkAt })).map, SCRIBE.up[0]);

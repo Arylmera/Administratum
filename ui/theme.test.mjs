@@ -196,4 +196,39 @@ setTheme('tier2');
   // shipped before this check: the Neon Grid title band is the bright accent under light words (asserted still so)
   assert.deepEqual(low, ['cyber title', 'corpo title', 'rain title', 'matrix title', 'synth title'], 'Hall of Honours words over their fields');
 }
+// 40k ranks (spec 2026-11-21-rank-art): one high look and one novice look in every Ordo, standard the Ordo's own robe;
+// the ladder dark to light: the novice's robe darker than every Ordo's, the high's lighter;
+// the three ranks apart at a glance (RGB distance of the robe, and of the adept's bone), and high's gilt never a sash colour
+{
+  const ORDOS = ['tier2', 'forge', 'xenos', 'night', 'contrast'], KEYS = ['r', 'R', 'd', 't', 'T', 'z', 'j', 'g', 'G'], AKEYS = ['q', 'Q', 'b', 'J', 'I']; // not x: the high's mantle is the Ordo's trim colour
+  const robe = (t, r) => ({ ...t.px, ...t.rank[r].robe }), adept = (t, r) => ({ ...t.px, ...t.rank[r].adept });
+  const dist = (a, b) => Math.hypot(...[1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)));
+  const all = ORDOS.map(id => resolve(THEMES[id]));
+  const lum = h => [1, 3, 5].reduce((a, i, k) => a + [0.299, 0.587, 0.114][k] * parseInt(h.slice(i, i + 2), 16), 0);
+  for (const r of ['high', 'novice']) {
+    for (const k of KEYS) assert.equal(new Set(all.map(t => robe(t, r)[k])).size, 1, `one ${r} in every Ordo: robe ${k}`);
+    for (const k of AKEYS) assert.equal(new Set(all.map(t => adept(t, r)[k])).size, 1, `one ${r} in every Ordo: adept ${k}`);
+  }
+  for (const t of all) {
+    for (const [a, b] of [['high', 'standard'], ['high', 'novice'], ['standard', 'novice']]) {
+      // the novice's black robe beside an Ordo's dark one: its machine body tells them apart (rankart.test.mjs), not the cloth
+      if (b !== 'novice' || a !== 'standard') assert.ok(dist(robe(t, a).r, robe(t, b).r) >= 80, `${t.id}: ranks apart, robe ${a}/${b} (${robe(t, a).r} ${robe(t, b).r})`);
+      assert.ok(dist(adept(t, a).q, adept(t, b).q) >= 80, `${t.id}: ranks apart, adept ${a}/${b} (${adept(t, a).q} ${adept(t, b).q})`);
+    }
+    for (const k of ['t', 'T', 'z', 'j', 'g', 'G']) assert.ok(!t.sash.includes(robe(t, 'high')[k]), `${t.id}: high's gilt ${k} is no sash colour`);
+    assert.ok(lum(robe(t, 'novice').r) < lum(robe(t, 'standard').r) && lum(robe(t, 'standard').r) < lum(robe(t, 'high').r), `${t.id}: dark to light, novice < standard < high`);
+  }
+}
+// The 40k ladder stays in the 40k worlds: every other shipped theme resolves its ranks as it did before it
+// (ui/fixtures/rank-before-40k-ladder.json: the resolved ranks of main at a64250a), and a theme from outside with no
+// rank of its own gets that older base too, never the ivory / black ladder
+{
+  const before = JSON.parse(fs.readFileSync(new URL('./fixtures/rank-before-40k-ladder.json', import.meta.url), 'utf8'));
+  for (const [id, rank] of Object.entries(before)) assert.deepEqual(resolve(THEMES[id]).rank, rank, `${id}: ranks as before the 40k ladder`);
+  assert.deepEqual(Object.keys(before).sort(), Object.keys(THEMES).filter(id => THEMES[id].world !== 'w40k').sort(), 'the snapshot covers every non-40k theme');
+  const outside = resolve({ id: 'pack-x', world: 'cyber', name: 'X' });
+  assert.deepEqual(outside.rank, before.tower ? resolve({ id: 'pack-y', world: 'arcane', name: 'Y' }).rank : outside.rank);
+  assert.notEqual(outside.rank.high.adept.q, TIER_II.rank.high.adept.q, 'a theme from outside: not the 40k ivory');
+  assert.equal(resolve(THEMES.xenos).rank.high.adept.q, TIER_II.rank.high.adept.q, 'a 40k Ordo: the ladder');
+}
 console.log('theme ok');

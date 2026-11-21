@@ -156,14 +156,25 @@ const merge = (a, b) => { // deep merge of plain objects (b wins), arrays replac
 const roomsWords = (own, base = TEXT.inRooms, mine = own?.inRooms, plain = own) => Object.fromEntries(Object.entries(base).flatMap(([k, v]) => (
   typeof v === 'object' ? [[k, roomsWords(own, v, mine?.[k], plain?.[k])]] : mine?.[k] !== undefined ? [[k, mine[k]]] : plain?.[k] !== undefined ? [] : [[k, v]])));
 
+// The ranks every world outside Warhammer 40k builds its own over (its theme.json `rank`, a pack's too): the ones Tier II
+// had before the 40k ladder below, kept so a world that draws nothing of its own never changes (theme.test.mjs).
+const RANK_BASE = {
+  high: { robe: gilt('#6e120d', '#9a2a18', '#300806'), adept: { x: '#d9a84e', b: '#e8dcb8', J: '#e8b45a', I: '#6e3f17' } },
+  standard: { robe: {}, adept: {} },
+  novice: { robe: plain('#6e3a30', '#8a5244', '#43231c'), adept: { x: '#5a564c', q: '#8e8a7e', Q: '#5a564c', b: '#a8a496', J: '#8e8a7e', I: '#8e8a7e' } },
+};
+
 export const TIER_II = {
   id: 'tier2', world: 'w40k', name: 'Ordo Administratum',
   px: BASE,
   sash: ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'],
   rank: {
-    high: { robe: gilt('#6e120d', '#9a2a18', '#300806'), adept: { x: '#d9a84e', b: '#e8dcb8', J: '#e8b45a', I: '#6e3f17' } },
+    // the 40k ranks, one look in every Ordo (spec 2026-11-21-rank-art), the Administratum's own ladder from dark to light
+    // (Lexicanum: the lowliest scribe in black, rising through greys to pure white): novice a machine agent in black,
+    // standard the Ordo's own robe, high in ivory white under a crimson mantle, little gold (theme.test.mjs)
+    high: { robe: { r: '#d8d2c4', R: '#f0ebe0', d: '#9a9284', t: '#c89a48', T: '#9a9284', z: '#c89a48', j: '#6e3f17', g: '#9a7a3a', G: '#6a5228' }, adept: { q: '#d8d2c4', Q: '#9a9284', b: '#f0ebe0', J: '#c89a48', I: '#6e3f17' } },
     standard: { robe: {}, adept: {} },
-    novice: { robe: plain('#6e3a30', '#8a5244', '#43231c'), adept: { x: '#5a564c', q: '#8e8a7e', Q: '#5a564c', b: '#a8a496', J: '#8e8a7e', I: '#8e8a7e' } },
+    novice: { robe: plain('#1e1e22', '#34343a', '#0e0e10'), adept: { q: '#1e1e22', Q: '#0e0e10', b: '#34343a', x: '#3a3c40', J: '#1e1e22', I: '#1e1e22' } },
   },
   ink: inkOf,
   light: LIGHT,
@@ -182,7 +193,8 @@ export function resolve(t) {
   if (t === TIER_II) return { id: t.id, name: t.name, px: { ...BASE }, sash: [...t.sash], rank: t.rank, ink: inkOf(BASE), light: { ...LIGHT }, ui: {}, text: TEXT };
   const px = { ...BASE, ...t.px }, rank = {};
   for (const [c, [base, layer]] of Object.entries(OVER)) if (!t.px?.[c] && t.px?.[base]) px[c] = over(px[base], layer);
-  for (const [k, r] of Object.entries(TIER_II.rank)) rank[k] = { robe: { ...r.robe, ...t.rank?.[k]?.robe }, adept: { ...r.adept, ...t.rank?.[k]?.adept } };
+  // the 40k Ordos over the 40k ladder, every other world over the ranks it always had (RANK_BASE)
+  for (const [k, r] of Object.entries((t.world ?? 'w40k') === 'w40k' ? TIER_II.rank : RANK_BASE)) rank[k] = { robe: { ...r.robe, ...t.rank?.[k]?.robe }, adept: { ...r.adept, ...t.rank?.[k]?.adept } };
   const ink = inkOf(px);
   if (t.ink) Object.assign(ink, typeof t.ink === 'function' ? t.ink(px) : t.ink);
   return { id: t.id, name: t.name, px, sash: t.sash ?? [...TIER_II.sash], rank, ink, light: { ...LIGHT, ...t.light }, ui: { ...t.ui }, text: { ...merge(TEXT, t.text), inRooms: roomsWords(t.text) } };

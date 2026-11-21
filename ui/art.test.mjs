@@ -77,8 +77,8 @@ for (const [fam, sh] of Object.entries(sheets)) for (const n of Object.keys(sh.f
 for (const n of Object.keys(MAPS)) assert.ok(SHEET_OF[n] && sheets[SHEET_OF[n]], `MAPS.${n} has no sheet`);
 assert.deepEqual(Object.keys(owner).sort(), Object.keys(MAPS).filter(n => SHEET_OF[n] !== 'scribe').sort(), 'every prop frame is a MAPS sprite');
 for (const fam of ['scribe', 'adept', 'watch']) for (const dir of ['down', 'up', 'right']) for (const i of [0, 1, 2]) assert.ok(sheets[fam].frames[`${dir} ${i}`], `${fam} ${dir} ${i}`);
-assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 9 }, armL: { x: 0, y: 9 }, scroll: { x: 14, y: 8 } }); // the mechadendrites hang from under the hood
-assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 }, 'glyph down': { x: 3, y: 7 }, 'glyph up': { x: 3.5, y: 7 } });
+assert.deepEqual(SCRIBE_AT, { feet: { x: 8, y: 17 }, arm: { x: 14, y: 9 }, armL: { x: 0, y: 9 }, scroll: { x: 14, y: 8 }, rank: {} }); // the mechadendrites hang from under the hood
+assert.deepEqual(ADEPT_AT, { feet: { x: 6, y: 14 }, 'glyph down': { x: 3, y: 7 }, 'glyph up': { x: 3.5, y: 7 }, rank: {} });
 assert.deepEqual(WATCH_AT, { feet: { x: 8, y: 18 }, light: { x: 14, y: 14 } });
 assert.ok(sheets.watch.frames.ring, 'watch ring');
 assert.deepEqual(WATCH.left[0], WATCH.right[0].map(r => [...r].reverse().join('')));

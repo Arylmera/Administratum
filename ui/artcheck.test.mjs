@@ -1,7 +1,7 @@
 // The shape of a theme's sheets (artcheck.js): small hand-built sheets, one problem each, then every shipped theme's
 // sheets and faces. Run: node ui/artcheck.test.mjs
 import assert from 'node:assert/strict';
-import { checkSheet, checkFaces, knownFrames } from './artcheck.js';
+import { checkSheet, checkFaces, knownFrames, rankWarnings } from './artcheck.js';
 import { ART, MAPS } from './sprites.js';
 import { FACES } from './faces.js';
 import { THEMES, setTheme } from './theme.js';
@@ -21,6 +21,38 @@ const one = (patch, word) => {
   assert.equal(p.length, 1, `${word}: ${JSON.stringify(p)}`);
   assert.ok(p[0].startsWith('fam: ') && p[0].includes(word), `${word} in ${p[0]}`);
 };
+
+// Rank frames (spec 2026-11-21-rank-art): '<rank> <frame>' of a character family, at its plain frame's size
+{
+  const B = ART.base.scribe, up0 = B.frames['up 0'], W = up0[0].length, H = up0.length, sheet = (frames, anchors = {}) => ({ frames, anchors, tiles: {} });
+  assert.deepEqual(checkSheet('scribe', sheet({ 'high up 0': rows(W, H) }), B), [], 'rank frame known');
+  const big = checkSheet('scribe', sheet({ 'high up 0': rows(W - 2, H) }), B);
+  assert.equal(big.length, 1, 'rank frame wrong size'); assert.ok(big[0].includes("'high up 0'") && big[0].includes('size'), big[0]);
+  assert.deepEqual(knownFrames('scribe', sheet({ 'royal up 0': rows(W, H) }), B).unknown, ['royal up 0'], 'unknown rank');
+  assert.deepEqual(knownFrames('scribe', sheet({ 'high arm': B.frames.arm }), B).unknown, ['high arm'], 'no rank arm');
+  assert.deepEqual(knownFrames('scribe', sheet({ 'high high up 0': rows(W, H) }), B).unknown, ['high high up 0'], 'one rank word only');
+  assert.deepEqual(knownFrames('workstations', sheet({ 'high DESK': ART.base.workstations.frames.DESK }), ART.base.workstations).unknown, ['high DESK'], 'ranks only in the character families');
+  assert.deepEqual(checkSheet('scribe', sheet({}, { high: { arm: [26, 18] } }), B), [], 'rank anchors');
+  const tail = checkSheet('scribe', sheet({}, { high: { tail: [1, 1] } }), B);
+  assert.equal(tail.length, 1); assert.ok(tail[0].includes('anchor high.tail unknown'), tail[0]);
+  const num = checkSheet('scribe', sheet({}, { high: { arm: 3 } }), B);
+  assert.equal(num.length, 1, 'rank anchor shape'); assert.ok(num[0].includes('high.arm'), num[0]);
+  assert.deepEqual(checkSheet('scribe', sheet({}, { novice: { feet: [15, 34] } }), B), [], 'rank anchors alone');
+  // warnings: a rank gesture with no rank seat; a rank drawn in one view only
+  assert.equal(rankWarnings('t/scribe', ['up 0', 'up think', 'high up think'], null).length, 1, 'rank gesture without its rank seat');
+  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'up think', 'high up 0', 'high up think'], null), [], 'rank gesture with its seat');
+  const one = rankWarnings('t/scribe', ['up 0', 'high up 0'], ['N 0']);
+  assert.equal(one.length, 1, 'a rank in one view only'); assert.ok(one[0].includes('scribe39'), one[0]);
+  assert.deepEqual(rankWarnings('t/scribe39', ['N 0', 'high N 0'], ['high up 0']), [], 'a rank in both views');
+  // a rank frame whose plain frame this sheet does not draw is never shown (the same-source rule): said
+  const unseen = rankWarnings('t/scribe', ['high up 0', 'high up 1'], null);
+  assert.equal(unseen.length, 1, 'rank frames without their plain frames'); assert.ok(unseen[0].includes("'high up 0'") && unseen[0].includes('never shown'), unseen[0]);
+  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'up 1', 'high up 0', 'high up 1'], null), [], 'rank frames over its own plain frames');
+  // rank anchors with no frame of that rank: they move the plain body for that rank alone: said
+  const lone = rankWarnings('t/scribe', ['up 0'], null, ['feet', 'high']);
+  assert.equal(lone.length, 1, 'rank anchors without rank frames'); assert.ok(lone[0].includes('high'), lone[0]);
+  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'high up 0'], null, ['high']), [], 'rank anchors with their frames');
+}
 one({ frames: { zz: rows(4, 3) } }, 'zz');
 one({ frames: { a: rows(5, 3) } }, 'size');
 one({ frames: { a: [...rows(4, 2), 'kkkkk'] } }, 'a');
