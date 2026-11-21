@@ -1,7 +1,7 @@
 // Rank art (docs/superpowers/specs/2026-11-21-rank-art-design.md): rank-prefixed frames ('high up 0') drawn instead of
 // the plain frame, only from the plain frame's own source; per-rank anchors laid over the base anchors.
 import assert from 'node:assert/strict';
-import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, ART, marked, rankLayer, rankAnchors, anchorsOf } from './sprites.js';
+import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, ART, marked, rankLayer, rankAnchors, anchorsOf, checkComplete39 } from './sprites.js';
 import { bodyOf, bodyOf39 } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
 import { THEMES, setTheme } from './theme.js';
@@ -104,7 +104,7 @@ const all = () => true;
   assert.deepEqual(row('SCRIBE.standard.up').cells.map(c => c.rows), SCRIBE.up, 'catalog rank rows: standard plain');
   assert.equal(row('ADEPT.high.up').cells[0].rows, AH[0], 'catalog rank rows: adept');
   assert.deepEqual(row('SCRIBE39.high.N').cells.map(c => c.rows), N, 'catalog 39° rank row');
-  assert.equal(row('SCRIBE39.novice.N'), undefined, 'no 39° row for an undrawn rank');
+  assert.equal(row('SCRIBE39.standard.N'), undefined, 'no 39° row for an undrawn rank (standard draws none)');
   assert.ok(cat.indexOf(row('SCRIBE39.high.N')) > cat.findIndex(e => e.id.startsWith('ENCLAVE')), '39° rank rows after every earlier row');
   setTheme('forge'); setTheme('tier2'); // refill: the hand-made layers are gone
   assert.equal(SCRIBE.rank.high?.up[0], ART.base.scribe.frames['high up 0'], 'refilled from the art, the hand-made layer gone');
@@ -125,6 +125,8 @@ const drawnRanks = (family, dirs, back) => {
 };
 drawnRanks('scribe', ['up', 'down', 'right'], 'up');
 drawnRanks('adept', ['up', 'down', 'right'], null);
+drawnRanks('scribe39', ['E', 'W', 'S', 'N'], 'N');
+assert.ok(checkComplete39('scribe39', ART.base.scribe39), 'scribe39 still complete with its rank frames');
 // the kind glyph's place is left as drawn on every rank body (marked lays the glyph there: sprites.js)
 for (const r of ['high', 'novice']) for (const [n, [gx, gy]] of [['down 0', [6, 14]], ['up 0', [7, 14]]]) {
   const fr = ART.base.adept.frames, f = fr[`${r} ${n}`], p = fr[n];
