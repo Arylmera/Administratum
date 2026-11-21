@@ -177,6 +177,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             same_file: None,
             cache,
             risk,
+            ci: None,
         });
     }
     out.sessions.sort_by(|a, b| a.name.cmp(&b.name));
