@@ -200,7 +200,7 @@ setTheme('tier2');
 // the ladder dark to light: the novice's robe darker than every Ordo's, the high's lighter;
 // the three ranks apart at a glance (RGB distance of the robe, and of the adept's bone), and high's gilt never a sash colour
 {
-  const ORDOS = ['tier2', 'forge', 'xenos', 'night', 'contrast'], KEYS = ['r', 'R', 'd', 't', 'T', 'z', 'j', 'g', 'G'], AKEYS = ['q', 'Q', 'b', 'x', 'J', 'I'];
+  const ORDOS = ['tier2', 'forge', 'xenos', 'night', 'contrast'], KEYS = ['r', 'R', 'd', 't', 'T', 'z', 'j', 'g', 'G'], AKEYS = ['q', 'Q', 'b', 'J', 'I']; // not x: the high's mantle is the Ordo's trim colour
   const robe = (t, r) => ({ ...t.px, ...t.rank[r].robe }), adept = (t, r) => ({ ...t.px, ...t.rank[r].adept });
   const dist = (a, b) => Math.hypot(...[1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)));
   const all = ORDOS.map(id => resolve(THEMES[id]));

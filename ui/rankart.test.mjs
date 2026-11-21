@@ -124,4 +124,10 @@ const drawnRanks = (family, dirs, back) => {
   }
 };
 drawnRanks('scribe', ['up', 'down', 'right'], 'up');
+drawnRanks('adept', ['up', 'down', 'right'], null);
+// the kind glyph's place is left as drawn on every rank body (marked lays the glyph there: sprites.js)
+for (const r of ['high', 'novice']) for (const [n, [gx, gy]] of [['down 0', [6, 14]], ['up 0', [7, 14]]]) {
+  const fr = ART.base.adept.frames, f = fr[`${r} ${n}`], p = fr[n];
+  for (let y = gy; y < gy + 5; y++) assert.equal(f[y].slice(gx, gx + 10), p[y].slice(gx, gx + 10), `adept '${r} ${n}': the glyph's place kept, row ${y}`);
+}
 console.log('rankart: ok');
