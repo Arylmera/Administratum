@@ -43,9 +43,10 @@ that name.
 
 A theme folder's name is its theme's id inside the pack. Every name in a pack, folders and files, takes letters,
 digits, `-`, `_` and `.` only, not starting with `.`; a folder's name does not end with `.`, and no name is one
-Windows keeps for a device (`CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, with any extension). A
-theme folder named otherwise is not read (one ending in `.` or named for a device is read from a local folder, but
-the installer drops it), and other files named otherwise are left out by the installer: the check names both. `pack.json`'s `name` is informational: the app shows the repository's `owner/repo`, not that name.
+Windows keeps for a device (`CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, with any extension). No
+folder takes the name of a file at the top of a pack (`pack.json`, `pack-source.json`, `LICENSE`, `LICENSE.md`,
+`LICENSE.txt`). A theme folder named otherwise is not read (one ending in `.`, named for a device or for a file at
+the top is read from a local folder, but the installer drops it), and other files named otherwise are left out by the installer: the check names both. `pack.json`'s `name` is informational: the app shows the repository's `owner/repo`, not that name.
 
 ---
 

@@ -194,11 +194,13 @@ fn reserved(name: &str) -> bool {
 }
 
 /// A path under the archive's top folder that `unpack` keeps: `pack.json`, a licence, or `<folder>/<name>.json|png`
-/// one level deep, every segment plain (a folder not ending in `.`, which Windows would drop), no device name.
+/// one level deep, every segment plain (a folder not ending in `.`, which Windows would drop), no device name, no
+/// folder named as a file of the top (`pack-source.json`, which `install` writes there, `pack.json`, a licence).
 fn keepable(rel: &[&str]) -> bool {
+    let top_file = |d: &str| d == SOURCE || d == "pack.json" || LICENCES.contains(&d);
     match rel {
         [f] => *f == "pack.json" || LICENCES.contains(f),
-        [d, f] => plain(d) && !d.ends_with('.') && !reserved(d) && plain(f) && !reserved(f) && (f.ends_with(".json") || f.ends_with(".png")),
+        [d, f] => plain(d) && !d.ends_with('.') && !reserved(d) && !top_file(d) && plain(f) && !reserved(f) && (f.ends_with(".json") || f.ends_with(".png")),
         _ => false,
     }
 }
@@ -867,6 +869,8 @@ mod tests {
             ("r-abc/README.md", E::File(b"# hi")),
             ("r-abc/pink/con.json", E::File(b"{}")),
             ("r-abc/pink./theme.json", E::File(b"{}")),
+            ("r-abc/pack-source.json/theme.json", E::File(b"{}")), // a folder named as the install's own file
+            ("r-abc/LICENSE/theme.json", E::File(b"{}")),
             ("r-abc/dir.json/", E::Dir),
             ("r-abc/out", E::Link(&out_link)),
             ("r-abc/out/theme.json", E::File(b"{}")),
