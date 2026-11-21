@@ -473,6 +473,27 @@ pub fn update(root: &Path, dir: &str, archive: &[u8], now: &str) -> Result<Updat
     Ok(Updated { pack, changed: true })
 }
 
+/// A pack the startup check found changed (main.rs `check_packs`): its folder, its repo, and the very archive it
+/// compared, which `apply` installs: never a second download, whose content the check never saw.
+pub struct Checked {
+    pub dir: String,
+    pub repo: String,
+    pub archive: Vec<u8>,
+}
+
+/// The startup toast's Update: each pack of `checked` updated from its checked archive (`update`), in turn, a failure
+/// not stopping the rest. Whether any pack was replaced, and each failure as (repo, error).
+pub fn apply(root: &Path, checked: &[Checked], now: &str) -> (bool, Vec<(String, String)>) {
+    let (mut replaced, mut failed) = (false, Vec::new());
+    for c in checked {
+        match update(root, &c.dir, &c.archive, now) {
+            Ok(up) => replaced |= up.changed,
+            Err(e) => failed.push((c.repo.clone(), e)),
+        }
+    }
+    (replaced, failed)
+}
+
 /// Whether `archive` holds other files than the pack in `root/<dir>` (a pack installed from a repository, `origin`;
 /// an error for a local pack): unpacked as `install` would (`unpack`, same filters) into a `.tmp-*` work folder, hidden
 /// from `list` and removed on every exit path, then its kept files compared with the pack's (`kept`). Never touches
@@ -987,6 +1008,28 @@ mod tests {
         assert!(changed(&root, "mine", &clean()).unwrap_err().contains("local pack"));
         assert!(changed(&root, "missing", &clean()).is_err());
         assert!(tree(&root).iter().all(|p| !p.starts_with('.')), "{:?}", tree(&root));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn the_update_installs_the_archive_the_check_compared() {
+        let root = tmp("apply");
+        install(&root, "alice/t", &clean(), "one").unwrap();
+        install(&root, "bob/u", &clean(), "one").unwrap();
+        let checked = tgz(&[("t-1/pink/theme.json", E::File(b"{\"v\":\"checked\"}"))]);
+        assert_eq!(changed(&root, "alice__t", &checked), Ok(true));
+        let packs = [
+            Checked { dir: "alice__t".into(), repo: "alice/t".into(), archive: checked },
+            Checked { dir: "gone".into(), repo: "carol/v".into(), archive: clean() },
+            Checked { dir: "bob__u".into(), repo: "bob/u".into(), archive: clean() },
+        ];
+        let (replaced, failed) = apply(&root, &packs, "two");
+        assert!(replaced, "one pack replaced");
+        assert_eq!(fs::read(root.join("alice__t/pink/theme.json")).unwrap(), b"{\"v\":\"checked\"}", "exactly the archive the check compared");
+        assert_eq!(failed.iter().map(|(r, _)| r.as_str()).collect::<Vec<_>>(), ["carol/v"], "a failure is named, the rest go on");
+        assert_eq!(list(&root).iter().find(|p| p.dir == "bob__u").unwrap().installed.as_deref(), Some("one"), "an identical archive replaces nothing");
+        let (replaced, failed) = apply(&root, &packs[2..], "three");
+        assert!(!replaced && failed.is_empty(), "nothing changed: nothing replaced, nothing failed");
         let _ = fs::remove_dir_all(&root);
     }
 

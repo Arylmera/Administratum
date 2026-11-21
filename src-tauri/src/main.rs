@@ -294,11 +294,13 @@ async fn update_pack(root: PathBuf, dir: String) -> Result<packs::Updated, Strin
 /// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository is downloaded again,
 /// one after the other (`PACK_CHECK` each), and compared with what is installed (`packs::changed`); nothing is
 /// installed. Any error (offline, GitHub refusing, a broken archive) only skips that pack, in the log. When some
-/// changed, a toast asks: "Update" updates those packs (`update_pack`, `update_changed`); "Later" or a click on the
-/// toast does nothing. In quiet hours the toast is dropped, as the others are: the next start checks again.
+/// changed, a toast asks: "Update" installs those packs from the archives just compared (`update_changed`: what the
+/// toast announced, not a later push, and no second download); "Later" or a click on the toast does nothing, and the
+/// archives are kept with the toast until then. In quiet hours the toast is dropped, as the others are: the next
+/// start checks again.
 async fn check_packs(app: AppHandle) {
     let Ok(root) = themes_root(&app) else { return };
-    let mut found: Vec<(String, String)> = Vec::new(); // (dir, repo)
+    let mut found: Vec<packs::Checked> = Vec::new();
     for pack in packs::list(&root) {
         let Some(repo) = pack.repo else { continue };
         let archive = match download_pack(&repo, PACK_CHECK).await {
@@ -309,9 +311,9 @@ async fn check_packs(app: AppHandle) {
             }
         };
         let (r, d) = (root.clone(), pack.dir.clone());
-        match tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::changed(&r, &d, &archive))).await {
-            Ok(Ok(true)) => found.push((pack.dir, repo)),
-            Ok(Ok(false)) => {}
+        match tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::changed(&r, &d, &archive).map(|c| (c, archive)))).await {
+            Ok(Ok((true, archive))) => found.push(packs::Checked { dir: pack.dir, repo, archive }),
+            Ok(Ok((false, _))) => {}
             Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),
             Err(e) => eprintln!("pack check: {repo}: {e}"),
         }
@@ -319,7 +321,8 @@ async fn check_packs(app: AppHandle) {
     if found.is_empty() || quiet::active() {
         return;
     }
-    let names = found.iter().map(|(_, repo)| repo.as_str()).collect::<Vec<_>>().join(", ");
+    let names = found.iter().map(|c| c.repo.as_str()).collect::<Vec<_>>().join(", ");
+    let found = std::sync::Arc::new(found);
     let body = format!("{names}: Update installs them and restarts.");
     // macOS shows the buttons as an "Options" menu whose own click reports the first: Later first there, so a
     // stray click never updates and restarts (as `toast::petition_buttons` puts Deny first)
@@ -332,21 +335,19 @@ async fn check_packs(app: AppHandle) {
     });
 }
 
-/// The startup toast's "Update": each pack of `found` (dir, repo) updated in turn, a failure not stopping the rest.
-/// All went well and one was replaced: restart at once. One failed: no restart, a toast names the failed repos and
-/// why (and says to restart to apply what was replaced).
-async fn update_changed(app: AppHandle, root: PathBuf, found: Vec<(String, String)>) {
-    let (mut replaced, mut failed) = (false, Vec::new());
-    for (dir, repo) in found {
-        match update_pack(root.clone(), dir).await {
-            Ok(up) => replaced |= up.changed,
-            Err(e) => {
-                eprintln!("pack update: {repo}: {e}");
-                let short: String = if e.chars().count() > 80 { e.chars().take(79).chain(['…']).collect() } else { e };
-                failed.push(format!("{repo}: {short}"));
-            }
-        }
+/// The startup toast's "Update": each pack of `found` installed from the archive the check compared (`packs::apply`),
+/// a failure not stopping the rest. All went well and one was replaced: restart at once. One failed: no restart, a
+/// toast names the failed repos and why (and says to restart to apply what was replaced).
+async fn update_changed(app: AppHandle, root: PathBuf, found: std::sync::Arc<Vec<packs::Checked>>) {
+    let applied = tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::apply(&root, &found, &now_utc()))).await;
+    let (replaced, failed) = match applied {
+        Ok(r) => r,
+        Err(e) => (false, vec![("theme packs".to_string(), e.to_string())]),
+    };
+    for (repo, e) in &failed {
+        eprintln!("pack update: {repo}: {e}");
     }
+    let failed: Vec<String> = failed.iter().map(|(repo, e)| format!("{repo}: {}", short(e, 80))).collect();
     if failed.is_empty() {
         if replaced {
             app.restart();
