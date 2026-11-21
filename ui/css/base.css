@@ -1,0 +1,75 @@
+/* Bundled fonts (SIL OFL, see fonts/OFL-*.txt); VT323 is a single 400 weight; size-adjust lifts it to the old body size. */
+@font-face { font-family: 'VT323'; font-weight: 400; font-display: swap; size-adjust: 125%; src: url(../fonts/vt323-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'VT323'; font-weight: 400; font-display: swap; size-adjust: 125%; src: url(../fonts/vt323-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Pirata One'; font-weight: 400; font-display: swap; src: url(../fonts/pirata-one-latin.woff2) format('woff2'); }
+/* Chrome colours, named by role. A theme overrides any of them (theme.js `ui`, applied by chrome.js); these are Tier II. */
+:root {
+  /* the header and the hall's frame */
+  --bg: #060404; --bar: #120d0a; --ink: #d6c79f; --dim: #8a7a5c; --light: #f3e6c4; --edge: #3a2a1e; --btn: #1a120e; --copper: #b8742e; --outline: #0e0a08; --bone: #cfc3a8; --iron: #6a6f76; --green: #7cff9e;
+  /* petitions and alarms */
+  --red: #a0221a; --pink: #ff7a66; --blood: #4e110c; --glow: #be281c; --wax: #8e1c16; --wax-deep: #3a0d09; --alarm: #ff3a20; --flame: #ffe6a0;
+  /* text on a --blood fill (a light-chrome theme's --light is dark, its --blood stays dark: paper text) */
+  --on-blood: var(--light); --ink-on-blood: var(--ink); --pink-on-blood: var(--pink); --green-on-blood: var(--green);
+  /* the alarm's text on its --wax fill (and on --wax-deep at the blink) */
+  --flame-on-wax: var(--flame);
+  /* the Hall of Honours' words over its plaque art (the night darkens the art, never the words) */
+  --honours-ink: var(--light);
+  /* labels over the scene */
+  --label: #1e0a08; --label-sel: #3a1410; --label-btn: #2a0d0a; --plaque: #140d09; --yes: #2e6b47; --yes-deep: #16301f;
+  /* parchment: the card, the Chronicon, Settings */
+  --card: #cdbb8f; --paper: #d8c79c; --paper-edge: #c2ac78; --paper-hi: #e3d4ac; --paper-tab: #bfa877; --paper-q: #d6c79f; --paper-shade: #a8946a; --paper-line: #8a6a3a; --paper-ink: #1a120c; --paper-ink-2: #5a3c16; --paper-ink-3: #3a2810; --paper-err: #621009; --leather: #6e3f17; --leather-deep: #3a200c; --chart-new: #a8281c; --chart-cache: #127a5c;
+    /* the Chronicon's event icons (chronicon.js PAL, by its letters): k ink, R red, r deep red, w light, y gold, o orange, g green, b brown, B brass */
+    --chart-ink: #1a120c; --chart-red: #c2321f; --chart-red-deep: #7a1610; --chart-light: #f3e6c4; --chart-gold: #e8c050; --chart-orange: #d8621c; --chart-green: #1f7a52; --chart-brown: #6e3f17; --chart-brass: #b8742e;
+    /* the focus ring and the emphasis colour, on the dark chrome and on parchment (a parchment surface rebinds --focus and --em to these) */
+    --focus: var(--green); --focus-paper: var(--paper-accent); --em: var(--light); --em-paper: var(--paper-accent);
+  /* titles (header, Chronicon, Settings) and the accent over the parchment */
+  --display: 'Pirata One', serif; --paper-accent: var(--blood);
+  /* the scroll rods */
+  --rod-hi: #d8a050; --rod: #8a5320; --rod-lo: #4a2a0e; --rod-edge: #2a1606; --rod-cap: #f0d080;
+}
+
+/* Scales (F9): every spacing, type size, radius and layer the pages use, built from the values in use. The px steps are
+   named by their pixels; the em steps (--spe-: spacing, --fse-: type, by hundredths of an em) scale with the font size of
+   the panel or label they sit in (--k). css.test.mjs fails on a raw length for these properties outside this block. */
+:root {
+  --sp-1: 1px; --sp-2: 2px; --sp-3: 3px; --sp-4: 4px; --sp-6: 6px; --sp-8: 8px; --sp-10: 10px; --sp-12: 12px; --sp-16: 16px; --sp-24: 24px;
+  --spe-10: .1em; --spe-20: .2em; --spe-25: .25em; --spe-30: .3em; --spe-40: .4em; --spe-50: .5em; --spe-60: .6em; --spe-75: .75em;
+  --spe-80: .8em; --spe-90: .9em; --spe-100: 1em; --spe-120: 1.2em; --spe-150: 1.5em;
+  --fs-8: 8px; --fs-9: 9px; --fs-10: 10px; --fs-11: 11px; --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px; --fs-20: 20px; --fs-22: 22px; --fs-24: 24px;
+  --fse-80: .8em; --fse-85: .85em; --fse-90: .9em; --fse-100: 1em; --fse-110: 1.1em; --fse-170: 1.7em; --fse-190: 1.9em;
+  --r-2: 2px; --r-3: 3px; --r-4: 4px; --r-rod: .45em; --r-round: 50%;
+  --em-track: .06em;
+  --z-usage: 1; --z-edge: 2; --z-card: 3; --z-handle: 4; --z-chron: 5; --z-prefs: 6; --z-menu: 7;
+}
+
+/* The parchment panel shell, shared by the Chronicon and Settings (class "panel"): a scroll unrolled between two rods
+   (rows animate 0fr -> 1fr), its sheet, its title row and close button. #chron and #prefs keep only their differences. */
+.panel { position: absolute; left: 50%; transform: translateX(-50%); display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(var(--fs-11) * var(--k, 1)); }
+.panel.open { grid-template-rows: auto 1fr auto; }
+.panel[hidden] { display: none; }
+.panel .rod { height: .9em; margin: 0 calc(-1 * var(--spe-50)); border-radius: var(--r-rod); background: linear-gradient(var(--rod-hi), var(--rod) 45%, var(--rod-lo)); border: 1px solid var(--rod-edge); box-shadow: 0 3px 4px rgba(0,0,0,.6); }
+.panel .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, var(--paper) 30%, var(--paper-edge) 100%); border-left: 2px solid var(--paper-line); border-right: 2px solid var(--paper-line); box-shadow: inset 0 0 1.5em color-mix(in srgb, var(--leather) 45%, transparent); }
+.panel .top { flex: none; display: flex; align-items: center; }
+.panel h2 { margin: 0; font: 400 var(--fse-170)/1 var(--display); color: var(--paper-accent); }
+.panel .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: var(--r-2); color: var(--paper-accent); font: inherit; cursor: pointer; }
+
+/* One focus ring (F10), on --focus. The parchment surfaces (the card, the panels, a question label, the strip menu)
+   rebind --focus to --focus-paper (and --em to --em-paper), so one rule draws it dark on parchment and light on the
+   dark chrome. */
+:is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.panel :is(button, input, select, summary):focus-visible { outline-offset: 1px; } /* inside the sheet's clip */
+.panel, #card, #strip-menu, .lbl.question { --focus: var(--focus-paper); --em: var(--em-paper); }
+/* Shared disabled and pressed states: a disabled control is half-lit; a press darkens it, over any hover. */
+:is(button, input, select, textarea):disabled { opacity: .5; cursor: default; }
+:is(button, summary):active:not(:disabled) { filter: brightness(.85) !important; }
+
+/* Emphasis (F11). VT323 has one weight and font-synthesis is off, so bold and italic draw as nothing; emphasis is the
+   --em colour, a wider track and, for a warning, an underline. .em: strong. .em-alert: a warning. .em-soft: what
+   italic stood for (a note, a hint). A site that sets its own colour keeps it (its rule comes later). */
+.em, #card .name, #card .q { color: var(--em); }
+.em, .count.on, #card .name, #card .q, #card .asks b, #chron .stat b, #chron .events .who, .petition b, .row b { letter-spacing: var(--em-track); }
+.em-alert, .lbl.risky .sub, #card .stuck, #card .risk, #card .err, #prefs .rv-err { letter-spacing: var(--em-track); text-decoration: underline; text-underline-offset: .15em; }
+.em-soft, #card .note, #card .title, #card .q.hint, #chron .quiet, #chron .loading { text-decoration: underline dotted; text-underline-offset: .25em; }
+.em-alert, .em-soft { color: var(--em); }

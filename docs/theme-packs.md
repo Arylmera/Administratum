@@ -118,6 +118,20 @@ Every key but `format`, `name` and one of `world` / `base` is optional: a theme 
 A colour is `#rrggbb`, `rgb(r, g, b)`, `rgba(r, g, b, a)` or `r,g,b`; `px`, `sash` and `rank` take `#rrggbb` only. In a
 style, every part you give is laid over the recoloured base.
 
+Some `ui` keys are optional, because the page has a default for each (`ui/css/base.css`): a pack written before them, or one
+that leaves them out, loads as it did and takes the default.
+
+| `ui` key | What it colours | Default |
+|---|---|---|
+| `--focus` | The keyboard focus ring on the dark chrome: the header, the labels, the page. At least 3:1 on `--bar`, `--label` and `--bg` | `--green` |
+| `--focus-paper` | The same ring on parchment (the card, the Chronicon, Settings). At least 3:1 on `--card`, `--paper`, `--paper-tab`, `--paper-hi`, `--paper-q` and `--paper-edge` | `--paper-accent` |
+| `--em`, `--em-paper` | The emphasis colour (the card's name and question, an alert's underline) on the chrome and on parchment. VT323 has one weight, so emphasis is colour, spacing and underline, never bold or italic | `--light`, `--paper-accent` |
+| `--chart-new`, `--chart-cache` | The Chronicon's bars and plots (new and cached tokens). At least 3:1 on `--paper` | red, green |
+| `--chart-red`, `--chart-green` | The Chronicon's "tests fail" cross and "tests pass" tick. At least 3:1 on `--paper` | red, green |
+| `--chart-ink`, `--chart-red-deep`, `--chart-light`, `--chart-gold`, `--chart-orange`, `--chart-brown`, `--chart-brass` | The rest of the Chronicon's event icons (ink, deep red, light, gold, orange, brown, brass) | the Tier II colours |
+
+The repository's `ui/theme.test.mjs` checks every shipped theme against these minimums; `node tools/theme_pack.mjs check` checks a pack's format, not its contrast.
+
 The names `px`, `ink`, `light` and `text` accept are the app's own: an unknown one is refused, by name. To see them
 all with their values, open a world theme of the Administratum repository: `ui/art/vault/theme.json` has a full set
 of wording, `ui/art/forge/theme.json` a short world. `ui/theme.js` holds the defaults (Ordo Administratum) they all start from.

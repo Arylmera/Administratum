@@ -11,6 +11,10 @@
   "art": ["breakout"],
   "px": { "7": "#273134", "8": "#2a3538", "9": "#383b3a", "H": "#291f1a", "K": "#352f2a" },
   "ink": { "lampDead": "#1c1d20" },
+  "ui": {
+    "--chart-red": "#df4935",
+    "--chart-green": "#248e60"
+  },
   "text": {
     "subtitle": "Lower Levels · Night market den",
     "motto": "It never stops raining down here",

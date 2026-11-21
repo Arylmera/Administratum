@@ -11,6 +11,10 @@
   "art": ["breakout"],
   "px": { "7": "#252d26", "8": "#283129", "9": "#353731", "H": "#19221b", "K": "#2e2c28" },
   "ink": { "lampDead": "#1c1d20" },
+  "ui": {
+    "--chart-red": "#dd3f2a",
+    "--chart-green": "#238a5d"
+  },
   "text": {
     "subtitle": "Mainframe · Green-code terminal",
     "motto": "Follow the white rabbit",
