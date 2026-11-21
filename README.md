@@ -426,7 +426,8 @@ Sessions of OpenCode 2.x (the `opencode` TUI) are scribes too, read from OpenCod
 
 Watch the hall from a tablet or phone on the same network, in its browser:
 
-1. Settings > Remote view > **Serve on the local network** (off by default; port 7770).
+1. Settings > Remote view > **Serve on the local network** (off by default; port 7770). Off, the app still listens on
+   `127.0.0.1` only (this PC), with the same pairing token, for `tools/adm.mjs`.
 2. Windows: **Allow this port** adds the Windows Firewall rule (Windows asks for administrator permission). macOS:
    see [macOS](#what-differs-on-macos).
 3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
@@ -441,7 +442,8 @@ the PC, and questions and other petitions are shown only. Its **Full hall** link
 The remote page shows the same hall, cards and Chronicon, live. It keeps its own lighting, scale, theme, view and
 chime; the PC's settings are shown read only. **Allow remote actions** (off by default) lets a paired device approve
 or deny permission prompts, with the same on-screen check as on the PC; anyone with the link on your network can
-then do it. *Open in Orca* and opening folders never run from a remote device. **Regenerate token** unpairs every
+then do it; the prompt a card shows (`peek_petition`, the question and its options) is read only when this is on.
+*Open in Orca* and opening folders never run from a remote device. **Regenerate token** unpairs every
 device. Only private and local network addresses are answered. The HTTP API is documented in
 [docs/remote-api.md](docs/remote-api.md).
 
@@ -643,6 +645,7 @@ configuration, and installs no hooks. It reads:
 | `settings.json` | UI settings (the tables above) and the remote view's port, switches and pairing token. The WebView's local storage holds only a cache |
 | `chronicon\YYYY-MM-DD.jsonl` | That day's events: time, kind, session name, department, short detail (commit subject, test command, tool name...) |
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals, and its 5-minute token buckets (the usage window) |
+| `administratum.log`, `administratum.log.1`, `.2` | The app's own log: what went wrong (a pack check, the remote view's port, a toast, the strip, OpenCode, the Night Vigil's shutdown) with its time, and nothing else. Each file is cut at 1 MiB and only three are kept; every line is masked like the hall's texts (a token or `password=` value shows as `•••`). The same entries are listed in Settings > Status |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
 | `themes\<owner>__<repo>\` | A theme pack you installed (Settings > Hall > Added themes): its themes' files only, removed with *Remove* |
@@ -655,7 +658,9 @@ Chronicon files older than 7 days are deleted at startup. Demo mode uses a separ
 which is wiped at each start.
 
 **Nothing about your sessions leaves the machine**, unless you turn on the [remote view](#remote-view), which serves
-the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
+the hall to paired devices on your local network only. With the remote view off, the app still listens on
+`127.0.0.1` (this PC only; port 7770 unless changed), with the same pairing token and the same checks, so that
+`tools/adm.mjs` works; no other device can reach it. There is no telemetry. The only network calls are the update
 check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
 *Update* (or *Update all*) in Settings > Hall > Added themes. When *Check added themes for updates at startup* is on

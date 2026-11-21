@@ -19,9 +19,15 @@ RemoteStatus = {
   "urls": ["http://192.168.1.5:7770/"],      // empty when the PC has no private IPv4
   "token_url": "http://192.168.1.5:7770/?t=<32 hex>",  // "" when urls is empty
   "qr_svg": "<?xml ...><svg ...>...</svg>",  // QR of token_url; "" when token_url is ""
-  "actions_allowed": false
+  "actions_allowed": false,
+  "saved": true,                // the setting: the LAN view was left on (it may have failed to start: see error)
+  "loopback": false,            // listening on 127.0.0.1 only (the LAN view is off)
+  "error": null                 // why the listener is not as it should be (the status store's remote entry), else null
 }
 ```
+
+`enabled` is whether the LAN view is listening now. `saved`, `loopback` and `error` are additive: a view left on that
+failed to bind reads `saved: true, enabled: false` with its `error`.
 
 Applied at once (start, stop, port change), no restart. Stored in `settings.json` as `remote.enabled`,
 `remote.port`, `remote.actions`, `remote.token`. Those `remote.*` keys never appear in `settings_load`
@@ -30,7 +36,9 @@ Applied at once (start, stop, port change), no restart. Stored in `settings.json
 
 ## Server
 
-- `http://0.0.0.0:<port>`, only while enabled. Plain HTTP/1.1, one request per connection (`Connection: close`).
+- Always listening on `<port>`: on `0.0.0.0` while the LAN view is on, on `127.0.0.1` only while it is off (a local
+  program such as `tools/adm.mjs` reaches it; no other device can). Same pairing token and same checks either way
+  (no token: 401). If the port is taken, the listener is missing and the status store's `remote` entry says why. Plain HTTP/1.1, one request per connection (`Connection: close`).
 - Peer must be loopback, private or link-local (10/8, 172.16/12, 192.168/16, 169.254/16, 127/8, ::1,
   fc00::/7, fe80::/10, IPv4-mapped judged as IPv4); anything else is closed unanswered.
 - `Host` must be an IP literal or `localhost` (optional port), else 403 (DNS rebinding).
@@ -92,8 +100,10 @@ Query values are percent-decoded.
 | `GET /api/chronicle_days` | `chronicle_days` -> `DaySummary[]` |
 | `GET /api/honours` | `honours` -> `{commits, longest, fast, busiest}`, the Hall of Honours over the kept 7 days: each `{dept, value}` or null (`value`: a count for `commits` and `fast`, ms for `longest`; `busiest` also has `day`, `YYYY-MM-DD`, its `value` that day's working time in ms). Department names only, no paths |
 | `GET /api/settings_load` | `settings_load` -> object (read only; there is no remote save) |
-| `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}` |
+| `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}`. Behind the same remote actions switch as answering: 403 when actions are off, or when a browser's `Origin` / `Sec-Fetch-Site` says the request is cross-origin (a same-origin GET carries neither; no `X-Adm` header or body is needed) |
 | `GET /api/theme_packs` | `theme_packs` -> `[{id, dir, repo, installed, themes}]`, the theme packs in the PC's themes folder (`id` `owner/repo` or `local/<dir>`; `repo` and `installed` null for a local pack; `themes` the folders holding a `theme.json`, sorted). Their files are served under `/themes/` (Static files); there is no remote install or removal |
+
+Local only, never a remote call: `integration_status` (the Settings > Status entries), `test_notification`, and the `update-progress` event (`{downloaded, total}` while an update downloads; it is not mirrored to `/events`).
 
 Not exposed: `open_session`, `settings_save`, `theme_pack_file` (the phone reads `/themes/` instead), `theme_pack_install`, `theme_pack_update`, `theme_pack_remove`, `restart`, `set_*`, `start_at_login`, the `remote_*` commands.
 
@@ -168,6 +178,6 @@ es.addEventListener('roster', e => onRoster(JSON.parse(e.data)));
 
 ## Cost
 
-Off: no socket, no thread; each emit costs one uncontended lock on an empty client list.
-On with no clients: one thread blocked in `accept`, no timers, no wakeups. Per event stream: one
+LAN view off: one socket on 127.0.0.1 and its accept thread; each emit costs one uncontended lock on an empty client list.
+LAN view on with no clients: one thread blocked in `accept`, no timers, no wakeups. Per event stream: one
 thread asleep between events, the event serialized once for all clients.

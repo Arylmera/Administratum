@@ -1,5 +1,5 @@
 //! The Night Vigil in the app: arming (tray, commands, toast, remote), its Chronicon events, its toast, the shutdown.
-use crate::{chronicle, chronicle::Event, emit, monitor, now_ms, registry::Session, settings, settings_path, toast, vigil, Chron};
+use crate::{chronicle, chronicle::Event, emit, monitor, now_ms, registry::Session, settings, settings_path, status, toast, vigil, Chron};
 use std::{process::Command, sync::Mutex};
 use tauri::{menu::CheckMenuItem, AppHandle, Manager};
 
@@ -56,7 +56,7 @@ fn capture(app: &AppHandle, now: i64) {
     };
     let r = chronicle::report(&day, &chronicle::tithe_of(&cdir, &live, &day), &chronicle::read_events(&cdir, &day));
     if let Err(e) = chronicle::write_capture(&dir, &r) {
-        eprintln!("night vigil: day report: {e}");
+        status::report("vigil", status::State::Warn, format!("day report: {e}"));
         vigil_event(app, now, &report_failed_detail(&e));
     }
 }
@@ -82,18 +82,44 @@ pub fn vigil_cancel(app: AppHandle) {
     vigil_set(&app, false);
 }
 
-/// The real shutdown. Never called in demo mode or from a test. On macOS through System Events: the first time,
-/// macOS asks for the Automation permission, and an app may still veto the shutdown (unsaved work).
-fn shutdown_now() {
+/// The command that shuts the machine down.
+fn shutdown_command() -> Command {
     #[cfg(windows)]
-    let cmd = crate::no_window(Command::new("shutdown")).args(["/s", "/f", "/t", "0", "/c", "Administratum: Night Vigil"]).spawn();
+    let mut cmd = crate::no_window(Command::new("shutdown"));
+    #[cfg(windows)]
+    cmd.args(["/s", "/f", "/t", "0", "/c", "Administratum: Night Vigil"]);
     #[cfg(target_os = "macos")]
-    let cmd = Command::new("/usr/bin/osascript").args(["-e", r#"tell application "System Events" to shut down"#]).spawn();
+    let mut cmd = Command::new("/usr/bin/osascript");
+    #[cfg(target_os = "macos")]
+    cmd.args(["-e", r#"tell application "System Events" to shut down"#]);
     #[cfg(not(any(windows, target_os = "macos")))]
-    let cmd = Command::new("systemctl").arg("poweroff").spawn();
-    if let Err(e) = cmd {
-        eprintln!("night vigil: shutdown: {e}");
+    let mut cmd = Command::new("systemctl");
+    #[cfg(not(any(windows, target_os = "macos")))]
+    cmd.arg("poweroff");
+    cmd
+}
+
+/// Why the shutdown command did not do its job: it did not start, or it exited with a failure. None when it ran well.
+fn shutdown_failure(result: std::io::Result<std::process::ExitStatus>) -> Option<String> {
+    match result {
+        Ok(s) if s.success() => None,
+        Ok(s) => Some(format!("the shutdown command exited with {s}")),
+        Err(e) => Some(e.to_string()),
     }
+}
+
+/// The real shutdown. Never called in demo mode or from a test. On macOS through System Events: the first time,
+/// macOS asks for the Automation permission, and an app may still veto the shutdown (unsaved work). The command's
+/// exit is waited for off the poll thread (macOS may wait on that dialog); a failure is recorded in the status
+/// store and the log, and in the Chronicon, so the morning does not show a PC that was meant to be off and is not.
+fn shutdown_now(app: AppHandle) {
+    std::thread::spawn(move || match shutdown_failure(shutdown_command().status()) {
+        None => status::report("vigil", status::State::Ok, "shutdown requested"),
+        Some(e) => {
+            status::report("vigil", status::State::Error, format!("shutdown failed: {e}"));
+            vigil_event(&app, now_ms(), "shutdown failed");
+        }
+    });
 }
 
 /// The countdown toast with a Cancel button. Ignores quiet hours.
@@ -127,9 +153,9 @@ pub fn tick(app: &AppHandle, roster: &[Session], last_write: i64, now_ms: i64, d
                 let _ = item.0.set_checked(false);
             }
             if demo {
-                eprintln!("night vigil: demo mode, no shutdown");
+                status::note("vigil", "demo mode, no shutdown");
             } else {
-                shutdown_now();
+                shutdown_now(app.clone());
             }
         }
         vigil::Step::Nothing => {}
@@ -150,6 +176,26 @@ mod tests {
         assert!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "240"}), 0).is_some_and(|d| d > 0 && d <= 1440 * 60_000));
         assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "oops"}), 0), None);
         assert_eq!(vigil_deadline(&serde_json::json!({"adm.vigilDeadline": "-5"}), 0), None);
+    }
+
+    fn exit(code: i32) -> std::process::ExitStatus {
+        #[cfg(windows)]
+        {
+            std::os::windows::process::ExitStatusExt::from_raw(code as u32)
+        }
+        #[cfg(unix)]
+        {
+            std::os::unix::process::ExitStatusExt::from_raw(code << 8)
+        }
+    }
+
+    #[test]
+    fn a_shutdown_that_did_not_work_is_a_failure() {
+        assert_eq!(shutdown_failure(Ok(exit(0))), None);
+        let failed = shutdown_failure(Ok(exit(5))).expect("a non-zero exit fails");
+        assert!(failed.contains("exited with") && failed.contains('5'), "{failed}");
+        let missing = shutdown_failure(Err(std::io::Error::new(std::io::ErrorKind::NotFound, "no such command"))).expect("a command that did not start fails");
+        assert_eq!(missing, "no such command");
     }
 
     #[test]

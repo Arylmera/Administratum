@@ -6,7 +6,7 @@ use crate::{
     chronicle_day, chronicle_days, honours,
     opencode::answer_opencode,
     orca::{answer_petition, peek_petition},
-    packs, remote, settings, settings_load, settings_path, themes_root, tithe_day,
+    packs, remote, settings, settings_load, settings_path, status, themes_root, tithe_day,
     vigil::app::vigil_set,
 };
 use tauri::{AppHandle, Manager};
@@ -105,20 +105,46 @@ pub struct RemoteStatus {
     token_url: String,
     qr_svg: String,
     actions_allowed: bool,
+    /// The setting: the LAN view was left on (it may have failed to start, see `error`).
+    saved: bool,
+    /// The server listens on 127.0.0.1 only (the LAN view is off; `tools/adm.mjs` uses it).
+    loopback: bool,
+    /// Why the server is not listening as it should, from the status store; None when it is.
+    error: Option<String>,
 }
 
-/// The settings panel's view of the remote view: whether it is serving, where, and the pairing QR.
+/// The settings panel's view of the remote view: whether it is serving, where, and the pairing QR. `enabled` is
+/// whether the LAN view is listening now; `saved` is what the setting says, so a view left on that failed to bind
+/// reads `saved` without `enabled`, with its `error`.
 #[tauri::command(async)]
 pub fn remote_status(app: AppHandle) -> Result<RemoteStatus, String> {
-    let (_, port, actions_allowed, token) = remote_conf(&settings_path(&app)?)?;
+    let (saved, port, actions_allowed, token) = remote_conf(&settings_path(&app)?)?;
     let urls: Vec<String> = remote::lan_ipv4().iter().map(|ip| format!("http://{ip}:{port}/")).collect();
     let token_url = urls.first().map(|u| format!("{u}?t={token}")).unwrap_or_default();
     let qr_svg = if token_url.is_empty() { String::new() } else { remote::qr_svg(&token_url) };
-    Ok(RemoteStatus { enabled: remote::running_port().is_some(), port, urls, token_url, qr_svg, actions_allowed })
+    let (running, lan) = (remote::running_port().is_some(), remote::lan_on());
+    let error = status::entry(STATUS).filter(|e| e.state == status::State::Error).map(|e| e.message);
+    Ok(RemoteStatus { enabled: running && lan, port, urls, token_url, qr_svg, actions_allowed, saved, loopback: running && !lan, error })
 }
 
-/// Serve (or stop serving) on `port`, and allow remote actions or not. Applies at once; a port
-/// that cannot be bound leaves the remote view off and returns the error.
+/// The integration's name in the status store.
+const STATUS: &str = "remote";
+
+/// Listen on `port`: on every interface when `lan`, else on 127.0.0.1 only. The outcome goes to the status store.
+fn serve(app: &AppHandle, lan: bool, port: u16) -> Result<u16, String> {
+    let bound = remote::start(remote::bind_addr(lan, port), remote_backend(app));
+    match &bound {
+        Ok(p) if lan => status::report(STATUS, status::State::Ok, format!("serving the LAN view on port {p}")),
+        Ok(p) => status::report(STATUS, status::State::Ok, format!("listening on 127.0.0.1:{p} only (the LAN view is off)")),
+        Err(e) if lan => status::report(STATUS, status::State::Error, format!("the LAN view is on but not running: {e}")),
+        Err(e) => status::report(STATUS, status::State::Warn, format!("no local listener: {e}")),
+    }
+    bound
+}
+
+/// Serve the LAN view on `port` (or only on this machine, `enabled` false: the listener stays for `tools/adm.mjs`),
+/// and allow remote actions or not. Applies at once; a port that cannot be bound leaves the remote view off and
+/// returns the error.
 #[tauri::command(async)]
 pub fn remote_set(enabled: bool, port: u16, actions_allowed: bool, app: AppHandle) -> Result<RemoteStatus, String> {
     if port < 1024 {
@@ -128,12 +154,13 @@ pub fn remote_set(enabled: bool, port: u16, actions_allowed: bool, app: AppHandl
     remote_conf(&path)?; // the token exists before anything can pair
     remote::set_actions(actions_allowed);
     let run = match (enabled, remote::running_port()) {
+        (false, Some(p)) if p == port && !remote::lan_on() => Ok(()), // already loopback only
         (false, _) => {
-            remote::stop();
+            _ = serve(&app, false, port); // a port taken by another program leaves no local listener, and the LAN view is off all the same
             Ok(())
         }
-        (true, Some(p)) if p == port => Ok(()),
-        (true, _) => remote::start(std::net::SocketAddr::from(([0, 0, 0, 0], port)), remote_backend(&app)).map(|_| ()),
+        (true, Some(p)) if p == port && remote::lan_on() => Ok(()),
+        (true, _) => serve(&app, true, port).map(|_| ()),
     };
     let on = enabled && run.is_ok();
     settings::update(&path, |mut v| {
@@ -181,16 +208,17 @@ pub fn firewall_remove(port: u16) -> Result<firewall::Status, String> {
     firewall::status(port)
 }
 
-/// At app start: load the saved token and actions policy, and serve if the remote view was left on.
+/// At app start: load the saved token (`remote_conf` creates and saves one when there is none, as Regenerate does)
+/// and actions policy, and listen: on every interface if the remote view was left on, else on 127.0.0.1 only. A bind
+/// that fails is an error entry in the status store.
 pub fn start_saved(app: &AppHandle) {
-    if let Ok((enabled, port, actions, token)) = settings_path(app).and_then(|p| remote_conf(&p)) {
-        remote::set_token(&token);
-        remote::set_actions(actions);
-        if enabled {
-            if let Err(e) = remote::start(std::net::SocketAddr::from(([0, 0, 0, 0], port)), remote_backend(app)) {
-                eprintln!("remote view: {e}");
-            }
+    match settings_path(app).and_then(|p| remote_conf(&p)) {
+        Ok((enabled, port, actions, token)) => {
+            remote::set_token(&token);
+            remote::set_actions(actions);
+            let _ = serve(app, enabled, port);
         }
+        Err(e) => status::report(STATUS, status::State::Error, format!("remote view settings: {e}")),
     }
 }
 
