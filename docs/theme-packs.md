@@ -279,6 +279,32 @@ and the scribe keeps its seated frame.
   `scribe39`) in `art`. A gesture is played only with the body it was drawn for: one in a sheet without your own
   `up 0` (or `N 0`) is never seen, and `node tools/theme_pack.mjs check` warns about it.
 
+### Ranks
+
+A rank is the session's model: high (Opus, Fable), standard (Sonnet and any other), novice (Haiku). Each rank has its
+own colours (`rank` in `theme.json`). It can also have its **own drawing**: optional frames named `<rank> <frame>`, in
+the scribe and adept sheets (`scribe`, `adept`, `scribe39`, `adept39`).
+
+| Example | Replaces | For |
+|---|---|---|
+| `high up 0`, `high up 1`, `high up 2` | `up 0`, `up 1`, `up 2` | an Opus scribe walking away, and seated (`up 0`) |
+| `novice N 0` | `N 0` | a Haiku scribe at its desk, 2.5D |
+| `high up think` | `up think` | an Opus scribe's gesture |
+
+- A rank frame has the size of the frame it replaces, and the same feet. Draw it over a copy of that frame.
+- Draw any of them, or none. A frame your rank does not draw is the plain one: a rank that draws only `high up 0`
+  sits in its own body and walks in the plain one. Flat `left` is `right` mirrored, as for every scribe.
+- A rank frame is used only with the body it belongs to: it must be in the same sheet as the plain frame it replaces.
+  A world with its own scribe never wears the default robe's rank bodies.
+- A rank's gestures play only with that rank's own seated frame (`high up 0`, `high N 0`). Without it, the rank keeps
+  the plain gestures.
+- The arms, the scroll and the subagent kind glyphs are never drawn per rank: they lie over any body. Move them on a
+  rank's body with that rank's anchors in the sheet's JSON, `"anchors": { "high": { "arm": [26, 18] } }`: only the
+  sheet's own anchor names, each in its usual shape.
+- `standard` frames are allowed, but rarely needed: the plain frames are standard.
+- `node tools/theme_pack.mjs check` warns about a rank gesture without its rank seat, and about a rank drawn in one
+  view (flat or 2.5D) but not in the other.
+
 ---
 
 ## Checking a pack

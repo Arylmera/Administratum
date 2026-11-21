@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, marked, rankLayer, rankAnchors, anchorsOf } from './sprites.js';
 import { bodyOf, bodyOf39 } from './actors.js';
+import { catalog } from '../tools/sprite_catalog.mjs';
 import { THEMES, setTheme } from './theme.js';
 
 // A frame whose every pixel is `c`, w x h art px: identity is checkable by its char.
@@ -97,6 +98,14 @@ const all = () => true;
   const N = SCRIBE39.N.map(size);
   SCRIBE39.rank.high = { E: SCRIBE39.E, W: SCRIBE39.W, S: SCRIBE39.S, N, gesture: {} };
   assert.equal(bodyOf39(scribe('claude-opus-5-5')).map, N[0], '39° body at rank');
+  // catalog rank rows: the viewer's rank rows show the rank's frames; 39° rank rows only once drawn, at the list's end
+  const cat = catalog(), row = id => cat.find(e => e.id === id);
+  assert.deepEqual(row('SCRIBE.high.up').cells.map(c => c.rows), H, 'catalog rank rows: high');
+  assert.deepEqual(row('SCRIBE.standard.up').cells.map(c => c.rows), SCRIBE.up, 'catalog rank rows: standard plain');
+  assert.equal(row('ADEPT.high.up').cells[0].rows, AH[0], 'catalog rank rows: adept');
+  assert.deepEqual(row('SCRIBE39.high.N').cells.map(c => c.rows), N, 'catalog 39° rank row');
+  assert.equal(row('SCRIBE39.novice.N'), undefined, 'no 39° row for an undrawn rank');
+  assert.ok(cat.indexOf(row('SCRIBE39.high.N')) > cat.findIndex(e => e.id.startsWith('ENCLAVE')), '39° rank rows after every earlier row');
   setTheme('forge'); setTheme('tier2'); // refill: the hand-made layers are gone
   assert.deepEqual(SCRIBE.rank, {}, 'refilled');
 }

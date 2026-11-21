@@ -64,10 +64,10 @@ export function catalog() {
   const sash = theme.sash[0];
   for (const r of RANKS) {
     const robe = { ...theme.rank[r].robe, y: sash }, model = ['opus', 'sonnet', 'haiku'].find(m => rankOf(m) === r);
-    for (const dir of ['down', 'up', 'right', 'left']) add(`SCRIBE.${r}.${dir}`, 'Scribe (one per session)', srcOf('scribe'), SCRIBE[dir].map(rows => ({ rows, over: robe })), true, `${theme.text.rank[r]} (${model}), walking ${dir}, 3 frames`);
+    for (const dir of ['down', 'up', 'right', 'left']) add(`SCRIBE.${r}.${dir}`, 'Scribe (one per session)', srcOf('scribe'), (SCRIBE.rank?.[r] ?? SCRIBE)[dir].map(rows => ({ rows, over: robe })), true, `${theme.text.rank[r]} (${model}), walking ${dir}, 3 frames`);
   }
   add('SCRIBE.sashes', 'Scribe (one per session)', srcOf('scribe'), theme.sash.map(y => ({ rows: SCRIBE.down[0], over: { y } })), false, 'Department colours (theme sash), one per project');
-  for (const r of RANKS) for (const dir of ['down', 'up', 'right', 'left']) add(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', srcOf('adept'), ADEPT[dir].map(rows => ({ rows, over: theme.rank[r].adept })), true, `${theme.text.rank[r]} adept, walking ${dir}, 3 frames`);
+  for (const r of RANKS) for (const dir of ['down', 'up', 'right', 'left']) add(`ADEPT.${r}.${dir}`, 'Adept (one per subagent)', srcOf('adept'), (ADEPT.rank?.[r] ?? ADEPT)[dir].map(rows => ({ rows, over: theme.rank[r].adept })), true, `${theme.text.rank[r]} adept, walking ${dir}, 3 frames`);
 
   // The subagent kind's mark (sprites.js marked), where the adept's own sheet draws glyphs: seen from the front and from behind.
   const KINDS = ['explore', 'plan', 'general', 'custom'], kinds = (name, F, A, faces, src) => {
@@ -177,5 +177,9 @@ export function catalog() {
   const robes = RANKS.map(r => ({ ...theme.rank[r].robe, y: sash }));
   for (const g of GESTURES) if (SCRIBE.gesture[g]) add(`SCRIBE.up.${g}`, 'Scribe (one per session)', srcOf('scribe'), robes.map(over => ({ rows: SCRIBE.gesture[g], over })), false, `Gesture at the desk, seen from behind (\`up ${g}\`, instead of \`up 0\`): ${GESTURE_ABOUT[g]}; high, standard, novice`);
   for (const g of GESTURES) if (SCRIBE39.gesture?.[g]) add(`SCRIBE39.N.${g}`, '39° characters', srcOf('scribe39'), [{ rows: SCRIBE39.gesture[g], over: {} }], false, `SCRIBE39, gesture at the desk (\`N ${g}\`, instead of \`N 0\`): ${GESTURE_ABOUT[g]}`);
+  // Rank bodies in the 39° view (rank art, sprites.js rankLayer), after the gestures so every earlier cell ref keeps its
+  // row: only the ranks the world draws, each walking in its rank's colours.
+  for (const [name, F, f, over] of [['SCRIBE39', SCRIBE39, 'scribe39', r => ({ ...theme.rank[r].robe, y: sash })], ['ADEPT39', ADEPT39, 'adept39', r => theme.rank[r].adept]])
+    for (const r of RANKS) if (F.rank?.[r]) for (const d of ['E', 'W', 'S', 'N']) add(`${name}.${r}.${d}`, '39° characters', srcOf(f), F.rank[r][d].map(rows => ({ rows, over: over(r) })), true, `${name}, ${theme.text.rank[r]}, 39° view, walking ${d}, 3 frames`);
   return out;
 }
