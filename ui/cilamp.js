@@ -14,6 +14,10 @@ export const LENS = {
   'CILAMP.green': { c: '#3ddc6c', O: '#e6ffee', C: '#16602f' },
   'CILAMP.red': { a: '#ff3a20', F: '#ffd0a0', x: '#8e1c16' },
 };
+// The lens glows: a light at each lit lamp (lighting.js punches a hole in the night over the hall and adds a glow), in the
+// signal colour whatever the theme. Without it the lens is a few dark pixels under the night layer and cannot be seen.
+const GLOW = { 'CILAMP.amber': ['rgba(240,168,60,.6)', 12], 'CILAMP.amber_dim': ['rgba(240,168,60,.3)', 7], 'CILAMP.green': ['rgba(61,220,108,.55)', 12], 'CILAMP.red': ['rgba(255,58,32,.6)', 12] };
+export const lampLights = drawn => drawn.filter(l => GLOW[l.frame]).map(l => ({ x: l.x, y: l.y - 7, r: GLOW[l.frame][1], color: GLOW[l.frame][0] }));
 export const BLINK_MS = 1000; // running: amber and its dim beat, half a second each
 const STATES = new Set(['running', 'pass', 'fail', 'timeout', 'error', 'none']);
 

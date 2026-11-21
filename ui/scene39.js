@@ -8,7 +8,7 @@
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
 import { WALL, WALL_DY, zonesOf, wingZones, lampSpots } from './layout.js';
-import { lampsAt, LAMP_SIZE, LENS } from './cilamp.js';
+import { lampsAt, lampLights, LAMP_SIZE, LENS } from './cilamp.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
@@ -261,7 +261,9 @@ export function drawScene39(g, layout, actors, fillOf, now) {
 
   // the CI lamps (cilamp.js): one a department, upright on its projected foot like the skull and the flames (a flat
   // billboard, no 39° volume), depth sorted by its small footprint; none while the list is empty
-  for (const s of lampsAt(lampSpots(layout.blocks, H), now)) {
+  const lamps = lampsAt(lampSpots(layout.blocks, H, layout.desks), now);
+  lights.push(...lampLights(lamps)); // the lenses glow
+  for (const s of lamps) {
     const map = MAPS[s.frame], x = half(s.x - LAMP_SIZE[0] / 2), y = s.y - LAMP_SIZE[1], v = 2 * (s.y - WALL);
     items.push({ foot: { u0: 2 * s.x - 3, u1: 2 * s.x + 3, v0: v - 2, v1: v }, draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y, LENS[s.frame])) });
     floor.push(g2 => contactShadow(g2, shadowOf(map, x, y), shade));

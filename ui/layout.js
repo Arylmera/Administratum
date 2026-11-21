@@ -507,18 +507,21 @@ export function zonesOf(blocks, H) {
 
 // Where each department's CI lamp (ui/cilamp.js, art CILAMP, 5 x 10 logical px) stands: { dept, x, y }, x its centre and y
 // its foot, logical px, one per department block (not an empty room's placeholder, not a strip room's cell). The open hall,
-// the rooms plan, the west wing's rooms and the break-out room alike: the block's top left, its foot on the line the
-// desks start at (8 px under the block's top: the lamp stands in the band over them), clear of the desks, the consoles
+// the rooms plan, the west wing's rooms and the break-out room alike: beside the department's first desk (the gap
+// before the next one), its foot on the line the desks start at (8 px under the block's top), clear of the desks, the consoles
 // and the lanes (the first row's lane is the block's own top: the lamp is 8 px south of it). The desktop strip:
 // the plaque's row, over the gap after the department's lecterns (overlay.js hangs the plaque from the block's left, the
 // lamp is at the far end of its reach). The column: on the plaque's row under the floor line, at the block's outer end.
-export function lampSpots(blocks, H) {
+export function lampSpots(blocks, H, desks = []) {
   const out = [];
   for (const b of blocks) {
     if (b.empty || b.cell) continue;
     if (H.column) out.push({ dept: b.name, x: b.x + b.w - 4, y: b.y + b.h + 11 });
     else if (H.strip) out.push({ dept: b.name, x: b.x + b.w + STRIP_GAP - 6, y: b.y - 30 });
-    else out.push({ dept: b.name, x: b.x + 3, y: b.y + 8 });
+    else { // beside the department's first desk, in the gap before the next one (the block's own left edge is the wall's)
+      const d = desks.find(q => q.dept === b.name);
+      out.push({ dept: b.name, x: d ? d.x + (d.compact ? 22 : 32) + 2.5 : b.x + 3, y: b.y + 8 });
+    }
   }
   return out;
 }

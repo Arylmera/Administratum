@@ -815,21 +815,23 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
 
   // the open hall: inside its block, in the band over the desks
   const open = layoutDepartments([dep('a', 3), dep('b', 6, { helpers: ids('h', 2) }), dep('c', 1), dep('d', 2, { temp: true })], { size: SCENE });
-  const Ho = hallOf(0, SCENE), so = lampSpots(open.blocks, Ho);
+  const Ho = hallOf(0, SCENE), so = lampSpots(open.blocks, Ho, open.desks);
   clear('open hall', open, Ho, so);
   for (const s of so) {
     const b = open.blocks.find(q => q.name === s.dept), q = box(s);
+    const d0 = open.desks.find(d => d.dept === s.dept);
+    assert.ok(q.x >= d0.x + (d0.compact ? 22 : 32) && q.x > b.x + 12, `open hall: ${s.dept}'s lamp beside its first desk, off the hall's west wall edge`);
     assert.ok(q.x >= b.x && q.x + q.w <= b.x + b.w && s.y >= b.y && s.y <= b.y + 8, `open hall: ${s.dept}'s lamp inside its block's top band`);
   }
 
   // a wide hall with bays and the compact lecterns
   const wide = planLayout(null, ids('w', 9).map(n => dep(n, 4)), 0, {}, { w: 554, h: 400 }, layoutDepartments, []);
-  clear('bays', wide, hallOf(wide.bays, wide.size), lampSpots(wide.blocks, hallOf(wide.bays, wide.size)));
+  clear('bays', wide, hallOf(wide.bays, wide.size), lampSpots(wide.blocks, hallOf(wide.bays, wide.size), wide.desks));
 
   // custom rooms (the west wing): inside the room, a lamp per department; a room holding two departments has two
   const rules = [{ id: 'r1', color: '#aa0000' }, { id: 'r2', color: '#00aa00' }];
   const P = planLayout(null, [dep('a', 2, { room: 'r1' }), dep('b', 2, { room: 'r1' }), dep('c', 1, { room: 'r2' }), dep('d', 2)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
-  const Hw = hallOf(P.bays, P.size, P.wing), sw = lampSpots(P.blocks, Hw);
+  const Hw = hallOf(P.bays, P.size, P.wing), sw = lampSpots(P.blocks, Hw, P.desks);
   clear('west wing', P, Hw, sw);
   const inRoom = id => sw.filter(s => P.blocks.find(b => b.name === s.dept)?.room === id);
   assert.deepEqual(inRoom('r1').map(s => s.dept).sort(), ['a', 'b'], 'the room holding two departments has two lamps');
@@ -840,7 +842,7 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   setHallPlan('rooms');
   try {
     const Pm = planLayout(null, [dep('a', 2, { room: 'r1' }), dep('b', 2, { room: 'r1' }), dep('c', 1, { room: 'r2' }), dep('d', 2)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
-    const Hm = hallOf(Pm.bays, Pm.size, Pm.wing), sm = lampSpots(Pm.blocks, Hm);
+    const Hm = hallOf(Pm.bays, Pm.size, Pm.wing), sm = lampSpots(Pm.blocks, Hm, Pm.desks);
     clear('rooms plan', Pm, Hm, sm);
     for (const s of sm) {
       const b = Pm.blocks.find(q => q.name === s.dept), Z = b.zone;
