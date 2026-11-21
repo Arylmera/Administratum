@@ -24,8 +24,7 @@ writer per wave.
 
 - The audit findings F1 to F18 (in the session "Administratum interfaces et intégrations"), checked again here
   against the tree at `fe4b411`. Corrections are in the scope table.
-- I6: `docs/superpowers/specs/2026-11-21-ci-verdict-design.md`. It is in the main checkout, not committed, so it is
-  not on this branch (Q1). This spec cites it by section (§1 Setting ... §6 Errors, "Where it lives").
+- I6: `docs/superpowers/specs/2026-11-21-ci-verdict-design.md`. Committed with this spec (Q1). This spec cites it by section (§1 Setting ... §6 Errors, "Where it lives").
 - I2: the feature session's hand-over (raw idea, constraints, open questions), recorded in section "I2 sketch".
 
 ## 1. Scope
@@ -62,7 +61,7 @@ user checks it in the named view. Every other check is a test that must be red b
 1. **One writer per file per wave.** The matrix names it. A lane that needs a change in a file it does not own
    stops and asks the integrator; it never edits it.
 2. **Shared files and their integrator.** The integrator is the parent session that starts the lanes and merges
-   them: the session that started this one (`local_3c8aa5b4`), unless the user names another (Q9). It alone merges a lane
+   them: the session that wrote this spec (Q9: every lane runs from it, each in its own worktree). It alone merges a lane
    into the joint branch (rule R1: a lane never pushes and never merges outside its worktree).
    - `src-tauri/src/main.rs`: one owner lane per wave (the matrix). Another lane may add only **append lines**: a
      `mod x;` line and its own entries at the end of `generate_handler!`. Nothing else. The integrator resolves the
@@ -183,9 +182,9 @@ Depends on nothing (PR Arylmera/Administratum#39 merged first or rebased onto).
 - **L1a reliability backend.** F2, F3 backend, F4, F5 backend (the remote entry), F18 backend, F19.
   `status.rs` with `integration_status`; every `eprintln!` routed to it; the tooltip; Orca timeout and exit
   status; the vigil shutdown exit; the update progress event and the test-notification command; the
-  `adm.mjs` listener and the `peek_petition` gate as the user decides (Q5, Q6). It also makes `orca.rs`
+  `adm.mjs` listener and the `peek_petition` gate as the user decided (Q5, Q6: both yes). It also makes `orca.rs`
   `open_url` `pub(crate)`, for I6's opener (decision D1 below). README: Privacy file table (the log file),
-  Remote view (if Q5 or Q6 changes behaviour); `docs/remote-api.md`.
+  Remote view (Q5 and Q6 change its behaviour); `docs/remote-api.md`.
 - **L1b startup.** F1. Active theme first, others on demand; a load-all for the tools and the preview. It
   does not touch `app.js` `hhmm`: `format.js` exists only from W2, so F12 for `app.js` goes to L3a.
 - **L1c I6 core.** Only if the user approves I6 (Q2). The I6 spec's pure parts: push output parsing, remote URL,
@@ -210,7 +209,7 @@ Depends on W1 merged.
 - **L2b I6 wiring.** Only with Q2. The watcher thread in `ci.rs`; its start, its channel and the `Session.ci`
   merge in `main.rs`; the CI toasts in `toast.rs` with built-in English wording until L4a pushes the theme's
   (the same path as the other toasts, `set_toast_text`); the checks-URL check, then `orca::open_url`; the `gh`
-  state as one `integration_status` entry (Q7); the remote payload in `remote/mod.rs` if it needs more than
+  state as one `integration_status` entry (Q7: yes); the remote payload in `remote/mod.rs` if it needs more than
   the roster already carries; `docs/remote-api.md`; README Privacy and its file table (the `gh` process and its
   network calls, only when `adm.ci` is on).
 
@@ -300,28 +299,26 @@ Its own spec must answer Q8 before it is written.
 - **R4 The append rule on `main.rs` hides a real conflict.** Two lanes that both append to `generate_handler!`
   conflict textually at the same line. The integrator keeps both entries; if a lane changed anything else in
   `main.rs`, the merge is refused and returned to that lane.
-- **R5 The I6 spec is not on this branch.** Lanes L1c, L2b and parts of L4 build from a file only in the main
-  checkout until Q1 is answered.
-- **R6 Long lanes block a wave.** L2a and L3b are the largest. A wave waits for its slowest lane; a lane that
+- **R5 Long lanes block a wave.** L2a and L3b are the largest. A wave waits for its slowest lane; a lane that
   stalls can be cut at a merge point (for L2a: the move, then the tokens).
 
 ## 8. Questions for the user
 
 - **Q1** The I6 spec sits uncommitted in the main checkout. Who commits it, and on which branch: with this spec
-  (→ recommended), or in its own PR first?
+  (→ recommended), or in its own PR first? **Answered: committed with this spec.**
 - **Q2** Approve I6 as specified? Without it, L1c and L2b drop out and L4a / L4b lose their I6 parts; the
   waves stay valid.
 - **Q3** Go on with I2? If yes, write its spec after W4 (→ recommended), not now.
 - **Q4** Keep all four UX workstreams, or drop some F-items? F19 is optional.
 - **Q5** `peek_petition` over the remote API: move it behind the "remote actions" gate (→ recommended: it shows the
   prompt's text, which is more than the roster shows), or leave it open to any paired client? This changes what a
-  phone with view-only access can see.
+  phone with view-only access can see. **Answered: yes, behind the gate.**
 - **Q6** `tools/adm.mjs` forces the LAN listener. Let the remote server also listen on loopback so `adm.mjs` works
-  with the LAN view off (→ recommended), or keep one LAN listener?
+  with the LAN view off (→ recommended), or keep one LAN listener? **Answered: yes, loopback too.**
 - **Q7** I6's `gh` state: also an entry in the Status tab through `integration_status` (→ recommended, one place
-  for every integration's health), with the I6 spec's line under the switch kept, or only that line?
+  for every integration's health), with the I6 spec's line under the switch kept, or only that line? **Answered: yes, also in the Status tab.**
 - **Q8** For I2: why do you want it (card only, or the phone too)? Idle sessions only, or queue text for a busy
   one? Multi-line text and Enter? A confirm step? A length limit and masking of what is typed? A Chronicon record
-  of each order?
+  of each order? **Pending: the user asked for the I2 design first.**
 - **Q9** Who runs the lanes: the session "Administratum interfaces et intégrations" as integrator, each lane a
-  worktree side session (→ recommended), or another split?
+  worktree side session (→ recommended), or another split? **Answered: this spec's session integrates; every lane runs from it in its own worktree.**
