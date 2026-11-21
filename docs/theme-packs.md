@@ -228,8 +228,8 @@ gestures (below): the default art does not draw them.
 
 | Family | Frames (name width x height, in art pixels) |
 |---|---|
-| `scribe` | `down 0` 32x34, `down 1` 32x34, `down 2` 32x34, `up 0` 32x34, `up 1` 32x34, `up 2` 32x34, `right 0` 32x34, `right 1` 32x34, `right 2` 32x34, `arm` 8x16; optional: `up think` 32x34, `up wonder` 32x34, `up stretch` 32x34 |
-| `adept` | `down 0` 24x28, `down 1` 24x28, `down 2` 24x28, `up 0` 24x28, `up 1` 24x28, `up 2` 24x28, `right 0` 24x28, `right 1` 24x28, `right 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5 |
+| `scribe` | `down 0` 32x34, `down 1` 32x34, `down 2` 32x34, `up 0` 32x34, `up 1` 32x34, `up 2` 32x34, `right 0` 32x34, `right 1` 32x34, `right 2` 32x34, `arm` 8x16; optional: `up think` 32x34, `up wonder` 32x34, `up stretch` 32x34; ranks: `<rank> <frame>` at its frame size (see Ranks) |
+| `adept` | `down 0` 24x28, `down 1` 24x28, `down 2` 24x28, `up 0` 24x28, `up 1` 24x28, `up 2` 24x28, `right 0` 24x28, `right 1` 24x28, `right 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5; ranks: `<rank> <frame>` at its frame size (see Ranks) |
 | `magos` | `body` 48x48, `arm` 10x48, `claw` 6x3 |
 | `watch` | `down 0` 32x36, `down 1` 32x36, `down 2` 32x36, `up 0` 32x36, `up 1` 32x36, `up 2` 32x36, `right 0` 32x36, `right 1` 32x36, `right 2` 32x36, `ring` 32x36 |
 | `workstations` | `DESK` 64x42, `LECTERN` 44x42, `CONSOLE` 28x20, `SHELL_COG_0` 12x12, `SHELL_COG_1` 12x12, `SHELL_COG_2` 12x12, `SHELL_COG_3` 12x12, `SHELL_COG_4` 12x12, `SHELL_COG_5` 12x12, `SHELL_COG_6` 12x12, `SHELL_COG_7` 12x12, `SHELL_COG_8` 12x12, `SHELL_COG_9` 12x12, `SHELL_COG_10` 12x12, `SHELL_COG_11` 12x12, `SHELL_COG_12` 12x12, `SHELL_COG_13` 12x12, `SHELL_COG_14` 12x12, `SHELL_COG_15` 12x12 |
@@ -252,8 +252,8 @@ gestures (below): the default art does not draw them.
 | `room-walls` | `wall top` 24x20, `wall` 24x20, `wall east top` 24x20, `wall east` 24x20, `wall sanctum top` 24x20, `wall sanctum` 24x20, `wall foot` 4x4, `wall dark` 4x4, `wall base` 4x6, `sanctum base` 4x6, `pillar` 20x8, `pilaster` 8x39, `beacon off` 14x20, `beacon on` 14x20, `beacon cage` 14x20 |
 | `room-pipes` | `pipe h` 8x6, `pipe v` 6x8, `fitting h` 6x10, `fitting v` 10x6, `fitting wide` 20x4 |
 | `room-doors` | `door sanctum closed` 20x80, `door sanctum half` 20x80, `door sanctum open` 20x80, `door refectory closed` 20x48, `door refectory half` 20x48, `door refectory open` 20x48 |
-| `scribe39` (2.5D) | `E 0` 32x34, `E 1` 32x34, `E 2` 32x34, `W 0` 32x34, `W 1` 32x34, `W 2` 32x34, `S 0` 32x34, `S 1` 32x34, `S 2` 32x34, `N 0` 32x34, `N 1` 32x34, `N 2` 32x34, `arm` 10x16, `armL` 8x16, `scroll` 10x14; optional: `N think` 32x34, `N wonder` 32x34, `N stretch` 32x34 |
-| `adept39` (2.5D) | `E 0` 24x28, `E 1` 24x28, `E 2` 24x28, `W 0` 24x28, `W 1` 24x28, `W 2` 24x28, `S 0` 24x28, `S 1` 24x28, `S 2` 24x28, `N 0` 24x28, `N 1` 24x28, `N 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5 |
+| `scribe39` (2.5D) | `E 0` 32x34, `E 1` 32x34, `E 2` 32x34, `W 0` 32x34, `W 1` 32x34, `W 2` 32x34, `S 0` 32x34, `S 1` 32x34, `S 2` 32x34, `N 0` 32x34, `N 1` 32x34, `N 2` 32x34, `arm` 10x16, `armL` 8x16, `scroll` 10x14; optional: `N think` 32x34, `N wonder` 32x34, `N stretch` 32x34; ranks: `<rank> <frame>` at its frame size (see Ranks) |
+| `adept39` (2.5D) | `E 0` 24x28, `E 1` 24x28, `E 2` 24x28, `W 0` 24x28, `W 1` 24x28, `W 2` 24x28, `S 0` 24x28, `S 1` 24x28, `S 2` 24x28, `N 0` 24x28, `N 1` 24x28, `N 2` 24x28, `glyph explore` 10x5, `glyph plan` 10x5, `glyph general` 10x5, `glyph custom` 10x5; ranks: `<rank> <frame>` at its frame size (see Ranks) |
 | `magos39` (2.5D) | `body` 48x48, `arm` 10x48, `claw` 6x3 |
 | `skull39` (2.5D) | `skull` 20x20 |
 | `watch39` (2.5D) | `E 0` 32x36, `E 1` 32x36, `E 2` 32x36, `W 0` 32x36, `W 1` 32x36, `W 2` 32x36, `S 0` 32x36, `S 1` 32x36, `S 2` 32x36, `N 0` 32x36, `N 1` 32x36, `N 2` 32x36, `ring` 32x36 |

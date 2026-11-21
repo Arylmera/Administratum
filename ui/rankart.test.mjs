@@ -1,7 +1,7 @@
 // Rank art (docs/superpowers/specs/2026-11-21-rank-art-design.md): rank-prefixed frames ('high up 0') drawn instead of
 // the plain frame, only from the plain frame's own source; per-rank anchors laid over the base anchors.
 import assert from 'node:assert/strict';
-import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, marked, rankLayer, rankAnchors, anchorsOf } from './sprites.js';
+import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, ART, marked, rankLayer, rankAnchors, anchorsOf } from './sprites.js';
 import { bodyOf, bodyOf39 } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
 import { THEMES, setTheme } from './theme.js';
@@ -107,6 +107,21 @@ const all = () => true;
   assert.equal(row('SCRIBE39.novice.N'), undefined, 'no 39° row for an undrawn rank');
   assert.ok(cat.indexOf(row('SCRIBE39.high.N')) > cat.findIndex(e => e.id.startsWith('ENCLAVE')), '39° rank rows after every earlier row');
   setTheme('forge'); setTheme('tier2'); // refill: the hand-made layers are gone
-  assert.deepEqual(SCRIBE.rank, {}, 'refilled');
+  assert.equal(SCRIBE.rank.high?.up[0], ART.base.scribe.frames['high up 0'], 'refilled from the art, the hand-made layer gone');
 }
+
+// The committed 40k rank bodies (tools/rank_art.mjs): every walk frame of high and novice drawn, a real redraw (a
+// quarter of its drawn cells changed, not a recolour), and the department sash still seen from behind
+const drawnRanks = (family, dirs, back) => {
+  const fr = ART.base[family].frames;
+  for (const r of ['high', 'novice']) for (const d of dirs) for (const i of [0, 1, 2]) {
+    const n = `${d} ${i}`, f = fr[`${r} ${n}`], p = fr[n];
+    assert.ok(f, `${family}: '${r} ${n}' drawn`);
+    let cells = 0, changed = 0;
+    p.forEach((row, y) => [...row].forEach((c, x) => { if (c !== '.' || f[y][x] !== '.') { cells++; if (f[y][x] !== c) changed++; } }));
+    assert.ok(changed / cells >= 0.25, `${family} '${r} ${n}': a real redraw (${changed}/${cells})`);
+    if (d === back && i === 0) assert.ok(f.join('').split('y').length - 1 >= 4, `${family} '${r} ${n}': the sash from behind`);
+  }
+};
+drawnRanks('scribe', ['up', 'down', 'right'], 'up');
 console.log('rankart: ok');
