@@ -1,17 +1,12 @@
 /* Chronicon: a parchment unrolled over the scene (rows animate 0fr -> 1fr between the two rods). */
 #chron .window { margin: var(--spe-30) 0 0; color: var(--pm); font-variant-numeric: tabular-nums; }
 #chron { --pk: var(--paper-ink); --pm: var(--paper-ink-3); --c-new: var(--chart-new); --c-cache: var(--chart-cache); --c-busy: var(--chart-cache);
-  position: absolute; z-index: var(--z-chron); top: 0; left: 50%; transform: translateX(-50%); width: min(46em, calc(100% - 12px)); height: 100%;
-  display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1); font-size: calc(var(--fs-11) * var(--k, 1)); color: var(--pk); }
-#chron.open { grid-template-rows: auto 1fr auto; }
-#chron[hidden] { display: none; }
-#chron .rod { height: .9em; margin: 0 calc(-1 * var(--spe-50)); border-radius: var(--r-rod); background: linear-gradient(var(--rod-hi), var(--rod) 45%, var(--rod-lo)); border: 1px solid var(--rod-edge); box-shadow: 0 3px 4px rgba(0,0,0,.6); position: relative; }
+  z-index: var(--z-chron); top: 0; width: min(46em, calc(100% - 12px)); height: 100%; color: var(--pk); }
+#chron .rod { position: relative; }
 #chron .rod::before, #chron .rod::after { content: ''; position: absolute; top: -.15em; width: .6em; height: 1.2em; background: linear-gradient(var(--rod-cap), var(--copper) 50%, var(--leather)); border: 1px solid var(--rod-edge); border-radius: var(--r-2); }
 #chron .rod::before { left: -.4em; } #chron .rod::after { right: -.4em; }
-#chron .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, var(--paper) 30%, var(--paper-edge) 100%); border-left: 2px solid var(--paper-line); border-right: 2px solid var(--paper-line); box-shadow: inset 0 0 1.5em color-mix(in srgb, var(--leather) 45%, transparent); }
-#chron .top { flex: none; display: flex; align-items: center; gap: var(--spe-60); padding: var(--spe-50) var(--spe-90) var(--spe-20); }
-#chron h2 { margin: 0; font: 400 var(--fse-170)/1 var(--display); color: var(--paper-accent); }
-#chron .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: var(--r-2); color: var(--blood); font: inherit; cursor: pointer; }
+#chron .top { gap: var(--spe-60); padding: var(--spe-50) var(--spe-90) var(--spe-20); }
+#chron .close { color: var(--blood); }
 /* Parchment ink is explicit everywhere: nothing on the sheet inherits the page's light --ink. */
 #chron .sheet, #chron .legend, #chron .row, #chron .row .n, #chron .stat, #chron .events li, #chron .events .who, #chron .events .d { color: var(--pk); }
 #chron .close:hover { background: var(--blood); color: var(--on-blood); }
@@ -21,12 +16,11 @@
 #chron .tabs button.none { background: transparent; border-style: dashed; color: var(--pm); }
 #chron .tabs button:hover { background: var(--paper-hi); color: var(--pk); }
 #chron .tabs button[aria-selected="true"] { background: var(--blood); color: var(--on-blood); border-color: var(--blood); }
-#chron button:focus-visible, #chron select:focus-visible { outline: 2px solid var(--blood); outline-offset: 1px; }
 #chron .body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--spe-60) var(--spe-90) var(--spe-90); scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; font-variant-numeric: tabular-nums; user-select: text; }
-#chron h3 { margin: 0 0 var(--spe-30); font-size: var(--fse-85); font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
-#chron .quiet { margin: var(--spe-30) 0; color: var(--pm); font-style: italic; list-style: none; }
+#chron h3 { margin: 0 0 var(--spe-30); font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
+#chron .quiet { margin: var(--spe-30) 0; color: var(--pm); list-style: none; }
 #chron .stats { display: flex; flex-wrap: wrap; gap: 0 var(--spe-150); align-items: baseline; }
-#chron .stat b { font-size: var(--fse-190); font-weight: 600; color: var(--blood); margin-right: var(--spe-25); }
+#chron .stat b { font-size: var(--fse-190); color: var(--blood); margin-right: var(--spe-25); }
 #chron .stat span { color: var(--pm); }
 #chron .split { margin: var(--spe-40) 0 var(--spe-80); }
 #chron .stack { display: flex; gap: var(--sp-2); height: .8em; background: color-mix(in srgb, var(--leather) 15%, transparent); }
@@ -51,7 +45,7 @@
 #chron .busy .plot i { background: var(--c-busy); }
 #chron .axis { display: flex; justify-content: space-between; font-size: var(--fse-80); color: var(--pm); }
 #chron .report { margin-bottom: var(--spe-80); border-top: 1px solid var(--paper-line); padding-top: var(--spe-40); }
-#chron .report summary { cursor: pointer; font-size: var(--fse-85); font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
+#chron .report summary { cursor: pointer; font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--pm); }
 #chron .report .copy { margin-left: var(--spe-100); padding: 0 var(--spe-40); background: var(--paper-tab); border: 1px solid var(--paper-line); border-radius: var(--r-2); color: var(--pm); font: inherit; font-size: var(--fse-90); letter-spacing: 0; text-transform: none; cursor: pointer; }
 #chron .report pre { margin: var(--spe-40) 0 0; white-space: pre-wrap; font: inherit; }
 #chron .logbar { display: flex; align-items: center; gap: var(--spe-80); border-top: 1px solid var(--paper-line); padding-top: var(--spe-50); }
@@ -64,11 +58,11 @@
 #chron .events time { color: var(--pm); }
 #chron .events .ico { display: block; width: 1.1em; height: 1.1em; }
 #chron .events .who, #chron .events .dept, #chron .events .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#chron .events .who { font-weight: 600; } #chron .events .who small { font-weight: 400; color: var(--pm); font-size: var(--fse-100); }
+#chron .events .who small { font-weight: 400; color: var(--pm); font-size: var(--fse-100); }
 #chron .events .dept { color: var(--pm); }
 #chron .events li.tests-fail .d, #chron .events li.tool-error .d { color: var(--paper-err); }
 /* While a day loads: a turning seal and a growing ellipsis, shown only past 150 ms so a fast load never flashes. */
-#chron .loading { display: flex; align-items: center; gap: var(--spe-60); margin: var(--spe-150) 0; justify-content: center; color: var(--pm); font-style: italic; opacity: 0; animation: appear .2s .15s forwards; }
+#chron .loading { display: flex; align-items: center; gap: var(--spe-60); margin: var(--spe-150) 0; justify-content: center; color: var(--pm); opacity: 0; animation: appear .2s .15s forwards; }
 #chron .loading .seal { width: .8em; height: .8em; border: 2px solid var(--blood); border-right-color: transparent; border-radius: var(--r-round); animation: turn .8s linear infinite; }
 #chron .loading::after { content: '...'; display: inline-block; width: 0; overflow: hidden; vertical-align: bottom; animation: ellipsis 1.2s steps(4) infinite; }
 @keyframes appear { to { opacity: 1; } }
@@ -79,15 +73,9 @@
 @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh, #chron .loading .seal, #chron .loading::after { animation: none; } #chron .loading::after { width: auto; } }
 /* Settings: the same scroll as the Chronicon; categories down the side, each one's settings grouped by type.
    Every colour and the title font come from the theme (T.ui), so the panel follows it. */
-#prefs { position: absolute; z-index: var(--z-prefs); top: 1em; left: 50%; transform: translateX(-50%); width: min(44em, calc(100% - 12px)); max-height: calc(100% - 2em);
-  display: grid; grid-template-rows: auto 0fr auto; transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; font-size: calc(var(--fs-11) * var(--k, 1)); color: var(--paper-ink); }
-#prefs.open { grid-template-rows: auto 1fr auto; }
-#prefs[hidden] { display: none; }
-#prefs .rod { height: .9em; margin: 0 calc(-1 * var(--spe-50)); border-radius: var(--r-rod); background: linear-gradient(var(--rod-hi), var(--rod) 45%, var(--rod-lo)); border: 1px solid var(--rod-edge); box-shadow: 0 3px 4px rgba(0,0,0,.6); }
-#prefs .sheet { min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at center, var(--paper) 30%, var(--paper-edge) 100%); border-left: 2px solid var(--paper-line); border-right: 2px solid var(--paper-line); box-shadow: inset 0 0 1.5em color-mix(in srgb, var(--leather) 45%, transparent); }
-#prefs .top { flex: none; display: flex; align-items: center; padding: var(--spe-50) var(--spe-90) var(--spe-30); border-bottom: 2px solid var(--paper-line); }
-#prefs h2 { margin: 0; font: 400 var(--fse-170)/1 var(--display); color: var(--paper-accent); }
-#prefs .close { margin-left: auto; width: 1.8em; height: 1.8em; background: none; border: 1px solid var(--paper-line); border-radius: var(--r-2); color: var(--paper-accent); font: inherit; cursor: pointer; }
+#prefs { z-index: var(--z-prefs); top: 1em; width: min(44em, calc(100% - 12px)); max-height: calc(100% - 2em);
+  transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; color: var(--paper-ink); }
+#prefs .top { padding: var(--spe-50) var(--spe-90) var(--spe-30); border-bottom: 2px solid var(--paper-line); }
 #prefs form { flex: 1 1 auto; height: 34em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every category: no jump between them */
 #prefs .cats { display: flex; flex-direction: column; padding: var(--spe-40) 0; background: var(--paper-tab); border-right: 1px solid var(--paper-line); overflow-y: auto; scrollbar-width: thin; }
 #prefs .cats [data-cat] { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.6em; padding: 0 var(--spe-75); background: none; border: none; border-left: 3px solid transparent; color: var(--paper-ink-3); font: inherit; font-size: var(--fse-110); text-align: left; cursor: pointer; }
@@ -98,7 +86,7 @@
 #prefs .pane { min-height: 0; overflow-y: auto; padding: var(--spe-20) var(--spe-90) var(--spe-80); scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; }
 #prefs fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spe-40); margin: var(--spe-50) 0 0; padding: 0; border: none; }
 #prefs fieldset fieldset { display: contents; } /* a disabled group inside a type, no box of its own */
-#prefs legend, #prefs .sub { float: left; grid-column: 1 / -1; width: 100%; padding: 0 0 var(--spe-20); margin-bottom: var(--spe-10); border-bottom: 1px solid var(--paper-line); font-size: var(--fse-85); font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
+#prefs legend, #prefs .sub { float: left; grid-column: 1 / -1; width: 100%; padding: 0 0 var(--spe-20); margin-bottom: var(--spe-10); border-bottom: 1px solid var(--paper-line); font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
 #prefs .sub { float: none; grid-column: 1 / -1; margin-top: var(--spe-50); }
 #prefs label { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.4em; padding: var(--spe-20) var(--spe-50); box-sizing: border-box; background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: var(--r-3); }
 #prefs label > span:first-child { flex: 1; line-height: 1.05; }
@@ -111,9 +99,7 @@
 #prefs select { width: 8.1em; text-align: left; }
 #prefs .pk-repo { width: 14em; min-width: 0; text-align: left; }
 #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--paper-accent); }
-#prefs input:disabled { opacity: .5; }
 #prefs .step { flex: none; width: 1.6em; height: 1.6em; padding: 0; background: none; color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; cursor: pointer; }
-#prefs .step:disabled { opacity: .5; cursor: default; }
 #prefs input[type="range"] { flex: 0 1 12em; min-width: 5em; margin: 0; accent-color: var(--paper-accent); }
 #prefs output[name="scaleOut"] { width: 2.6em; text-align: right; }
 #prefs:has(input[name="scale"]:active) { opacity: .3; } /* see the hall through the panel while dragging the scale */
@@ -126,7 +112,7 @@
 #prefs .rv-urls { margin: 0; padding: 0; list-style: none; user-select: text; overflow-wrap: anywhere; }
 #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: var(--spe-50) auto; padding: var(--sp-6); background: #fff; image-rendering: pixelated; }
 #prefs .rv-qr[hidden] { display: none; }
-#prefs .rv-err { color: var(--wax); font-weight: 600; }
+#prefs .rv-err { color: var(--wax); }
 #prefs .rv-fw:not([data-rule="allowed"]) { color: var(--wax); }
 #prefs .reset:hover { filter: brightness(1.2); }
 #prefs .rooms { display: grid; gap: var(--spe-40); }
@@ -137,7 +123,6 @@
 #prefs .room-live { grid-column: 1 / -1; margin: 0; font-size: var(--fse-85); color: var(--paper-ink-2); overflow-wrap: anywhere; }
 #prefs .room-live.bad { color: var(--wax); }
 #prefs code { font-size: var(--fse-100); }
-#prefs button:focus-visible, #prefs input:focus-visible, #prefs select:focus-visible { outline: 2px solid var(--paper-accent); outline-offset: 1px; }
 /* narrow: the categories become a row of tabs, one column of settings */
 @media (max-width: 600px) {
   #prefs form { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }

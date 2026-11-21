@@ -8,7 +8,7 @@ header h1 { margin: 0; font: 400 var(--fs-22)/1 var(--display); }
 .tier .motto { color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 .grow { flex: 1; align-self: stretch; }
 .count { padding: var(--sp-3) var(--sp-8); border: 1px solid var(--edge); border-radius: var(--r-3); font-size: var(--fs-11); color: var(--dim); white-space: nowrap; }
-.count.on { position: relative; border-color: var(--red); color: var(--pink); font-weight: 600; }
+.count.on { position: relative; border-color: var(--red); color: var(--pink); }
 /* Petition glow: a fixed shadow on ::after whose opacity pulses (compositor-only, no repaint per frame). */
 .count.on::after, .lbl::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--glow) 80%, transparent); opacity: 0; pointer-events: none; animation: pulse 1.8s ease-in-out infinite; }
 .count.alarm::after { display: none; }
@@ -57,13 +57,13 @@ html.vstrip.right #strip-menu { left: auto; right: calc(2 * var(--px)); }
 #scene { display: block; image-rendering: pixelated; touch-action: none; }
 #world { touch-action: none; -webkit-touch-callout: none; }
 .count.link { color: var(--flame); border-color: var(--copper); }
-#card .note { color: var(--paper-ink-2); font-style: italic; }
+#card .note { color: var(--paper-ink-2); }
 #overlay { position: absolute; inset: 0; pointer-events: none; }
 .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4); background: var(--label); border: 1px solid var(--red); border-radius: var(--r-2); color: var(--ink); font: inherit; font-size: calc(var(--fs-9) * var(--k, 1)); line-height: 1.1; white-space: nowrap; cursor: pointer; }
 .lbl.below { transform: translate(-50%, 0); }
 /* the on-blood colours only while the fill is --blood: a selected label is on --label-sel (:where keeps the specificity) */
 .lbl.stale { border-color: var(--alarm); background: var(--blood); } .lbl.stale:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.stale:where(:not(.sel)) .sub { color: var(--pink-on-blood); }
-.lbl.risky { border-color: var(--alarm); background: var(--blood); } .lbl.risky:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.risky .sub { color: var(--ink); font-weight: bold; } .lbl.risky:where(:not(.sel)) .sub { color: var(--ink-on-blood); }
+.lbl.risky { border-color: var(--alarm); background: var(--blood); } .lbl.risky:where(:not(.sel)) { color: var(--ink-on-blood); } .lbl.risky .sub { color: var(--ink); } .lbl.risky:where(:not(.sel)) .sub { color: var(--ink-on-blood); }
 .lbl.sel { border-color: var(--green); background: var(--label-sel); }
 .lbl .sub { color: var(--pink); }
 /* A question at the end of a turn: parchment, not the red petition. */
@@ -116,13 +116,13 @@ header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
 #card .asks { white-space: pre-line; overflow-wrap: anywhere; } #card .asks b { color: var(--blood); }
 #card .turn { color: var(--paper-ink-2); }
 #card .turn[hidden], #card .files[hidden], #card .stuck[hidden] { display: none; }
-#card .stuck { color: var(--blood); font-weight: bold; }
-#card.risky { border-color: var(--red); } #card .risk { color: var(--blood); font-weight: bold; } #card .risk[hidden], #card .watch[hidden] { display: none; }
+#card .stuck { color: var(--blood); }
+#card.risky { border-color: var(--red); } #card .risk { color: var(--blood); } #card .risk[hidden], #card .watch[hidden] { display: none; }
 #card .watch { color: var(--paper-ink-2); white-space: pre-line; }
 #card .files { margin: 0; padding: 0 0 0 var(--spe-100); font-family: ui-monospace, Consolas, monospace; font-size: var(--fse-85); max-height: 9em; overflow-y: auto; overflow-wrap: anywhere; }
 #card .files .more { padding: 0; background: none; border: none; color: var(--paper-accent); font: inherit; cursor: pointer; text-decoration: underline; }
-#card .name { font-size: var(--fse-110); font-weight: 600; }
-#card .title { font-style: italic; margin-top: calc(-1 * var(--spe-20)); }
+#card .name { font-size: var(--fse-110); }
+#card .title { margin-top: calc(-1 * var(--spe-20)); }
 #card .title[hidden] { display: none; }
 #card .meta, #card .ctx, #card .path { color: var(--paper-ink-2); }
 #card .kin[hidden] { display: none; } #card .kin .child { padding-left: var(--sp-8); }
@@ -131,10 +131,9 @@ header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
 #card .links[hidden], #card .links button[hidden], #card .answer[hidden], #card .answer button[hidden], #card .q[hidden], #card .err[hidden] { display: none; }
 #card .answer button[data-choice="yes"] { background: var(--yes); border-color: var(--yes-deep); }
 #card .answer button[data-choice="no"] { background: var(--wax); border-color: var(--wax-deep); }
-#card button:disabled { opacity: .5; cursor: progress; }
-#card .q { margin-top: var(--spe-25); font-weight: 600; }
-#card .q.hint { font-weight: normal; font-style: italic; }
-#card .err { color: var(--wax); font-weight: 600; }
+#card button:disabled { cursor: progress; }
+#card .q { margin-top: var(--spe-25); }
+#card .err { color: var(--wax); }
 #card .links button, #card .answer button { padding: var(--spe-25) var(--spe-75); background: var(--leather); color: var(--light); border: 1px solid var(--leather-deep); border-radius: var(--r-2); font: inherit; font-size: var(--fse-90); cursor: pointer; }
 #card .links button:hover, #card .answer button:hover { filter: brightness(1.2); }
 .tithe { font-variant-numeric: tabular-nums; cursor: pointer; background: transparent; font-family: inherit; }

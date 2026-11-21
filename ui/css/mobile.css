@@ -1,5 +1,5 @@
 /* The phone's remote page (mobile.js). Fonts, colours and scales: base.css (the hall's chrome roles), set per theme by chrome.js. */
-html, body { margin: 0; background: var(--bg); color: var(--ink); font: var(--fs-18)/1.25 'VT323', monospace; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: var(--fs-18)/1.25 'VT323', monospace; font-synthesis: none; }
 header { position: sticky; top: 0; display: flex; align-items: center; gap: var(--sp-10); padding: var(--sp-8) var(--sp-16); background: var(--bar); border-bottom: 2px solid var(--blood); }
 header h1 { margin: 0; font: 400 var(--fs-24)/1 var(--display); }
 .grow { flex: 1; }
@@ -25,4 +25,3 @@ li { padding: var(--sp-8); border-bottom: 1px solid var(--edge); overflow-wrap: 
 .vigil { display: flex; align-items: center; gap: var(--sp-12); }
 button { font: inherit; color: var(--light); background: var(--btn); border: 1px solid var(--copper); border-radius: var(--r-3); padding: var(--sp-6) var(--sp-16); min-height: 40px; }
 button[hidden] { display: none; }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
