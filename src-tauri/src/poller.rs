@@ -1,6 +1,7 @@
 //! The live roster, polled once a second. Per-tick work is kept to a few stats: liveness probes
 //! only the pids named in `~/.claude/sessions` (no whole-system process snapshot), and transcript
-//! tails and helpers are re-read only when their file's (len, mtime) changed.
+//! tails and helpers are re-read only when their file's (len, mtime) changed. The one process listing
+//! is `desktop_running`, at most every DESKTOP_EVERY and only while a session has a claude.ai link.
 use crate::git;
 use crate::registry::{self, FileStat, Helper, Session, Tail};
 use std::{
@@ -14,6 +15,8 @@ use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 const BRANCH_EVERY: Duration = Duration::from_secs(5);
 /// How long a session whose transcript is in no project folder waits before the folders are scanned again.
 const RESCAN_EVERY: Duration = Duration::from_secs(30);
+/// Whether the Claude desktop app runs is checked at most this often.
+const DESKTOP_EVERY: Duration = Duration::from_secs(5);
 
 /// Transcript files per live session id: the main one (false) and its subagents' (true).
 pub type Files = HashMap<String, Vec<(FileStat, bool)>>;
@@ -37,6 +40,8 @@ pub struct Poller {
     forks: HashMap<String, Option<String>>,
     /// Branch per cwd, re-read from `.git/HEAD` at most every BRANCH_EVERY.
     branches: HashMap<String, (Instant, Option<String>)>,
+    /// Whether the Claude desktop app ran when last checked, and when (re-checked every DESKTOP_EVERY).
+    desktop: Option<(Instant, bool)>,
     /// This tick's transcript files, for the chronicle.
     pub files: Files,
 }
@@ -54,12 +59,13 @@ impl Poller {
             helpers: HashMap::new(),
             forks: HashMap::new(),
             branches: HashMap::new(),
+            desktop: None,
             files: HashMap::new(),
         }
     }
 
     pub fn roster(&mut self, prev: &[Session], now_ms: i64) -> Vec<Session> {
-        let Poller { sessions, projects, sys, completions, orca_cache, found, tails, helpers, forks, branches, files } = self;
+        let Poller { sessions, projects, sys, completions, orca_cache, found, tails, helpers, forks, branches, desktop, files } = self;
         files.clear();
         let scanned = registry::scan(
             sessions,
@@ -87,6 +93,15 @@ impl Poller {
             s.branch = branches.get(&s.cwd).and_then(|(_, b)| b.clone());
         }
         branches.retain(|cwd, _| roster.iter().any(|s| &s.cwd == cwd));
+        if roster.iter().any(|s| s.web.is_some()) {
+            if desktop.is_none_or(|(at, _)| at.elapsed() >= DESKTOP_EVERY) {
+                *desktop = Some((Instant::now(), desktop_running(sys)));
+            }
+            let running = desktop.is_some_and(|(_, r)| r);
+            for s in roster.iter_mut() {
+                s.app = running && s.web.is_some();
+            }
+        }
         // Sessions carried over from the last tick (record mid-write) still get their files listed.
         for s in &roster {
             if !files.contains_key(&s.id) {
@@ -161,6 +176,27 @@ fn orca_handle(sys: &mut System, cache: &mut HashMap<u32, Option<String>>, pid: 
     let handle = sys.process(Pid::from_u32(pid)).and_then(|p| p.environ().iter().find_map(|e| e.to_str()?.strip_prefix("ORCA_TERMINAL_HANDLE=").map(str::to_string)));
     cache.insert(pid, handle.clone());
     handle
+}
+
+/// Whether the Claude desktop app runs on this PC: one process listing, executable paths read once per process.
+fn desktop_running(sys: &mut System) -> bool {
+    sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet));
+    sys.processes().values().any(|p| p.exe().is_some_and(|e| is_desktop_image(&e.to_string_lossy())))
+}
+
+/// An executable path that is the Claude desktop app, not Claude Code (whose Windows binary is also `claude.exe`):
+/// the Store package (`...\WindowsApps\Claude_<version>_...\app\Claude.exe`), the older per-user install
+/// (`...\AnthropicClaude\app-<version>\claude.exe`), or the macOS bundle (`.../Claude.app/Contents/MacOS/Claude`).
+fn is_desktop_image(path: &str) -> bool {
+    let p = path.replace('\\', "/");
+    let mut parts = p.rsplit('/');
+    let name = parts.next().unwrap_or_default();
+    let dir: Vec<&str> = parts.collect(); // innermost folder first
+    if name.eq_ignore_ascii_case("claude.exe") {
+        return dir.first().is_some_and(|d| *d == "app") && dir.get(1).is_some_and(|d| d.starts_with("Claude_")) && dir.get(2).is_some_and(|d| d.eq_ignore_ascii_case("WindowsApps"))
+            || dir.first().is_some_and(|d| d.starts_with("app-")) && dir.get(1).is_some_and(|d| *d == "AnthropicClaude");
+    }
+    name == "Claude" && dir.first() == Some(&"MacOS") && dir.get(1) == Some(&"Contents") && dir.get(2) == Some(&"Claude.app")
 }
 
 /// An executable path (or bare name) that is Claude Code: `claude.exe` on Windows, `claude` elsewhere (Homebrew's
@@ -269,6 +305,20 @@ mod tests {
         assert!(is_claude_image("/Users/x/.local/share/claude/versions/2.1.285"));
         assert!(!is_claude_image("/usr/bin/claudette"));
         assert!(!is_claude_image("/Users/x/versions/2.1.285"));
+    }
+
+    #[test]
+    fn desktop_image_is_the_app_never_claude_code() {
+        assert!(is_desktop_image(r"C:\Program Files\WindowsApps\Claude_6.28899.2.0_x64__pzs8sxrjxfjjc\app\Claude.exe"));
+        assert!(is_desktop_image(r"C:\Users\x\AppData\Local\AnthropicClaude\app-0.14.1\claude.exe"));
+        assert!(is_desktop_image("/Applications/Claude.app/Contents/MacOS/Claude"));
+        // Claude Code, wherever it lives, even the copy the desktop app manages
+        assert!(!is_desktop_image(r"C:\Users\x\AppData\Roaming\Claude\claude-code\2.1.328\23e64dd91c09\claude.exe"));
+        assert!(!is_desktop_image(r"C:\Users\x\.local\bin\claude.exe"));
+        assert!(!is_desktop_image("/Users/x/.local/share/claude/versions/2.1.285"));
+        assert!(!is_desktop_image(r"C:\Program Files\WindowsApps\Claude_6.2\app\node.exe"));
+        assert!(!is_desktop_image(r"C:\Program Files\WindowsApps\Other_1.0\app\Claude.exe"));
+        assert!(!is_desktop_image("/Applications/Claude.app/Contents/Helpers/Claude"));
     }
 
     #[test]

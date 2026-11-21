@@ -16,7 +16,7 @@ pub(crate) use files::slug; // only chronicle/mod.rs's tests reach it from outsi
 pub use files::{direct_transcript, file_tail, find_transcript, fork_parent, list_subagents, stat, FileStat};
 pub(crate) use helpers::helper_meta;
 pub use helpers::{active_helpers, read_helper, Completions};
-pub use prompt::{parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
+pub use prompt::{claude_desktop_link, parse_permission_prompt, valid_claude_web_url, valid_opencode_id, valid_orca_handle, Prompt};
 pub use risk::risk_of;
 pub use sessions::{adopt, dept_of, merge, scan, temp_dept, track_compaction};
 pub(crate) use tail::{clip, clip_to, iso_utc_ms};
@@ -52,6 +52,9 @@ pub struct Session {
     pub context: Option<Context>,
     pub orca: Option<String>,
     pub web: Option<String>,
+    /// It has a `web` link and the Claude desktop app runs on this PC: its card opens the session in the app
+    /// (`claude://code/<id>`) instead of the browser. Filled by the poll loop (poller.rs `desktop_running`).
+    pub app: bool,
     pub background: bool,
     /// Ms timestamp of the newest context compaction seen (see `compacted_at`, `track_compaction`).
     pub compacted_at: Option<i64>,

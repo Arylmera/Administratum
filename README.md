@@ -369,7 +369,9 @@ drag the header.
   whose click already did it (it comes back when an answer fails, or when the terminal could not be opened). A card reached another way,
   such as a name in a Suzerain's lineage, keeps it.
 - **Open on claude.ai** opens the session's `https://claude.ai/code/...` page in your default browser. It is shown
-  only when the session record carries a claude.ai session id.
+  only when the session record carries a claude.ai session id (Remote Control on). While the Claude desktop app runs
+  on this PC, the button reads **Open in Claude** and opens the session in the app instead (`claude://code/<id>`).
+  The remote view always opens the web page, on its own device.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
 - **Click a department's plaque** to open its folder (the most recently active session's working directory) in
   Explorer (Finder on macOS), VS Code or a command of your own (Settings > System). A branch other than `main` / `master` shows under
@@ -661,7 +663,9 @@ turned off) and when you click *Check now*, and a theme pack's download from Git
 installed one; nothing is installed unless you click *Update* on the toast. Each of these requests goes to GitHub
 like any download, so GitHub sees your IP address and the app's user agent, and it names the repository; no session
 data is sent. The only other outbound
-action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai*. That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
+action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai* (or its
+`claude://code/<id>` form in the Claude desktop app, *Open in Claude*). That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
+To know whether the desktop app runs, the app lists this PC's processes and their executable paths, every 5 s and only while a session has a claude.ai link; nothing of it leaves the PC.
 
 **Answering petitions.** This is the only action that affects a session, and it only types one digit into an
 Orca terminal after you click, in the widget or on a toast. The safeguards:

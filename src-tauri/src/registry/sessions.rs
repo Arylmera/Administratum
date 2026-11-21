@@ -160,6 +160,7 @@ pub fn scan(dir: &Path, alive: impl Fn(u32, Option<&str>) -> bool, mut details: 
             context,
             orca,
             web,
+            app: false,
             background,
             compacted_at: compacted,
             question,

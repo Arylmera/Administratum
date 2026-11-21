@@ -37,7 +37,8 @@ fn orca<T>(args: &[&str], run: impl Fn(&mut Command) -> std::io::Result<T>) -> R
     Err(err)
 }
 
-/// Open `url` in the default browser. The URL is one argument to the OS's opener.
+/// Open `url` with the OS's opener: the default browser, or the app that owns its scheme (`claude://`). The URL is
+/// one argument to the opener.
 fn open_url(url: &str) -> std::io::Result<std::process::Child> {
     #[cfg(windows)]
     return no_window(Command::new("cmd")).args(["/c", "start", "", url]).spawn();
@@ -47,9 +48,9 @@ fn open_url(url: &str) -> std::io::Result<std::process::Child> {
     return Command::new("xdg-open").arg(url).spawn();
 }
 
-/// Switch Orca's foreground terminal to `handle`, or open `url` in the default browser. `target`
-/// is "orca:<handle>" or "web:<url>"; both branches validate before touching the shell so a
-/// malformed roster entry can never inject arguments.
+/// Switch Orca's foreground terminal to `handle`, open `url` in the default browser, or open that claude.ai
+/// session in the Claude desktop app. `target` is "orca:<handle>", "web:<url>" or "app:<url>"; every branch
+/// validates before touching the shell so a malformed roster entry can never inject arguments.
 #[tauri::command]
 pub fn open_session(target: String) -> Result<(), String> {
     if let Some(handle) = target.strip_prefix("orca:") {
@@ -63,6 +64,10 @@ pub fn open_session(target: String) -> Result<(), String> {
             return Err("invalid claude.ai url".into());
         }
         open_url(url).map_err(|e| e.to_string())?;
+        Ok(())
+    } else if let Some(url) = target.strip_prefix("app:") {
+        let link = registry::claude_desktop_link(url).ok_or("invalid claude.ai url")?;
+        open_url(&link).map_err(|e| e.to_string())?;
         Ok(())
     } else {
         Err("unknown target kind".into())

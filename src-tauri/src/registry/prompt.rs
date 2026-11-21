@@ -11,6 +11,13 @@ pub fn valid_claude_web_url(url: &str) -> bool {
     url.strip_prefix("https://claude.ai/code/").is_some_and(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
 }
 
+/// The Claude desktop app's link for a claude.ai code-session URL: `claude://code/<id>` opens that session in the
+/// app (its URL handler routes `session_…` / `cse_…` ids). None for any URL `valid_claude_web_url` refuses.
+pub fn claude_desktop_link(url: &str) -> Option<String> {
+    let id = url.strip_prefix("https://claude.ai/code/").filter(|_| valid_claude_web_url(url))?;
+    Some(format!("claude://code/{id}"))
+}
+
 /// Only an OpenCode session, permission or message id may go into a loopback API path: `ses_` / `per_` / `msg_`
 /// and 1 to 64 ASCII letters or digits (OpenCode makes 26).
 pub fn valid_opencode_id(id: &str) -> bool {
@@ -95,6 +102,14 @@ mod tests {
         assert!(!valid_claude_web_url("javascript:alert(1)"));
         assert!(!valid_claude_web_url("https://claude.ai/code/x&calc"));
         assert!(!valid_claude_web_url("https://claude.ai/code/x|whoami"));
+    }
+
+    #[test]
+    fn claude_desktop_link_maps_only_valid_urls() {
+        assert_eq!(claude_desktop_link("https://claude.ai/code/session_01abc").as_deref(), Some("claude://code/session_01abc"));
+        assert_eq!(claude_desktop_link("https://claude.ai/code/"), None);
+        assert_eq!(claude_desktop_link("https://claude.ai/code/x&calc"), None);
+        assert_eq!(claude_desktop_link("https://evil.example.com/code/session_01abc"), None);
     }
 
     #[test]
