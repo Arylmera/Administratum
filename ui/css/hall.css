@@ -139,6 +139,11 @@ header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
 #card button:disabled { cursor: progress; }
 #card .q { margin-top: var(--spe-25); }
 #card .err { color: var(--wax); }
+#card .open-err { margin-top: var(--spe-25); color: var(--wax); overflow-wrap: anywhere; }
+#card .ci[hidden], #card .open-err[hidden] { display: none; }
+#card .ci { margin-top: var(--spe-25); color: var(--paper-ink-2); }
+#card .ci-line { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; text-decoration: underline; cursor: pointer; }
+#card .ci-line:hover { filter: brightness(1.2); }
 #card .links button, #card .answer button { padding: var(--spe-25) var(--spe-75); background: var(--leather); color: var(--light); border: 1px solid var(--leather-deep); border-radius: var(--r-2); font: inherit; font-size: var(--fse-90); cursor: pointer; }
 #card .links button:hover, #card .answer button:hover { filter: brightness(1.2); }
 .tithe { font-variant-numeric: tabular-nums; cursor: pointer; background: transparent; font-family: inherit; }
