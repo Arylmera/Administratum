@@ -161,9 +161,11 @@ export const TIER_II = {
   px: BASE,
   sash: ['#d9a84e', '#5fae7a', '#5a7ec9', '#c46a9a', '#c9b95a', '#6ac9c4', '#c97a4a', '#9a8ad9'],
   rank: {
-    high: { robe: gilt('#6e120d', '#9a2a18', '#300806'), adept: { x: '#d9a84e', b: '#e8dcb8', J: '#e8b45a', I: '#6e3f17' } },
+    // the 40k ranks, one look in every Ordo (spec 2026-11-21-rank-art): high a rich purple under heavy gilt, standard the
+    // Ordo's own robe, novice a low machine agent in pale iron; the three apart at a glance (theme.test.mjs)
+    high: { robe: gilt('#7a1e8a', '#9c3cae', '#46104f'), adept: { q: '#7a1e8a', Q: '#46104f', b: '#9c3cae', x: '#e8b45a', J: '#e8b45a', I: '#6e3f17' } },
     standard: { robe: {}, adept: {} },
-    novice: { robe: plain('#6e3a30', '#8a5244', '#43231c'), adept: { x: '#5a564c', q: '#8e8a7e', Q: '#5a564c', b: '#a8a496', J: '#8e8a7e', I: '#8e8a7e' } },
+    novice: { robe: plain('#7a7e82', '#9a9ea2', '#4a4e52'), adept: { q: '#5a5e62', Q: '#3a3c40', b: '#7a7e82', x: '#3a3c40', J: '#5a5e62', I: '#5a5e62' } },
   },
   ink: inkOf,
   light: LIGHT,

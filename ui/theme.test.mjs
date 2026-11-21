@@ -196,4 +196,23 @@ setTheme('tier2');
   // shipped before this check: the Neon Grid title band is the bright accent under light words (asserted still so)
   assert.deepEqual(low, ['cyber title', 'corpo title', 'rain title', 'matrix title', 'synth title'], 'Hall of Honours words over their fields');
 }
+// 40k ranks (spec 2026-11-21-rank-art): one high look and one novice look in every Ordo, standard the Ordo's own robe;
+// the three ranks apart at a glance (RGB distance of the robe, and of the adept's bone), and high's gilt never a sash colour
+{
+  const ORDOS = ['tier2', 'forge', 'xenos', 'night', 'contrast'], KEYS = ['r', 'R', 'd', 't', 'T', 'z', 'j', 'g', 'G'], AKEYS = ['q', 'Q', 'b', 'x', 'J', 'I'];
+  const robe = (t, r) => ({ ...t.px, ...t.rank[r].robe }), adept = (t, r) => ({ ...t.px, ...t.rank[r].adept });
+  const dist = (a, b) => Math.hypot(...[1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)));
+  const all = ORDOS.map(id => resolve(THEMES[id]));
+  for (const r of ['high', 'novice']) {
+    for (const k of KEYS) assert.equal(new Set(all.map(t => robe(t, r)[k])).size, 1, `one ${r} in every Ordo: robe ${k}`);
+    for (const k of AKEYS) assert.equal(new Set(all.map(t => adept(t, r)[k])).size, 1, `one ${r} in every Ordo: adept ${k}`);
+  }
+  for (const t of all) {
+    for (const [a, b] of [['high', 'standard'], ['high', 'novice'], ['standard', 'novice']]) {
+      assert.ok(dist(robe(t, a).r, robe(t, b).r) >= 80, `${t.id}: ranks apart, robe ${a}/${b} (${robe(t, a).r} ${robe(t, b).r})`);
+      assert.ok(dist(adept(t, a).q, adept(t, b).q) >= 80, `${t.id}: ranks apart, adept ${a}/${b} (${adept(t, a).q} ${adept(t, b).q})`);
+    }
+    for (const k of ['t', 'T', 'z', 'j', 'g', 'G']) assert.ok(!t.sash.includes(robe(t, 'high')[k]), `${t.id}: high's gilt ${k} is no sash colour`);
+  }
+}
 console.log('theme ok');
