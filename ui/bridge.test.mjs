@@ -5,6 +5,9 @@ import { install, flush, tick } from './testdom.mjs';
 // bridge.js turns each into 'remote actions disabled', and the card then shows that sentence and no answer button.
 install();
 globalThis.ADM_REMOTE = true;
+// The remote bridge's events come over one EventSource (card.js imports modules that listen at import, cilamp.js):
+// a silent stand-in, as Node has none.
+globalThis.EventSource = class { constructor(url) { this.url = url; } addEventListener() {} close() {} };
 const fetched = [];
 let peekStatus = 403;
 globalThis.fetch = async (url, opts = {}) => {
