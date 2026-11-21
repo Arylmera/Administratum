@@ -19,6 +19,7 @@ mod strip;
 mod toast;
 mod vigil;
 mod window;
+mod ci;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};

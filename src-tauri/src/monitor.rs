@@ -18,6 +18,8 @@ pub struct Config {
     pub stuck_repeat: u32,
     /// Where the day report is also written; None unless the user turned it on and named a folder.
     pub report_dir: Option<PathBuf>,
+    /// Ask GitHub, through the user's `gh`, for the CI verdict of each push (ci.rs); off by default. No toast.
+    pub ci: bool,
 }
 
 /// The config from the saved settings (`adm.*` strings), with defaults and ranges.
@@ -32,6 +34,7 @@ pub fn config_from(v: &Value) -> Config {
         stuck_ms: i64::from(num("adm.stuckMin", 15, 5, 120)) * 60_000,
         stuck_repeat: num("adm.stuckRepeat", 5, 3, 20),
         report_dir: (s("adm.reportOn") == "1" && !dir.is_empty()).then(|| PathBuf::from(dir)),
+        ci: s("adm.ci") == "1",
     }
 }
 
@@ -128,7 +131,7 @@ mod tests {
     #[test]
     fn config_defaults_and_clamps() {
         let c = config_from(&json!({}));
-        assert_eq!(c, Config { token_alert: None, stuck: true, stuck_toast: true, stuck_ms: 900_000, stuck_repeat: 5, report_dir: None });
+        assert_eq!(c, Config { token_alert: None, stuck: true, stuck_toast: true, stuck_ms: 900_000, stuck_repeat: 5, report_dir: None, ci: false });
         assert_eq!(config_from(&Value::Null), c, "no settings file: the same defaults");
         assert_eq!(config_from(&json!({"adm.stuckMin": "1"})).stuck_ms, 300_000);
         assert_eq!(config_from(&json!({"adm.stuckMin": "oops"})).stuck_ms, 900_000);
@@ -138,6 +141,11 @@ mod tests {
         assert_eq!(config_from(&json!({"adm.tokenAlert": "0"})).token_alert, None);
         assert_eq!(config_from(&json!({"adm.tokenAlert": ""})).token_alert, None);
         assert!(!config_from(&json!({"adm.stuck": "0"})).stuck);
+        assert!(config_from(&json!({"adm.ci": "1"})).ci);
+        for off in ["0", "", "true", "on"] {
+            assert!(!config_from(&json!({"adm.ci": off})).ci, "{off:?}: only \"1\" turns it on");
+        }
+        assert!(!config_from(&json!({"adm.ci": 1})).ci, "a number is no \"1\" string");
         assert_eq!(config_from(&json!({"adm.reportOn": "1", "adm.reportDir": r"D:\x"})).report_dir, Some(PathBuf::from(r"D:\x")));
         assert_eq!(config_from(&json!({"adm.reportOn": "0", "adm.reportDir": r"D:\x"})).report_dir, None, "off: never written");
         assert_eq!(config_from(&json!({"adm.reportOn": "1", "adm.reportDir": " "})).report_dir, None);
