@@ -5,6 +5,15 @@
 import { invoke, listen } from './bridge.js';
 
 export const LAMP_SIZE = [5, 10]; // logical px (the art is 10 x 20 art px: tools/cilamp_art/kit.mjs)
+// The lens's signal colours, fixed in every world: a palette override (sprites.js blit's `over`) for the lens chars of
+// each frame, so a theme or a pack that recolours the key slots (flame, phosphor, alarm) never turns green orange. The
+// housing and the post keep following the theme. One constant object a frame (the sprite cache keys on it).
+export const LENS = {
+  'CILAMP.amber': { f: '#f0a83c', F: '#ffe6a0', g: '#b8742a' },
+  'CILAMP.amber_dim': { g: '#a86a28', f: '#d08a30', G: '#6e3f17' },
+  'CILAMP.green': { c: '#3ddc6c', O: '#e6ffee', C: '#16602f' },
+  'CILAMP.red': { a: '#ff3a20', F: '#ffd0a0', x: '#8e1c16' },
+};
 export const BLINK_MS = 1000; // running: amber and its dim beat, half a second each
 const STATES = new Set(['running', 'pass', 'fail', 'timeout', 'error', 'none']);
 

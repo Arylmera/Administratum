@@ -187,7 +187,7 @@ setTheme('tier2');
 // (the blink follows the clock), at its spot (layout.js lampSpots), nothing while the list is empty. Recording canvas:
 // node has none; every drawImage is kept with the sprite canvas it drew.
 {
-  const { setLamps, frameOf } = await import('./cilamp.js'), { lampSpots } = await import('./layout.js'), { MAPS, sprite, half } = await import('./sprites.js');
+  const { setLamps, frameOf, LENS } = await import('./cilamp.js'), { lampSpots } = await import('./layout.js'), { MAPS, sprite, half } = await import('./sprites.js');
   const { drawScene } = await import('./scene.js');
   const { drawScene39 } = await import('./scene39.js');
   const calls = [];
@@ -204,7 +204,7 @@ setTheme('tier2');
     const layout = { hall, blocks: L.blocks, desks: [], consoles: [], computers: new Map(), level: { dark: 0.18 }, anchors: null };
     const spots = lampSpots(L.blocks, hall);
     const draw = (f, now) => { calls.length = 0; f(fakeG(), layout, new Map(), () => 0, now); return calls.slice(); };
-    const lampsIn = (cs, frame) => cs.filter(a => a[0] === sprite(MAPS[frame]));
+    const lampsIn = (cs, frame) => cs.filter(a => a[0] === sprite(MAPS[frame], LENS[frame]));
     for (const [tag, f] of [['flat', drawScene], ['39°', drawScene39]]) {
       setView(tag === 'flat' ? 'flat' : '39'); sceneSize(hall); use(hall);
       setLamps([]);
@@ -233,7 +233,7 @@ setTheme('tier2');
       const cs = draw(() => drawScene(fakeG(), lay, new Map(), () => 0, 0), 0);
       assert.deepEqual([lampsIn(cs, 'CILAMP.red').length, lampsIn(cs, 'CILAMP.green').length], [1, 1], `${tag}: a lamp each`);
       setLamps([]);
-      assert.equal(draw(() => drawScene(fakeG(), lay, new Map(), () => 0, 0), 0).filter(a => a[0] === sprite(MAPS['CILAMP.red'])).length, 0, `${tag}: no list, no lamp`);
+      assert.equal(draw(() => drawScene(fakeG(), lay, new Map(), () => 0, 0), 0).filter(a => a[0] === sprite(MAPS['CILAMP.red'], LENS['CILAMP.red'])).length, 0, `${tag}: no list, no lamp`);
     }
   } finally { setLamps([]); setView('flat'); if (had) globalThis.document = had; else delete globalThis.document; }
 }
