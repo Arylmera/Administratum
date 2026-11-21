@@ -223,15 +223,15 @@
     "--paper-err": "#a03010",
     "--leather": "#3e2614",
     "--leather-deep": "#201206",
-    "--chart-new": "#9a5aff",
-    "--chart-cache": "#3ad8c8",
     "--rod-hi": "#ffd870",
     "--rod": "#d8a83a",
     "--rod-lo": "#8a6418",
     "--rod-edge": "#4a3a10",
     "--rod-cap": "#fff4d0",
     "--display": "'Pirata One', serif",
-    "--paper-accent": "#5a3a9a"
+    "--paper-accent": "#5a3a9a",
+    "--chart-new": "#924dff",
+    "--chart-cache": "#1a857a"
   },
   "text": {
     "watch": {

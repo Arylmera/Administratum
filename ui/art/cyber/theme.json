@@ -228,7 +228,8 @@
     "--rod-edge": "#1a0410",
     "--rod-cap": "#ffd0ea",
     "--display": "'VT323', monospace",
-    "--paper-accent": "#ff2e88"
+    "--paper-accent": "#ff2e88",
+    "--chart-red": "#c93420"
   },
   "text": {
     "watch": {

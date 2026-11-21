@@ -11,6 +11,10 @@
   "art": ["breakout"],
   "px": { "7": "#32213e", "8": "#362244", "9": "#3e3241", "H": "#38213e", "K": "#453243" },
   "ink": { "lampDead": "#1c1d20" },
+  "ui": {
+    "--chart-red": "#d13621",
+    "--chart-green": "#218056"
+  },
   "text": {
     "subtitle": "Outrun Strip · Midnight arcade",
     "motto": "Drive into the sunset",

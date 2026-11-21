@@ -238,15 +238,15 @@
     "--paper-err": "#a8281e",
     "--leather": "#4a2418",
     "--leather-deep": "#24100a",
-    "--chart-new": "#c8963a",
-    "--chart-cache": "#5a9a5a",
     "--rod-hi": "#f0c870",
     "--rod": "#c8963a",
     "--rod-lo": "#7a5418",
     "--rod-edge": "#4a3010",
     "--rod-cap": "#fff4d0",
     "--display": "'VT323', monospace",
-    "--paper-accent": "#2e4a2e"
+    "--paper-accent": "#2e4a2e",
+    "--chart-new": "#a0772d",
+    "--chart-cache": "#518a51"
   },
   "text": {
     "watch": {
