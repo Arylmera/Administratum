@@ -283,7 +283,9 @@
       "petition": "Request",
       "petition-answered": "Request answered",
       "compaction": "Cache flushed",
-      "limit": "Throttled"
+      "limit": "Throttled",
+      "ci-pass": "Build green",
+      "ci-fail": "Build red"
     },
     "prefs": {
       "chime": "Request ping",
@@ -298,7 +300,8 @@
         "petitions": "Requests",
         "scribes": "Runners",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Diagnostics"
       }
     },
     "limitLabel": "throttled · back at {time}",

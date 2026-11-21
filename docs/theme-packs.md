@@ -140,7 +140,7 @@ Wording keys added for the panels (a pack that lacks them keeps the defaults, so
 (the Settings label of the world list, "World") and `prefs.look` (of the style list, "Look"), `prefs.resetArmed` (the
 *Reset to defaults* button after its first click), `log.empty` (a Chronicon day with no events), `mobile.empty` (the phone
 page with no petition waiting; reword it where your world renames petitions) and `petition.armed` (a risky *Approve* after
-its first click). The new/cache bars of the Chronicon are told apart by a hatch as well as by `--chart-new` and
+its first click). Added with the CI verdict and Settings > Status, all optional: `ci.running`, `ci.pass`, `ci.fail`, `ci.timeout`, `ci.error` (the card's CI line; they keep their `{branch}`, `{sha}`, `{done}`, `{total}` and `{check}` placeholders, which are filled by name), `ci.open` (the title of the click that opens the checks), `event.ci-pass` and `event.ci-fail` (the Chronicon's labels), `log.error` (a Chronicon day that could not be read, with `{error}`), `prefs.cat.status` (the Settings tab) and the wording of that tab under `prefs.status`, `prefs.saveFailed`, `prefs.remote`, `prefs.update`, `prefs.test` and `prefs.ci`. A world rewords the CI events and the Status tab where it rewords their neighbours; the rest keeps the defaults. The new/cache bars of the Chronicon are told apart by a hatch as well as by `--chart-new` and
 `--chart-cache`, so the two colours may be close in hue.
 
 **A style** (the template's `vault-pink/theme.json`):

@@ -28,6 +28,9 @@ const PIX = {
   left: 'bbbb....b..b..r.b..b...rb..rrrrrb..b...rb..b..r.bbbb............',
   petition: '..RRRR...RRwwRR..RRwwRR..RRwwRR..RRRRRR..RRwwRR...RRRR..........',
   'petition-answered': '..gggg...gggggg.gggggwggggggwgggwgwgggggggwggggg.gggggg...gggg..',
+  // CI: a check mark, a cross
+  'ci-pass': '...............g......ggg....gg.gg..gg...gggg.....gg............',
+  'ci-fail': 'R......R.R....R...R..R.....RR......RR.....R..R...R....R.R......R',
 };
 const kindName = kind => (T.text.event[kind] ? say(`event.${kind}`) : kind); // the theme's wording (theme.js TEXT.event)
 const icon = kind => {
@@ -304,15 +307,19 @@ export function initChronicon(colorOf = () => null) {
     wait.setAttribute('role', 'status');
     wait.prepend(h('span', 'seal'));
     body.replaceChildren(wait);
-    const [events, tithe, report] = await Promise.all([invoke('chronicle_day', { day }).catch(() => null), invoke('tithe_day', { day }).catch(() => null),
+    // A rejected load is an error, told with its message; a day the backend has nothing for answers null (the silent state).
+    const failed = {};
+    const ask = (name, cmd, args) => invoke(cmd, args).catch(err => { failed[name] = String(err?.message ?? err); return null; });
+    const [events, tithe, report] = await Promise.all([ask('events', 'chronicle_day', { day }), ask('tithe', 'tithe_day', { day }),
       invoke('day_report', { day }).catch(() => null)]); // the remote view has no day_report: no report section
     if (my !== seq || !isOpen()) return;
     cur = { day, events: (events ?? []).slice().sort((a, b) => b.ts - a.ts), filter: cur?.day === day ? cur.filter : '' };
     body.replaceChildren();
-    if (!events && !tithe) { body.append(h('p', 'quiet', say('log.silent'))); return; }
+    const oops = message => { const p = h('p', 'quiet err', say('log.error', { error: message })); p.setAttribute('role', 'alert'); return p; };
+    if (!events && !tithe) { body.append(failed.events || failed.tithe ? oops(failed.events ?? failed.tithe) : h('p', 'quiet', say('log.silent'))); return; }
     body.append(summary(tithe, day === dayKey(), null, cur.events.length, colorOf));
     if (report?.markdown) body.append(reportSection(report.markdown));
-    body.append(logSection(cur));
+    body.append(failed.events ? oops(failed.events) : logSection(cur));
     body.scrollTop = 0;
   }
 

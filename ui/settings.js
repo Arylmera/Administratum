@@ -13,12 +13,20 @@ import { minutesOf, hhmmOf } from './quiet.js';
 import { view as viewMode, viewName, setView, onView, stripKind } from './view.js';
 import { rooms, roomsOf, setRooms, MAX_ROOMS } from './rooms.js';
 import { PLANS, setHallPlan } from './hallplan.js';
+import { ago } from './format.js';
 
 const mem = {};
 let saved = null;
 try { saved = await invoke('settings_load', {}); } catch { /* no backend or failed: the cache */ }
 let saveTimer;
-const write = () => invoke('settings_save', { values: { ...mem } }).catch(err => console.warn('settings_save', err));
+// A refused save is said in the panel (its .save-err line) until the next good one clears it.
+const saveLine = msg => {
+  const p = globalThis.document?.querySelector?.('#prefs .save-err');
+  if (!p) return;
+  p.textContent = msg ? t('prefs.saveFailed', { error: msg }) : '';
+  p.hidden = !msg;
+};
+const write = () => invoke('settings_save', { values: { ...mem } }).then(() => saveLine(''), err => { console.warn('settings_save', err); saveLine(String(err?.message ?? err)); });
 const persist = () => { if (REMOTE) return; clearTimeout(saveTimer); saveTimer = setTimeout(write, 300); };
 const LOCAL = ['adm.mode', 'adm.muted', 'adm.scale', 'adm.theme', 'adm.view']; // the remote view's own choices
 if (REMOTE) {
@@ -110,7 +118,7 @@ const setQuiet = (on, from, to) => {
 
 // Monitoring (monitor.rs reads these adm.* strings from settings.json at start and after each save): checkboxes are
 // '1' / '0', the numbers are clamped like monitor.rs does, the rest is kept as typed (empty token alert: off).
-export const MONITOR = { tokenAlert: '', stuck: '1', stuckToast: '1', stuckMin: '15', stuckRepeat: '5', reportOn: '0', reportDir: '' };
+export const MONITOR = { tokenAlert: '', stuck: '1', stuckToast: '1', stuckMin: '15', stuckRepeat: '5', reportOn: '0', reportDir: '', ci: '0' };
 // The numbers as monitor.rs config_from uses them: [default, min, max]. The token alert is a plain integer string (0 or empty: off).
 const MON_NUM = { stuckMin: [15, 5, 120], stuckRepeat: [5, 3, 20] };
 const monitorNorm = (k, v) => {
@@ -239,10 +247,16 @@ function initRemote(form, root, field) {
   const rv = form.querySelector('#remote'), rvErr = rv.querySelector('.rv-err'), regen = rv.querySelector('.rv-regen');
   const showRemote = st => {
     rvErr.hidden = true;
-    field('remoteOn').checked = st.enabled;
+    field('remoteOn').checked = st.saved ?? st.enabled; // the setting: a view left on that did not bind stays checked
     field('remoteActions').checked = st.actions_allowed;
     if (document.activeElement !== field('remotePort')) field('remotePort').value = st.port;
     rv.querySelector('.rv-on').hidden = !st.enabled;
+    // saved on but not listening on the LAN (with the reason), or listening on this PC only
+    const state = rv.querySelector('.rv-state');
+    state.textContent = st.saved && !st.enabled ? (st.error ? t('prefs.remote.notListening', { error: st.error }) : t('prefs.remote.notListeningNoError'))
+      : st.loopback ? t('prefs.remote.loopback') : '';
+    state.hidden = !state.textContent;
+    state.classList.toggle('bad', !!st.saved && !st.enabled);
     const urls = rv.querySelector('.rv-urls');
     urls.replaceChildren(...(st.urls.length ? st.urls : ['No private network address found on this PC.']).map(u => { const li = document.createElement('li'); li.textContent = u; return li; }));
     const qr = rv.querySelector('.rv-qr');
@@ -255,7 +269,8 @@ function initRemote(form, root, field) {
     return invoke(cmd, args).then(showRemote, err => { rvErr.textContent = String(err); readRemote(true); })
       .finally(() => { for (const el of els) el.disabled = false; });
   };
-  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; }, () => { rv.hidden = true; root.querySelector('.cats [data-cat="remote"]').hidden = true; });
+  const readRemote = keepErr => invoke('remote_status').then(st => { showRemote(st); rvErr.hidden = !keepErr; },
+    err => { rvErr.textContent = t('prefs.remote.failed', { error: String(err?.message ?? err) }); rvErr.hidden = false; }); // the category stays: it says what failed
   const applyRemote = () => rvCall('remote_set', { enabled: field('remoteOn').checked, port: Math.round(+field('remotePort').value), actionsAllowed: field('remoteActions').checked });
 
   let armed;
@@ -299,11 +314,14 @@ function initFirewall(form, field, isWin) {
   return readFw;
 }
 
+// 1536 -> '1.5 kB', 3145728 -> '3.0 MB'
+const bytesOf = n => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} kB` : `${(n / 1048576).toFixed(1)} MB`);
+
 // Updates (host only): check_update / install_update (main.rs). The startup check only offers; a click installs.
 function initUpdates(form, opener) {
   const up = form.querySelector('#updates'), upLine = up.querySelector('.up-line');
   const upCheck = up.querySelector('.up-check'), upInstall = up.querySelector('.up-install');
-  let version = '', failure = '', checked = false; // this build's version stays on the line when a check fails (no release for this platform, no network)
+  let version = '', failure = '', checked = false, installing = false; // this build's version stays on the line when a check fails (no release for this platform, no network)
   const showUpdate = st => {
     failure = ''; checked = true;
     upLine.textContent = st.available ? `Version ${st.current}. Version ${st.available} is available.` : `Version ${st.current}, up to date.`;
@@ -316,15 +334,54 @@ function initUpdates(form, opener) {
       .finally(() => { upCheck.disabled = false; });
   };
   upCheck.onclick = checkUpdate;
+  // update-progress { downloaded, total }: a percent once the total is known, else the bytes so far
+  listen('update-progress', ({ payload: p }) => {
+    if (!installing || !p) return;
+    upLine.textContent = Number.isFinite(p.total) && p.total > 0 ? t('prefs.update.percent', { percent: Math.min(100, Math.floor(100 * p.downloaded / p.total)) })
+      : t('prefs.update.bytes', { size: bytesOf(p.downloaded) });
+  });
   upInstall.onclick = () => {
     upInstall.disabled = upCheck.disabled = true;
-    upLine.textContent = 'Downloading the update…';
-    invoke('install_update').catch(err => { upLine.textContent = `Update failed: ${err}`; upInstall.disabled = upCheck.disabled = false; });
+    upLine.textContent = 'Downloading the update…'; installing = true;
+    invoke('install_update').catch(err => { installing = false; upLine.textContent = `Update failed: ${err}`; upInstall.disabled = upCheck.disabled = false; });
   };
   if (!REMOTE) {
     tauri()?.app?.getVersion().then(v => { version = v; if (failure) upLine.textContent = `Version ${v}. ${failure}`; else if (!checked) upLine.textContent = `Version ${v}`; }).catch(() => {});
     if (store.get('adm.updateCheck', '1') !== '0') checkUpdate();
   }
+}
+
+// Settings > Status (host only): every integration the backend tracks (integration_status): name, a mark that does not rely
+// on colour (the state's word beside it), the last message and how long ago. Read when the tab opens and every 4 s while
+// the panel is open; the same read feeds the gh line under the CI switch.
+const STATUS_MS = 4000, MARK = { ok: '✓', warn: '!', error: '✕' };
+function initStatus(form, root) {
+  const list = form.querySelector('.st-list'), gh = form.querySelector('.ci-gh');
+  const showGh = es => { const e = es.find(x => x.name === 'gh'); gh.textContent = e ? e.message : t('prefs.ci.none'); gh.dataset.state = e?.state ?? ''; };
+  const render = es => {
+    list.replaceChildren(...(es.length ? es.map(e => {
+      const li = el('li', `st-row st-${e.state}`), when = e.timeMs ?? e.time, mark = el('span', 'st-mark', MARK[e.state] ?? '?');
+      li.dataset.state = e.state;
+      mark.setAttribute('aria-hidden', 'true');
+      li.append(mark, el('span', 'st-name', e.name), el('span', 'st-state', t(`prefs.status.${e.state}`)),
+        el('span', 'st-msg', e.message ?? ''), el('span', 'st-ago', when ? t('prefs.status.ago', { time: ago(when) }) : ''));
+      return li;
+    }) : [el('li', 'hint st-empty', t('prefs.status.empty'))]));
+  };
+  const read = () => invoke('integration_status').then(es => { es = Array.isArray(es) ? es : []; render(es); showGh(es); },
+    err => { list.replaceChildren(el('li', 'hint st-empty', t('prefs.status.failed', { error: String(err?.message ?? err) }))); showGh([]); });
+  setInterval(() => { if (!root.hidden) read(); }, STATUS_MS);
+  return { read };
+}
+
+// Settings > System > Notifications (host only): one plain toast, to see whether notifications reach the desktop.
+function initNotify(form) {
+  const btn = form.querySelector('.test-notify'), line = form.querySelector('.test-line');
+  btn.onclick = () => {
+    btn.disabled = true; line.textContent = t('prefs.test.sending');
+    invoke('test_notification').then(() => { line.textContent = t('prefs.test.sent'); },
+      err => { line.textContent = t('prefs.test.failed', { error: String(err?.message ?? err) }); }).finally(() => { btn.disabled = false; });
+  };
 }
 
 // A repository as the backend takes it (packs.rs repo_ok), from what was typed or pasted: owner/repo, or its GitHub
@@ -418,7 +475,7 @@ function initPacks(form) {
 
 // Categories: a side button shows its section of the form, one at a time. A tab list: the arrow keys, Home and End move
 // (and select), the selected one is the one in the tab order.
-function initCategories(root, form) {
+function initCategories(root, form, onCat = () => {}) {
   const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
   const { rove } = tablist(root.querySelector('.cats [role="tablist"]'), { activate: true });
   for (const b of cats) b.onclick = () => {
@@ -428,6 +485,7 @@ function initCategories(root, form) {
     }
     rove(b);
     for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
+    onCat(b.dataset.cat);
   };
 }
 
@@ -489,7 +547,7 @@ function syncForm(form, field, hooks, login) {
 }
 
 // A changed field: store it, apply it, tell the backend, then refresh the panel.
-function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
+function onChange(e, { field, hooks, setPlace, readLogin, applyRemote, readStatus }) {
   const el = e.target, k = el.name;
   if (k.startsWith('remote')) { applyRemote(); return; }
   if (k === 'onTop') { settings.onTop = el.checked; save(); applyTop(); }
@@ -520,6 +578,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   else if (k in MONITOR) {
     store.set(`adm.${k}`, el.type === 'checkbox' ? (el.checked ? '1' : '0') : monitorNorm(k, el.value.trim()));
     if (el.type !== 'checkbox') el.value = monitorGet(k); // show what is used, even while focused
+    if (k === 'ci') store.flush().then(() => { readStatus(); setTimeout(readStatus, 2000); }); // the backend checks gh once it has the setting
   }
   else if (k in RANGE) { setPlace(coord('lat', field('lat').value), coord('lon', field('lon').value)); el.value = Number.isNaN(place[k]) ? '' : place[k]; }
   else if (k in NUM) { settings[k] = clamp(k, el.value); el.value = settings[k]; save(); if (k === 'staleMin') pushStale(); }
@@ -591,6 +650,8 @@ export function initSettings(hooks) {
 
   const { readRemote, applyRemote } = initRemote(form, root, field);
   const readFw = initFirewall(form, field, () => isWin);
+  const { read: readStatus } = initStatus(form, root);
+  initNotify(form);
 
   initUpdates(form, opener);
 
@@ -607,8 +668,8 @@ export function initSettings(hooks) {
     const s = field('scale'); s.value = Math.min(+s.max, Math.max(+s.min, +s.value + b.dataset.step * s.step));
     setScale(s.value); hooks.rescaled(); sync();
   };
-  form.onchange = e => onChange(e, { field, hooks, setPlace, readLogin, applyRemote });
-  initCategories(root, form);
+  form.onchange = e => onChange(e, { field, hooks, setPlace, readLogin, applyRemote, readStatus });
+  initCategories(root, form, cat => { if (cat === 'status') readStatus(); });
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
   form.querySelector('.place-clear').onclick = () => { setPlace(NaN, NaN); sync(); };
@@ -626,5 +687,5 @@ export function initSettings(hooks) {
   };
 
   onView(() => sync()); // the tray or the handle switched the view under an open panel
-  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); packs.read(); } sync(); } }); // readLogin: the tray may have changed it; packs: one dropped by hand
+  panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); packs.read(); readStatus(); } sync(); } }); // readLogin: the tray may have changed it; packs: one dropped by hand
 }

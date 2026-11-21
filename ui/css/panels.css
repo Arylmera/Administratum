@@ -55,6 +55,7 @@
 #chron select { margin-left: auto; padding: var(--spe-10) var(--spe-30); background: var(--paper-hi); color: var(--pk); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; }
 #chron .events { margin: var(--spe-30) 0 0; padding: 0; list-style: none; }
 #chron .events li { display: grid; grid-template-columns: 3.2em 1.2em minmax(4em, 9em) minmax(3em, 7em) 1fr; gap: var(--spe-50); align-items: center; padding: var(--spe-20); border-bottom: 1px dotted color-mix(in srgb, var(--leather) 40%, transparent); }
+#chron .quiet.err { color: var(--wax); }
 #chron .events li.quiet { display: block; border: none; }
 /* A day with no events: a box of its own, not one more row */
 #chron .events li.empty { margin: var(--spe-40) 0; padding: var(--spe-100) var(--spe-60); border: 1px dashed var(--paper-line); border-radius: var(--r-3); text-align: center; font-size: var(--fse-110); color: var(--pm); }
@@ -98,14 +99,14 @@
 #prefs legend, #prefs .sub { float: left; grid-column: 1 / -1; width: 100%; padding: 0 0 var(--spe-20); margin-bottom: var(--spe-10); border-bottom: 1px solid var(--paper-line); font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
 #prefs .sub { float: none; grid-column: 1 / -1; margin-top: var(--spe-50); }
 #prefs label { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.4em; padding: var(--spe-20) var(--spe-50); box-sizing: border-box; background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: var(--r-3); }
-#prefs label > span:first-child { flex: 1; min-width: 0; line-height: 1.05; }
+#prefs label > span:first-child { flex: 1; min-width: min-content; line-height: 1.05; } /* a word of the label never runs under its field: it wraps between words, the field keeps its place */
 #prefs .wide, #prefs .hint, #prefs .clear, #prefs .btns, #prefs .rv-on, #prefs .rv-urls { grid-column: 1 / -1; }
 #prefs .clear { justify-self: start; }
 #prefs .btns { display: flex; flex-wrap: wrap; gap: var(--spe-40); } #prefs .btns[hidden] { display: none; }
 #prefs .btns .clear, #prefs .rv-on .clear { margin-top: 0; }
 #prefs .unit { width: 3.2em; white-space: nowrap; color: var(--paper-ink-2); }
 #prefs input[type="number"], #prefs select, #prefs .pk-repo { width: 5.5em; box-sizing: border-box; padding: var(--spe-10) var(--spe-30); background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; text-align: right; }
-#prefs select { width: auto; min-width: 8.1em; max-width: 60%; text-align: left; text-overflow: ellipsis; } /* grows to its longest option, never truncated to a stub */
+#prefs select { flex: none; width: auto; min-width: 8.1em; max-width: none; text-align: left; } /* grows to its longest option: no max-width, no ellipsis, the label gives way (F14) */
 #prefs .pk-repo { width: 14em; min-width: 0; text-align: left; }
 #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--paper-accent); }
 #prefs .step { flex: none; width: 1.6em; height: 1.6em; padding: 0; background: none; color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; cursor: pointer; }
@@ -122,6 +123,17 @@
 #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: var(--spe-50) auto; padding: var(--sp-6); background: #fff; image-rendering: pixelated; }
 #prefs .rv-qr[hidden] { display: none; }
 #prefs .rv-err { color: var(--wax); }
+#prefs .save-err, #prefs .rv-state.bad, #prefs .ci-gh[data-state="error"] { color: var(--wax); }
+#prefs .ci-gh[data-state="warn"] { color: var(--paper-ink); text-decoration: underline dotted; }
+/* Settings > Status: a mark (not colour alone: its word follows), the integration, its message, how long ago */
+#prefs .st-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spe-30); }
+#prefs .st-row { display: grid; grid-template-columns: 1.2em minmax(5em, auto) minmax(4.5em, auto) minmax(0, 1fr) auto; gap: var(--spe-40); align-items: baseline; padding: var(--spe-30) var(--spe-50); background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: var(--r-3); }
+#prefs .st-row .st-mark { text-align: center; }
+#prefs .st-row .st-msg { overflow-wrap: anywhere; }
+#prefs .st-row .st-ago { color: var(--paper-ink-2); white-space: nowrap; }
+#prefs .st-row.st-error { border-color: var(--wax); }
+#prefs .st-row.st-error .st-mark, #prefs .st-row.st-error .st-state { color: var(--wax); }
+@media (max-width: 600px) { #prefs .st-row { grid-template-columns: 1.2em minmax(0, 1fr) auto; } #prefs .st-row .st-msg { grid-column: 2 / -1; } }
 #prefs .rv-fw:not([data-rule="allowed"]) { color: var(--wax); }
 #prefs .reset:hover { filter: brightness(1.2); }
 #prefs .rooms { display: grid; gap: var(--spe-40); }
