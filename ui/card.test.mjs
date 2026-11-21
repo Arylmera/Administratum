@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { answerable, answerCall, kinOf, lineageOf, stuckLine, watchLines, cacheLine, cardOnPick } from './card.js';
+import { answerable, answerCall, ANSWER_ORDER, kinOf, lineageOf, stuckLine, watchLines, cacheLine, cardOnPick } from './card.js';
 import { candleOf } from './scene.js';
 
 // Claude Code: a permission prompt in an Orca terminal.
@@ -48,6 +48,9 @@ assert.equal(lineageOf({ id: 'z' }, tok), null, 'a plain scribe');
   assert.ok(!cardOnPick(adept, claude, off), "off: an adept's card answers nothing");
   assert.ok(cardOnPick(scribe, idle, { on: false, remote: true }), 'remote: always');
 }
+// F7: Always is never next to Approve in the card's answer row (overlay.test.mjs checks the real DOM order).
+assert.deepEqual([...ANSWER_ORDER].sort(), ['always', 'no', 'yes'], 'every choice once');
+assert.ok(Math.abs(ANSWER_ORDER.indexOf('always') - ANSWER_ORDER.indexOf('yes')) > 1, 'Always is not adjacent to Approve');
 console.log('card ok');
 
 // A stuck session (monitor.rs): silent since its last write, or looping on one call.

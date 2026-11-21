@@ -18,10 +18,11 @@ import { sunTimes, sunPhase } from './sun.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { applyChrome, backdrop } from './chrome.js';
 import { glide, gliding, clearGlides } from './glide.js';
+import { hhmmLocale } from './format.js';
 import { initCard, fillOf, renderCard, answerable, probeActions, pick, closeCard, actionsOn, noActions } from './card.js';
 import { vigil, onVigil, secondsLeft, bellDue } from './vigil.js';
 import { initViewport, scale, size, pan, lag, viewW, viewH, drag, dragged, coarse, fit, stepPan, settleLag, setViewW, setDragged } from './viewport.js';
-import { initOverlay, renderPlaques, syncLabels, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, sleepTags, sleepText, watchTags, watchText } from './overlay.js';
+import { initOverlay, renderPlaques, syncLabels, syncScribeKeys, syncTags, syncHover, syncEdges, sealTags, sealText, stuckTags, stuckText, sheetTags, sheetText, sleepTags, sleepText, watchTags, watchText } from './overlay.js';
 import { rooms } from './rooms.js';
 import { initStripWin, switchStrip, stripHit, setThrough, growStrip, toggleStrip, showMenu, applyColumn, colScale, colHeight } from './stripwin.js';
 
@@ -170,8 +171,7 @@ function sunToday(now) {
   return sun;
 }
 const autoPhase = now => { const s = sunToday(now); return s ? sunPhase(now, s) : undefined; };
-const hhmm = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-const sunLine = s => (s.polar ? `Polar ${s.polar}` : `Sunrise ${hhmm(s.sunrise)} · Sunset ${hhmm(s.sunset)}`);
+const sunLine = s => (s.polar ? `Polar ${s.polar}` : `Sunrise ${hhmmLocale(s.sunrise)} · Sunset ${hhmmLocale(s.sunset)}`);
 
 // The light level (phase granularity is a minute at most): recomputed here, every minute and on a mode change, not per frame.
 let level = null;
@@ -282,6 +282,7 @@ const draw = guarded(now => {
   if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
   renderPlaques(view.blocks);
   syncLabels();
+  syncScribeKeys(); // after the labels: a petitioner's label has its own button
   syncTags(sealTags, 'sealed', sealText, 0, -18);
   syncTags(stuckTags, 'stuck', stuckText, 0, -18);
   syncTags(sheetTags, 'sheets', sheetText, 10, -2);
@@ -358,7 +359,7 @@ function consolesOf(dept) {
   return order;
 }
 
-initOverlay({ cast, canvas, overlay, at, feet, strip, hall: () => hall, layout: () => layout, roster: () => roster, mouse: () => mouse, actorAt, paused, hhmm }); // plaques, labels, tags, edges, tip (overlay.js)
+initOverlay({ cast, canvas, overlay, at, feet, strip, hall: () => hall, layout: () => layout, roster: () => roster, mouse: () => mouse, actorAt, paused, hhmm: hhmmLocale }); // plaques, labels, tags, edges, tip (overlay.js)
 
 listen('strip-cursor', ({ payload: p }) => {
   if (!strip()) return;

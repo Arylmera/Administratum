@@ -4,8 +4,9 @@ import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion, asleep } from './actors.js';
 import { invoke, listen, REMOTE } from './bridge.js';
-import { sel, ago, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed } from './card.js';
+import { sel, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed } from './card.js';
 import { riskOfPetition } from './petition.js';
+import { ago, statusOf } from './format.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
@@ -182,6 +183,7 @@ export function syncLabels() {
       el.dataset.key = key;
       el.classList.toggle('question', asks);
       el.classList.toggle('risky', !!risk); // red, with the reason under the name; its ✓ arms first (card.js answer)
+      el.classList.toggle('armed', armedNow); // the first click was made: the label says so until the window closes (petition.js ARM_MS)
       el.classList.toggle('sel', sel === a.id);
       el.classList.toggle('stale', isStale(a.s));
       const who = document.createElement('button');
@@ -190,7 +192,7 @@ export function syncLabels() {
       who.setAttribute('aria-label', t('petitionLabel', { name: a.s.name, want }));
       const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; who.appendChild(s); };
       line('', a.s.name);
-      line('sub', risk ? t('risky', { reason: risk }) : `${want} · ${ago(a.s.sinceMs)}`);
+      line('sub', armedNow ? t('petition.armed') : risk ? t('risky', { reason: risk }) : `${want} · ${ago(a.s.sinceMs)}`);
       el.replaceChildren(who);
       if (canAnswer(a.s)) {
         const ans = document.createElement('div');
@@ -199,6 +201,7 @@ export function syncLabels() {
           const b = document.createElement('button');
           // OpenCode's rule: a deny also refuses the session's other pending requests (as the card says)
           b.textContent = text; b.title = choice === 'no' && a.s.source === 'opencode' ? `${verb}: ${t('rejectAll')}` : choice === 'yes' && armedNow ? 'Approve? click again' : verb;
+          if (choice === 'yes') b.classList.toggle('armed', armedNow);
           b.setAttribute('aria-label', `${verb} ${a.s.name}`);
           b.onclick = () => answer(a.s, choice);
           ans.appendChild(b);
@@ -214,6 +217,33 @@ export function syncLabels() {
     setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
   syncTags(sameTags, 'same', sameText, 0, -18); // synced with the labels it yields to (app.js calls syncLabels every frame)
+}
+
+// Scribes are drawn on the canvas, so each live scribe gets a focusable button over it (transparent, the shared focus ring
+// shows on it): Tab reaches it, Enter or Space is a click, which opens its card like a click on the sprite. A petitioner with
+// a label has the label's own button, so it gets none. Tab order: department, then name (re-ordered only when a scribe arrives
+// or leaves, so a focused button is not moved under the user).
+const scribeKeys = new Map();
+let keyBox;
+export function syncScribeKeys() {
+  const live = [...cast.actors.values()].filter(a => !a.h && !a.leaving && !a.watch && a.s && !labels.has(a.id))
+    .sort((p, q) => `${p.s.dept ?? ''}\0${p.s.name}`.localeCompare(`${q.s.dept ?? ''}\0${q.s.name}`) || (p.id < q.id ? -1 : 1));
+  const ids = new Set(live.map(a => a.id));
+  for (const [id, el] of scribeKeys) if (!ids.has(id)) { el.remove(); scribeKeys.delete(id); }
+  for (const a of live) {
+    let el = scribeKeys.get(a.id);
+    if (!el) {
+      el = document.createElement('button'); el.type = 'button'; el.className = 'scribe-key';
+      el.onclick = () => pick(a.id);
+      scribeKeys.set(a.id, el);
+    }
+    const label = `${a.s.name}, ${statusOf(a.s)}`;
+    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
+    const [kx, ky] = at(...feet(a), 14);
+    setStyle(el, { left: `${kx * scale}px`, top: `${ky * scale}px` });
+  }
+  const order = live.map(a => a.id).join('|');
+  if (keyBox.dataset.order !== order) { keyBox.dataset.order = order; keyBox.replaceChildren(...live.map(a => scribeKeys.get(a.id))); }
 }
 
 const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
@@ -297,6 +327,7 @@ export function syncHover() {
 
 export function initOverlay(o) {
   ({ cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, paused, hhmm } = o);
+  scribeKeys.clear(); keyBox = document.createElement('div'); keyBox.className = 'scribe-keys'; overlay.appendChild(keyBox);
   pollUsage(); setInterval(() => paused() || pollUsage(), 60_000);
   refreshHonours();
   listen('chronicle', ({ payload: e }) => { if (HONOUR_KINDS.has(e.kind)) refreshHonours(); });

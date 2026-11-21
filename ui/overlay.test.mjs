@@ -5,7 +5,7 @@ import { install, flush, tick, emit, invoked, replies } from './testdom.mjs';
 install();
 globalThis.matchMedia ??= () => ({ matches: false, addEventListener() {} });
 const { initViewport } = await import('./viewport.js');
-const { initOverlay, syncLabels, sealText, stuckText, sameText, honoursLines } = await import('./overlay.js');
+const { initOverlay, syncLabels, syncScribeKeys, sealText, stuckText, sameText, honoursLines } = await import('./overlay.js');
 
 const actors = new Map(), canvas = document.createElement('canvas'), overlay = document.createElement('div');
 initViewport({ canvas, overlay, scene: () => ({ w: 1, h: 1 }), iso: () => false, strip: () => false, at: () => [0, 0], relayout: () => {}, setMouse: () => {} });
@@ -82,8 +82,59 @@ assert.equal(sealText(waiting), '', 'and so does the sealed tag');
     assert.equal(document.getElementById('card').hidden, false, 'the card is up');
     assert.equal(document.getElementById('card').querySelector('.answer').hidden, false, 'its answer row too');
     assert.equal(always().hidden, hidden, `Always ${hidden ? 'hidden on a risky' : 'shown on a safe'} petition`);
+    // F7: Deny sits between Approve and Always, so a slip off Approve cannot hit Always
+    assert.deepEqual([...document.getElementById('card').querySelector('.answer').children].map(b => b.dataset.choice), ['yes', 'no', 'always'], 'Always is not next to Approve');
     pick(s.id); actors.delete(s.id); // deselect
   }
+}
+
+// F6: a risky petition's first Approve click arms it, and the hall label says so (class and text) until the 5 s window closes.
+{
+  const { initCard, answer } = await import('./card.js');
+  const { T } = await import('./theme.js');
+  T.text.petition = { armed: 'armed: click again' }; // theme.js TEXT holds the real key (L3b); the label reads it with t('petition.armed')
+  const rk = { id: 'arm', name: 'arm', dept: 'D', status: 'waiting', source: 'claude', orca: 'term_arm', waitingFor: 'approve Bash', sinceMs: 77, asks: 'Bash: ls', risk: 'git reset --hard' };
+  initCard({ cast: { actors }, roster: () => [rk] });
+  actors.clear(); actors.set(rk.id, { id: rk.id, s: rk, pose: 'queue' });
+  syncLabels();
+  const label = () => overlay.children.find(e => e.classList.contains('lbl') && e.classList.contains('risky'));
+  const approve = () => label().querySelector('.ans').children[0], sub = () => label().querySelector('.sub').textContent;
+  assert.ok(!label().classList.contains('armed') && /risky/.test(sub()), 'before the first click: not armed, the reason shows');
+  approve().click(); syncLabels();
+  assert.ok(label().classList.contains('armed'), 'after the first click: the label carries the armed class');
+  assert.equal(sub(), 'armed: click again', 'and the armed text');
+  assert.ok(approve().classList.contains('armed'), 'and its Approve button');
+  tick(4900); syncLabels();
+  assert.ok(label().classList.contains('armed'), 'still armed inside the window');
+  tick(200); syncLabels();
+  assert.ok(!label().classList.contains('armed') && /risky/.test(sub()), 'after the 5 s window it clears');
+  assert.ok(!approve().classList.contains('armed'));
+  // F7: the label's Approve and Deny are the only buttons in its answer row (Always is never offered there)
+  assert.deepEqual([...label().querySelector('.ans').children].map(b => b.getAttribute('aria-label')), ['Approve arm', 'Deny arm']);
+  void answer; actors.clear(); syncLabels();
+}
+
+// F15: each live scribe has a focusable button over it, in department then name order; a click on it (Enter or Space on a
+// native button) opens its card; a scribe with a petition label has the label's own button and none of these.
+{
+  const { initCard } = await import('./card.js');
+  const mk = (name, dept, extra = {}, a = {}) => ({ id: name, s: { id: name, name, dept, status: 'busy', sinceMs: 1, ...extra }, leaving: false, ...a });
+  const list = [mk('zed', 'B'), mk('amy', 'B'), mk('cal', 'A'), mk('pet', 'A', { status: 'waiting', waitingFor: 'approve Bash' }, { pose: 'queue' }), { ...mk('gone', 'A'), leaving: true }, { ...mk('helper', 'A'), h: { kind: 'Explore' } }];
+  actors.clear(); for (const a of list) actors.set(a.id, a);
+  initCard({ cast: { actors }, roster: () => list.map(a => a.s) });
+  syncLabels(); syncScribeKeys();
+  const keys = overlay.querySelectorAll('.scribe-key');
+  assert.deepEqual(keys.map(k => k.getAttribute('aria-label')), ['cal, Writing', 'amy, Writing', 'zed, Writing'], 'one per live scribe, department then name; name and status; none for the petitioner, the leaver, the adept');
+  assert.ok(keys.every(k => k.localName === 'button' && k.getAttribute('tabindex') !== '-1' && !k.hidden), 'real buttons: in the tab order');
+  keys[1].focus(); keys[1].click(); // a native button turns Enter and Space into this click
+  const card = document.getElementById('card');
+  assert.equal(card.hidden, false, 'its card opens');
+  assert.match(card.querySelector('.name').textContent, /^amy/, "the scribe's own card");
+  actors.get('amy').s.status = 'idle'; syncScribeKeys();
+  assert.equal(overlay.querySelectorAll('.scribe-key')[1].getAttribute('aria-label'), 'amy, Turn done, awaiting orders', 'the label follows its status');
+  actors.delete('cal'); syncScribeKeys();
+  assert.equal(overlay.querySelectorAll('.scribe-key').length, 2, 'a scribe that leaves loses its button');
+  keys[1].click(); actors.clear(); syncLabels(); syncScribeKeys();
 }
 
 // A click whose terminal does not open: with the card on a click (the default), the card is up and says nothing more

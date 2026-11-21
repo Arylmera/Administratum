@@ -72,11 +72,16 @@ html.vstrip.right #strip-menu { left: auto; right: calc(2 * var(--px)); }
 .lbl.question .sub { color: var(--paper-ink-2); }
 .lbl.question.sel { border-color: var(--yes); background: var(--paper-hi); }
 .lbl .who { display: flex; flex-direction: column; align-items: center; padding: 0; background: none; border: none; color: inherit; font: inherit; line-height: inherit; cursor: pointer; }
-.lbl .ans { display: flex; flex-direction: column; gap: var(--sp-1); }
-.lbl .ans button { padding: 0 var(--sp-2); background: var(--label-btn); border: 1px solid currentColor; border-radius: var(--r-2); color: var(--green); font: inherit; font-size: var(--fse-90); line-height: 1; cursor: pointer; }
+.lbl .ans { display: flex; gap: var(--sp-4); }
+/* at least 24 px square at scale 1 (real size, not a pseudo-element: two stacked small targets could not each reach 24), so the label is a row */
+.lbl .ans button { min-width: var(--sp-24); min-height: var(--sp-24); padding: 0 var(--sp-2); background: var(--label-btn); border: 1px solid currentColor; border-radius: var(--r-2); color: var(--green); font: inherit; font-size: var(--fse-90); line-height: 1; cursor: pointer; }
 .lbl .ans button + button { color: var(--pink); }
 .lbl .ans button:hover { background: var(--blood); color: var(--green-on-blood); } .lbl .ans button + button:hover { color: var(--pink-on-blood); }
+.lbl.armed { border-color: var(--flame); box-shadow: 0 0 0 1px var(--flame); animation: alarm 1s steps(1) infinite; } /* a risky Approve armed: its first click was made */
+.lbl.armed .ans button.armed { background: var(--wax); color: var(--flame-on-wax); border-color: var(--flame); }
 .lbl.tag { pointer-events: none; cursor: default; }
+.scribe-keys { display: contents; }
+.scribe-key { position: absolute; width: var(--sp-24); height: var(--sp-24); transform: translate(-50%, -50%); padding: 0; border: 0; background: none; color: transparent; pointer-events: none; } /* focus only: the ring is the shared :focus-visible one */
 .lbl.sealed { border-width: 3px; border-style: double; }
 .lbl.stuck { border-style: dashed; border-color: var(--flame); }
 .lbl.same { border-style: dotted; border-color: var(--flame); }
@@ -148,5 +153,5 @@ header > svg, header > [data-tauri-drag-region] { pointer-events: none; }
 @keyframes alarm { 50% { background: var(--wax-deep); color: var(--flame-on-wax); box-shadow: 0 0 14px 3px color-mix(in srgb, var(--alarm) 90%, transparent); } }
 @keyframes pulse { 50% { opacity: 1; } }
 html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; } /* hidden or covered: app.js */
-@media (prefers-reduced-motion: reduce) { .count.on::after, .lbl::after, .count.alarm, .edge.alarm { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .count.on::after, .lbl::after, .count.alarm, .edge.alarm, .lbl.armed { animation: none; } }
 @media (max-width: 760px) { .tier { display: none; } }
