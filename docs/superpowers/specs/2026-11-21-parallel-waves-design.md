@@ -54,7 +54,7 @@ user checks it in the named view. Every other check is a test that must be red b
 | F17 | Mobile: no empty state, the risky Approve unstyled, 40 px targets | `mobile.test.mjs`: no petition shows the empty state; a risky petition gets the risky class. Target size: *manual*, `/?` phone page at 375 px | L3b |
 | F18 | `adm.mjs` forces the LAN listener; `peek_petition` is open without the actions gate (`remote/mod.rs:212`); no update progress; no test-notification button; the vigil shutdown exit is not checked (`vigil/app.rs:87-96`, `spawn()` only) | `cargo test`: shutdown waits for the exit status and records a failure; the route test for `peek_petition` matches the gate the user picks (Q5); `node tools/adm.mjs` on loopback (Q6). Update progress and the test-notification button: backend event and command tested in `cargo test`, the UI in L4a | L1a, L4a |
 | F19 | (Optional, small) After a Deny on an OpenCode petition the idle line said "idle since 22:43:05", earlier than the petition (22:43:12). Likely the idle time comes from the last row before the permission, in `opencode/mod.rs` | `cargo test` in `opencode/mod.rs`: a session with a permission answered at T shows idle since >= T | L1a |
-| I6 | CI verdict after a push (I6 spec, all sections) | The I6 spec's "Tests" section, unchanged, split by lane: L1c the pure parts, L2b the watcher thread, the off switch and the opener check, L3c and L4 the UI | L1c, L2b, L3c, L4a, L4b |
+| I6 | CI verdict after a push (I6 spec, all sections) | The I6 spec's "Tests" section, unchanged, split by lane: L1c the pure parts, L2b the watcher thread, the off switch and the opener check, L4a and L4b the UI | L1c, L2b, L4a, L4b |
 | I2 | Orders to a scribe: from an idle session's card, send a follow-up prompt to its terminal | Not designed. Checks come with its own spec (section "I2 sketch") | W5 |
 
 ## 2. Rules for the lanes
@@ -62,7 +62,7 @@ user checks it in the named view. Every other check is a test that must be red b
 1. **One writer per file per wave.** The matrix names it. A lane that needs a change in a file it does not own
    stops and asks the integrator; it never edits it.
 2. **Shared files and their integrator.** The integrator is the parent session that starts the lanes and merges
-   them ("Administratum interfaces et intégrations", the session that started this one). It alone merges a lane
+   them: the session that started this one (`local_3c8aa5b4`), unless the user names another (Q9). It alone merges a lane
    into the joint branch (rule R1: a lane never pushes and never merges outside its worktree).
    - `src-tauri/src/main.rs`: one owner lane per wave (the matrix). Another lane may add only **append lines**: a
      `mod x;` line and its own entries at the end of `generate_handler!`. Nothing else. The integrator resolves the
@@ -79,8 +79,10 @@ user checks it in the named view. Every other check is a test that must be red b
 3. **The CSS split.** W2 moves the styles out of `index.html` and `mobile.html` into files by owner, so the later
    lanes do not collide in one stylesheet: `ui/css/base.css` (tokens, type, focus, buttons, `.panel`),
    `ui/css/hall.css` (header, plaques, labels, card), `ui/css/panels.css` (Chronicon, Settings),
-   `ui/css/mobile.css`. Plain `<link>` tags; no build step. The remote view serves `ui/` as it is, so the files
-   are served too (L2a checks the remote server's static route).
+   `ui/css/mobile.css`. Plain `<link>` tags; no build step. `tauri.conf.json` sets `csp: null`, and the remote view
+   serves the embedded `ui/` files by path with their mime (`remote/mod.rs` `asset`, subfolders such as `ui/art/`
+   already work), so no backend change is expected. L2a proves it with one request for `/css/base.css` through the
+   remote view; if a backend change turns out to be needed, L2a stops and asks (`remote/mod.rs` is L2b's in W2).
 4. **New dependencies.** None are planned. The rotating log (F2) and the timeout (F4) are written with `std`.
    A lane that finds it needs a crate stops and asks.
 5. **Proof after each merge into the joint branch**, from the repo root:
@@ -98,8 +100,8 @@ user checks it in the named view. Every other check is a test that must be red b
 ## 3. File-ownership matrix
 
 Lane names: **L1a** reliability backend, **L1b** startup, **L1c** I6 core, **L2a** CSS foundation, **L2b** I6
-wiring, **L3a** petitions, **L3b** panels, **L3c** I6 hall and wording, **L4a** Settings and Status,
-**L4b** card, **L5** I2. `+` means append lines only (rule 2). `—` means no writer in that wave.
+wiring, **L3a** petitions, **L3b** panels, **L4a** Settings and Status (and every I6 word),
+**L4b** card and plaques (and the I6 card line and lamp), **L5** I2. `+` means append lines only (rule 2). `—` means no writer in that wave.
 
 ### Backend (`src-tauri/`)
 
@@ -134,15 +136,15 @@ wiring, **L3a** petitions, **L3b** panels, **L3c** I6 hall and wording, **L4a** 
 | `dom.js`, `format.js` (new) | — | L2a | — | — | — |
 | `sprites.js`, `faces.js`, `themes.js` | L1b | — | — | — | — |
 | `app.js` | L1b | — | L3a | — | — |
-| `overlay.js`, `petition.js` | — | — | L3a | — | — |
+| `overlay.js` | — | — | L3a | L4b | — |
+| `petition.js` | — | — | L3a | — | — |
 | `card.js` | — | — | L3a | L4b | L5 |
 | `settings.js` | — | — | L3b | L4a | — |
 | `chronicon.js`, `panel.js` | — | — | L3b | L4a | — |
 | `mobile.js` | — | — | L3b | — | L5 |
-| `scene.js`, `scene39.js`, `strip.js`, `stripwin.js` | — | — | L3c | — | — |
-| `chrome.js` | — | — | L3c | — | — |
-| `theme.js` | — | L2a | L3c | L4a | L5 |
-| `art/<theme>/theme.json` (13), `themepack.js` | — | L2a | L3c | L4a | L5 |
+| `chrome.js` | — | — | — | L4a | — |
+| `theme.js` | — | L2a | L3b | L4a | L5 |
+| `art/<theme>/theme.json` (13), `themepack.js` | — | L2a | L3b | L4a | L5 |
 
 ### Tests, tools, docs
 
@@ -150,17 +152,17 @@ wiring, **L3a** petitions, **L3b** panels, **L3c** I6 hall and wording, **L4a** 
 |---|---|---|---|---|---|
 | `sprites.test.mjs`, `faces.test.mjs`, `themes.test.mjs` | L1b | — | — | — | — |
 | `css.test.mjs`, `format.test.mjs`, `dom.test.mjs` (new) | — | L2a | — | — | — |
-| `theme.test.mjs`, `themepack.test.mjs` | — | L2a | L3c | L4a | — |
-| `overlay.test.mjs`, `petition.test.mjs` | — | — | L3a | — | — |
+| `theme.test.mjs`, `themepack.test.mjs` | — | L2a | L3b | L4a | — |
+| `overlay.test.mjs` | — | — | L3a | L4b | — |
+| `petition.test.mjs` | — | — | L3a | — | — |
 | `card.test.mjs` | — | — | L3a | L4b | L5 |
 | `settings.test.mjs`, `chronicon.test.mjs`, `panel.test.mjs` (new) | — | — | L3b | L4a | — |
 | `mobile.test.mjs` | — | — | L3b | — | L5 |
-| `scene39.test.mjs`, `strip.test.mjs` | — | — | L3c | — | — |
 | `tools/adm.mjs` | L1a | — | — | — | — |
 | `tools/sprite_sheet.mjs`, `sprite_catalog.mjs`, `theme_pack.mjs`, `honours_art.mjs`, `map_to_art.mjs`, `rank_art.mjs` | L1b | — | — | — | — |
 | `README.md`, `docs/DEVELOPMENT.md` | sections, integrator | sections, integrator | sections, integrator | sections, integrator | sections, integrator |
 | `docs/remote-api.md` | L1a | L2b | — | — | L5 |
-| `docs/theme-packs.md` | — | L2a | L3c | L4a | — |
+| `docs/theme-packs.md` | — | L2a | L3b | L4a | — |
 | `docs/superpowers/specs/2026-10-17-monitoring-design.md` (anti-goal) | — | — | — | — | L5 |
 
 ## 4. Waves
@@ -170,8 +172,8 @@ W1  L1a reliability backend ─┐
     L1b startup              ├─▶ W2  L2a CSS foundation ─┐
     L1c I6 core (if Q2) ─────┘       L2b I6 wiring ──────┤
                                                          ├─▶ W3  L3a petitions ─┐
-                                                         │       L3b panels     ├─▶ W4  L4a Settings + Status ─┐
-                                                         │       L3c I6 hall ───┘       L4b card ──────────────┴─▶ W5 L5 I2 (if Q3)
+                                                         └─▶     L3b panels ────┴─▶ W4  L4a Settings + Status ─┐
+                                                                                        L4b card + plaques ────┴─▶ W5 L5 I2 (if Q3)
 ```
 
 ### W1: backend and startup (three lanes)
@@ -206,7 +208,7 @@ Depends on W1 merged.
   concerned; the preview at `tools/preview.html` in three themes (`tier2`, `vault`, `contrast`) and the phone
   page look the same as before, except the focus ring.
 - **L2b I6 wiring.** Only with Q2. The watcher thread in `ci.rs`; its start, its channel and the `Session.ci`
-  merge in `main.rs`; the CI toasts in `toast.rs` with built-in English wording until L3c pushes the theme's
+  merge in `main.rs`; the CI toasts in `toast.rs` with built-in English wording until L4a pushes the theme's
   (the same path as the other toasts, `set_toast_text`); the checks-URL check, then `orca::open_url`; the `gh`
   state as one `integration_status` entry (Q7); the remote payload in `remote/mod.rs` if it needs more than
   the roster already carries; `docs/remote-api.md`; README Privacy and its file table (the `gh` process and its
@@ -214,7 +216,7 @@ Depends on W1 merged.
 
 Merge order: L2a, then L2b. Proof after each.
 
-### W3: petitions, panels, I6 in the hall (three lanes)
+### W3: petitions and panels (two lanes)
 
 Depends on W2 merged (tokens, CSS files, `dom.js`, `format.js`).
 
@@ -222,25 +224,26 @@ Depends on W2 merged (tokens, CSS files, `dom.js`, `format.js`).
   Owns `overlay.js`, `petition.js`, `card.js` (petition part), `app.js`, `css/hall.css`.
 - **L3b panels.** F8, F14, F15 (focus trap, `aria-modal`, arrow keys on tabs), F16, F17, F12 for `settings.js`,
   `chronicon.js`, `mobile.js`. Owns `index.html` (the Settings regroup, dialog attributes) and `mobile.html`,
-  `css/panels.css`, `css/mobile.css`. Uses the `--chart-*` tokens from L2a, adds none to `theme.js`.
-- **L3c I6 hall and wording.** Only with Q2. The plaque lamp in `scene.js`, `scene39.js`, the strip and the
-  column (`strip.js` / `stripwin.js`), drawn in code in theme colours; every I6 text key in `theme.js` `TEXT`
-  (toasts, card line, Settings switches and `gh` line, Chronicon `ci-pass` / `ci-fail`) and the themes'
-  rewording; `chrome.js` pushes the CI toast wording. Without Q2, L3c does not exist.
+  `css/panels.css`, `css/mobile.css`, and `theme.js` / the `theme.json` files in W3: the text keys F14, F16 and F17
+  need (Settings labels are `data-t` keys filled by `chrome.js`), and the keys L3a hands it for F6 (the armed text)
+  and F8 is L3b's (the reset label). Uses the `--chart-*` tokens from L2a.
+Merge order: L3a, then L3b. Proof after each. *Manual* after W3: the preview with `orca=1` (petitions),
+Settings at 800 px, the phone page at 375 px.
 
-Merge order: L3a, then L3b, then L3c. Proof after each. *Manual* after W3: the preview with `orca=1` (petitions),
-Settings at 800 px, the phone page at 375 px, the plaque lamp in the sprite viewer's hall views.
-
-### W4: Settings and Status, card (two lanes)
+### W4: Settings and Status, card and plaques (two lanes)
 
 Depends on W1 (the `integration_status` command) and W3 merged.
 
 - **L4a Settings and Status.** F3 UI (the Status tab), F5 for `settings.js` and `chronicon.js`, F18 UI (the
   update progress, the test-notification button), I6's two switches and `gh` line (I6 spec §1). Owns
-  `index.html`, `settings.js`, `chronicon.js`, `panel.js`, `css/panels.css`, `theme.js` (the Status tab's
-  words). README Settings section.
-- **L4b card.** F5 for the card (an open failure shown on the card), I6's card line (I6 spec §5). Owns `card.js`,
-  `css/hall.css`. Its words come from L3c's keys; it adds none.
+  `index.html`, `settings.js`, `chronicon.js`, `panel.js`, `css/panels.css`, `theme.js` and the `theme.json`
+  files (the Status tab's words and, with Q2, every I6 key: toasts, card line, lamp title, switches, `gh` line,
+  Chronicon `ci-pass` / `ci-fail`, with the themes' rewording), `chrome.js` (it pushes the CI toast wording).
+  README Settings section.
+- **L4b card and plaques.** F5 for the card (an open failure shown on the card); with Q2, I6's card line and the
+  plaque lamp (I6 spec §5). Plaques are DOM drawn by `overlay.js` in every view, the strip and the column
+  included, so the lamp is a styled element there, not canvas art. Owns `card.js`, `overlay.js`, `css/hall.css`.
+  Its words are L4a's keys: L4b codes against the key names agreed in the plan and merges after L4a.
 
 Merge order: L4a, then L4b. Proof after each.
 
@@ -253,7 +256,7 @@ approved is empty.
 ## 5. Decisions taken in this spec
 
 - **D1 The GitHub checks opener.** The feature session proposed a second opener in `ci.rs` to avoid touching
-  `orca.rs`. Not taken: two copies of the `cmd /c start` path would drift (one writer per value). L1a makes
+  `orca.rs`. Not taken (the feature session handed I6 over and stopped; it has not confirmed this): two copies of the `cmd /c start` path would drift (one writer per value). L1a makes
   `orca.rs` `open_url` `pub(crate)`; `ci.rs` builds the URL from the watch, checks it against the I6 spec's
   pattern, and calls it. No UI input reaches it. Cheap to reverse.
 - **D2 I6 is split by file, not by feature.** Its core runs in W1 next to the UX backend, its wiring in W2, its
@@ -265,6 +268,8 @@ approved is empty.
   lanes build elements from JS.
 - **D5 The log is masked.** Every `integration_status` message and log line goes through `mask::mask`. This is a
   requirement of F2, not an option.
+- **D6 The plaque lamp is DOM.** Plaques are drawn by `overlay.js`, so I6's lamp goes with the lane that owns
+  `overlay.js` in W4 (L4b), not into the canvas scenes. No `scene.js` / `scene39.js` / strip change.
 
 ## 6. I2 sketch (not a design)
 
@@ -289,13 +294,13 @@ Its own spec must answer Q8 before it is written.
 - **R2 `art_gate` and F1.** The tools import `sprites.js` / `faces.js` and expect every world loaded. If L1b's
   load-all misses one, the gate goes red (good) or a gallery silently loses a theme. L1b runs the gate and
   diffs `docs/sprites/` before it hands back.
-- **R3 Theme packs.** New tokens (L2a) and text keys (L3c, L4a) must not break a pack that lacks them:
+- **R3 Theme packs.** New tokens (L2a) and text keys (L3b, L4a) must not break a pack that lacks them:
   `themepack.js` fills them from `BASE` / `TEXT`, and `node tools/theme_pack.mjs check` stays green on the
   template pack.
 - **R4 The append rule on `main.rs` hides a real conflict.** Two lanes that both append to `generate_handler!`
   conflict textually at the same line. The integrator keeps both entries; if a lane changed anything else in
   `main.rs`, the merge is refused and returned to that lane.
-- **R5 The I6 spec is not on this branch.** Lanes L1c, L2b, L3c and parts of L4 build from a file only in the main
+- **R5 The I6 spec is not on this branch.** Lanes L1c, L2b and parts of L4 build from a file only in the main
   checkout until Q1 is answered.
 - **R6 Long lanes block a wave.** L2a and L3b are the largest. A wave waits for its slowest lane; a lane that
   stalls can be cut at a merge point (for L2a: the move, then the tokens).
@@ -304,7 +309,7 @@ Its own spec must answer Q8 before it is written.
 
 - **Q1** The I6 spec sits uncommitted in the main checkout. Who commits it, and on which branch: with this spec
   (→ recommended), or in its own PR first?
-- **Q2** Approve I6 as specified? Without it, L1c, L2b and L3c drop out and L4a / L4b lose their I6 parts; the
+- **Q2** Approve I6 as specified? Without it, L1c and L2b drop out and L4a / L4b lose their I6 parts; the
   waves stay valid.
 - **Q3** Go on with I2? If yes, write its spec after W4 (→ recommended), not now.
 - **Q4** Keep all four UX workstreams, or drop some F-items? F19 is optional.
