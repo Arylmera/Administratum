@@ -38,13 +38,16 @@ enum Fail {
     Ran(String),
 }
 
-/// The bytes of one pipe, sent when it closes.
+/// The most one pipe is read for: Orca's answers are small, and a runaway one must not fill memory.
+const MAX_OUTPUT: u64 = 1 << 20;
+
+/// The bytes of one pipe (up to `MAX_OUTPUT`), sent when it closes.
 fn drain<R: Read + Send + 'static>(pipe: Option<R>) -> Receiver<Vec<u8>> {
     let (tx, rx) = channel();
     thread::spawn(move || {
         let mut buf = vec![];
-        if let Some(mut p) = pipe {
-            let _ = p.read_to_end(&mut buf);
+        if let Some(p) = pipe {
+            let _ = p.take(MAX_OUTPUT).read_to_end(&mut buf);
         }
         let _ = tx.send(buf);
     });

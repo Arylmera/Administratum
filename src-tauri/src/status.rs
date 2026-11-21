@@ -82,11 +82,13 @@ pub struct Log {
     path: PathBuf,
     cap: u64,
     keep: usize,
+    /// Held across the size check, the rotation and the append: two threads at the cap must not both rotate.
+    lock: Mutex<()>,
 }
 
 impl Log {
     pub fn new(path: PathBuf, cap: u64, keep: usize) -> Self {
-        Log { path, cap, keep: keep.max(1) }
+        Log { path, cap, keep: keep.max(1), lock: Mutex::new(()) }
     }
 
     fn numbered(&self, n: usize) -> PathBuf {
@@ -112,6 +114,7 @@ impl Log {
     /// Append `line` (a newline is added). The line is masked here too, so no caller can skip it.
     pub fn write(&self, line: &str) -> std::io::Result<()> {
         let text = format!("{}\n", clean(line));
+        let _held = crate::lock(&self.lock);
         let size = fs::metadata(&self.path).map(|m| m.len()).unwrap_or(0);
         if size > 0 && size + text.len() as u64 > self.cap {
             self.rotate()?;
@@ -253,6 +256,28 @@ mod tests {
         report_change("status-test-c", State::Ok, "answers");
         assert_eq!(entry("status-test-c").unwrap().state, State::Ok);
         assert!(entry("status-test-never").is_none());
+    }
+
+    /// Threads writing at the cap lose no line (files kept are plenty, so only a race could lose one). A race is not
+    /// deterministic, so this can pass on a broken lock by luck; it fails often without it.
+    #[test]
+    fn threads_at_the_cap_lose_no_line() {
+        let d = dir("threads");
+        let log = std::sync::Arc::new(Log::new(d.join(LOG_NAME), 200, 100));
+        let handles: Vec<_> = (0..8)
+            .map(|t| {
+                let log = log.clone();
+                std::thread::spawn(move || {
+                    for i in 0..25 {
+                        log.write(&format!("t{t} line {i:02} {}", "z".repeat(20))).unwrap();
+                    }
+                })
+            })
+            .collect();
+        handles.into_iter().for_each(|h| h.join().unwrap());
+        let lines: usize = fs::read_dir(&d).unwrap().map(|e| fs::read_to_string(e.unwrap().path()).unwrap().lines().count()).sum();
+        assert_eq!(lines, 200);
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]
