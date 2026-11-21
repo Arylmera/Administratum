@@ -291,8 +291,9 @@ async fn update_pack(root: PathBuf, dir: String) -> Result<packs::Updated, Strin
     tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::update(&root, &dir, &archive, &now_utc()))).await.map_err(|e| e.to_string())?
 }
 
-/// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository is downloaded again,
-/// one after the other (`PACK_CHECK` each), and compared with what is installed (`packs::changed`); nothing is
+/// At start, unless the setting `adm.packCheck` is "0": each pack installed from a repository and not installed nor
+/// found unchanged in the last `packs::CHECK_EVERY` (`packs::due`) is downloaded again, one after the other
+/// (`PACK_CHECK` each), and compared with what is installed (`packs::changed`); nothing is
 /// installed. Any error (offline, GitHub refusing, a broken archive) only skips that pack, in the log. When some
 /// changed, a toast asks: "Update" installs those packs from the archives just compared (`update_changed`: what the
 /// toast announced, not a later push, and no second download); "Later" or a click on the toast does nothing, and the
@@ -303,6 +304,11 @@ async fn check_packs(app: AppHandle) {
     let mut found: Vec<packs::Checked> = Vec::new();
     for pack in packs::list(&root) {
         let Some(repo) = pack.repo else { continue };
+        // installed or found unchanged under packs::CHECK_EVERY ago: not downloaded again (a restart, the restart after
+        // an update)
+        if !packs::due(&root, &pack.dir, chrono::Utc::now()) {
+            continue;
+        }
         let archive = match download_pack(&repo, PACK_CHECK).await {
             Ok(a) => a,
             Err(e) => {
@@ -311,7 +317,17 @@ async fn check_packs(app: AppHandle) {
             }
         };
         let (r, d) = (root.clone(), pack.dir.clone());
-        match tauri::async_runtime::spawn_blocking(move || on_pack_disk(|| packs::changed(&r, &d, &archive).map(|c| (c, archive)))).await {
+        // found unchanged: marked checked (packs::mark_checked); a changed pack is not, so the next start asks again
+        let compare = move || {
+            let c = packs::changed(&r, &d, &archive)?;
+            if !c {
+                if let Err(e) = packs::mark_checked(&r, &d, &now_utc()) {
+                    eprintln!("pack check: {d}: {e}");
+                }
+            }
+            Ok::<_, String>((c, archive))
+        };
+        match tauri::async_runtime::spawn_blocking(move || on_pack_disk(compare)).await {
             Ok(Ok((true, archive))) => found.push(packs::Checked { dir: pack.dir, repo, archive }),
             Ok(Ok((false, _))) => {}
             Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),

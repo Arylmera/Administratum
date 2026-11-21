@@ -325,7 +325,9 @@ When you publish a change, others get it in one of three ways, all from GitHub, 
 - *Update all* under the list, for every pack installed from GitHub, one after the other. A pack that fails is
   reported; the others carry on. If one changed and none failed, the app restarts at once.
 - The startup check, on by default (*Check added themes for updates at startup*). A few seconds after start, the app
-  downloads each pack from GitHub and compares it with the installed one; it installs nothing. If at least one
+  downloads each pack from GitHub and compares it with the installed one; it installs nothing. A pack installed or
+  found unchanged in the last 6 hours is not downloaded again (its `pack-source.json` keeps the time, `checked`); a
+  changed one is asked about at every start until it is updated. If at least one
   changed, a toast names them: *Update* installs those packs as the check downloaded them (no second download, so
   a push made after the check is not taken) and restarts, *Later* (or ignoring the toast) leaves
   everything as it is. A pack it cannot reach is skipped without a word.

@@ -262,7 +262,9 @@ Added in pull request #31, after part B. Still no update without asking:
 
 - A setting, *Check added themes for updates at startup*, on by default (`adm.packCheck`). When on, a few seconds
   after start the app downloads each pack that has a repository, one after the other (20 s each), and compares it
-  with the installed one. It installs nothing; errors and timeouts are silent.
+  with the installed one. It installs nothing; errors and timeouts are silent. A pack installed or found unchanged
+  under 6 h ago is skipped (`packs::due`; `checked` in its `pack-source.json`, written by `packs::mark_checked`); a
+  changed one is never marked, so the toast comes back at the next start.
 - If at least one changed, a toast "Theme updates available" names them, with *Update* and *Later*. *Update* installs
   the changed packs from the archives the check compared (kept with the toast, never downloaded again: what the
   toast announced, not a later push) and restarts. *Later*, a tap on the toast, or a toast without buttons: nothing.
