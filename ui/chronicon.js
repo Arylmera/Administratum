@@ -1,20 +1,21 @@
 // Chronicon: the day's event log and the Tithe (tokens + working time), unrolled over the scene.
 // Backend contract (docs/superpowers/specs/2026-10-05-chronicon-design.md): chronicle_day, tithe_day,
 // chronicle_days commands and the live `chronicle` event.
-import { panel } from './panel.js';
+import { panel, tablist } from './panel.js';
 import { invoke, listen } from './bridge.js';
 import { T, t as say } from './theme.js';
 import { pad2 } from './quiet.js';
+import { el as h } from './dom.js';
+import { hhmm } from './format.js';
 
 export const fmtTok = n => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 999_500 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${+(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k` : String(Math.round(n)));
 export const fmtDur = ms => { const m = Math.floor((ms || 0) / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${pad2(m % 60)}`; };
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-const hhmm = ts => new Date(ts).toTimeString().slice(0, 5);
 const total = t => (t ? Object.values(t.tokens ?? {}).reduce((a, b) => a + (b || 0), 0) : 0);
 const projTok = v => (typeof v === 'number' ? v : v?.tokens ?? 0);
 
-// 8x8 pixel icons, one per event kind (letters index PAL).
-const PAL = { k: '#1a120c', R: '#c2321f', r: '#7a1610', w: '#f3e6c4', y: '#e8c050', o: '#d8621c', g: '#1f7a52', b: '#6e3f17', B: '#b8742e' };
+// 8x8 pixel icons, one per event kind. Each letter is a class (`c` + the letter) whose fill is a --chart-* theme variable
+// (css/panels.css: k ink, R red, r deep red, w light, y gold, o orange, g green, b brown, B brass), so a world recolours them.
 const PIX = {
   commit: '..rrrr...rRRRRr.rRRyyRRrrRyRRyRrrRRyyRRr.rRRRRr...rrrr...rr..rr.',
   push: '.kkkkkk.kwwwwwwkkwkwwkwkkwkwwkwkkwwkkwwk.kwwwwk...kwwk....kkkk..',
@@ -32,7 +33,7 @@ const kindName = kind => (T.text.event[kind] ? say(`event.${kind}`) : kind); // 
 const icon = kind => {
   const p = PIX[kind] ?? '...........................kk......kk...........................';
   let r = '';
-  for (let i = 0; i < 64; i++) if (p[i] !== '.') r += `<rect x="${i % 8}" y="${i >> 3}" width="1" height="1" fill="${PAL[p[i]]}"/>`;
+  for (let i = 0; i < 64; i++) if (p[i] !== '.') r += `<rect class="c${p[i]}" x="${i % 8}" y="${i >> 3}" width="1" height="1"/>`;
   return `<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
 };
 
@@ -86,7 +87,6 @@ export function windowGauge(w) {
 export const reportText = md => md.replace(/^---\n[\s\S]*?\n---\n+/, '');
 
 const LIVE_CAP = 500; // newest live rows kept in an open day's log
-const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 function bars(title, rows, colorOf) { // colorOf: a swatch per row (dept => colour or null), or none
   const box = h('div', 'bars');
@@ -206,7 +206,7 @@ function logSection(cur) {
   sel.onchange = () => { cur.filter = sel.value; list.replaceChildren(...rows()); };
   bar.append(sel);
   const list = h('ol', 'events');
-  const rows = () => { const r = cur.events.filter(e => !cur.filter || e.dept === cur.filter).map(row); return r.length ? r : [h('li', 'quiet', 'No events recorded')]; };
+  const rows = () => { const r = cur.events.filter(e => !cur.filter || e.dept === cur.filter).map(row); return r.length ? r : [h('li', 'quiet empty', say('log.empty'))]; };
   list.replaceChildren(...rows());
   sec.append(bar, list);
   cur.live = e => {
@@ -214,7 +214,7 @@ function logSection(cur) {
     if (cur.events.length > LIVE_CAP) cur.events.length = LIVE_CAP; // an always-open log stays bounded: the oldest rows go
     if (![...sel.options].some(o => o.value === e.dept)) fill();
     if (cur.filter && e.dept !== cur.filter) return;
-    list.querySelector('li.quiet')?.remove();
+    list.querySelector('li.empty')?.remove();
     const li = row(e);
     li.classList.add('fresh');
     list.prepend(li);
@@ -247,6 +247,9 @@ export function initChronicon(colorOf = () => null) {
   const root = document.getElementById('chron'), tabs = root.querySelector('.tabs'), body = root.querySelector('.body');
   const openers = [document.getElementById('chron-open'), document.getElementById('tithe')];
   let cur = null, seq = 0;
+  // The day tabs are a tab list: the arrow keys, Home and End move the focus (Enter picks), the selected tab is the one in the tab order.
+  tablist(tabs);
+  const mark = day => { for (const b of tabs.children) { const on = b.dataset.day === day; b.setAttribute('aria-selected', String(on)); b.setAttribute('tabindex', on ? '0' : '-1'); } };
 
   // Header plaque: today's tokens · working time and the usage-window bar, every 30 s.
   const plaque = document.getElementById('tithe');
@@ -277,6 +280,7 @@ export function initChronicon(colorOf = () => null) {
     const week = h('button', 'week', 'Week');
     week.type = 'button'; week.setAttribute('role', 'tab'); week.dataset.day = 'week';
     week.setAttribute('aria-selected', String((cur?.day ?? active) === 'week'));
+    week.setAttribute('tabindex', (cur?.day ?? active) === 'week' ? '0' : '-1');
     week.title = 'The last 7 days added up';
     week.onclick = () => show('week');
     tabs.replaceChildren(...days.map((d, i) => {
@@ -284,6 +288,7 @@ export function initChronicon(colorOf = () => null) {
       const b = h('button', null, i ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : 'Today');
       b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.day = key;
       b.setAttribute('aria-selected', String(key === (cur?.day ?? active)));
+      b.setAttribute('tabindex', key === (cur?.day ?? active) ? '0' : '-1');
       b.classList.toggle('none', !!i && !s?.events && !s?.tokens);
       b.title = s ? `${key}: ${s.events} events · ${fmtTok(s.tokens)} tokens · ${fmtDur(s.busyMs)}` : key;
       b.onclick = () => show(key);
@@ -294,7 +299,7 @@ export function initChronicon(colorOf = () => null) {
   async function show(day) {
     if (day === 'week') return showWeek();
     const my = ++seq;
-    for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.day === day));
+    mark(day);
     const wait = h('p', 'loading', 'Unrolling the scroll');
     wait.setAttribute('role', 'status');
     wait.prepend(h('span', 'seal'));
@@ -313,7 +318,7 @@ export function initChronicon(colorOf = () => null) {
 
   async function showWeek() {
     const my = ++seq;
-    for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.day === 'week'));
+    mark('week');
     const keys = [];
     for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); keys.push(dayKey(d)); }
     const list = await Promise.all(keys.map(day => invoke('tithe_day', { day }).catch(() => null)));

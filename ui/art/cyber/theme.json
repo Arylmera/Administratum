@@ -260,6 +260,7 @@
       "napping": "Idle · crashed in the lounge"
     },
     "petitions": ["{n} request", "{n} requests"],
+    "mobile": { "empty": "No request waits" },
     "petitioning": "{n} pinging",
     "petitionLabel": "{name}, request: {want}",
     "adeptOf": "{kind} · daemon of {owner}",
@@ -270,7 +271,8 @@
       "title": "Netlog",
       "open": "Open the Netlog",
       "close": "Close the Netlog",
-      "silent": "The Netlog is empty: no record could be read for this day."
+      "silent": "The Netlog is empty: no record could be read for this day.",
+      "empty": "Nothing in the Netlog for this day"
     },
     "tithe": {
       "hint": "Bandwidth today: tokens and uptime",

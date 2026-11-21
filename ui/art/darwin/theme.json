@@ -273,6 +273,7 @@
       "napping": "Idle · asleep on the typewriter"
     },
     "petitions": ["{n} query", "{n} queries"],
+    "mobile": { "empty": "No query waits" },
     "petitioning": "{n} querying",
     "petitionLabel": "{name}, query: {want}",
     "adeptOf": "{kind} · capuchin of {owner}",
@@ -283,7 +284,8 @@
       "title": "Field notebook",
       "open": "Open the field notebook",
       "close": "Close the field notebook",
-      "silent": "The field notebook is blank: no record could be read for this day."
+      "silent": "The field notebook is blank: no record could be read for this day.",
+      "empty": "Nothing in the field notebook for this day"
     },
     "tithe": {
       "hint": "Typed today: tokens and time at the keys",

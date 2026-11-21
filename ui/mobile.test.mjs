@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { petitionsOf, treeOrder, vigilLine, rowKey, rowState, openRow, phoneAnswer, petitionRow, rowsSig, peekKey, answerError, latestOnly } from './mobile.js';
+import { petitionRows, petitionsOf, treeOrder, vigilLine, rowKey, rowState, openRow, phoneAnswer, petitionRow, rowsSig, peekKey, answerError, latestOnly } from './mobile.js';
 // A hand-made DOM, just enough for petitionRow (no DOM library, as in flathall.test.mjs); set after the import so
 // the page itself does not start.
 const node = tag => ({ tag, className: '', textContent: '', children: [], attrs: {}, append(...c) { this.children.push(...c); }, setAttribute(k, v) { this.attrs[k] = v; } });
 globalThis.document = { createElement: node };
+const { t } = await import('./theme.js');
 
 // Petitions: the waiting sessions, the longest waiting first.
 const r = [
@@ -115,6 +116,31 @@ assert.deepEqual(buttons(petitionRow(orca, { ...rowState(orca, { actions: true, 
   assert.equal(calls.length, before, 'nothing read, nothing sent');
   assert.deepEqual(await phoneAnswer(risky, 'no', peekThen(shown), shown), { sent: true }, 'Deny still goes');
   calls.length = 0;
+}
+
+// F17: no petition waiting: one line says so (mobile.empty, the theme's words), and rows replace it.
+{
+  const none = petitionRows([], () => on);
+  assert.equal(none.length, 1);
+  assert.equal(none[0].className, 'empty');
+  assert.equal(none[0].textContent, t('mobile.empty'));
+  assert.notEqual(none[0].textContent, 'mobile.empty', 'the key exists');
+  const some = petitionRows([[orca, { ...rowState(orca, { actions: false }), tappable: false }]], () => on);
+  assert.deepEqual(some.map(li => li.className), ['petition']);
+  // a risky petition: its row is styled risky, as on the PC; the phone offers Deny only, never an Approve to style
+  const risky = { ...orca, risk: 'git reset --hard' }, st = { ...rowState(risky, { actions: true, peek: shown }), tappable: true, open: true };
+  const row = petitionRows([[risky, st]], () => on)[0];
+  assert.ok(row.className.split(' ').includes('risky'), 'a risky petition gets the risky class');
+  assert.ok(!petitionRows([[orca, { ...rowState(orca, { actions: true, peek: shown }), tappable: true, open: true }]], () => on)[0].className.includes('risky'));
+  assert.deepEqual(buttons(row), ['Deny']);
+}
+// F17: touch targets of 44 px at least, and the risky look is in the phone's CSS.
+{
+  const rules = readFileSync(new URL('./css/mobile.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('}').map(r => r.trim());
+  const rule = sel => rules.find(r => r.startsWith(`${sel} {`)) ?? assert.fail(`no rule for ${sel}`);
+  for (const sel of ['button', '.petition .ptap', 'header a'])
+    assert.ok(+rule(sel).match(/min-height: (\d+)px/)?.[1] >= 44, `${sel} is 44 px or more`);
+  assert.ok(rule('.petition.risky').includes('--alarm'), 'the risky petition has its own look');
 }
 
 // The rows are rebuilt (roster comes every tick) only on a change, and always when what an answer targets changes.

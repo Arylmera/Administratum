@@ -126,7 +126,7 @@ that leaves them out, loads as it did and takes the default.
 | `--focus` | The keyboard focus ring on the dark chrome: the header, the labels, the page. At least 3:1 on `--bar`, `--label` and `--bg` | `--green` |
 | `--focus-paper` | The same ring on parchment (the card, the Chronicon, Settings). At least 3:1 on `--card`, `--paper`, `--paper-tab`, `--paper-hi`, `--paper-q` and `--paper-edge` | `--paper-accent` |
 | `--em`, `--em-paper` | The emphasis colour (the card's name and question, an alert's underline) on the chrome and on parchment. VT323 has one weight, so emphasis is colour, spacing and underline, never bold or italic | `--light`, `--paper-accent` |
-| `--chart-new`, `--chart-cache` | The Chronicon's bars and plots (new and cached tokens). At least 3:1 on `--paper` | red, green |
+| `--chart-new`, `--chart-cache` | The Chronicon's bars and plots (new and cached tokens; the cached part is also hatched). At least 3:1 on `--paper` | red, green |
 | `--chart-red`, `--chart-green` | The Chronicon's "tests fail" cross and "tests pass" tick. At least 3:1 on `--paper` | red, green |
 | `--chart-ink`, `--chart-red-deep`, `--chart-light`, `--chart-gold`, `--chart-orange`, `--chart-brown`, `--chart-brass` | The rest of the Chronicon's event icons (ink, deep red, light, gold, orange, brown, brass) | the Tier II colours |
 
@@ -135,6 +135,13 @@ The repository's `ui/theme.test.mjs` checks every shipped theme against these mi
 The names `px`, `ink`, `light` and `text` accept are the app's own: an unknown one is refused, by name. To see them
 all with their values, open a world theme of the Administratum repository: `ui/art/vault/theme.json` has a full set
 of wording, `ui/art/forge/theme.json` a short world. `ui/theme.js` holds the defaults (Ordo Administratum) they all start from.
+
+Wording keys added for the panels (a pack that lacks them keeps the defaults, so an older pack still loads): `prefs.theme`
+(the Settings label of the world list, "World") and `prefs.look` (of the style list, "Look"), `prefs.resetArmed` (the
+*Reset to defaults* button after its first click), `log.empty` (a Chronicon day with no events), `mobile.empty` (the phone
+page with no petition waiting; reword it where your world renames petitions) and `petition.armed` (a risky *Approve* after
+its first click). The new/cache bars of the Chronicon are told apart by a hatch as well as by `--chart-new` and
+`--chart-cache`, so the two colours may be close in hue.
 
 **A style** (the template's `vault-pink/theme.json`):
 

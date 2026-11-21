@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { install, replies, calls, invoked, tick, flush, emit } from './testdom.mjs';
+import { readFileSync } from 'node:fs';
+import { install, replies, calls, invoked, tick, flush, emit, parse } from './testdom.mjs';
 
 // The host app (not the remote view: bridge.js reads REMOTE once per process). Saved values come from settings.json.
 install();
@@ -23,7 +24,7 @@ replies.theme_packs = () => disk.map(p => ({ ...p }));
 replies.theme_pack_file = ({ path }) => FILES[path] ?? new Error(path === 'mine/broken/theme.json' ? '<b>bad</b> bytes' : 'not found');
 await import('./themes.js'); // every world's styles, as app.js loads them
 const { settings, store, view, quiet, place, initSettings, MONITOR } = await import('./settings.js');
-const { T } = await import('./theme.js');
+const { T, t } = await import('./theme.js');
 
 // Loading: out-of-range values are clamped, unknown choices fall back to the default.
 assert.equal(settings.staleMin, 120);
@@ -264,9 +265,24 @@ assert.equal(field('reportDir').disabled, true);
 change('stuck', false);
 change('reportOn', true);
 
-// Reset: every value back to its default, theme and view included.
+// Reset: every value back to its default, theme and view included. Two clicks: the first only arms (F8).
 seen.length = 0;
-form.querySelector('.reset').click();
+{
+  const reset = form.querySelector('.reset'), label = reset.textContent;
+  assert.ok(settings.staleMin !== 5 && label === 'Reset to defaults');
+  const stale = invoked('set_stale_minutes').length;
+  reset.click();
+  assert.equal(reset.textContent, t('prefs.resetArmed'), 'the first click arms and says so');
+  assert.equal(settings.staleMin, 1, 'one click resets nothing');
+  assert.equal(invoked('set_stale_minutes').length, stale, 'and tells the backend nothing');
+  tick(4000);
+  assert.equal(reset.textContent, label, 'it disarms after the window');
+  reset.click(); // a second click after the window only arms again
+  assert.equal(settings.staleMin, 1);
+  assert.equal(reset.textContent, t('prefs.resetArmed'));
+  tick(3999); reset.click(); // within the window of the arming: resets
+  assert.equal(reset.textContent, label);
+}
 assert.equal(settings.staleMin, 5);
 assert.equal(settings.onTop, true);
 assert.equal(settings.cardOnClick, true);
@@ -277,6 +293,49 @@ assert.equal(T.id, 'tier2');
 assert.equal(store.get('adm.view'), 'flat');
 assert.deepEqual(last('set_stale_minutes'), { minutes: 5 });
 assert.deepEqual(seen.filter(s => s[0] === 'mode' || s[0] === 'muted'), [['mode', 'auto'], ['muted', false]]);
+// F14: every setting key still has exactly one control after the regroup (the shipped markup, not the live form: the
+// panel removes the rows the backend cannot serve).
+{
+  const html = parse(readFileSync(new URL('./index.html', import.meta.url), 'utf8'));
+  const keys = [...Object.keys(settings), ...Object.keys(MONITOR), 'lat', 'lon', 'idleFps', 'pauseHidden', 'questions', 'questionToast',
+    'quietOn', 'quietFrom', 'quietTo', 'vigilDeadline', 'openWith', 'openCmd', 'login', 'updateCheck', 'packCheck', 'world', 'theme', 'view',
+    'mode', 'chime', 'scale', 'scaleAuto', 'remoteOn', 'remoteActions', 'remotePort'];
+  assert.ok(keys.length >= 45 && new Set(keys).size === keys.length, 'the list names each key once');
+  for (const k of keys) assert.equal(html.querySelectorAll(`[name="${k}"]`).length, 1, `${k} has exactly one control`);
+  // the controls the list does not know are the output beside the slider and nothing else
+  const named = new Set(html.querySelectorAll('input, select, output').map(e => e.name).filter(Boolean));
+  assert.deepEqual([...named].filter(n => !keys.includes(n)), ['scaleOut']);
+  // the pair that confused: each says what it picks
+  assert.equal(t('prefs.theme'), 'World');
+  assert.equal(t('prefs.look'), 'Look');
+  assert.equal(form.querySelector('[data-t="prefs.look"]').closest('label').querySelector('select').name, 'theme');
+  assert.equal(form.querySelector('[data-t="prefs.theme"]').closest('label').querySelector('select').name, 'world');
+}
+// F15: the dialog is modal, the categories are a tab list moved by the arrow keys (the move selects), Home and End.
+{
+  const prefs = document.getElementById('prefs');
+  assert.equal(prefs.getAttribute('aria-modal'), 'true');
+  const list = prefs.querySelector('.cats [role="tablist"]'), tabs = list.querySelectorAll('[role="tab"]');
+  assert.ok(tabs.length >= 5 && !list.contains(form.querySelector('.reset')), 'Reset is not one of the tabs');
+  const key = (el, k) => { const seen = {}; el.dispatch('keydown', { key: k, preventDefault() { seen.prevented = true; } }); return seen; };
+  const sel = () => tabs.filter(b => b.getAttribute('aria-selected') === 'true').map(b => b.dataset.cat);
+  cat('hall').click();
+  assert.deepEqual(sel(), ['hall']);
+  assert.deepEqual(tabs.map(b => b.getAttribute('tabindex')), tabs.map(b => (b.dataset.cat === 'hall' ? '0' : '-1')), 'roving tabindex');
+  assert.equal(key(cat('hall'), 'ArrowRight').prevented, true);
+  assert.equal(document.activeElement, cat('petitions'));
+  assert.deepEqual(sel(), ['petitions']);
+  assert.equal(form.querySelector('section[data-cat="petitions"]').hidden, false);
+  assert.equal(cat('petitions').getAttribute('tabindex'), '0');
+  assert.equal(cat('hall').getAttribute('tabindex'), '-1');
+  key(cat('petitions'), 'ArrowLeft'); key(cat('hall'), 'ArrowLeft');
+  assert.equal(document.activeElement, tabs.at(-1), 'wraps from the first to the last');
+  key(document.activeElement, 'Home');
+  assert.equal(document.activeElement, tabs[0]);
+  key(document.activeElement, 'End');
+  assert.equal(document.activeElement, tabs.at(-1));
+  assert.equal(key(document.activeElement, 'a').prevented, undefined, 'other keys are left alone');
+}
 console.log('settings ok');
 
 // Reset restores the Monitoring defaults, and the panel shows them.
@@ -391,7 +450,7 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   add.click();
   assert.equal(rowsNow().length, MAX_ROOMS);
   // Reset to defaults leaves the rooms alone
-  form.querySelector('.reset').click();
+  form.querySelector('.reset').click(); form.querySelector('.reset').click();
   assert.deepEqual(rooms.list.map(r => r.id), [second]);
 }
 

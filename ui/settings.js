@@ -4,7 +4,8 @@
 // alone. Always-on-top goes through the window API, start-at-login and the stale-petition mark
 // through the backend (start_at_login, set_stale_minutes). In the remote view (bridge.js) the PC's settings
 // are read once and never written back: the view's own scale, lighting and chime stay in this browser.
-import { panel } from './panel.js';
+import { panel, tablist } from './panel.js';
+import { el } from './dom.js';
 import { invoke, listen, tauri, REMOTE } from './bridge.js';
 import { T, THEMES, WORLDS, switchTheme, t } from './theme.js';
 import { PACKS } from './themes.js';
@@ -350,7 +351,6 @@ function initPacks(form) {
   const install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
   const all = box.querySelector('.pk-all');
   let packs = [], busy = false;
-  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const render = () => {
     repo.placeholder = t('prefs.packs.placeholder');
     const rows = packs.map(p => {
@@ -416,11 +416,17 @@ function initPacks(form) {
   return { read: () => (REMOTE ? Promise.resolve() : read()), render };
 }
 
-// Categories: a side button shows its section of the form, one at a time.
+// Categories: a side button shows its section of the form, one at a time. A tab list: the arrow keys, Home and End move
+// (and select), the selected one is the one in the tab order.
 function initCategories(root, form) {
   const cats = root.querySelectorAll('.cats [data-cat]'), sections = form.querySelectorAll('section[data-cat]');
+  const { rove } = tablist(root.querySelector('.cats [role="tablist"]'), { activate: true });
   for (const b of cats) b.onclick = () => {
-    for (const c of cats) if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
+    for (const c of cats) {
+      c.setAttribute('aria-selected', String(c === b));
+      if (c === b) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current');
+    }
+    rove(b);
     for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
   };
 }
@@ -520,6 +526,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote }) {
   sync();
 }
 
+const RESET_ARM_MS = 4000; // the window for the second click
 // Reset: every setting back to its default, the backend told, the panel refreshed.
 function resetAll(hooks, setPlace) {
   Object.assign(settings, DEFAULTS);
@@ -605,7 +612,18 @@ export function initSettings(hooks) {
   const desk = form.querySelector('.desk-icon');
   desk.onclick = () => invoke('desktop_shortcut').then(() => { desk.textContent = 'Desktop icon added'; }, err => { desk.textContent = String(err); });
   form.querySelector('.place-clear').onclick = () => { setPlace(NaN, NaN); sync(); };
-  form.querySelector('.reset').onclick = () => resetAll(hooks, setPlace);
+  // Reset to defaults takes two clicks, like Regenerate token: the first arms it (its label says so), a second within 4 s resets.
+  const reset = form.querySelector('.reset'), resetLabel = reset.textContent;
+  let resetArmed;
+  reset.onclick = () => {
+    if (!resetArmed) {
+      reset.textContent = t('prefs.resetArmed');
+      resetArmed = setTimeout(() => { resetArmed = null; reset.textContent = resetLabel; }, RESET_ARM_MS);
+      return;
+    }
+    clearTimeout(resetArmed); resetArmed = null; reset.textContent = resetLabel;
+    resetAll(hooks, setPlace);
+  };
 
   onView(() => sync()); // the tray or the handle switched the view under an open panel
   panel(root, [opener], { onOpen: () => { if (!REMOTE) { readLogin(); readRemote().then(readFw); packs.read(); } sync(); } }); // readLogin: the tray may have changed it; packs: one dropped by hand

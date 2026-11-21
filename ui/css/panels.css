@@ -25,9 +25,11 @@
 #chron .split { margin: var(--spe-40) 0 var(--spe-80); }
 #chron .stack { display: flex; gap: var(--sp-2); height: .8em; background: color-mix(in srgb, var(--leather) 15%, transparent); }
 #chron .stack i { display: block; }
-#chron .new { background: var(--c-new); } #chron .cache { background: var(--c-cache); }
+#chron .new { background: var(--c-new); }
+/* New against cache is not told by hue alone: the cache part is hatched, and its tone is lighter than the new part's. */
+#chron .cache { background: repeating-linear-gradient(135deg, var(--c-cache) 0 3px, color-mix(in srgb, var(--c-cache) 40%, var(--paper)) 3px 6px); }
 #chron .legend { display: flex; flex-wrap: wrap; gap: var(--spe-20) var(--spe-120); margin-top: var(--spe-25); font-size: var(--fse-90); }
-#chron .legend i { display: inline-block; width: .7em; height: .7em; margin-right: var(--spe-30); vertical-align: -.05em; }
+#chron .legend i { display: inline-block; width: .9em; height: .7em; margin-right: var(--spe-30); vertical-align: -.05em; }
 #chron .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr)); gap: var(--spe-60) var(--spe-150); margin-bottom: var(--spe-80); }
 #chron .row { display: grid; grid-template-columns: minmax(5em, 9em) 1fr auto; gap: var(--spe-50); align-items: center; margin: var(--spe-20) 0; }
 #chron .row .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -54,12 +56,18 @@
 #chron .events { margin: var(--spe-30) 0 0; padding: 0; list-style: none; }
 #chron .events li { display: grid; grid-template-columns: 3.2em 1.2em minmax(4em, 9em) minmax(3em, 7em) 1fr; gap: var(--spe-50); align-items: center; padding: var(--spe-20); border-bottom: 1px dotted color-mix(in srgb, var(--leather) 40%, transparent); }
 #chron .events li.quiet { display: block; border: none; }
+/* A day with no events: a box of its own, not one more row */
+#chron .events li.empty { margin: var(--spe-40) 0; padding: var(--spe-100) var(--spe-60); border: 1px dashed var(--paper-line); border-radius: var(--r-3); text-align: center; font-size: var(--fse-110); color: var(--pm); }
 #chron .events li.fresh { animation: inked 1.6s ease-out; }
 #chron .events time { color: var(--pm); }
 #chron .events .ico { display: block; width: 1.1em; height: 1.1em; }
 #chron .events .who, #chron .events .dept, #chron .events .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #chron .events .who small { font-weight: 400; color: var(--pm); font-size: var(--fse-100); }
 #chron .events .dept { color: var(--pm); }
+/* The event icons: each pixel's class is a letter (chronicon.js), its fill a --chart-* theme variable */
+#chron .ico .ck { fill: var(--chart-ink); } #chron .ico .cR { fill: var(--chart-red); } #chron .ico .cr { fill: var(--chart-red-deep); }
+#chron .ico .cw { fill: var(--chart-light); } #chron .ico .cy { fill: var(--chart-gold); } #chron .ico .co { fill: var(--chart-orange); }
+#chron .ico .cg { fill: var(--chart-green); } #chron .ico .cb { fill: var(--chart-brown); } #chron .ico .cB { fill: var(--chart-brass); }
 #chron .events li.tests-fail .d, #chron .events li.tool-error .d { color: var(--paper-err); }
 /* While a day loads: a turning seal and a growing ellipsis, shown only past 150 ms so a fast load never flashes. */
 #chron .loading { display: flex; align-items: center; gap: var(--spe-60); margin: var(--spe-150) 0; justify-content: center; color: var(--pm); opacity: 0; animation: appear .2s .15s forwards; }
@@ -77,6 +85,7 @@
   transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; color: var(--paper-ink); }
 #prefs .top { padding: var(--spe-50) var(--spe-90) var(--spe-30); border-bottom: 2px solid var(--paper-line); }
 #prefs form { flex: 1 1 auto; height: 34em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every category: no jump between them */
+#prefs .cat-tabs { display: flex; flex-direction: column; flex: 1 1 auto; }
 #prefs .cats { display: flex; flex-direction: column; padding: var(--spe-40) 0; background: var(--paper-tab); border-right: 1px solid var(--paper-line); overflow-y: auto; scrollbar-width: thin; }
 #prefs .cats [data-cat] { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.6em; padding: 0 var(--spe-75); background: none; border: none; border-left: 3px solid transparent; color: var(--paper-ink-3); font: inherit; font-size: var(--fse-110); text-align: left; cursor: pointer; }
 #prefs .cats [data-cat][aria-current="page"] { background: var(--paper); border-left-color: var(--paper-accent); color: var(--paper-accent); }
@@ -89,14 +98,14 @@
 #prefs legend, #prefs .sub { float: left; grid-column: 1 / -1; width: 100%; padding: 0 0 var(--spe-20); margin-bottom: var(--spe-10); border-bottom: 1px solid var(--paper-line); font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
 #prefs .sub { float: none; grid-column: 1 / -1; margin-top: var(--spe-50); }
 #prefs label { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.4em; padding: var(--spe-20) var(--spe-50); box-sizing: border-box; background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: var(--r-3); }
-#prefs label > span:first-child { flex: 1; line-height: 1.05; }
+#prefs label > span:first-child { flex: 1; min-width: 0; line-height: 1.05; }
 #prefs .wide, #prefs .hint, #prefs .clear, #prefs .btns, #prefs .rv-on, #prefs .rv-urls { grid-column: 1 / -1; }
 #prefs .clear { justify-self: start; }
 #prefs .btns { display: flex; flex-wrap: wrap; gap: var(--spe-40); } #prefs .btns[hidden] { display: none; }
 #prefs .btns .clear, #prefs .rv-on .clear { margin-top: 0; }
 #prefs .unit { width: 3.2em; white-space: nowrap; color: var(--paper-ink-2); }
 #prefs input[type="number"], #prefs select, #prefs .pk-repo { width: 5.5em; box-sizing: border-box; padding: var(--spe-10) var(--spe-30); background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; text-align: right; }
-#prefs select { width: 8.1em; text-align: left; }
+#prefs select { width: auto; min-width: 8.1em; max-width: 60%; text-align: left; text-overflow: ellipsis; } /* grows to its longest option, never truncated to a stub */
 #prefs .pk-repo { width: 14em; min-width: 0; text-align: left; }
 #prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--paper-accent); }
 #prefs .step { flex: none; width: 1.6em; height: 1.6em; padding: 0; background: none; color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; cursor: pointer; }
@@ -123,10 +132,13 @@
 #prefs .room-live { grid-column: 1 / -1; margin: 0; font-size: var(--fse-85); color: var(--paper-ink-2); overflow-wrap: anywhere; }
 #prefs .room-live.bad { color: var(--wax); }
 #prefs code { font-size: var(--fse-100); }
+/* an 800 px window: one column of settings, so a select has the whole row */
+@media (max-width: 860px) { #prefs fieldset { grid-template-columns: minmax(0, 1fr); } }
 /* narrow: the categories become a row of tabs, one column of settings */
 @media (max-width: 600px) {
   #prefs form { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   #prefs .cats { flex-direction: row; flex-wrap: wrap; padding: 0; border-right: none; border-bottom: 1px solid var(--paper-line); }
+  #prefs .cat-tabs { flex-direction: row; flex-wrap: wrap; }
   #prefs .cats [data-cat] { border-left: none; border-bottom: 3px solid transparent; padding: 0 var(--spe-50); }
   #prefs .cats [data-cat][aria-current="page"] { border-bottom-color: var(--paper-accent); }
   #prefs .cats .reset { margin: var(--spe-30) var(--spe-40) var(--spe-30) auto; }

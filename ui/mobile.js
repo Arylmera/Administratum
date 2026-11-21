@@ -3,11 +3,13 @@
 // docs/remote-api.md). Only while the PC allows remote actions: Arm / Cancel, and Approve / Deny on a permission
 // petition once its prompt is shown (Always stays on the PC; questions and free-text petitions stay text).
 import { invoke, listen, remoteVigil } from './bridge.js';
-import { T, t, setTheme, onTheme } from './theme.js';
+import { t, setTheme, onTheme } from './theme.js';
 import { guarded } from './themes.js'; // registers the themes beyond Tier II
 import { applyChrome } from './chrome.js';
 import { fmtTok, fmtDur } from './chronicon.js';
 import { pad2 } from './quiet.js';
+import { el } from './dom.js';
+import { hhmm, ago, statusOf } from './format.js';
 import { answerable, answerCall, riskOfPetition, allowed } from './petition.js';
 
 // ---- pure (mobile.test.mjs) ----
@@ -71,19 +73,14 @@ export function latestOnly() {
   return (key, promise, apply) => { const mine = {}; last.set(key, mine); return promise.then(v => { if (last.get(key) === mine) apply(v); }); };
 }
 
-const hhmm = ms => { const d = new Date(ms); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
 export function vigilLine(v, now) {
   if (!v?.armed) return 'Off';
   if (v.countdownEnd != null) { const s = Math.max(0, Math.ceil((v.countdownEnd - now) / 1000)); return `Armed · shutdown in ${Math.floor(s / 60)}:${pad2(s % 60)}`; }
   return v.deadline ? `Armed · deadline ${hhmm(v.deadline)}` : 'Armed';
 }
 
-const ago = ms => { const m = Math.max(0, Math.floor((Date.now() - ms) / 60000)); return !ms ? '—' : m < 1 ? '<1m' : m < 60 ? `${m}m` : `${Math.floor(m / 60)}h`; };
-const statusOf = s => (s.background ? t('status.background') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status);
 
 // ---- page ----
-
-function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
 // What the petition rows show and act on ([s, st] pairs): the list is rebuilt only when this changes. It holds the
 // answer targets (orca, opencodeRequest), so a new handle or request for the same row never keeps a stale button.
@@ -92,7 +89,7 @@ export const rowsSig = rows => JSON.stringify(rows.map(([s, st]) =>
 
 // One petition row. st: rowState plus { tappable, open, busy, error }; on: { tap(), answer(choice) }. Text only.
 export function petitionRow(s, st, on) {
-  const li = el('li', `petition${st.open ? ' open' : ''}`);
+  const li = el('li', `petition${st.open ? ' open' : ''}${st.risk ? ' risky' : ''}`); // risky: red as on the PC (the phone offers Deny only)
   const head = st.tappable ? el('button', 'ptap') : el('div');
   if (st.tappable) { head.type = 'button'; head.setAttribute('aria-expanded', String(!!st.open)); head.onclick = on.tap; }
   head.append(el('b', null, s.name), el('span', 'dim', ` · ${s.waitingFor ?? 'petition'} · ${ago(s.sinceMs)}`));
@@ -114,6 +111,9 @@ export function petitionRow(s, st, on) {
   } else if (st.open && st.tappable && !st.error) li.append(el('div', 'dim', 'Reading the prompt…'));
   return li;
 }
+
+// The petition list: a row each, or one line saying none waits.
+export const petitionRows = (rows, on) => (rows.length ? rows.map(([s, st]) => petitionRow(s, st, on(s))) : [el('li', 'empty', t('mobile.empty'))]);
 
 async function start() {
   let saved = null;
@@ -160,7 +160,6 @@ async function start() {
     const list = petitionsOf(roster), keys = new Set(list.map(rowKey)), pkeys = new Set(list.map(peekKey));
     if (!keys.has(openKey)) openKey = null;
     for (const [m, live] of [[peeks, pkeys], [errors, keys]]) for (const k of [...m.keys()]) if (!live.has(k)) m.delete(k);
-    $('petitions').hidden = !list.length;
     const rows = list.map(s => {
       const k = rowKey(s), st = rowState(s, { actions, peek: peeks.get(peekKey(s)) });
       return [s, { ...st, tappable: actions && answerable(s), open: openKey === k, busy: busy.has(k), error: st.error ?? errors.get(k) ?? null }];
@@ -169,7 +168,7 @@ async function start() {
     const sig = rowsSig(rows);
     if (sig === petitionsSig) return;
     petitionsSig = sig;
-    $('petition-list').replaceChildren(...rows.map(([s, st]) => petitionRow(s, st, { tap: () => tap(s), answer: choice => reply(s, choice) })));
+    $('petition-list').replaceChildren(...petitionRows(rows, s => ({ tap: () => tap(s), answer: choice => reply(s, choice) })));
   }
   function renderVigil() {
     $('vigil-line').textContent = vigilLine(vigil, Date.now());

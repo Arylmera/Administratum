@@ -262,6 +262,7 @@
       "napping": "Idle · dozing by the fire"
     },
     "petitions": ["{n} plea", "{n} pleas"],
+    "mobile": { "empty": "No plea waits" },
     "petitioning": "{n} pleading",
     "petitionLabel": "{name}, plea: {want}",
     "adeptOf": "{kind} · familiar of {owner}",
@@ -272,7 +273,8 @@
       "title": "Grimoire",
       "open": "Open the Grimoire",
       "close": "Close the Grimoire",
-      "silent": "The Grimoire is blank: no record could be read for this day."
+      "silent": "The Grimoire is blank: no record could be read for this day.",
+      "empty": "Nothing in the Grimoire for this day"
     },
     "tithe": {
       "hint": "Mana spent today: tokens and time",
