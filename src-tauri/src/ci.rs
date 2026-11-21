@@ -14,10 +14,14 @@ use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
     fs,
+    io::Read,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
-    sync::{Arc, Condvar, Mutex},
-    time::Duration,
+    process::{Command, Output, Stdio},
+    sync::{
+        mpsc::{channel, Receiver},
+        Arc, Condvar, Mutex,
+    },
+    time::{Duration, Instant},
 };
 
 /// First `gh` call after a push (CI needs a moment to register), then one every `POLL_MS`.
@@ -315,10 +319,7 @@ pub fn evaluate(check_runs: &str, status: &str) -> Result<Snapshot, String> {
     let runs = runs["check_runs"].as_array().ok_or("check-runs: no check_runs list")?;
     // the combined `state` of a commit with no statuses is "pending": only the list is read
     let stats = stat["statuses"].as_array().ok_or("status: no statuses list")?;
-    let all = runs
-        .iter()
-        .map(|r| ("run", r["name"].as_str(), run_outcome(r)))
-        .chain(stats.iter().map(|s| ("status", s["context"].as_str(), status_outcome(s))));
+    let all = runs.iter().map(|r| ("run", r["name"].as_str(), run_outcome(r))).chain(stats.iter().map(|s| ("status", s["context"].as_str(), status_outcome(s))));
     let (mut ids, mut done, mut failed) = (vec![], 0, None);
     for (kind, name, outcome) in all {
         match outcome {
@@ -403,20 +404,82 @@ static RUNNING: Mutex<()> = Mutex::new(());
 /// The real `gh`: the user's own login, no token read or kept by the app.
 pub struct RealGh;
 
+/// A `gh` call that has not ended after this long is killed and counts as a failed call.
+const TIMEOUT: Duration = Duration::from_secs(20);
+/// The most one pipe is read for: the check-runs of a commit are far smaller, and a runaway must not fill memory.
+const MAX_OUTPUT: u64 = 1 << 20;
+
+/// Why one candidate gave nothing.
+enum Fail {
+    NotStarted,
+    TimedOut,
+    Io(String),
+}
+
+/// The bytes of one pipe (up to `MAX_OUTPUT`), sent when it closes.
+fn drain<R: Read + Send + 'static>(pipe: Option<R>) -> Receiver<Vec<u8>> {
+    let (tx, rx) = channel();
+    std::thread::spawn(move || {
+        let mut buf = vec![];
+        if let Some(p) = pipe {
+            let _ = p.take(MAX_OUTPUT).read_to_end(&mut buf);
+        }
+        let _ = tx.send(buf);
+    });
+    rx
+}
+
+/// `cmd` run to its end with stdin closed, killed when it has not ended after `limit`. Output goes through pipes read
+/// on their own threads (a full pipe would stall the child); a pipe a grandchild keeps open is given up on shortly
+/// after the child ends.
+fn run_bounded(mut cmd: Command, limit: Duration) -> Result<Output, Fail> {
+    cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = cmd.spawn().map_err(|_| Fail::NotStarted)?;
+    let (out, err) = (drain(child.stdout.take()), drain(child.stderr.take()));
+    let deadline = Instant::now() + limit;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(s)) => break s,
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(Fail::TimedOut);
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(15)),
+            Err(e) => return Err(Fail::Io(e.to_string())),
+        }
+    };
+    let grab = |rx: Receiver<Vec<u8>>| rx.recv_timeout(Duration::from_millis(300)).unwrap_or_default();
+    Ok(Output { status, stdout: grab(out), stderr: grab(err) })
+}
+
+/// `build(exe)` for each of `exes` in turn until one starts, within `limit`. A timeout is a failed call
+/// (`GhError::Other`, which the watch counts toward its 3 failures), and the next candidate is not tried.
+fn first_of(exes: &[String], build: impl Fn(&str) -> Command, limit: Duration) -> Result<String, GhError> {
+    for exe in exes {
+        return match run_bounded(build(exe), limit) {
+            Ok(out) if out.status.success() => Ok(String::from_utf8_lossy(&out.stdout).into_owned()),
+            Ok(out) => Err(classify_failure(out.status.code(), &String::from_utf8_lossy(&out.stderr))),
+            Err(Fail::NotStarted) => continue,
+            Err(Fail::TimedOut) => Err(GhError::Other(format!("gh did not answer in {} s", limit.as_secs_f32()))),
+            Err(Fail::Io(e)) => Err(GhError::Other(registry::clip(&e))),
+        };
+    }
+    Err(GhError::Missing)
+}
+
 impl Gh for RealGh {
     fn run(&self, args: &[&str]) -> Result<String, GhError> {
         let _one_at_a_time = crate::lock(&RUNNING);
-        for exe in candidates() {
-            let mut cmd = no_window(Command::new(&exe));
-            cmd.args(args).env("GH_PROMPT_DISABLED", "1").stdin(Stdio::null());
-            let Ok(out) = cmd.output() else { continue };
-            return if out.status.success() {
-                Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-            } else {
-                Err(classify_failure(out.status.code(), &String::from_utf8_lossy(&out.stderr)))
-            };
-        }
-        Err(GhError::Missing)
+        first_of(
+            &candidates(),
+            |exe| {
+                let mut cmd = no_window(Command::new(exe));
+                cmd.args(args).env("GH_PROMPT_DISABLED", "1");
+                cmd
+            },
+            TIMEOUT,
+        )
     }
 }
 
@@ -1157,7 +1220,13 @@ mod tests {
         let r = d.join("repo");
         fs::create_dir_all(r.join(".git/refs/remotes/origin")).unwrap();
         fs::write(r.join(".git/HEAD"), format!("ref: refs/heads/{branch}\n")).unwrap();
-        fs::write(r.join(".git/config"), format!("[core]\n\tbare = false\n[remote \"origin\"]\n\turl = {url}\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"{branch}\"]\n\tremote = origin\n\tmerge = refs/heads/{branch}\n")).unwrap();
+        fs::write(
+            r.join(".git/config"),
+            format!(
+                "[core]\n\tbare = false\n[remote \"origin\"]\n\turl = {url}\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"{branch}\"]\n\tremote = origin\n\tmerge = refs/heads/{branch}\n"
+            ),
+        )
+        .unwrap();
         if let Some((b, sha)) = loose {
             let p = r.join(".git/refs/remotes/origin").join(b);
             fs::create_dir_all(p.parent().unwrap()).unwrap();
@@ -1385,9 +1454,9 @@ mod tests {
         let both = [ok("build"), ok("e2e")];
         let gh = Stub::new(
             [
-                poll_answers(&[ok("build")], &[]),                                  // 20 s: all passed, but a first look
-                poll_answers(&[ok("build"), ("e2e", "queued", None)], &[]),         // 50 s: a workflow registered late
-                poll_answers(&both, &[]),                                           // 80 s: all passed, the set as at 50 s
+                poll_answers(&[ok("build")], &[]),                          // 20 s: all passed, but a first look
+                poll_answers(&[ok("build"), ("e2e", "queued", None)], &[]), // 50 s: a workflow registered late
+                poll_answers(&both, &[]),                                   // 80 s: all passed, the set as at 50 s
             ]
             .concat(),
         );
@@ -1978,5 +2047,57 @@ mod tests {
         assert!(hub.open_url_for("s1").unwrap().ends_with("/checks"));
         assert!(hub.open_url_for("nobody").is_err());
         let _ = fs::remove_dir_all(&d);
+    }
+
+    // ---- the bounded run: the test binary stands in for the gh CLI ----
+
+    /// Started with `ADM_FAKE_GH` set (by `fake`), this test plays a fake `gh` and exits; in a normal run the variable
+    /// is absent and it does nothing.
+    #[test]
+    fn fake_gh() {
+        use std::io::Write;
+        match std::env::var("ADM_FAKE_GH").as_deref() {
+            Ok("sleep") => std::thread::sleep(Duration::from_secs(60)),
+            Ok("ok") => {
+                let _ = std::io::stdout().write_all(b"FAKE-GH-OK\n");
+                std::process::exit(0)
+            }
+            Ok("404") => {
+                let _ = std::io::stderr().write_all(b"gh: Not Found (HTTP 404)\n");
+                std::process::exit(1)
+            }
+            _ => {}
+        }
+    }
+
+    fn fake(mode: &'static str) -> impl Fn(&str) -> Command {
+        move |exe| {
+            let mut c = Command::new(exe);
+            c.args(["--exact", "ci::tests::fake_gh", "--nocapture", "--test-threads=1"]).env("ADM_FAKE_GH", mode);
+            c
+        }
+    }
+
+    fn me() -> String {
+        std::env::current_exe().unwrap().to_string_lossy().into_owned()
+    }
+
+    #[test]
+    fn a_gh_that_hangs_is_killed_and_counts_as_a_failed_call() {
+        let started = Instant::now();
+        let err = first_of(&[me()], fake("sleep"), Duration::from_millis(400)).unwrap_err();
+        assert!(started.elapsed() < Duration::from_secs(5), "returned within the bound, not after the fake's 60 s: {:?}", started.elapsed());
+        assert!(matches!(&err, GhError::Other(m) if m.contains("did not answer")), "{err:?}");
+        // three such calls in a row end a watch with `error` (Watcher: MAX_FAILURES), as for any other failed call
+        assert!(matches!(err, GhError::Other(_)));
+    }
+
+    #[test]
+    fn the_bounded_run_returns_output_classifies_failures_and_skips_missing_candidates() {
+        let nowhere = "this-gh-is-not-installed".to_string();
+        assert!(first_of(&[nowhere.clone(), me()], fake("ok"), Duration::from_secs(20)).unwrap().contains("FAKE-GH-OK"));
+        assert_eq!(first_of(&[me()], fake("404"), Duration::from_secs(20)).unwrap_err(), GhError::NoAccess);
+        assert_eq!(first_of(&[nowhere], fake("ok"), Duration::from_secs(1)).unwrap_err(), GhError::Missing);
+        assert_eq!(first_of(&[], fake("ok"), Duration::from_secs(1)).unwrap_err(), GhError::Missing);
     }
 }

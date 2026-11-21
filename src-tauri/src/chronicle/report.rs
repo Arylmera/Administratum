@@ -41,7 +41,7 @@ pub struct DeptReport {
     pub more_files: u32,
 }
 
-const NOTABLE: [&str; 6] = ["commit", "push", "tests-fail", "limit", "stuck", "token-alert"];
+const NOTABLE: [&str; 8] = ["commit", "push", "tests-fail", "limit", "stuck", "token-alert", "ci-pass", "ci-fail"];
 
 pub fn report(day: &str, t: &Tithe, events: &[Event]) -> DayReport {
     let count = |kind: &str| events.iter().filter(|e| e.kind == kind).count() as u32;
@@ -159,6 +159,14 @@ mod tests {
         t.by_session.insert("a".into(), Default::default());
         t.by_session.insert("quiet".into(), Default::default());
         assert_eq!(report("2026-10-16", &t, &[ev("commit", "a")]).sessions, 2, "a session with tokens but no event counts");
+    }
+
+    #[test]
+    fn the_ci_verdicts_are_notable() {
+        let t = Tithe::new("2026-10-16");
+        let r = report("2026-10-16", &t, &[ev("ci-pass", "a"), ev("ci-fail", "a"), ev("ci-fail", "b"), ev("arrived", "a")]);
+        assert_eq!(r.notable, BTreeMap::from([("ci-pass".to_string(), 1), ("ci-fail".to_string(), 2)]));
+        assert!(r.markdown().contains("- ci-fail: 2"));
     }
 
     #[test]
