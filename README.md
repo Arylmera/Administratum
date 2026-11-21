@@ -48,7 +48,7 @@ the app with `--demo`.
 - Windows: Microsoft Edge WebView2 Runtime. It ships with Windows 11. On Windows 10 the installer fetches it if it is
   missing.
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (tested with 2.1.283).
-- Optional: [OpenCode](https://opencode.ai) 2.x (tested with 2.0.25). Its sessions show up beside Claude Code's, and
+- Optional: [OpenCode](https://opencode.ai) 2.x (tested with 2.3.2). Its sessions show up beside Claude Code's, and
   their permission prompts can be answered without Orca. See [OpenCode sessions](#opencode-sessions).
 - Optional: Orca (tested with 1.4.220), needed to jump to a session's terminal and to answer
   petitions from the widget. The `orca` CLI must be on `PATH`, or installed at
