@@ -574,14 +574,7 @@ fn ci_push(p: Option<&Pending>, b: &Value, src: &Src) -> Option<CiPush> {
     if head[i..j].contains(" -C") {
         return None;
     }
-    Some(CiPush {
-        session_id: src.session_id.into(),
-        name: src.name.into(),
-        dept: src.dept.into(),
-        cwd: src.cwd.into(),
-        command: segment(head, i).into(),
-        output: result_text(&b["content"]),
-    })
+    Some(CiPush { session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), cwd: src.cwd.into(), command: segment(head, i).into(), output: result_text(&b["content"]) })
 }
 
 fn classify_call(p: Option<&Pending>, b: &Value, branch: Option<&str>) -> Vec<(&'static str, String)> {
@@ -1404,14 +1397,7 @@ mod tests {
         let got = ci_of(&live, &[bash_use("a", "cd x && git push -u origin HEAD && echo done", 0), result("a", PUSHED.into(), Some(false), 0)]);
         assert_eq!(
             got,
-            [CiPush {
-                session_id: "s1".into(),
-                name: "terra-77".into(),
-                dept: "Terra".into(),
-                cwd: r"C:\git\Terra".into(),
-                command: "git push -u origin HEAD".into(),
-                output: PUSHED.into(),
-            }]
+            [CiPush { session_id: "s1".into(), name: "terra-77".into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), command: "git push -u origin HEAD".into(), output: PUSHED.into() }]
         );
         // OpenCode and Claude Code results alike: the content may be an array of text blocks
         let blocks = serde_json::json!([{"type":"text","text":PUSHED}]);
@@ -1436,7 +1422,10 @@ mod tests {
         assert_eq!(ci("git status", Some(false)), 0);
         assert_eq!(ci("git log --grep push", Some(false)), 0);
         assert_eq!(ci("cat <<'EOF'\ngit push\nEOF", Some(false)), 0, "a heredoc body is no command");
-        let read = [serde_json::json!({"type":"assistant","message":{"content":[{"type":"tool_use","id":"r","name":"Read","input":{"command":"git push"}}]}}).to_string(), result("r", PUSHED.into(), Some(false), 0)];
+        let read = [
+            serde_json::json!({"type":"assistant","message":{"content":[{"type":"tool_use","id":"r","name":"Read","input":{"command":"git push"}}]}}).to_string(),
+            result("r", PUSHED.into(), Some(false), 0),
+        ];
         assert!(ci_of(&live, &read).is_empty(), "only Bash");
     }
 

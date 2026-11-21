@@ -228,7 +228,21 @@ impl Source {
     }
 
     fn at(db: PathBuf, registration: PathBuf) -> Self {
-        Source { db, registration, stamp: None, rows: vec![], seen: HashMap::new(), waiting: HashSet::new(), answered: HashMap::new(), logged: HashSet::new(), fed: None, more: false, tuis: None, sys: System::new(), lister: scan_tuis }
+        Source {
+            db,
+            registration,
+            stamp: None,
+            rows: vec![],
+            seen: HashMap::new(),
+            waiting: HashSet::new(),
+            answered: HashMap::new(),
+            logged: HashSet::new(),
+            fed: None,
+            more: false,
+            tuis: None,
+            sys: System::new(),
+            lister: scan_tuis,
+        }
     }
 
     /// The folders of the running opencode TUIs, re-listed at most every TUIS_EVERY.

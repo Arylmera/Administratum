@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
+mod ci;
 mod demo;
 #[cfg(windows)]
 mod firewall;
@@ -20,7 +21,6 @@ mod strip;
 mod toast;
 mod vigil;
 mod window;
-mod ci;
 
 use chronicle::{Chronicle, DaySummary, Event, Tithe};
 use registry::{Session, Tracker};
@@ -477,7 +477,8 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
     update
         .download_and_install(
             move |chunk, total| {
-                let _ = events.emit("update-progress", progress.add(chunk, total)); // the PC's own UI only, never the remote view
+                let _ = events.emit("update-progress", progress.add(chunk, total));
+                // the PC's own UI only, never the remote view
             },
             || {},
         )

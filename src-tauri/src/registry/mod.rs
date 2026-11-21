@@ -270,10 +270,7 @@ mod tests {
         assert_eq!(serde_json::to_value(tests_session("a")).unwrap()["ci"], serde_json::Value::Null);
         let ci = CiState { repo: "o/r".into(), branch: "main".into(), sha7: "1a2b3c4".into(), state: CiStatus::Running, done: 3, total: 5, failed: None };
         let json = serde_json::to_value(Session { ci: Some(ci), ..tests_session("a") }).unwrap();
-        assert_eq!(
-            json["ci"],
-            serde_json::json!({"repo": "o/r", "branch": "main", "sha7": "1a2b3c4", "state": "running", "done": 3, "total": 5, "failed": null})
-        );
+        assert_eq!(json["ci"], serde_json::json!({"repo": "o/r", "branch": "main", "sha7": "1a2b3c4", "state": "running", "done": 3, "total": 5, "failed": null}));
         let fail = CiState { repo: "o/r".into(), branch: "b".into(), sha7: "abcdef0".into(), state: CiStatus::Fail, done: 1, total: 2, failed: Some("build".into()) };
         let json = serde_json::to_value(fail).unwrap();
         assert_eq!((&json["state"], &json["failed"]), (&serde_json::json!("fail"), &serde_json::json!("build")));

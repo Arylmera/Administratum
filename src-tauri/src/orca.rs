@@ -227,21 +227,27 @@ mod tests {
         match std::env::var("ADM_FAKE_ORCA").as_deref() {
             Ok("sleep") => thread::sleep(Duration::from_secs(60)),
             Ok("fail") => {
-                let _ = std::io::stderr().write_all(b"
+                let _ = std::io::stderr().write_all(
+                    b"
   terminal not found
 more
-");
+",
+                );
                 std::process::exit(3)
             }
             Ok("leak") => {
-                let _ = std::io::stderr().write_all(b"bad token=Abcdefghij0123456789xyz
-");
+                let _ = std::io::stderr().write_all(
+                    b"bad token=Abcdefghij0123456789xyz
+",
+                );
                 std::process::exit(1)
             }
             Ok("silent-fail") => std::process::exit(4),
             Ok("ok") => {
-                let _ = std::io::stdout().write_all(b"FAKE-ORCA-OK
-");
+                let _ = std::io::stdout().write_all(
+                    b"FAKE-ORCA-OK
+",
+                );
                 std::process::exit(0)
             }
             _ => {}
