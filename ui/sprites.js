@@ -260,8 +260,14 @@ function useArt(id) {
   const own = (f, n, body) => src(f, n) === src(f, body);
   // a rank frame only from its plain frame's own source (rankLayer)
   const same = f => n => src(f, n) === src(f, n.slice(n.indexOf(' ') + 1));
-  refill(SCRIBE, { ...walker(S.scribe), gesture: gesturesOf('scribe', S.scribe.frames, n => own('scribe', n, 'up 0')), rank: rankLayer('scribe', S.scribe.frames, same('scribe')) }); refill(SCRIBE_AT, { ...anchorsOf(S.scribe), rank: rankAnchors(S.scribe) });
-  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => own('adept', n, 'down 0')), rank: rankLayer('adept', S.adept.frames, same('adept')) }); refill(ADEPT_AT, { ...anchorsOf(S.adept), rank: rankAnchors(S.adept) });
+  // a rank's anchors by the same rule: only those of the sheet that draws the plain body (its own folder's, else the
+  // base's), laid over the anchors as the theme sees them
+  const rankAt = (f, body) => {
+    const from = src(f, body) === f ? base[f] : themed[id]?.[f] ?? themed[dir]?.[f], own = Object.fromEntries(RANKS.filter(r => from?.anchors?.[r]).map(r => [r, from.anchors[r]]));
+    return rankAnchors({ anchors: { ...Object.fromEntries(Object.entries(S[f].anchors).filter(([k]) => !RANKS.includes(k))), ...own } });
+  };
+  refill(SCRIBE, { ...walker(S.scribe), gesture: gesturesOf('scribe', S.scribe.frames, n => own('scribe', n, 'up 0')), rank: rankLayer('scribe', S.scribe.frames, same('scribe')) }); refill(SCRIBE_AT, { ...anchorsOf(S.scribe), rank: rankAt('scribe', 'up 0') });
+  refill(ADEPT, { ...walker(S.adept), marks: marksOf(S.adept.frames, n => own('adept', n, 'down 0')), rank: rankLayer('adept', S.adept.frames, same('adept')) }); refill(ADEPT_AT, { ...anchorsOf(S.adept), rank: rankAt('adept', 'down 0') });
   refill(MAGOS, { body: S.magos.frames.body, arm: S.magos.frames.arm, claw: own('magos', 'claw', 'body') ? S.magos.frames.claw : undefined }); refill(MAGOS_AT, anchorsOf(S.magos));
   refill(WATCH, { ...walker(S.watch), ring: S.watch.frames.ring }); refill(WATCH_AT, anchorsOf(S.watch));
   for (const f of FAMILIES39) {

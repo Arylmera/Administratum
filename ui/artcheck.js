@@ -59,14 +59,19 @@ export function gestureWarnings(family, frames) {
 
 // What a theme's own sheet of a character family (frames: its frame names) holds about ranks that is likely a slip, as
 // warnings: a rank's gesture without that rank's seated frame (never played: the rank keeps the plain gestures), and a
-// rank drawn in this view while the theme's sheet of the other view (otherFrames; null: it has none) draws none.
-export function rankWarnings(family, frames, otherFrames) {
+// rank drawn in this view while the theme's sheet of the other view (otherFrames; null: it has none) draws none, a rank
+// frame whose plain frame this sheet does not draw (never shown: sprites.js rankLayer takes a rank frame only from its
+// plain frame's source), and a rank's anchors (anchors: the sheet's anchor names) with no frame of that rank.
+export function rankWarnings(family, frames, otherFrames, anchors = []) {
   const fam = String(family).split('/').pop(), seat = SEATED_FRAME[fam], names = Array.isArray(frames) ? frames : [], out = [];
   const other = fam.endsWith('39') ? fam.slice(0, -2) : `${fam}39`, of = (list, r) => list.some(n => rankPart(n)?.[0] === r);
   for (const r of RANKS) {
     const lone = (GESTURE_FRAMES[fam] ?? []).map(n => `${r} ${n}`).filter(n => names.includes(n));
     if (lone.length && !names.includes(`${r} ${seat}`)) out.push(`${family}: ${lone.map(n => `'${n}'`).join(', ')} never played: this sheet has no '${r} ${seat}'`);
     if (Array.isArray(otherFrames) && of(names, r) && !of(otherFrames, r)) out.push(`${family}: rank ${r} drawn here, not in ${other}: that view shows the plain body`);
+    const unseen = names.filter(n => rankPart(n)?.[0] === r && !names.includes(rankPart(n)[1]));
+    if (unseen.length) out.push(`${family}: ${unseen.map(n => `'${n}'`).join(', ')} never shown: this sheet does not draw ${unseen.length === 1 ? 'its plain frame' : 'their plain frames'}`);
+    if (Array.isArray(anchors) && anchors.includes(r) && !of(names, r)) out.push(`${family}: rank ${r} anchors but no '${r} …' frame: they move the plain body for that rank`);
   }
   return out;
 }

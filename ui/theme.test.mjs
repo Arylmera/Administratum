@@ -219,4 +219,16 @@ setTheme('tier2');
     assert.ok(lum(robe(t, 'novice').r) < lum(robe(t, 'standard').r) && lum(robe(t, 'standard').r) < lum(robe(t, 'high').r), `${t.id}: dark to light, novice < standard < high`);
   }
 }
+// The 40k ladder stays in the 40k worlds: every other shipped theme resolves its ranks as it did before it
+// (ui/fixtures/rank-before-40k-ladder.json: the resolved ranks of main at a64250a), and a theme from outside with no
+// rank of its own gets that older base too, never the ivory / black ladder
+{
+  const before = JSON.parse(fs.readFileSync(new URL('./fixtures/rank-before-40k-ladder.json', import.meta.url), 'utf8'));
+  for (const [id, rank] of Object.entries(before)) assert.deepEqual(resolve(THEMES[id]).rank, rank, `${id}: ranks as before the 40k ladder`);
+  assert.deepEqual(Object.keys(before).sort(), Object.keys(THEMES).filter(id => THEMES[id].world !== 'w40k').sort(), 'the snapshot covers every non-40k theme');
+  const outside = resolve({ id: 'pack-x', world: 'cyber', name: 'X' });
+  assert.deepEqual(outside.rank, before.tower ? resolve({ id: 'pack-y', world: 'arcane', name: 'Y' }).rank : outside.rank);
+  assert.notEqual(outside.rank.high.adept.q, TIER_II.rank.high.adept.q, 'a theme from outside: not the 40k ivory');
+  assert.equal(resolve(THEMES.xenos).rank.high.adept.q, TIER_II.rank.high.adept.q, 'a 40k Ordo: the ladder');
+}
 console.log('theme ok');

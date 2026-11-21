@@ -109,10 +109,11 @@ async function check(target) {
     warnings.push(...gestureWarnings(`${t}/${f}`, frames));
   }
   // a rank frame that never plays, or a rank drawn in one view only (artcheck.js rankWarnings)
-  const namesOf = (t, f) => { const p = path.join(dir, t, `${f}.json`); if (!isFile(p)) return null; try { return Object.keys(JSON.parse(fs.readFileSync(p, 'utf8')).frames ?? {}); } catch { return null; } };
+  const sheetJson = (t, f) => { const p = path.join(dir, t, `${f}.json`); if (!isFile(p)) return null; try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
+  const namesOf = (t, f) => { const j = sheetJson(t, f); return j ? Object.keys(j.frames ?? {}) : null; };
   for (const t of themes.filter(t => !only || t === only)) for (const f of RANK_FAMILIES) {
     const frames = namesOf(t, f);
-    if (frames) warnings.push(...rankWarnings(`${t}/${f}`, frames, namesOf(t, f.endsWith('39') ? f.slice(0, -2) : `${f}39`)));
+    if (frames) warnings.push(...rankWarnings(`${t}/${f}`, frames, namesOf(t, f.endsWith('39') ? f.slice(0, -2) : `${f}39`), Object.keys(sheetJson(t, f)?.meta?.anchors ?? {})));
   }
   const entry = PACKS.get(id), mine = t => !only || t === only;
   // a reason the loader leaves empty (a truncated PNG's decoder says nothing) still says something

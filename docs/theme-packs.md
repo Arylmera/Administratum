@@ -302,8 +302,12 @@ the scribe and adept sheets (`scribe`, `adept`, `scribe39`, `adept39`).
   rank's body with that rank's anchors in the sheet's JSON, `"anchors": { "high": { "arm": [26, 18] } }`: only the
   sheet's own anchor names, each in its usual shape.
 - `standard` frames are allowed, but rarely needed: the plain frames are standard.
-- `node tools/theme_pack.mjs check` warns about a rank gesture without its rank seat, and about a rank drawn in one
-  view (flat or 2.5D) but not in the other.
+- A rank's anchors follow the same rule: only those of the sheet that draws the body are used.
+- `node tools/theme_pack.mjs check` warns about a rank gesture without its rank seat, a rank drawn in one view (flat or
+  2.5D) but not in the other, a rank frame whose plain frame your sheet does not draw (never shown), and a rank's
+  anchors with no frame of that rank.
+- A world outside Warhammer 40k keeps the rank colours it always had: the 40k ladder (black novice, ivory high) is only
+  the Ordos' own.
 
 ---
 

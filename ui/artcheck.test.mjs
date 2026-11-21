@@ -39,11 +39,19 @@ const one = (patch, word) => {
   assert.equal(num.length, 1, 'rank anchor shape'); assert.ok(num[0].includes('high.arm'), num[0]);
   assert.deepEqual(checkSheet('scribe', sheet({}, { novice: { feet: [15, 34] } }), B), [], 'rank anchors alone');
   // warnings: a rank gesture with no rank seat; a rank drawn in one view only
-  assert.equal(rankWarnings('t/scribe', ['up 0', 'high up think'], null).length, 1, 'rank gesture without its rank seat');
-  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'high up 0', 'high up think'], null), [], 'rank gesture with its seat');
-  const one = rankWarnings('t/scribe', ['high up 0'], ['N 0']);
+  assert.equal(rankWarnings('t/scribe', ['up 0', 'up think', 'high up think'], null).length, 1, 'rank gesture without its rank seat');
+  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'up think', 'high up 0', 'high up think'], null), [], 'rank gesture with its seat');
+  const one = rankWarnings('t/scribe', ['up 0', 'high up 0'], ['N 0']);
   assert.equal(one.length, 1, 'a rank in one view only'); assert.ok(one[0].includes('scribe39'), one[0]);
-  assert.deepEqual(rankWarnings('t/scribe39', ['high N 0'], ['high up 0']), [], 'a rank in both views');
+  assert.deepEqual(rankWarnings('t/scribe39', ['N 0', 'high N 0'], ['high up 0']), [], 'a rank in both views');
+  // a rank frame whose plain frame this sheet does not draw is never shown (the same-source rule): said
+  const unseen = rankWarnings('t/scribe', ['high up 0', 'high up 1'], null);
+  assert.equal(unseen.length, 1, 'rank frames without their plain frames'); assert.ok(unseen[0].includes("'high up 0'") && unseen[0].includes('never shown'), unseen[0]);
+  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'up 1', 'high up 0', 'high up 1'], null), [], 'rank frames over its own plain frames');
+  // rank anchors with no frame of that rank: they move the plain body for that rank alone: said
+  const lone = rankWarnings('t/scribe', ['up 0'], null, ['feet', 'high']);
+  assert.equal(lone.length, 1, 'rank anchors without rank frames'); assert.ok(lone[0].includes('high'), lone[0]);
+  assert.deepEqual(rankWarnings('t/scribe', ['up 0', 'high up 0'], null, ['high']), [], 'rank anchors with their frames');
 }
 one({ frames: { zz: rows(4, 3) } }, 'zz');
 one({ frames: { a: rows(5, 3) } }, 'size');

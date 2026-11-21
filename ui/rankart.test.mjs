@@ -138,4 +138,17 @@ for (const r of ['high', 'novice']) for (const [n, [gx, gy]] of [['down 0', [6, 
   const fr = ART.base.adept.frames, f = fr[`${r} ${n}`], p = fr[n];
   for (let y = gy; y < gy + 5; y++) assert.equal(f[y].slice(gx, gx + 10), p[y].slice(gx, gx + 10), `adept '${r} ${n}': the glyph's place kept, row ${y}`);
 }
+// rank anchors by the same rule as rank frames: the base art's rank anchors move only the bodies the base art draws,
+// never a world's own scribe or adept
+{
+  ART.base.scribe.anchors.high = { feet: [10, 34] };
+  ART.base.adept.anchors.novice = { feet: [10, 28] };
+  setTheme('darwin');
+  assert.deepEqual([SCRIBE_AT.rank, ADEPT_AT.rank], [{}, {}], "darwin's own bodies: none of the base art's rank anchors");
+  setTheme('forge');
+  assert.equal(SCRIBE_AT.rank.high?.feet.x, 5, 'a 40k Ordo: the base rank anchors');
+  assert.equal(ADEPT_AT.rank.novice?.feet.x, 5);
+  delete ART.base.scribe.anchors.high; delete ART.base.adept.anchors.novice;
+  setTheme('tier2');
+}
 console.log('rankart: ok');
