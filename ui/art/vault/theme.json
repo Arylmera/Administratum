@@ -285,7 +285,9 @@
       "petition": "Requisition",
       "petition-answered": "Requisition approved",
       "compaction": "Records archived",
-      "limit": "Rations out"
+      "limit": "Rations out",
+      "ci-pass": "Inspection passed",
+      "ci-fail": "Inspection failed"
     },
     "prefs": {
       "chime": "Requisition chime",
@@ -300,7 +302,8 @@
         "petitions": "Requisitions",
         "scribes": "Dwellers",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Diagnostics"
       }
     },
     "limitLabel": "off shift · back at {time}",

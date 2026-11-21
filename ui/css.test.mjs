@@ -78,4 +78,10 @@ const mobile = fs.readFileSync(new URL('./mobile.html', import.meta.url), 'utf8'
 assert.deepEqual([...mobile.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(m => m[1]), ['css/base.css', 'css/mobile.css'], 'mobile.html links base then mobile');
 assert.ok(!/<style[\s>]/.test(html) && !/<style[\s>]/.test(mobile), 'no inline <style> is left in either page');
 
+// F14: a select shows its whole value (no max-width, no ellipsis), and a label's text keeps its longest word (Longitude)
+// clear of the field beside it. Layout itself is checked by eye in the preview.
+const selectRule = SRC.panels.match(/#prefs select \{[^}]*\}/g).find(r => r.includes('min-width'));
+assert.ok(selectRule && !/max-width:\s*\d/.test(selectRule) && !/text-overflow/.test(selectRule), 'a Settings select is never truncated');
+assert.match(SRC.panels, /#prefs label > span:first-child \{[^}]*min-width:\s*min-content/, 'a label text keeps its longest word');
+
 console.log('css ok');

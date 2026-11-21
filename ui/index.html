@@ -111,10 +111,12 @@
           <button type="button" role="tab" data-cat="rooms" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18"></rect><path d="M3 12h7M14 12h7M12 3v6M12 15v6"></path></svg><span data-t="prefs.cat.rooms">Rooms</span></button>
           <button type="button" role="tab" data-cat="system" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"></rect><path d="M8 20h8M12 16v4"></path></svg><span data-t="prefs.cat.system">System</span></button>
           <button type="button" role="tab" data-cat="remote" class="host-only" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0"></path><circle cx="12" cy="20" r="1"></circle></svg><span data-t="prefs.cat.remote">Remote view</span></button>
+          <button type="button" role="tab" data-cat="status" class="host-only" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span data-t="prefs.cat.status">Status</span></button>
           </div>
           <button type="button" class="reset host-only">Reset to defaults</button>
         </nav>
         <div class="pane">
+        <p class="hint save-err" role="alert" hidden></p>
         <p class="hint remote-only" hidden>The PC's settings, read only. Scale, lighting and chime apply to this device.</p>
         <section data-cat="hall">
           <fieldset><legend>Look of the hall</legend>
@@ -183,6 +185,11 @@
             <label class="wide"><span>Token alert: one session past</span><input type="number" name="tokenAlert" min="0" step="100000" placeholder="off"><span class="unit">new tokens a day</span></label>
             <p class="hint">New tokens leave out cache reads. A count you choose: the app cannot see your subscription's quota. Empty: no alert.</p>
           </fieldset>
+          <fieldset data-host><legend>CI verdict</legend>
+            <label class="wide"><span data-t="prefs.ci.label">Show the CI result after a push</span><input type="checkbox" name="ci"></label>
+            <p class="hint" data-t="prefs.ci.hint">Asks GitHub, through your own gh, whether a push passes its checks. Off: nothing is asked.</p>
+            <p class="hint ci-gh" aria-live="polite"></p>
+          </fieldset>
           <fieldset data-host><legend>Day report</legend>
             <label class="wide"><span>Also write the day report to a folder</span><input type="checkbox" name="reportOn"></label>
             <label class="wide"><span>Folder</span><input type="text" name="reportDir" spellcheck="false" placeholder="D:\Notes\Inbox"></label>
@@ -234,6 +241,10 @@
             <button type="button" class="clear up-check">Check now</button>
             <button type="button" class="clear up-install" hidden>Install and restart</button>
           </fieldset>
+          <fieldset class="host-only" id="notify"><legend>Notifications</legend>
+            <button type="button" class="clear test-notify" data-t="prefs.test.button">Send a test notification</button>
+            <p class="hint test-line" role="status"></p>
+          </fieldset>
         </section>
         <section data-cat="remote" hidden>
         <fieldset id="remote" class="host-only"><legend>Serve on the network</legend>
@@ -250,6 +261,7 @@
           </div>
           <p class="hint win-only">Windows will ask for administrator permission.</p>
           <p class="hint rv-err" role="alert" hidden></p>
+          <p class="hint rv-state" role="status" hidden></p>
           <div class="rv-on" hidden>
             <div class="sub">Pairing</div>
             <ul class="rv-urls"></ul>
@@ -258,6 +270,11 @@
             <button type="button" class="clear rv-regen">Regenerate token</button>
           </div>
         </fieldset>
+        </section>
+        <section data-cat="status" class="host-only" hidden>
+          <fieldset id="status"><legend data-t="prefs.status.title">Integrations</legend>
+            <ul class="st-list wide" aria-live="polite"></ul>
+          </fieldset>
         </section>
         </div>
       </form>

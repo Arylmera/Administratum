@@ -282,4 +282,38 @@ await flush();
   key(list[0], 'End');
   assert.equal(document.activeElement, list[7]);
 }
+// F5: a load that fails is an error state with its message, never the empty day; a day with nothing recorded stays the silent state.
+{
+  const saved = { c: replies.chronicle_day, t: replies.tithe_day };
+  const showDay = async (n) => { tab[n].click(); await flush(); };
+  replies.chronicle_day = new Error('log file is locked');
+  await showDay(0);
+  assert.equal(body.querySelector('.quiet.err').textContent, say('log.error', { error: 'log file is locked' }));
+  assert.equal(body.querySelector('.quiet.err').getAttribute('role'), 'alert');
+  assert.equal(body.querySelector('ol.events'), null, 'no log list: the empty day is not shown');
+  assert.ok(!body.textContent.includes(say('log.empty')), 'not the empty-day line');
+  assert.ok(body.querySelector('.stats'), 'the Tithe that did load is still shown');
+  replies.tithe_day = new Error('tithe unreadable');
+  await showDay(0);
+  assert.equal(body.textContent, say('log.error', { error: 'log file is locked' }), 'both failed: the error state');
+  assert.notEqual(body.textContent, say('log.silent'));
+  Object.assign(replies, { chronicle_day: null, tithe_day: null });
+  await showDay(4);
+  assert.equal(body.textContent, say('log.silent'), 'nothing recorded is still the silent state');
+  Object.assign(replies, { chronicle_day: saved.c, tithe_day: saved.t });
+  assert.equal(say('event.ci-pass'), 'CI passed');
+  assert.equal(say('event.ci-fail'), 'CI failed');
+}
+// The CI verdict kinds have a label and an icon of their own (not the default dot).
+{
+  replies.chronicle_day = ({ day }) => (day === TODAY ? [ev(at(12, 0), 'ci-pass', 'terra-77', 'Terra'), ev(at(12, 5), 'ci-fail', 'terra-77', 'Terra'), ev(at(12, 6), 'port-in-use', 'gs-1', 'Geneseed')] : []);
+  replies.tithe_day = ({ day }) => (day === TODAY ? tithe : null);
+  tab[0].click(); await flush();
+  const rows = [...body.querySelectorAll('ol.events li')];
+  const svg = r => r.querySelectorAll('svg.ico rect').map(x => `${x.getAttribute('class')}@${x.getAttribute('x')},${x.getAttribute('y')}`).join(' ');
+  assert.ok(rows.some(r => r.getAttribute('aria-label').includes('CI passed')) && rows.some(r => r.getAttribute('aria-label').includes('CI failed')));
+  const ci = rows.filter(r => /CI (passed|failed)/.test(r.getAttribute('aria-label')));
+  assert.equal(ci.length, 2);
+  for (const r of ci) assert.ok(svg(r) && svg(r) !== svg(rows.find(x => /Port in use/.test(x.getAttribute('aria-label')))), 'an icon of its own');
+}
 console.log('chronicon ok');

@@ -124,7 +124,7 @@ for (const id of Object.keys(THEMES)) {
   }
 }
 const asked = new Set([...html.matchAll(/data-t(?:-title|-aria)?="([^"]+)"/g)].map(m => m[1]));
-for (const f of ['app.js', 'chrome.js', 'card.js', 'chronicon.js', 'overlay.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
+for (const f of ['app.js', 'chrome.js', 'card.js', 'chronicon.js', 'overlay.js', 'settings.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
 assert.ok(asked.size > 25, 'found the texts asked for');
 for (const k of asked) assert.ok(all.has(k), `text key '${k}' is asked for but not in TEXT`);
 for (const k of ['busy', 'shell', 'idle', 'waiting']) assert.ok(all.has(`status.${k}`), `status.${k}`); // card.js: status.${s.status}
@@ -271,6 +271,26 @@ setTheme('tier2');
     const own = resolve(THEMES[id]).text;
     assert.notEqual(own.mobile.empty, TEXT.mobile.empty, `${id}: the phone's empty line follows its word for a petition`);
     assert.notEqual(own.log.empty, TEXT.log.empty, `${id}: its own book`);
+  }
+}
+// L4a: the CI verdict's wording (lane L4b codes against these names and {placeholders}), its Chronicon kinds, Settings > Status.
+{
+  const PLACEHOLDERS = { running: ['branch', 'sha', 'done', 'total'], pass: ['branch', 'sha'], fail: ['branch', 'sha', 'check'], timeout: ['branch', 'sha'], error: ['branch', 'sha'], open: [] };
+  for (const id of Object.keys(THEMES)) {
+    const text = resolve(THEMES[id]).text;
+    for (const [k, names] of Object.entries(PLACEHOLDERS)) {
+      assert.deepEqual([...new Set([...text.ci[k].matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort(), [...names].sort(), `${id}: ci.${k} keeps its placeholders`);
+    }
+    for (const k of ['ci-pass', 'ci-fail']) assert.equal(typeof text.event[k], 'string', `${id}: event.${k}`);
+    assert.equal(typeof text.prefs.cat.status, 'string', `${id}: the Status category`);
+  }
+  assert.equal(t('ci.running', { branch: 'main', sha: 'abc1234', done: 2, total: 5 }), 'CI · main · abc1234 · running 2/5');
+  assert.equal(t('ci.fail', { branch: 'main', sha: 'abc1234', check: 'build' }), 'CI · main · abc1234 · failed: build');
+  assert.equal(t('ci.timeout', { branch: 'main', sha: 'abc1234' }), 'CI · main · abc1234 · no verdict after 30 min');
+  for (const id of ['cyber', 'darwin', 'orbital', 'tower', 'vault']) {
+    const own = resolve(THEMES[id]).text;
+    assert.notEqual(own.event['ci-pass'], TEXT.event['ci-pass'], `${id}: rewords the CI events like its neighbours`);
+    assert.notEqual(own.prefs.cat.status, TEXT.prefs.cat.status, `${id}: its own Status tab`);
   }
 }
 console.log('theme ok');

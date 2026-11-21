@@ -296,7 +296,9 @@
       "petition": "Query",
       "petition-answered": "Query answered",
       "compaction": "Pages bound",
-      "limit": "Out of bananas"
+      "limit": "Out of bananas",
+      "ci-pass": "Experiment holds",
+      "ci-fail": "Experiment fails"
     },
     "prefs": {
       "chime": "Query bell",
@@ -311,7 +313,8 @@
         "petitions": "Queries",
         "scribes": "Monkeys",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Field check"
       }
     },
     "limitLabel": "out of bananas · back at {time}",

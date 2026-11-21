@@ -300,7 +300,9 @@
       "petition": "Call",
       "petition-answered": "Call answered",
       "compaction": "Memory purged",
-      "limit": "Grounded"
+      "limit": "Grounded",
+      "ci-pass": "Systems nominal",
+      "ci-fail": "Systems fault"
     },
     "prefs": {
       "chime": "Call chime",
@@ -315,7 +317,8 @@
         "petitions": "Calls",
         "scribes": "Crew",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Telemetry"
       }
     },
     "limitLabel": "grounded · relaunch {time}",
