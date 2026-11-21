@@ -5,7 +5,7 @@ verdict, so they know whether CI passes without opening GitHub. Opt-in, through 
 
 Status: draft. Amended 2026-11-21 with the user's answer (joint spec
 `2026-11-21-parallel-waves-design.md`, Q2): no toast; the verdict is a lamp drawn in each theme's own art, one per
-folder (department), in every hall plan and view.
+folder (department), in every hall plan and view; one check per folder at start (Q12).
 
 ## Intent
 
@@ -29,7 +29,8 @@ per folder, green, amber or red.
 **Anti-goals** (a failure even if it works)
 - Any network call or any `gh` process while the feature is off. Off is the default.
 - The app storing, reading or logging a GitHub token. Authentication is `gh`'s own.
-- Constant polling of GitHub: calls happen only after a push and only while that push's CI runs.
+- Constant polling of GitHub: calls happen only after a push, or once per folder for its start check (section 2),
+  and only while that CI runs.
 - Breaking the "read-only towards Claude Code" stance: nothing is sent to a session.
 - A toast for a CI verdict (the user's choice).
 
@@ -71,7 +72,14 @@ remote view, so it is **not** widened. Instead `classify_call` also hands out a 
 name, dept, the session's `cwd`, the push command line and its raw output), collected next to `Found` and drained by
 the CI watcher; it is never serialized and never leaves the backend.
 
-A watch starts on a **live** push only, when `adm.ci` is on. Live means the line was read on a pass that is not the
+**Start check** (the user's answer, Q12 of the joint spec): when `adm.ci` is on, the first time a department
+(folder) is seen in a run, at app start or later in the run, the watcher looks up its latest CI once: the branch
+from `.git/HEAD` (`git::head_file`), the commit from `refs/remotes/<remote>/<branch>` (loose ref, then
+`packed-refs`), the repository from the remote's `url` in `.git/config`. That commit gets an ordinary watch, so
+the lamp shows the folder's last known CI at once (amber while it still runs). No remote branch, a detached HEAD,
+or not GitHub: no check, the lamp stays unlit. One check per folder per run; a later push replaces it as below.
+
+Otherwise a watch starts on a **live** push only, when `adm.ci` is on. Live means the line was read on a pass that is not the
 first read of that transcript: `read_new`'s `today_only` flag false for Claude Code, `OcCursor.backfill` false for
 OpenCode (the same rule that already gates `Src.branch`). A push found while backfilling at app start starts nothing.
 A `git -C <dir> push` starts nothing either (the existing push detection already treats its repo as unknown).
@@ -122,7 +130,7 @@ Over every check-run and status of the commit:
   before it calls `orca.rs` `open_url` (made `pub(crate)`; no `&` or `%` can reach `cmd /c start`).
 - **The lamp, one per folder.** The unit is the department (one working folder, the dept key the roster already
   groups by). Its state is the verdict of that folder's latest live push: amber while CI runs, green after a pass, red
-  after a fail; unlit when no push was seen since the app started, after `timeout`, `error` or no CI. The state stays
+  after a fail; unlit before the start check answers, after `timeout`, `error` or no CI. The state stays
   until that folder's next push or the app quits. Where it stands follows the hall in force:
   - open hall: in each department's zone, on its block (beside the plaque or on the back wall above it);
   - rooms plan and custom rooms: in each room, one lamp per department the room holds;
@@ -169,6 +177,8 @@ Over every check-run and status of the commit:
 - Watch state machine with a fake clock and a stubbed runner: first call at 20 s, the 3-min no-CI end, the 30-min
   cap, replace-on-new-push, the 8-watch limit, rate-limit pause, 3-failure end.
 - The off switch: with `adm.ci` off, a push starts nothing and no `gh` process is spawned (the stub records calls).
+- The start check: one watch per folder on first sight, none on the second sight in the same run, none for a
+  detached HEAD or a branch with no remote ref, none while `adm.ci` is off.
 
 ## Left to the builder
 
