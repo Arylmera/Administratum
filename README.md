@@ -196,7 +196,7 @@ from Windows:
 
 ## Worlds and themes
 
-Settings → Hall → **Theme** picks the world, **Style** a variant within it. Each world outside Warhammer has its own
+Settings → Hall → **World** picks the world, **Look** a variant within it. Each world outside Warhammer has its own
 art for every character and object, both views (Flat and 2.5D), the desktop strip and its own wording: the
 sessions, the boss who receives petitions, the subagents and the notifications all change name.
 
@@ -236,7 +236,7 @@ a phone can show a different world than the PC.</td>
 
 **Themes from others.** A theme pack is a GitHub repository holding one or more themes made by someone else: a new
 world, or a new style for a world the app ships. To add one, type its `owner/repo` (or paste its GitHub address) in
-Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the Theme and Style lists
+Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the World and Look lists
 after *Restart to apply*. The same list updates or removes a pack; *Update all* updates every pack from GitHub at
 once. At start, the app checks the added packs for changes (*Check added themes for updates at startup*, on by
 default): if one changed, a toast offers *Update*, which updates them and restarts, or *Later*. A pack is data only: colours, wording and pixel
@@ -491,15 +491,15 @@ To close the Chronicon, click ✕, press **Escape**, or click outside it.
 
 ![The settings panel](docs/img/settings.png)
 
-Open Settings with the gear in the header. Changes apply immediately. The panel has six tabs.
+Open Settings with the gear in the header. Changes apply immediately. The panel has six tabs, each grouped by what you want to change (the look of the hall, light, view and size; petitions, quiet hours and alerts; and so on). Tab and Shift+Tab stay inside the open panel, the arrow keys move between the tabs, and Esc closes it and returns to the gear.
 
 **Hall**
 
 | Setting | Default | Effect |
 |---|---|---|
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
-| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
-| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
+| World | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
+| Look | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
 | Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). *Update all* updates every pack from GitHub. A change applies after *Restart to apply* (see *Themes from others*) |
 | Check added themes for updates at startup *(PC only)* | on | Downloads each pack from GitHub a few seconds after start and compares it with the installed one (at most every 6 hours a pack). If one changed, a toast: *Update* installs the changed packs as they were compared and restarts, *Later* does nothing. Nothing is installed without that click |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
@@ -587,7 +587,7 @@ the flat and 2.5D views; the desktop strip and column are the same in both.
 
 **Remote view**: see [Remote view](#remote-view).
 
-**Reset to defaults** restores every value above except *Start at login* and the rooms.
+**Reset to defaults** restores every value above except *Start at login* and the rooms. It takes two clicks: the first arms the button (its label asks to click again), a second within four seconds resets.
 
 ### Tray menu
 

@@ -263,4 +263,14 @@ setTheme('tier2');
   assert.notEqual(outside.rank.high.adept.q, TIER_II.rank.high.adept.q, 'a theme from outside: not the 40k ivory');
   assert.equal(resolve(THEMES.xenos).rank.high.adept.q, TIER_II.rank.high.adept.q, 'a 40k Ordo: the ladder');
 }
+// The panels' wording (L3b): the keys exist in Tier II, and a world that renames petitions renames the phone's empty line too.
+{
+  for (const k of ['prefs.theme', 'prefs.look', 'prefs.resetArmed', 'log.empty', 'mobile.empty', 'petition.armed']) assert.ok(t(k) !== k, `${k} is a wording key`);
+  assert.equal(t('petition.armed'), 'Approve? click again');
+  for (const id of ['cyber', 'darwin', 'orbital', 'tower', 'vault']) {
+    const own = resolve(THEMES[id]).text;
+    assert.notEqual(own.mobile.empty, TEXT.mobile.empty, `${id}: the phone's empty line follows its word for a petition`);
+    assert.notEqual(own.log.empty, TEXT.log.empty, `${id}: its own book`);
+  }
+}
 console.log('theme ok');
