@@ -988,7 +988,6 @@ impl Chronicle {
     }
 
     /// The live pushes found since the last call, for the CI watcher (ci.rs); empties the list.
-    #[allow(dead_code)] // read by the CI watcher thread (lane L2b)
     pub fn take_ci(&mut self) -> Vec<CiPush> {
         std::mem::take(&mut self.ci)
     }

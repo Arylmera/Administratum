@@ -509,6 +509,21 @@ fn emit<S: serde::Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
     let _ = app.emit(event, payload);
 }
 
+/// Every folder's CI lamp now (ci.rs), for a UI that starts after the `ci-lamps` event. Host only.
+#[tauri::command]
+fn ci_lamps(hub: State<std::sync::Arc<ci::Hub>>) -> Vec<ci::Lamp> {
+    hub.lamps()
+}
+
+/// A click on a CI lamp or a card's CI line: open that commit's checks page on GitHub. `who` is a session id or a
+/// department name, never a URL: the page is found from the watch, built by `ci::checks_url` and checked by
+/// `ci::valid_checks_url` before `orca::open_url` runs; an unknown name or a failed check opens nothing.
+#[tauri::command]
+fn ci_open(who: String, hub: State<std::sync::Arc<ci::Hub>>) -> Result<(), String> {
+    let url = hub.open_url_for(&who)?;
+    orca::open_url(&url).map(|_| ()).map_err(|e| format!("could not open the checks page: {e}"))
+}
+
 /// A department plaque was clicked: open `path` (a live session's cwd, nothing else) with the program chosen in Settings.
 #[tauri::command(async)]
 fn open_folder(path: String, app: AppHandle, live: State<Live>) -> Result<(), String> {
@@ -596,7 +611,9 @@ fn main() {
             window::on_top_supported,
             window::set_chime_menu,
             status::integration_status,
-            toast::test_notification
+            toast::test_notification,
+            ci_lamps,
+            ci_open
         ])
         .setup(move |app| {
             // No Dock icon or app menu: a widget that lives in the tray (skipTaskbar is ignored on macOS).
@@ -630,6 +647,10 @@ fn main() {
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
                 toast::test_toast(app.handle());
             }
+            // the CI watcher's thread idles until `adm.ci` is on: no `gh` process before that (ci.rs)
+            let hub = std::sync::Arc::new(ci::Hub::default());
+            app.manage(hub.clone());
+            ci::spawn(hub);
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             remote::app::start_saved(app.handle());
@@ -695,6 +716,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut last_tick = Instant::now();
     let mut last_t = 0;
     let mut tip: Option<usize> = None; // the waiting count the tray tooltip shows
+    let hub = app.state::<std::sync::Arc<ci::Hub>>();
     loop {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
@@ -714,6 +736,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let limit_events = notify(&app, &mut tracker, &roster, first, now);
             let mut turns = std::collections::HashMap::new();
             let mut pairs = vec![];
+            let mut pushes = vec![]; // live `git push` records, for the CI watcher
             {
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
                 last_tick = Instant::now();
@@ -735,6 +758,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     turns = c.turns(&poller.files);
                     turns.extend(c.opencode_turns());
                     pairs = c.conflicts(&roster, now);
+                    pushes = c.take_ci();
                     ev
                 };
                 let from_transcripts = !demo && !events.is_empty();
@@ -756,7 +780,10 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 fill_tokens_today(&mut roster, &c, now);
             }
             let cfg = monitor::get();
+            // the CI watcher gets the pushes, the folders seen and the setting; it answers on its own thread (never in demo)
+            hub.submit(cfg.ci && !demo, pushes, roster.iter().map(|s| (s.dept.clone(), s.cwd.clone())).collect());
             for s in roster.iter_mut() {
+                s.ci = hub.card(&s.id);
                 s.turn = turns.remove(&s.id);
                 // Newest write among its transcripts, subagents' included: a working subagent is progress.
                 let last_write = poller.files.get(&s.id).and_then(|fs| fs.iter().map(|(f, _)| f.mtime_ms).max());
@@ -766,6 +793,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let mut events = stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now);
             let fresh_pairs = same_file(&mut roster, &pairs, &mut seen_pairs, first_stuck);
             events.extend(conflict_toasts(&app, &roster, &fresh_pairs, now));
+            events.extend(hub.take_verdicts().iter().filter_map(|f| ci::verdict_event(f, now)));
             for e in events {
                 lock(&app.state::<Chron>()).record(&e);
                 emit(&app, "chronicle", &e);
@@ -777,6 +805,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
             lock(&app.state::<Live>()).clone_from(&roster);
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
+            if let Some(lamps) = hub.lamps_if_changed() {
+                emit(&app, "ci-lamps", lamps);
+            }
             let waiting = window::waiting_count(&roster);
             if tip != Some(waiting) {
                 tip = Some(waiting);
