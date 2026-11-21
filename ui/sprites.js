@@ -147,7 +147,7 @@ const marksOf = (frames, mine = () => true) => Object.fromEntries(Object.entries
 const gesturesOf = (family, frames, mine = () => true) => Object.fromEntries(GESTURES.map((g, i) => [g, GESTURE_FRAMES[family][i]]).filter(([, n]) => frames[n] && mine(n)).map(([g, n]) => [g, frames[n]]));
 // The rank layer of a character family (scribe, adept, scribe39, adept39; spec 2026-11-21-rank-art): per rank, its walk
 // frames where it drew `<rank> <frame>`, the plain frame where it did not (flat: up down right, left the right mirrored;
-// 39°: E W S N), and its gestures, each only with that rank's own seated frame. same(name): whether the rank frame
+// 39°: E W S N), and its gestures, each only with that rank's own seated frame (null when it drew no seat). same(name): whether the rank frame
 // `name` comes from the source of its plain frame (a world's own scribe never wears the base art's rank frames). A rank
 // with no walk frame of its own is absent: { [rank]: { [dir]: rows[], gesture: { [g]: rows } } }.
 export function rankLayer(family, frames, same) {
@@ -157,7 +157,8 @@ export function rankLayer(family, frames, same) {
     if (!dirs.some(d => [0, 1, 2].some(i => own(`${d} ${i}`)))) continue;
     const layer = Object.fromEntries(dirs.map(d => [d, [0, 1, 2].map(i => pick(`${d} ${i}`))]));
     if (!family.endsWith('39')) layer.left = layer.right.map(mirror);
-    layer.gesture = seat && own(seat) ? Object.fromEntries(GESTURES.map((g, i) => [g, GESTURE_FRAMES[family][i]]).filter(([, n]) => own(n)).map(([g, n]) => [g, frames[`${r} ${n}`]])) : {};
+    // null: the rank did not draw its seated frame, so the plain gestures (drawn for the plain seat) still play
+    layer.gesture = seat && own(seat) ? Object.fromEntries(GESTURES.map((g, i) => [g, GESTURE_FRAMES[family][i]]).filter(([, n]) => own(n)).map(([g, n]) => [g, frames[`${r} ${n}`]])) : null;
     out[r] = layer;
   }
   return out;

@@ -1,7 +1,8 @@
 // Rank art (docs/superpowers/specs/2026-11-21-rank-art-design.md): rank-prefixed frames ('high up 0') drawn instead of
 // the plain frame, only from the plain frame's own source; per-rank anchors laid over the base anchors.
 import assert from 'node:assert/strict';
-import { SCRIBE, ADEPT, SCRIBE_AT, RES, rankLayer, rankAnchors, anchorsOf } from './sprites.js';
+import { SCRIBE, ADEPT, SCRIBE_AT, ADEPT_AT, SCRIBE39, RES, marked, rankLayer, rankAnchors, anchorsOf } from './sprites.js';
+import { bodyOf, bodyOf39 } from './actors.js';
 import { THEMES, setTheme } from './theme.js';
 
 // A frame whose every pixel is `c`, w x h art px: identity is checkable by its char.
@@ -62,5 +63,41 @@ const all = () => true;
   }
   setTheme('tier2');
   assert.ok(SCRIBE_AT.rank, 'SCRIBE_AT.rank refilled');
+}
+
+// Actors draw their rank's frame (tier2, rank layers filled by hand, then refilled by a theme switch)
+{
+  setTheme('forge'); setTheme('tier2');
+  const size = m => F('h', m[0].length, m.length);
+  const H = SCRIBE.up.map(size), HG = size(SCRIBE.up[0]), AH = ADEPT.up.map(m => F('q', m[0].length, m.length));
+  SCRIBE.rank.high = { ...rankLayer('scribe', { 'up 0': SCRIBE.up[0], 'up 1': SCRIBE.up[1], 'up 2': SCRIBE.up[2], 'down 0': SCRIBE.down[0], 'down 1': SCRIBE.down[1], 'down 2': SCRIBE.down[2], 'right 0': SCRIBE.right[0], 'right 1': SCRIBE.right[1], 'right 2': SCRIBE.right[2], 'high up 0': H[0], 'high up 1': H[1], 'high up 2': H[2] }, all).high, gesture: { think: HG } };
+  const scribe = (model, extra = {}) => ({ id: 's1', s: { status: 'busy', context: { model } }, x: 50, y: 50, pose: 'walk', dir: 'up', walked: 0, t: 0, ...extra });
+  // body at rank
+  assert.equal(bodyOf(scribe('claude-opus-5-5')).map, H[0], 'body at rank: high walks in its rank frame');
+  assert.equal(bodyOf(scribe('claude-sonnet-5-5')).map, SCRIBE.up[0], 'body at rank: standard keeps the plain frame');
+  // seated rank gesture: some moment of a busy turn at the desk shows think, in the rank's frame
+  let seen = false;
+  for (let t = 0; t < 60 && !seen; t += 0.1) {
+    const b = bodyOf(scribe('claude-opus-5-5', { pose: 'desk', t }));
+    if (b.gesture === 'think') { assert.equal(b.map, HG, 'seated rank gesture'); seen = true; }
+  }
+  assert.ok(seen, 'a busy high scribe thinks at some moment');
+  // rank feet
+  SCRIBE_AT.rank.high = { ...SCRIBE_AT, feet: { x: 9, y: 17 } };
+  assert.equal(bodyOf(scribe('claude-opus-5-5')).x, 50 - 9, 'rank feet');
+  assert.equal(bodyOf(scribe('claude-haiku-5-5')).x, 50 - SCRIBE_AT.feet.x, 'plain feet for a rank without anchors');
+  // glyph on rank body
+  ADEPT.rank.high = { up: AH, down: AH, right: AH, left: AH, gesture: {} };
+  ADEPT_AT.rank.high = { ...ADEPT_AT, 'glyph up': { x: 2, y: 5 } };
+  const adept = { h: { kind: 'Plan', model: 'claude-opus-5-5' }, x: 50, y: 50, pose: 'console', target: { dir: 'up' } };
+  const map = bodyOf(adept).map, g = ADEPT.marks['glyph plan'];
+  assert.equal(map, marked(AH[0], ADEPT, ADEPT_AT.rank.high, 'up', 'plan'), 'glyph on rank body');
+  g.forEach((row, j) => [...row].forEach((c, i) => c === '.' || assert.equal(map[5 * RES + j][2 * RES + i], c, 'the glyph at the rank anchor')));
+  // 39°: the rank frame too
+  const N = SCRIBE39.N.map(size);
+  SCRIBE39.rank.high = { E: SCRIBE39.E, W: SCRIBE39.W, S: SCRIBE39.S, N, gesture: {} };
+  assert.equal(bodyOf39(scribe('claude-opus-5-5')).map, N[0], '39° body at rank');
+  setTheme('forge'); setTheme('tier2'); // refill: the hand-made layers are gone
+  assert.deepEqual(SCRIBE.rank, {}, 'refilled');
 }
 console.log('rankart: ok');

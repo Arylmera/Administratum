@@ -358,7 +358,7 @@ export function gestureNow(a, has) {
 // Feet-relative top-left (fx, fy), as drawActor. gesture: the gesture frame drawn as its body (bodyOf), which draws
 // its own arms and comes before the Zs: neither is laid over it.
 export function drawCarried(g, a, V, fx, fy, over, gesture = null) {
-  const A = V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll;
+  const A = V.at.rank?.[rankOf(a.s?.context?.model)] ?? V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll; // its rank's anchors (rankAnchors)
   if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); return; }
   const { done, lift } = liftOf(a);
   if (V.arm && !gesture) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift, over); }
@@ -381,15 +381,16 @@ export function bodyOf(a) {
     return { map: a.ring > 0 ? WATCH.ring : WATCH[dir][walk ? i : 0], left: a.ring > 0 ? false : dir === 'left', x: Math.round(a.x) - WATCH_AT.feet.x, y: Math.round(a.y) - WATCH_AT.feet.y, step: walk ? i : -1 };
   }
   if (a.h) { // adept: 12x14
-    const i = Math.floor((a.walked ?? 0) / STRIDE) % 3, over = T.rank[rankOf(a.h.model ?? a.h.context?.model)].adept;
-    const face = walk ? a.dir : a.target.dir;
-    return { map: marked(ADEPT[face][walk ? i : 0], ADEPT, ADEPT_AT, face, markOf(a.h.kind)), over, x: Math.round(a.x) - ADEPT_AT.feet.x, y: Math.round(a.y) - ADEPT_AT.feet.y, step: walk ? i : -1 };
+    const r = rankOf(a.h.model ?? a.h.context?.model), i = Math.floor((a.walked ?? 0) / STRIDE) % 3, over = T.rank[r].adept;
+    const face = walk ? a.dir : a.target.dir, RF = ADEPT.rank?.[r] ?? ADEPT, RA = ADEPT_AT.rank?.[r] ?? ADEPT_AT; // its rank's frames and anchors (rankLayer)
+    return { map: marked(RF[face][walk ? i : 0], ADEPT, RA, face, markOf(a.h.kind)), over, x: Math.round(a.x) - RA.feet.x, y: Math.round(a.y) - RA.feet.y, step: walk ? i : -1 };
   }
   const still = a.wait > 0 || a.still || a.ride === 'in'; // paused at the recaff, in the lift's line, riding the car
-  const i = still ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(rankOf(a.s.context?.model), a.sash);
-  const gesture = gestureNow(a, n => !!SCRIBE.gesture?.[n]);
-  const map = a.pose === 'burn' || a.ride === 'in' ? SCRIBE.down[0] : walk ? SCRIBE[a.dir][i] : gesture ? SCRIBE.gesture[gesture] : SCRIBE.up[0];
-  return { map, over, x: Math.round(a.x) - SCRIBE_AT.feet.x, y: Math.round(a.y) - SCRIBE_AT.feet.y, step: walk && !still ? i : -1, gesture };
+  const r = rankOf(a.s.context?.model), i = still ? 0 : Math.floor((a.walked ?? 0) / STRIDE) % 3, over = robeOf(r, a.sash);
+  const RF = SCRIBE.rank?.[r] ?? SCRIBE, RA = SCRIBE_AT.rank?.[r] ?? SCRIBE_AT, G = RF.gesture ?? SCRIBE.gesture; // its rank's frames, anchors, gestures (rankLayer)
+  const gesture = gestureNow(a, n => !!G?.[n]);
+  const map = a.pose === 'burn' || a.ride === 'in' ? RF.down[0] : walk ? RF[a.dir][i] : gesture ? G[gesture] : RF.up[0];
+  return { map, over, x: Math.round(a.x) - RA.feet.x, y: Math.round(a.y) - RA.feet.y, step: walk && !still ? i : -1, gesture };
 }
 
 // The 39° view's facing, from the walk direction in floor space: E = +x, W = -x, S = +y (toward the viewer), N = -y.
@@ -400,17 +401,19 @@ export const face39 = dir => FACE39[dir] ?? 'N';
 // (dx, dy, logical px), the palette and walk step of bodyOf; a scribe at its desk, its gesture (its 39° frame instead
 // of `N 0`), as bodyOf. null while the theme has no 39° art for this actor (the caller draws the flat frame upright).
 export function bodyOf39(a) {
-  const F = a.watch ? WATCH39 : a.h ? ADEPT39 : SCRIBE39, A = a.watch ? WATCH39_AT : a.h ? ADEPT39_AT : SCRIBE39_AT;
-  if (!F.E) return null;
+  const B = a.watch ? WATCH39 : a.h ? ADEPT39 : SCRIBE39, BA = a.watch ? WATCH39_AT : a.h ? ADEPT39_AT : SCRIBE39_AT;
+  if (!B.E) return null;
+  const r = !a.watch && rankOf(a.h ? a.h.model ?? a.h.context?.model : a.s?.context?.model); // its rank's frames and anchors (rankLayer)
+  const F = (r && B.rank?.[r]) || B, A = (r && BA.rank?.[r]) || BA;
   const b = bodyOf(a), walk = a.pose === 'walk', i = Math.max(0, b.step);
   if (a.watch) {
     const face = face39(walk ? a.dir : a.target?.dir ?? a.dir);
     return { map: a.ring > 0 ? F.ring : F[face][walk ? i : 0], dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
   }
   const face = walk ? face39(a.dir) : a.pose === 'burn' ? 'S' : a.h ? face39(a.target?.dir) : 'N';
-  if (a.h) return { map: marked(F[face][walk ? i : 0], F, A, face, markOf(a.h.kind)), over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
-  const gesture = gestureNow(a, n => !!F.gesture?.[n]);
-  return { map: gesture ? F.gesture[gesture] : F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face, gesture };
+  if (a.h) return { map: marked(F[face][walk ? i : 0], B, A, face, markOf(a.h.kind)), over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face };
+  const G = F.gesture ?? B.gesture, gesture = gestureNow(a, n => !!G?.[n]);
+  return { map: gesture ? G[gesture] : F[face][walk ? i : 0], over: b.over, dx: -A.feet.x, dy: -A.feet.y, step: b.step, face, gesture };
 }
 
 // The Watchman's lantern in the flat view (floor coords): WATCH_AT.light, mirrored with the frame when he faces left.
