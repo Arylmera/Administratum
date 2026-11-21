@@ -103,9 +103,16 @@ Query values are percent-decoded.
 | `GET /api/peek_petition?handle=term_...` | `peek_petition` -> `{question, yes, always, no}`. Behind the same remote actions switch as answering: 403 when actions are off, or when a browser's `Origin` / `Sec-Fetch-Site` says the request is cross-origin (a same-origin GET carries neither; no `X-Adm` header or body is needed) |
 | `GET /api/theme_packs` | `theme_packs` -> `[{id, dir, repo, installed, themes}]`, the theme packs in the PC's themes folder (`id` `owner/repo` or `local/<dir>`; `repo` and `installed` null for a local pack; `themes` the folders holding a `theme.json`, sorted). Their files are served under `/themes/` (Static files); there is no remote install or removal |
 
+CI (I6, only while the setting `adm.ci` is on, read only): the `ci-lamps` event, mirrored to `/events` like `roster`, carries
+the folders' lamps, `[{dept, cwd, state, branch, sha7, failed}]` (`state`: `running`, `pass`, `fail`, `timeout`, `error` or `none`;
+`failed`: the first failed check's name, or null). It is sent when the list changes (an empty list too, when the
+setting goes off), not every tick. Each session of the `roster` event also has `ci`: null, or `{repo, branch, sha7, state,
+done, total, failed}` for its latest live push. There is no remote command for it: `ci_lamps` (the current list) and
+`ci_open` (open a commit's checks page, from a session id or a department name) are Tauri commands for the PC's own UI only.
+
 Local only, never a remote call: `integration_status` (the Settings > Status entries), `test_notification`, and the `update-progress` event (`{downloaded, total}` while an update downloads; it is not mirrored to `/events`).
 
-Not exposed: `open_session`, `settings_save`, `theme_pack_file` (the phone reads `/themes/` instead), `theme_pack_install`, `theme_pack_update`, `theme_pack_remove`, `restart`, `set_*`, `start_at_login`, the `remote_*` commands.
+Not exposed: `open_session`, `ci_lamps`, `ci_open`, `settings_save`, `theme_pack_file` (the phone reads `/themes/` instead), `theme_pack_install`, `theme_pack_update`, `theme_pack_remove`, `restart`, `set_*`, `start_at_login`, the `remote_*` commands.
 
 ## Action endpoint (POST)
 
