@@ -262,6 +262,7 @@
       "napping": "Idle · in the bunk"
     },
     "petitions": ["{n} requisition", "{n} requisitions"],
+    "mobile": { "empty": "No requisition waits" },
     "petitioning": "{n} requisitioning",
     "petitionLabel": "{name}, requisition: {want}",
     "adeptOf": "{kind} · robot of {owner}",
@@ -272,7 +273,8 @@
       "title": "Overseer's log",
       "open": "Open the Overseer's log",
       "close": "Close the Overseer's log",
-      "silent": "The Overseer's log is empty: no record could be read for this day."
+      "silent": "The Overseer's log is empty: no record could be read for this day.",
+      "empty": "Nothing in the Overseer's log for this day"
     },
     "tithe": {
       "hint": "Rations today: tokens and shift time",

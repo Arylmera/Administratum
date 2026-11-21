@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { install, replies, invoked, tick, flush, emit } from './testdom.mjs';
 
 install(undefined, Date.UTC(2026, 9, 17, 14, 30)); // Saturday 17 Oct 2026, 14:30 (TZ pinned to UTC)
@@ -81,7 +82,7 @@ assert.equal(list.children[0].getAttribute('aria-label'), `11:40 ${say('event.to
 assert.equal(list.children[2].querySelector('.d').textContent, 'fix: x');
 const ico = list.children[0].querySelector('.k');
 assert.equal(ico.title, say('event.tool-error'));
-assert.ok(ico.querySelectorAll('svg.ico rect').some(r => r.getAttribute('fill') === '#e8c050'), "its kind's pixel icon");
+assert.ok(ico.querySelectorAll('svg.ico rect').some(r => r.getAttribute('class') === 'cy'), "its kind's pixel icon");
 assert.deepEqual([...sel.options].map(o => [o.value, o.textContent]), [['', 'All departments'], ['Geneseed', 'Geneseed'], ['Terra', 'Terra']]);
 sel.value = 'Geneseed'; sel.dispatch('change');
 assert.deepEqual(names(), ['10:00 gs-1']);
@@ -227,4 +228,58 @@ assert.deepEqual(sumTithes([day(1)]).bySession, {});
 assert.deepEqual(sumTithes([]), { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, busyMs: 0, byProject: {}, byModel: {}, bySession: {} });
 assert.equal(reportText('---\ndate: 2026-10-16\nsource: Administratum\n---\n\n# Day report — 2026-10-16\n\nx\n'), '# Day report — 2026-10-16\n\nx\n');
 assert.equal(reportText('# no frontmatter'), '# no frontmatter');
+// F16: an empty day says so in the theme's words (log.empty), in a box of its own.
+tab[2].click();
+await flush();
+{
+  const empty = body.querySelector('ol.events li.empty');
+  assert.equal(empty.textContent, say('log.empty'));
+  assert.ok(empty.classList.contains('quiet'));
+  assert.equal(body.querySelectorAll('ol.events li').length, 1);
+  assert.ok(say('log.empty') !== 'log.empty', 'the key exists');
+}
+// F16: no colour is written into the icons or the bars: each icon pixel is a class, and the CSS gives it a --chart-*
+// variable (the theme's), so a world recolours them. The new / cache bars read --chart-new and --chart-cache.
+{
+  tab[0].click();
+  await flush();
+  const rects = body.querySelectorAll('svg.ico rect');
+  assert.ok(rects.length > 20);
+  assert.ok(rects.every(r => !r.hasAttribute('fill') && !r.hasAttribute('style') && /^c[kRrwyogbB]$/.test(r.getAttribute('class'))), 'classes, no colour');
+  const css = readFileSync(new URL('./css/panels.css', import.meta.url), 'utf8'), base = readFileSync(new URL('./css/base.css', import.meta.url), 'utf8');
+  const VAR = { k: 'ink', R: 'red', r: 'red-deep', w: 'light', y: 'gold', o: 'orange', g: 'green', b: 'brown', B: 'brass' };
+  for (const [letter, name] of Object.entries(VAR)) {
+    assert.ok(new RegExp(`#chron \\.ico \\.c${letter}\\s*\\{\\s*fill:\\s*var\\(--chart-${name}\\)`).test(css), `icon colour ${letter} is --chart-${name}`);
+    assert.ok(base.includes(`--chart-${name}:`), `--chart-${name} has a default`);
+  }
+  assert.ok(/--c-new:\s*var\(--chart-new\)/.test(css) && /--c-cache:\s*var\(--chart-cache\)/.test(css));
+  // new against cache is not told by hue alone: the cache part is hatched
+  assert.ok(/#chron \.cache[^{]*\{[^}]*repeating-linear-gradient/.test(css), 'the cache bar carries a pattern');
+  // two worlds: the variables differ, and that is what the page applies (chrome.js, T.ui)
+  const { defineTheme, setTheme, T } = await import('./theme.js');
+  defineTheme({ id: 'chart-a', name: 'A', world: 'w40k', ui: { '--chart-new': '#112233', '--chart-cache': '#445566', '--chart-red': '#aa0000' } });
+  defineTheme({ id: 'chart-b', name: 'B', world: 'w40k', ui: { '--chart-new': '#998877', '--chart-cache': '#665544', '--chart-red': '#00aa00' } });
+  setTheme('chart-a'); const a = { ...T.ui };
+  setTheme('chart-b'); const b = { ...T.ui };
+  for (const k of ['--chart-new', '--chart-cache', '--chart-red']) assert.ok(a[k] && b[k] && a[k] !== b[k], `${k} differs between two themes`);
+  setTheme('tier2');
+}
+// F15: the day tabs are a tab list: arrows, Home and End move the focus, one tab in the tab order, Enter (a click) picks.
+{
+  const key = (el, k) => { const seen = {}; el.dispatch('keydown', { key: k, preventDefault() { seen.prevented = true; } }); return seen; };
+  const list = [...tabs.children], tabindexes = () => list.map(b => b.getAttribute('tabindex'));
+  assert.equal(tabs.getAttribute('role'), 'tablist');
+  assert.equal(root.getAttribute('aria-modal'), 'true');
+  assert.deepEqual(tabindexes(), ['0', ...Array(7).fill('-1')], 'only the selected tab is in the tab order');
+  assert.equal(key(list[0], 'ArrowRight').prevented, true);
+  assert.equal(document.activeElement, list[1]);
+  assert.deepEqual(tabindexes(), ['-1', '0', ...Array(6).fill('-1')], 'roving');
+  assert.equal(list[0].getAttribute('aria-selected'), 'true', 'moving does not pick');
+  key(list[1], 'ArrowLeft'); key(list[0], 'ArrowLeft');
+  assert.equal(document.activeElement, list[7], 'wraps to the Week tab');
+  key(list[7], 'Home');
+  assert.equal(document.activeElement, list[0]);
+  key(list[0], 'End');
+  assert.equal(document.activeElement, list[7]);
+}
 console.log('chronicon ok');

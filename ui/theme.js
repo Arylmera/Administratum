@@ -119,13 +119,15 @@ export const TEXT = {
   sameFile: 'same file: {file} · {other}', portInUse: 'port {port} already in use', // two sessions on one file; a port taken
   cacheWarm: 'cache warm · {min} min left', cacheCold: 'cache cold', // an idle session's prompt cache (O15)
   modes: { full: 'Full light', candles: 'Candles' },
-  log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.' },
+  log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.', empty: 'No events recorded' },
+  mobile: { empty: 'No petition waits' }, // the phone page with no petition (mobile.js)
+  petition: { armed: 'Approve? click again' }, // a risky Approve, armed by its first click (card.js, overlay.js)
   tithe: { hint: 'Tithe today: tokens and working time', day: 'Tithe today: {tokens} tokens, {time} of work' },
   event: { commit: 'Commit sealed', push: 'Pushed', 'tests-pass': 'Tests pass', 'tests-fail': 'Tests fail', 'tool-error': 'Tool error',
     'task-done': 'Long task done', arrived: 'Arrived', left: 'Left', petition: 'Petition', 'petition-answered': 'Petition answered',
     compaction: 'Context compacted', limit: 'Usage limit', 'token-alert': 'Token alert', stuck: 'Stuck',
     conflict: 'Same file', 'port-in-use': 'Port in use' },
-  prefs: { theme: 'Theme', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
+  prefs: { theme: 'World', look: 'Look', resetArmed: 'Click again to reset', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
     stale: 'Petition turns stale after', nap: 'Idle to the Refectorium after', cog: 'Stay at the cogitator for',
     pauseHint: 'Near-zero CPU when unseen; petitions still alert.',
     // Settings > Hall > Added themes (settings.js initPacks): theme packs from outside
