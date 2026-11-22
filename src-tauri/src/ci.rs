@@ -334,8 +334,9 @@ fn run_outcome(r: &Value) -> Outcome {
     }
     match r["conclusion"].as_str() {
         Some("failure" | "timed_out" | "cancelled" | "action_required" | "startup_failure") => Outcome::Bad,
-        Some(_) => Outcome::Ok, // success, neutral, skipped (and a stale run)
-        None => Outcome::Pending,
+        Some("success" | "neutral" | "skipped") => Outcome::Ok,
+        // `stale`, or a conclusion this app does not know: no pass is claimed, the check stays pending (amber)
+        _ => Outcome::Pending,
     }
 }
 
@@ -1300,6 +1301,16 @@ mod tests {
     fn a_skipped_or_neutral_check_counts_as_passed() {
         let r = [ok("build"), ("deploy", "completed", Some("skipped")), ("note", "completed", Some("neutral"))];
         assert_eq!(verdict(&r, NONE), (Verdict::Pass, 3, 3));
+    }
+
+    #[test]
+    fn an_unknown_conclusion_is_no_pass() {
+        // `stale` (GitHub's word for a check suite that waited too long) or any conclusion this app does not know: the
+        // lamp must not claim a success that did not happen, it stays amber
+        for c in ["stale", "something_new"] {
+            let r = [ok("build"), ("lint", "completed", Some(c))];
+            assert_eq!(verdict(&r, NONE), (Verdict::Running, 1, 2), "{c}");
+        }
     }
 
     #[test]
