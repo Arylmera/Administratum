@@ -197,18 +197,18 @@ for (const id of ['cyber', 'orbital', 'tower', 'vault', 'darwin']) { // a world'
   kindsDrawn(id);
 }
 setTheme('tier2');
-// the floor's grate variants likewise: mixed in where the floor is the base one, dropped where a world redraws its floor
+// the floor's veined variants likewise: mixed in where the floor is the base one, dropped where a world redraws its floor
 assert.deepEqual(ROOM.tiles.floor.mix, ['floor vent', 'floor bolts']);
 setTheme('forge');
-assert.equal(ROOM.tiles.floor.mix.length, 2, 'forge: a palette-only theme mixes the base grates');
+assert.equal(ROOM.tiles.floor.mix.length, 2, 'forge: a palette-only theme mixes the base veins');
 setTheme('cyber');
-assert.equal(ROOM.tiles.floor.mix?.length ?? 0, 0, 'cyber: its own floor, not the base grates');
+assert.equal(ROOM.tiles.floor.mix?.length ?? 0, 0, 'cyber: its own floor, not the base marble');
 setTheme('tier2');
 { // the mix, seeded by the cell: every variant shows, the plain grate stays the bulk, the same cell always the same frame
   const { cellFrame } = await import('./room.js'), seen = {};
   for (let y = 0; y < 10; y++) for (let x = 0; x < 40; x++) { const n = cellFrame('floor', x, y); seen[n] = (seen[n] ?? 0) + 1; assert.equal(cellFrame('floor', x, y), n); }
   for (const m of ROOM.tiles.floor.mix) assert.ok(seen[m] > 0, `floor: '${m}' never laid`);
-  assert.ok(seen.floor > 300, 'floor: the plain grate is most cells');
+  assert.ok(seen.floor > 300, 'floor: the plain marble is most cells');
 }
 assert.equal(MAPS.BANNER, plain.banner);
 assert.equal(SHEET_OF.BANNER, 'walls');

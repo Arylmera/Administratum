@@ -64,7 +64,7 @@ pixelated`, 30 fps cap, paused when the window is hidden.
 
 ## The scene (Tier II)
 
-- **Scriptorium** (left): iron grate floor with glowing green coolant channels, archive shelves
+- **Scriptorium** (left): dark marble floor with glowing green coolant channels, archive shelves
   overflowing with paper, gothic windows, Cog Mechanicus banners, copper pipes, cables from the
   ceiling, hanging incense censers, binary cant on the walls, cogitator bank on the back wall.
   Paper towers, scroll piles, books and loose sheets everywhere (an unsorted library).

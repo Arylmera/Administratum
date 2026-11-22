@@ -24,9 +24,9 @@ export const BASE = {
   // rank markers in the scribe maps (t hood rim, T shoulder seam, z cog, j cog hub): robe-coloured unless rank gilds them
   t: '#8c2c1c', T: '#3a0d09', z: '#5e1710', j: '#5e1710',
   J: '#a89a78', I: '#a89a78', // adept hood cog, bone unless gilded
-  // the room tiles (ui/art/room-*.png): floor grate, wall plates, sanctum, pillars, copper pipes, coolant, the gate's void,
+  // the room tiles (ui/art/room-*.png): marble floor, wall plates, sanctum, pillars, copper pipes, coolant, the gate's void,
   // the alarm beacon. 7 8 9 H K (sheen and rivet glints) are derived from their plate / seam unless a theme sets them.
-  1: '#2b2d30', 2: '#141516', 3: '#383b3f', // floor: grate, gaps, lit lips
+  1: '#2b2d30', 2: '#141516', 3: '#383b3f', // floor (dark marble): veins, the slab itself, vein glints
   4: '#2a2a2c', 5: '#2c2c2e', 6: '#18191b', 7: '#393838', 8: '#3a393a', 9: '#413f3e', // plates west / east, seams, sheens, rivet glint
   0: '#140f0c', A: '#100b08', // wall foot, dark walls between rooms
   D: '#301612', E: '#1e0c09', H: '#3e2520', K: '#46342f', N: '#3a110e', // sanctum: plates, seams, sheen, rivet glint, floor

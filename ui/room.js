@@ -4,7 +4,7 @@
 //   repeat-x/y  a strip along one axis, its own size across (pipes, channels, sills, pillars)
 //   nine        nine-slice: corners kept, edges and centre tiled; `edge`: the border in art px (the sanctum floor)
 //   once        drawn as is (doors, fittings, pilasters, the beacon); the default
-// `mix` (repeat, no `top`): variant frames of the same size laid over some cells, by cellFrame (the floor grates).
+// `mix` (repeat, no `top`): variant frames of the same size laid over some cells, by cellFrame (the floor's veined marble).
 // `glow`: the tile glows in that ink colour (the coolant), `glowPasses` times over for a stronger glow (default 1).
 // Where things go stays in scene.js: a theme reskins the
 // tiles, the room keeps its shape.

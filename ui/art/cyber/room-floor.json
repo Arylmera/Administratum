@@ -58,6 +58,18 @@
       "h": 40
     },
     "palette": "key.gpl",
-    "anchors": {}
+    "anchors": {},
+    "tiles": {
+      "channel h": {
+        "fill": "repeat-x",
+        "glow": "coolant",
+        "glowPasses": 2
+      },
+      "channel v": {
+        "fill": "repeat-y",
+        "glow": "coolant",
+        "glowPasses": 2
+      }
+    }
   }
 }
