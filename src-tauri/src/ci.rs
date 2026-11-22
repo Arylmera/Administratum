@@ -875,12 +875,13 @@ pub fn main_verdict_event(m: &MainEnded, now_ms: i64) -> Option<Event> {
     Some(Event { ts: now_ms, kind: kind.into(), session_id: String::new(), name: m.dept.clone(), dept: m.dept.clone(), helper: None, detail: registry::clip(&detail), reset_ms: None, hit_ms: None })
 }
 
-/// The departments a scribe of was done this tick: each session of `prev` that was `busy` and is now `idle` or gone
-/// from the roster, its department once.
+/// The departments a scribe of was done this tick: each session of `prev` gone from the roster, or that was working
+/// (`busy`, or `shell` in a shell call) and is now `idle`, its department once.
 pub fn scribes_done(prev: &[Session], now: &[Session]) -> Vec<String> {
     let mut depts: Vec<String> = vec![];
-    for p in prev.iter().filter(|p| p.status == "busy") {
-        let done = now.iter().find(|s| s.id == p.id).is_none_or(|s| s.status == "idle");
+    for p in prev {
+        let working = p.status == "busy" || p.status == "shell";
+        let done = now.iter().find(|s| s.id == p.id).is_none_or(|s| working && s.status == "idle");
         if done && !depts.contains(&p.dept) {
             depts.push(p.dept.clone());
         }
@@ -2240,10 +2241,21 @@ mod tests {
     #[test]
     fn scribes_done_cases() {
         let s = |id: &str, dept: &str, status: &str| Session { id: id.into(), dept: dept.into(), status: status.into(), ..Default::default() };
-        let prev = [s("a", "Terra", "busy"), s("b", "Mars", "busy"), s("c", "Luna", "idle"), s("d", "Io", "waiting"), s("e", "Terra", "busy"), s("f", "Venus", "busy")];
-        let now = [s("a", "Terra", "idle"), s("c", "Luna", "idle"), s("d", "Io", "idle"), s("e", "Terra", "idle"), s("f", "Venus", "busy")];
-        // a: busy to idle; b: busy to gone; c: idle to idle; d: waiting to idle; e: Terra again; f: still busy
-        assert_eq!(scribes_done(&prev, &now), ["Terra", "Mars"]);
+        let prev = [
+            s("a", "Terra", "busy"),
+            s("b", "Mars", "busy"),
+            s("c", "Luna", "idle"),
+            s("d", "Io", "waiting"),
+            s("e", "Terra", "busy"),
+            s("f", "Venus", "busy"),
+            s("g", "Ceres", "shell"),
+            s("h", "Pluto", "waiting"),
+            s("i", "Eris", "busy"),
+        ];
+        let now = [s("a", "Terra", "idle"), s("c", "Luna", "idle"), s("d", "Io", "idle"), s("e", "Terra", "idle"), s("f", "Venus", "busy"), s("g", "Ceres", "idle"), s("i", "Eris", "shell")];
+        // a: busy to idle; b: busy to gone; c: idle to idle; d: waiting to idle; e: Terra again; f: still busy;
+        // g: shell to idle; h: waiting to gone (any session that leaves the roster); i: busy to shell, still working
+        assert_eq!(scribes_done(&prev, &now), ["Terra", "Mars", "Ceres", "Pluto"]);
         assert!(scribes_done(&[], &now).is_empty(), "the first tick");
         assert!(scribes_done(&now, &now).is_empty());
     }
