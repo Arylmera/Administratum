@@ -32,7 +32,8 @@
     "honours",
     "lift",
     "enclave",
-    "roomcog"
+    "roomcog",
+    "cimain"
   ],
   "px": {
     "0": "#14151f",

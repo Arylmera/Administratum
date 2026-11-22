@@ -1,0 +1,55 @@
+{
+  "frames": {
+    "CIMAIN.off": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 14,
+        "h": 28
+      }
+    },
+    "CIMAIN.amber": {
+      "frame": {
+        "x": 15,
+        "y": 0,
+        "w": 14,
+        "h": 28
+      }
+    },
+    "CIMAIN.amber_dim": {
+      "frame": {
+        "x": 30,
+        "y": 0,
+        "w": 14,
+        "h": 28
+      }
+    },
+    "CIMAIN.green": {
+      "frame": {
+        "x": 45,
+        "y": 0,
+        "w": 14,
+        "h": 28
+      }
+    },
+    "CIMAIN.red": {
+      "frame": {
+        "x": 60,
+        "y": 0,
+        "w": 14,
+        "h": 28
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "cimain.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 74,
+      "h": 28
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

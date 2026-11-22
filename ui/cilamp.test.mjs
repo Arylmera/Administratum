@@ -101,7 +101,13 @@ setLamps([]);
 // palette, so green reads green, amber amber and red red whatever a theme or a pack does to the key slots.
 {
   const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-  const lensOf = frame => { const ch = MAPS[frame][5][4], c = { ...T.px, ...LENS[frame] }[ch]; return rgb(c); }; // the lens's lit centre
+  // the lens's main colour: its first LENS char (the lit body, not the glint or the shade), found wherever this world's
+  // art puts the lens (a world's CIMAIN draws a smaller lens than the base one)
+  const lensOf = frame => {
+    const ch = Object.keys(LENS[frame])[0];
+    assert.ok(MAPS[frame].some(r => r.includes(ch)), `${frame}: its lens char '${ch}' is drawn`);
+    return rgb({ ...T.px, ...LENS[frame] }[ch]);
+  };
   const seen = {};
   for (const id of Object.keys(THEMES)) {
     setTheme(id);

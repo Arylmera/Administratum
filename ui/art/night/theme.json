@@ -2,7 +2,7 @@
   "format": 1,
   "name": "Ordo Malleus",
   "world": "w40k",
-  "art": ["breakout", "roomcog"],
+  "art": ["breakout", "roomcog", "cimain"],
   "px": {
     "1": "#1e2028",
     "2": "#0c0e12",

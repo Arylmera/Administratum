@@ -8,7 +8,7 @@
     { "hue": [210, 260], "to": 272, "sat": 1.4, "light": 0.01 },
     { "hue": [165, 210], "to": 28, "sat": 1, "light": 0.02 }
   ],
-  "art": ["breakout", "roomcog"],
+  "art": ["breakout", "roomcog", "cimain"],
   "px": { "7": "#32213e", "8": "#362244", "9": "#3e3241", "H": "#38213e", "K": "#453243" },
   "ink": { "lampDead": "#1c1d20" },
   "ui": {

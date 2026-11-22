@@ -2,7 +2,7 @@
   "format": 1,
   "name": "Ordo Hereticus",
   "world": "w40k",
-  "art": ["breakout", "roomcog"],
+  "art": ["breakout", "roomcog", "cimain"],
   "px": {
     "1": "#3a3a3e",
     "2": "#0a0a0c",
