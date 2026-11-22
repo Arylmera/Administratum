@@ -268,10 +268,7 @@ pub fn default_branch_of(cwd: &Path) -> Option<MainRef> {
     let dirs = git_dirs(cwd)?;
     let config = read_config(&dirs.common);
     let current = fs::read_to_string(&dirs.head).ok().and_then(|h| h.trim().strip_prefix("ref:")?.trim().strip_prefix("refs/heads/").map(String::from));
-    let remote = current
-        .and_then(|b| config_get(&config, &format!("branch \"{b}\""), "remote"))
-        .filter(|r| r != ".")
-        .unwrap_or_else(|| "origin".into());
+    let remote = current.and_then(|b| config_get(&config, &format!("branch \"{b}\""), "remote")).filter(|r| r != ".").unwrap_or_else(|| "origin".into());
     if !valid_ref_name(&remote) {
         return None;
     }
@@ -2225,11 +2222,11 @@ mod tests {
         let terra = [("Terra", r.as_path())];
         let first = w.step(&gh, T0, input(true, vec![], &terra)).notes;
         let skipped = (status::State::Warn, "CI check skipped: gh not logged in".to_string());
-        assert_eq!(first[1..], [skipped.clone()]);
+        assert_eq!(&first[1..], std::slice::from_ref(&skipped));
         assert!(w.step(&gh, T0 + 60_000, input(true, vec![], &terra)).notes.is_empty());
         let again = w.step(&gh, T0 + crate::ci_main::IDLE_MS, input(true, vec![], &terra)).notes;
         assert_eq!(gh.log().len(), 3, "checked again 5 min later");
-        assert_eq!(again, [skipped.clone()], "the same note, word for word");
+        assert_eq!(again, std::slice::from_ref(&skipped), "the same note, word for word");
         // what `Hub::settle` hands it to: an unchanged note leaves the entry (and the log) as it was
         let name = "ci-test-skip-note";
         status::report_change(name, skipped.0, &skipped.1);
