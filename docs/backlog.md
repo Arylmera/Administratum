@@ -7,14 +7,13 @@ Done recently: answer petitions, stale escalation, model ranks, compaction ritua
 - macOS: not over full-screen apps (needs the FullScreenAuxiliary collection behaviour, not exposed by Tauri); on a mixed-DPI multi-display Mac the cursor and the monitor rects may disagree (tao scales the cursor by the primary display)
 - No desk glows or lighting pass in the strip (the hall's lighting is skipped there)
 - The cogitator (82×50) nearly fills the strip's height and leaves less room for lecterns on narrow screens
-- A click on a character needs the cursor to rest there about 50 ms first (the strip polls the cursor to decide click-through)
+- macOS: a click on a character needs the cursor to rest there about 50 ms first (the cursor poll decides click-through there; Windows uses a mouse hook)
 
 ## Known limits (39° view)
 - Effects drawn on a slanted plane (paper on a desk top, stamps and seals on a desk front, the cogitator's screens) are resampled through a transform and look softer than the pixel-exact background
-- Every desk-level light shares one height and offset (lighting.js lift39): a candle flame and a slate screen sit a few px either side of it; per-light heights need the light lists (scene.js) to carry them
-- At Auto scale the whole projected hall fits the window, bays included: a hall with bays shrinks its pixels rather than panning
+- Only the candle, slate, console screen and flying skull carry their own 39° light height; the other desk-level lights (room computer, CI lamps, reaction sparks, stamps) keep the shared lift39 default, not measured
 - Switching views keeps the floor point at the view's centre; a centre on the back wall band lands near it, not on it
-- Small art polish left: the adept39 west turn is weak in the Warhammer and vault art, the magos39 is modest, the gate spire is a ridge, a few small props read as blobs (tower table bowls, vault censer shade, cyber antennas)
+- Small art polish left: the gate spire's needle tip is outline-dark only (a lit tip needs a wider needle in the flat gate art); the vault adept's west lens is small at 1x
 
 ## Next
 - (empty)

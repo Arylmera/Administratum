@@ -273,7 +273,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe walking in through the grand gate / gathering papers and walking out | Session started / session ended |
 | Purity seal stamped on a parchment on the desk (up to 3 stay) | A `git commit` succeeded |
 | Servo-skull picks up a seal and flies out of the gate | A `git push` |
-| A small lamp beside each scribe's desk (in each theme's own art), unlit / amber / green / red | **CI** after a push, opt-in (*Show the CI result after a push*, off by default). The scribe's own lamp: amber while the CI of its last push runs, green when every check passed, red as soon as one failed; it stays until that scribe's next push or its end, and is absent when it has nothing to show or when the push went to the department's default branch (the beacon shows that one), so a lamp marks a scribe working on another branch, a worktree's. No scribe lamp in the desktop strip and column (the card line carries it there). Hover or click it for `<branch> · <sha7> · <state>`; a click opens the commit's checks page on GitHub. A push that printed no ref line (an up-to-date or `-q` push) gets no verdict |
+| A small lamp beside each scribe's desk (in each theme's own art), unlit / amber / green / red (also told apart without colour: green a lens with a bright check, red a dark X, unlit flat dark glass, amber the round blinking lens) | **CI** after a push, opt-in (*Show the CI result after a push*, off by default). The scribe's own lamp: amber while the CI of its last push runs, green when every check passed, red as soon as one failed; it stays until that scribe's next push or its end, and is absent when it has nothing to show or when the push went to the department's default branch (the beacon shows that one), so a lamp marks a scribe working on another branch, a worktree's. No scribe lamp in the desktop strip and column (the card line carries it there). Hover or click it for `<branch> · <sha7> · <state>`; a click opens the commit's checks page on GitHub. A push that printed no ref line (an up-to-date or `-q` push) gets no verdict |
 | A larger beacon at the east end of each department's block (in the rooms plan: in a column beside the room's computer, one per folder of the room; the plaque cell in the desktop strip and column), unlit / amber / green / red | **CI of the main branch** (the GitHub default branch of the folder's repository), same opt-in. Checked every 5 min, and at once (and again 2 min later) when a scribe of the department ends its turn or leaves, so a merge shows quickly; a new head is followed every 30 s until its verdict. Unlit: during a rate-limit pause, after 3 failed calls, or on a `gh` access error. No beacon when the folder is not a GitHub repository or its repository has no default branch. Hover or click it for `main · <sha7> · <state>` (the branch's real name); a click opens that commit's checks page. A verdict on a new head is a `ci-pass` / `ci-fail` event in the Chronicon, once per commit |
 | A line `CI · main · 5d6e7f8 · running 3/5` (or `passed`, `failed: <check>`, `no verdict after 30 min`) on a session's card | The same CI result for the commit that session pushed; it stays until that session's next push or its end. Clicking it opens the checks page. A pass or a fail is also a `ci-pass` / `ci-fail` event in the Chronicon. No toast |
 | Green lamp on the desk (20 s) / blinking red lamp | Test run passed / failed (`cargo test`, `npm test`, `npm run test`, `pnpm test`, `yarn test`, `pytest`, `vitest`, `jest`, `go test`) |
@@ -313,8 +313,9 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   The inner walls are cut away to a low height so every room stays in view; the doorways keep their posts and lintel.
   Scribes and adepts walk in four diagonal facings and sit at their desks; everything is
   depth sorted by its floor footprint, with contact shadows, cast shadows at night and lights lifted off the floor
-  (every desk-level glow sits at one shared desk height, its pool on the floor under it). At Auto scale the whole
-  turned hall fits the window (smaller pixels); an explicit Scale pans, as in the flat view.
+  (each desk-level glow at its own source's height: candle flame, slate, console screen, flying skull; its pool on the
+  floor under it). At Auto scale the turned hall shrinks to fit the window, but never below the flat view's Auto pixel
+  size: a bigger hall keeps those pixels and pans (drag, arrow keys, edge arrows); an explicit Scale pans, as in the flat view.
 
   ![The 2.5D view: the same hall turned 39°, with real volumes, cutaway walls and a petition in the Sanctum](docs/img/hall39.png)
 
@@ -324,7 +325,8 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
   Hide), each department's lecterns and its adepts' consoles on a coloured mat with a name plaque, the cogitator,
   the recaff and bench where idle scribes nap, the petition line and the Magos at the right end. It is click-through
   everywhere except over a character, a label, a plaque, the handle and its open menu, or another open panel; a
-  panel (card, Settings, Chronicon) opens by growing the window upward, above the strip. The strip re-places itself when the taskbar, its monitor or its DPI changes. Strip
+  panel (card, Settings, Chronicon) opens by growing the window upward, above the strip. On Windows a click lands at
+  once (a mouse hook decides click-through on each mouse event); on macOS the cursor must rest about 50 ms first. The strip re-places itself when the taskbar, its monitor or its DPI changes. Strip
   size (S/M/L) and an optional backdrop are in Settings. It sits best with a taskbar or Dock at the bottom of the
   screen; with one on a side it stands on the bottom of the screen. On macOS it does not show over full-screen apps.
 
