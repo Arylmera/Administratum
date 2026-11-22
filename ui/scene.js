@@ -256,9 +256,9 @@ function sanctRail(items) {
   }
 }
 // The rooms' computers (layout.computers: 3 spots a room, where its shells run): one room computer a room (ROOMCOG, the
-// world's own, tools/roomcog_art.mjs), centred over its first spot with its foot 3 px above it (the others wait their
-// turn below it); its lit frame while anyone works there, its unlit one else.
-const computerAt = p => ({ x: p.x - 8, y: p.y - 15 });
+// world's own, tools/roomcog_art.mjs), centred over its first spot with its foot 1 px above it (the others wait their
+// turn below it), its top 3 px inside the room's top line; its lit frame while anyone works there, its unlit one else.
+const computerAt = p => ({ x: p.x - 8, y: p.y - 13 });
 const computerLight = (c, lit) => ({ x: c.x + ROOMCOG_AT.light[0], y: c.y + ROOMCOG_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 function drawComputers(layout, all, items, lights) {
   for (const spots of layout.computers?.values() ?? []) {

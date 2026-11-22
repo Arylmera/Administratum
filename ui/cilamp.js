@@ -67,9 +67,12 @@ export function lampsAt(spots, now) {
   return spots.filter(s => by.has(s.dept)).map(s => ({ ...s, state: by.get(s.dept).state, frame: frameOf(by.get(s.dept).state, now, 'CIMAIN'), size: MAIN_SIZE }));
 }
 // The scribe lamps to draw: each spot (layout.js scribeSpots: { id, dept, x, y }) whose session (by id in `sessions`, the
-// roster) has a CI of its own in a known state other than none, with its state, its CILAMP frame and its size.
+// roster) has a CI of its own in a known state other than none, with its state, its CILAMP frame and its size. A push to
+// its department's default branch has no scribe lamp: the department's main lamp already shows it (only a scribe working
+// on another branch, a worktree's, gets one).
 export function scribeLampsAt(spots, sessions, now) {
-  const by = new Map((sessions ?? []).filter(s => STATES.has(s?.ci?.state) && s.ci.state !== 'none').map(s => [s.id, s.ci.state]));
+  const main = new Map(list.map(l => [l.dept, l.branch]));
+  const by = new Map((sessions ?? []).filter(s => STATES.has(s?.ci?.state) && s.ci.state !== 'none' && !(main.has(s.dept) && s.ci.branch === main.get(s.dept))).map(s => [s.id, s.ci.state]));
   return spots.filter(s => by.has(s.id)).map(s => ({ ...s, state: by.get(s.id), frame: frameOf(by.get(s.id), now), size: LAMP_SIZE }));
 }
 

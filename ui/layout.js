@@ -77,7 +77,10 @@ export function hallOf(bays = 0, size = SCENE, wing = null) {
 // refectorium, recaff, cogitator bank or door. The hall is at least MAX_W wide (3 desks a row each side) and MIN_H
 // tall (four slot rows of rooms).
 export const SANCT_W = 104;
-export const COMPUTER_W = 20; // a room's computer strip, on its Sanctum side (layoutDepartments)
+export const COMPUTER_W = 30; // a room's computer strip, on its Sanctum side (layoutDepartments): the room computer and
+// its queue on the Sanctum side (ROOM_CX in from the room's edge), the room's main lamps in a column on the desks' side
+// (ROOM_LAMP_X in from that edge), one per department of the room (I6b: mainSpots)
+export const ROOM_CX = 13, ROOM_LAMP_X = 25.5, ROOM_LAMP_STEP = 16;
 export const HORS_COLOR = '#8a8f98'; // Hors zones: the departments in no rule
 export const MIN_H = WALL + 18 + 4 * SLOT_H + 30;
 function mirrorHall(bays, size) {
@@ -315,13 +318,19 @@ export function layoutDepartments(depts, { compact = false, bays = 0, size = SCE
       places.forEach((q, r) => {
         const last = r === places.length - 1 && !trows, rows = need[r];
         const zone = { x: S.x0 + 2, y, w: S.x1 - S.x0 - 4, h: last ? Math.max(rows * SLOT_H - 6, aisleY - 6 - y) : rows * SLOT_H - 6 };
-        const cx = side === 'L' ? S.x1 - COMPUTER_W / 2 : S.x0 + COMPUTER_W / 2;
+        const cx = side === 'L' ? S.x1 - ROOM_CX : S.x0 + ROOM_CX, lx = side === 'L' ? S.x1 - ROOM_LAMP_X : S.x0 + ROOM_LAMP_X;
         computers.set(q.key, [0, 1, 2].map(k => ({ x: cx, y: y + 16 + 16 * k })));
+        const placed = [];
         for (const [d, gm, bx, by] of cellOf(q.key, y).at) {
           if (full || by + gm.h > y1) { full = true; overflow += d.empty ? 1 : gm.slotsOf.filter(k => k.id).length; continue; }
           place(d, gm, bx, by, cols);
           blocks.at(-1).zone = zone;
+          if (!d.empty) placed.push(blocks.at(-1));
         }
+        // the room's main lamps: a column beside its computer, in its blocks' order, 16 px apart (closer when the room is
+        // too short for them all, never out of it)
+        const step = placed.length > 1 ? Math.min(ROOM_LAMP_STEP, Math.max(6, Math.floor((zone.h - 18) / (placed.length - 1)))) : 0;
+        placed.forEach((b, k) => { b.mainAt = { x: lx, y: y + 16 + step * k }; });
         y += rows * SLOT_H;
       });
       if (side === 'R') {
@@ -509,16 +518,18 @@ export function zonesOf(blocks, H) {
 // cilamp.js LAMP_SIZE and MAIN_SIZE (not imported: cilamp.js starts listening to the backend when loaded).
 const SCRIBE_LAMP = [5, 10], MAIN_LAMP = [7, 14];
 const deskW = d => (d.compact ? 22 : 32);
-const scribeAt = d => ({ x: d.x + deskW(d) + 2.5, y: d.y });
+const scribeAt = (d, H) => ({ x: d.x + deskW(d) + 2.5, y: d.y + (H?.sanct ? SCRIBE_LAMP[1] : 0) });
 // A scribe's lamp (CILAMP): { id, dept, x, y } for each desk with a session, beside it in the gap after it, its foot on
-// the line the desk starts at. The open hall, the rooms plan, the west wing's rooms and the break-out room alike; none
+// the line the desk starts at (the rooms plan: its top on that line, so it stays inside the room). The open hall, the rooms
+// plan, the west wing's rooms and the break-out room alike; none
 // in the desktop strip or the column (no room beside a lectern: the card line carries the session's CI there).
 export function scribeSpots(desks, H) {
   if (H.strip || H.column) return [];
-  return desks.filter(d => d.id).map(d => ({ id: d.id, dept: d.dept, ...scribeAt(d) }));
+  return desks.filter(d => d.id).map(d => ({ id: d.id, dept: d.dept, ...scribeAt(d, H) }));
 }
 // A department's main lamp (CIMAIN): { dept, x, y }, one per department block (not an empty room's placeholder, not a
-// strip room's cell). The open hall, the rooms plan, the west wing's rooms and the break-out room: at the block's east
+// strip room's cell). The rooms plan: in its room's computer strip, beside the room computer (the block's mainAt,
+// layoutDepartments packMirror). The open hall, the west wing's rooms and the break-out room: at the block's east
 // end (the console side, the far end from its plaque), its foot on the line the desks start at (8 px under the block's
 // top, clear of the lanes), the first spot from there westwards that stands clear of the desks, of every desk's
 // scribe-lamp spot by 1 px at least (taken or not: the lamp does not move when a scribe comes or goes) and of the
@@ -535,8 +546,9 @@ export function mainSpots(blocks, H, desks = []) {
     if (b.empty || b.cell) continue;
     if (H.column) { out.push({ dept: b.name, x: b.x + b.w - 4, y: b.y + b.h + 11 }); continue; }
     if (H.strip) { out.push({ dept: b.name, x: b.x + b.w + STRIP_GAP - 6, y: b.y - 30 }); continue; }
+    if (b.mainAt) { out.push({ dept: b.name, ...b.mainAt }); continue; } // the rooms plan: beside the room's computer
     const y = b.y + 8;
-    const solid = desks.flatMap(d => { const s = scribeAt(d); return [{ x: d.x, y: d.y, w: deskW(d), h: 21 }, { x: s.x - SCRIBE_LAMP[0] / 2 - 1, y: s.y - SCRIBE_LAMP[1], w: SCRIBE_LAMP[0] + 2, h: SCRIBE_LAMP[1] }]; });
+    const solid = desks.flatMap(d => { const s = scribeAt(d, H); return [{ x: d.x, y: d.y, w: deskW(d), h: 21 }, { x: s.x - SCRIBE_LAMP[0] / 2 - 1, y: s.y - SCRIBE_LAMP[1], w: SCRIBE_LAMP[0] + 2, h: SCRIBE_LAMP[1] }]; });
     let x = b.x + b.w - 3.5; // the box's east side on the block's
     for (let cx = x; cx - w / 2 >= b.x; cx -= 0.5) {
       const x0 = cx - w / 2, x1 = cx + w / 2;

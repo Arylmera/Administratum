@@ -60,6 +60,12 @@ setLamps([]);
   assert.deepEqual(sl.map(l => [l.id, l.frame, l.state, l.x, l.y]), [['s1', 'CILAMP.red', 'fail', 1, 2]], 's2 has no CI: no lamp');
   assert.equal(sl[0].size, LAMP_SIZE);
   assert.deepEqual(scribeLampsAt(two, [{ id: 's1', ci: { state: 'none' } }], 0), [], 'none: no lamp');
+  // a push to the department's default branch: the main lamp shows it, no scribe lamp; another branch (a worktree's) keeps it
+  setLamps([{ dept: 'a', state: 'pass', branch: 'main' }]);
+  const mixed = [{ id: 's1', dept: 'a', ci: { state: 'fail', branch: 'main' } }, { id: 's2', dept: 'a', ci: { state: 'pass', branch: 'claude/x' } }];
+  assert.deepEqual(scribeLampsAt(two, mixed, 0).map(l => l.id), ['s2'], 'only the scribe off the default branch has a lamp');
+  setLamps([]);
+  assert.deepEqual(scribeLampsAt(two, mixed, 0).map(l => l.id), ['s1', 's2'], 'no main lamp for the department: every scribe CI shows');
   assert.deepEqual(scribeLampsAt(two, [], 0), [], 'no session: no lamp');
   assert.deepEqual(scribeLampsAt(two, [{ id: 's1', ci: { state: 'running' } }, { id: 's2', ci: { state: 'timeout' } }], 600).map(l => l.frame), ['CILAMP.amber_dim', 'CILAMP.off'], 'the blink follows the clock; timeout unlit but drawn');
   assert.deepEqual(scribeLampsAt(two, [{ id: 's1', ci: { state: 'pass' } }], 0).map(l => l.frame), ['CILAMP.green'], 'independent of the department list (empty here)');

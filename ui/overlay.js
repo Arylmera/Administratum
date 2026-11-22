@@ -5,7 +5,7 @@ import { T, t } from './theme.js';
 import { isStale, isQuestion, asleep } from './actors.js';
 import { invoke, listen, REMOTE } from './bridge.js';
 import { sel, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed, ciLine } from './card.js';
-import { lampOf, LAMP_SIZE, MAIN_SIZE } from './cilamp.js';
+import { lampOf, LAMP_SIZE, MAIN_SIZE, scribeLampsAt } from './cilamp.js';
 import { riskOfPetition } from './petition.js';
 import { ago, statusOf } from './format.js';
 import { vigil, secondsLeft } from './vigil.js';
@@ -257,7 +257,9 @@ export const litLamps = () => {
   if (!L) return [];
   const H = hall(), by = new Map(roster().map(r => [r.id, r]));
   const mains = mainSpots(L.blocks, H, L.desks ?? []).map(s => ({ kind: 'main', who: s.dept, s, ci: lampOf(s.dept), size: MAIN_SIZE }));
-  const scribes = scribeSpots(L.desks ?? [], H).map(s => ({ kind: 'scribe', who: s.id, s, ci: by.get(s.id)?.ci, size: LAMP_SIZE }));
+  // the scribe lamps drawn (cilamp.js scribeLampsAt: none for a push to the department's default branch)
+  const shown = new Set(scribeLampsAt(scribeSpots(L.desks ?? [], H), roster(), 0).map(s => s.id));
+  const scribes = scribeSpots(L.desks ?? [], H).filter(s => shown.has(s.id)).map(s => ({ kind: 'scribe', who: s.id, s, ci: by.get(s.id)?.ci, size: LAMP_SIZE }));
   return mains.concat(scribes).filter(l => l.ci && LIT.has(l.ci.state));
 };
 // The frontmost lit lamp whose rect (its foot at `at(spot)`, its own size up from it, padded) holds the view point

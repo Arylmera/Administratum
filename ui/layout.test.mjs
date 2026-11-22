@@ -831,6 +831,13 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
     if (H.strip || H.column) return;
     for (const s of main) {
       const b = L.blocks.find(q => q.name === s.dept), q = box(s, MAIN_SIZE);
+      if (b.mainAt) { // the rooms plan: in its room's computer strip, beside the room computer, inside the room, clear of every block
+        const Z = b.zone, pc = L.computers.get(b.room ?? 'hors')[0], cog = { x: pc.x - 8, y: pc.y - 13, w: 16, h: 12 };
+        assert.ok(q.x >= Z.x && q.x + q.w <= Z.x + Z.w && q.y >= Z.y && s.y <= Z.y + Z.h, `${tag}: ${s.dept}'s main lamp inside its room`);
+        for (const o of L.blocks) assert.ok(!hits(q, o, o.w, o.h), `${tag}: ${s.dept}'s main lamp on block ${o.name}`);
+        assert.ok(!hits(q, cog, cog.w, cog.h) && Math.abs(s.x - pc.x) <= 14, `${tag}: ${s.dept}'s main lamp beside the room computer, not on it`);
+        continue;
+      }
       assert.ok(q.x >= b.x && q.x + q.w <= b.x + b.w && s.y === b.y + 8, `${tag}: ${s.dept}'s main lamp inside its block, its foot on the desks' line`);
       for (const x of walks(H)) assert.ok(q.x + q.w < x - 1 || q.x > x + 1, `${tag}: ${s.dept}'s main lamp in the corridor at x ${x}`);
     }
@@ -899,6 +906,10 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
     const Pm = planLayout(null, [dep('a', 2, { room: 'r1' }), dep('b', 2, { room: 'r1', helpers: ids('h', 3) }), dep('c', 1, { room: 'r2' }), dep('d', 2)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
     const Hm = hallOf(Pm.bays, Pm.size, Pm.wing), [rm, sm] = spots(Pm, Hm);
     clear('rooms plan', Pm, Hm, rm, sm);
+    for (const s of rm) { // the scribe lamp's whole box under the room's top line, not only its foot
+      const Z = Pm.blocks.find(q => q.name === s.dept).zone;
+      assert.ok(s.y - LAMP_SIZE[1] >= Z.y + 1, `rooms plan: ${s.id}'s scribe lamp below its room's top line`);
+    }
     for (const s of sm.concat(rm)) {
       const b = Pm.blocks.find(q => q.name === s.dept), Z = b.zone;
       assert.ok(Z && s.x >= Z.x && s.x <= Z.x + Z.w && s.y >= Z.y && s.y <= Z.y + Z.h, `rooms plan: ${s.dept}'s lamp inside its room's cell`);

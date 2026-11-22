@@ -297,7 +297,7 @@ setTheme('tier2');
     const zones = zonesOf(L.blocks, hall);
     for (const [key, spots] of L.computers) {
       const c = computerAt(spots[0]), Z = zones.find(z => z.id === key);
-      assert.deepEqual([c.x + w / 2, c.y + h], [spots[0].x, spots[0].y - 3], `${key}: centred over its first spot, its foot 3 px above it`);
+      assert.deepEqual([c.x + w / 2, c.y + h], [spots[0].x, spots[0].y - 1], `${key}: centred over its first spot, its foot 1 px above it`);
       assert.ok(Z && c.x >= Z.x && c.x + w <= Z.x + Z.w && c.y >= Z.y && c.y + h <= Z.y + Z.h, `${key}: inside its room's cell`);
       for (const b of L.blocks) assert.ok(c.x + w <= b.x || c.x >= b.x + b.w || c.y + h <= b.y || c.y >= b.y + b.h, `${key}: clear of ${b.name}`);
     }
