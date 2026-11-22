@@ -149,7 +149,7 @@ export const TEXT = {
     status: { title: 'Integrations', empty: 'No integration has reported yet.', ago: '{time} ago', ok: 'OK', warn: 'Warning', error: 'Error', failed: 'Status unavailable: {error}' },
     saveFailed: 'Not saved: {error}',
     remote: { failed: 'The remote view could not be read: {error}', notListening: 'Left on, but not listening on the network: {error}',
-      notListeningNoError: 'Left on, but not listening on the network.', loopback: 'Listening on this PC only; the network view is off.' },
+      notListeningNoError: 'Left on, but not listening on the network.', loopback: 'The network view is off. This PC still answers on 127.0.0.1 only, with the pairing token, for the local command-line tool.' },
     update: { percent: 'Downloading the update… {percent}%', bytes: 'Downloading the update… {size}' },
     test: { button: 'Send a test notification', sending: 'Sending…', sent: 'Test notification sent.', failed: 'Not sent: {error}' },
     ci: { label: 'Show the CI result after a push', hint: 'Asks GitHub, through your own gh, whether a push passes its checks. Off: nothing is asked.', none: 'gh: not checked yet' } },

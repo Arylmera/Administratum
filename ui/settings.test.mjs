@@ -641,7 +641,7 @@ console.log('packs ok');
   assert.equal(rv.querySelector('.rv-on').hidden, true, 'no pairing while nothing listens');
   replies.remote_status = { enabled: false, saved: false, loopback: true, error: null, actions_allowed: false, port: 8765, urls: [], qr_svg: null };
   await reopen();
-  assert.equal(rvState.textContent, 'Listening on this PC only; the network view is off.');
+  assert.equal(rvState.textContent, 'The network view is off. This PC still answers on 127.0.0.1 only, with the pairing token, for the local command-line tool.');
   replies.remote_status = { enabled: true, saved: true, loopback: false, error: null, actions_allowed: false, port: 8765, urls: [], qr_svg: null };
   await reopen();
   assert.equal(rvState.hidden, true, 'a healthy view says nothing');
