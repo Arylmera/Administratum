@@ -3,7 +3,6 @@
 //! commit's check-runs; a new head is polled at I6's `POLL_MS` until its verdict. A scribe done with its turn brings the
 //! check forward (`scribe_done`); a live push watch on the same branch is mirrored instead of polled (`live`, `adopt`).
 //! Pure core with an injected clock and `gh`, like `ci::Watcher`; the watcher thread drives it.
-#![allow(dead_code)] // `Mains` is wired into the CI worker by the next step (Task 3)
 use crate::{
     ci::{
         branch_api, default_branch_of, evaluate, parse_default_branch, rate_limit_reset, status_sha, Ended, Finished, Gh, GhError, Lamp, Link, Repo, Target, Verdict, CAP_MS, DEFAULT_PAUSE_MS,

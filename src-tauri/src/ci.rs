@@ -5,14 +5,15 @@
 //! watcher thread (`Hub`, `Worker`) owns the clock and calls `Watcher::tick`.
 use crate::{
     chronicle::{CiPush, Event},
+    ci_main::{MainEnded, Mains},
     git, no_window,
-    registry::{self, CiState, CiStatus},
+    registry::{self, CiState, CiStatus, Session},
     status,
 };
 use serde::Serialize;
 use serde_json::Value;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fs,
     io::Read,
     path::{Path, PathBuf},
@@ -249,22 +250,6 @@ pub fn resolve_push(cwd: &Path, command: &str, output: &str) -> Option<Target> {
         return None;
     }
     Some(Target { repo, branch: pushed.branch, sha })
-}
-
-/// The start check's inputs for a folder: the branch from `.git/HEAD`, its remote ref (its `branch.<b>.remote`, else
-/// `origin`) and the repository from that remote's `url`. None for a detached HEAD, no remote ref, or not GitHub.
-pub fn start_target(cwd: &Path) -> Option<Target> {
-    let dirs = git_dirs(cwd)?;
-    let head = fs::read_to_string(&dirs.head).ok()?;
-    let branch = head.trim().strip_prefix("ref:")?.trim().strip_prefix("refs/heads/")?.to_string();
-    if !valid_ref_name(&branch) {
-        return None;
-    }
-    let config = read_config(&dirs.common);
-    let remote = config_get(&config, &format!("branch \"{branch}\""), "remote").filter(|r| r != ".").unwrap_or_else(|| "origin".into());
-    let repo = parse_remote_url(&config_get(&config, &format!("remote \"{remote}\""), "url")?)?;
-    let sha = read_ref(&dirs.common, &format!("refs/remotes/{remote}/{branch}"))?;
-    Some(Target { repo, branch, sha })
 }
 
 /// A repository and its default branch.
@@ -573,7 +558,7 @@ pub fn valid_checks_url(url: &str) -> bool {
 
 // ---- the watches ------------------------------------------------------------------------------------------------
 
-/// Who a watch was started for: the pushing session, or a folder's start check (no session).
+/// Who a watch was started for: the pushing session.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Who {
     pub session_id: Option<String>,
@@ -609,20 +594,17 @@ struct Watch {
     target: Target,
     started_ms: i64,
     next_ms: i64,
-    /// A folder's start check: unlit until it sees a check, since an old commit may have no CI at all.
-    start_check: bool,
     /// The checks the last poll saw, for the two-stable-polls rule.
     prev_ids: Option<Vec<String>>,
-    seen: bool,
     failures: u32,
 }
 
-/// What the card of a session and the lamp of a folder show; `id` orders them (higher is newer).
+/// What the card of a session shows; `id` orders them (higher is newer).
 struct Entry {
     id: u64,
     who: Who,
     ci: CiState,
-    /// The watched commit, for the card's and the lamp's click (`open_target`).
+    /// The watched commit, for the card's click (`open_target`).
     target: Target,
 }
 
@@ -640,8 +622,6 @@ pub struct Watcher {
     next_id: u64,
     /// Every watch waits until this time (a rate limit).
     paused_until_ms: i64,
-    /// Departments whose start check ran, or that pushed, this run.
-    checked: HashSet<String>,
 }
 
 fn ci_state(t: &Target, state: CiStatus) -> CiState {
@@ -660,35 +640,18 @@ pub(crate) fn rate_limit_reset(gh: &dyn Gh) -> Option<i64> {
 
 impl Watcher {
     /// A live push by a session. With `enabled` false: nothing, and no `gh` call ever follows. Returns whether a watch
-    /// started. A push also counts as its folder's start check.
+    /// started.
     pub fn on_push(&mut self, enabled: bool, push: &CiPush, now_ms: i64) -> bool {
         if !enabled {
             return false;
         }
-        self.checked.insert(push.dept.clone());
         let Some(target) = resolve_push(Path::new(&push.cwd), &push.command, &push.output) else { return false };
         let who = Who { session_id: Some(push.session_id.clone()), name: push.name.clone(), dept: push.dept.clone(), cwd: push.cwd.clone() };
-        self.start(target, who, now_ms, false);
+        self.start(target, who, now_ms);
         true
     }
 
-    /// The first time `dept` is seen in a run: look up its latest CI once (the commit on its branch's remote ref) and
-    /// watch it like a push, but polled at once. At most once per folder per run; nothing while `enabled` is false, for
-    /// a detached HEAD, a branch with no remote ref or a non-GitHub remote, or when that branch is already watched.
-    pub fn start_check(&mut self, enabled: bool, dept: &str, cwd: &str, now_ms: i64) -> bool {
-        if !enabled || !self.checked.insert(dept.to_string()) {
-            return false;
-        }
-        let Some(target) = start_target(Path::new(cwd)) else { return false };
-        if self.watches.iter().any(|w| same_branch(&w.target, &target)) {
-            return false;
-        }
-        let who = Who { session_id: None, name: dept.into(), dept: dept.into(), cwd: cwd.into() };
-        self.start(target, who, now_ms, true);
-        true
-    }
-
-    fn start(&mut self, target: Target, who: Who, now_ms: i64, start_check: bool) {
+    fn start(&mut self, target: Target, who: Who, now_ms: i64) {
         // a new push to the same repo and branch replaces that watch; the same session's last card line goes too
         let replaced: Vec<u64> = self.watches.iter().filter(|w| same_branch(&w.target, &target)).map(|w| w.id).collect();
         self.watches.retain(|w| !replaced.contains(&w.id));
@@ -699,10 +662,9 @@ impl Watcher {
         }
         self.next_id += 1;
         let id = self.next_id;
-        let state = if start_check { CiStatus::None } else { CiStatus::Running };
-        let first = if start_check { 0 } else { FIRST_CALL_MS };
-        self.entries.push(Entry { id, who: who.clone(), ci: ci_state(&target, state), target: target.clone() });
-        self.watches.push(Watch { id, who, target, started_ms: now_ms, next_ms: now_ms + first, start_check, prev_ids: None, seen: false, failures: 0 });
+        // running from the push on (a main tracker mirrors it at once), its first call `FIRST_CALL_MS` later
+        self.entries.push(Entry { id, who: who.clone(), ci: ci_state(&target, CiStatus::Running), target: target.clone() });
+        self.watches.push(Watch { id, who, target, started_ms: now_ms, next_ms: now_ms + FIRST_CALL_MS, prev_ids: None, failures: 0 });
     }
 
     /// Runs every due poll, one `gh` call at a time, and returns the watches that ended. With `enabled` false every
@@ -718,7 +680,6 @@ impl Watcher {
         if !enabled {
             self.watches.clear();
             self.entries.clear();
-            self.checked.clear();
             return vec![];
         }
         let mut finished = vec![];
@@ -774,17 +735,16 @@ impl Watcher {
             }
         };
         w.failures = 0;
-        w.seen |= snap.total > 0;
         let stable = w.prev_ids.as_ref() == Some(&snap.ids);
         w.prev_ids = Some(snap.ids.clone());
-        let (id, started, state) = (w.id, w.started_ms, if w.start_check && !w.seen { CiStatus::None } else { CiStatus::Running });
+        let (id, started) = (w.id, w.started_ms);
         match snap.verdict {
             Verdict::Fail(check) => Poll::End(Ended::Fail(check)),
             Verdict::Pass if stable => Poll::End(Ended::Pass),
             Verdict::NoCi if now_ms - started >= NO_CI_MS => Poll::End(Ended::NoCi),
             _ => {
                 if let Some(e) = self.entries.iter_mut().find(|e| e.id == id) {
-                    e.ci.state = state;
+                    e.ci.state = CiStatus::Running;
                     (e.ci.done, e.ci.total) = (snap.done, snap.total);
                 }
                 Poll::Keep
@@ -813,34 +773,12 @@ impl Watcher {
         self.entries.iter().find(|e| e.who.session_id.as_deref() == Some(session_id)).map(|e| e.ci.clone()).filter(|c| c.state != CiStatus::None)
     }
 
-    /// The newest watch of each folder (department), in the order the folders first appeared.
-    fn newest(&self) -> Vec<&Entry> {
-        let mut newest: Vec<&Entry> = vec![];
-        for e in &self.entries {
-            match newest.iter().position(|n| n.who.dept == e.who.dept) {
-                Some(p) if newest[p].id < e.id => newest[p] = e,
-                Some(_) => {}
-                None => newest.push(e),
-            }
-        }
-        newest
-    }
-
-    /// The lamp of each folder (department): the CI of its newest watch. `none` means unlit.
-    #[cfg(test)]
-    pub fn lamps(&self) -> Vec<(String, CiState)> {
-        self.newest().into_iter().map(|e| (e.who.dept.clone(), e.ci.clone())).collect()
-    }
-
-    /// `lamps`, as the `ci-lamps` event sends them, with the folder's working directory, sorted by department.
-    pub fn lamp_rows(&self) -> Vec<Lamp> {
-        let mut rows: Vec<Lamp> = self
-            .newest()
-            .into_iter()
-            .map(|e| Lamp { dept: e.who.dept.clone(), cwd: e.who.cwd.clone(), state: e.ci.state, branch: e.ci.branch.clone(), sha7: e.ci.sha7.clone(), failed: e.ci.failed.clone() })
-            .collect();
-        rows.sort_by(|a, b| a.dept.cmp(&b.dept));
-        rows
+    /// The CI of a running watch on `repo`'s `branch`, from the moment its push started it (state `running`, before its
+    /// first call): a main tracker on that branch shows it and makes no call of its own. None once the watch ended.
+    pub fn live_on(&self, repo: &Repo, branch: &str) -> Option<CiState> {
+        let slug = repo.slug();
+        let w = self.watches.iter().find(|w| w.target.branch == branch && w.target.repo.slug().eq_ignore_ascii_case(&slug))?;
+        self.entries.iter().find(|e| e.id == w.id).map(|e| e.ci.clone())
     }
 
     /// Every session's card line (a session id and its CI), the ones with something to show.
@@ -858,6 +796,11 @@ impl Watcher {
         self.paused_until_ms
     }
 
+    /// Holds every watch until `until_ms` (a rate limit a main tracker met); the later of the two pauses wins.
+    pub fn pause(&mut self, until_ms: i64) {
+        self.paused_until_ms = self.paused_until_ms.max(until_ms);
+    }
+
     /// Watches running now.
     #[cfg(test)]
     pub fn len(&self) -> usize {
@@ -867,7 +810,7 @@ impl Watcher {
 
 // ---- the lamps, the opener and the events -----------------------------------------------------------------------
 
-/// One folder's lamp, as the `ci-lamps` event and the `ci_lamps` command give it. `state` `none`, `timeout` and
+/// One department's lamp (its main tracker, `ci_main`), as the `ci-lamps` event and the `ci_lamps` command give it. `state` `none`, `timeout` and
 /// `error` are unlit; `running` amber, `pass` green, `fail` red.
 #[derive(Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -880,17 +823,7 @@ pub struct Lamp {
     pub failed: Option<String>,
 }
 
-/// Whether `next` differs from the lamps last sent; `sent` becomes `next` when it does. The event goes out on a
-/// change only, so a count moving from 2/5 to 3/5 (not part of a lamp) sends nothing.
-pub fn lamps_changed(sent: &mut Vec<Lamp>, next: &[Lamp]) -> bool {
-    if sent.as_slice() == next {
-        return false;
-    }
-    *sent = next.to_vec();
-    true
-}
-
-/// A watch the opener may name: its session (None for a folder's start check), its folder, its commit.
+/// A commit the opener may name: a push watch's (its session) or a main tracker's (no session), its folder, the commit.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Link {
     pub id: u64,
@@ -900,12 +833,13 @@ pub struct Link {
     pub target: Target,
 }
 
-/// The checks page `ci_open` opens for `who`: a session id (its own watch) or a department name (the newest watch of
-/// that folder). Never a URL from the caller: it is built from the watch and checked before it is returned. An unknown
-/// name, a watch with nothing to show, or a URL that fails the check is an error, and nothing is opened.
+/// The checks page `ci_open` opens for `who`: a session id (its own watch) or a department name (its main tracker's
+/// commit: only links with no session, so a session's push to another branch never takes the folder's lamp). Never a
+/// URL from the caller: it is built from the watch and checked before it is returned. An unknown name, a watch with
+/// nothing to show, or a URL that fails the check is an error, and nothing is opened.
 pub fn open_target(links: &[Link], who: &str) -> Result<String, String> {
     let by_session = || links.iter().filter(|l| l.session_id.as_deref() == Some(who)).max_by_key(|l| l.id);
-    let by_dept = || links.iter().filter(|l| l.dept == who).max_by_key(|l| l.id);
+    let by_dept = || links.iter().filter(|l| l.session_id.is_none() && l.dept == who).max_by_key(|l| l.id);
     let link = by_session().or_else(by_dept).ok_or("no CI watch for that session or folder")?;
     if link.state == CiStatus::None {
         return Err("no CI to show for that folder".into());
@@ -917,9 +851,8 @@ pub fn open_target(links: &[Link], who: &str) -> Result<String, String> {
     Ok(url)
 }
 
-/// The Chronicon event of a verdict: `ci-pass` or `ci-fail` (the branch, the short SHA and the failed check). Only
-/// for a watch a session's push started: a folder's start check is the last known state, not news. None for any
-/// other ending.
+/// The Chronicon event of a push watch's verdict: `ci-pass` or `ci-fail` (the branch, the short SHA and the failed
+/// check), for the pushing session. None for any other ending.
 pub fn verdict_event(f: &Finished, now_ms: i64) -> Option<Event> {
     let session_id = f.who.session_id.clone()?;
     let base = format!("{} · {}", f.target.branch, f.target.sha7());
@@ -931,6 +864,33 @@ pub fn verdict_event(f: &Finished, now_ms: i64) -> Option<Event> {
     Some(Event { ts: now_ms, kind: kind.into(), session_id, name: f.who.name.clone(), dept: f.who.dept.clone(), helper: None, detail: registry::clip(&detail), reset_ms: None, hit_ms: None })
 }
 
+/// The Chronicon event of a main tracker's verdict on a new head: `ci-pass` or `ci-fail`, no session (like the vigil
+/// event), `name` and `dept` the department, detail `<branch> · <sha7>[ · <check>]`. None for any other ending (a
+/// `Skipped` or `Error` may carry no commit at all).
+pub fn main_verdict_event(m: &MainEnded, now_ms: i64) -> Option<Event> {
+    let (kind, check) = match &m.ended {
+        Ended::Pass => ("ci-pass", None),
+        Ended::Fail(check) => ("ci-fail", Some(check)),
+        _ => return None,
+    };
+    let base = format!("{} · {}", m.target.branch, m.target.sha7());
+    let detail = check.map_or(base.clone(), |c| format!("{base} · {c}"));
+    Some(Event { ts: now_ms, kind: kind.into(), session_id: String::new(), name: m.dept.clone(), dept: m.dept.clone(), helper: None, detail: registry::clip(&detail), reset_ms: None, hit_ms: None })
+}
+
+/// The departments a scribe of was done this tick: each session of `prev` that was `busy` and is now `idle` or gone
+/// from the roster, its department once.
+pub fn scribes_done(prev: &[Session], now: &[Session]) -> Vec<String> {
+    let mut depts: Vec<String> = vec![];
+    for p in prev.iter().filter(|p| p.status == "busy") {
+        let done = now.iter().find(|s| s.id == p.id).is_none_or(|s| s.status == "idle");
+        if done && !depts.contains(&p.dept) {
+            depts.push(p.dept.clone());
+        }
+    }
+    depts
+}
+
 // ---- the watcher thread -----------------------------------------------------------------------------------------
 
 /// What the poll loop hands the watcher each tick.
@@ -940,8 +900,10 @@ pub struct Input {
     pub enabled: bool,
     /// Live pushes read this tick.
     pub pushes: Vec<CiPush>,
-    /// Folders (department, working directory) seen: each one gets its start check the first time in a run.
+    /// Folders (department, working directory) seen: each department's main tracker (`ci_main::Mains::see`).
     pub folders: Vec<(String, String)>,
+    /// Departments a scribe of was done (`scribes_done`): their tracker checks early.
+    pub done: Vec<String>,
 }
 
 /// What one step of the worker produced.
@@ -949,27 +911,46 @@ pub struct Step {
     /// For the `gh` entry of `integration_status`, in order.
     pub notes: Vec<(status::State, String)>,
     pub finished: Vec<Finished>,
+    /// The main trackers' endings: verdicts on new heads, and what Settings > Status names.
+    pub mains: Vec<MainEnded>,
 }
 
-/// The state of the watcher thread: the watches, and whether `gh auth status` ran for this time the setting is on.
-/// `step` takes the `gh` runner and the clock as arguments, so tests drive it without a thread or a process.
+/// The note an ending leaves for the `gh` entry of Settings > Status, push watch or main tracker alike.
+fn note_of(ended: &Ended) -> Option<(status::State, String)> {
+    match ended {
+        Ended::Skipped(reason) => Some((status::State::Warn, format!("CI check skipped: {reason}"))),
+        Ended::Error => Some((status::State::Warn, "CI check failed: gh gave no usable answer three times in a row".to_string())),
+        // gh answered: any earlier complaint is over
+        Ended::Pass | Ended::Fail(_) => Some((status::State::Ok, "gh ready".to_string())),
+        Ended::Timeout | Ended::NoCi => None,
+    }
+}
+
+/// The state of the watcher thread: the push watches, the main trackers, and whether `gh auth status` ran for this
+/// time the setting is on. `step` takes the `gh` runner and the clock as arguments, so tests drive it without a thread
+/// or a process.
 #[derive(Default)]
 pub struct Worker {
     watcher: Watcher,
+    mains: Mains,
     on: bool,
     /// The rate-limit pause already noted (its end, epoch ms).
     pause_noted: i64,
 }
 
 impl Worker {
-    /// One round: the hand-in, then every due poll. With `enabled` false no `gh` call is made and every watch is dropped;
-    /// turning it on runs `gh auth status` once (never in the settings-save path: this runs on the watcher thread).
+    /// One round: the hand-in, then every due poll. With `enabled` false no `gh` call is made and every watch and
+    /// tracker is dropped; turning it on runs `gh auth status` once (never in the settings-save path: this runs on the
+    /// watcher thread).
     #[cfg(test)]
     pub fn step(&mut self, gh: &dyn Gh, now_ms: i64, input: Input) -> Step {
         self.step_with(gh, now_ms, input, &mut |_| {})
     }
 
-    /// `step`, calling `after_poll` with the watches after each poll (the hub publishes the cards and lamps then).
+    /// `step`, calling `after_poll` with the watches after each push watch's poll (the hub publishes the cards then).
+    /// The order: the pushes, the folders seen, the scribes done, the push watches' polls, their endings handed to the
+    /// trackers, the trackers' checks (a branch a push watch runs on is mirrored, not polled). One rate-limit pause
+    /// holds both.
     pub fn step_with(&mut self, gh: &dyn Gh, now_ms: i64, input: Input, after_poll: &mut dyn FnMut(&Watcher)) -> Step {
         let mut notes = vec![];
         if input.enabled && !self.on {
@@ -980,31 +961,37 @@ impl Worker {
             });
         }
         self.on = input.enabled;
-        // a push first: it counts as its folder's start check
+        if !input.enabled {
+            self.watcher.tick_with(gh, now_ms, false, after_poll);
+            self.mains.clear();
+            self.pause_noted = 0;
+            return Step { notes, finished: vec![], mains: vec![] };
+        }
         for push in &input.pushes {
-            self.watcher.on_push(input.enabled, push, now_ms);
+            self.watcher.on_push(true, push, now_ms);
         }
         for (dept, cwd) in &input.folders {
-            self.watcher.start_check(input.enabled, dept, cwd, now_ms);
+            self.mains.see(dept, cwd, now_ms);
         }
-        let finished = self.watcher.tick_with(gh, now_ms, input.enabled, after_poll);
+        for dept in &input.done {
+            self.mains.scribe_done(dept, now_ms);
+        }
+        let finished = self.watcher.tick_with(gh, now_ms, true, after_poll);
         for f in &finished {
-            match &f.ended {
-                Ended::Skipped(reason) => notes.push((status::State::Warn, format!("CI check skipped: {reason}"))),
-                Ended::Error => notes.push((status::State::Warn, "CI check failed: gh gave no usable answer three times in a row".to_string())),
-                // gh answered: any earlier complaint is over
-                Ended::Pass | Ended::Fail(_) => notes.push((status::State::Ok, "gh ready".to_string())),
-                Ended::Timeout | Ended::NoCi => {}
-            }
+            self.mains.adopt(f);
         }
+        // a rate limit the push watches met holds the trackers too, and the other way round
+        self.mains.pause(self.watcher.paused_until());
+        let watcher = &self.watcher;
+        let mains = self.mains.tick(gh, now_ms, &|repo, branch| watcher.live_on(repo, branch));
+        self.watcher.pause(self.mains.paused_until());
+        notes.extend(finished.iter().map(|f| &f.ended).chain(mains.iter().map(|m| &m.ended)).filter_map(note_of));
         let until = self.watcher.paused_until();
-        if !input.enabled {
-            self.pause_noted = 0;
-        } else if until > now_ms && until != self.pause_noted {
+        if until > now_ms && until != self.pause_noted {
             self.pause_noted = until;
             notes.push((status::State::Warn, format!("CI checks paused: GitHub rate limit, back in about {} min", (until - now_ms + 59_999) / 60_000)));
         }
-        Step { notes, finished }
+        Step { notes, finished, mains }
     }
 }
 
@@ -1023,17 +1010,20 @@ pub struct Hub {
 #[derive(Default)]
 struct View {
     cards: HashMap<String, CiState>,
+    /// The departments' (main) lamps.
     lamps: Vec<Lamp>,
-    links: Vec<Link>,
+    /// The push watches' commits (a session's card).
+    push_links: Vec<Link>,
+    /// The main trackers' commits (a department's lamp).
+    main_links: Vec<Link>,
     verdicts: Vec<Finished>,
-    /// The lamps last handed out by `lamps_if_changed`.
-    sent: Vec<Lamp>,
+    main_verdicts: Vec<MainEnded>,
 }
 
 impl Hub {
     /// The poll loop's hand-in, once per tick. With `enabled` false whatever was waiting is dropped, so nothing from
     /// the time the setting was off ever reaches a `gh` call.
-    pub fn submit(&self, enabled: bool, pushes: Vec<CiPush>, folders: Vec<(String, String)>) {
+    pub fn submit(&self, enabled: bool, pushes: Vec<CiPush>, folders: Vec<(String, String)>, done: Vec<String>) {
         let mut inbox = crate::lock(&self.inbox);
         inbox.enabled = enabled;
         self.on.store(enabled, Ordering::SeqCst);
@@ -1044,9 +1034,15 @@ impl Hub {
                     inbox.folders.push((dept, cwd));
                 }
             }
+            for dept in done {
+                if !inbox.done.contains(&dept) {
+                    inbox.done.push(dept);
+                }
+            }
         } else {
             inbox.pushes.clear();
             inbox.folders.clear();
+            inbox.done.clear();
         }
         drop(inbox);
         self.wake.notify_one();
@@ -1057,51 +1053,69 @@ impl Hub {
         crate::lock(&self.view).cards.get(session_id).cloned()
     }
 
-    /// Every folder's lamp now.
+    /// Every department's (main) lamp now: the `ci-lamps` event, sent every tick, and the `ci_lamps` command.
     pub fn lamps(&self) -> Vec<Lamp> {
         crate::lock(&self.view).lamps.clone()
     }
 
-    /// The lamps when they differ from the last time this was called, else None (the `ci-lamps` event).
-    pub fn lamps_if_changed(&self) -> Option<Vec<Lamp>> {
-        let mut v = crate::lock(&self.view);
-        let next = v.lamps.clone();
-        lamps_changed(&mut v.sent, &next).then_some(next)
-    }
-
-    /// The verdicts since the last call, for their Chronicon events.
+    /// The push watches' verdicts since the last call, for their Chronicon events.
     pub fn take_verdicts(&self) -> Vec<Finished> {
         std::mem::take(&mut crate::lock(&self.view).verdicts)
     }
 
+    /// The main trackers' verdicts on new heads since the last call (`main_verdict_event`).
+    pub fn take_main_verdicts(&self) -> Vec<MainEnded> {
+        std::mem::take(&mut crate::lock(&self.view).main_verdicts)
+    }
+
     /// The checks URL for a session id or a department name (`open_target`).
     pub fn open_url_for(&self, who: &str) -> Result<String, String> {
-        open_target(&crate::lock(&self.view).links, who)
+        let v = crate::lock(&self.view);
+        open_target(&[v.push_links.as_slice(), v.main_links.as_slice()].concat(), who)
     }
 
     /// Waits up to a second for the poll loop's hand-in, then takes it.
     fn next(&self) -> Input {
         let mut inbox = crate::lock(&self.inbox);
-        if inbox.pushes.is_empty() && inbox.folders.is_empty() {
+        if inbox.pushes.is_empty() && inbox.folders.is_empty() && inbox.done.is_empty() {
             inbox = self.wake.wait_timeout(inbox, Duration::from_secs(1)).unwrap_or_else(|e| e.into_inner()).0;
         }
-        Input { enabled: inbox.enabled, pushes: std::mem::take(&mut inbox.pushes), folders: std::mem::take(&mut inbox.folders) }
+        Input { enabled: inbox.enabled, pushes: std::mem::take(&mut inbox.pushes), folders: std::mem::take(&mut inbox.folders), done: std::mem::take(&mut inbox.done) }
     }
 
-    /// What the watches show now: the cards, the lamps and what `ci_open` may open.
+    /// What the push watches show now: the cards and what `ci_open` may open for a session.
     fn publish_watches(&self, w: &Watcher) {
         let mut v = crate::lock(&self.view);
         v.cards = w.cards();
-        v.lamps = w.lamp_rows();
-        v.links = w.links();
+        v.push_links = w.links();
     }
 
-    fn publish(&self, worker: &Worker, finished: Vec<Finished>) {
+    /// The end of a step: the watches, the departments' lamps and links, the verdicts for the Chronicon.
+    fn publish(&self, worker: &Worker, finished: Vec<Finished>, mains: Vec<MainEnded>) {
         self.publish_watches(&worker.watcher);
-        crate::lock(&self.view).verdicts.extend(finished);
+        let mut v = crate::lock(&self.view);
+        v.lamps = worker.mains.lamp_rows();
+        v.main_links = worker.mains.links();
+        v.verdicts.extend(finished);
+        v.main_verdicts.extend(mains.into_iter().filter(|m| matches!(m.ended, Ended::Pass | Ended::Fail(_))));
     }
 
-    /// The watcher thread's loop: it owns the `Watcher`, the clock and every `gh` call (one at a time).
+    /// A step's result into the view and Settings > Status. The setting went off during the step: what it learned or
+    /// complained of is moot, and the trackers go now (their lamps with them); the next step drops the rest.
+    fn settle(&self, worker: &mut Worker, step: Step) {
+        if !self.on.load(Ordering::SeqCst) {
+            worker.mains.clear();
+            self.publish(worker, vec![], vec![]);
+            return;
+        }
+        for (state, message) in step.notes {
+            // an unchanged message leaves no new line: a tracker's `Skipped` comes back every 5 min while it lasts
+            status::report_change("gh", state, message);
+        }
+        self.publish(worker, step.finished, step.mains);
+    }
+
+    /// The watcher thread's loop: it owns the `Worker`, the clock and every `gh` call (one at a time).
     fn run(&self, gh: &dyn Gh) {
         let mut worker = Worker::default();
         loop {
@@ -1110,14 +1124,7 @@ impl Hub {
             let gated = Gated { inner: gh, on: &self.on };
             let stepped = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| worker.step_with(&gated, crate::now_ms(), input, &mut |w| self.publish_watches(w))));
             match stepped {
-                // the setting went off during the step: what it learned or complained of is moot (the next step drops it all)
-                Ok(_) if !self.on.load(Ordering::SeqCst) => self.publish(&worker, vec![]),
-                Ok(step) => {
-                    for (state, message) in step.notes {
-                        status::report_change("gh", state, message);
-                    }
-                    self.publish(&worker, step.finished);
-                }
+                Ok(step) => self.settle(&mut worker, step),
                 Err(_) => status::report("gh", status::State::Error, "CI watcher panicked, skipped"),
             }
         }
@@ -1418,7 +1425,6 @@ mod tests {
         let r = repo(&d, "main", "git@gitlab.com:o/r.git", Some(("main", SHA)));
         assert_eq!(resolve_push(&r, "git push", "To gitlab.com:o/r.git\n   1a2b3c4..5d6e7f8  main -> main\n"), None);
         assert_eq!(resolve_push(&r, "git push", "   1a2b3c4..5d6e7f8  main -> main\n"), None, "the config url is not GitHub either");
-        assert_eq!(start_target(&r), None);
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -1435,28 +1441,6 @@ mod tests {
         let out = "To github.com:o/r.git\n   1a2b3c4..5d6e7f8  wt-branch -> wt-branch\n";
         let t = resolve_push(&wt, "git push", out).unwrap();
         assert_eq!((t.repo.slug(), t.branch, t.sha), ("o/r".to_string(), "wt-branch".to_string(), SHA.to_string()));
-        let s = start_target(&wt).unwrap();
-        assert_eq!((s.branch.as_str(), s.sha.as_str()), ("wt-branch", SHA), "the worktree's own HEAD, the main repo's config and refs");
-        let _ = fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn start_target_cases() {
-        let d = temp("start");
-        let r = repo(&d, "main", "https://github.com/o/r.git", Some(("main", SHA)));
-        let t = start_target(&r).unwrap();
-        assert_eq!((t.repo.slug(), t.branch.as_str(), t.sha.as_str()), ("o/r".to_string(), "main", SHA));
-        fs::write(r.join(".git/HEAD"), format!("{SHA}\n")).unwrap();
-        assert_eq!(start_target(&r), None, "detached HEAD");
-        fs::write(r.join(".git/HEAD"), "ref: refs/heads/unpushed\n").unwrap();
-        assert_eq!(start_target(&r), None, "no remote ref for that branch");
-        assert_eq!(start_target(&d), None, "no repo at all");
-        // the branch's own remote, and a packed remote ref
-        let cfg = fs::read_to_string(r.join(".git/config")).unwrap();
-        fs::write(r.join(".git/config"), format!("{cfg}[remote \"fork\"]\n\turl = git@github.com:me/r.git\n[branch \"feat\"]\n\tremote = fork\n")).unwrap();
-        fs::write(r.join(".git/HEAD"), "ref: refs/heads/feat\n").unwrap();
-        fs::write(r.join(".git/packed-refs"), format!("{SHA} refs/remotes/fork/feat\n")).unwrap();
-        assert_eq!(start_target(&r).map(|t| (t.repo.slug(), t.branch)), Some(("me/r".to_string(), "feat".to_string())));
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -1619,10 +1603,6 @@ mod tests {
         f.into_iter().map(|f| f.ended).collect()
     }
 
-    fn lamp(w: &Watcher) -> Vec<(String, CiStatus)> {
-        w.lamps().into_iter().map(|(d, c)| (d, c.state)).collect()
-    }
-
     #[test]
     fn the_first_call_is_20_seconds_after_the_push_then_every_30() {
         let (d, push) = pushing("clock");
@@ -1705,7 +1685,7 @@ mod tests {
         }
         assert_eq!(ended(w.tick(&gh, T0 + 200_000, true)), [Ended::NoCi], "the first poll after 3 min");
         assert_eq!(w.card("s1"), None, "no card line");
-        assert_eq!(lamp(&w), [("Terra".to_string(), CiStatus::None)], "the lamp is unlit");
+        assert_eq!(w.live_on(&o_r(), "main"), None, "ended: nothing for a main tracker to mirror");
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -1765,7 +1745,8 @@ mod tests {
         }
         assert_eq!(w.card("s0"), None, "the oldest was dropped, its line with it");
         assert!((1..9).all(|i| w.card(&format!("s{i}")).is_some()));
-        assert!(w.lamps().iter().all(|(d, _)| d != "D0"));
+        assert_eq!(w.live_on(&o_r(), "b0"), None, "the dropped watch is not mirrored");
+        assert!(w.live_on(&o_r(), "b8").is_some());
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -1848,7 +1829,7 @@ mod tests {
             assert_eq!(ended(w.tick(&gh, T0 + 20_000, true)), [Ended::Skipped(reason.into())]);
             assert_eq!(gh.log().len(), 1, "no retry");
             assert_eq!(w.card("s1"), None, "no card line");
-            assert_eq!(lamp(&w), [("Terra".to_string(), CiStatus::None)], "the lamp stays unlit");
+            assert_eq!(w.live_on(&o_r(), "main"), None, "ended: nothing for a main tracker to mirror");
             let _ = fs::remove_dir_all(&d);
         }
     }
@@ -1858,7 +1839,6 @@ mod tests {
         let (d, push) = pushing("off");
         let mut w = Watcher::default();
         assert!(!w.on_push(false, &push, T0));
-        assert!(!w.start_check(false, "Terra", &push.cwd, T0));
         assert_eq!(w.len(), 0);
         let gh = Stub::always(Err(GhError::Missing));
         for s in [0, 20, 50, 500, 5000] {
@@ -1868,7 +1848,7 @@ mod tests {
         // turned off mid-run: the watches and lamps go, and no call follows
         assert!(w.on_push(true, &push, T0));
         assert!(w.tick(&gh, T0 + 1000, false).is_empty());
-        assert_eq!((w.len(), w.lamps().len(), gh.log().len()), (0, 0, 0));
+        assert_eq!((w.len(), w.cards().len(), gh.log().len()), (0, 0, 0));
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -1884,94 +1864,15 @@ mod tests {
         let _ = fs::remove_dir_all(&d);
     }
 
-    #[test]
-    fn the_lamp_is_the_folders_newest_watch() {
-        let (d, push) = pushing("lamp");
-        let mut w = Watcher::default();
-        w.on_push(true, &push, T0);
-        assert_eq!(lamp(&w), [("Terra".to_string(), CiStatus::Running)]);
-        let gh = Stub::new(poll_answers(&[("build", "completed", Some("failure"))], &[]));
-        w.tick(&gh, T0 + 20_000, true);
-        assert_eq!(lamp(&w), [("Terra".to_string(), CiStatus::Fail)], "stays red after the watch ended");
-        // another branch of the same folder pushes: it is the folder's newest
-        fs::write(Path::new(&push.cwd).join(".git/refs/remotes/origin/dev"), format!("{SHA}\n")).unwrap();
-        let dev = CiPush { session_id: "s9".into(), output: "To github.com:o/r.git\n   1a2b3c4..5d6e7f8  dev -> dev\n".into(), ..push.clone() };
-        w.on_push(true, &dev, T0 + 100_000);
-        assert_eq!(w.lamps().iter().map(|(d, c)| (d.as_str(), c.state, c.branch.as_str())).collect::<Vec<_>>(), [("Terra", CiStatus::Running, "dev")]);
-        assert_eq!(w.card("s1").map(|c| c.state), Some(CiStatus::Fail), "the first session keeps its own line");
-        let _ = fs::remove_dir_all(&d);
-    }
-
-    // ---- the start check ----
-
-    #[test]
-    fn one_start_check_per_folder_per_run() {
-        let d = temp("sc");
-        let r = repo(&d, "main", "git@github.com:o/r.git", Some(("main", SHA)));
-        let cwd = r.to_string_lossy().into_owned();
-        let mut w = Watcher::default();
-        assert!(w.start_check(true, "Terra", &cwd, T0), "first sight: a watch");
-        assert!(!w.start_check(true, "Terra", &cwd, T0 + 1), "second sight: none");
-        assert_eq!(w.len(), 1);
-        let gh = Stub::new(polls(2, &[ok("build")], &[]));
-        w.tick(&gh, T0, true);
-        assert_eq!(gh.log().len(), 2, "polled at once, no 20 s wait");
-        assert_eq!(lamp(&w), [("Terra".to_string(), CiStatus::Running)]);
-        w.tick(&gh, T0 + 30_000, true);
-        assert_eq!(w.lamps().iter().map(|(d, c)| (d.as_str(), c.state, c.sha7.as_str())).collect::<Vec<_>>(), [("Terra", CiStatus::Pass, "5d6e7f8")]);
-        assert_eq!(w.card("Terra"), None, "a start check has no session card");
-        assert!(!w.start_check(true, "Terra", &cwd, T0 + 60_000), "still once per run after it ended");
-        let _ = fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn no_start_check_for_a_detached_head_a_missing_remote_ref_or_while_off() {
-        let d = temp("sc-none");
-        let r = repo(&d, "main", "git@github.com:o/r.git", Some(("main", SHA)));
-        let cwd = r.to_string_lossy().into_owned();
-        let mut w = Watcher::default();
-        assert!(!w.start_check(false, "Off", &cwd, T0), "off");
-        assert!(w.start_check(true, "Off", &cwd, T0), "off did not use up the folder's one check");
-        fs::write(r.join(".git/HEAD"), format!("{SHA}\n")).unwrap();
-        assert!(!w.start_check(true, "Detached", &cwd, T0));
-        fs::write(r.join(".git/HEAD"), "ref: refs/heads/local-only\n").unwrap();
-        assert!(!w.start_check(true, "NoRemoteRef", &cwd, T0));
-        assert!(!w.start_check(true, "NoRepo", &d.to_string_lossy(), T0));
-        assert_eq!(w.len(), 1);
-        let _ = fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn a_start_check_on_a_repo_with_no_ci_stays_unlit_and_ends_silently() {
-        let d = temp("sc-noci");
-        let r = repo(&d, "main", "git@github.com:o/r.git", Some(("main", SHA)));
-        let mut w = Watcher::default();
-        w.start_check(true, "Terra", &r.to_string_lossy(), T0);
-        let gh = Stub::new(polls(20, &[], &[]));
-        w.tick(&gh, T0, true);
-        assert_eq!(lamp(&w), [("Terra".to_string(), CiStatus::None)], "no amber for a commit with no CI");
-        assert_eq!(ended(w.tick(&gh, T0 + 180_000, true)), [Ended::NoCi]);
-        let _ = fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn a_start_check_never_replaces_a_watch_and_a_push_counts_as_the_check() {
-        let (d, push) = pushing("sc-push");
-        let cwd = push.cwd.clone();
-        let mut w = Watcher::default();
-        assert!(w.on_push(true, &push, T0));
-        assert!(!w.start_check(true, "Terra", &cwd, T0 + 1), "a push already looked at the folder");
-        let mut w2 = Watcher::default();
-        assert!(w2.on_push(true, &CiPush { dept: "Other".into(), ..push.clone() }, T0));
-        assert!(!w2.start_check(true, "Terra", &cwd, T0 + 1), "that branch is already watched");
-        assert_eq!(w2.len(), 1);
-        let _ = fs::remove_dir_all(&d);
-    }
-
     // ---- the watcher thread's worker, the lamps, the opener, the events ----
 
     fn input(enabled: bool, pushes: Vec<CiPush>, folders: &[(&str, &Path)]) -> Input {
-        Input { enabled, pushes, folders: folders.iter().map(|(d, p)| (d.to_string(), p.to_string_lossy().into_owned())).collect() }
+        input_done(enabled, pushes, folders, &[])
+    }
+
+    fn input_done(enabled: bool, pushes: Vec<CiPush>, folders: &[(&str, &Path)], done: &[&str]) -> Input {
+        let folders = folders.iter().map(|(d, p)| (d.to_string(), p.to_string_lossy().into_owned())).collect();
+        Input { enabled, pushes, folders, done: done.iter().map(|d| d.to_string()).collect() }
     }
 
     fn cwd_of(push: &CiPush) -> PathBuf {
@@ -1997,7 +1898,7 @@ mod tests {
         }
         assert!(gh.log().is_empty(), "no gh process: {:?}", gh.log());
         assert_eq!(w.watcher.len(), 0);
-        assert!(w.watcher.lamp_rows().is_empty() && w.watcher.cards().is_empty());
+        assert!(w.mains.lamp_rows().is_empty() && w.watcher.cards().is_empty());
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -2012,7 +1913,7 @@ mod tests {
         w.step(&gh, T0 + 20_000, input(false, vec![], &[]));
         w.step(&gh, T0 + 80_000, input(false, vec![], &[]));
         assert_eq!(w.watcher.len(), 0);
-        assert!(w.watcher.lamp_rows().is_empty(), "the lamps go dark");
+        assert!(w.watcher.cards().is_empty(), "the cards go dark");
         assert_eq!(gh.log().len(), before, "no call after it is off");
         let _ = fs::remove_dir_all(&d);
     }
@@ -2043,24 +1944,6 @@ mod tests {
         w.step(&gh, T0 + 1000, input(true, vec![], &[]));
         assert_eq!(w.watcher.len(), 1, "nothing new, nothing started");
         assert_eq!(w.watcher.card("s1").map(|c| c.state), Some(CiStatus::Running));
-        let _ = fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn the_start_check_runs_once_per_folder_per_run() {
-        let d = temp("worker-start");
-        let r = repo(&d, "main", "git@github.com:o/r.git", Some(("main", SHA)));
-        let gh = Stub::new(running());
-        let mut w = Worker::default();
-        w.step(&gh, T0, input(true, vec![], &[("Terra", &r)]));
-        assert_eq!(w.watcher.len(), 1, "first sight of the folder: one watch");
-        let calls = gh.log().len();
-        assert_eq!(calls, 3, "auth status, then its first poll at once (check-runs and status)");
-        for i in 1..4 {
-            w.step(&gh, T0 + i * 1000, input(true, vec![], &[("Terra", &r)]));
-        }
-        assert_eq!(w.watcher.len(), 1, "the same folder again: nothing");
-        assert_eq!(gh.log().len(), calls, "and no new call");
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -2125,8 +2008,8 @@ mod tests {
         let url = format!("https://github.com/o/r/commit/{SHA}/checks");
         let links = [link(1, Some("s1"), "Terra", CiStatus::Pass), link(2, Some("s2"), "Terra", CiStatus::Fail), link(3, None, "Other", CiStatus::Running)];
         assert_eq!(open_target(&links, "s1").unwrap(), url, "a session id");
-        assert_eq!(open_target(&links, "Terra").unwrap(), url, "a department: its newest watch");
-        assert!(open_target(&links, "Other").is_ok());
+        assert!(open_target(&links, "Terra").is_err(), "a department: only its main tracker's link, and Terra has none");
+        assert!(open_target(&links, "Other").is_ok(), "Other's is a tracker's (no session)");
         assert!(valid_checks_url(&open_target(&links, "s2").unwrap()));
     }
 
@@ -2141,53 +2024,248 @@ mod tests {
         assert!(open_target(&[short], "s1").is_err());
     }
 
-    fn lamp_of(dept: &str, state: CiStatus) -> Lamp {
-        Lamp { dept: dept.into(), cwd: "/w".into(), state, branch: "main".into(), sha7: "5d6e7f8".into(), failed: None }
+    // ---- the main trackers wired in: the worker, the hub, the opener, the events ----
+
+    const OLD: &str = "1a2b3c40123456789abcdef0123456789abcdef0";
+    const FAILED: Runs<'static> = &[("build", "completed", Some("failure"))];
+    const MAIN_STATUS: &str = "api repos/o/r/commits/main/status";
+
+    fn main_runs(sha: &str) -> String {
+        format!("api repos/o/r/commits/{sha}/check-runs?per_page=100")
+    }
+
+    /// One main tracker check's two answers, in its order: the branch's combined status (naming `sha`), then that
+    /// commit's check-runs.
+    fn main_poll(sha: &str, r: Runs) -> Vec<Result<String, GhError>> {
+        let runs: Vec<Value> = r.iter().map(|(n, s, c)| json!({"id": 1, "name": n, "status": s, "conclusion": c, "head_sha": sha})).collect();
+        vec![Ok(json!({"state": "pending", "sha": sha, "total_count": 0, "statuses": []}).to_string()), Ok(json!({"total_count": runs.len(), "check_runs": runs}).to_string())]
+    }
+
+    /// A fake repo checked out on `feat` whose default branch is `main` (`origin/HEAD`).
+    fn on_feat(name: &str) -> (PathBuf, PathBuf) {
+        let d = temp(name);
+        let r = repo(&d, "feat", "git@github.com:o/r.git", None);
+        origin_head(&r, "ref: refs/remotes/origin/main\n");
+        (d, r)
+    }
+
+    /// A push of `dev` (at `SHA`) by session `s1` of Terra, from `r`.
+    fn push_dev(r: &Path) -> CiPush {
+        fs::write(r.join(".git/refs/remotes/origin/dev"), format!("{SHA}\n")).unwrap();
+        let output = "To github.com:o/r.git\n   1a2b3c4..5d6e7f8  dev -> dev\n".into();
+        CiPush { session_id: "s1".into(), name: "terra-77".into(), dept: "Terra".into(), cwd: r.to_string_lossy().into_owned(), command: "git push".into(), output }
     }
 
     #[test]
-    fn the_lamps_event_goes_out_only_on_a_change() {
-        let mut sent = vec![];
-        assert!(!lamps_changed(&mut sent, &[]), "nothing lit, nothing sent");
-        let amber = [lamp_of("Terra", CiStatus::Running)];
-        assert!(lamps_changed(&mut sent, &amber), "a new lamp");
-        assert!(!lamps_changed(&mut sent, &amber), "the same again");
-        assert!(lamps_changed(&mut sent, &[lamp_of("Terra", CiStatus::Pass)]), "amber to green");
-        let mut red = lamp_of("Terra", CiStatus::Fail);
-        assert!(lamps_changed(&mut sent, &[red.clone()]));
-        red.failed = Some("build".into());
-        assert!(lamps_changed(&mut sent, &[red]), "the failed check changed");
-        assert!(lamps_changed(&mut sent, &[]), "the setting off: the lamps go dark, once");
-        assert!(!lamps_changed(&mut sent, &[]));
-    }
-
-    #[test]
-    fn a_count_moving_does_not_change_a_lamp() {
-        let (d, push) = pushing("lamp-count");
-        let mut script = vec![Ok("ok".into())];
-        script.extend(poll_answers(&[ok("a"), ("b", "in_progress", None)], &[]));
-        script.extend(poll_answers(&[ok("a"), ok("c"), ("b", "in_progress", None)], &[]));
-        let gh = Stub::new(script);
-        let (mut w, mut sent) = (Worker::default(), vec![]);
-        w.step(&gh, T0, input(true, vec![push], &[]));
-        w.step(&gh, T0 + 20_000, input(true, vec![], &[]));
-        assert!(lamps_changed(&mut sent, &w.watcher.lamp_rows()));
-        w.step(&gh, T0 + 50_000, input(true, vec![], &[]));
-        assert_eq!(w.watcher.card("s1").map(|c| (c.done, c.total)), Some((2, 3)), "the card moved");
-        assert!(!lamps_changed(&mut sent, &w.watcher.lamp_rows()), "the lamp did not");
+    fn worker_feeds_the_trackers() {
+        let (d, r) = on_feat("feed");
+        let gh = Stub::new([vec![Ok("ok".to_string())], main_poll(OLD, FAILED), main_poll(OLD, FAILED)].concat());
+        let mut w = Worker::default();
+        let terra = [("Terra", r.as_path())];
+        w.step(&gh, T0, input(true, vec![], &terra));
+        assert_eq!(gh.log(), ["auth status".to_string(), MAIN_STATUS.into(), main_runs(OLD)], "first sight: the tracker's 2 calls at once");
+        for s in [30, 59] {
+            w.step(&gh, T0 + s * 1000, input(true, vec![], &terra));
+        }
+        assert_eq!(gh.log().len(), 3, "a red head is idle: its next check is 5 min away");
+        w.step(&gh, T0 + 60_000, input_done(true, vec![], &terra, &["Terra"]));
+        assert_eq!(gh.log()[3..], [MAIN_STATUS.to_string(), main_runs(OLD)], "a scribe of Terra done: 2 more at once");
+        let rows = w.mains.lamp_rows();
+        assert_eq!(rows.iter().map(|l| (l.dept.as_str(), l.state, l.branch.as_str(), l.sha7.as_str())).collect::<Vec<_>>(), [("Terra", CiStatus::Fail, "main", "1a2b3c4")]);
         let _ = fs::remove_dir_all(&d);
     }
 
     #[test]
-    fn a_lamp_row_has_the_folder_the_branch_the_short_sha_and_the_failed_check() {
-        let (d, push) = pushing("lamp-row");
-        let mut w = Watcher::default();
-        w.on_push(true, &push, T0);
-        let rows = w.lamp_rows();
-        assert_eq!(rows, [Lamp { dept: "Terra".into(), cwd: push.cwd.clone(), state: CiStatus::Running, branch: "main".into(), sha7: "5d6e7f8".into(), failed: None }]);
+    fn a_lamp_row_is_the_departments_main_in_the_ci_lamps_shape() {
+        let (d, r) = on_feat("lamp-row");
+        let gh = Stub::new([vec![Ok("ok".to_string())], main_poll(OLD, FAILED)].concat());
+        let (hub, mut w) = (Hub::default(), Worker::default());
+        let step = w.step(&gh, T0, input(true, vec![], &[("Terra", &r)]));
+        hub.publish(&w, step.finished, step.mains);
+        let rows = hub.lamps();
+        let cwd = r.to_string_lossy().into_owned();
+        assert_eq!(rows, [Lamp { dept: "Terra".into(), cwd: cwd.clone(), state: CiStatus::Fail, branch: "main".into(), sha7: "1a2b3c4".into(), failed: Some("build".into()) }]);
         let json = serde_json::to_value(&rows[0]).unwrap();
-        assert_eq!(json, json!({"dept": "Terra", "cwd": push.cwd, "state": "running", "branch": "main", "sha7": "5d6e7f8", "failed": null}));
+        assert_eq!(json, json!({"dept": "Terra", "cwd": cwd, "state": "fail", "branch": "main", "sha7": "1a2b3c4", "failed": "build"}));
         let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_push_to_main_is_one_record() {
+        let (d, push) = pushing("one-record");
+        let r = cwd_of(&push);
+        origin_head(&r, "ref: refs/remotes/origin/main\n");
+        let terra = [("Terra", r.as_path())];
+        let mut script = vec![Ok("ok".to_string())];
+        script.extend(main_poll(OLD, FAILED)); // T0: the tracker's first look, idle after it
+        script.extend(polls(2, &[ok("build")], &[])); // the push watch at 80 s and 110 s: a pass
+        script.extend(main_poll(SHA, &[ok("build")])); // 181 s: the second early check finds the pushed commit
+        let gh = Stub::new(script);
+        let (hub, mut w) = (Hub::default(), Worker::default());
+        let (mut records, mut main_records) = (0, 0);
+        let mut run = |w: &mut Worker, at: i64, input: Input| {
+            let step = w.step(&gh, T0 + at * 1000, input);
+            hub.publish(w, step.finished, step.mains);
+            records += hub.take_verdicts().iter().filter_map(|f| verdict_event(f, T0)).count();
+            main_records += hub.take_main_verdicts().len();
+            gh.log().len()
+        };
+        assert_eq!(run(&mut w, 0, input(true, vec![], &terra)), 3);
+        run(&mut w, 60, input(true, vec![push], &terra));
+        // a scribe done right after its push: the tracker is due, inside the push watch's first 20 s
+        run(&mut w, 61, input_done(true, vec![], &terra, &["Terra"]));
+        assert_eq!(hub.lamps().iter().map(|l| (l.state, l.sha7.as_str())).collect::<Vec<_>>(), [(CiStatus::Running, "5d6e7f8")], "the department lamp shows the push");
+        assert_eq!(run(&mut w, 70, input(true, vec![], &terra)), 3, "no tracker call for the commit the push watch follows");
+        assert_eq!(run(&mut w, 80, input(true, vec![], &terra)), 5, "one gh pair a poll, not two");
+        assert_eq!(gh.log()[3..], [format!("api repos/o/r/commits/{SHA}/check-runs?per_page=100"), format!("api repos/o/r/commits/{SHA}/status")], "the push watch's");
+        assert_eq!(run(&mut w, 110, input(true, vec![], &terra)), 7);
+        assert_eq!(hub.lamps()[0].state, CiStatus::Pass);
+        assert_eq!(run(&mut w, 181, input(true, vec![], &terra)), 9, "the second early check");
+        assert_eq!(gh.log()[7..], [MAIN_STATUS.to_string(), main_runs(SHA)]);
+        assert_eq!((records, main_records), (1, 0), "one Chronicon record, the push's");
+        assert_eq!(hub.lamps()[0].state, CiStatus::Pass);
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_push_watch_is_live_from_its_push_until_it_ends() {
+        let (d, push) = pushing("live-on");
+        let mut w = Watcher::default();
+        assert_eq!(w.live_on(&o_r(), "main"), None);
+        w.on_push(true, &push, T0);
+        let live = w.live_on(&Repo { owner: "O".into(), name: "R".into() }, "main").expect("before its first call");
+        assert_eq!((live.state, live.sha7.as_str()), (CiStatus::Running, "5d6e7f8"));
+        assert_eq!(w.live_on(&o_r(), "dev"), None, "another branch");
+        let gh = Stub::new(poll_answers(FAILED, &[]));
+        w.tick(&gh, T0 + 20_000, true);
+        assert_eq!(w.live_on(&o_r(), "main"), None, "ended: the tracker takes it by `adopt`");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn off_mid_step_drops_the_trackers() {
+        let (d, r) = on_feat("off-mid");
+        let hub = Hub::default();
+        let stub = Stub::new([vec![Ok("ok".to_string())], main_poll(OLD, FAILED)].concat());
+        let gated = Gated { inner: &stub, on: &hub.on };
+        let mut w = Worker::default();
+        let folders = vec![("Terra".to_string(), r.to_string_lossy().into_owned())];
+        hub.submit(true, vec![], folders.clone(), vec![]);
+        let step = w.step(&gated, T0, hub.next());
+        hub.settle(&mut w, step);
+        assert_eq!(hub.lamps().len(), 1);
+        assert_eq!(stub.log().len(), 3);
+        // the setting goes off after the hand-in was taken: the step still runs with it on, its tracker due
+        hub.submit(true, vec![], folders, vec!["Terra".into()]);
+        let input = hub.next();
+        hub.submit(false, vec![], vec![], vec![]);
+        let step = w.step(&gated, T0 + 60_000, input);
+        hub.settle(&mut w, step);
+        assert!(hub.lamps().is_empty(), "the lamps go with the setting");
+        assert!(hub.open_url_for("Terra").is_err());
+        assert_eq!(stub.log().len(), 3, "no call reached gh");
+        let step = w.step(&gated, T0 + 61_000, Input::default());
+        hub.settle(&mut w, step);
+        assert!(hub.lamps().is_empty() && w.mains.lamp_rows().is_empty());
+        assert_eq!(stub.log().len(), 3);
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn the_folder_lamp_opens_main() {
+        let (d, r) = on_feat("opens-main");
+        let gh = Stub::new([vec![Ok("ok".to_string())], main_poll(OLD, FAILED)].concat());
+        let (hub, mut w) = (Hub::default(), Worker::default());
+        let terra = [("Terra", r.as_path())];
+        let step = w.step(&gh, T0, input(true, vec![], &terra));
+        hub.publish(&w, step.finished, step.mains);
+        // later, a session of Terra pushes another branch
+        let step = w.step(&gh, T0 + 1000, input(true, vec![push_dev(&r)], &terra));
+        hub.publish(&w, step.finished, step.mains);
+        assert_eq!(hub.open_url_for("Terra").unwrap(), format!("https://github.com/o/r/commit/{OLD}/checks"), "the folder's lamp: main's head");
+        assert_eq!(hub.open_url_for("s1").unwrap(), format!("https://github.com/o/r/commit/{SHA}/checks"), "the session's card: its push");
+        let mut later = link(9, Some("s1"), "Terra", CiStatus::Running);
+        (later.target.branch, later.target.sha) = ("dev".into(), OLD.into());
+        let links = [link(1, None, "Terra", CiStatus::Fail), later];
+        assert_eq!(open_target(&links, "Terra").unwrap(), checks_url(&links[0].target), "never a session's link, newer or not");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn one_pause_holds_watches_and_trackers() {
+        let (d, r) = on_feat("one-pause");
+        let terra = [("Terra", r.as_path())];
+        let reset = (T0 + 600_000) / 1000;
+        // the push watch meets the limit: the tracker waits
+        let gh = Stub::new([vec![Ok("ok".to_string())], main_poll(OLD, FAILED), vec![Err(GhError::RateLimit(Some(reset)))]].concat());
+        let mut w = Worker::default();
+        w.step(&gh, T0, input(true, vec![], &terra));
+        w.step(&gh, T0 + 1000, input(true, vec![push_dev(&r)], &terra));
+        let paused = w.step(&gh, T0 + 21_000, input(true, vec![], &terra)).notes;
+        assert_eq!(gh.log().len(), 4, "the push watch's call that met the limit");
+        assert!(paused.iter().any(|(_, m)| m.contains("rate limit")), "{paused:?}");
+        w.step(&gh, T0 + 60_000, input_done(true, vec![], &terra, &["Terra"]));
+        assert_eq!(gh.log().len(), 4, "the tracker is held by the same pause");
+        assert_eq!(w.mains.lamp_rows()[0].state, CiStatus::None, "unlit while paused");
+        // the tracker meets the limit: the push watch waits
+        let gh2 = Stub::new(vec![Ok("ok".to_string()), Err(GhError::RateLimit(Some(reset)))]);
+        let mut w2 = Worker::default();
+        w2.step(&gh2, T0, input(true, vec![push_dev(&r)], &terra));
+        assert_eq!(gh2.log(), ["auth status", MAIN_STATUS]);
+        w2.step(&gh2, T0 + 21_000, input(true, vec![], &terra));
+        assert_eq!(gh2.log().len(), 2, "the push watch is held by the same pause");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_tracker_skip_every_five_minutes_leaves_one_status_line() {
+        let (d, r) = on_feat("skip-note");
+        let gh = Stub::new(vec![Ok("ok".to_string()), Err(GhError::NotLoggedIn), Err(GhError::NotLoggedIn)]);
+        let mut w = Worker::default();
+        let terra = [("Terra", r.as_path())];
+        let first = w.step(&gh, T0, input(true, vec![], &terra)).notes;
+        let skipped = (status::State::Warn, "CI check skipped: gh not logged in".to_string());
+        assert_eq!(first[1..], [skipped.clone()]);
+        assert!(w.step(&gh, T0 + 60_000, input(true, vec![], &terra)).notes.is_empty());
+        let again = w.step(&gh, T0 + crate::ci_main::IDLE_MS, input(true, vec![], &terra)).notes;
+        assert_eq!(gh.log().len(), 3, "checked again 5 min later");
+        assert_eq!(again, [skipped.clone()], "the same note, word for word");
+        // what `Hub::settle` hands it to: an unchanged note leaves the entry (and the log) as it was
+        let name = "ci-test-skip-note";
+        status::report_change(name, skipped.0, &skipped.1);
+        let at = status::entry(name).unwrap().time_ms;
+        std::thread::sleep(Duration::from_millis(5));
+        status::report_change(name, again[0].0, &again[0].1);
+        assert_eq!(status::entry(name).unwrap().time_ms, at, "no second line");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn scribes_done_cases() {
+        let s = |id: &str, dept: &str, status: &str| Session { id: id.into(), dept: dept.into(), status: status.into(), ..Default::default() };
+        let prev = [s("a", "Terra", "busy"), s("b", "Mars", "busy"), s("c", "Luna", "idle"), s("d", "Io", "waiting"), s("e", "Terra", "busy"), s("f", "Venus", "busy")];
+        let now = [s("a", "Terra", "idle"), s("c", "Luna", "idle"), s("d", "Io", "idle"), s("e", "Terra", "idle"), s("f", "Venus", "busy")];
+        // a: busy to idle; b: busy to gone; c: idle to idle; d: waiting to idle; e: Terra again; f: still busy
+        assert_eq!(scribes_done(&prev, &now), ["Terra", "Mars"]);
+        assert!(scribes_done(&[], &now).is_empty(), "the first tick");
+        assert!(scribes_done(&now, &now).is_empty());
+    }
+
+    #[test]
+    fn a_main_verdict_is_a_chronicon_event_of_the_department() {
+        let target = Target { repo: Repo { owner: "o".into(), name: "r".into() }, branch: "main".into(), sha: SHA.into() };
+        let m = |ended: Ended| MainEnded { dept: "Terra".into(), target: target.clone(), ended };
+        let pass = main_verdict_event(&m(Ended::Pass), 7).unwrap();
+        assert_eq!((pass.kind.as_str(), pass.session_id.as_str(), pass.name.as_str(), pass.dept.as_str(), pass.ts), ("ci-pass", "", "Terra", "Terra", 7));
+        assert_eq!(pass.detail, "main · 5d6e7f8");
+        let fail = main_verdict_event(&m(Ended::Fail("build (ubuntu)".into())), 8).unwrap();
+        assert_eq!((fail.kind.as_str(), fail.detail.as_str()), ("ci-fail", "main · 5d6e7f8 · build (ubuntu)"));
+        for e in [Ended::Timeout, Ended::Error, Ended::NoCi, Ended::Skipped("gh not found".into())] {
+            assert!(main_verdict_event(&m(e.clone()), 1).is_none(), "{e:?}");
+        }
+        // an ending before any head: no commit, no event, no panic
+        let early = MainEnded { dept: "Terra".into(), target: Target { sha: String::new(), ..target.clone() }, ended: Ended::Skipped("gh not found".into()) };
+        assert!(main_verdict_event(&early, 1).is_none());
     }
 
     fn finished(session: Option<&str>, ended: Ended) -> Finished {
@@ -2206,24 +2284,25 @@ mod tests {
         for e in [Ended::Timeout, Ended::Error, Ended::NoCi, Ended::Skipped("gh not found".into())] {
             assert!(verdict_event(&finished(Some("s1"), e.clone()), 1).is_none(), "{e:?}");
         }
-        assert!(verdict_event(&finished(None, Ended::Pass), 1).is_none(), "a start check is the last known state, not news");
+        assert!(verdict_event(&finished(None, Ended::Pass), 1).is_none(), "no session: not a push watch's");
     }
 
     #[test]
-    fn the_hub_drops_what_waits_when_the_setting_goes_off_and_keeps_one_start_check_per_folder() {
+    fn the_hub_drops_what_waits_when_the_setting_goes_off_and_keeps_each_folder_once() {
         let (d, push) = pushing("hub");
         let hub = Hub::default();
         let folders = vec![("Terra".to_string(), "/w".to_string())];
-        hub.submit(true, vec![push.clone()], folders.clone());
-        hub.submit(true, vec![], folders.clone());
+        let done = vec!["Terra".to_string()];
+        hub.submit(true, vec![push.clone()], folders.clone(), done.clone());
+        hub.submit(true, vec![], folders.clone(), done.clone());
         {
             let i = crate::lock(&hub.inbox);
             assert!(i.enabled);
-            assert_eq!((i.pushes.len(), i.folders.len()), (1, 1), "the folder waits once");
+            assert_eq!((i.pushes.len(), i.folders.len(), i.done.len()), (1, 1, 1), "the folder and its scribe done wait once");
         }
-        hub.submit(false, vec![push], folders);
+        hub.submit(false, vec![push], folders, done);
         let got = hub.next();
-        assert!(!got.enabled && got.pushes.is_empty() && got.folders.is_empty(), "nothing from before reaches gh");
+        assert!(!got.enabled && got.pushes.is_empty() && got.folders.is_empty() && got.done.is_empty(), "nothing from before reaches gh");
         let _ = fs::remove_dir_all(&d);
     }
 
@@ -2232,14 +2311,12 @@ mod tests {
         let (d, push) = pushing("hub-view");
         let gh = Stub::new(running());
         let (hub, mut w) = (Hub::default(), Worker::default());
-        assert!(hub.card("s1").is_none() && hub.lamps().is_empty() && hub.lamps_if_changed().is_none());
+        assert!(hub.card("s1").is_none() && hub.lamps().is_empty());
         let step = w.step(&gh, T0, input(true, vec![push], &[]));
-        hub.publish(&w, step.finished);
+        hub.publish(&w, step.finished, step.mains);
         assert_eq!(hub.card("s1").map(|c| c.state), Some(CiStatus::Running));
-        assert_eq!(hub.lamps().len(), 1);
-        assert_eq!(hub.lamps_if_changed().map(|l| l.len()), Some(1));
-        assert!(hub.lamps_if_changed().is_none(), "sent once");
-        assert!(hub.take_verdicts().is_empty());
+        assert!(hub.lamps().is_empty(), "a push lights no department lamp of its own: the lamps are the main trackers'");
+        assert!(hub.take_verdicts().is_empty() && hub.take_main_verdicts().is_empty());
         assert!(hub.open_url_for("s1").unwrap().ends_with("/checks"));
         assert!(hub.open_url_for("nobody").is_err());
         let _ = fs::remove_dir_all(&d);
@@ -2347,9 +2424,9 @@ mod tests {
         let hub = Hub::default();
         let stub = Stub::always(Ok("x".into()));
         let gated = Gated { inner: &stub, on: &hub.on };
-        hub.submit(true, vec![], vec![]);
+        hub.submit(true, vec![], vec![], vec![]);
         assert!(gated.run(&["api", "x"]).is_ok());
-        hub.submit(false, vec![], vec![]);
+        hub.submit(false, vec![], vec![], vec![]);
         assert!(gated.run(&["api", "x"]).is_err());
         assert_eq!(stub.log().len(), 1, "the refused call never reached gh");
     }
