@@ -485,6 +485,8 @@ function initCategories(root, form, onCat = () => {}) {
     }
     rove(b);
     for (const s of sections) s.hidden = s.dataset.cat !== b.dataset.cat;
+    const pane = form.querySelector('.pane');
+    if (pane) pane.scrollTop = 0; // a tab opens at its top, not where the last one was left
     onCat(b.dataset.cat);
   };
 }

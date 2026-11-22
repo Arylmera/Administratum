@@ -218,10 +218,10 @@ assert.equal(up.querySelector('.up-line').textContent, 'Version 9.9.9. Update ch
 
 // Categories: one section at a time.
 const cat = name => document.querySelector(`#prefs .cats [data-cat="${name}"]`);
-cat('petitions').click();
-assert.equal(cat('petitions').getAttribute('aria-current'), 'page');
+cat('alerts').click();
+assert.equal(cat('alerts').getAttribute('aria-current'), 'page');
 assert.equal(cat('hall').getAttribute('aria-current'), null);
-for (const s of form.querySelectorAll('section[data-cat]')) assert.equal(s.hidden, s.dataset.cat !== 'petitions', s.dataset.cat);
+for (const s of form.querySelectorAll('section[data-cat]')) assert.equal(s.hidden, s.dataset.cat !== 'alerts', s.dataset.cat);
 
 // World and style: a new world takes its first style.
 const { THEMES } = await import('./theme.js');
@@ -319,16 +319,16 @@ assert.deepEqual(seen.filter(s => s[0] === 'mode' || s[0] === 'muted'), [['mode'
   assert.ok(tabs.length >= 5 && !list.contains(form.querySelector('.reset')), 'Reset is not one of the tabs');
   const key = (el, k) => { const seen = {}; el.dispatch('keydown', { key: k, preventDefault() { seen.prevented = true; } }); return seen; };
   const sel = () => tabs.filter(b => b.getAttribute('aria-selected') === 'true').map(b => b.dataset.cat);
-  cat('hall').click();
+  cat('look').click();
+  assert.deepEqual(sel(), ['look']);
+  assert.deepEqual(tabs.map(b => b.getAttribute('tabindex')), tabs.map(b => (b.dataset.cat === 'look' ? '0' : '-1')), 'roving tabindex');
+  assert.equal(key(cat('look'), 'ArrowRight').prevented, true);
+  assert.equal(document.activeElement, cat('hall'));
   assert.deepEqual(sel(), ['hall']);
-  assert.deepEqual(tabs.map(b => b.getAttribute('tabindex')), tabs.map(b => (b.dataset.cat === 'hall' ? '0' : '-1')), 'roving tabindex');
-  assert.equal(key(cat('hall'), 'ArrowRight').prevented, true);
-  assert.equal(document.activeElement, cat('petitions'));
-  assert.deepEqual(sel(), ['petitions']);
-  assert.equal(form.querySelector('section[data-cat="petitions"]').hidden, false);
-  assert.equal(cat('petitions').getAttribute('tabindex'), '0');
-  assert.equal(cat('hall').getAttribute('tabindex'), '-1');
-  key(cat('petitions'), 'ArrowLeft'); key(cat('hall'), 'ArrowLeft');
+  assert.equal(form.querySelector('section[data-cat="hall"]').hidden, false);
+  assert.equal(cat('hall').getAttribute('tabindex'), '0');
+  assert.equal(cat('look').getAttribute('tabindex'), '-1');
+  key(cat('hall'), 'ArrowLeft'); key(cat('look'), 'ArrowLeft');
   assert.equal(document.activeElement, tabs.at(-1), 'wraps from the first to the last');
   key(document.activeElement, 'Home');
   assert.equal(document.activeElement, tabs[0]);
@@ -391,7 +391,7 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   hooks.roster = () => [{ dept: 'Terra', cwd: 'C:\\git\\Terra', room: inRoom }, { dept: 'Terra', cwd: 'C:\\git\\Terra\\ui', room: inRoom },
     { dept: 'scratch', cwd: 'C:\\Temp\\terra-x', temp: true, room: null }, { dept: 'Geneseed', cwd: 'C:\\git\\Geneseed', room: null }];
   hooks.roomsChanged = () => changed.push(rooms.list.map(r => r.id).join());
-  const sec = form.querySelector('section[data-cat="rooms"]'), add = sec.querySelector('.room-add');
+  const sec = form.querySelector('section[data-cat="hall"]'), add = sec.querySelector('.room-add');
   const rowsNow = () => sec.querySelectorAll('.room-row');
   const before = store.get('adm.rooms', '[]');
   add.click();
@@ -458,9 +458,9 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
 // owner/repo, update, remove, each a backend call that greys the buttons while it runs; any success: Restart to apply.
 {
   const { PACKS } = await import('./themes.js');
-  const box = form.querySelector('section[data-cat="hall"] #packs');
+  const box = form.querySelector('section[data-cat="themes"] #packs');
   assert.ok(box && box.hasAttribute('data-host') && box.classList.contains('host-only'), 'host only');
-  assert.equal(form.querySelector('section[data-cat="hall"]').children[1], box, 'right after the first fieldset');
+  assert.equal(form.querySelector('section[data-cat="themes"]').children[0], box, 'the Themes tab is the packs card');
   const rows = () => box.querySelectorAll('.pk-row'), rowOf = id => rows().find(r => r.dataset.pack === id);
   const repo = box.querySelector('.pk-repo'), install = box.querySelector('.pk-install'), line = box.querySelector('.pk-line'), restart = box.querySelector('.pk-restart');
   const btn = (row, text) => row.querySelectorAll('button').find(b => b.textContent === text);
@@ -595,7 +595,7 @@ console.log('packs ok');
 
   // I6: the adm.ci switch saves like the others; the gh line shows the backend's gh entry
   replies.integration_status = [{ name: 'gh', state: 'warn', message: 'gh not logged in: run gh auth login', timeMs: NOW }];
-  tab('petitions').click();
+  tab('work').click();
   assert.equal(MONITOR.ci, '0');
   assert.equal(store.get('adm.ci', MONITOR.ci), '0', 'off by default');
   const reads = invoked('integration_status').length;

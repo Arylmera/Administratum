@@ -142,6 +142,9 @@ Wording keys added for the panels (a pack that lacks them keeps the defaults, so
 page with no petition waiting; reword it where your world renames petitions) and `petition.armed` (a risky *Approve* after
 its first click). Added with the CI verdict and Settings > Status, all optional: `ci.running`, `ci.pass`, `ci.fail`, `ci.timeout`, `ci.error` (the card's CI line; they keep their `{branch}`, `{sha}`, `{done}`, `{total}` and `{check}` placeholders, which are filled by name), `ci.open` (the title of the click that opens the checks), `event.ci-pass` and `event.ci-fail` (the Chronicon's labels), `log.error` (a Chronicon day that could not be read, with `{error}`), `prefs.cat.status` (the Settings tab) and the wording of that tab under `prefs.status`, `prefs.saveFailed`, `prefs.remote`, `prefs.update`, `prefs.test` and `prefs.ci`. A world rewords the CI events and the Status tab where it rewords their neighbours; the rest keeps the defaults. The new/cache bars of the Chronicon are told apart by a hatch as well as by `--chart-new` and
 `--chart-cache`, so the two colours may be close in hue.
+Added with the Settings tabs regrouped, all optional: `prefs.cat.look`, `prefs.cat.alerts`, `prefs.cat.work` and
+`prefs.cat.themes` (the Appearance, Alerts, Work and Themes tabs). `prefs.cat.petitions`, `prefs.cat.scribes` and
+`prefs.cat.rooms` now title the cards inside the Alerts and Hall tabs.
 
 **A style** (the template's `vault-pink/theme.json`):
 
@@ -363,7 +366,7 @@ It ends with exit code 0 only when there is none. Lines starting `warning:` name
 out (a `.js`, a file two folders deep, a file over 2 MiB), a missing `pack.json` or licence, and a frame this version
 of the app does not know (`is not a frame this version of the app knows: ignored`: a frame of a newer version, or a
 typo). They do not fail the check, but those files will not reach anyone who installs the pack, and those frames are
-not drawn by this version. The app says the same under Settings > Added themes, on the pack's line.
+not drawn by this version. The app says the same under Settings > Themes, on the pack's line.
 
 ---
 
