@@ -259,7 +259,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="enclave_floor"></a>`ENCLAVE_FLOOR` | 8×8 | Custom room floor tile (Settings > Rooms); its sash parts take the rule colour. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_FLOOR.png" height="64"> |
+| <a id="enclave_floor"></a>`ENCLAVE_FLOOR` | 8×8 | Custom room floor tile (Settings > Hall > Rooms); its sash parts take the rule colour. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_FLOOR.png" height="64"> |
 | <a id="enclave_rail"></a>`ENCLAVE_RAIL` | 8×5 | Custom room rail, front and back edges. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_RAIL.png" height="40"> |
 | <a id="enclave_side"></a>`ENCLAVE_SIDE` | 2×8 | Custom room side rail, seen from above. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_SIDE.png" height="64"> |
 | <a id="enclave_post"></a>`ENCLAVE_POST` | 3×7 | Custom room post: corners and beside each gate. Source: `ui/art/enclave.png` | <img src="forge/ENCLAVE_POST.png" height="56"> |
@@ -272,7 +272,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 
 | Sprite | Logical size | Notes | Image |
 |---|---|---|---|
-| <a id="cilamp-off"></a>`CILAMP.off` | 5×10 | CI lamp, one per scribe beside its desk (Settings > CI): the verdict of that session's own last push; unlit after a timeout or an error. Not drawn before the session pushes, nor in the desktop strip and column. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.off.png" height="80"> |
+| <a id="cilamp-off"></a>`CILAMP.off` | 5×10 | CI lamp, one per scribe beside its desk (Settings > Work > CI verdict): the verdict of that session's own last push; unlit after a timeout or an error. Not drawn before the session pushes, nor in the desktop strip and column. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.off.png" height="80"> |
 | <a id="cilamp-amber"></a>`CILAMP.amber` | 5×10 | CI lamp while the scribe's last push is still in CI (blinks with `CILAMP.amber_dim`, once a second); in the 39° view the same frame stands upright. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.amber.png" height="80"> |
 | <a id="cilamp-amber_dim"></a>`CILAMP.amber_dim` | 5×10 | CI lamp, the off beat of the blink while CI runs. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.amber_dim.png" height="80"> |
 | <a id="cilamp-green"></a>`CILAMP.green` | 5×10 | CI lamp, the scribe's last push passed. Source: `ui/art/cilamp.png` | <img src="forge/CILAMP.green.png" height="80"> |

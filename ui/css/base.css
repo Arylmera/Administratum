@@ -39,7 +39,7 @@
   --spe-80: .8em; --spe-90: .9em; --spe-100: 1em; --spe-120: 1.2em; --spe-150: 1.5em;
   --fs-8: 8px; --fs-9: 9px; --fs-10: 10px; --fs-11: 11px; --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px; --fs-20: 20px; --fs-22: 22px; --fs-24: 24px;
   --fse-80: .8em; --fse-85: .85em; --fse-90: .9em; --fse-100: 1em; --fse-110: 1.1em; --fse-170: 1.7em; --fse-190: 1.9em;
-  --r-2: 2px; --r-3: 3px; --r-4: 4px; --r-rod: .45em; --r-round: 50%;
+  --r-2: 2px; --r-3: 3px; --r-4: 4px; --r-rod: .45em; --r-round: 50%; --r-pill: 999px;
   --em-track: .06em;
   --z-usage: 1; --z-edge: 2; --z-card: 3; --z-handle: 4; --z-chron: 5; --z-prefs: 6; --z-menu: 7;
 }

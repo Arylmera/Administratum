@@ -80,12 +80,14 @@
 @keyframes inked { from { background: color-mix(in srgb, var(--chart-new) 25%, transparent); } }
 @media (max-width: 520px) { #chron .events li { grid-template-columns: 3.2em 1.2em minmax(4em, 8em) 1fr; } #chron .events .dept { display: none; } }
 @media (prefers-reduced-motion: reduce) { #chron { transition: none; } #chron .events li.fresh, #chron .loading .seal, #chron .loading::after { animation: none; } #chron .loading::after { width: auto; } }
-/* Settings: the same scroll as the Chronicon; categories down the side, each one's settings grouped by type.
-   Every colour and the title font come from the theme (T.ui), so the panel follows it. */
-#prefs { z-index: var(--z-prefs); top: 1em; width: min(44em, calc(100% - 12px)); max-height: calc(100% - 2em);
+/* Settings: the same scroll as the Chronicon; tabs down the side, each tab a stack of cards (one fieldset each): a title,
+   one row per setting (its label left, its control right), a hint under the row it explains, the card's buttons in its
+   foot. Every colour and the title font come from the theme (T.ui), so the panel follows it. */
+#prefs { --row-line: color-mix(in srgb, var(--paper-line) 55%, transparent); --card-edge: color-mix(in srgb, var(--paper-shade) 80%, transparent);
+  z-index: var(--z-prefs); top: 1em; width: min(44em, calc(100% - 12px)); max-height: calc(100% - 2em);
   transition: grid-template-rows .3s cubic-bezier(.3,.7,.3,1), opacity .2s; color: var(--paper-ink); }
 #prefs .top { padding: var(--spe-50) var(--spe-90) var(--spe-30); border-bottom: 2px solid var(--paper-line); }
-#prefs form { flex: 1 1 auto; height: 34em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every category: no jump between them */
+#prefs form { flex: 1 1 auto; height: 34em; min-height: 0; display: grid; grid-template-columns: 10em minmax(0, 1fr); } /* one height for every tab: no jump between them */
 #prefs .cat-tabs { display: flex; flex-direction: column; flex: 1 1 auto; }
 #prefs .cats { display: flex; flex-direction: column; padding: var(--spe-40) 0; background: var(--paper-tab); border-right: 1px solid var(--paper-line); overflow-y: auto; scrollbar-width: thin; }
 #prefs .cats [data-cat] { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.6em; padding: 0 var(--spe-75); background: none; border: none; border-left: 3px solid transparent; color: var(--paper-ink-3); font: inherit; font-size: var(--fse-110); text-align: left; cursor: pointer; }
@@ -93,60 +95,82 @@
 #prefs .cats [data-cat]:hover { background: color-mix(in srgb, var(--paper) 60%, transparent); }
 #prefs .cats svg { flex: none; width: 1.3em; height: 1.3em; }
 #prefs .cats .reset { margin: auto var(--spe-60) var(--spe-20); }
-#prefs .pane { min-height: 0; overflow-y: auto; padding: var(--spe-20) var(--spe-90) var(--spe-80); scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; }
-#prefs fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spe-40); margin: var(--spe-50) 0 0; padding: 0; border: none; }
-#prefs fieldset fieldset { display: contents; } /* a disabled group inside a type, no box of its own */
-#prefs legend, #prefs .sub { float: left; grid-column: 1 / -1; width: 100%; padding: 0 0 var(--spe-20); margin-bottom: var(--spe-10); border-bottom: 1px solid var(--paper-line); font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
-#prefs .sub { float: none; grid-column: 1 / -1; margin-top: var(--spe-50); }
-#prefs label { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.4em; padding: var(--spe-20) var(--spe-50); box-sizing: border-box; background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: var(--r-3); }
-#prefs label > span:first-child { flex: 1; min-width: min-content; line-height: 1.05; } /* a word of the label never runs under its field: it wraps between words, the field keeps its place */
-#prefs .wide, #prefs .hint, #prefs .clear, #prefs .btns, #prefs .rv-on, #prefs .rv-urls { grid-column: 1 / -1; }
-#prefs .clear { justify-self: start; }
-#prefs .btns { display: flex; flex-wrap: wrap; gap: var(--spe-40); } #prefs .btns[hidden] { display: none; }
-#prefs .btns .clear, #prefs .rv-on .clear { margin-top: 0; }
+#prefs .pane { min-height: 0; overflow-y: auto; padding: var(--spe-30) var(--spe-90) var(--spe-90); scrollbar-width: thin; scrollbar-color: var(--paper-line) transparent; }
+#prefs .pane > .hint { padding: var(--spe-40) 0 0; }
+/* the card */
+#prefs section > fieldset, #prefs section > div > fieldset { display: block; min-width: 0; margin: var(--spe-75) 0 0; padding: 0; overflow: hidden;
+  background: color-mix(in srgb, var(--paper-hi) 55%, transparent); border: 1px solid var(--card-edge); border-radius: var(--r-4); }
+#prefs fieldset fieldset { display: contents; } /* a host-only group inside a card, no box of its own */
+#prefs legend { float: left; width: 100%; box-sizing: border-box; padding: var(--spe-50) var(--spe-75) var(--spe-40); font-size: var(--fse-85); letter-spacing: .15em; text-transform: uppercase; color: var(--paper-ink-2); }
+#prefs legend ~ *, #prefs fieldset fieldset > * { clear: both; }
+#prefs .desc { margin: 0; padding: 0 var(--spe-75) var(--spe-50); font-size: var(--fse-90); color: var(--paper-ink-2); }
+/* a row: the label's words take the room, the control keeps its width at the right */
+#prefs label { display: flex; align-items: center; gap: var(--spe-50); min-height: 2.5em; padding: var(--spe-30) var(--spe-75); box-sizing: border-box; border-top: 1px solid var(--row-line); }
+#prefs label > span:first-child { flex: 1; min-width: min-content; line-height: 1.1; } /* a word of the label never runs under its field: it wraps between words */
+#prefs label:hover { background: color-mix(in srgb, var(--paper-hi) 60%, transparent); }
+#prefs .hint { margin: 0; padding: 0 var(--spe-75) var(--spe-50); font-size: var(--fse-85); line-height: 1.25; color: var(--paper-ink-2); }
+#prefs .hint:empty { display: none; }
+#prefs .more { padding: 0 var(--spe-75) var(--spe-50); }
+#prefs .more summary { width: max-content; font-size: var(--fse-85); color: var(--paper-accent); cursor: pointer; }
+#prefs .more .hint { padding: var(--spe-30) 0 0; }
+#prefs .foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spe-40); padding: var(--spe-50) var(--spe-75); border-top: 1px solid var(--row-line); background: color-mix(in srgb, var(--paper-tab) 50%, transparent); }
+#prefs .foot:not(:has(> :not([hidden]))) { display: none; } /* every button hidden: no empty foot */
+/* the controls */
 #prefs .unit { width: 3.2em; white-space: nowrap; color: var(--paper-ink-2); }
-#prefs input[type="number"], #prefs select, #prefs .pk-repo { width: 5.5em; box-sizing: border-box; padding: var(--spe-10) var(--spe-30); background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; text-align: right; }
-#prefs select { flex: none; width: auto; min-width: 8.1em; max-width: none; text-align: left; } /* grows to its longest option: no max-width, no ellipsis, the label gives way (F14) */
-#prefs .pk-repo { width: 14em; min-width: 0; text-align: left; }
-#prefs input[type="checkbox"] { width: 1.1em; height: 1.1em; margin: 0; accent-color: var(--paper-accent); }
+#prefs input[type="number"], #prefs input[type="text"], #prefs input[type="time"], #prefs select { box-sizing: border-box; padding: var(--spe-10) var(--spe-30); background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; }
+#prefs input[type="number"] { width: 5.5em; text-align: right; }
+#prefs label input[type="text"] { width: 14em; min-width: 0; flex: 0 1 14em; }
+#prefs select { flex: none; min-width: 8.1em; } /* grows to its longest option: no max-width, no ellipsis, the label gives way (F14) */
+#prefs input[name="lat"], #prefs input[name="lon"] { width: 6.5em; }
+/* a checkbox drawn as a switch: the same input, so the form, the tests and the keyboard see no change */
+#prefs input[type="checkbox"] { appearance: none; position: relative; flex: none; width: 2.3em; height: 1.25em; margin: 0; background: color-mix(in srgb, var(--paper-ink) 22%, var(--paper-shade)); border: 1px solid var(--paper-line); border-radius: var(--r-pill); cursor: pointer; transition: background .15s; }
+#prefs input[type="checkbox"]::before { content: ''; position: absolute; top: .12em; left: .12em; width: .9em; height: .9em; background: var(--paper); border-radius: var(--r-round); box-shadow: 0 1px 2px rgba(0,0,0,.35); transition: transform .15s; }
+#prefs input[type="checkbox"]:checked { background: var(--paper-accent); border-color: var(--paper-accent); }
+#prefs input[type="checkbox"]:checked::before { transform: translateX(1.05em); }
 #prefs .step { flex: none; width: 1.6em; height: 1.6em; padding: 0; background: none; color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; cursor: pointer; }
 #prefs input[type="range"] { flex: 0 1 12em; min-width: 5em; margin: 0; accent-color: var(--paper-accent); }
 #prefs output[name="scaleOut"] { width: 2.6em; text-align: right; }
 #prefs:has(input[name="scale"]:active) { opacity: .3; } /* see the hall through the panel while dragging the scale */
-#prefs input[name="lat"], #prefs input[name="lon"] { width: 6.5em; }
-#prefs .hint { margin: 0; font-size: var(--fse-85); color: var(--paper-ink-2); }
-#prefs .clear { margin-top: var(--spe-20); padding: var(--spe-20) var(--spe-75); background: none; color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; cursor: pointer; }
+#prefs .clear { padding: var(--spe-20) var(--spe-75); background: var(--paper); color: var(--paper-accent); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; cursor: pointer; }
+#prefs .clear:hover { border-color: var(--paper-accent); }
 #prefs .reset { padding: var(--spe-30) var(--spe-80); background: var(--leather); color: var(--light); border: 1px solid var(--leather-deep); border-radius: var(--r-2); font: inherit; cursor: pointer; }
+#prefs .reset:hover { filter: brightness(1.2); }
 #prefs [hidden] { display: none; }
 #prefs fieldset:disabled label { opacity: .75; }
-#prefs .rv-urls { margin: 0; padding: 0; list-style: none; user-select: text; overflow-wrap: anywhere; }
+#prefs fieldset:disabled input[type="checkbox"] { cursor: default; }
+#prefs code { font-size: var(--fse-100); }
+/* Remote view: the addresses, the pairing QR */
+#prefs .rv-urls { margin: 0; padding: var(--spe-30) var(--spe-75) var(--spe-40); list-style: none; user-select: text; overflow-wrap: anywhere; }
 #prefs .rv-qr { display: block; width: 180px; height: 180px; margin: var(--spe-50) auto; padding: var(--sp-6); background: #fff; image-rendering: pixelated; }
 #prefs .rv-qr[hidden] { display: none; }
-#prefs .rv-err { color: var(--wax); }
-#prefs .save-err, #prefs .rv-state.bad, #prefs .ci-gh[data-state="error"] { color: var(--wax); }
+#prefs .rv-err, #prefs .save-err, #prefs .rv-state.bad, #prefs .ci-gh[data-state="error"] { color: var(--wax); }
 #prefs .ci-gh[data-state="warn"] { color: var(--paper-ink); text-decoration: underline dotted; }
-/* Settings > Status: a mark (not colour alone: its word follows), the integration, its message, how long ago */
-#prefs .st-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spe-30); }
-#prefs .st-row { display: grid; grid-template-columns: 1.2em minmax(5em, auto) minmax(4.5em, auto) minmax(0, 1fr) auto; gap: var(--spe-40); align-items: baseline; padding: var(--spe-30) var(--spe-50); background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-radius: var(--r-3); }
+#prefs .rv-fw:not([data-rule="allowed"]) { color: var(--wax); }
+/* Themes: one row per added pack, its name, count and buttons on a line, its themes and problems under it */
+#prefs .pk-row { padding: var(--spe-40) var(--spe-75); border-top: 1px solid var(--row-line); }
+#prefs .pk-row .btns { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spe-40); }
+#prefs .pk-row .btns > span:first-child { flex: 1; }
+#prefs .pk-row .hint { padding: 0; }
+#prefs .pk-list > .hint { padding: var(--spe-40) var(--spe-75); border-top: 1px solid var(--row-line); }
+/* Status: a mark (not colour alone: its word follows), the integration, its message, how long ago */
+#prefs .st-list { margin: 0; padding: var(--spe-20) var(--spe-75) var(--spe-60); list-style: none; display: grid; gap: var(--spe-30); }
+#prefs .st-row { display: grid; grid-template-columns: 1.2em minmax(5em, auto) minmax(4.5em, auto) minmax(0, 1fr) auto; gap: var(--spe-40); align-items: baseline; padding: var(--spe-30) var(--spe-50); background: var(--paper); border: 1px solid var(--card-edge); border-radius: var(--r-3); }
 #prefs .st-row .st-mark { text-align: center; }
 #prefs .st-row .st-msg { overflow-wrap: anywhere; }
 #prefs .st-row .st-ago { color: var(--paper-ink-2); white-space: nowrap; }
 #prefs .st-row.st-error { border-color: var(--wax); }
 #prefs .st-row.st-error .st-mark, #prefs .st-row.st-error .st-state { color: var(--wax); }
 @media (max-width: 600px) { #prefs .st-row { grid-template-columns: 1.2em minmax(0, 1fr) auto; } #prefs .st-row .st-msg { grid-column: 2 / -1; } }
-#prefs .rv-fw:not([data-rule="allowed"]) { color: var(--wax); }
-#prefs .reset:hover { filter: brightness(1.2); }
-#prefs .rooms { display: grid; gap: var(--spe-40); }
-#prefs .room-row { display: grid; grid-template-columns: minmax(0, 8em) minmax(0, 1fr) 2.2em repeat(3, 1.6em); gap: var(--spe-30); align-items: center; padding: var(--spe-30) var(--spe-50); background: color-mix(in srgb, var(--paper-hi) 70%, transparent); border: 1px solid color-mix(in srgb, var(--paper-shade) 70%, transparent); border-left: 4px solid var(--room, var(--paper-line)); border-radius: var(--r-3); }
-#prefs .room-row input[type="text"] { min-width: 0; box-sizing: border-box; padding: var(--spe-10) var(--spe-30); background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); border-radius: var(--r-2); font: inherit; }
+/* Rooms: one row per rule, its colour on its edge */
+#prefs .rooms { display: grid; gap: var(--spe-40); padding: var(--spe-20) var(--spe-75) var(--spe-60); }
+#prefs .rooms:empty { display: none; }
+#prefs .room-row { display: grid; grid-template-columns: minmax(0, 8em) minmax(0, 1fr) 2.2em repeat(3, 1.6em); gap: var(--spe-30); align-items: center; padding: var(--spe-30) var(--spe-50); background: var(--paper); border: 1px solid var(--card-edge); border-left: 4px solid var(--room, var(--paper-line)); border-radius: 0; }
+#prefs .room-row input[type="text"] { width: auto; min-width: 0; }
 #prefs .room-row input.bad { border: 2px solid var(--wax); color: var(--wax); }
 #prefs .room-row input[type="color"] { width: 2.2em; height: 1.6em; padding: 0; border: 1px solid var(--paper-line); background: none; }
 #prefs .room-live { grid-column: 1 / -1; margin: 0; font-size: var(--fse-85); color: var(--paper-ink-2); overflow-wrap: anywhere; }
 #prefs .room-live.bad { color: var(--wax); }
-#prefs code { font-size: var(--fse-100); }
-/* an 800 px window: one column of settings, so a select has the whole row */
-@media (max-width: 860px) { #prefs fieldset { grid-template-columns: minmax(0, 1fr); } }
-/* narrow: the categories become a row of tabs, one column of settings */
+/* narrow: the tabs become a row, a long label lets its control wrap under it */
 @media (max-width: 600px) {
   #prefs form { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   #prefs .cats { flex-direction: row; flex-wrap: wrap; padding: 0; border-right: none; border-bottom: 1px solid var(--paper-line); }
@@ -154,6 +178,6 @@
   #prefs .cats [data-cat] { border-left: none; border-bottom: 3px solid transparent; padding: 0 var(--spe-50); }
   #prefs .cats [data-cat][aria-current="page"] { border-bottom-color: var(--paper-accent); }
   #prefs .cats .reset { margin: var(--spe-30) var(--spe-40) var(--spe-30) auto; }
-  #prefs fieldset { grid-template-columns: minmax(0, 1fr); }
+  #prefs label { flex-wrap: wrap; }
 }
-@media (prefers-reduced-motion: reduce) { #prefs { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #prefs, #prefs input[type="checkbox"], #prefs input[type="checkbox"]::before { transition: none; } }

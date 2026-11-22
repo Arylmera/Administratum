@@ -258,11 +258,11 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe at its desk, screen and candle lit | Session is working (`busy`) |
 | Scribe at the cogitator bank (back wall) | Session is running a shell command. It stays there 10 s after the last one so quick Bash calls don't send it back and forth |
 | Scribe dozing at the desk (`z z`), candle out | Turn done, waiting for your next prompt (`idle`) |
-| Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Petitions) |
+| Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Alerts) |
 | Small brass cog turning on the desk corner | Idle, but a background shell it started is still running. The scribe stays at its desk |
 | Scribe at the recaff dispenser, then asleep on a Refectorium bench | Idle for more than 2 min with no background shell. If every bench is taken, it dozes at its desk |
 | Scribe queued in the Sanctum holding a sealed scroll, red label above it | **Petition**: the session is waiting on you. The label says what it wants (`approve Bash`, `input needed`...) and for how long |
-| Scribe queued behind the petitioners with a question scroll, parchment label `question` | **Question**: the turn ended on a question to you. It queues like a petition, behind the real ones, with a toast and a softer chime; the header counter turns parchment-coloured when only questions wait. Both can be turned off in Settings > Petitions |
+| Scribe queued behind the petitioners with a question scroll, parchment label `question` | **Question**: the turn ended on a question to you. It queues like a petition, behind the real ones, with a toast and a softer chime; the header counter turns parchment-coloured when only questions wait. Both can be turned off in Settings > Alerts |
 | Beacon on the Sanctum wall sweeping red, servo-skull hovering by the petitioner, header counter flashing | The petition has waited past the stale mark (5 min). You get a second toast and a different chime |
 | Small grey figures at consoles in the department | **Adepts**: the session's active subagents, four consoles per desk slot. One leaves when the parent transcript reports it completed, or when its own transcript has been quiet for 10 min |
 | Desk on a dais, a cable on the floor from it to other scribes' feet | **Suzerain**: a session that forked real child sessions (Claude Code desktop's `start_session`). Its children sit in its department, wherever their own folder is, and the cable runs to each; a pulse runs down it while the Suzerain works. Each world draws its own: a Mechanicus plinth and data cable, a neon plate and optic fibre, a command deck and umbilical, a rune circle and arcane thread, the Overseer's platform and a Vault-Tec pipe, a Persian rug and a hemp rope. Plain subagents stay adepts |
@@ -293,7 +293,7 @@ header. The hall shrinks back once it has had room to spare for a minute.
 
 **Lighting.** *Auto* follows the clock: day 08–18 h, dusk 06–08 h and 18–21 h, night otherwise. If you set a
 latitude and longitude in Settings, *Auto* follows the real sun instead: civil dawn and dusk plus the half hour of
-low sun count as dusk. The lighting choice lives in Settings > Hall: its *Auto* entry shows the hour and the phase
+low sun count as dusk. The lighting choice lives in Settings > Appearance: its *Auto* entry shows the hour and the phase
 (`Auto · 22h night`), and its tooltip today's sunrise and sunset. *Full light* and *Candles* pin the day or night
 look; the tray's *Cycle lighting* steps through the three. At night the hall is dark, apart from pools of light around the candles,
 braziers, screens and coolant channels.
@@ -304,7 +304,7 @@ light pools lying flat on the floor, a bright patch where each window beam meets
 servo-skulls with a shadow below them, a back wall that trails a little behind a pan, and the far end of the hall
 slightly darker and greyer. No art changes: every effect is computed from the existing sprites.
 
-**Views.** Settings > View switches the hall between three views, live:
+**Views.** Settings > Appearance > View switches the hall between three views, live:
 
 - **Flat** (the default): the 3/4 pixel-art hall described above.
 - **39°**: the same hall turned 39° and seen from above, the back wall receding 3:1 and the west wall 2:1. Walls,
@@ -377,7 +377,7 @@ drag the header.
   The remote view always opens the web page, on its own device.
 - Clicking a petitioner also copies `name path` to the clipboard, so you can find the pane yourself.
 - **Click a department's plaque** to open its folder (the most recently active session's working directory) in
-  Explorer (Finder on macOS), VS Code or a command of your own (Settings > System). A branch other than `main` / `master` shows under
+  Explorer (Finder on macOS), VS Code or a command of your own (Settings > Work). A branch other than `main` / `master` shows under
   the department's name, read from `.git/HEAD` (worktrees included).
 
 ### Answering petitions
@@ -465,7 +465,7 @@ hourly ones). Each day shows:
 - **Day report** (folded): sessions seen and finished, turns, working time, tokens, and per department its turns,
   tokens and the files edited, plus counts of commits, pushes, failed tests, usage limits, stuck sessions and token
   alerts. *Copy as markdown* puts it on the clipboard. It can also be written to a folder each night (Settings >
-  Petitions > Monitoring).
+  Work > Night Vigil).
 - **Chronicle**: the event log, newest first. It covers commits, pushes, test passes and failures, tool errors,
   long tasks finished, arrivals, departures, petitions opened and answered, compactions and usage limits. You can filter it
   by department. While the Chronicon is open, new events appear at the top.
@@ -492,53 +492,40 @@ To close the Chronicon, click ✕, press **Escape**, or click outside it.
 
 ![The settings panel](docs/img/settings.png)
 
-Open Settings with the gear in the header. Changes apply immediately. The panel has seven tabs (Hall, Petitions, Scribes, Rooms, System, Remote view and, on the PC, Status), each grouped by what you want to change (the look of the hall, light, view and size; petitions, quiet hours and alerts; and so on). Tab and Shift+Tab stay inside the open panel, the arrow keys move between the tabs, and Esc closes it and returns to the gear.
+Open Settings with the gear in the header. Changes apply immediately. The panel has eight tabs: Appearance, Hall, Alerts, Work, and on the PC Themes, then System, and on the PC Remote view and Status. Each tab is a stack of cards, one card per subject, one row per setting (its label left, its control right), the hint under the row it explains and the card's buttons in its foot. Tab and Shift+Tab stay inside the open panel, the arrow keys move between the tabs, and Esc closes it and returns to the gear.
 
-**Hall**
+**Appearance**
 
 | Setting | Default | Effect |
 |---|---|---|
-| Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
 | World | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
 | Look | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
-| Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). *Update all* updates every pack from GitHub. A change applies after *Restart to apply* (see *Themes from others*) |
-| Check added themes for updates at startup *(PC only)* | on | Downloads each pack from GitHub a few seconds after start and compares it with the installed one (at most every 6 hours a pack). If one changed, a toast: *Update* installs the changed packs as they were compared and restarts, *Later* does nothing. Nothing is installed without that click |
+| Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
+| Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
-| Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Column side *(column only)* | Right | Left / Right: the screen edge the desktop column stands on |
-| Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3, or its − / + buttons, a quarter step per click) sets it, and a hall larger than the window pans |
+| Strip size *(strip only)* | M | S / M / L: pixel size of the desktop strip and the desktop column (the column drops a size on a short screen) |
 | Strip backdrop *(strip only)* | off | A translucent band behind the strip, for readability over a busy wallpaper |
 | Keep windows off the strip *(strip only, Linux)* | off | The strip takes its edge of the screen for itself and the other windows stop short of it, as they do for a bar (an open panel still lies over them); off, it lies over them |
 | Backdrop *(2.5D only)* | on | The riveted backdrop around the turned hall. Off: the desktop shows around it |
-| Show the card when I click a character | on | Off: a click on a character only brings its Orca terminal to the front. The card still opens when the session has a petition the card can answer, when it has no terminal (outside Orca, the Watchman), and always in the remote view, where no terminal opens. A terminal that does not open is said in a toast |
-| Latitude / Longitude | empty | Where *Auto* lighting takes its sun (south and west are negative). Empty = fixed hours |
+| Auto scale | on | Picks the pixel size from the window. Off: the *Scale* slider (1–3, or its − / + buttons, a quarter step per click) sets it, and a hall larger than the window pans |
 
-**Petitions**
+**Hall**
 
-| Setting | Default | Effect |
-|---|---|---|
-| Petition chime | on | Chime on a new petition, a stale one, a question and a long task done (the header bell toggles it too) |
-| A question at the end of a turn counts as a petition | on | The scribe queues in the Sanctum with a question scroll |
-| Toast for questions | on | A notification for each new question |
-| Petition turns stale after | 5 min (1–120) | Stale escalation: beacon, servo-skull, second toast |
-| Quiet hours | off, 22:00–08:00 | No toast and no chime for a new petition, question, long task or usage limit inside the window. A petition turning stale still toasts and chimes. A moon shows in the header while it is quiet |
-| Token alert | off | One toast (and a Chronicon event) the first time a session passes this many new tokens (input, output and cache writes; cache reads left out) in a day. A count you pick: the app cannot see your subscription's quota |
-| Flag stuck sessions | on | A busy session (not one running a shell command) with no transcript written for *Stuck when busy with no writing for* (15 min, 5–120), or whose last *identical tool calls* (5, 3–20) are the same tool with the same input and each got the same error (timestamps, durations, hex, long numbers and temp paths ignored), gets a dashed tag over the scribe and a line on its card. A success (a successful edit included) ends the run; identical calls that succeed are no loop; a failed edit retried with the same error is one. Polling (`BashOutput`, `sleep`, `watch`) never counts as a loop. OpenCode sessions are only checked for loops |
-| Toast when a session gets stuck | on | One toast per stuck episode (quiet hours respected), and a Chronicon event |
-| Show the CI result after a push | off | After a live `git push` from a session to a GitHub repository, asks GitHub for the CI result of the pushed commit through your own [`gh`](https://cli.github.com) CLI and shows it as the scribe's lamp and the session's card line, and follows each department's default branch for the department's main lamp, every 5 min and when a scribe ends its turn (see *What it shows*). Turning it on checks `gh auth status` once and shows `gh ready`, `gh not found` or `gh not logged in: run gh auth login` (also in Settings > Status). Needs `gh` installed and logged in (`gh auth login`); the app never sees your token. Off: no `gh` process, no network call The line under the switch shows what `gh` answered (`gh ready`, `gh not found`, `gh not logged in: run gh auth login`), read again when you flip it; the same entry is in Settings > Status |
-| *(always on)* Watchful pack | — | Read-only, nothing is sent to Claude. **Risky commands**: a petition whose pending command is risky (`rm -r`, `git push --force` or `+ref`, `git reset --hard`, `DROP TABLE`, `terraform destroy`, `curl … \| sh`, `irm … \| iex`, `sudo` and others, `src-tauri/src/registry/risk.rs`; read from the whole command, every line) turns its label and card red with the reason; *Always* is hidden, *Approve* needs a second click 0.4 to 5 s after the first (a double-click never sends), the phone, the remote view and the toast offer Deny only, and the app refuses any other remote answer. **Same file**: two live sessions that edited the same file in the last 20 min get a dotted tag and a card line (`same file: app.js · other`), one toast per pair and file, and a Chronicon event. **Port in use**: a shell's output saying a port is already in use adds a Chronicon event and a card line for that turn. **Secrets masked**: strings shaped like API keys, tokens, private keys, JWTs, `password=` values and Bearer tokens show as `•••` in the hall, the remote view and new Chronicon lines. **Cache clock**: an idle scribe's desk light burns down over its prompt cache's lifetime (5 min, or 1 h when the session writes 1 h cache) and goes out when the cache is cold; the card says `cache warm · 3 min left` or `cache cold` |
-| Also write the day report to a folder | off | When the Night Vigil arms and when it fires, writes the day report as `YYYY-MM-DD-administratum-day.md` into *Folder* (an absolute folder that already exists; never created), replacing that day's file. Armed before 04:00, the report covers the day before |
+Three cards: the hall plan, the rooms, and the scribes.
 
-**Scribes**
+*Hall plan* chooses between two halls. **Open space**, the default, is the hall described so far:
+one scriptorium, the shared cogitator bank and Refectorium, the Sanctum to the east, the rooms a west wing.
+**Rooms** has only rooms, round the Sanctum: the Sanctum is an open column down the middle of the hall, behind a low
+rail, the Magos at its top and the petition line down it; the first half of the rules fill the left side from the
+top, the others the right side under one more room for the departments in no rule (*Elsewhere*). A room's floor is
+a soft tint of its colour with its name painted small in its bottom right corner (*Soft tint floors* off: its tiles), and nothing else runs
+through it. There a scribe leaves its room only to petition, or by the gate: it runs its shells at the room's own
+computer, on the room's Sanctum side, and dozes at its desk under a tag saying for how long
+(`💤 12 min`). There is no Refectorium, cogitator bank or west wing in that plan. The switch applies at once, in
+the flat and 2.5D views; the desktop strip and column are the same in both.
 
-| Setting | Default | Effect |
-|---|---|---|
-| Idle to the Refectorium after | 2 min (1–120) | How long a scribe stays idle at its desk before it goes to nap |
-| Stay at the cogitator for | 10 s (0–120) | How long a scribe stays at the cogitator after its last shell command |
-| Context window: Haiku | 200 k tokens | Window used for the context fill of Haiku sessions |
-| Context window: Other models | 1000 k tokens | Window for every other model |
-
-**Rooms**
+*Rooms*
 
 Custom rooms group a work domain (several repositories under one name) and give it a fixed place in the hall. Each
 rule has a name, a folder pattern, a colour, ↑ / ↓ to order it and ✕ to delete it; at most 8. A pattern is a glob,
@@ -564,16 +551,46 @@ sessions match several rules goes to the first one; a temp folder stays in the b
 a bay with the room's plaque first. The desktop column shows a room's departments as ordinary floors for now. Reset
 to defaults leaves the rooms alone. The remote view shows them read only.
 
-**Hall plan** (under the rules) chooses between two halls. **Open space**, the default, is the hall described so far:
-one scriptorium, the shared cogitator bank and Refectorium, the Sanctum to the east, the rooms a west wing.
-**Rooms** has only rooms, round the Sanctum: the Sanctum is an open column down the middle of the hall, behind a low
-rail, the Magos at its top and the petition line down it; the first half of the rules fill the left side from the
-top, the others the right side under one more room for the departments in no rule (*Elsewhere*). A room's floor is
-a soft tint of its colour with its name painted small in its bottom right corner (*Soft tint floors* off: its tiles), and nothing else runs
-through it. There a scribe leaves its room only to petition, or by the gate: it runs its shells at the room's own
-computer, on the room's Sanctum side, and dozes at its desk under a tag saying for how long
-(`💤 12 min`). There is no Refectorium, cogitator bank or west wing in that plan. The switch applies at once, in
-the flat and 2.5D views; the desktop strip and column are the same in both.
+*Scribes*
+
+| Setting | Default | Effect |
+|---|---|---|
+| Idle to the Refectorium after | 2 min (1–120) | How long a scribe stays idle at its desk before it goes to nap |
+| Stay at the cogitator for | 10 s (0–120) | How long a scribe stays at the cogitator after its last shell command |
+| Show the card when I click a character | on | Off: a click on a character only brings its Orca terminal to the front. The card still opens when the session has a petition the card can answer, when it has no terminal (outside Orca, the Watchman), and always in the remote view, where no terminal opens. A terminal that does not open is said in a toast |
+
+**Alerts**
+
+| Setting | Default | Effect |
+|---|---|---|
+| Petition chime | on | Chime on a new petition, a stale one, a question and a long task done (the header bell toggles it too) |
+| A question at the end of a turn counts as a petition | on | The scribe queues in the Sanctum with a question scroll |
+| Toast for questions | on | A notification for each new question |
+| Petition turns stale after | 5 min (1–120) | Stale escalation: beacon, servo-skull, second toast |
+| Quiet hours | off, 22:00–08:00 | No toast and no chime for a new petition, question, long task or usage limit inside the window. A petition turning stale still toasts and chimes. A moon shows in the header while it is quiet |
+| Token alert | off | One toast (and a Chronicon event) the first time a session passes this many new tokens (input, output and cache writes; cache reads left out) in a day. A count you pick: the app cannot see your subscription's quota |
+| Flag stuck sessions | on | A busy session (not one running a shell command) with no transcript written for *Stuck when busy with no writing for* (15 min, 5–120), or whose last *identical tool calls* (5, 3–20) are the same tool with the same input and each got the same error (timestamps, durations, hex, long numbers and temp paths ignored), gets a dashed tag over the scribe and a line on its card. A success (a successful edit included) ends the run; identical calls that succeed are no loop; a failed edit retried with the same error is one. Polling (`BashOutput`, `sleep`, `watch`) never counts as a loop. OpenCode sessions are only checked for loops |
+| Toast when a session gets stuck | on | One toast per stuck episode (quiet hours respected), and a Chronicon event |
+| *(always on)* Watchful pack | — | Read-only, nothing is sent to Claude. **Risky commands**: a petition whose pending command is risky (`rm -r`, `git push --force` or `+ref`, `git reset --hard`, `DROP TABLE`, `terraform destroy`, `curl … \| sh`, `irm … \| iex`, `sudo` and others, `src-tauri/src/registry/risk.rs`; read from the whole command, every line) turns its label and card red with the reason; *Always* is hidden, *Approve* needs a second click 0.4 to 5 s after the first (a double-click never sends), the phone, the remote view and the toast offer Deny only, and the app refuses any other remote answer. **Same file**: two live sessions that edited the same file in the last 20 min get a dotted tag and a card line (`same file: app.js · other`), one toast per pair and file, and a Chronicon event. **Port in use**: a shell's output saying a port is already in use adds a Chronicon event and a card line for that turn. **Secrets masked**: strings shaped like API keys, tokens, private keys, JWTs, `password=` values and Bearer tokens show as `•••` in the hall, the remote view and new Chronicon lines. **Cache clock**: an idle scribe's desk light burns down over its prompt cache's lifetime (5 min, or 1 h when the session writes 1 h cache) and goes out when the cache is cold; the card says `cache warm · 3 min left` or `cache cold` |
+| Send a test notification | button | Sends one plain notification, to see whether notifications reach the desktop (quiet hours do not apply). The line beside it says whether it was sent, or why not |
+
+**Work**
+
+| Setting | Default | Effect |
+|---|---|---|
+| Show the CI result after a push | off | After a live `git push` from a session to a GitHub repository, asks GitHub for the CI result of the pushed commit through your own [`gh`](https://cli.github.com) CLI and shows it as the scribe's lamp and the session's card line, and follows each department's default branch for the department's main lamp, every 5 min and when a scribe ends its turn (see *What it shows*). Turning it on checks `gh auth status` once and shows `gh ready`, `gh not found` or `gh not logged in: run gh auth login` (also in Settings > Status). Needs `gh` installed and logged in (`gh auth login`); the app never sees your token. Off: no `gh` process, no network call The line under the switch shows what `gh` answered (`gh ready`, `gh not found`, `gh not logged in: run gh auth login`), read again when you flip it; the same entry is in Settings > Status |
+| Night Vigil deadline | empty | At this time an armed vigil starts its two-minute countdown to shutdown, even if a session is still working (see *Night Vigil*). Empty: no deadline |
+| Also write the day report to a folder | off | When the Night Vigil arms and when it fires, writes the day report as `YYYY-MM-DD-administratum-day.md` into *Folder* (an absolute folder that already exists; never created), replacing that day's file. Armed before 04:00, the report covers the day before |
+| Context window: Haiku | 200 k tokens | Window used for the context fill of Haiku sessions |
+| Context window: Other models | 1000 k tokens | Window for every other model |
+| Open departments with | Explorer (macOS: Finder) | Explorer or Finder / VS Code / Custom command. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
+
+**Themes** *(PC only)*
+
+| Setting | Default | Effect |
+|---|---|---|
+| Added themes | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). *Update all* updates every pack from GitHub. A change applies after *Restart to apply* (see *Themes from others*) |
+| Check added themes for updates at startup | on | Downloads each pack from GitHub a few seconds after start and compares it with the installed one (at most every 6 hours a pack). If one changed, a toast: *Update* installs the changed packs as they were compared and restarts, *Later* does nothing. Nothing is installed without that click |
 
 **System**
 
@@ -583,9 +600,7 @@ the flat and 2.5D views; the desktop strip and column are the same in both.
 | Start at login | off | Starts the app at sign-in (same as the tray item) |
 | Pause when hidden or covered | on | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30: redraw rate while nothing moves (anything walking or animating runs at 30 fps). Lower = less CPU/GPU |
-| Open departments with | Explorer (macOS: Finder) | Explorer or Finder / VS Code / Custom command. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
 | Check for updates at startup | on | Fetches `latest.json` from GitHub Releases at start. *Check now* checks on demand; an update installs from here; while it downloads, the line shows the progress (a percent, or the bytes when the size is unknown) |
-| Send a test notification | button | Sends one plain notification, to see whether notifications reach the desktop (quiet hours do not apply). The line beside it says whether it was sent, or why not |
 
 **Remote view**: see [Remote view](#remote-view). The tab stays when the status cannot be read and says why; it also says when the view was left on but is not listening on the network (with the reason), and when only this PC can reach it.
 
@@ -608,12 +623,12 @@ the flat and 2.5D views; the desktop strip and column are the same in both.
 
 Night Vigil shuts the PC down once every session is idle, waiting on a human (a permission prompt or a question)
 or stopped on a usage limit, with no transcript written, for 5 minutes straight, so the machine doesn't sit on all night for nothing. Arm it from the tray menu, the
-header, or a paired device in [Remote view](#remote-view); an optional deadline (Settings > Petitions) forces the
+header, or a paired device in [Remote view](#remote-view); an optional deadline (Settings > Work > Night Vigil) forces the
 countdown at a set time even if a session is still busy. While armed, a world-specific Watchman patrols the hall;
 once no session can progress, he rings his signal and a 120 s countdown starts, cancellable from the same places.
 No session is ever closed: if the countdown reaches zero, the computer shuts down (on macOS, see [macOS](#what-differs-on-macos)), and the next morning you resume each
 session from its transcript (e.g. `claude --resume`) to pick up where it left off. Arming does not persist across an app restart.
-When the day report's folder is set (Settings > Petitions > Monitoring), arming and the shutdown also write the day
+When the day report's folder is set (Settings > Work > Night Vigil), arming and the shutdown also write the day
 report there.
 
 ### Keyboard and panning
@@ -657,7 +672,7 @@ configuration, and installs no hooks. It reads:
 | `administratum.log`, `administratum.log.1`, `.2` | The app's own log: what went wrong (a pack check, the remote view's port, a toast, the strip, OpenCode, the Night Vigil's shutdown) with its time, and nothing else. Each file is cut at 1 MiB and only three are kept; every line is masked like the hall's texts (a token or `password=` value shows as `•••`). The same entries are listed in Settings > Status |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
-| `themes\<owner>__<repo>\` | A theme pack you installed (Settings > Hall > Added themes): its themes' files only, removed with *Remove* |
+| `themes\<owner>__<repo>\` | A theme pack you installed (Settings > Themes): its themes' files only, removed with *Remove* |
 
 Outside that folder, the app writes only the day report, and only when you turn *Also write the day report to a
 folder* on and name an existing absolute folder: one `YYYY-MM-DD-administratum-day.md` per day (session names,
@@ -672,7 +687,7 @@ the hall to paired devices on your local network only. With the remote view off,
 `tools/adm.mjs` works; no other device can reach it. There is no telemetry. The only network calls are the update
 check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
-*Update* (or *Update all*) in Settings > Hall > Added themes. When *Check added themes for updates at startup* is on
+*Update* (or *Update all*) in Settings > Themes. When *Check added themes for updates at startup* is on
 (the default), the app also downloads each added pack from its GitHub repository at start, to compare it with the
 installed one; nothing is installed unless you click *Update* on the toast. Each of these requests goes to GitHub
 like any download, so GitHub sees your IP address and the app's user agent, and it names the repository; no session

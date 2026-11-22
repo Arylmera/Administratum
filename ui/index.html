@@ -105,10 +105,11 @@
       <form>
         <nav class="cats" aria-label="Settings categories">
           <div class="cat-tabs" role="tablist" aria-orientation="vertical" aria-label="Settings categories">
-          <button type="button" role="tab" data-cat="hall" aria-selected="true" aria-current="page" tabindex="0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-5h4v5"></path></svg><span data-t="prefs.cat.hall">Hall</span></button>
-          <button type="button" role="tab" data-cat="petitions" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg><span data-t="prefs.cat.petitions">Petitions</span></button>
-          <button type="button" role="tab" data-cat="scribes" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span data-t="prefs.cat.scribes">Scribes</span></button>
-          <button type="button" role="tab" data-cat="rooms" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18"></rect><path d="M3 12h7M14 12h7M12 3v6M12 15v6"></path></svg><span data-t="prefs.cat.rooms">Rooms</span></button>
+          <button type="button" role="tab" data-cat="look" aria-selected="true" aria-current="page" tabindex="0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.5-.8 1.5-1.5 0-1-.8-1.4-.8-2.3 0-.9.7-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.7-4-8.5-9-8.5z"></path><circle cx="7.5" cy="11" r="1"></circle><circle cx="10.5" cy="7" r="1"></circle><circle cx="15" cy="7.5" r="1"></circle></svg><span data-t="prefs.cat.look">Appearance</span></button>
+          <button type="button" role="tab" data-cat="hall" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-5h4v5"></path></svg><span data-t="prefs.cat.hall">Hall</span></button>
+          <button type="button" role="tab" data-cat="alerts" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg><span data-t="prefs.cat.alerts">Alerts</span></button>
+          <button type="button" role="tab" data-cat="work" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="1"></rect><path d="M9 7V4h6v3M3 13h18"></path></svg><span data-t="prefs.cat.work">Work</span></button>
+          <button type="button" role="tab" data-cat="themes" class="host-only" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5"></path></svg><span data-t="prefs.cat.themes">Themes</span></button>
           <button type="button" role="tab" data-cat="system" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"></rect><path d="M8 20h8M12 16v4"></path></svg><span data-t="prefs.cat.system">System</span></button>
           <button type="button" role="tab" data-cat="remote" class="host-only" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0"></path><circle cx="12" cy="20" r="1"></circle></svg><span data-t="prefs.cat.remote">Remote view</span></button>
           <button type="button" role="tab" data-cat="status" class="host-only" aria-selected="false" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span data-t="prefs.cat.status">Status</span></button>
@@ -118,26 +119,17 @@
         <div class="pane">
         <p class="hint save-err" role="alert" hidden></p>
         <p class="hint remote-only" hidden>The PC's settings, read only. Scale, lighting and chime apply to this device.</p>
-        <section data-cat="hall">
-          <fieldset><legend>Look of the hall</legend>
+        <section data-cat="look">
+          <fieldset><legend>World and lighting</legend>
             <label><span data-t="prefs.theme">World</span><select name="world"></select></label>
             <label><span data-t="prefs.look">Look</span><select name="theme"></select></label>
             <label><span>Lighting</span><select name="mode"><option value="auto">Auto</option><option value="full" data-t="modes.full">Full light</option><option value="candles" data-t="modes.candles">Candles</option></select></label>
           </fieldset>
-          <fieldset data-host class="host-only" id="packs"><legend data-t="prefs.packs.title">Added themes</legend>
-            <fieldset class="pk-list"></fieldset>
-            <button type="button" class="clear pk-all" data-t="prefs.packs.updateAll" hidden>Update all</button>
-            <label class="wide"><span data-t="prefs.packs.check">Check added themes for updates at startup</span><input type="checkbox" name="packCheck"></label>
-            <label class="wide"><span data-t="prefs.packs.add">Add from GitHub</span><input type="text" class="pk-repo" spellcheck="false" autocomplete="off" placeholder="owner/repo"></label>
-            <button type="button" class="clear pk-install" data-t="prefs.packs.install">Install</button>
-            <p class="hint pk-line" role="status" aria-live="polite"></p>
-            <button type="button" class="clear pk-restart" data-t="prefs.packs.restart" hidden>Restart to apply</button>
-          </fieldset>
           <fieldset data-host><legend>Where the sun is</legend>
+            <p class="desc">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
             <label><span>Latitude</span><input type="number" name="lat" min="-90" max="90" step="0.0001" placeholder="50.8503"><span class="unit">° N</span></label>
             <label><span>Longitude</span><input type="number" name="lon" min="-180" max="180" step="0.0001" placeholder="4.3517"><span class="unit">° E</span></label>
-            <p class="hint">Auto lighting follows the sun here (south and west are negative). Empty: fixed hours.</p>
-            <button type="button" class="clear place-clear">Clear</button>
+            <div class="foot"><button type="button" class="clear place-clear">Clear</button></div>
           </fieldset>
           <fieldset><legend>View and size</legend>
             <label><span>View</span><select name="view"><option value="flat">Flat</option><option value="39">2.5D</option><option value="strip" class="host-only" hidden>Desktop strip</option><option value="vstrip" class="host-only" hidden>Desktop column</option></select></label>
@@ -147,133 +139,144 @@
             <label class="strip-only" hidden><span>Keep windows off the strip</span><input type="checkbox" name="stripReserve"></label>
             <label class="iso-only" hidden><span>Backdrop</span><input type="checkbox" name="isoBackdrop"></label>
             <label><span>Auto scale</span><input type="checkbox" name="scaleAuto"></label>
-            <label class="wide" for="prefs-scale"><span>Scale</span><button type="button" class="step" data-step="-1" aria-label="Smaller">−</button><input type="range" id="prefs-scale" name="scale" min="1" max="3" step="0.25" value="2"><button type="button" class="step" data-step="1" aria-label="Larger">+</button><output name="scaleOut"></output></label>
+            <label for="prefs-scale"><span>Scale</span><button type="button" class="step" data-step="-1" aria-label="Smaller">−</button><input type="range" id="prefs-scale" name="scale" min="1" max="3" step="0.25" value="2"><button type="button" class="step" data-step="1" aria-label="Larger">+</button><output name="scaleOut"></output></label>
             <p class="hint">Pixel size; the window decides how big the hall is.</p>
           </fieldset>
-          <fieldset><legend>Clicking a scribe</legend>
-            <label class="wide host-only"><span>Show the card when I click a character</span><input type="checkbox" name="cardOnClick"></label>
-            <p class="hint host-only">Off: a click only brings the session's Orca terminal to the front; the card still opens for a petition to answer, or when there is no terminal.</p>
+        </section>
+        <section data-cat="hall" hidden>
+          <fieldset><legend>Hall plan</legend>
+            <label><span>Layout</span><select name="hallPlan"><option value="open">Open space</option><option value="rooms">Rooms</option></select></label>
+            <p class="hint">Open space: one hall, the rooms a west wing. Rooms: only rooms, round the Sanctum, each with its own computer.</p>
+            <label><span>Soft tint floors</span><input type="checkbox" name="roomTint"></label>
+          </fieldset>
+          <fieldset><legend data-t="prefs.cat.rooms">Rooms</legend>
+            <p class="desc">A room gathers the departments whose sessions work in a folder matching its pattern. The first matching rule wins.</p>
+            <div class="rooms"></div>
+            <details class="more"><summary>Pattern syntax</summary>
+              <p class="hint">Glob: <code>**/git/Terra/**</code> (any case, \ and / alike). <code>re:</code> before a regex, matched anywhere in the folder path written with <code>/</code> separators (<code>re:git/terra$</code>). The departments in no room share one more; a temp folder stays in the break-out room.</p>
+            </details>
+            <div class="foot"><button type="button" class="clear room-add" data-host>Add room</button></div>
+          </fieldset>
+          <fieldset data-host><legend data-t="prefs.cat.scribes">Scribes</legend>
+            <label><span data-t="prefs.nap">Idle to the Refectorium after</span><input type="number" name="napMin" min="1" max="120" step="1"><span class="unit">min</span></label>
+            <label><span data-t="prefs.cog">Stay at the cogitator for</span><input type="number" name="cogHoldS" min="0" max="120" step="1"><span class="unit">s</span></label>
+            <label class="host-only"><span>Show the card when I click a character</span><input type="checkbox" name="cardOnClick"></label>
+            <p class="hint host-only">Off: a click brings the session's Orca terminal to the front; the card still opens for a petition, or when there is no terminal.</p>
           </fieldset>
         </section>
-        <section data-cat="petitions" hidden>
-          <fieldset><legend>Petitions and questions</legend>
+        <section data-cat="alerts" hidden>
+          <fieldset><legend data-t="prefs.cat.petitions">Petitions</legend>
             <label><span data-t="prefs.chime">Petition chime</span><input type="checkbox" name="chime"></label>
             <fieldset data-host>
-              <label class="wide"><span data-t="prefs.questions">A question at the end of a turn counts as a petition</span><input type="checkbox" name="questions"></label>
+              <label><span data-t="prefs.questions">A question at the end of a turn counts as a petition</span><input type="checkbox" name="questions"></label>
               <label><span>Toast for questions</span><input type="checkbox" name="questionToast"></label>
-              <label class="wide"><span data-t="prefs.stale">Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>
+              <label><span data-t="prefs.stale">Petition turns stale after</span><input type="number" name="staleMin" min="1" max="120" step="1"><span class="unit">min</span></label>
             </fieldset>
           </fieldset>
           <fieldset data-host><legend>Quiet hours</legend>
-            <label class="wide"><span>Quiet hours</span><input type="checkbox" name="quietOn"></label>
+            <p class="desc">No toast or chime in this window, except a petition turning stale.</p>
+            <label><span>On</span><input type="checkbox" name="quietOn"></label>
             <label><span>From</span><input type="time" name="quietFrom"></label>
             <label><span>To</span><input type="time" name="quietTo"></label>
-            <p class="hint">No toast or chime in this window, except a petition turning stale.</p>
-          </fieldset>
-          <fieldset data-host><legend>Night Vigil</legend>
-            <label class="wide"><span>Night Vigil deadline</span><input type="time" name="vigilDeadline"></label>
-            <p class="hint">At this time an armed vigil starts its two-minute countdown to shutdown, even if a session is still working. Read when the vigil is armed. Empty: no deadline.</p>
           </fieldset>
           <fieldset data-host><legend>Stuck sessions</legend>
-            <label class="wide"><span>Flag stuck sessions</span><input type="checkbox" name="stuck"></label>
-            <label class="wide"><span>Toast when a session gets stuck</span><input type="checkbox" name="stuckToast"></label>
-            <label class="wide"><span>Stuck when busy with no writing for</span><input type="number" name="stuckMin" min="5" max="120" step="1"><span class="unit">min</span></label>
-            <label class="wide"><span>Stuck after identical tool calls in a row</span><input type="number" name="stuckRepeat" min="3" max="20" step="1"></label>
+            <label><span>Flag stuck sessions</span><input type="checkbox" name="stuck"></label>
+            <label><span>Toast when a session gets stuck</span><input type="checkbox" name="stuckToast"></label>
+            <label><span>Busy with no writing for</span><input type="number" name="stuckMin" min="5" max="120" step="1"><span class="unit">min</span></label>
+            <label><span>Identical tool calls in a row</span><input type="number" name="stuckRepeat" min="3" max="20" step="1"><span class="unit"></span></label>
             <p class="hint">A running shell command is never stuck. Polling (BashOutput, sleep, watch) never counts as a loop.</p>
           </fieldset>
           <fieldset data-host><legend>Token alert</legend>
-            <label class="wide"><span>Token alert: one session past</span><input type="number" name="tokenAlert" min="0" step="100000" placeholder="off"><span class="unit">new tokens a day</span></label>
-            <p class="hint">New tokens leave out cache reads. A count you choose: the app cannot see your subscription's quota. Empty: no alert.</p>
+            <label><span>One session past</span><input type="number" name="tokenAlert" min="0" step="100000" placeholder="off"><span class="unit">new tok / day</span></label>
+            <p class="hint">New tokens, cache reads left out. A count you choose: the app cannot see your subscription's quota. Empty: no alert.</p>
           </fieldset>
+          <fieldset class="host-only" id="notify"><legend>Notifications</legend>
+            <p class="hint test-line" role="status"></p>
+            <div class="foot"><button type="button" class="clear test-notify" data-t="prefs.test.button">Send a test notification</button></div>
+          </fieldset>
+        </section>
+        <section data-cat="work" hidden>
           <fieldset data-host><legend>CI verdict</legend>
-            <label class="wide"><span data-t="prefs.ci.label">Show the CI result after a push</span><input type="checkbox" name="ci"></label>
+            <label><span data-t="prefs.ci.label">Show the CI result after a push</span><input type="checkbox" name="ci"></label>
             <p class="hint" data-t="prefs.ci.hint">Asks GitHub, through your own gh, whether a push passes its checks. Off: nothing is asked.</p>
             <p class="hint ci-gh" aria-live="polite"></p>
           </fieldset>
-          <fieldset data-host><legend>Day report</legend>
-            <label class="wide"><span>Also write the day report to a folder</span><input type="checkbox" name="reportOn"></label>
-            <label class="wide"><span>Folder</span><input type="text" name="reportDir" spellcheck="false" placeholder="D:\Notes\Inbox"></label>
-            <p class="hint">When the Night Vigil arms and when it fires, the day report is written there as YYYY-MM-DD-administratum-day.md (replacing that day's file). An absolute folder that exists; it is never created. Off: nothing is written.</p>
-          </fieldset>
-        </section>
-        <section data-cat="scribes" hidden>
-          <fieldset data-host><legend>Rest and work</legend>
-            <label class="wide"><span data-t="prefs.nap">Idle to the Refectorium after</span><input type="number" name="napMin" min="1" max="120" step="1"><span class="unit">min</span></label>
-            <label class="wide"><span data-t="prefs.cog">Stay at the cogitator for</span><input type="number" name="cogHoldS" min="0" max="120" step="1"><span class="unit">s</span></label>
+          <fieldset data-host><legend>Night Vigil</legend>
+            <label><span>Deadline</span><input type="time" name="vigilDeadline"></label>
+            <p class="hint">At this time an armed vigil starts its two-minute countdown to shutdown, even if a session still works. Read when the vigil is armed. Empty: no deadline.</p>
+            <label><span>Also write the day report to a folder</span><input type="checkbox" name="reportOn"></label>
+            <label><span>Folder</span><input type="text" name="reportDir" spellcheck="false" placeholder="D:\Notes\Inbox"></label>
+            <details class="more"><summary>About the day report</summary>
+              <p class="hint">When the vigil arms and when it fires, the report is written there as YYYY-MM-DD-administratum-day.md, replacing that day's file. An absolute folder that exists; it is never created.</p>
+            </details>
           </fieldset>
           <fieldset data-host><legend>Context window</legend>
             <label><span>Haiku</span><input type="number" name="ctxHaiku" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
             <label><span>Other models</span><input type="number" name="ctxOther" min="8" max="10000" step="1"><span class="unit">k tok</span></label>
           </fieldset>
-        </section>
-        <section data-cat="rooms" hidden>
-          <fieldset><legend>Hall plan</legend>
-            <label><span>Hall plan</span><select name="hallPlan"><option value="open">Open space</option><option value="rooms">Rooms</option></select></label>
-            <label><span>Soft tint floors</span><input type="checkbox" name="roomTint"></label>
-            <p class="hint">Open space: one hall, the rooms a west wing. Rooms: only rooms, round the Sanctum; each keeps its scribes, who doze at their desk and run their shells at the room's own computer, and the departments in no room share one more.</p>
+          <fieldset data-host class="host-only"><legend>Opening a department</legend>
+            <label><span>Open departments with</span><select name="openWith"><option value="explorer">Explorer</option><option value="code">VS Code</option><option value="custom">Custom command</option></select></label>
+            <label><span>Custom command</span><input type="text" name="openCmd" spellcheck="false" placeholder='"C:\Path\app.exe" {path}'></label>
+            <p class="hint">A click on a department's plaque opens its folder. {path} is the folder, passed as one argument.</p>
           </fieldset>
-          <fieldset><legend>Rooms</legend>
-            <div class="rooms wide"></div>
-            <button type="button" class="clear room-add" data-host>Add room</button>
-            <p class="hint">A room groups every department whose sessions work in a folder matching its pattern, fenced, in rule order before the rest of the hall. Glob: <code>**/git/Terra/**</code> (any case, \ and / alike); <code>re:</code> before a regex, matched anywhere in the folder path written with <code>/</code> separators (<code>re:git/terra$</code>). The first matching rule wins; a temp folder stays in the break-out room.</p>
+        </section>
+        <section data-cat="themes" class="host-only" hidden>
+          <fieldset data-host class="host-only" id="packs"><legend data-t="prefs.packs.title">Added themes</legend>
+            <fieldset class="pk-list"></fieldset>
+            <label><span data-t="prefs.packs.check">Check added themes for updates at startup</span><input type="checkbox" name="packCheck"></label>
+            <label><span data-t="prefs.packs.add">Add from GitHub</span><input type="text" class="pk-repo" spellcheck="false" autocomplete="off" placeholder="owner/repo"></label>
+            <p class="hint pk-line" role="status" aria-live="polite"></p>
+            <div class="foot"><button type="button" class="clear pk-restart" data-t="prefs.packs.restart" hidden>Restart to apply</button><button type="button" class="clear pk-all" data-t="prefs.packs.updateAll" hidden>Update all</button><button type="button" class="clear pk-install" data-t="prefs.packs.install">Install</button></div>
           </fieldset>
         </section>
         <section data-cat="system" hidden>
-          <fieldset data-host><legend>Window</legend>
+          <fieldset data-host class="host-only"><legend>Window</legend>
             <label class="host-only"><span>Always on top</span><input type="checkbox" name="onTop"></label>
             <label class="host-only"><span>Start at login</span><input type="checkbox" name="login"></label>
-            <button type="button" class="clear desk-icon host-only win-only">Add desktop icon</button>
+            <div class="foot win-only"><button type="button" class="clear desk-icon host-only">Add desktop icon</button></div>
           </fieldset>
           <fieldset data-host><legend>Performance</legend>
-            <label class="wide"><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
+            <label><span>Pause when hidden or covered</span><input type="checkbox" name="pauseHidden"></label>
             <p class="hint" data-t="prefs.pauseHint">Near-zero CPU when unseen; petitions still alert.</p>
-            <label class="wide"><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
+            <label><span>Idle frame rate</span><select name="idleFps"><option value="6">6 fps</option><option value="8">8 fps</option><option value="12">12 fps</option><option value="30">30 fps</option></select></label>
             <p class="hint">Lower saves CPU when idle; flicker gets choppier.</p>
           </fieldset>
-          <fieldset data-host><legend>Opening a department</legend>
-            <label class="wide host-only"><span>Open departments with</span><select name="openWith"><option value="explorer">Explorer</option><option value="code">VS Code</option><option value="custom">Custom command</option></select></label>
-            <label class="wide host-only"><span>Custom command</span><input type="text" name="openCmd" spellcheck="false" placeholder='"C:\Path\app.exe" {path}'></label>
-            <p class="hint host-only">A click on a department's plaque opens its folder. {path} is the folder, passed as one argument.</p>
-          </fieldset>
           <fieldset class="host-only" id="updates"><legend>Updates</legend>
-            <p class="up-line">Version …</p>
-            <label class="wide"><span>Check for updates at startup</span><input type="checkbox" name="updateCheck"></label>
-            <button type="button" class="clear up-check">Check now</button>
-            <button type="button" class="clear up-install" hidden>Install and restart</button>
-          </fieldset>
-          <fieldset class="host-only" id="notify"><legend>Notifications</legend>
-            <button type="button" class="clear test-notify" data-t="prefs.test.button">Send a test notification</button>
-            <p class="hint test-line" role="status"></p>
+            <p class="desc up-line">Version …</p>
+            <label><span>Check for updates at startup</span><input type="checkbox" name="updateCheck"></label>
+            <div class="foot"><button type="button" class="clear up-install" hidden>Install and restart</button><button type="button" class="clear up-check">Check now</button></div>
           </fieldset>
         </section>
-        <section data-cat="remote" hidden>
-        <fieldset id="remote" class="host-only"><legend>Serve on the network</legend>
-          <label><span>Serve on the local network</span><input type="checkbox" name="remoteOn"></label>
-          <label><span>Allow remote actions</span><input type="checkbox" name="remoteActions"></label>
-          <p class="hint">Anyone with the link on your network can approve or deny Claude Code and OpenCode permission prompts on this PC.</p>
-          <div class="sub">Connection</div>
-          <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
-          <p class="hint rv-fw win-only" aria-live="polite"></p>
-          <p class="hint rv-public win-only" hidden>Windows treats this network as Public, so the rule does not apply. On a home network, mark it Private: Windows Settings → Network &amp; internet → your connection → Private network (or, in an admin PowerShell: Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private).</p>
-          <div class="btns win-only">
-            <button type="button" class="clear rv-fw-btn" data-cmd="firewall_allow">Allow this port</button>
-            <button type="button" class="clear rv-fw-btn" data-cmd="firewall_remove">Remove rule</button>
-          </div>
-          <p class="hint win-only">Windows will ask for administrator permission.</p>
-          <p class="hint rv-err" role="alert" hidden></p>
-          <p class="hint rv-state" role="status" hidden></p>
-          <div class="rv-on" hidden>
-            <div class="sub">Pairing</div>
+        <section data-cat="remote" class="host-only" hidden>
+        <div id="remote" class="host-only">
+          <fieldset><legend>Serve on the network</legend>
+            <label><span>Serve on the local network</span><input type="checkbox" name="remoteOn"></label>
+            <label><span>Allow remote actions</span><input type="checkbox" name="remoteActions"></label>
+            <p class="hint">Anyone with the link on your network can approve or deny Claude Code and OpenCode permission prompts on this PC.</p>
+            <p class="hint rv-err" role="alert" hidden></p>
+            <p class="hint rv-state" role="status" hidden></p>
+          </fieldset>
+          <fieldset><legend>Connection</legend>
+            <label><span>Port</span><input type="number" name="remotePort" min="1024" max="65535" step="1"></label>
+            <p class="hint rv-fw win-only" aria-live="polite"></p>
+            <p class="hint rv-public win-only" hidden>Windows treats this network as Public, so the rule does not apply. On a home network, mark it Private: Windows Settings → Network &amp; internet → your connection → Private network (or, in an admin PowerShell: Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private).</p>
+            <p class="hint win-only">Windows asks for administrator permission.</p>
+            <div class="foot btns win-only">
+              <button type="button" class="clear rv-fw-btn" data-cmd="firewall_remove">Remove rule</button>
+              <button type="button" class="clear rv-fw-btn" data-cmd="firewall_allow">Allow this port</button>
+            </div>
+          </fieldset>
+          <fieldset class="rv-on" hidden><legend>Pairing</legend>
             <ul class="rv-urls"></ul>
             <img class="rv-qr" alt="Pairing QR code" hidden>
             <p class="hint">Scan with the tablet's camera to pair it. A new token unpairs every device.</p>
-            <button type="button" class="clear rv-regen">Regenerate token</button>
-          </div>
-        </fieldset>
+            <div class="foot"><button type="button" class="clear rv-regen">Regenerate token</button></div>
+          </fieldset>
+        </div>
         </section>
         <section data-cat="status" class="host-only" hidden>
           <fieldset id="status"><legend data-t="prefs.status.title">Integrations</legend>
-            <ul class="st-list wide" aria-live="polite"></ul>
+            <ul class="st-list" aria-live="polite"></ul>
           </fieldset>
         </section>
         </div>

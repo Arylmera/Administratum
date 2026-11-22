@@ -143,7 +143,8 @@ export const TEXT = {
       removed: 'Removed {repo}. Restart to apply.', same: '{repo} is up to date.',
       updateAll: 'Update all', updating: 'Updating themes… {i}/{n}', failed: '{repo}: {error}', allSame: 'All up to date.', restSame: 'The others are up to date.',
       allUpdated: ['Updated {n} pack. Restart to apply.', 'Updated {n} packs. Restart to apply.'], check: 'Check added themes for updates at startup' },
-    cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view', status: 'Status' },
+    // the tabs (look, hall, alerts, work, themes, system, remote, status); petitions, scribes and rooms title cards inside them
+    cat: { look: 'Appearance', hall: 'Hall', alerts: 'Alerts', work: 'Work', themes: 'Themes', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view', status: 'Status' },
     // Settings > Status (the backend's integration_status), a save that failed, the remote view's states, the update's progress,
     // the test notification, the CI switch (settings.js)
     status: { title: 'Integrations', empty: 'No integration has reported yet.', ago: '{time} ago', ok: 'OK', warn: 'Warning', error: 'Error', failed: 'Status unavailable: {error}' },
