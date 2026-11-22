@@ -284,5 +284,17 @@ setTheme('tier2');
         assert.equal(cs.filter(a => a[0] === sprite(MAPS.ROOMCOG) || a[0] === sprite(MAPS.CONSOLE)).length, 0, 'flat: no lit computer, no adepts\' console');
       }
     }
+    // someone running code at a room's first spot lights that room's computer only (the lit frame, the bright glow)
+    const [first] = L.computers.values(), lit = computerAt(first[0]);
+    const shell = { id: 'sh', x: first[0].x, y: first[0].y, pose: 'cog', s: { status: 'shell' } }, actors = new Map([[shell.id, shell]]);
+    const drawLit = f => { calls.length = 0; lights = f(fakeG(), layout, actors, () => 0, 0); return calls.slice(); };
+    const bright = c => lights.filter(l => l.color === T.light.green && l.r === 10 && l.x === c.x + 8 && l.y === c.y + 6);
+    for (const [tag, f] of [['flat', drawScene], ['39°', drawScene39]]) {
+      setView(tag === 'flat' ? 'flat' : '39'); sceneSize(hall); use(hall);
+      const cs = drawLit(f);
+      assert.equal(bright(lit).length, 1, `${tag}: the busy room's computer glows`);
+      assert.ok(at.filter(c => c.y !== lit.y || c.x !== lit.x).every(c => glowAt(c).length === 1 && !bright(c).length), `${tag}: the other rooms stay unlit`);
+      if (tag === 'flat') assert.deepEqual(cs.filter(a => a[0] === sprite(MAPS.ROOMCOG)).map(a => a.slice(1, 3)), [[lit.x, lit.y]], 'flat: the busy room draws its lit computer');
+    }
   } finally { setHallPlan('open'); setView('flat'); if (had) globalThis.document = had; else delete globalThis.document; }
 }
