@@ -1,11 +1,11 @@
 // The DOM over the canvas, synced each frame: plaques, petition labels, tags, edge arrows, the hover tip.
-import { SCENE, WALL_DY, zonesOf, wingZones, lampSpots } from './layout.js';
+import { SCENE, WALL_DY, zonesOf, wingZones, mainSpots, scribeSpots } from './layout.js';
 import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion, asleep } from './actors.js';
 import { invoke, listen, REMOTE } from './bridge.js';
 import { sel, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed, ciLine } from './card.js';
-import { lampOf, LAMP_SIZE } from './cilamp.js';
+import { lampOf, LAMP_SIZE, MAIN_SIZE } from './cilamp.js';
 import { riskOfPetition } from './petition.js';
 import { ago, statusOf } from './format.js';
 import { vigil, secondsLeft } from './vigil.js';
@@ -247,61 +247,79 @@ export function syncScribeKeys() {
   if (keyBox.dataset.order !== order) { keyBox.dataset.order = order; keyBox.replaceChildren(...live.map(a => scribeKeys.get(a.id))); }
 }
 
-// The CI lamps' hover, click and keys (I6; where they stand: layout.js lampSpots, their state: cilamp.js). A lamp is lit
-// while its CI runs or has a verdict; an unlit one (none, timeout, error) has no tip, no click and no key.
+// The CI lamps' hover, click and keys (I6, I6b; where they stand: layout.js mainSpots / scribeSpots, their state:
+// cilamp.js). Two kinds: a department's main lamp (who: the department, ci: its entry in the ci-lamps list) and a
+// scribe's (who: the session id, ci: its Session.ci). A lamp is lit while its CI runs or has a verdict; an unlit one
+// (none, timeout, error) has no tip, no click and no key.
 const LIT = new Set(['running', 'pass', 'fail']);
-export const litLamps = () => (layout() ? lampSpots(layout().blocks, hall(), layout().desks).map(s => ({ s, l: lampOf(s.dept) })).filter(({ l }) => l && LIT.has(l.state)) : []);
-// The frontmost lit lamp whose rect (its foot at `at(spot)`, LAMP_SIZE up from it, padded) holds the view point (px, py) in
-// logical px: that lamp's entry plus `at`, its foot on the view. app.js lampAt turns a pointer into the point.
+export const litLamps = () => {
+  const L = layout();
+  if (!L) return [];
+  const H = hall(), by = new Map(roster().map(r => [r.id, r]));
+  const mains = mainSpots(L.blocks, H, L.desks ?? [], L.consoles ?? []).map(s => ({ kind: 'main', who: s.dept, s, ci: lampOf(s.dept), size: MAIN_SIZE }));
+  const scribes = scribeSpots(L.desks ?? [], H).map(s => ({ kind: 'scribe', who: s.id, s, ci: by.get(s.id)?.ci, size: LAMP_SIZE }));
+  return mains.concat(scribes).filter(l => l.ci && LIT.has(l.ci.state));
+};
+// The frontmost lit lamp whose rect (its foot at `at(spot)`, its own size up from it, padded) holds the view point
+// (px, py) in logical px: that lamp's item plus `at`, its foot on the view. app.js lampAt turns a pointer into the point.
 export function lampHit(lit, px, py, at, pad = 2) {
   let best = null;
-  for (const { s, l } of lit) {
-    const [fx, fy] = at(s.x, s.y);
-    if (Math.abs(px - fx) <= LAMP_SIZE[0] / 2 + pad && py >= fy - LAMP_SIZE[1] - pad && py <= fy + pad && (!best || fy >= best.at[1])) best = { ...l, at: [fx, fy] };
+  for (const l of lit) {
+    const [fx, fy] = at(l.s.x, l.s.y), [w, h] = l.size;
+    if (Math.abs(px - fx) <= w / 2 + pad && py >= fy - h - pad && py <= fy + pad && (!best || fy >= best.at[1])) best = { ...l, at: [fx, fy] };
   }
   return best;
 }
-// What the tip and the key say: the card's CI line, the lamp joined to its session's Session.ci for the count; a failed
-// click's error in its place for 5 s.
+// What the tip and the key say: the card's CI line. A scribe's lamp: its session's own push. A main lamp: the default
+// branch's head, joined to a session's Session.ci on that commit for the count (none: ?/?). A failed click's error in
+// its place for 5 s. Read afresh from `item`'s kind and who, so a stale item says what the lamp says now.
 let lampErr = null;
-export function lampTip(dept) {
-  const l = lampOf(dept);
-  if (!l || !LIT.has(l.state)) return '';
-  if (lampErr?.dept === dept) return lampErr.text;
-  const c = roster().filter(r => r.dept === dept).map(r => r.ci).find(q => q && q.sha7 === l.sha7 && q.branch === l.branch);
-  return ciLine({ done: '?', total: '?', ...c, ...l }); // a lamp whose session left has no count
+export function lampTip(item) {
+  if (!item) return '';
+  const { kind, who } = item, ci = kind === 'main' ? lampOf(who) : roster().find(r => r.id === who)?.ci;
+  if (!ci || !LIT.has(ci.state)) return '';
+  if (lampErr?.who === who) return lampErr.text;
+  if (kind !== 'main') return ciLine(ci);
+  const c = roster().filter(r => r.dept === who).map(r => r.ci).find(q => q && q.sha7 === ci.sha7 && q.branch === ci.branch);
+  return ciLine({ done: '?', total: '?', ...c, ...ci }); // no session on that commit: no count
 }
-// A click on a lamp: the department name, never a URL (the backend finds the checks page). The remote view has no command.
-export function openLamp(dept) {
+// A click on a lamp: its session id or its department name, never a URL (the backend finds the checks page). The
+// remote view has no command.
+export function openLamp(who) {
   if (REMOTE) return;
   lampErr = null;
-  invoke('ci_open', { who: dept }).catch(err => {
-    lampErr = { dept, text: String(err) };
-    setTimeout(() => { if (lampErr?.dept === dept) lampErr = null; }, 5000);
+  invoke('ci_open', { who }).catch(err => {
+    lampErr = { who, text: String(err) };
+    setTimeout(() => { if (lampErr?.who === who) lampErr = null; }, 5000);
   });
 }
 // A focusable button over each lit lamp (like the scribes'): Tab reaches it, Enter or Space opens the checks page.
-// In department order, re-ordered only when a lamp lights or goes out.
+// The main lamps by department, then the scribes' by department and session; re-ordered only when a lamp lights or goes
+// out, the DOM written only where it changed (the list comes every second).
 const lampKeys = new Map();
 let lampBox;
+const lampKey = l => `${l.kind}:${l.who}`;
+const lampOrder = (p, q) => (p.kind === q.kind ? 0 : p.kind === 'main' ? -1 : 1) || String(p.s.dept).localeCompare(String(q.s.dept)) || String(p.who).localeCompare(String(q.who));
 export function syncLampKeys() {
-  const lit = REMOTE ? [] : litLamps().sort((p, q) => p.l.dept.localeCompare(q.l.dept));
-  const ids = new Set(lit.map(({ l }) => l.dept));
-  for (const [d, el] of lampKeys) if (!ids.has(d)) { el.remove(); lampKeys.delete(d); }
-  for (const { s, l } of lit) {
-    let el = lampKeys.get(l.dept);
+  const lit = REMOTE ? [] : litLamps().sort(lampOrder);
+  const ids = new Set(lit.map(lampKey));
+  for (const [k, el] of lampKeys) if (!ids.has(k)) { el.remove(); lampKeys.delete(k); }
+  for (const l of lit) {
+    const k = lampKey(l);
+    let el = lampKeys.get(k);
     if (!el) {
       el = document.createElement('button'); el.type = 'button'; el.className = 'scribe-key lamp-key';
-      el.onclick = () => openLamp(l.dept);
-      lampKeys.set(l.dept, el);
+      el.onclick = () => openLamp(l.who);
+      lampKeys.set(k, el);
     }
-    const label = `${l.dept}: ${lampTip(l.dept)}`;
+    const name = l.kind === 'main' ? l.who : roster().find(r => r.id === l.who)?.name ?? l.s.dept;
+    const label = `${name}: ${lampTip(l)}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
-    const [kx, ky] = at(s.x, s.y);
-    setStyle(el, { left: `${kx * scale}px`, top: `${(ky - LAMP_SIZE[1] / 2) * scale}px` });
+    const [kx, ky] = at(l.s.x, l.s.y);
+    setStyle(el, { left: `${kx * scale}px`, top: `${(ky - l.size[1] / 2) * scale}px` });
   }
-  const order = lit.map(({ l }) => l.dept).join('|');
-  if (lampBox.dataset.order !== order) { lampBox.dataset.order = order; lampBox.replaceChildren(...lit.map(({ l }) => lampKeys.get(l.dept))); }
+  const order = lit.map(lampKey).join('|');
+  if (lampBox.dataset.order !== order) { lampBox.dataset.order = order; lampBox.replaceChildren(...lit.map(l => lampKeys.get(lampKey(l)))); }
 }
 
 const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
@@ -376,13 +394,13 @@ export function syncHover() {
   const h = mouse() ? actorAt(mouse()) : coarse.matches && sel ? cast.actors.get(sel) : null;
   const lamp = !h && mouse() ? lampAt?.(mouse()) : null; // a character in front of a lamp is the one pointed at
   setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h || (lamp && !REMOTE) ? 'pointer' : pannable() ? 'grab' : '' });
-  const hide = lamp ? !lampTip(lamp.dept) : !h || labels.has(h.id);
+  const hide = lamp ? !lampTip(lamp) : !h || labels.has(h.id);
   if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
   if (lamp) {
-    const text = lampTip(lamp.dept);
+    const text = lampTip(lamp);
     if (tip.textContent !== text) tip.textContent = text;
-    setStyle(tip, { left: `${lamp.at[0] * scale}px`, top: `${(lamp.at[1] - LAMP_SIZE[1] - 3) * scale}px` });
+    setStyle(tip, { left: `${lamp.at[0] * scale}px`, top: `${(lamp.at[1] - lamp.size[1] - 3) * scale}px` });
     return;
   }
   tip.textContent = h.watch ? t('watch.name') : h.h ? h.h.kind : h.s.name;

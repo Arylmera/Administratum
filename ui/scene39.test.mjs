@@ -183,11 +183,12 @@ assert.equal(pipeOf({ watch: true }, 'down'), null, 'nor the Watchman');
 for (const id of ['tier2', 'cyber', 'orbital', 'vault']) { setTheme(id); assert.equal(pipeOf(sc(SONNET, 'idle'), 'down'), null, `${id}: no pipe`); }
 setTheme('tier2');
 
-// The CI lamps (cilamp.js) over the hall, flat and 39°: one lamp per department that has an entry, its frame the state's
-// (the blink follows the clock), at its spot (layout.js lampSpots), nothing while the list is empty. Recording canvas:
-// node has none; every drawImage is kept with the sprite canvas it drew.
+// The CI lamps (cilamp.js) over the hall, flat and 39°: the department's main lamp (CIMAIN) for each department with an
+// entry in the list, at its spot (layout.js mainSpots), its frame the state's (the blink follows the clock); a scribe
+// lamp (CILAMP) beside each desk whose session has a CI of its own (layout.roster's Session.ci, layout.js scribeSpots);
+// nothing with neither. Recording canvas: node has none; every drawImage is kept with the sprite canvas it drew.
 {
-  const { setLamps, frameOf, LENS } = await import('./cilamp.js'), { lampSpots } = await import('./layout.js'), { MAPS, sprite, half } = await import('./sprites.js');
+  const { setLamps, frameOf, LENS } = await import('./cilamp.js'), { mainSpots, scribeSpots } = await import('./layout.js'), { MAPS, sprite, half } = await import('./sprites.js');
   const { drawScene } = await import('./scene.js');
   const { drawScene39 } = await import('./scene39.js');
   const calls = [];
@@ -197,48 +198,61 @@ setTheme('tier2');
   });
   const had = globalThis.document;
   globalThis.document = { createElement: () => { const g = fakeG(), cv = { width: 0, height: 0, getContext: () => g }; return cv; } };
+  const FRAMES = fam => ['off', 'amber', 'amber_dim', 'green', 'red'].map(n => `${fam}.${n}`);
   try {
     setTheme('tier2');
     const hall = hallOf(0), depts = ['a', 'b', 'c'].map((name, i) => ({ name, color: '#336699', ids: [`${name}-0`] }));
     const L = layoutDepartments(depts, { size: { w: hall.w, h: hall.h } });
-    const layout = { hall, blocks: L.blocks, desks: [], consoles: [], computers: new Map(), level: { dark: 0.18 }, anchors: null };
-    const spots = lampSpots(L.blocks, hall);
+    const layout = { hall, blocks: L.blocks, desks: L.desks, consoles: [], computers: new Map(), level: { dark: 0.18 }, anchors: null, roster: [] };
+    const spots = mainSpots(L.blocks, hall, L.desks), desksAt = scribeSpots(L.desks, hall);
     let lastLights = [];
     const draw = (f, now) => { calls.length = 0; lastLights = f(fakeG(), layout, new Map(), () => 0, now); return calls.slice(); };
     const GLOW = ['rgba(240,168,60,.6)', 'rgba(240,168,60,.3)', 'rgba(61,220,108,.55)', 'rgba(255,58,32,.6)'], glows = () => lastLights.filter(l => GLOW.includes(l.color));
     const lampsIn = (cs, frame) => cs.filter(a => a[0] === sprite(MAPS[frame], LENS[frame]));
+    const count = (cs, frames) => frames.reduce((n, fr) => n + lampsIn(cs, fr).length, 0);
     for (const [tag, f] of [['flat', drawScene], ['39°', drawScene39]]) {
       setView(tag === 'flat' ? 'flat' : '39'); sceneSize(hall); use(hall);
-      setLamps([]);
-      for (const frame of ['CILAMP.off', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.green', 'CILAMP.red']) assert.equal(lampsIn(draw(f, 0), frame).length, 0, `${tag}: no list, no lamp (${frame})`);
+      setLamps([]); layout.roster = [];
+      let cs = draw(f, 0);
+      assert.equal(count(cs, FRAMES('CIMAIN').concat(FRAMES('CILAMP'))), 0, `${tag}: no list, no CI in the roster: no lamp`);
       assert.equal(glows().length, 0, `${tag}: no list, no glow`);
       setLamps([{ dept: 'a', state: 'pass' }, { dept: 'b', state: 'running' }, { dept: 'c', state: 'error' }]);
-      let cs = draw(f, 0);
-      assert.deepEqual(glows().map(l => l.color).sort(), ['rgba(240,168,60,.6)', 'rgba(61,220,108,.55)'], `${tag}: the lit lenses glow (an unlit one does not)`);
-      assert.ok(glows().every(l => l.r > 0 && l.x > 0 && l.y > 0));
-      assert.deepEqual(['CILAMP.green', 'CILAMP.amber', 'CILAMP.off'].map(n => lampsIn(cs, n).length), [1, 1, 1], `${tag}: a lamp each, by its state`);
-      assert.equal(lampsIn(cs, 'CILAMP.amber_dim').length + lampsIn(cs, 'CILAMP.red').length, 0, `${tag}: none in a state nobody is in`);
-      assert.equal(lampsIn(draw(f, 600), frameOf('running', 600)).length, 1, `${tag}: running blinks with the clock`);
-      assert.equal(lampsIn(draw(f, 600), 'CILAMP.amber').length, 0);
-      setLamps([{ dept: 'a', state: 'fail' }]);
       cs = draw(f, 0);
-      assert.deepEqual([lampsIn(cs, 'CILAMP.red').length, lampsIn(cs, 'CILAMP.green').length, lampsIn(cs, 'CILAMP.off').length], [1, 0, 0], `${tag}: only a department with an entry has a lamp`);
-      if (tag === 'flat') { // the flat frame sits at its spot's foot, centred
-        const a = spots.find(s => s.dept === 'a'), [x, y] = lampsIn(cs, 'CILAMP.red')[0].slice(1, 3);
-        assert.deepEqual([x, y], [half(a.x - 2.5), a.y - 10], 'flat: at the department\'s spot');
+      assert.deepEqual(glows().map(l => l.color).sort(), ['rgba(240,168,60,.6)', 'rgba(61,220,108,.55)'], `${tag}: the lit lenses glow (an unlit one does not)`);
+      assert.ok(glows().every(l => l.r === 16 && l.x > 0 && l.y > 0), `${tag}: the main lamp's glow`);
+      assert.deepEqual(['CIMAIN.green', 'CIMAIN.amber', 'CIMAIN.off'].map(n => lampsIn(cs, n).length), [1, 1, 1], `${tag}: a main lamp each, by its state`);
+      assert.equal(lampsIn(cs, 'CIMAIN.amber_dim').length + lampsIn(cs, 'CIMAIN.red').length, 0, `${tag}: none in a state nobody is in`);
+      assert.equal(count(cs, FRAMES('CILAMP')), 0, `${tag}: no session with a CI: no scribe lamp`);
+      assert.equal(lampsIn(draw(f, 600), frameOf('running', 600, 'CIMAIN')).length, 1, `${tag}: running blinks with the clock`);
+      assert.equal(lampsIn(draw(f, 600), 'CIMAIN.amber').length, 0);
+      // a lamp list and a roster CI: both kinds, each by its own state
+      setLamps([{ dept: 'a', state: 'fail' }]);
+      layout.roster = [{ id: 'b-0', dept: 'b', ci: { state: 'pass' } }, { id: 'c-0', dept: 'c', ci: { state: 'none' } }, { id: 'zz', dept: 'c', ci: { state: 'fail' } }];
+      cs = draw(f, 0);
+      assert.deepEqual([lampsIn(cs, 'CIMAIN.red').length, lampsIn(cs, 'CILAMP.green').length], [1, 1], `${tag}: the main lamp and the scribe lamp`);
+      assert.equal(count(cs, FRAMES('CIMAIN')), 1, `${tag}: only a department with an entry has a main lamp`);
+      assert.equal(count(cs, FRAMES('CILAMP')), 1, `${tag}: only a seated session with a CI has a scribe lamp`);
+      assert.ok(glows().some(l => l.r === 12) && glows().some(l => l.r === 16), `${tag}: both glow`);
+      if (tag === 'flat') { // the flat frames sit at their spots' feet, centred, each at its own size
+        const a = spots.find(s => s.dept === 'a'), [x, y] = lampsIn(cs, 'CIMAIN.red')[0].slice(1, 3);
+        assert.deepEqual([x, y], [half(a.x - 3.5), a.y - 14], 'flat: the main lamp at the department\'s spot');
+        const d = desksAt.find(s => s.id === 'b-0'), [sx, sy] = lampsIn(cs, 'CILAMP.green')[0].slice(1, 3);
+        assert.deepEqual([sx, sy], [half(d.x - 2.5), d.y - 10], 'flat: the scribe lamp beside its desk');
       }
+      layout.roster = [];
     }
-    // the desktop strip and column draw through drawScene: a lamp each on its plaque row
+    // the desktop strip and column draw through drawScene: a main lamp each on its plaque row, no scribe lamp
     const { layoutStrip, stripOf } = await import('./strip.js'), { layoutColumn, columnOf, COL_W } = await import('./column.js');
     const dd = ['a', 'b'].map(name => ({ name, color: '#336699', ids: [`${name}-0`, `${name}-1`] }));
     const SL = layoutStrip(dd, { size: { w: 1400 } }), CL = layoutColumn(dd, { size: { w: COL_W, h: 420 }, side: 'left' });
     for (const [tag, Hh, B] of [['strip', stripOf(1400), SL], ['column', columnOf({ w: COL_W, h: 420 }, CL.floors, 'left'), CL]]) {
-      const lay = { hall: Hh, blocks: B.blocks, desks: [], consoles: [], level: { dark: 0.18 } };
+      const lay = { hall: Hh, blocks: B.blocks, desks: B.desks, consoles: [], level: { dark: 0.18 }, roster: [{ id: 'a-0', dept: 'a', ci: { state: 'pass' } }] };
       setLamps([{ dept: 'a', state: 'fail' }, { dept: 'b', state: 'pass' }]);
       const cs = draw(() => drawScene(fakeG(), lay, new Map(), () => 0, 0), 0);
-      assert.deepEqual([lampsIn(cs, 'CILAMP.red').length, lampsIn(cs, 'CILAMP.green').length], [1, 1], `${tag}: a lamp each`);
+      assert.deepEqual([lampsIn(cs, 'CIMAIN.red').length, lampsIn(cs, 'CIMAIN.green').length], [1, 1], `${tag}: a main lamp each`);
+      assert.equal(count(cs, FRAMES('CILAMP')), 0, `${tag}: no scribe lamp`);
       setLamps([]);
-      assert.equal(draw(() => drawScene(fakeG(), lay, new Map(), () => 0, 0), 0).filter(a => a[0] === sprite(MAPS['CILAMP.red'], LENS['CILAMP.red'])).length, 0, `${tag}: no list, no lamp`);
+      assert.equal(count(draw(() => drawScene(fakeG(), lay, new Map(), () => 0, 0), 0), FRAMES('CIMAIN')), 0, `${tag}: no list, no lamp`);
     }
   } finally { setLamps([]); setView('flat'); if (had) globalThis.document = had; else delete globalThis.document; }
 }

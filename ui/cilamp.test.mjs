@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { frameOf, lamps, lampOf, lampsAt, setLamps, start, restart, BLINK_MS, LENS } from './cilamp.js';
+import { frameOf, lamps, lampOf, lampsAt, scribeLampsAt, lampLights, setLamps, start, restart, BLINK_MS, LENS, LAMP_SIZE, MAIN_SIZE } from './cilamp.js';
 import { THEMES, setTheme, T } from './theme.js';
 import { MAPS, loadAllArt } from './sprites.js';
 await loadAllArt();
@@ -17,6 +17,9 @@ const beats = [0, 250, 499, 500, 750, 999, 1000, 1499, 1500, 2000].map(t => fram
 assert.deepEqual(beats, ['CILAMP.amber', 'CILAMP.amber', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.amber_dim', 'CILAMP.amber_dim', 'CILAMP.amber', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.amber']);
 // only running blinks
 for (const s of ['pass', 'fail', 'none']) assert.equal(frameOf(s, 0), frameOf(s, 500), `${s}: steady`);
+// the department's main lamp: the same rules, its own family
+assert.deepEqual(['running', 'pass', 'fail', 'none', 'error'].map(s => frameOf(s, 0, 'CIMAIN')), ['CIMAIN.amber', 'CIMAIN.green', 'CIMAIN.red', 'CIMAIN.off', 'CIMAIN.off']);
+assert.equal(frameOf('running', 600, 'CIMAIN'), 'CIMAIN.amber_dim');
 
 // the list: one entry per department, unknown states unlit, junk dropped, an empty list is "off"
 restart();
@@ -32,11 +35,38 @@ assert.deepEqual(lamps(), []);
 setLamps([row('a', 'pass'), row('b', 'running')]);
 const spots = [{ dept: 'a', x: 10, y: 20 }, { dept: 'b', x: 60, y: 20 }, { dept: 'c', x: 110, y: 20 }];
 const at = lampsAt(spots, 0);
-assert.deepEqual(at.map(l => [l.dept, l.frame, l.x, l.y]), [['a', 'CILAMP.green', 10, 20], ['b', 'CILAMP.amber', 60, 20]], 'c has no CI entry: no lamp');
-assert.equal(lampsAt(spots, 600)[1].frame, 'CILAMP.amber_dim', 'the blink follows the time given');
+assert.deepEqual(at.map(l => [l.dept, l.frame, l.x, l.y]), [['a', 'CIMAIN.green', 10, 20], ['b', 'CIMAIN.amber', 60, 20]], 'c has no CI entry: no lamp; the frames are the main lamp family');
+assert.ok(at.every(l => l.size === MAIN_SIZE), 'the size of the main lamp');
+assert.equal(lampsAt(spots, 600)[1].frame, 'CIMAIN.amber_dim', 'the blink follows the time given');
 assert.equal(lampsAt([{ dept: 'a', x: 1, y: 2 }, { dept: 'b', x: 3, y: 4 }], 0).length, 2, 'a room holding a and b: two lamps');
 setLamps([]);
 assert.deepEqual(lampsAt(spots, 0), [], 'the feature off: nothing drawn');
+
+// the list arrives every second: an unchanged one keeps the same list (nothing downstream sees a change), a changed
+// one replaces it
+setLamps([row('a', 'pass'), row('b', 'running')]);
+const before = lamps();
+setLamps([row('a', 'pass'), row('b', 'running')]);
+assert.equal(lamps(), before, 'the same lamps: the same list');
+setLamps([row('a', 'pass'), row('b', 'fail')]);
+assert.notEqual(lamps(), before, 'a state changed: a new list');
+assert.equal(lampOf('b').state, 'fail');
+setLamps([]);
+
+// the scribe lamps: one per spot whose session has a CI of its own (Session.ci, not the department list), CILAMP art
+{
+  const two = [{ id: 's1', dept: 'a', x: 1, y: 2 }, { id: 's2', dept: 'a', x: 5, y: 2 }];
+  const sl = scribeLampsAt(two, [{ id: 's1', ci: { state: 'fail' } }, { id: 's2' }], 0);
+  assert.deepEqual(sl.map(l => [l.id, l.frame, l.state, l.x, l.y]), [['s1', 'CILAMP.red', 'fail', 1, 2]], 's2 has no CI: no lamp');
+  assert.equal(sl[0].size, LAMP_SIZE);
+  assert.deepEqual(scribeLampsAt(two, [{ id: 's1', ci: { state: 'none' } }], 0), [], 'none: no lamp');
+  assert.deepEqual(scribeLampsAt(two, [], 0), [], 'no session: no lamp');
+  assert.deepEqual(scribeLampsAt(two, [{ id: 's1', ci: { state: 'running' } }, { id: 's2', ci: { state: 'timeout' } }], 600).map(l => l.frame), ['CILAMP.amber_dim', 'CILAMP.off'], 'the blink follows the clock; timeout unlit but drawn');
+  assert.deepEqual(scribeLampsAt(two, [{ id: 's1', ci: { state: 'pass' } }], 0).map(l => l.frame), ['CILAMP.green'], 'independent of the department list (empty here)');
+  // the glows: the main lamp's larger and higher (its lens sits 11 px over its foot, the scribe's 7)
+  const lit = lampLights([...sl, { x: 10, y: 50, frame: 'CIMAIN.red' }, { x: 20, y: 50, frame: 'CIMAIN.amber_dim' }, { x: 30, y: 50, frame: 'CIMAIN.off' }]);
+  assert.deepEqual(lit.map(l => [l.x, l.y, l.r]), [[1, -5, 12], [10, 39, 16], [20, 39, 9]], 'scribe 12, main 16 lit / 9 dim, unlit none');
+}
 
 // start: listens to ci-lamps, asks ci_lamps once; an event that came first is not overwritten by the answer
 {
@@ -75,15 +105,21 @@ assert.deepEqual(lampsAt(spots, 0), [], 'the feature off: nothing drawn');
   const seen = {};
   for (const id of Object.keys(THEMES)) {
     setTheme(id);
-    const [g, a, d, r] = ['CILAMP.green', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.red'].map(lensOf);
-    assert.ok(g[1] > g[0] + 60 && g[1] > g[2] + 60, `${id}: green is green-dominant ${g}`);
-    assert.ok(a[0] > 200 && a[1] > 120 && a[1] < a[0] && a[2] < 120, `${id}: amber is red + green, low blue ${a}`);
-    assert.ok(d[0] > d[2] + 60 && d[1] > d[2] && d[0] < a[0], `${id}: the dim beat is a darker amber ${d}`);
-    assert.ok(r[0] > r[1] + 120 && r[0] > r[2] + 120, `${id}: red is red-dominant ${r}`);
-    (seen[id] = { g, a, d, r });
+    for (const fam of ['CILAMP', 'CIMAIN']) {
+      const [g, a, d, r] = ['green', 'amber', 'amber_dim', 'red'].map(n => lensOf(`${fam}.${n}`));
+      assert.ok(g[1] > g[0] + 60 && g[1] > g[2] + 60, `${id} ${fam}: green is green-dominant ${g}`);
+      assert.ok(a[0] > 200 && a[1] > 120 && a[1] < a[0] && a[2] < 120, `${id} ${fam}: amber is red + green, low blue ${a}`);
+      assert.ok(d[0] > d[2] + 60 && d[1] > d[2] && d[0] < a[0], `${id} ${fam}: the dim beat is a darker amber ${d}`);
+      assert.ok(r[0] > r[1] + 120 && r[0] > r[2] + 120, `${id} ${fam}: red is red-dominant ${r}`);
+      (seen[`${id} ${fam}`] = { g, a, d, r });
+    }
+    // the main lamp's lens is the scribe lamp's colour, frame for frame, in this world (rendered: the theme's palette
+    // under the fixed LENS)
+    for (const n of ['green', 'amber', 'amber_dim', 'red']) assert.deepEqual(lensOf(`CIMAIN.${n}`), lensOf(`CILAMP.${n}`), `${id}: CIMAIN.${n} lens = CILAMP.${n}`);
   }
   const first = Object.values(seen)[0];
   for (const [id, s] of Object.entries(seen)) assert.deepEqual(s, first, `${id}: the same lens colours as every world`);
   assert.equal(LENS['CILAMP.off'], undefined, 'unlit: the dark glass of the theme');
+  assert.equal(LENS['CIMAIN.off'], undefined);
 }
 console.log('cilamp ok');

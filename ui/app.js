@@ -266,6 +266,7 @@ const draw = guarded(now => {
   if (back && !iso() && (lag.x || lag.y)) g.drawImage(back, 0, 0, back.width, WALL * RES, lag.x, lag.y, hall.w, WALL); // the back wall, trailing the pan
   const view = glide(layout, now);
   view.hall = hall;
+  view.roster = roster; // the scribe lamps' Session.ci (scene.js, scene39.js)
   view.level = level;
   view.mode = viewMode.mode;
   view.anchors = back?.anchors;
@@ -384,7 +385,8 @@ function actorAt(e) {
   return best;
 }
 // The lit CI lamp under a pointer (overlay.js lampHit over the lamps' spots and states), through `at` so the 39° view's
-// projected feet count too; its rect is 5 x 10 px, so a touch pointer gets a wider margin.
+// projected feet count too; its rect is its own size (a scribe's 5 x 10 px, a main lamp's 7 x 14), so a touch pointer
+// gets a wider margin.
 const lampPad = () => (coarse.matches ? 5 : 2);
 function lampAt(e) {
   const r = canvas.getBoundingClientRect();
@@ -398,16 +400,16 @@ function actorRects() {
     const hw = (a.h ? 6 : 8) + 1, ht = (a.h ? 14 : 17) + 1;
     out.push([r.left + (a.x - hw) * scale, r.top + (a.y - ht) * scale, r.left + (a.x + hw) * scale, r.top + (a.y + 1) * scale]);
   }
-  if (!REMOTE) for (const { s } of litLamps()) { // the lit lamps take clicks too (lampAt's rect): the strip's window passes the rest through
+  if (!REMOTE) for (const { s, size: [w, h] } of litLamps()) { // the lit lamps take clicks too (lampAt's rect): the strip's window passes the rest through
     const [fx, fy] = at(s.x, s.y), p = lampPad();
-    out.push([r.left + (fx - 2.5 - p) * scale, r.top + (fy - 10 - p) * scale, r.left + (fx + 2.5 + p) * scale, r.top + (fy + p) * scale]);
+    out.push([r.left + (fx - w / 2 - p) * scale, r.top + (fy - h - p) * scale, r.left + (fx + w / 2 + p) * scale, r.top + (fy + p) * scale]);
   }
   return out;
 }
 canvas.onclick = e => {
   if (dragged) { setDragged(false); return; } // the end of a pan, not a click
   const a = actorAt(e), l = !a && !REMOTE && lampAt(e);
-  if (a) pick(a.id); else if (l) openLamp(l.dept); else closeCard();
+  if (a) pick(a.id); else if (l) openLamp(l.who); else closeCard();
 };
 // Any click outside the card (header, backdrop) closes it; canvas and petition labels handle their own. The event's
 // path, not its target's ancestors: a kin link or "+N more" is removed by its own click (the card re-renders).

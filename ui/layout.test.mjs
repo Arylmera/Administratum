@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY, WING_W, WING_X, WING_CX, WING_DIV, wingZones, SLOT_H, lampSpots } from './layout.js';
+import { layoutDepartments, planLayout, zonesOf, zoneSequence, DESK_GRACE_MS, DEPT_GRACE_MS, SHRINK_MS, MAX_BAYS, BAY_H, hallOf, route, phaseOf, lightLevel, QUEUE_SLOTS, DOOR_OUT, DOOR_IN, AISLE_Y, HALL, ENTRY, REF_OUT, REF_IN, RECAFF_SPOT, REFECTORY_SPOTS, COG_SPOTS, SCENE, MAX_W, roomOf, WALL, WALL_DY, WING_W, WING_X, WING_CX, WING_DIV, wingZones, SLOT_H, scribeSpots, mainSpots } from './layout.js';
 import { setHallPlan } from './hallplan.js';
 import { layoutStrip, stripOf, FLOOR } from './strip.js';
 import { layoutColumn, columnOf, COL_W } from './column.js';
-import { LAMP_SIZE } from './cilamp.js';
+import { LAMP_SIZE, MAIN_SIZE } from './cilamp.js';
 import { propsOf, WIN_Y, wallArt } from './scene.js';
 import { MAPS, RES, ART } from './sprites.js';
 import { setTheme, THEMES } from './theme.js';
@@ -795,56 +795,92 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
   assert.equal(S.size.w, 700, 'an untagged lay keeps the size');
 }
 
-// The CI lamps' spots (lampSpots, ui/cilamp.js): one per department block, inside its block (the strip's and the column's on
-// the plaque row), clear of desks, consoles and the walking lanes; two departments in one room get two distinct spots.
+// The CI lamps' spots (ui/cilamp.js): scribeSpots, a scribe lamp (CILAMP, LAMP_SIZE) beside each occupied desk, in the
+// gap after it; mainSpots, the department's main lamp (CIMAIN, MAIN_SIZE), one per department block at its east end
+// (the console side), the strip's and the column's on the plaque row. All of them clear of desks, consoles, the walking
+// lanes, the vertical corridors and one another; two departments in one room get two distinct main spots.
 {
-  const [LW, LH] = LAMP_SIZE, box = s => ({ x: s.x - LW / 2, y: s.y - LH, w: LW, h: LH });
+  const box = (s, [w, h]) => ({ x: s.x - w / 2, y: s.y - h, w, h });
   const hits = (a, b, bw, bh) => a.x < b.x + bw && b.x < a.x + a.w && a.y < b.y + bh && b.y < a.y + a.h;
   const dep = (name, n, extra = {}) => ({ name, color: '#336699', ids: ids(name, n), ...extra });
-  const clear = (tag, L, H, spots) => {
-    assert.equal(spots.length, L.blocks.filter(b => !b.empty && !b.cell).length, `${tag}: one lamp per department block`);
-    assert.equal(new Set(spots.map(s => s.dept)).size, spots.length, `${tag}: no department twice`);
-    assert.equal(new Set(spots.map(s => `${s.x},${s.y}`)).size, spots.length, `${tag}: distinct spots`);
-    for (const s of spots) {
-      const q = box(s);
-      for (const d of L.desks) assert.ok(!hits(q, d, d.compact ? 22 : 32, 21), `${tag}: ${s.dept}'s lamp on desk ${d.key ?? d.id}`);
-      for (const c of L.consoles) assert.ok(!hits(q, c, 14, 10), `${tag}: ${s.dept}'s lamp on console ${c.id}`);
-      for (const l of H.lanes) if (!H.strip) assert.ok(Math.abs(s.y - l) >= 4, `${tag}: ${s.dept}'s lamp foot ${s.y} on the lane ${l}`);
+  const walks = H => [H.corridorX, ...(H.corridors ?? []), ...(H.rooms ?? []).map(R => R.corridorX)].filter(Number.isFinite);
+  const clear = (tag, L, H, scribe, main) => {
+    const depts = L.blocks.filter(b => !b.empty && !b.cell);
+    assert.equal(L.overflow ?? 0, 0, `${tag}: the fixture fits`);
+    assert.equal(main.length, depts.length, `${tag}: one main lamp per department block`);
+    assert.ok(main.length > 0, `${tag}: the fixture has departments`);
+    assert.equal(new Set(main.map(s => s.dept)).size, main.length, `${tag}: no department twice`);
+    if (!H.strip && !H.column) {
+      assert.deepEqual(scribe.map(s => s.id), L.desks.filter(d => d.id).map(d => d.id), `${tag}: one scribe lamp per occupied desk`);
+      assert.ok(scribe.length > 0, `${tag}: the fixture has scribes`);
+    } else assert.deepEqual(scribe, [], `${tag}: no scribe lamp`);
+    const all = scribe.map(s => [s, LAMP_SIZE, `${s.id}'s scribe lamp`]).concat(main.map(s => [s, MAIN_SIZE, `${s.dept}'s main lamp`]));
+    assert.equal(new Set(all.map(([s]) => `${s.x},${s.y}`)).size, all.length, `${tag}: distinct spots`);
+    all.forEach(([s, size, name], i) => {
+      const q = box(s, size);
+      for (const d of L.desks) assert.ok(!hits(q, d, d.compact ? 22 : 32, 21), `${tag}: ${name} on desk ${d.key ?? d.id}`);
+      for (const c of L.consoles) assert.ok(!hits(q, c, 14, 10), `${tag}: ${name} on console ${c.id}`);
+      for (const l of H.lanes) if (!H.strip) assert.ok(Math.abs(s.y - l) >= 4, `${tag}: ${name}'s foot ${s.y} on the lane ${l}`);
+      for (const [o, osize, oname] of all.slice(i + 1)) { const r = box(o, osize); assert.ok(!hits(q, r, r.w, r.h), `${tag}: ${name} on ${oname}`); }
+    });
+    if (H.strip || H.column) return;
+    for (const s of main) {
+      const b = L.blocks.find(q => q.name === s.dept), q = box(s, MAIN_SIZE);
+      assert.ok(q.x >= b.x && q.x + q.w <= b.x + b.w && s.y === b.y + 8, `${tag}: ${s.dept}'s main lamp inside its block, its foot on the desks' line`);
+      for (const x of walks(H)) assert.ok(q.x + q.w < x - 1 || q.x > x + 1, `${tag}: ${s.dept}'s main lamp in the corridor at x ${x}`);
     }
   };
+  const spots = (L, H) => [scribeSpots(L.desks, H), mainSpots(L.blocks, H, L.desks, L.consoles)];
 
-  // the open hall: inside its block, in the band over the desks
-  const open = layoutDepartments([dep('a', 3), dep('b', 6, { helpers: ids('h', 2) }), dep('c', 1), dep('d', 2, { temp: true })], { size: SCENE });
-  const Ho = hallOf(0, SCENE), so = lampSpots(open.blocks, Ho, open.desks);
-  clear('open hall', open, Ho, so);
+  // scribeSpots, by hand: the gap after each occupied desk, foot on the desk's top line; a free desk has none
+  const H0 = hallOf(0, SCENE);
+  assert.deepEqual(scribeSpots([{ id: 's1', dept: 'a', x: 10, y: 20 }, { id: null, key: 'a#1', dept: 'a', x: 58, y: 20 }, { id: 's3', dept: 'b', x: 100, y: 84, compact: true }], H0),
+    [{ id: 's1', dept: 'a', x: 44.5, y: 20 }, { id: 's3', dept: 'b', x: 124.5, y: 84 }]);
+
+  // the open hall: the main lamp at its block's east end (the normal grid: the last 8 px of the block), whatever the
+  // last slot holds; a block reaching the corridor steps its lamp west of it
+  const OPEN = { w: SCENE.w, h: 600 }; // tall enough for every block (SCENE itself holds one)
+  const open = layoutDepartments([dep('a', 3), dep('b', 6, { helpers: ids('h', 2) }), dep('c', 1), dep('e', 4), dep('d', 2, { temp: true })], { size: OPEN });
+  const Ho = hallOf(0, OPEN), [ro, so] = spots(open, Ho);
+  assert.equal(open.blocks.length, 5, 'open hall: every block');
+  clear('open hall', open, Ho, ro, so);
+  const east = s => { const b = open.blocks.find(q => q.name === s.dept); return b.x + b.w - 4; };
   for (const s of so) {
-    const b = open.blocks.find(q => q.name === s.dept), q = box(s);
-    const d0 = open.desks.find(d => d.dept === s.dept);
-    assert.ok(q.x >= d0.x + (d0.compact ? 22 : 32) && q.x > b.x + 12, `open hall: ${s.dept}'s lamp beside its first desk, off the hall's west wall edge`);
-    assert.ok(q.x >= b.x && q.x + q.w <= b.x + b.w && s.y >= b.y && s.y <= b.y + 8, `open hall: ${s.dept}'s lamp inside its block's top band`);
+    const b = open.blocks.find(q => q.name === s.dept);
+    if (b.x + b.w < Ho.corridorX - 2) assert.equal(s.x, east(s), `open hall: ${s.dept}'s main lamp at the block's east end`);
   }
+  assert.ok(so.some(s => s.x === east(s)), 'open hall: some lamp stands at its east end');
+  assert.ok(open.blocks.some(b => b.x + b.w > Ho.corridorX), 'open hall: a block reaches the corridor (the step west is exercised)');
 
   // a wide hall with bays and the compact lecterns
   const wide = planLayout(null, ids('w', 9).map(n => dep(n, 4)), 0, {}, { w: 554, h: 400 }, layoutDepartments, []);
-  clear('bays', wide, hallOf(wide.bays, wide.size), lampSpots(wide.blocks, hallOf(wide.bays, wide.size), wide.desks));
+  assert.ok(wide.compact, 'bays: compact lecterns');
+  clear('bays', wide, hallOf(wide.bays, wide.size), ...spots(wide, hallOf(wide.bays, wide.size)));
 
-  // custom rooms (the west wing): inside the room, a lamp per department; a room holding two departments has two
+  // a block whose helpers fill its last slots (its first row ends on consoles), the normal grid and the compact one
+  for (const compact of [false, true]) {
+    const F = layoutDepartments([dep('a', 2, { helpers: ids('h', 8) }), dep('b', 1, { helpers: ids('k', 16) }), dep('c', 3, { helpers: ids('m', 4) })], { size: OPEN, compact });
+    assert.ok(F.consoles.length >= 20, 'the consoles are there');
+    clear(`helpers ${compact ? 'compact' : 'normal'}`, F, Ho, ...spots(F, Ho));
+  }
+
+  // custom rooms (the west wing): inside the room, a main lamp per department; a room holding two departments has two
   const rules = [{ id: 'r1', color: '#aa0000' }, { id: 'r2', color: '#00aa00' }];
   const P = planLayout(null, [dep('a', 2, { room: 'r1' }), dep('b', 2, { room: 'r1' }), dep('c', 1, { room: 'r2' }), dep('d', 2)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
-  const Hw = hallOf(P.bays, P.size, P.wing), sw = lampSpots(P.blocks, Hw, P.desks);
-  clear('west wing', P, Hw, sw);
-  const inRoom = id => sw.filter(s => P.blocks.find(b => b.name === s.dept)?.room === id);
-  assert.deepEqual(inRoom('r1').map(s => s.dept).sort(), ['a', 'b'], 'the room holding two departments has two lamps');
-  for (const R of Hw.rooms) for (const s of inRoom(R.id)) assert.ok(s.x >= R.x && s.x <= R.x + R.w && s.y >= R.y && s.y <= R.y + R.h, `room ${R.id}: ${s.dept}'s lamp inside it`);
-  assert.notDeepEqual(inRoom('r1')[0], inRoom('r1')[1], 'two departments of one room: two distinct spots');
+  const Hw = hallOf(P.bays, P.size, P.wing), [rw, sw] = spots(P, Hw);
+  clear('west wing', P, Hw, rw, sw);
+  const inRoom = (id, list) => list.filter(s => P.blocks.find(b => b.name === s.dept)?.room === id);
+  assert.deepEqual(inRoom('r1', sw).map(s => s.dept).sort(), ['a', 'b'], 'the room holding two departments has two lamps');
+  for (const R of Hw.rooms) for (const s of inRoom(R.id, sw.concat(rw))) assert.ok(s.x >= R.x && s.x <= R.x + R.w && s.y >= R.y && s.y <= R.y + R.h, `room ${R.id}: ${s.dept}'s lamp inside it`);
+  assert.notDeepEqual(inRoom('r1', sw)[0], inRoom('r1', sw)[1], 'two departments of one room: two distinct spots');
 
   // the rooms plan: inside the room's cell, two departments of one room two lamps
   setHallPlan('rooms');
   try {
-    const Pm = planLayout(null, [dep('a', 2, { room: 'r1' }), dep('b', 2, { room: 'r1' }), dep('c', 1, { room: 'r2' }), dep('d', 2)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
-    const Hm = hallOf(Pm.bays, Pm.size, Pm.wing), sm = lampSpots(Pm.blocks, Hm, Pm.desks);
-    clear('rooms plan', Pm, Hm, sm);
-    for (const s of sm) {
+    const Pm = planLayout(null, [dep('a', 2, { room: 'r1' }), dep('b', 2, { room: 'r1', helpers: ids('h', 3) }), dep('c', 1, { room: 'r2' }), dep('d', 2)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
+    const Hm = hallOf(Pm.bays, Pm.size, Pm.wing), [rm, sm] = spots(Pm, Hm);
+    clear('rooms plan', Pm, Hm, rm, sm);
+    for (const s of sm.concat(rm)) {
       const b = Pm.blocks.find(q => q.name === s.dept), Z = b.zone;
       assert.ok(Z && s.x >= Z.x && s.x <= Z.x + Z.w && s.y >= Z.y && s.y <= Z.y + Z.h, `rooms plan: ${s.dept}'s lamp inside its room's cell`);
     }
@@ -855,26 +891,35 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
 
   // an empty room's placeholder has no department, so no lamp
   const E = planLayout(null, [dep('a', 1)], 0, {}, { w: 700, h: 500 }, layoutDepartments, rules);
-  assert.deepEqual(lampSpots(E.blocks, hallOf(E.bays, E.size, E.wing)).map(s => s.dept), ['a'], 'a room with nobody in it: no lamp');
+  assert.deepEqual(mainSpots(E.blocks, hallOf(E.bays, E.size, E.wing), E.desks).map(s => s.dept), ['a'], 'a room with nobody in it: no lamp');
 
-  // the desktop strip: on the plaque row, past the department's lecterns; a room's cell carries none
+  // a desk freed in its grace: no scribe lamp there, the main lamp stays where it was
+  const full = planLayout(null, [dep('a', 3)], 0, {}, SCENE, layoutDepartments, []);
+  const left = planLayout(full, [dep('a', 2)], 1000, {}, SCENE, layoutDepartments, []);
+  assert.equal(left.desks.length, 3, 'the freed desk waits');
+  assert.deepEqual(scribeSpots(left.desks, H0).map(s => s.id), ['a-0', 'a-1'], 'the free desk: no scribe lamp');
+  assert.deepEqual(mainSpots(left.blocks, H0, left.desks), mainSpots(full.blocks, H0, full.desks), 'the main lamp does not move');
+
+  // the desktop strip: on the plaque row, past the department's lecterns (I6's spots, their values then); a room's
+  // cell carries none; no scribe lamp
   const strip = layoutStrip([dep('a', 2), dep('b', 1, { room: 'r1', roomColor: '#aa0000' }), dep('c', 3, { room: 'r1', roomColor: '#aa0000' })], { size: { w: 1400 } });
-  const Hs = stripOf(1400), ss = lampSpots(strip.blocks, Hs);
-  clear('strip', strip, Hs, ss);
-  assert.deepEqual(ss.map(s => s.dept), ['a', 'b', 'c']);
+  const Hs = stripOf(1400), [rs, ss] = spots(strip, Hs);
+  clear('strip', strip, Hs, rs, ss);
+  assert.deepEqual(ss, [{ dept: 'a', x: 579, y: 20 }, { dept: 'b', x: 715, y: 20 }, { dept: 'c', x: 871, y: 20 }], 'strip: the spots of I6');
   for (const s of ss) {
     const b = strip.blocks.find(q => q.name === s.dept);
     assert.equal(s.y, FLOOR - 33, `strip: ${s.dept}'s lamp on the plaque row`);
     assert.ok(s.x > b.x + b.w - 1, `strip: ${s.dept}'s lamp past its lecterns`);
-    for (const d of strip.desks) assert.ok(!hits(box(s), d, 22, 30), `strip: ${s.dept}'s lamp on a lectern`);
+    for (const d of strip.desks) assert.ok(!hits(box(s, MAIN_SIZE), d, 22, 30), `strip: ${s.dept}'s lamp on a lectern`);
   }
 
-  // the desktop column: on the plaque's row under the floor line, at the block's outer end, both sides
-  for (const side of ['left', 'right']) {
-    const size = { w: COL_W, h: 420 }, C = layoutColumn([dep('a', 3), dep('b', 6, { helpers: ids('h', 4) })], { size, side }), Hc = columnOf(size, C.floors, side), sc = lampSpots(C.blocks, Hc);
-    clear(`column ${side}`, C, Hc, sc);
+  // the desktop column: on the plaque's row under the floor line, at the block's outer end, both sides (I6's spots)
+  for (const [side, x] of [['left', 94], ['right', 122]]) {
+    const size = { w: COL_W, h: 420 }, C = layoutColumn([dep('a', 3), dep('b', 6, { helpers: ids('h', 4) })], { size, side }), Hc = columnOf(size, C.floors, side), [rc, sc] = spots(C, Hc);
+    clear(`column ${side}`, C, Hc, rc, sc);
+    assert.deepEqual(sc, [{ dept: 'a', x, y: 115 }, { dept: 'b', x, y: 159 }], `column ${side}: the spots of I6`);
     sc.forEach((s, k) => {
-      const fy = Hc.stops.get(`d:${C.floors[k]}`), q = box(s);
+      const fy = Hc.stops.get(`d:${C.floors[k]}`), q = box(s, MAIN_SIZE);
       assert.equal(s.y, fy + 13, `column ${side}: ${s.dept}'s lamp under its floor line`);
       assert.ok(q.x >= 0 && q.x + q.w <= COL_W, `column ${side}: ${s.dept}'s lamp inside the column`);
       assert.ok(s.y <= fy + 44 - 30, `column ${side}: ${s.dept}'s lamp above the next floor's lecterns`);

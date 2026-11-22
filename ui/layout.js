@@ -505,23 +505,43 @@ export function zonesOf(blocks, H) {
   return out;
 }
 
-// Where each department's CI lamp (ui/cilamp.js, art CILAMP, 5 x 10 logical px) stands: { dept, x, y }, x its centre and y
-// its foot, logical px, one per department block (not an empty room's placeholder, not a strip room's cell). The open hall,
-// the rooms plan, the west wing's rooms and the break-out room alike: beside the department's first desk (the gap
-// before the next one), its foot on the line the desks start at (8 px under the block's top), clear of the desks, the consoles
-// and the lanes (the first row's lane is the block's own top: the lamp is 8 px south of it). The desktop strip:
-// the plaque's row, over the gap after the department's lecterns (overlay.js hangs the plaque from the block's left, the
-// lamp is at the far end of its reach). The column: on the plaque's row under the floor line, at the block's outer end.
-export function lampSpots(blocks, H, desks = []) {
-  const out = [];
+// The CI lamps (ui/cilamp.js): where they stand, { x, y } x the centre and y the foot, logical px. The sizes are
+// cilamp.js LAMP_SIZE and MAIN_SIZE (not imported: cilamp.js starts listening to the backend when loaded).
+const SCRIBE_LAMP = [5, 10], MAIN_LAMP = [7, 14];
+const deskW = d => (d.compact ? 22 : 32);
+const scribeAt = d => ({ x: d.x + deskW(d) + 2.5, y: d.y });
+// A scribe's lamp (CILAMP): { id, dept, x, y } for each desk with a session, beside it in the gap after it, its foot on
+// the line the desk starts at. The open hall, the rooms plan, the west wing's rooms and the break-out room alike; none
+// in the desktop strip or the column (no room beside a lectern: the card line carries the session's CI there).
+export function scribeSpots(desks, H) {
+  if (H.strip || H.column) return [];
+  return desks.filter(d => d.id).map(d => ({ id: d.id, dept: d.dept, ...scribeAt(d) }));
+}
+// A department's main lamp (CIMAIN): { dept, x, y }, one per department block (not an empty room's placeholder, not a
+// strip room's cell). The open hall, the rooms plan, the west wing's rooms and the break-out room: at the block's east
+// end (the console side, the far end from its plaque), its foot on the line the desks start at (8 px under the block's
+// top, clear of the lanes), the first spot from there westwards that stands clear of the desks, the consoles, every
+// desk's scribe-lamp spot (taken or not: the lamp does not move when a scribe comes or goes) and the vertical corridors.
+// The desktop strip: the plaque's row, over the gap after the department's lecterns (overlay.js hangs the plaque from
+// the block's left, the lamp is at the far end of its reach). The column: on the plaque's row under the floor line, at
+// the block's outer end.
+export function mainSpots(blocks, H, desks = [], consoles = []) {
+  const out = [], [w, h] = MAIN_LAMP;
+  const walks = [H.corridorX, ...(H.corridors ?? []), ...(H.rooms ?? []).map(R => R.corridorX)].filter(Number.isFinite);
+  const hit = (x0, x1, y0, y1) => r => x0 < r.x + r.w && r.x < x1 && y0 < r.y + r.h && r.y < y1;
   for (const b of blocks) {
     if (b.empty || b.cell) continue;
-    if (H.column) out.push({ dept: b.name, x: b.x + b.w - 4, y: b.y + b.h + 11 });
-    else if (H.strip) out.push({ dept: b.name, x: b.x + b.w + STRIP_GAP - 6, y: b.y - 30 });
-    else { // beside the department's first desk, in the gap before the next one (the block's own left edge is the wall's)
-      const d = desks.find(q => q.dept === b.name);
-      out.push({ dept: b.name, x: d ? d.x + (d.compact ? 22 : 32) + 2.5 : b.x + 3, y: b.y + 8 });
+    if (H.column) { out.push({ dept: b.name, x: b.x + b.w - 4, y: b.y + b.h + 11 }); continue; }
+    if (H.strip) { out.push({ dept: b.name, x: b.x + b.w + STRIP_GAP - 6, y: b.y - 30 }); continue; }
+    const y = b.y + 8;
+    const solid = desks.flatMap(d => { const s = scribeAt(d); return [{ x: d.x, y: d.y, w: deskW(d), h: 21 }, { x: s.x - SCRIBE_LAMP[0] / 2, y: s.y - SCRIBE_LAMP[1], w: SCRIBE_LAMP[0], h: SCRIBE_LAMP[1] }]; })
+      .concat(consoles.map(c => ({ x: c.x, y: c.y, w: 14, h: 10 })));
+    let x = b.x + b.w - 4;
+    for (let cx = x; cx - w / 2 >= b.x; cx -= 0.5) {
+      const x0 = cx - w / 2, x1 = cx + w / 2;
+      if (!solid.some(hit(x0, x1, y - h, y)) && walks.every(c => x1 < c - 1 || x0 > c + 1)) { x = cx; break; }
     }
+    out.push({ dept: b.name, x, y });
   }
   return out;
 }

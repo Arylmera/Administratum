@@ -6,8 +6,8 @@ import { WIN_Y, wallArt } from './wallart.js';
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
 let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
-import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, lampSpots } from './layout.js';
-import { lampsAt, lampLights, LAMP_SIZE, LENS } from './cilamp.js';
+import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, mainSpots, scribeSpots } from './layout.js';
+import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
@@ -383,10 +383,12 @@ export function drawScene(g, layout, actors, fillOf, now) {
     lights.push(consoleLight(c, lit));
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now, floor);
   }
-  const lamps = lampsAt(lampSpots(layout.blocks, H, layout.desks), now);
+  // the CI lamps (cilamp.js): a department's main lamp at its block's east end (none while the list is empty), a scribe's
+  // beside its desk (while its session has a CI of its own: layout.roster's Session.ci); each at its own size
+  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks, layout.consoles), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
   lights.push(...lampLights(lamps)); // the lenses glow
-  for (const s of lamps) { // the CI lamps (cilamp.js): one a department, behind its desks; none while the list is empty
-    const map = MAPS[s.frame], x = half(s.x - LAMP_SIZE[0] / 2), y = s.y - LAMP_SIZE[1];
+  for (const s of lamps) {
+    const map = MAPS[s.frame], x = half(s.x - s.size[0] / 2), y = s.y - s.size[1];
     items.push({ y: s.y, draw: g2 => blit(g2, map, x, y, LENS[s.frame]) });
     floor.push(() => footShadow(g, shadowOf(map, x, y), shade));
   }

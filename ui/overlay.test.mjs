@@ -227,70 +227,104 @@ console.log('overlay ok');
   assert.ok(!ov.children.some(e => e.textContent.startsWith('room:')), 'the placeholder has none');
 }
 console.log('overlay rooms ok');
-// I6: a lit CI lamp shows the card's line as the hover tip and opens the checks page for its department; an unlit lamp does
-// neither; each lit lamp has a focusable button. The words are theme.js `ci.*` (lane L4a), set here.
+// I6b: two kinds of lit CI lamp. A scribe's (its own push, Session.ci) beside its desk, a department's main lamp (its
+// default branch, the ci-lamps list) at its block's east end. Each shows the card's line as the hover tip and opens its
+// checks page (the session id, the department name); an unlit lamp does neither; each lit lamp has a focusable button.
+// The words are theme.js `ci.*` (lane L4a), set here.
 {
   const { T } = await import('./theme.js');
-  const { setLamps } = await import('./cilamp.js');
+  const { setLamps, LAMP_SIZE, MAIN_SIZE } = await import('./cilamp.js');
   const { syncHover, syncLampKeys, litLamps, lampHit, lampTip, openLamp } = await import('./overlay.js');
   const { scale } = await import('./viewport.js');
   T.text.ci = { open: 'Open the checks page', running: 'CI · {branch} · {sha} · running {done}/{total}', pass: 'CI · {branch} · {sha} · passed',
     fail: 'CI · {branch} · {sha} · failed: {check}', timeout: 'CI · {branch} · {sha} · no verdict after 30 min', error: 'CI · {branch} · {sha} · could not be read' };
-  // two departments, each with its first desk: the lamp stands 34.5 px east of the desk (layout.js lampSpots), foot 8 px under the block's top
+  // two departments, a scribe each: the scribe lamp 34.5 px east of the desk (layout.js scribeSpots), the main lamp at the
+  // block's east end (mainSpots: x + w - 4), both feet 8 px under the block's top
   const blocks = [{ name: 'Terra', x: 10, y: 20, w: 100, h: 50 }, { name: 'Geneseed', x: 10, y: 100, w: 100, h: 50 }];
-  const L = { blocks, desks: [{ dept: 'Terra', x: 40 }, { dept: 'Geneseed', x: 40 }] };
-  const sess = [{ id: 't1', dept: 'Terra', ci: { repo: 'a/b', branch: 'feat', sha7: '5d6e7f8', state: 'running', done: 3, total: 5, failed: null } }];
+  const L = { blocks, desks: [{ id: 't1', dept: 'Terra', x: 15, y: 28 }, { id: 'g1', dept: 'Geneseed', x: 15, y: 108 }], consoles: [] };
+  const ci = (state, extra = {}) => ({ repo: 'a/b', branch: 'feat', sha7: '5d6e7f8', state, done: 3, total: 5, failed: null, ...extra });
+  const sess = [{ id: 't1', dept: 'Terra', ci: ci('running') }, { id: 'g1', dept: 'Geneseed' }];
   let pointer = null;
   const at = (x, y) => [x, y];
   const tipEl = document.getElementById('tip'), ov = document.createElement('div');
   initOverlay({ cast: { actors: new Map() }, canvas, overlay: ov, at, feet: () => [0, 0], strip: () => false, hall: () => ({}), layout: () => L,
     roster: () => sess, mouse: () => pointer, actorAt: () => null, lampAt: e => lampHit(litLamps(), e.clientX, e.clientY, at, 2), paused: () => false, hhmm: () => '' });
-  const lamp = (dept, state, extra = {}) => ({ dept, cwd: `C:\${dept}`, state, branch: 'feat', sha7: '5d6e7f8', failed: null, ...extra });
+  const lamp = (dept, state, extra = {}) => ({ dept, cwd: `C:\${dept}`, state, branch: 'main', sha7: '9a8b7c6', failed: null, ...extra });
   const over = (x, y) => { pointer = { clientX: x, clientY: y, pointerType: 'mouse' }; syncHover(); };
-  const terra = [74.5, 26], gene = [74.5, 106]; // inside each lamp's rect (foot at y 28 / 108, 10 px up)
+  const scribe = [49.5, 25], terra = [106, 22], gene = [106, 102]; // inside each lamp's rect (feet at y 28 / 108)
 
-  setLamps([lamp('Terra', 'running'), lamp('Geneseed', 'none')]);
+  // the list: kind, who, the spot, the CI shown, its size; the scribe's from its session, the main from the list
+  setLamps([lamp('Terra', 'pass'), lamp('Geneseed', 'none')]);
+  assert.deepEqual(litLamps().map(l => [l.kind, l.who, l.s.x, l.s.y, l.ci.state, l.size]), [['main', 'Terra', 106, 28, 'pass', MAIN_SIZE], ['scribe', 't1', 49.5, 28, 'running', LAMP_SIZE]]);
+  // the hit test: each by its own rect, the main lamp's taller (14 px) than the scribe's (10)
+  assert.equal(lampHit(litLamps(), ...scribe, at, 0)?.who, 't1', 'the scribe lamp at its desk');
+  assert.equal(lampHit(litLamps(), ...terra, at, 0)?.who, 'Terra', 'the main lamp at its spot');
+  assert.equal(lampHit(litLamps(), 106, 28 - 13, at, 0)?.who, 'Terra', 'the main lamp: 14 px tall');
+  assert.equal(lampHit(litLamps(), 49.5, 28 - 13, at, 0), null, 'the scribe lamp: 10 px tall');
+  assert.equal(lampHit(litLamps(), 106 + 3.4, 26, at, 0)?.who, 'Terra', 'the main lamp: 7 px wide');
+  assert.equal(lampHit(litLamps(), 49.5 + 3.4, 26, at, 0), null, 'the scribe lamp: 5 px wide');
+
+  over(...scribe);
+  assert.equal(tipEl.hidden, false, 'a lit scribe lamp under the pointer shows the tip');
+  assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · running 3/5', 'the card line of its own push');
   over(...terra);
-  assert.equal(tipEl.hidden, false, 'a lit lamp under the pointer shows the tip');
-  assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · running 3/5', 'the card line, with the count of its session');
+  assert.equal(tipEl.textContent, 'CI · main · 9a8b7c6 · passed', 'the main lamp: the default branch');
+  assert.equal(parseFloat(tipEl.style.left), 106 * scale, 'the tip hangs over the lamp');
+  assert.equal(parseFloat(tipEl.style.top), (28 - 14 - 3) * scale, 'over the main lamp\'s own height');
   over(...gene);
-  assert.equal(tipEl.hidden, true, 'an unlit lamp: no tip');
+  assert.equal(tipEl.hidden, true, 'an unlit main lamp: no tip');
   over(300, 300);
   assert.equal(tipEl.hidden, true, 'nothing under the pointer: no tip');
   for (const state of ['timeout', 'error']) { setLamps([lamp('Terra', state)]); over(...terra); assert.equal(tipEl.hidden, true, `${state}: unlit, no tip`); }
-  setLamps([lamp('Terra', 'fail', { failed: 'build', sha7: '1111111' })]);
-  over(...terra);
-  assert.equal(tipEl.textContent, 'CI · feat · 1111111 · failed: build');
+  sess[0].ci = ci('timeout'); over(...scribe);
+  assert.equal(tipEl.hidden, true, 'an unlit scribe lamp: no tip');
+  sess[0].ci = ci('fail', { failed: 'build' }); over(...scribe);
+  assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · failed: build');
   setLamps([lamp('Terra', 'running', { sha7: '2222222' })]); over(...terra);
-  assert.equal(tipEl.textContent, 'CI · feat · 2222222 · running ?/?', 'a session on another commit does not lend its count');
-  setLamps([lamp('Terra', 'pass')]); over(...terra);
-  assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · passed');
-  assert.equal(parseFloat(tipEl.style.left), 74.5 * scale, 'the tip hangs over the lamp');
+  assert.equal(tipEl.textContent, 'CI · main · 2222222 · running ?/?', 'a session on another commit does not lend its count');
+  sess[0].ci = ci('running', { branch: 'main', sha7: '2222222' }); over(...terra);
+  assert.equal(tipEl.textContent, 'CI · main · 2222222 · running 3/5', 'a session that pushed that commit lends its count');
+  setLamps([lamp('Terra', 'pass')]); sess[0].ci = ci('pass');
 
-  // the click: the department name, never a URL; a rejection shows in the tip, then goes
+  // the clicks: the session id for a scribe lamp, the department name for the main lamp, never a URL; a rejection
+  // shows in that lamp's tip only, then goes
   const before = invoked('ci_open').length;
-  openLamp('Terra'); await flush();
-  assert.equal(invoked('ci_open').length, before + 1);
-  assert.deepEqual(invoked('ci_open').at(-1).args, { who: 'Terra' }, 'the department, not a URL');
+  openLamp(lampHit(litLamps(), ...scribe, at, 0).who); await flush();
+  assert.deepEqual(invoked('ci_open').at(-1).args, { who: 't1' }, 'the scribe lamp: its session');
+  openLamp(lampHit(litLamps(), ...terra, at, 0).who); await flush();
+  assert.equal(invoked('ci_open').length, before + 2);
+  assert.deepEqual(invoked('ci_open').at(-1).args, { who: 'Terra' }, 'the main lamp: its department');
   replies.ci_open = new Error('no browser');
   openLamp('Terra'); await flush(); over(...terra);
   assert.equal(tipEl.textContent, 'no browser', 'the failure is said where the user looks');
+  over(...scribe);
+  assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · passed', 'not on the other lamp');
   tick(5001); over(...terra);
-  assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · passed', 'and goes after 5 s');
+  assert.equal(tipEl.textContent, 'CI · main · 9a8b7c6 · passed', 'and goes after 5 s');
   delete replies.ci_open;
 
-  // one focusable button per lit lamp, in department order; the unlit has none; Enter or Space (a native click) opens its page
+  // one focusable button per lit lamp, main lamps by department then scribe lamps by session; the unlit have none;
+  // Enter or Space (a native click) opens its page
   setLamps([lamp('Terra', 'pass'), lamp('Geneseed', 'running'), lamp('Nope', 'pass')]);
+  sess[1].ci = ci('none');
   syncLampKeys();
-  const keys = ov.querySelectorAll('.lamp-key');
-  assert.deepEqual(keys.map(k => k.getAttribute('aria-label')), ['Geneseed: CI · feat · 5d6e7f8 · running ?/?', 'Terra: CI · feat · 5d6e7f8 · passed'], 'lit lamps with a department block only, by department');
+  let keys = ov.querySelectorAll('.lamp-key');
+  assert.deepEqual(keys.map(k => k.getAttribute('aria-label')), ['Geneseed: CI · main · 9a8b7c6 · running ?/?', 'Terra: CI · main · 9a8b7c6 · passed', 'Terra: CI · feat · 5d6e7f8 · passed'], 'lit lamps with a block or a desk only');
   assert.ok(keys.every(k => k.localName === 'button' && k.getAttribute('tabindex') !== '-1'), 'real buttons: in the tab order');
   keys[1].click(); await flush();
   assert.deepEqual(invoked('ci_open').at(-1).args, { who: 'Terra' });
-  setLamps([lamp('Terra', 'none')]); syncLampKeys();
+  keys[2].click(); await flush();
+  assert.deepEqual(invoked('ci_open').at(-1).args, { who: 't1' });
+  assert.equal(parseFloat(keys[1].style.top), (28 - 14 / 2) * scale, 'the main key over the middle of its lamp');
+  assert.equal(parseFloat(keys[2].style.top), (28 - 10 / 2) * scale, 'the scribe key over the middle of its lamp');
+  // the same lamps a second later: the same buttons, the DOM untouched
+  const same = ov.querySelectorAll('.lamp-key');
+  setLamps([lamp('Terra', 'pass'), lamp('Geneseed', 'running'), lamp('Nope', 'pass')]); syncLampKeys();
+  assert.ok(ov.querySelectorAll('.lamp-key').every((k, i) => k === same[i]), 'unchanged lamps: the same buttons');
+  setLamps([lamp('Terra', 'none')]); sess[0].ci = ci('error'); syncLampKeys();
   assert.equal(ov.querySelectorAll('.lamp-key').length, 0, 'a lamp that goes out loses its key');
-  setLamps([]); over(...terra);
+  setLamps([]); sess[0].ci = null; over(...terra);
   assert.equal(tipEl.hidden, true, 'no lamps: nothing');
-  assert.equal(lampTip('Terra'), '');
+  assert.equal(lampTip({ kind: 'main', who: 'Terra' }), '');
   pointer = null;
 }

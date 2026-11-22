@@ -7,8 +7,8 @@
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
-import { WALL, WALL_DY, zonesOf, wingZones, lampSpots } from './layout.js';
-import { lampsAt, lampLights, LAMP_SIZE, LENS } from './cilamp.js';
+import { WALL, WALL_DY, zonesOf, wingZones, mainSpots, scribeSpots } from './layout.js';
+import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
@@ -259,13 +259,14 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     seated.set(id, Math.min(e.shift * k, Math.max(0, Math.round(a.y) - e.yb - FRONT_GAP)));
   }
 
-  // the CI lamps (cilamp.js): one a department, upright on its projected foot like the skull and the flames (a flat
-  // billboard, no 39° volume), depth sorted by its small footprint; none while the list is empty
-  const lamps = lampsAt(lampSpots(layout.blocks, H, layout.desks), now);
+  // the CI lamps (cilamp.js): a department's main lamp (none while the list is empty) and a scribe's (while its session
+  // has a CI of its own), upright on the projected foot like the skull and the flames (a flat billboard, no 39° volume),
+  // depth sorted by its small footprint, each at its own size
+  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks, layout.consoles), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
   lights.push(...lampLights(lamps)); // the lenses glow
   for (const s of lamps) {
-    const map = MAPS[s.frame], x = half(s.x - LAMP_SIZE[0] / 2), y = s.y - LAMP_SIZE[1], v = 2 * (s.y - WALL);
-    items.push({ foot: { u0: 2 * s.x - 3, u1: 2 * s.x + 3, v0: v - 2, v1: v }, draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y, LENS[s.frame])) });
+    const [w, h] = s.size, map = MAPS[s.frame], x = half(s.x - w / 2), y = s.y - h, v = 2 * (s.y - WALL), u = (w + 1) / 2;
+    items.push({ foot: { u0: 2 * s.x - u, u1: 2 * s.x + u, v0: v - 2, v1: v }, draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y, LENS[s.frame])) });
     floor.push(g2 => contactShadow(g2, shadowOf(map, x, y), shade));
   }
 
