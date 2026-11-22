@@ -1,8 +1,13 @@
 //! Windows OS calls for the desktop strip: taskbar edge/auto-hide state and cursor position.
 use super::Edge;
-use windows_sys::Win32::Foundation::POINT;
+use std::sync::atomic::{AtomicIsize, AtomicU8, Ordering};
+use std::sync::{Mutex, OnceLock};
+use windows_sys::Win32::Foundation::{LPARAM, LRESULT, POINT, WPARAM};
 use windows_sys::Win32::UI::Shell::{SHAppBarMessage, ABE_BOTTOM, ABE_LEFT, ABE_RIGHT, ABE_TOP, ABM_GETSTATE, ABM_GETTASKBARPOS, ABS_AUTOHIDE, APPBARDATA};
-use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    CallNextHookEx, GetCursorPos, GetMessageW, GetWindowLongPtrW, SetWindowLongPtrW, SetWindowsHookExW, GWL_EXSTYLE, HC_ACTION, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP, WS_EX_TRANSPARENT,
+};
 
 /// The edge of the monitor the taskbar sits on, from the shell's own idea of its position
 /// (`ABM_GETTASKBARPOS`), not the work area. `None` when the call fails (no taskbar found).
@@ -38,4 +43,82 @@ pub fn cursor() -> Option<(i32, i32)> {
     } else {
         None
     }
+}
+
+/// The strip's window, and the places on it that take clicks (window CSS px) with the monitor's scale: what the mouse
+/// hook tests (the UI sends them: `set_strip_hits`).
+static HWND: AtomicIsize = AtomicIsize::new(0);
+static HITS: Mutex<(Vec<[f64; 4]>, f64)> = Mutex::new((Vec::new(), 1.0));
+/// The buttons held (bit 0 left, 1 right, 2 middle).
+static HELD: AtomicU8 = AtomicU8::new(0);
+
+pub fn set_hits(hwnd: isize, rects: Vec<[f64; 4]>, scale: f64) {
+    HWND.store(hwnd, Ordering::Relaxed);
+    *crate::lock(&HITS) = (rects, scale);
+}
+
+/// Installs the low-level mouse hook (once, on a thread of its own with the message loop it needs). It decides the
+/// strip's click-through on each mouse event, before the system routes it, so a click lands at once with no
+/// poll in between. False if it could not be set. Idle (a few loads) while the strip is off.
+pub fn ensure_hook() -> bool {
+    static HOOK: OnceLock<bool> = OnceLock::new();
+    *HOOK.get_or_init(|| {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            // SAFETY: a plain hook install (no module: a low-level hook of this process) and its message loop.
+            unsafe {
+                let hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), std::ptr::null_mut(), 0);
+                let _ = tx.send(!hook.is_null());
+                if hook.is_null() {
+                    return;
+                }
+                let mut msg: MSG = std::mem::zeroed();
+                while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {}
+            }
+        });
+        rx.recv().unwrap_or(false)
+    })
+}
+
+unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        // SAFETY: for HC_ACTION, lParam points to a MSLLHOOKSTRUCT.
+        let pt = unsafe { (*(lparam as *const MSLLHOOKSTRUCT)).pt };
+        on_mouse(wparam as u32, (pt.x, pt.y));
+    }
+    // SAFETY: passes the hook's own arguments on.
+    unsafe { CallNextHookEx(std::ptr::null_mut(), code, wparam, lparam) }
+}
+
+/// One mouse event: the window takes it or ignores it, by where the cursor is. A press decides before it is held.
+fn on_mouse(msg: u32, p: (i32, i32)) {
+    let bit = match msg {
+        WM_LBUTTONDOWN | WM_LBUTTONUP => 1,
+        WM_RBUTTONDOWN | WM_RBUTTONUP => 2,
+        WM_MBUTTONDOWN | WM_MBUTTONUP => 4,
+        _ => 0,
+    };
+    let up = matches!(msg, WM_LBUTTONUP | WM_RBUTTONUP | WM_MBUTTONUP);
+    if up {
+        HELD.fetch_and(!bit, Ordering::Relaxed);
+        return;
+    }
+    let hwnd = HWND.load(Ordering::Relaxed);
+    if hwnd != 0 && super::ON.load(Ordering::SeqCst) {
+        if let (Some(r), Ok(hits)) = (super::last_rect(), HITS.try_lock()) {
+            let held = bit == 0 && HELD.load(Ordering::Relaxed) != 0;
+            let now = style(hwnd) & WS_EX_TRANSPARENT as isize != 0;
+            let want = super::pass_through(held, now, super::over_hit(r, &hits.0, p, hits.1));
+            if want != now {
+                // SAFETY: the strip's own window; flips one extended-style bit (what tao's set_ignore_cursor_events sets).
+                unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, style(hwnd) ^ WS_EX_TRANSPARENT as isize) };
+            }
+        }
+    }
+    HELD.fetch_or(bit, Ordering::Relaxed);
+}
+
+fn style(hwnd: isize) -> isize {
+    // SAFETY: a read of a window's extended style.
+    unsafe { GetWindowLongPtrW(hwnd as _, GWL_EXSTYLE) }
 }

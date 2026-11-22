@@ -19,20 +19,23 @@ const colCss = () => Math.round(COL_W * colScale());
 const baseCss = () => (viewMode.column ? colCss() : stripCss());
 let actorAt, actorRects; // app.js's hit test on the cast and the cast's rects (initStripWin)
 // Desktop strip: the window ignores the cursor except over a hit target; the backend reports the cursor while it
-// is over the strip (it gets no pointer events while ignoring them).
-let through = null;
+// is over the strip (it gets no pointer events while ignoring them). Where it can (Windows: a mouse hook, Linux: the
+// layer surface) the backend decides itself from the places we send it (watchHits), and this decision is not used.
+let through = null, byRects = false;
 const HIT = '.lbl, .plaque, #card, #prefs, #chron, #strip-handle, #strip-menu';
 export function stripHit(x, y) {
   const el = document.elementFromPoint(x, y);
   return !!el?.closest(HIT) || !!actorAt({ clientX: x, clientY: y });
 }
 export function setThrough(on) {
-  if (on === through) return;
+  if (on === through || byRects) return;
   through = on;
-  invoke('set_click_through', { on }).then(byRects => { if (byRects) watchHits(); }, () => { through = null; });
+  invoke('set_click_through', { on }).then(r => { if (r) { byRects = true; watchHits(); } }, () => { through = null; });
 }
 // Linux (Wayland): nobody tells the window where the cursor is outside it, so no strip-cursor comes. The window is
-// told instead which places take clicks (the hit targets' rects and the cast's), every 200 ms while they change.
+// told instead which places take clicks (the hit targets' rects and the cast's), as they change (checked every
+// HITS_MS; a walking scribe moves them, so Windows, where the hook tests a click against them, looks more often).
+const HITS_MS = /Windows/i.test(globalThis.navigator?.userAgent ?? '') ? 40 : 200;
 let hitsTimer = 0, hitsSent = '';
 function watchHits() {
   if (hitsTimer) return;
@@ -44,7 +47,7 @@ function watchHits() {
       .map(r => r.map(Math.round));
     const key = JSON.stringify(rects);
     if (key !== hitsSent) { hitsSent = key; invoke('set_strip_hits', { rects }).catch(() => { hitsSent = ''; }); }
-  }, 200);
+  }, HITS_MS);
 }
 // Into the strip: the window moves onto the taskbar (place_strip returns the hall's rect the first time, kept for the
 // way back in adm.hallRect). Out: the hall's rect back (place_hall turns click-through off). The tray check follows.
@@ -70,7 +73,7 @@ async function enterStrip() {
   growStrip();
 }
 async function leaveStrip() {
-  through = null; grownTo = '';
+  through = null; byRects = false; grownTo = '';
   const r = store.get('adm.hallRect');
   await store.flush(); // as placeStrip: the hall's window starts from the file
   await invoke('place_hall', { rect: r ? JSON.parse(r) : null });
