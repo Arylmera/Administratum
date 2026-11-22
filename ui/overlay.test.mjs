@@ -239,7 +239,7 @@ console.log('overlay rooms ok');
   T.text.ci = { open: 'Open the checks page', running: 'CI · {branch} · {sha} · running {done}/{total}', pass: 'CI · {branch} · {sha} · passed',
     fail: 'CI · {branch} · {sha} · failed: {check}', timeout: 'CI · {branch} · {sha} · no verdict after 30 min', error: 'CI · {branch} · {sha} · could not be read' };
   // two departments, a scribe each: the scribe lamp 34.5 px east of the desk (layout.js scribeSpots), the main lamp at the
-  // block's east end (mainSpots: x + w - 4), both feet 8 px under the block's top
+  // block's east end (mainSpots: x + w - 3.5), both feet 8 px under the block's top
   const blocks = [{ name: 'Terra', x: 10, y: 20, w: 100, h: 50 }, { name: 'Geneseed', x: 10, y: 100, w: 100, h: 50 }];
   const L = { blocks, desks: [{ id: 't1', dept: 'Terra', x: 15, y: 28 }, { id: 'g1', dept: 'Geneseed', x: 15, y: 108 }], consoles: [] };
   const ci = (state, extra = {}) => ({ repo: 'a/b', branch: 'feat', sha7: '5d6e7f8', state, done: 3, total: 5, failed: null, ...extra });
@@ -255,7 +255,7 @@ console.log('overlay rooms ok');
 
   // the list: kind, who, the spot, the CI shown, its size; the scribe's from its session, the main from the list
   setLamps([lamp('Terra', 'pass'), lamp('Geneseed', 'none')]);
-  assert.deepEqual(litLamps().map(l => [l.kind, l.who, l.s.x, l.s.y, l.ci.state, l.size]), [['main', 'Terra', 106, 28, 'pass', MAIN_SIZE], ['scribe', 't1', 49.5, 28, 'running', LAMP_SIZE]]);
+  assert.deepEqual(litLamps().map(l => [l.kind, l.who, l.s.x, l.s.y, l.ci.state, l.size]), [['main', 'Terra', 106.5, 28, 'pass', MAIN_SIZE], ['scribe', 't1', 49.5, 28, 'running', LAMP_SIZE]]);
   // the hit test: each by its own rect, the main lamp's taller (14 px) than the scribe's (10)
   assert.equal(lampHit(litLamps(), ...scribe, at, 0)?.who, 't1', 'the scribe lamp at its desk');
   assert.equal(lampHit(litLamps(), ...terra, at, 0)?.who, 'Terra', 'the main lamp at its spot');
@@ -269,7 +269,7 @@ console.log('overlay rooms ok');
   assert.equal(tipEl.textContent, 'CI · feat · 5d6e7f8 · running 3/5', 'the card line of its own push');
   over(...terra);
   assert.equal(tipEl.textContent, 'CI · main · 9a8b7c6 · passed', 'the main lamp: the default branch');
-  assert.equal(parseFloat(tipEl.style.left), 106 * scale, 'the tip hangs over the lamp');
+  assert.equal(parseFloat(tipEl.style.left), 106.5 * scale, 'the tip hangs over the lamp');
   assert.equal(parseFloat(tipEl.style.top), (28 - 14 - 3) * scale, 'over the main lamp\'s own height');
   over(...gene);
   assert.equal(tipEl.hidden, true, 'an unlit main lamp: no tip');

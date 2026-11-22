@@ -797,8 +797,10 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
 
 // The CI lamps' spots (ui/cilamp.js): scribeSpots, a scribe lamp (CILAMP, LAMP_SIZE) beside each occupied desk, in the
 // gap after it; mainSpots, the department's main lamp (CIMAIN, MAIN_SIZE), one per department block at its east end
-// (the console side), the strip's and the column's on the plaque row. All of them clear of desks, consoles, the walking
-// lanes, the vertical corridors and one another; two departments in one room get two distinct main spots.
+// (the console side), the strip's and the column's on the plaque row. All of them clear of desks, the walking lanes, the
+// vertical corridors and one another (a main lamp 1 px at least from a scribe lamp); a scribe lamp clear of the consoles
+// too, the main lamp not (it keeps its spot when an adept comes or goes, the console in front); two departments in one
+// room get two distinct main spots.
 {
   const box = (s, [w, h]) => ({ x: s.x - w / 2, y: s.y - h, w, h });
   const hits = (a, b, bw, bh) => a.x < b.x + bw && b.x < a.x + a.w && a.y < b.y + bh && b.y < a.y + a.h;
@@ -814,14 +816,17 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
       assert.deepEqual(scribe.map(s => s.id), L.desks.filter(d => d.id).map(d => d.id), `${tag}: one scribe lamp per occupied desk`);
       assert.ok(scribe.length > 0, `${tag}: the fixture has scribes`);
     } else assert.deepEqual(scribe, [], `${tag}: no scribe lamp`);
-    const all = scribe.map(s => [s, LAMP_SIZE, `${s.id}'s scribe lamp`]).concat(main.map(s => [s, MAIN_SIZE, `${s.dept}'s main lamp`]));
+    const all = scribe.map(s => [s, LAMP_SIZE, `${s.id}'s scribe lamp`, false]).concat(main.map(s => [s, MAIN_SIZE, `${s.dept}'s main lamp`, true]));
     assert.equal(new Set(all.map(([s]) => `${s.x},${s.y}`)).size, all.length, `${tag}: distinct spots`);
-    all.forEach(([s, size, name], i) => {
+    all.forEach(([s, size, name, isMain], i) => {
       const q = box(s, size);
       for (const d of L.desks) assert.ok(!hits(q, d, d.compact ? 22 : 32, 21), `${tag}: ${name} on desk ${d.key ?? d.id}`);
-      for (const c of L.consoles) assert.ok(!hits(q, c, 14, 10), `${tag}: ${name} on console ${c.id}`);
+      if (!isMain) for (const c of L.consoles) assert.ok(!hits(q, c, 14, 10), `${tag}: ${name} on console ${c.id}`);
       for (const l of H.lanes) if (!H.strip) assert.ok(Math.abs(s.y - l) >= 4, `${tag}: ${name}'s foot ${s.y} on the lane ${l}`);
-      for (const [o, osize, oname] of all.slice(i + 1)) { const r = box(o, osize); assert.ok(!hits(q, r, r.w, r.h), `${tag}: ${name} on ${oname}`); }
+      for (const [o, osize, oname, oMain] of all.slice(i + 1)) {
+        const r = box(o, osize), gap = isMain !== oMain ? 1 : 0; // a main lamp and a scribe lamp: 1 px apart at least
+        assert.ok(!hits(q, { ...r, x: r.x - gap, w: r.w + 2 * gap }, r.w + 2 * gap, r.h), `${tag}: ${name} on (or touching) ${oname}`);
+      }
     });
     if (H.strip || H.column) return;
     for (const s of main) {
@@ -830,21 +835,21 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
       for (const x of walks(H)) assert.ok(q.x + q.w < x - 1 || q.x > x + 1, `${tag}: ${s.dept}'s main lamp in the corridor at x ${x}`);
     }
   };
-  const spots = (L, H) => [scribeSpots(L.desks, H), mainSpots(L.blocks, H, L.desks, L.consoles)];
+  const spots = (L, H) => [scribeSpots(L.desks, H), mainSpots(L.blocks, H, L.desks)];
 
   // scribeSpots, by hand: the gap after each occupied desk, foot on the desk's top line; a free desk has none
   const H0 = hallOf(0, SCENE);
   assert.deepEqual(scribeSpots([{ id: 's1', dept: 'a', x: 10, y: 20 }, { id: null, key: 'a#1', dept: 'a', x: 58, y: 20 }, { id: 's3', dept: 'b', x: 100, y: 84, compact: true }], H0),
     [{ id: 's1', dept: 'a', x: 44.5, y: 20 }, { id: 's3', dept: 'b', x: 124.5, y: 84 }]);
 
-  // the open hall: the main lamp at its block's east end (the normal grid: the last 8 px of the block), whatever the
+  // the open hall: the main lamp at its block's east end (the normal grid: the last 7 px of the block), whatever the
   // last slot holds; a block reaching the corridor steps its lamp west of it
   const OPEN = { w: SCENE.w, h: 600 }; // tall enough for every block (SCENE itself holds one)
   const open = layoutDepartments([dep('a', 3), dep('b', 6, { helpers: ids('h', 2) }), dep('c', 1), dep('e', 4), dep('d', 2, { temp: true })], { size: OPEN });
   const Ho = hallOf(0, OPEN), [ro, so] = spots(open, Ho);
   assert.equal(open.blocks.length, 5, 'open hall: every block');
   clear('open hall', open, Ho, ro, so);
-  const east = s => { const b = open.blocks.find(q => q.name === s.dept); return b.x + b.w - 4; };
+  const east = s => { const b = open.blocks.find(q => q.name === s.dept); return b.x + b.w - 3.5; };
   for (const s of so) {
     const b = open.blocks.find(q => q.name === s.dept);
     if (b.x + b.w < Ho.corridorX - 2) assert.equal(s.x, east(s), `open hall: ${s.dept}'s main lamp at the block's east end`);
@@ -862,6 +867,20 @@ assert.ok(propsOf(hallOf(0, SCENE)).props.some(([name, , , alt]) => name === 'HA
     const F = layoutDepartments([dep('a', 2, { helpers: ids('h', 8) }), dep('b', 1, { helpers: ids('k', 16) }), dep('c', 3, { helpers: ids('m', 4) })], { size: OPEN, compact });
     assert.ok(F.consoles.length >= 20, 'the consoles are there');
     clear(`helpers ${compact ? 'compact' : 'normal'}`, F, Ho, ...spots(F, Ho));
+  }
+  // a first row ending on a console slot: the main lamp at the east end, the same spot with 1, 2, 3 or 4 adepts there
+  // (the same block width), in both grids
+  for (const compact of [false, true]) for (const n of [1, 2]) {
+    const at = [1, 2, 3, 4].map(h => {
+      const F = layoutDepartments([dep('a', n, { helpers: ids('h', h) })], { size: OPEN, compact }), b = F.blocks[0];
+      assert.equal(F.consoles.length, h);
+      assert.ok(F.consoles.every(c => c.y < b.y + SLOT_H), 'the consoles in the first row');
+      const [s] = mainSpots(F.blocks, Ho, F.desks);
+      assert.equal(s.x, b.x + b.w - 3.5, `${compact ? 'compact' : 'normal'}, ${n} desks, ${h} adepts: the main lamp at the east end`);
+      clear(`${compact ? 'compact' : 'normal'} ${n}+${h}`, F, Ho, ...spots(F, Ho));
+      return [s.x, s.y, b.x + b.w];
+    });
+    assert.ok(at.every(p => p.join() === at[0].join()), `${compact ? 'compact' : 'normal'}, ${n} desks: one spot whatever the adepts ${JSON.stringify(at)}`);
   }
 
   // custom rooms (the west wing): inside the room, a main lamp per department; a room holding two departments has two

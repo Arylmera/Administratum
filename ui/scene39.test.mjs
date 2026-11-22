@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { order, depthSort } from './iso.js';
-import { hallOf, MAX_W, WALL, layoutDepartments } from './layout.js';
+import { hallOf, MAX_W, WALL, layoutDepartments, mainSpots } from './layout.js';
+import { LAMP_SIZE, MAIN_SIZE } from './cilamp.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39, pipeOf } from './actors.js';
-import { use, pin, placeOf, actorFoot, actorAt39, frontShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
+import { use, pin, placeOf, lampFoot, actorFoot, actorAt39, frontShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf, doorFrame } from './scene.js';
 import { SCRIBE, SCRIBE39 } from './sprites.js';
@@ -48,6 +49,21 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 420 })]) {
     for (const [id] of L.seats) assert.ok(at.get(`p:${id}`) < at.get(`d:${id}`), `${tag}: the scribe behind desk ${id} before it`);
     for (const [id] of L.consoleSeats) assert.ok(at.get(`c:${id}`) < at.get(`a:${id}`), `${tag}: console ${id} before its adept`);
   }
+  // a main CI lamp (layout.js mainSpots: the east end, consoles no obstacle) behind the consoles of its first row that
+  // stand over it, and behind the desk it may stand behind, in any input order; a scribe lamp keeps its own foot
+  for (const compact of [false, true]) for (const h of [1, 2, 3, 4]) {
+    const F = layoutDepartments([{ name: 'A', ids: ['a0', 'a1'], helpers: Array.from({ length: h }, (_, i) => `h${i}`) }], { compact, size: { w: hall.w, h: 600 } });
+    const [s] = mainSpots(F.blocks, hall, F.desks), lamp = { k: 'lamp', foot: lampFoot({ ...s, size: MAIN_SIZE, frame: 'CIMAIN.red' }) };
+    const near = it => it.foot.u0 < lamp.foot.u1 && lamp.foot.u0 < it.foot.u1 && it.foot.v0 < lamp.foot.v1 + 6 && lamp.foot.v0 < it.foot.v1;
+    const others = [...F.consoles.map(c => ({ k: `c:${c.id}`, foot: placeOf('console', c).foot })), ...F.desks.map(d => ({ k: `d:${d.id}`, foot: placeOf(compact ? 'lectern' : 'desk', d).foot }))];
+    const over = others.filter(near);
+    if (compact && h >= 2) assert.ok(over.some(it => it.k.startsWith('c:')), `${tag}: compact, ${h} adepts: a console stands over the main lamp (the case is exercised)`);
+    for (const shuffle of [x => x, x => x.reverse()]) {
+      const at = new Map(depthSort(shuffle([lamp, ...others])).map((it, i) => [it.k, i]));
+      for (const it of over) assert.ok(at.get('lamp') < at.get(it.k), `${tag}: ${compact ? 'compact' : 'normal'}, ${h} adepts: the main lamp behind ${it.k}`);
+    }
+  }
+  assert.deepEqual(lampFoot({ x: 10, y: WALL + 20, size: LAMP_SIZE, frame: 'CILAMP.red' }), { u0: 17, u1: 23, v0: 38, v1: 40 }, 'a scribe lamp: its foot');
   // toFloor(toScreen(p)) round-trips within 1 logical px over the whole floor; pin (the drawing's) within 1 px of toScreen
   for (let x = 0; x <= hall.w; x += 7) for (let y = WALL; y <= hall.h; y += 5) {
     const [fx, fy] = toFloor(...toScreen(x, y));

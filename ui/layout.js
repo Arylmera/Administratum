@@ -520,12 +520,14 @@ export function scribeSpots(desks, H) {
 // A department's main lamp (CIMAIN): { dept, x, y }, one per department block (not an empty room's placeholder, not a
 // strip room's cell). The open hall, the rooms plan, the west wing's rooms and the break-out room: at the block's east
 // end (the console side, the far end from its plaque), its foot on the line the desks start at (8 px under the block's
-// top, clear of the lanes), the first spot from there westwards that stands clear of the desks, the consoles, every
-// desk's scribe-lamp spot (taken or not: the lamp does not move when a scribe comes or goes) and the vertical corridors.
+// top, clear of the lanes), the first spot from there westwards that stands clear of the desks, of every desk's
+// scribe-lamp spot by 1 px at least (taken or not: the lamp does not move when a scribe comes or goes) and of the
+// vertical corridors. The consoles are no obstacle: an adept who comes or goes never moves it, and where a console
+// overlaps it, the console stands in front (its depth line is south of the lamp's foot, scene.js and scene39.js).
 // The desktop strip: the plaque's row, over the gap after the department's lecterns (overlay.js hangs the plaque from
 // the block's left, the lamp is at the far end of its reach). The column: on the plaque's row under the floor line, at
 // the block's outer end.
-export function mainSpots(blocks, H, desks = [], consoles = []) {
+export function mainSpots(blocks, H, desks = []) {
   const out = [], [w, h] = MAIN_LAMP;
   const walks = [H.corridorX, ...(H.corridors ?? []), ...(H.rooms ?? []).map(R => R.corridorX)].filter(Number.isFinite);
   const hit = (x0, x1, y0, y1) => r => x0 < r.x + r.w && r.x < x1 && y0 < r.y + r.h && r.y < y1;
@@ -534,9 +536,8 @@ export function mainSpots(blocks, H, desks = [], consoles = []) {
     if (H.column) { out.push({ dept: b.name, x: b.x + b.w - 4, y: b.y + b.h + 11 }); continue; }
     if (H.strip) { out.push({ dept: b.name, x: b.x + b.w + STRIP_GAP - 6, y: b.y - 30 }); continue; }
     const y = b.y + 8;
-    const solid = desks.flatMap(d => { const s = scribeAt(d); return [{ x: d.x, y: d.y, w: deskW(d), h: 21 }, { x: s.x - SCRIBE_LAMP[0] / 2, y: s.y - SCRIBE_LAMP[1], w: SCRIBE_LAMP[0], h: SCRIBE_LAMP[1] }]; })
-      .concat(consoles.map(c => ({ x: c.x, y: c.y, w: 14, h: 10 })));
-    let x = b.x + b.w - 4;
+    const solid = desks.flatMap(d => { const s = scribeAt(d); return [{ x: d.x, y: d.y, w: deskW(d), h: 21 }, { x: s.x - SCRIBE_LAMP[0] / 2 - 1, y: s.y - SCRIBE_LAMP[1], w: SCRIBE_LAMP[0] + 2, h: SCRIBE_LAMP[1] }]; });
+    let x = b.x + b.w - 3.5; // the box's east side on the block's
     for (let cx = x; cx - w / 2 >= b.x; cx -= 0.5) {
       const x0 = cx - w / 2, x1 = cx + w / 2;
       if (!solid.some(hit(x0, x1, y - h, y)) && walks.every(c => x1 < c - 1 || x0 > c + 1)) { x = cx; break; }

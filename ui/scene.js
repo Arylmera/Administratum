@@ -385,7 +385,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
   }
   // the CI lamps (cilamp.js): a department's main lamp at its block's east end (none while the list is empty), a scribe's
   // beside its desk (while its session has a CI of its own: layout.roster's Session.ci); each at its own size
-  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks, layout.consoles), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
+  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
   lights.push(...lampLights(lamps)); // the lenses glow
   for (const s of lamps) {
     const map = MAPS[s.frame], x = half(s.x - s.size[0] / 2), y = s.y - s.size[1];

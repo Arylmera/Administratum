@@ -101,6 +101,14 @@ export function placeOf(kind, at) {
   const k = furnitureKit()[kind], yb = at.y + k.fh / RES, u0 = fx(at.x), v0 = fy(yb) - k.d;
   return { k, u0, v0, yb, foot: { u0: u0 + k.x0, u1: u0 + k.x0 + k.w, v0, v1: v0 + k.d } };
 }
+// A CI lamp's floor footprint (depthSort), a thin box at its foot. A main lamp (CIMAIN, layout.js mainSpots) keeps its
+// spot at its block's east end even where a console of the first row stands over it (the console's footprint begins
+// 2 px north of the lamp's foot): its box ends 2 px north of its foot, on the consoles' back edge, so every console
+// there is drawn in front of it, as in the flat view (the console's depth line is south of the lamp's foot).
+export const lampFoot = s => {
+  const v = 2 * (s.y - WALL), u = (s.size[0] + 1) / 2, back = s.frame?.startsWith('CIMAIN') ? 4 : 0;
+  return { u0: 2 * s.x - u, u1: 2 * s.x + u, v0: v - 2 - back, v1: v - back };
+};
 // An actor's floor footprint: a small box at its feet.
 export const actorFoot = a => { const x = Math.round(a.x), v = 2 * (Math.round(a.y) - WALL); return { u0: 2 * x - 4, u1: 2 * x + 4, v0: v - 3, v1: v + 1 }; };
 
@@ -262,11 +270,11 @@ export function drawScene39(g, layout, actors, fillOf, now) {
   // the CI lamps (cilamp.js): a department's main lamp (none while the list is empty) and a scribe's (while its session
   // has a CI of its own), upright on the projected foot like the skull and the flames (a flat billboard, no 39° volume),
   // depth sorted by its small footprint, each at its own size
-  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks, layout.consoles), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
+  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
   lights.push(...lampLights(lamps)); // the lenses glow
   for (const s of lamps) {
-    const [w, h] = s.size, map = MAPS[s.frame], x = half(s.x - w / 2), y = s.y - h, v = 2 * (s.y - WALL), u = (w + 1) / 2;
-    items.push({ foot: { u0: 2 * s.x - u, u1: 2 * s.x + u, v0: v - 2, v1: v }, draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y, LENS[s.frame])) });
+    const [w, h] = s.size, map = MAPS[s.frame], x = half(s.x - w / 2), y = s.y - h;
+    items.push({ foot: lampFoot(s), draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y, LENS[s.frame])) });
     floor.push(g2 => contactShadow(g2, shadowOf(map, x, y), shade));
   }
 

@@ -256,7 +256,7 @@ export const litLamps = () => {
   const L = layout();
   if (!L) return [];
   const H = hall(), by = new Map(roster().map(r => [r.id, r]));
-  const mains = mainSpots(L.blocks, H, L.desks ?? [], L.consoles ?? []).map(s => ({ kind: 'main', who: s.dept, s, ci: lampOf(s.dept), size: MAIN_SIZE }));
+  const mains = mainSpots(L.blocks, H, L.desks ?? []).map(s => ({ kind: 'main', who: s.dept, s, ci: lampOf(s.dept), size: MAIN_SIZE }));
   const scribes = scribeSpots(L.desks ?? [], H).map(s => ({ kind: 'scribe', who: s.id, s, ci: by.get(s.id)?.ci, size: LAMP_SIZE }));
   return mains.concat(scribes).filter(l => l.ci && LIT.has(l.ci.state));
 };
