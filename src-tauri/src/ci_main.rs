@@ -46,6 +46,8 @@ struct Head {
     seen: bool,
     /// Whether this head has its Pass / Fail already (by the tracker, a push watch, or as the first head seen).
     given: bool,
+    /// A Pass / Fail was seen for this head (not only given): CI running on it again is a re-run.
+    verdict: bool,
 }
 
 /// One department's tracker of its default branch.
@@ -114,7 +116,7 @@ impl Tracker {
         self.set_shown(CiStatus::None, None);
         self.failures = 0;
         // the head found at first sight is the last known state, not news: no Chronicon record for it
-        self.head = Some(Head { target, started_ms: now_ms, prev_ids: None, seen: false, given: first });
+        self.head = Some(Head { target, started_ms: now_ms, prev_ids: None, seen: false, given: first, verdict: false });
     }
 
     /// A call that failed (not a rate limit): no usable answer is retried at `POLL_MS`, the third in a row an
@@ -141,7 +143,7 @@ impl Tracker {
 
     fn mirror(&mut self, (target, ci): (Target, CiState)) {
         self.shown = ci;
-        self.mirroring = Some(target);
+        self.mirroring = Some(Target { repo: self.repo.clone(), ..target });
     }
 }
 
@@ -286,6 +288,7 @@ impl Mains {
                         let t = &mut self.trackers[i];
                         match gh.run(&["api", &format!("repos/{}/{}", t.repo.owner, t.repo.name)]) {
                             Ok(json) => {
+                                t.failures = 0;
                                 let found = parse_default_branch(&json);
                                 self.branches.insert(slug, found.clone());
                                 found
@@ -346,8 +349,8 @@ impl Mains {
         // what the lamp showed for this head before this poll (unlit on a head just taken)
         let (was, was_failed) = (t.shown.state, t.shown.failed.clone());
         let h = t.head.as_mut().expect("a head was just taken");
-        // a head with its verdict whose CI runs again (a re-run): its 30-min cap counts from now
-        if matches!(snap.verdict, Verdict::Running) && matches!(was, CiStatus::Pass | CiStatus::Fail) {
+        // a head with its verdict whose CI runs again (a re-run): its 30-min cap counts from now, once per verdict
+        if matches!(snap.verdict, Verdict::Running) && std::mem::take(&mut h.verdict) {
             h.started_ms = now_ms;
         }
         h.seen |= snap.total > 0;
@@ -369,6 +372,7 @@ impl Mains {
         // a Pass or Fail on a head with none yet: its Chronicon record
         if let Some(ended) = ended {
             let h = t.head.as_mut().expect("a head was just taken");
+            h.verdict = true;
             if !std::mem::replace(&mut h.given, true) {
                 out.push(MainEnded { dept: t.dept.clone(), target: h.target.clone(), ended });
             }
@@ -390,6 +394,7 @@ impl Mains {
             t.take_head(Target { repo: t.repo.clone(), ..f.target.clone() }, now_ms);
             if let Some(h) = t.head.as_mut() {
                 h.given |= matches!(f.ended, Ended::Pass | Ended::Fail(_));
+                h.verdict |= matches!(f.ended, Ended::Pass | Ended::Fail(_));
             }
             let (state, failed) = match &f.ended {
                 Ended::Pass => (CiStatus::Pass, None),
@@ -610,6 +615,24 @@ mod tests {
         assert_eq!(lamp(&m), terra(CiStatus::Running));
         at(&mut m, &gh, &cwd, t + POLL_MS);
         assert_eq!(gh.log().len(), 8);
+        assert_eq!(lamp(&m), terra(CiStatus::Running));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_rerun_after_a_gh_error_still_runs_from_its_start() {
+        let (d, cwd) = main_repo("rerunerr", true);
+        let running = [("build", "in_progress", None)];
+        let gh = Stub::new([polls_of(2, A, &[ok("build")]), vec![Err(GhError::NotLoggedIn)], polls_of(1, A, &running)].concat());
+        let mut m = Mains::default();
+        at(&mut m, &gh, &cwd, T0);
+        at(&mut m, &gh, &cwd, T0 + POLL_MS);
+        assert_eq!(lamp(&m), terra(CiStatus::Pass));
+        at(&mut m, &gh, &cwd, T0 + POLL_MS + IDLE_MS); // logged out: unlit
+        assert_eq!(lamp(&m), terra(CiStatus::None));
+        // logged in again, the head A had its verdict and its CI re-runs: amber
+        at(&mut m, &gh, &cwd, T0 + CAP_MS + 2 * IDLE_MS);
+        assert_eq!(gh.log().len(), 7);
         assert_eq!(lamp(&m), terra(CiStatus::Running));
         let _ = fs::remove_dir_all(&d);
     }
