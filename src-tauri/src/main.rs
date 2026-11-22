@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
 mod ci;
+mod ci_main;
 mod demo;
 #[cfg(windows)]
 mod firewall;

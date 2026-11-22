@@ -34,9 +34,9 @@ pub const NO_CI_MS: i64 = 180_000;
 pub const CAP_MS: i64 = 30 * 60_000;
 pub const MAX_WATCHES: usize = 8;
 /// Failed polls in a row that end a watch with `error`.
-const MAX_FAILURES: u32 = 3;
+pub(crate) const MAX_FAILURES: u32 = 3;
 /// How long a rate limit pauses every watch when `gh` names no reset time.
-const DEFAULT_PAUSE_MS: i64 = 60_000;
+pub(crate) const DEFAULT_PAUSE_MS: i64 = 60_000;
 
 // ---- GitHub repositories and push output ------------------------------------------------------------------------
 
@@ -647,12 +647,12 @@ fn ci_state(t: &Target, state: CiStatus) -> CiState {
     CiState { repo: t.repo.slug(), branch: t.branch.clone(), sha7: t.sha7().into(), state, done: 0, total: 0, failed: None }
 }
 
-fn same_branch(a: &Target, b: &Target) -> bool {
+pub(crate) fn same_branch(a: &Target, b: &Target) -> bool {
     a.repo.slug().eq_ignore_ascii_case(&b.repo.slug()) && a.branch == b.branch
 }
 
 /// The core rate limit's reset (epoch seconds), from `gh api rate_limit` (which GitHub does not count).
-fn rate_limit_reset(gh: &dyn Gh) -> Option<i64> {
+pub(crate) fn rate_limit_reset(gh: &dyn Gh) -> Option<i64> {
     let v: Value = serde_json::from_str(&gh.run(&["api", "rate_limit"]).ok()?).ok()?;
     v["resources"]["core"]["reset"].as_i64()
 }
@@ -1143,11 +1143,77 @@ pub fn spawn(hub: Arc<Hub>) {
     std::thread::spawn(move || hub.run(&RealGh));
 }
 
+/// Test doubles shared by `ci` and `ci_main`: the recording `gh` stub and a fake `.git` on disk.
+#[cfg(test)]
+pub(crate) mod testgh {
+    use super::*;
+    use std::{cell::RefCell, collections::VecDeque};
+
+    /// Answers `gh` calls from a script (`default` once it ran dry) and records each call's arguments.
+    pub(crate) struct Stub {
+        calls: RefCell<Vec<String>>,
+        script: RefCell<VecDeque<Result<String, GhError>>>,
+        default: Option<Result<String, GhError>>,
+    }
+
+    impl Stub {
+        pub(crate) fn new(script: Vec<Result<String, GhError>>) -> Self {
+            Stub { calls: RefCell::default(), script: RefCell::new(script.into()), default: None }
+        }
+        /// Every call answered the same way.
+        pub(crate) fn always(r: Result<String, GhError>) -> Self {
+            Stub { default: Some(r), ..Stub::new(vec![]) }
+        }
+        pub(crate) fn log(&self) -> Vec<String> {
+            self.calls.borrow().clone()
+        }
+    }
+
+    impl Gh for Stub {
+        fn run(&self, args: &[&str]) -> Result<String, GhError> {
+            self.calls.borrow_mut().push(args.join(" "));
+            self.script.borrow_mut().pop_front().or_else(|| self.default.clone()).expect("an unscripted gh call")
+        }
+    }
+
+    pub(crate) fn temp(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("adm-ci-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    /// A repo at `<d>/repo` on `branch`, remote `origin` -> `url`, with a loose remote ref `(branch, sha)` if given.
+    pub(crate) fn repo(d: &Path, branch: &str, url: &str, loose: Option<(&str, &str)>) -> PathBuf {
+        let r = d.join("repo");
+        fs::create_dir_all(r.join(".git/refs/remotes/origin")).unwrap();
+        fs::write(r.join(".git/HEAD"), format!("ref: refs/heads/{branch}\n")).unwrap();
+        fs::write(
+            r.join(".git/config"),
+            format!(
+                "[core]\n\tbare = false\n[remote \"origin\"]\n\turl = {url}\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"{branch}\"]\n\tremote = origin\n\tmerge = refs/heads/{branch}\n"
+            ),
+        )
+        .unwrap();
+        if let Some((b, sha)) = loose {
+            let p = r.join(".git/refs/remotes/origin").join(b);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, format!("{sha}\n")).unwrap();
+        }
+        r
+    }
+
+    pub(crate) fn origin_head(r: &Path, text: &str) {
+        fs::write(r.join(".git/refs/remotes/origin/HEAD"), text).unwrap();
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::testgh::*;
     use super::*;
     use serde_json::json;
-    use std::{cell::RefCell, collections::VecDeque};
+    use std::cell::RefCell;
 
     const SHA: &str = "5d6e7f80123456789abcdef0123456789abcdef0";
     const PUSHED: &str = "To github.com:o/r.git\n   1a2b3c4..5d6e7f8  main -> main\n";
@@ -1308,33 +1374,6 @@ mod tests {
 
     // ---- ref lookup over a fake .git ----
 
-    fn temp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("adm-ci-{name}-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&d);
-        fs::create_dir_all(&d).unwrap();
-        d
-    }
-
-    /// A repo at `<d>/repo` on `branch`, remote `origin` -> `url`, with a loose remote ref `(branch, sha)` if given.
-    fn repo(d: &Path, branch: &str, url: &str, loose: Option<(&str, &str)>) -> PathBuf {
-        let r = d.join("repo");
-        fs::create_dir_all(r.join(".git/refs/remotes/origin")).unwrap();
-        fs::write(r.join(".git/HEAD"), format!("ref: refs/heads/{branch}\n")).unwrap();
-        fs::write(
-            r.join(".git/config"),
-            format!(
-                "[core]\n\tbare = false\n[remote \"origin\"]\n\turl = {url}\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"{branch}\"]\n\tremote = origin\n\tmerge = refs/heads/{branch}\n"
-            ),
-        )
-        .unwrap();
-        if let Some((b, sha)) = loose {
-            let p = r.join(".git/refs/remotes/origin").join(b);
-            fs::create_dir_all(p.parent().unwrap()).unwrap();
-            fs::write(p, format!("{sha}\n")).unwrap();
-        }
-        r
-    }
-
     #[test]
     fn ref_lookup_loose_then_packed() {
         let d = temp("refs");
@@ -1421,10 +1460,6 @@ mod tests {
     }
 
     // ---- the default branch ----
-
-    fn origin_head(r: &Path, text: &str) {
-        fs::write(r.join(".git/refs/remotes/origin/HEAD"), text).unwrap();
-    }
 
     fn o_r() -> Repo {
         Repo { owner: "o".into(), name: "r".into() }
@@ -1550,33 +1585,6 @@ mod tests {
     }
 
     // ---- the watch state machine, with a fake clock and a recording stub ----
-
-    /// Answers `gh` calls from a script (`default` once it ran dry) and records each call's arguments.
-    struct Stub {
-        calls: RefCell<Vec<String>>,
-        script: RefCell<VecDeque<Result<String, GhError>>>,
-        default: Option<Result<String, GhError>>,
-    }
-
-    impl Stub {
-        fn new(script: Vec<Result<String, GhError>>) -> Self {
-            Stub { calls: RefCell::default(), script: RefCell::new(script.into()), default: None }
-        }
-        /// Every call answered the same way.
-        fn always(r: Result<String, GhError>) -> Self {
-            Stub { default: Some(r), ..Stub::new(vec![]) }
-        }
-        fn log(&self) -> Vec<String> {
-            self.calls.borrow().clone()
-        }
-    }
-
-    impl Gh for Stub {
-        fn run(&self, args: &[&str]) -> Result<String, GhError> {
-            self.calls.borrow_mut().push(args.join(" "));
-            self.script.borrow_mut().pop_front().or_else(|| self.default.clone()).expect("an unscripted gh call")
-        }
-    }
 
     /// One poll's two answers: check-runs, then status.
     fn poll_answers(r: Runs, s: &[(&str, &str)]) -> Vec<Result<String, GhError>> {
