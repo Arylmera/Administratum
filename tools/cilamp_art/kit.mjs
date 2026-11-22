@@ -24,4 +24,14 @@ const SHAPE = [
   '.kmmmmMMk.',
   '.kkkkkkkk.',
 ];
-export const lamp = ([L, Hi, S]) => SHAPE.map(r => r.replace(/L/g, L).replace(/H/g, Hi).replace(/S/g, S));
+// The lens's 4 x 4 block (columns 3..6, rows 3..6) per state, so the verdict reads without colour (a red/green
+// colour-blind user): running keeps the round lens (M corners) with its glint and shade, and its blink; a pass is a
+// square lens with a bright check cut in it; a fail a square lens with a dark X (k); unlit a flat dark glass.
+// Each takes the frame's lens chars: main, glint, shade (the shade only on the round lens).
+export const LENS_ROWS = {
+  round: (L, Hi, S) => ['M' + L + L + 'M', L + Hi + L + S, L + L + L + S, 'M' + S + S + 'M'],
+  pass: (L, Hi) => [L + L + L + L, L + L + L + Hi, Hi + L + Hi + L, L + Hi + L + L],
+  fail: L => ['k' + L + L + 'k', L + 'kk' + L, L + 'kk' + L, 'k' + L + L + 'k'],
+  off: L => ['M' + L + L + 'M', L + L + L + L, L + L + L + L, 'M' + L + L + 'M'],
+};
+export const lamp = rows => SHAPE.map((r, y) => (y >= 3 && y <= 6 ? r.slice(0, 3) + rows[y - 3] + r.slice(7) : r));

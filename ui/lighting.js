@@ -13,14 +13,14 @@ const flatOf = l => l.f ?? FLAT[heightOf(l)];
 // is foreshortened about 2:1), one on the wall stays round. A floor light is its floor point, a wall light its point on
 // the wall plane. A desk-height light's flat point is drawn h px above a floor point d px south of it (flat 3/4 shows
 // height as y): its glow at that height, its pool (px, py: the hole in the dark) flat on the floor under it.
-// ponytail: one height for every desk-level light (desk candle flame 20, slate 16, console screen 7, a flying skull 12);
-// per-light heights would need the light lists (scene.js) to carry h and d.
+// A light may carry its own h and d (scene.js: candle flame 20, slate 16, console screen 7, a flying skull 12); one
+// without takes this default.
 export const lift39 = { h: 18, d: 10 };
 const FLAT39 = [0.5, 0.5, 1];
 const project = l => {
   const k = heightOf(l);
   if (k !== 1) { const [x, y] = toScreen(l.x, l.y); return { ...l, x, y, f: FLAT39[k] }; }
-  const yf = l.y + lift39.d, [x, y] = toScreen(l.x, yf, lift39.h), [px, py] = toScreen(l.x, yf);
+  const yf = l.y + (l.d ?? lift39.d), [x, y] = toScreen(l.x, yf, l.h ?? lift39.h), [px, py] = toScreen(l.x, yf);
   return { ...l, x, y, px, py, f: FLAT39[k] };
 };
 // A beam's trapezoid for the window slot x: its top spans the glass inside the frame (wallArt), its foot is 7 px

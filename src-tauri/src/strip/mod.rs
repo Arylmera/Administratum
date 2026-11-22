@@ -265,16 +265,26 @@ pub fn set_strip_menu(item: tauri::State<StripItem>, on: bool) -> Result<(), Str
     item.0.set_checked(on).map_err(|e| e.to_string())
 }
 
-/// The strip ignores the cursor (`on`) or takes it. Answers true where the window cannot do that from the cursor's
-/// place (Linux: under Wayland nobody tells a window where the cursor is outside it): the UI then sends the places
-/// that take clicks instead (`set_strip_hits`).
+/// The strip ignores the cursor (`on`) or takes it. Answers true where the window is not told from the UI's polling of
+/// the cursor: Linux (under Wayland nobody tells a window where the cursor is outside it) and Windows (a mouse hook
+/// decides at once, windows.rs): the UI then sends the places that take clicks instead (`set_strip_hits`).
 #[tauri::command]
 pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     if window.label() == os::LABEL {
         return Ok(true);
     }
-    window.set_ignore_cursor_events(on).map(|()| false).map_err(|e| e.to_string())
+    window.set_ignore_cursor_events(on).map_err(|e| e.to_string())?;
+    // false if the window or the hook cannot be had: the cursor poll decides, as on macOS. The hook flips the bit behind
+    // tao's back: tao's own flag stays true for the strip's life (enterStrip asks for click-through first), so
+    // place_hall's set_ignore_cursor_events(false) is a real change and rewrites the style, clearing the bit.
+    #[cfg(windows)]
+    return Ok(window.hwnd().is_ok_and(|h| {
+        os::set_window(h.0 as isize);
+        os::ensure_hook()
+    }));
+    #[cfg(not(windows))]
+    Ok(false)
 }
 
 /// Whether the strip keeps its edge of the screen for itself, the other windows stopping short of it (`on`), or lies
@@ -292,13 +302,19 @@ pub fn set_strip_reserve(window: tauri::WebviewWindow, on: bool) -> bool {
 }
 
 /// The strip's places that take clicks, `[left, top, right, bottom]` in window CSS px: everywhere else the clicks
-/// go to what is under the strip (Linux: the layer surface's input region; elsewhere the cursor poll does it).
+/// go to what is under the strip (Linux: the layer surface's input region; Windows: the mouse hook's test; macOS: the
+/// cursor poll does it).
 #[tauri::command]
 pub fn set_strip_hits(window: tauri::WebviewWindow, rects: Vec<[f64; 4]>) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     if window.label() == os::LABEL {
         return os::set_hits(&window, rects);
     }
+    #[cfg(windows)]
+    if let (Ok(hwnd), Ok(scale)) = (window.hwnd(), window.scale_factor()) {
+        os::set_hits(hwnd.0 as isize, rects, scale);
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     let _ = (window, rects);
     Ok(())
 }
@@ -370,6 +386,23 @@ pub fn last_rect() -> Option<Rect> {
 #[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 pub fn inside(r: Rect, (x, y): (i32, i32), scale: f64) -> Option<(f64, f64)> {
     (x >= r.left && x < r.right && y >= r.top && y < r.bottom).then(|| (f64::from(x - r.left) / scale, f64::from(y - r.top) / scale))
+}
+
+/// Whether the screen point is over one of the strip's hit rects (`[left, top, right, bottom]`, window CSS px).
+#[cfg_attr(not(windows), allow(dead_code))] // the mouse hook (windows.rs)
+pub fn over_hit(r: Rect, rects: &[[f64; 4]], p: (i32, i32), scale: f64) -> bool {
+    inside(r, p, scale).is_some_and(|(x, y)| rects.iter().any(|h| x >= h[0] && x < h[2] && y >= h[1] && y < h[3]))
+}
+
+/// Whether the strip should ignore the cursor: where nothing takes clicks. While a button is held (`held`) the window
+/// stays as it was, so a press that began on a target keeps it through the release.
+#[cfg_attr(not(windows), allow(dead_code))] // the mouse hook (windows.rs)
+pub fn pass_through(held: bool, now: bool, hit: bool) -> bool {
+    if held {
+        now
+    } else {
+        !hit
+    }
 }
 
 #[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
@@ -493,5 +526,26 @@ mod tests {
         assert_eq!(inside(r, (300, 1000), 2.0), Some((100.0, 50.0)));
         assert_eq!(inside(r, (300, 1012), 2.0), None);
         assert_eq!(inside(r, (99, 950), 2.0), None);
+    }
+    #[test]
+    fn hit_rects_in_css_px() {
+        // the strip at (100, 900), 2x: a hit rect of 10..30 x 5..20 CSS px is 120..160 x 910..940 on the screen
+        let r = Rect { left: 100, top: 900, right: 2020, bottom: 1012 };
+        let rects = [[10.0, 5.0, 30.0, 20.0], [200.0, 0.0, 220.0, 56.0]];
+        assert!(over_hit(r, &rects, (120, 910), 2.0));
+        assert!(over_hit(r, &rects, (159, 939), 2.0));
+        assert!(!over_hit(r, &rects, (160, 939), 2.0)); // the right and bottom edges are outside
+        assert!(!over_hit(r, &rects, (119, 925), 2.0));
+        assert!(over_hit(r, &rects, (520, 1000), 2.0)); // the second rect
+        assert!(!over_hit(r, &rects, (300, 1000), 2.0)); // the bare strip
+        assert!(!over_hit(r, &rects, (130, 600), 2.0)); // above the strip: its rect, not a rect's own CSS px
+        assert!(!over_hit(r, &[], (130, 920), 2.0));
+    }
+    #[test]
+    fn click_through_decision() {
+        assert!(!pass_through(false, true, true)); // onto a target: the window takes the click
+        assert!(pass_through(false, false, false)); // off every target: it ignores the cursor
+        assert!(!pass_through(true, false, false)); // a button held: no change, either way
+        assert!(pass_through(true, true, true));
     }
 }

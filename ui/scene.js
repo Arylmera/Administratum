@@ -909,7 +909,7 @@ const KIND = {
   console: { map: 'CONSOLE', at: null, dim: dimConsole },
   roomcog: { map: 'ROOMCOG', at: null, dim: dimConsole }, // the rooms plan's room computer (drawComputers): its own unlit frame
 };
-const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
+const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green, h: 7 }); // h: its screen's height in the 39° view (lighting.js)
 
 // The cache clock (O15): a scribe idle at its desk keeps its candle (each world's own desk light) while its prompt
 // cache is warm: 'lit' for the first half of the cache's TTL, 'low' for the second (no world has a low-candle frame:
@@ -931,8 +931,8 @@ function deskLight(desk, busy, candle) {
   const K = KIND[kindOf(desk)];
   const k = busy ? 1 : candleLit(candle) ? Math.max(0.35, candle.k) : 0;
   return k
-    ? { x: desk.x + K.at.candle[0], y: desk.y + K.at.candle[1], r: Math.round(22 * k), color: T.light.amber, flicker: true }
-    : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green };
+    ? { x: desk.x + K.at.candle[0], y: desk.y + K.at.candle[1], r: Math.round(22 * k), color: T.light.amber, flicker: true, h: 20 }
+    : { x: desk.x + K.at.slate[0], y: desk.y + K.at.slate[1], r: 10, color: T.light.green, h: 16 };
 }
 
 // A brazier's or candle cluster's flame this frame: its <NAME>_FIRE_<n> frame drawn over the still flame at its fire
@@ -1253,7 +1253,7 @@ export function stepAlarm(actors, now) {
   skull.flying = d > step;
   if (d <= step) { skull.x = tgt.x; skull.y = tgt.y; } else { skull.x += (dx / d) * step; skull.y += (dy / d) * step; }
   const y = skull.y + Math.round(2 * Math.sin(t * 4)) / 2;
-  lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green });
+  lights.push({ x: skull.x, y, r: on ? 14 : 7, color: on ? T.light.skullAlarm : T.light.green, h: 12 });
   return { on, who, BEACON, x: skull.x, y0: skull.y, y, hover: on && d <= step, lights };
 }
 // The skull's red cone from its eye (bx, by) down to the petitioner's feet (fx, fy), both views.

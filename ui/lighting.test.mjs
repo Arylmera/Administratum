@@ -48,6 +48,17 @@ assert.ok(src[1] < foot[1] - lift39.h + 1e-9 && src[1] > foot[1] - lift39.h - 1e
 // wall light: on the wall plane (toScreen of a wall point), as before
 near(centre(holes[2])[0], toScreen(wall.x, wall.y)[0], 'wall x'); near(centre(holes[2])[1], toScreen(wall.x, wall.y)[1], 'wall y');
 assert.ok(wall.y < WALL);
+// a light's own h / d (optional) replace lift39's for it alone: its glow at its h, its pool d south of it; one with
+// neither lands where lift39 puts it
+log.length = 0;
+const own = { x: 60, y: 90, r: 20, color: '#ffaa44', h: 7, d: 3 }, plain = { x: 120, y: 90, r: 20, color: '#ffaa44' };
+drawLighting(ctx('g'), [own, plain], level, 12.5, 346, 248, []);
+const gl2 = log.filter(c => c[0] === 'g' && c[1] === 'drawImage'), ho2 = log.filter(c => c[0] !== 'g' && c[1] === 'drawImage');
+const ownSrc = toScreen(own.x, own.y + own.d, own.h), ownFoot = toScreen(own.x, own.y + own.d);
+const plainSrc = toScreen(plain.x, plain.y + lift39.d, lift39.h), plainFoot = toScreen(plain.x, plain.y + lift39.d);
+const glowAt = x => gl2.find(c => Math.abs(centre(c)[0] - x) < 1e-9);
+near(centre(glowAt(ownSrc[0]))[1], ownSrc[1], 'own-height glow y'); near(centre(ho2[0])[1], ownFoot[1], 'own-offset pool y');
+near(centre(glowAt(plainSrc[0]))[1], plainSrc[1], 'default glow y'); near(centre(ho2[1])[1], plainFoot[1], 'default pool y');
 setView('flat');
 assert.equal(render(), FLAT, 'flat lighting changed after a 39° frame');
 console.log('lighting ok');

@@ -1,6 +1,6 @@
 # Parallel waves: UX and integration fixes with the CI verdict and orders to a scribe
 
-Date: 2026-11-21. Status: draft, for the user's approval. Nothing in it is approved for build. The user's answers so far are in
+Date: 2026-11-21. Status: built, released in 0.11.0: lanes L1a to L4b merged F1 to F19 and I6. The user's answers are in
 section 8; I2 is dropped (Q10).
 
 ## Intent

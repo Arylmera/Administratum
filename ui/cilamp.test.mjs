@@ -134,4 +134,29 @@ setLamps([]);
   assert.equal(LENS['CILAMP.off'], undefined, 'unlit: the dark glass of the theme');
   assert.equal(LENS['CIMAIN.off'], undefined);
 }
+// Pass and fail do not rest on colour alone (a red/green colour-blind user): in every world and both families, the lens's
+// 4 x 4 block differs in SHAPE (which pixels are dark) and in grayscale between pass, fail, running and unlit.
+{
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const luma = ([r, g, b]) => Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+  const BLOCK = { CILAMP: [3, 3], CIMAIN: [5, 4] }; // the lens's top-left art px (tools/cilamp_art/kit.mjs, cimain_art/kit.mjs)
+  const gray = (frame, fam) => { // the 4 x 4 lens block as grayscale values, under the fixed LENS colours
+    const [x0, y0] = BLOCK[fam], px = { ...T.px, ...LENS[frame] };
+    return [0, 1, 2, 3].map(dy => [0, 1, 2, 3].map(dx => luma(rgb(px[MAPS[frame][y0 + dy][x0 + dx]]))));
+  };
+  const dark = g => g.map(r => r.map(v => (v < 70 ? 1 : 0)).join('')).join('/'); // the dark-pixel shape, colour ignored
+  for (const id of Object.keys(THEMES)) {
+    setTheme(id);
+    for (const fam of ['CILAMP', 'CIMAIN']) {
+      const g = Object.fromEntries(['green', 'red', 'amber', 'amber_dim', 'off'].map(n => [n, gray(`${fam}.${n}`, fam)]));
+      const tag = `${id} ${fam}`;
+      assert.notEqual(dark(g.green), dark(g.red), `${tag}: pass and fail differ in shape (dark pixels)`);
+      assert.ok(dark(g.red).includes('1'), `${tag}: a fail has a dark mark cut in its lens`);
+      assert.ok(!dark(g.green).includes('1'), `${tag}: a pass is a whole bright lens`);
+      for (const [a, b] of [['green', 'red'], ['green', 'amber'], ['red', 'amber'], ['green', 'off'], ['red', 'off'], ['amber', 'off']])
+        assert.notDeepEqual(g[a], g[b], `${tag}: ${a} and ${b} differ in grayscale`);
+      assert.ok(Math.max(...g.green.flat()) - Math.min(...g.green.flat()) >= 40, `${tag}: a pass carries a bright mark on its lens`);
+    }
+  }
+}
 console.log('cilamp ok');

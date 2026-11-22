@@ -40,7 +40,18 @@ const SHAPE = [
   'kmmmmmmmmmmMMk',
   'kkkkkkkkkkkkkk',
 ];
-export const beacon = ([L, Hi, S]) => SHAPE.map(r => r.replace(/L/g, L).replace(/H/g, Hi).replace(/S/g, S));
+// The lens's inner 4 x 4 block (columns 5..8, rows 4..7: every world's lens block, see frames()) per verdict, so pass and
+// fail read without colour (a red/green colour-blind user): a pass a whole bright lens with a check cut in it (the
+// glint char), a fail a dark X (k), unlit a flat dark glass; running keeps its own lens (glint and shade) and its blink.
+// Each takes the frame's lens chars: main, glint.
+export const INNER = {
+  green: (L, Hi) => [L + L + L + L, L + L + L + Hi, Hi + L + Hi + L, L + Hi + L + L],
+  red: L => ['k' + L + L + 'k', L + 'kk' + L, L + 'kk' + L, 'k' + L + L + 'k'],
+  off: L => [L + L + L + L, L + L + L + L, L + L + L + L, L + L + L + L],
+};
+// rows `inner` laid over the 4 x 4 block of `rows` (x 5..8, y 4..7)
+export const overLens = (rows, inner) => rows.map((r, y) => (y >= 4 && y <= 7 ? r.slice(0, 5) + inner[y - 4] + r.slice(9) : r));
+export const beacon = ([L, Hi, S], inner) => { const rows = SHAPE.map(r => r.replace(/L/g, L).replace(/H/g, Hi).replace(/S/g, S)); return inner ? overLens(rows, inner) : rows; };
 
 // The worlds' own GitHub main lamps (CIMAIN, spec 2026-11-22-ci-lamps-scribe-main-design.md section 3): each
 // tools/cimain_art/<theme>.mjs draws one 14 x 28 shape and frames() turns it into the five frames. The lens is a 4 x 4
@@ -59,5 +70,6 @@ export function frames(shape, who) {
     if (!lens && '*+-'.includes(ch)) throw new Error(`${who}: lens char '${ch}' outside the lens block at ${x},${y}`);
     if (LENS_CHARS.has(ch)) throw new Error(`${who}: housing char '${ch}' at ${x},${y} is a lens char`);
   }
-  return Object.fromEntries(NAMES.map(n => { const [L, Hi, S] = LIT[n]; return [n, shape.map(r => r.replace(/\*/g, L).replace(/\+/g, Hi).replace(/-/g, S))]; }));
+  const INNERS = { 'CIMAIN.off': INNER.off('n'), 'CIMAIN.green': INNER.green('c', 'O'), 'CIMAIN.red': INNER.red('a') };
+  return Object.fromEntries(NAMES.map(n => { const [L, Hi, S] = LIT[n]; const rows = shape.map(r => r.replace(/\*/g, L).replace(/\+/g, Hi).replace(/-/g, S)); return [n, INNERS[n] ? overLens(rows, INNERS[n]) : rows]; }));
 }

@@ -21,7 +21,7 @@ const FREE_W = 1920; // ponytail: an explicit Scale's widest scene (canvas cost)
 // bigger pixels instead. An explicit Scale is honoured exactly (up to FREE_W wide). Smaller than the minimum, or
 // with bays below the window, the stage shows a view of the scene that pans (drag, arrow keys, edge arrows;
 // double-click recentres). The 39° view at Auto: the scale shrinks until the whole projected hall fits the window
-// (the same logical hall, smaller pixels), so nothing is off-screen; an explicit Scale pans there as in the flat view.
+// (the same logical hall, smaller pixels), but never below the flat Auto scale: a bigger hall keeps those pixels and pans.
 // Auto with a west wing: the scale also shrinks until the minimum hall and the wing fit the window's width.
 let autoScale = 0;
 export let stage; let world; // #stage, #world (initViewport)
@@ -77,7 +77,12 @@ export function fit(floor) { // floor: a floor point to centre on (a view switch
   if (auto && !iso() && hallPlan.rooms) scale = Math.min(scale, W / MAX_W, H / MIN_H); // the rooms plan (layout.js mirrorHall): all of it in view, never panned
   const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
   if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
-  if (auto && iso()) { const S = scene(); scale = Math.min(scale, W / S.w, H / S.h); }
+  if (auto && iso()) { // shrinks to fit the projected hall, never below the flat Auto scale (below it the stage pans)
+    const S = scene(); let least = scale;
+    if (rooms.list.length && !hallPlan.rooms && W / least < SCENE.w + WING_X) least = W / (SCENE.w + WING_X); // the flat view's own shrink rules
+    if (hallPlan.rooms) least = Math.min(least, W / MAX_W, H / MIN_H);
+    scale = Math.min(scale, Math.max(least, Math.min(W / S.w, H / S.h)));
+  }
   if (floor) { scene(); const [x, y] = at(...floor); viewCentre = { x, y }; } // scene(): the 39° offset, fresh
   applySize(W, H);
 }

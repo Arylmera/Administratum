@@ -374,6 +374,23 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   setView('flat');
 }
 
+// Click-through (stripwin.js setThrough): where the backend decides it itself from the places it is sent (Windows' mouse
+// hook, Linux' input region: set_click_through answers true) the UI's own decision is dropped, so a click needs no poll to
+// land; where it answers false (macOS) every change goes on to the window.
+{
+  const { setThrough, switchStrip } = await import('./stripwin.js');
+  const calls = () => invoked('set_click_through').map(c => c.args.on);
+  const settle = flush;
+  replies.set_click_through = () => true;
+  setThrough(true); await settle(); setThrough(false); setThrough(true);
+  assert.deepEqual(calls(), [true], 'told once, then the backend decides');
+  replies.set_click_through = () => false;
+  switchStrip(false); await settle(); await settle(); // leaving the strip hands the decision back
+  setThrough(true); await settle(); setThrough(false);
+  assert.deepEqual(calls(), [true, true, false], 'the UI decides each change where the backend does not');
+  delete replies.set_click_through;
+}
+
 // Settings > Rooms (O10): roomsOf reads adm.rooms as rooms.rs does; a pattern is checked by the backend (rooms_test,
 // debounced 200 ms), red and never written while invalid; the live line; the 6-room cap; order and delete.
 {
