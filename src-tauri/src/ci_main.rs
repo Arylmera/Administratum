@@ -25,7 +25,8 @@ pub const TRIGGER_GAP_MS: i64 = 60_000;
 pub const GONE_MS: i64 = 10_000;
 
 /// How a tracker's check of a head ended: `Pass` / `Fail` on a new head (a Chronicon record), `Skipped` / `Error` for
-/// Settings > Status. `target.sha` is empty when no head was known yet (a `Skipped` before the first answer).
+/// Settings > Status, and `Ready` there once a good answer follows them. `target.sha` is empty when no head was known
+/// yet (a `Skipped` before the first answer).
 #[derive(Clone, Debug, PartialEq)]
 pub struct MainEnded {
     pub dept: String,
@@ -68,6 +69,8 @@ struct Tracker {
     mirroring: Option<Target>,
     /// A push watch ended (`adopt`): the next tick sets the idle time.
     adopted: bool,
+    /// The last ending was a `Skipped` or `Error`: the next good poll says `Ready`.
+    complained: bool,
 }
 
 enum Step {
@@ -129,6 +132,7 @@ impl Tracker {
         self.failures = 0;
         self.set_shown(CiStatus::None, None);
         self.go_idle(now_ms);
+        self.complained = true;
         Some(MainEnded { dept: self.dept.clone(), target: self.target_or_branch(), ended })
     }
 
@@ -202,6 +206,7 @@ impl Mains {
             trigger_ms: None,
             mirroring: None,
             adopted: false,
+            complained: false,
         });
     }
 
@@ -331,6 +336,9 @@ impl Mains {
             }
         };
         t.failures = 0;
+        if std::mem::take(&mut t.complained) {
+            out.push(MainEnded { dept: t.dept.clone(), target: target.clone(), ended: Ended::Ready });
+        }
         t.take_head(target, now_ms);
         // what the lamp showed for this head before this poll (unlit on a head just taken)
         let (was, was_failed) = (t.shown.state, t.shown.failed.clone());
@@ -385,7 +393,7 @@ impl Mains {
                 Ended::Fail(c) => (CiStatus::Fail, Some(c.clone())),
                 Ended::Timeout => (CiStatus::Timeout, None),
                 Ended::Error => (CiStatus::Error, None),
-                Ended::NoCi | Ended::Skipped(_) => (CiStatus::None, None),
+                Ended::NoCi | Ended::Skipped(_) | Ended::Ready => (CiStatus::None, None),
             };
             t.set_shown(state, failed);
             (t.shown.branch, t.shown.sha7) = (f.target.branch.clone(), f.target.sha7().into());

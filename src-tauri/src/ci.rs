@@ -576,6 +576,9 @@ pub enum Ended {
     NoCi,
     /// `gh` missing, not logged in, or no access: the reason, for Settings > Status.
     Skipped(String),
+    /// A main tracker's good answer after a `Skipped` or `Error`: Settings > Status back to ready. Never a Chronicon
+    /// record, and never a push watch's ending.
+    Ready,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -757,7 +760,7 @@ impl Watcher {
             Ended::Fail(c) => (CiStatus::Fail, Some(c.clone())),
             Ended::Timeout => (CiStatus::Timeout, None),
             Ended::Error => (CiStatus::Error, None),
-            Ended::NoCi | Ended::Skipped(_) => (CiStatus::None, None),
+            Ended::NoCi | Ended::Skipped(_) | Ended::Ready => (CiStatus::None, None),
         };
         if *ended == Ended::Pass {
             e.ci.done = e.ci.total;
@@ -920,7 +923,7 @@ fn note_of(ended: &Ended) -> Option<(status::State, String)> {
         Ended::Skipped(reason) => Some((status::State::Warn, format!("CI check skipped: {reason}"))),
         Ended::Error => Some((status::State::Warn, "CI check failed: gh gave no usable answer three times in a row".to_string())),
         // gh answered: any earlier complaint is over
-        Ended::Pass | Ended::Fail(_) => Some((status::State::Ok, "gh ready".to_string())),
+        Ended::Pass | Ended::Fail(_) | Ended::Ready => Some((status::State::Ok, "gh ready".to_string())),
         Ended::Timeout | Ended::NoCi => None,
     }
 }
@@ -2213,6 +2216,35 @@ mod tests {
         assert_eq!(gh2.log(), ["auth status", MAIN_STATUS]);
         w2.step(&gh2, T0 + 21_000, input(true, vec![], &terra));
         assert_eq!(gh2.log().len(), 2, "the push watch is held by the same pause");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_tracker_that_answers_again_clears_its_warning() {
+        let (d, r) = on_feat("ready-again");
+        let terra = [("Terra", r.as_path())];
+        let ready = vec![(status::State::Ok, "gh ready".to_string())];
+        // logged out, then logged in: the next good poll on the same head says so, once, and records nothing
+        let gh = Stub::new([vec![Ok("ok".to_string()), Err(GhError::NotLoggedIn)], main_poll(OLD, FAILED), main_poll(OLD, FAILED)].concat());
+        let mut w = Worker::default();
+        assert_eq!(w.step(&gh, T0, input(true, vec![], &terra)).notes[1].0, status::State::Warn);
+        let back = w.step(&gh, T0 + crate::ci_main::IDLE_MS, input(true, vec![], &terra));
+        assert_eq!(gh.log().len(), 4);
+        assert_eq!(back.notes, ready);
+        assert!(back.mains.iter().all(|m| main_verdict_event(m, T0).is_none()), "not a Chronicon record: {:?}", back.mains);
+        let later = w.step(&gh, T0 + 2 * crate::ci_main::IDLE_MS, input(true, vec![], &terra));
+        assert_eq!(gh.log().len(), 6);
+        assert!(later.notes.is_empty(), "said once: {:?}", later.notes);
+        // three unusable answers, then a good one
+        let other = || Err(GhError::Other("boom".into()));
+        let gh = Stub::new([vec![Ok("ok".to_string()), other(), other(), other()], main_poll(OLD, FAILED)].concat());
+        let mut w = Worker::default();
+        w.step(&gh, T0, input(true, vec![], &terra));
+        w.step(&gh, T0 + POLL_MS, input(true, vec![], &terra));
+        assert_eq!(w.step(&gh, T0 + 2 * POLL_MS, input(true, vec![], &terra)).notes[0].0, status::State::Warn);
+        let back = w.step(&gh, T0 + 2 * POLL_MS + crate::ci_main::IDLE_MS, input(true, vec![], &terra));
+        assert_eq!(gh.log().len(), 6);
+        assert_eq!(back.notes, ready);
         let _ = fs::remove_dir_all(&d);
     }
 
