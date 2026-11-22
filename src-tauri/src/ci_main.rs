@@ -111,6 +111,27 @@ impl Tracker {
         self.head = Some(Head { target, started_ms: now_ms, prev_ids: None, seen: false, given: first });
     }
 
+    /// A call that failed (not a rate limit): no usable answer is retried at `POLL_MS`, the third in a row an
+    /// `Error`; `gh` missing, logged out or without access a `Skipped` with its reason. Either way the lamp goes unlit
+    /// and the next try is the idle one. None while retrying.
+    fn fail(&mut self, e: &GhError, now_ms: i64) -> Option<MainEnded> {
+        let ended = match e {
+            GhError::Other(_) => {
+                self.failures += 1;
+                if self.failures < MAX_FAILURES {
+                    self.next_ms = now_ms + POLL_MS;
+                    return None;
+                }
+                Ended::Error
+            }
+            _ => Ended::Skipped(skip_reason(e, &self.repo).unwrap_or_default()),
+        };
+        self.failures = 0;
+        self.set_shown(CiStatus::None, None);
+        self.go_idle(now_ms);
+        Some(MainEnded { dept: self.dept.clone(), target: self.target_or_branch(), ended })
+    }
+
     fn mirror(&mut self, (target, ci): (Target, CiState)) {
         self.shown = ci;
         self.mirroring = Some(target);
@@ -123,7 +144,8 @@ pub struct Mains {
     trackers: Vec<Tracker>,
     /// Departments with no tracker for the run: not GitHub, or no default branch to be had.
     untracked: HashSet<String>,
-    /// `default_branch` by repository slug (lowercase), None when the lookup failed; once per repository per run.
+    /// `default_branch` by repository slug (lowercase), None when `gh` named none usable; once per repository per run.
+    /// A failed call is not an answer: it is not cached, and the tracker asks again.
     branches: HashMap<String, Option<String>>,
     next_id: u64,
     paused_until_ms: i64,
@@ -253,19 +275,20 @@ impl Mains {
                 let found = match self.branches.get(&slug) {
                     Some(cached) => cached.clone(),
                     None => {
-                        let t = &self.trackers[i];
-                        let found = match gh.run(&["api", &format!("repos/{}/{}", t.repo.owner, t.repo.name)]) {
-                            Ok(json) => parse_default_branch(&json),
-                            Err(GhError::RateLimit(reset)) => return Step::Pause(pause_until(gh, reset, now_ms)),
-                            Err(e) => {
-                                if let Some(why) = skip_reason(&e, &t.repo) {
-                                    out.push(MainEnded { dept: t.dept.clone(), target: t.target_or_branch(), ended: Ended::Skipped(why) });
-                                }
-                                None
+                        let t = &mut self.trackers[i];
+                        match gh.run(&["api", &format!("repos/{}/{}", t.repo.owner, t.repo.name)]) {
+                            Ok(json) => {
+                                let found = parse_default_branch(&json);
+                                self.branches.insert(slug, found.clone());
+                                found
                             }
-                        };
-                        self.branches.insert(slug, found.clone());
-                        found
+                            Err(GhError::RateLimit(reset)) => return Step::Pause(pause_until(gh, reset, now_ms)),
+                            // the tracker stays, unlit, and asks again
+                            Err(e) => {
+                                out.extend(t.fail(&e, now_ms));
+                                return Step::Keep;
+                            }
+                        }
                     }
                 };
                 let Some(b) = found else { return Step::Untrack };
@@ -302,24 +325,8 @@ impl Mains {
                 t.next_ms = now_ms; // due again the moment the pause is over
                 return Some(pause_until(gh, reset, now_ms));
             }
-            Err(GhError::Other(_)) => {
-                t.failures += 1;
-                if t.failures < MAX_FAILURES {
-                    t.next_ms = now_ms + POLL_MS;
-                    return None;
-                }
-                t.failures = 0;
-                t.set_shown(CiStatus::None, None);
-                t.go_idle(now_ms);
-                out.push(MainEnded { dept: t.dept.clone(), target: t.target_or_branch(), ended: Ended::Error });
-                return None;
-            }
             Err(e) => {
-                t.failures = 0;
-                t.set_shown(CiStatus::None, None);
-                t.go_idle(now_ms);
-                let why = skip_reason(&e, &repo).unwrap_or_default();
-                out.push(MainEnded { dept: t.dept.clone(), target: t.target_or_branch(), ended: Ended::Skipped(why) });
+                out.extend(t.fail(&e, now_ms));
                 return None;
             }
         };
@@ -690,9 +697,10 @@ mod tests {
     }
 
     #[test]
-    fn no_origin_head_asks_gh_once() {
+    fn no_origin_head_asks_gh_for_the_branch() {
         let (d, cwd) = main_repo("nohead", false);
-        let gh = Stub::new([vec![Ok(json!({"default_branch": "main"}).to_string())], polls_of(2, A, &[ok("build")])].concat());
+        let main = || Ok(json!({"default_branch": "main"}).to_string());
+        let gh = Stub::new([vec![main()], polls_of(2, A, &[ok("build")])].concat());
         let mut m = Mains::default();
         at(&mut m, &gh, &cwd, T0);
         assert_eq!(gh.log(), vec!["api repos/o/r".to_string(), STATUS.to_string(), runs_call(A)]);
@@ -700,8 +708,8 @@ mod tests {
         assert_eq!(gh.log()[3..], [STATUS.to_string(), runs_call(A)]);
         assert_eq!(lamp(&m), terra(CiStatus::Pass));
 
-        // gh missing: one note, the department stays without a lamp, never asked again this run
-        let gh = Stub::always(Err(GhError::Missing));
+        // gh missing: one note, the lamp unlit; the answer is not cached, the lookup comes back on the 5-min rhythm
+        let gh = Stub::new([vec![Err(GhError::Missing), main()], polls_of(2, A, &[ok("build")])].concat());
         let mut m = Mains::default();
         let e = at(&mut m, &gh, &cwd, T0);
         assert_eq!(ended(&e), vec![Ended::Skipped("gh not found".into())]);
@@ -709,22 +717,39 @@ mod tests {
         // no head yet: the target has no commit, and formatting it as a Chronicon detail must not panic
         assert_eq!((e[0].target.sha.as_str(), e[0].target.sha7()), ("", ""));
         assert_eq!(gh.log().len(), 1);
-        for k in 1..20 {
-            assert!(at(&mut m, &gh, &cwd, T0 + k * IDLE_MS).is_empty());
-        }
-        m.scribe_done("Terra", T0 + 30 * IDLE_MS);
-        at(&mut m, &gh, &cwd, T0 + 30 * IDLE_MS);
-        assert_eq!(gh.log().len(), 1);
-        assert!(m.lamp_rows().is_empty());
+        assert_eq!(lamp(&m), terra(CiStatus::None));
         assert!(m.links().is_empty());
+        at(&mut m, &gh, &cwd, T0 + IDLE_MS - 1);
+        assert_eq!(gh.log().len(), 1);
+        at(&mut m, &gh, &cwd, T0 + IDLE_MS); // `gh` is back (installed, logged in): the lamp comes back
+        assert_eq!(gh.log()[1..], ["api repos/o/r".to_string(), STATUS.to_string(), runs_call(A)]);
+        at(&mut m, &gh, &cwd, T0 + IDLE_MS + POLL_MS);
+        assert_eq!(lamp(&m), terra(CiStatus::Pass));
 
-        // an answer that names no usable branch: untracked as well, without a note
+        // no usable answer: retried at 30 s, after three in a row one `Error`, then the 5-min rhythm
+        let other = || Err(GhError::Other("boom".into()));
+        let gh = Stub::new([vec![other(), other(), other(), main()], poll(A, &[ok("build")])].concat());
+        let mut m = Mains::default();
+        assert!(at(&mut m, &gh, &cwd, T0).is_empty());
+        assert!(at(&mut m, &gh, &cwd, T0 + POLL_MS).is_empty());
+        let e = at(&mut m, &gh, &cwd, T0 + 2 * POLL_MS);
+        assert_eq!(ended(&e), vec![Ended::Error]);
+        assert_eq!(lamp(&m), terra(CiStatus::None));
+        at(&mut m, &gh, &cwd, T0 + 2 * POLL_MS + IDLE_MS - 1);
+        assert_eq!(gh.log().len(), 3);
+        at(&mut m, &gh, &cwd, T0 + 2 * POLL_MS + IDLE_MS);
+        assert_eq!(gh.log()[3..], ["api repos/o/r".to_string(), STATUS.to_string(), runs_call(A)]);
+
+        // an answer that names no usable branch: untracked for the run, without a note, never asked again
         let gh = Stub::new(vec![Ok(json!({"default_branch": "../x"}).to_string())]);
         let mut m = Mains::default();
         assert!(at(&mut m, &gh, &cwd, T0).is_empty());
         at(&mut m, &gh, &cwd, T0 + IDLE_MS);
+        m.scribe_done("Terra", T0 + 2 * IDLE_MS);
+        at(&mut m, &gh, &cwd, T0 + 2 * IDLE_MS);
         assert_eq!(gh.log().len(), 1);
         assert!(m.lamp_rows().is_empty());
+        assert!(m.links().is_empty());
         let _ = fs::remove_dir_all(&d);
     }
 
