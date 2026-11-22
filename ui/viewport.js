@@ -78,10 +78,10 @@ export function fit(floor) { // floor: a floor point to centre on (a view switch
   const next = { w: Math.min(maxW, Math.max(SCENE.w, 2 * Math.floor(W / scale / 2))), h: Math.max(SCENE.h, Math.floor(H / scale)) };
   if (next.w !== size.w || next.h !== size.h) { size = next; relayout(); }
   if (auto && iso()) { // shrinks to fit the projected hall, never below the flat Auto scale (below it the stage pans)
-    const S = scene(); let floor = scale;
-    if (rooms.list.length && !hallPlan.rooms && W / floor < SCENE.w + WING_X) floor = W / (SCENE.w + WING_X); // the flat view's own shrink rules
-    if (hallPlan.rooms) floor = Math.min(floor, W / MAX_W, H / MIN_H);
-    scale = Math.min(scale, Math.max(floor, Math.min(W / S.w, H / S.h)));
+    const S = scene(); let least = scale;
+    if (rooms.list.length && !hallPlan.rooms && W / least < SCENE.w + WING_X) least = W / (SCENE.w + WING_X); // the flat view's own shrink rules
+    if (hallPlan.rooms) least = Math.min(least, W / MAX_W, H / MIN_H);
+    scale = Math.min(scale, Math.max(least, Math.min(W / S.w, H / S.h)));
   }
   if (floor) { scene(); const [x, y] = at(...floor); viewCentre = { x, y }; } // scene(): the 39° offset, fresh
   applySize(W, H);
