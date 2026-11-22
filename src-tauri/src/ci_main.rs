@@ -15,6 +15,9 @@ use std::{
     path::Path,
 };
 
+/// The running push watch on a repository's branch, if any: its commit and its CI (`ci::Watcher::live_on`).
+pub type Live<'a> = &'a dyn Fn(&Repo, &str) -> Option<(Target, CiState)>;
+
 /// The idle rhythm: one check of the default branch every 5 min.
 pub const IDLE_MS: i64 = 300_000;
 /// The second early check, after the one a scribe's end of turn brings at once.
@@ -225,7 +228,7 @@ impl Mains {
     /// Drops the departments gone from the roster, then runs every due check, one `gh` call at a time. A tracker whose
     /// branch `live` reports (a running push watch) shows that and makes no call. While a rate limit pauses, nothing
     /// runs. Returns the verdicts on new heads and the endings Settings > Status names.
-    pub fn tick(&mut self, gh: &dyn Gh, now_ms: i64, live: &dyn Fn(&Repo, &str) -> Option<(Target, CiState)>) -> Vec<MainEnded> {
+    pub fn tick(&mut self, gh: &dyn Gh, now_ms: i64, live: Live) -> Vec<MainEnded> {
         self.now_ms = now_ms;
         self.trackers.retain(|t| now_ms - t.last_seen_ms < GONE_MS);
         let mut out = vec![];
@@ -250,7 +253,7 @@ impl Mains {
     }
 
     /// Tracker `i`'s part of a tick: an adopted ending, the live mirror, the branch lookup, the due check.
-    fn step(&mut self, i: usize, gh: &dyn Gh, now_ms: i64, live: &dyn Fn(&Repo, &str) -> Option<(Target, CiState)>, out: &mut Vec<MainEnded>) -> Step {
+    fn step(&mut self, i: usize, gh: &dyn Gh, now_ms: i64, live: Live, out: &mut Vec<MainEnded>) -> Step {
         let t = &mut self.trackers[i];
         if t.adopted {
             t.adopted = false;
