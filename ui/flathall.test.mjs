@@ -29,7 +29,7 @@ const { drawStatic } = await import('./scene.js');
 const { hallOf } = await import('./layout.js');
 
 const FLAT = {
-  'tier2 0 day': '9838baf32ecf', 'tier2 0 night': '3e720e668065', 'tier2 2 day': 'bccd86b52603', 'tier2 2 night': '3e8fabbb9d60',
+  'tier2 0 day': '747cfb794d78', 'tier2 0 night': 'c71f37b4d0dd', 'tier2 2 day': '9f0cf5476c55', 'tier2 2 night': '524da56e2c87',
   'vault 0 day': '34ffc876c6d3', 'vault 0 night': '5a28fddf3cb2', 'vault 2 day': 'b0254fd981a8', 'vault 2 night': '0ad1656d3b74',
 };
 const got = {};
@@ -43,7 +43,7 @@ for (const id of ['tier2', 'vault']) {
 }
 // The west wing (O10c): a hall with three rooms (one row, two rows, one row), recorded once looked at on screen.
 const WING = [{ id: 'a', color: '#c8a040', rows: 1 }, { id: 'b', color: '#40a0c8', rows: 2 }, { id: 'c', color: '#a040c8', rows: 1, empty: true }];
-const FLAT_WING = { 'tier2 wing': '501a9d77d1e1', 'vault wing': '57adf0c60916' }; // the rooms down to the hall's bottom, the wing's back wall furnished (2026-11-09)
+const FLAT_WING = { 'tier2 wing': '9c9a0d9899ee', 'vault wing': '57adf0c60916' }; // the rooms down to the hall's bottom, the wing's back wall furnished (2026-11-09)
 for (const id of ['tier2', 'vault']) {
   setTheme(id);
   const cv = fakeCanvas();
@@ -55,7 +55,7 @@ for (const id of ['tier2', 'vault']) {
 const { setHallPlan } = await import('./hallplan.js');
 const CELLS = [{ kind: 'room', id: 'a', color: '#c8a040', open: true, empty: false, name: 'Alpha', x: 5, y: 80, w: 160, h: 58 },
   { kind: 'room', id: 'hors', color: '#8a8f98', open: true, empty: true, name: 'Elsewhere', x: 360, y: 80, w: 160, h: 58 }];
-const FLAT_ROOMS = { 'tier2 rooms day': '97306d486796', 'tier2 rooms night': '42c38bcc1a15', 'vault rooms day': '1e97ed35376a', 'vault rooms night': '80bf36e2cba2' }; // a room's name small in its bottom right corner
+const FLAT_ROOMS = { 'tier2 rooms day': '6b4da25136f3', 'tier2 rooms night': 'b6c4ce7d5d9d', 'vault rooms day': '1e97ed35376a', 'vault rooms night': '80bf36e2cba2' }; // a room's name small in its bottom right corner
 setHallPlan('rooms');
 for (const id of ['tier2', 'vault']) {
   setTheme(id);

@@ -86,12 +86,12 @@
       "channel h": {
         "fill": "repeat-x",
         "glow": "coolant",
-        "glowPasses": 2
+        "glowPasses": 1
       },
       "channel v": {
         "fill": "repeat-y",
         "glow": "coolant",
-        "glowPasses": 2
+        "glowPasses": 1
       },
       "sanctum floor": {
         "fill": "nine",
