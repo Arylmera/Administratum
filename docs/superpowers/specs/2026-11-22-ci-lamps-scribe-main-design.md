@@ -75,7 +75,7 @@ of 8):
 - On first sight of the department in a run, and then every **5 min** while the department is in the roster, the
   tracker reads the branch's head and its CI from GitHub by branch name:
   `repos/<owner>/<repo>/commits/<branch>/check-runs?per_page=100` and `repos/<owner>/<repo>/commits/<branch>/status`.
-  The combined status answer names the head `sha`; check-runs are counted only when their `head_sha` is that one.
+  The combined status answer names the head `sha`; the check-runs are then read by that `sha` (`commits/<sha>/check-runs`), which replaces a `head_sha` filter on the by-branch answer.
 - A new head SHA starts a fresh verdict for that commit (amber while it runs); polling then follows I6's rhythm
   (every 30 s) until a verdict, the no-CI end (3 min) or the cap (30 min), and falls back to the 5-min check.
 - Verdict rules: I6 section 4, unchanged (early fail, pass after two polls that saw the same checks).

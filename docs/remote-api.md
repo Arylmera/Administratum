@@ -104,9 +104,9 @@ Query values are percent-decoded.
 | `GET /api/theme_packs` | `theme_packs` -> `[{id, dir, repo, installed, themes}]`, the theme packs in the PC's themes folder (`id` `owner/repo` or `local/<dir>`; `repo` and `installed` null for a local pack; `themes` the folders holding a `theme.json`, sorted). Their files are served under `/themes/` (Static files); there is no remote install or removal |
 
 CI (I6, only while the setting `adm.ci` is on, read only): the `ci-lamps` event, mirrored to `/events` like `roster`, carries
-the folders' lamps, `[{dept, cwd, state, branch, sha7, failed}]` (`state`: `running`, `pass`, `fail`, `timeout`, `error` or `none`;
-`failed`: the first failed check's name, or null). It is sent when the list changes (an empty list too, when the
-setting goes off), not every tick. Each session of the `roster` event also has `ci`: null, or `{repo, branch, sha7, state,
+the departments' main lamps (the head of the repository's default branch, checked every 5 min and early when a scribe ends), `[{dept, cwd, state, branch, sha7, failed}]` (`state`: `running`, `pass`, `fail`, `timeout`, `error` or `none`;
+`failed`: the first failed check's name, or null; `none` while rate-limited, after 3 failures or on a `gh` access error). It is sent every tick, like `roster` (an empty list when the
+setting is off). The scribe lamps have no event: they are the `ci` of the `roster`'s sessions. Each session of the `roster` event also has `ci`: null, or `{repo, branch, sha7, state,
 done, total, failed}` for its latest live push. There is no remote command for it: `ci_lamps` (the current list) and
 `ci_open` (open a commit's checks page, from a session id or a department name) are Tauri commands for the PC's own UI only.
 

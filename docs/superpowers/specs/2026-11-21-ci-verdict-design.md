@@ -120,6 +120,8 @@ Over every check-run and status of the commit:
 
 ### 5. What the user sees
 
+> Superseded by I6b (`2026-11-22-ci-lamps-scribe-main-design.md`) for the lamp: it is now one per scribe (its last push) plus one per department for the default branch; the start check is gone. The card line and the Chronicon events stand.
+
 - **A session that ends mid-CI:** the watch keeps the session's name, dept and folder from the push, so the lamp and
   the Chronicon event still change; only the card line is gone with the card.
 - **Card** of the pushing session: one line `CI · <branch> · <sha7> · running 3/5` / `passed` / `failed: <check>` /
