@@ -511,7 +511,7 @@ fn emit<S: serde::Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
     let _ = app.emit(event, payload);
 }
 
-/// Every folder's CI lamp now (ci.rs), for a UI that starts after the `ci-lamps` event. Host only.
+/// Every department's (main) CI lamp now (ci.rs, ci_main.rs), as the `ci-lamps` event sends it every tick. Host only.
 #[tauri::command]
 fn ci_lamps(hub: State<std::sync::Arc<ci::Hub>>) -> Vec<ci::Lamp> {
     hub.lamps()
@@ -782,8 +782,9 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 fill_tokens_today(&mut roster, &c, now);
             }
             let cfg = monitor::get();
-            // the CI watcher gets the pushes, the folders seen and the setting; it answers on its own thread (never in demo)
-            hub.submit(cfg.ci && !demo, pushes, roster.iter().map(|s| (s.dept.clone(), s.cwd.clone())).collect());
+            // the CI watcher gets the pushes, the folders seen, the scribes done and the setting; it answers on its own
+            // thread (never in demo)
+            hub.submit(cfg.ci && !demo, pushes, roster.iter().map(|s| (s.dept.clone(), s.cwd.clone())).collect(), ci::scribes_done(&prev, &roster));
             for s in roster.iter_mut() {
                 s.ci = hub.card(&s.id);
                 s.turn = turns.remove(&s.id);
@@ -796,6 +797,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let fresh_pairs = same_file(&mut roster, &pairs, &mut seen_pairs, first_stuck);
             events.extend(conflict_toasts(&app, &roster, &fresh_pairs, now));
             events.extend(hub.take_verdicts().iter().filter_map(|f| ci::verdict_event(f, now)));
+            events.extend(hub.take_main_verdicts().iter().filter_map(|m| ci::main_verdict_event(m, now)));
             for e in events {
                 lock(&app.state::<Chron>()).record(&e);
                 emit(&app, "chronicle", &e);
@@ -807,9 +809,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
             lock(&app.state::<Live>()).clone_from(&roster);
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
-            if let Some(lamps) = hub.lamps_if_changed() {
-                emit(&app, "ci-lamps", lamps);
-            }
+            // the same for the departments' CI lamps: a remote client that connects late has them within a second
+            emit(&app, "ci-lamps", hub.lamps());
             let waiting = window::waiting_count(&roster);
             if tip != Some(waiting) {
                 tip = Some(waiting);

@@ -5,6 +5,7 @@
 import { invoke, listen } from './bridge.js';
 
 export const LAMP_SIZE = [5, 10]; // logical px (the art is 10 x 20 art px: tools/cilamp_art/kit.mjs)
+export const MAIN_SIZE = [7, 14]; // the department's main lamp, logical px (CIMAIN, 14 x 28 art px: tools/cimain_art/kit.mjs)
 // The lens's signal colours, fixed in every world: a palette override (sprites.js blit's `over`) for the lens chars of
 // each frame, so a theme or a pack that recolours the key slots (flame, phosphor, alarm) never turns green orange. The
 // housing and the post keep following the theme. One constant object a frame (the sprite cache keys on it).
@@ -13,6 +14,11 @@ export const LENS = {
   'CILAMP.amber_dim': { g: '#a86a28', f: '#d08a30', G: '#6e3f17' },
   'CILAMP.green': { c: '#3ddc6c', O: '#e6ffee', C: '#16602f' },
   'CILAMP.red': { a: '#ff3a20', F: '#ffd0a0', x: '#8e1c16' },
+  // the department's main lamp (CIMAIN): the same lens chars and signal colours as the matching CILAMP frame
+  'CIMAIN.amber': { f: '#f0a83c', F: '#ffe6a0', g: '#b8742a' },
+  'CIMAIN.amber_dim': { g: '#a86a28', f: '#d08a30', G: '#6e3f17' },
+  'CIMAIN.green': { c: '#3ddc6c', O: '#e6ffee', C: '#16602f' },
+  'CIMAIN.red': { a: '#ff3a20', F: '#ffd0a0', x: '#8e1c16' },
 };
 // The lens glows: a light at each lit lamp (lighting.js punches a hole in the night over the hall and adds a glow), in the
 // signal colour whatever the theme. Without it the lens is a few dark pixels under the night layer and cannot be seen.

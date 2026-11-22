@@ -3,7 +3,6 @@
 //! commit's check-runs; a new head is polled at I6's `POLL_MS` until its verdict. A scribe done with its turn brings the
 //! check forward (`scribe_done`); a live push watch on the same branch is mirrored instead of polled (`live`, `adopt`).
 //! Pure core with an injected clock and `gh`, like `ci::Watcher`; the watcher thread drives it.
-#![allow(dead_code)] // `Mains` is wired into the CI worker by the next step (Task 3)
 use crate::{
     ci::{
         branch_api, default_branch_of, evaluate, parse_default_branch, rate_limit_reset, status_sha, Ended, Finished, Gh, GhError, Lamp, Link, Repo, Target, Verdict, CAP_MS, DEFAULT_PAUSE_MS,
@@ -662,6 +661,8 @@ mod tests {
         let e = at(&mut m, &gh, &cwd, T0);
         assert_eq!(ended(&e), vec![Ended::Skipped("gh not found".into())]);
         assert_eq!(e[0].dept, "Terra");
+        // no head yet: the target has no commit, and formatting it as a Chronicon detail must not panic
+        assert_eq!((e[0].target.sha.as_str(), e[0].target.sha7()), ("", ""));
         assert_eq!(gh.log().len(), 1);
         for k in 1..20 {
             assert!(at(&mut m, &gh, &cwd, T0 + k * IDLE_MS).is_empty());
@@ -740,6 +741,21 @@ mod tests {
         let e = at(&mut m, &gh, &cwd, T0 + POLL_MS + IDLE_MS);
         assert_eq!(ended(&e), vec![Ended::Skipped("gh not logged in".into())]);
         assert_eq!(lamp(&m), terra(CiStatus::None));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn gh_missing_at_the_first_poll_is_a_note_without_a_commit() {
+        let (d, cwd) = main_repo("nogh", true);
+        let gh = Stub::always(Err(GhError::Missing));
+        let mut m = Mains::default();
+        let e = at(&mut m, &gh, &cwd, T0);
+        assert_eq!(ended(&e), vec![Ended::Skipped("gh not found".into())]);
+        assert_eq!(gh.log(), vec![STATUS.to_string()]);
+        let detail = format!("{} · {}", e[0].target.branch, e[0].target.sha7());
+        assert_eq!(detail, "main · ");
+        assert_eq!(lamp(&m), terra(CiStatus::None));
+        assert!(m.links().is_empty());
         let _ = fs::remove_dir_all(&d);
     }
 
