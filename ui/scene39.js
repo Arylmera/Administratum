@@ -75,13 +75,14 @@ function paint(buf, over) {
 }
 const drawBuf = (g, buf, cv, u, v, z = 0) => { const [X, Y] = exact(u, v, z); g.drawImage(cv, X - buf.ox / RES, Y - buf.oy / RES, cv.width / RES, cv.height / RES); };
 
-// Desks, lecterns, consoles: their face sheet's sizes, and (art(), on first draw) the sprite lit (candle, screen) and
-// dim (scene.js KIND dim palettes), anchor: world (0, 0, 0).
+// Desks, lecterns, consoles, the room computer: their face sheet's sizes, and (art(), on first draw) the sprite lit
+// (candle, screen) and dim (scene.js KIND dim palettes), anchor: world (0, 0, 0); a piece with its own unlit frame (the
+// room computer's ROOMCOG.off) also that frame's volume, painted as drawn (off).
 let kit = null;
 function furnitureKit() {
   if (kit) return kit;
   kit = {};
-  for (const kind of ['desk', 'lectern', 'console']) {
+  for (const kind of ['desk', 'lectern', 'console', 'roomcog']) {
     const name = S.KIND[kind].map, s = sheetOf(name);
     kit[kind] = { kind, name, s, d: s.d, x0: s.x0, w: s.w, fh: s.fh, top: s.h };
   }
@@ -89,9 +90,10 @@ function furnitureKit() {
 }
 function art(k) {
   if (!k.buf) {
-    const { s } = k;
-    k.buf = bake(box(0, s.fw, 0, s.d, 0, s.fh + 4), b => build39(b, s, 0, 0, 1));
+    const vol = s => bake(box(0, s.fw, 0, s.d, 0, s.fh + 4), b => build39(b, s, 0, 0, 1)), off = MAPS[`${k.name}.off`];
+    k.buf = vol(k.s);
     k.lit = paint(k.buf); k.dim = paint(k.buf, S.KIND[k.kind].dim());
+    if (off) { k.offBuf = vol(sheetOf(k.name, off)); k.off = paint(k.offBuf); }
   }
   return k;
 }
@@ -253,11 +255,14 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     if (lit) sit(a, p);
     lights.push(S.consoleLight(c, lit));
   }
-  // the mirror hall's room computers (layout.computers, scene.js drawComputers): one console a room over its first spot
-  for (const [key, spots] of layout.computers ?? []) {
-    const c = { x: spots[0].x - 7, y: spots[0].y - 13 }, lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
-    furniture('console', c, `pc:${key}`, lit, 0, null, false, undefined);
-    lights.push(S.consoleLight(c, lit));
+  // the mirror hall's room computers (layout.computers, scene.js drawComputers): one room computer a room over its first
+  // spot, its lit or its unlit frame's volume
+  for (const spots of layout.computers?.values() ?? []) {
+    const c = S.computerAt(spots[0]), lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
+    const p = placeOf('roomcog', c);
+    floor.push(g2 => { const e = shadowOf(MAPS.ROOMCOG, c.x, c.y); if (e) e.cy -= p.k.d / 4; contactShadow(g2, e, shade); });
+    items.push({ foot: p.foot, draw(g2) { const k = art(p.k); drawBuf(g2, lit ? k.buf : k.offBuf, lit ? k.lit : k.off, p.u0, p.v0); } });
+    lights.push(S.computerLight(c, lit));
   }
   for (const [id, e] of sits) {
     const a = actors.get(id), k = a ? sitLevel(e, e.seen, now) : 0;

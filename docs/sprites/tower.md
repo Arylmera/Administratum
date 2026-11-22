@@ -148,6 +148,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/tower/refectorium.png`, drawn by actors.js | <img src="tower/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/tower/workstations.png`, drawn by (not referenced by name) | <img src="tower/SHELL_COG.png" height="48"> |
 | <a id="honours"></a>`HONOURS` | 36×48 | Hall of Honours plaque in the scriptorium's first back-wall alcove (a wide hall): the week's four marks are written over it. Source: `ui/art/tower/honours.png`, drawn by scene.js | <img src="tower/HONOURS.png" height="160"> |
+| <a id="roomcog"></a>`ROOMCOG` | 16×12 | Room computer (rooms plan), one a room on its first computer spot: lit while one of its shells or adepts runs code there. Source: `ui/art/tower/roomcog.png`, drawn by scene.js, scene39.js | <img src="tower/ROOMCOG.png" height="96"> |
+| <a id="roomcog-off"></a>`ROOMCOG.off` | 16×12 | Room computer, unlit: nobody runs code in that room. Source: `ui/art/tower/roomcog.png` | <img src="tower/ROOMCOG.off.png" height="96"> |
 
 ## Room tiles
 

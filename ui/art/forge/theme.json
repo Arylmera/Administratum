@@ -2,7 +2,7 @@
   "format": 1,
   "name": "Ordo Machinum",
   "world": "w40k",
-  "art": ["breakout"],
+  "art": ["breakout", "roomcog"],
   "px": {
     "1": "#2c2622",
     "2": "#15110e",
