@@ -270,6 +270,7 @@ gestures (below): the default art does not draw them.
 | `lift` | `SHAFT` 56x16, `SHAFT_TOP` 56x12, `SHAFT_PIT` 56x8, `CABLE` 2x4, `CAR_BACK` 52x40, `CAR_FRONT.shut` 52x40, `CAR_FRONT.half` 52x40, `CAR_FRONT.open` 52x40, `SLAB` 16x12, `SLAB_L` 8x12, `SLAB_R` 8x12, `LAMP.off` 6x6, `LAMP.on` 6x6 |
 | `enclave` | `ENCLAVE_FLOOR` 16x16, `ENCLAVE_RAIL` 16x10, `ENCLAVE_SIDE` 4x16, `ENCLAVE_POST` 6x14, `ENCLAVE_GATE` 4x16, `ENCLAVE_GATE_OPEN` 16x10, `ENCLAVE_GATE_FRONT` 16x20, `ENCLAVE_GATE_FRONT_OPEN` 16x20 |
 | `cilamp` | `CILAMP.off` 10x20, `CILAMP.amber` 10x20, `CILAMP.amber_dim` 10x20, `CILAMP.green` 10x20, `CILAMP.red` 10x20 |
+| `roomcog` | `ROOMCOG` 32x24, `ROOMCOG.off` 32x24 |
 | `room-floor` | `floor` 8x8, `channel h` 8x4, `channel v` 4x8, `sanctum passage` 4x4, `sill` 24x4, `floor vent` 8x8, `floor bolts` 8x8, `sanctum floor` 40x40 |
 | `room-walls` | `wall top` 24x20, `wall` 24x20, `wall east top` 24x20, `wall east` 24x20, `wall sanctum top` 24x20, `wall sanctum` 24x20, `wall foot` 4x4, `wall dark` 4x4, `wall base` 4x6, `sanctum base` 4x6, `pillar` 20x8, `pilaster` 8x39, `beacon off` 14x20, `beacon on` 14x20, `beacon cage` 14x20 |
 | `room-pipes` | `pipe h` 8x6, `pipe v` 6x8, `fitting h` 6x10, `fitting v` 10x6, `fitting wide` 20x4 |

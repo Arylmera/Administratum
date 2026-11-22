@@ -279,6 +279,28 @@ setTheme('tier2');
   setTheme('tier2');
 }
 
+// The rooms plan's room computer (tools/roomcog_art.mjs): each of the 14 worlds draws its own, lit and unlit. No world's
+// frame is the base frame's rows (a recolour keeps the rows), no two worlds share a silhouette, its lit frame is not its
+// unlit one, and every theme draws its world's.
+{
+  const RC = ['ROOMCOG', 'ROOMCOG.off'], base = ART.base.roomcog.frames, shapes = new Map([['tier2', mask(base['ROOMCOG.off'])]]);
+  assert.notDeepEqual(base.ROOMCOG, base['ROOMCOG.off'], 'base: the room computer lit is its unlit frame');
+  for (const id of Object.keys(THEMES).filter(id => id !== 'tier2')) {
+    const own = ART.themed[id]?.roomcog?.frames;
+    assert.deepEqual(Object.keys(own ?? {}).sort(), [...RC].sort(), `${id}: both room computer frames of its own`);
+    for (const n of RC) assert.notDeepEqual(own[n], base[n], `${id} ${n}: the base frame's rows`);
+    assert.notDeepEqual(own.ROOMCOG, own['ROOMCOG.off'], `${id}: the room computer lit is its unlit frame`);
+    const twin = [...shapes].find(([, s]) => s === mask(own['ROOMCOG.off']));
+    assert.ok(!twin, `${id}: the room computer has ${twin?.[0]}'s silhouette`);
+    shapes.set(id, mask(own['ROOMCOG.off']));
+  }
+  for (const id of Object.keys(THEMES)) {
+    setTheme(id);
+    for (const n of RC) assert.equal(SHEET_OF[n], id === 'tier2' ? 'roomcog' : `${id}/roomcog`, `${id} ${n}: its world's room computer`);
+  }
+  setTheme('tier2');
+}
+
 // The desktop column's lift (tools/lift_art.mjs): 13 frames in each of the 7 worlds, every one at the base frame's size,
 // each world's drawn from scratch: no frame the base one's rows (a recolour keeps the rows), and the car's front, its
 // back and its open doors each a silhouette of their own; every theme draws its world's.

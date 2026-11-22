@@ -242,3 +242,47 @@ setTheme('tier2');
     }
   } finally { setLamps([]); setView('flat'); if (had) globalThis.document = had; else delete globalThis.document; }
 }
+
+// The rooms plan's room computer (scene.js drawComputers, tools/roomcog_art.mjs), flat and 39°: one a room over its first
+// spot, its unlit frame and a dim glow while nobody runs code there, its sprite inside its room's cell and clear of
+// every block (it is wider than the adepts' console it replaced).
+{
+  const { setHallPlan } = await import('./hallplan.js'), { zonesOf } = await import('./layout.js'), { MAPS, sprite, RES } = await import('./sprites.js'), { T } = await import('./theme.js');
+  const { drawScene, computerAt } = await import('./scene.js'), { drawScene39 } = await import('./scene39.js');
+  const calls = [];
+  const fakeG = () => new Proxy({ globalAlpha: 1, measureText: t => ({ width: 6 * String(t).length }) }, {
+    get: (t, k) => (k in t ? t[k] : (...a) => { if (k === 'drawImage') calls.push(a); return k.startsWith('create') ? { addColorStop() {}, data: new Uint8ClampedArray(4096 * 4) } : undefined; }),
+    set: (t, k, v) => { t[k] = v; return true; },
+  });
+  const had = globalThis.document;
+  globalThis.document = { createElement: () => { const g = fakeG(), cv = { width: 0, height: 0, getContext: () => g }; return cv; } };
+  try {
+    setTheme('tier2'); setHallPlan('rooms');
+    const hall = hallOf(0), depts = ['a', 'b', 'c'].map((name, i) => ({ name, color: '#336699', ids: [`${name}-0`], room: `r${i}` }));
+    const L = layoutDepartments(depts, { size: { w: hall.w, h: hall.h } });
+    assert.ok(hall.sanct && L.computers.size >= 3, 'rooms plan: a computer a room');
+    const layout = { hall, blocks: L.blocks, desks: [], consoles: [], computers: L.computers, level: { dark: 0.18 }, anchors: null };
+    const at = [...L.computers.values()].map(spots => computerAt(spots[0])), [w, h] = [MAPS.ROOMCOG[0].length / RES, MAPS.ROOMCOG.length / RES];
+    // where it stands: the old console's foot line, centred on the spot; inside its cell, clear of the blocks
+    const zones = zonesOf(L.blocks, hall);
+    for (const [key, spots] of L.computers) {
+      const c = computerAt(spots[0]), Z = zones.find(z => z.id === key);
+      assert.deepEqual([c.x + w / 2, c.y + h], [spots[0].x, spots[0].y - 3], `${key}: centred over its first spot, its foot 3 px above it`);
+      assert.ok(Z && c.x >= Z.x && c.x + w <= Z.x + Z.w && c.y >= Z.y && c.y + h <= Z.y + Z.h, `${key}: inside its room's cell`);
+      for (const b of L.blocks) assert.ok(c.x + w <= b.x || c.x >= b.x + b.w || c.y + h <= b.y || c.y >= b.y + b.h, `${key}: clear of ${b.name}`);
+    }
+    let lights = [];
+    const draw = f => { calls.length = 0; lights = f(fakeG(), layout, new Map(), () => 0, 0); return calls.slice(); };
+    const glowAt = c => lights.filter(l => l.color === T.light.green && l.r === 5 && l.x === c.x + 8 && l.y === c.y + 6);
+    for (const [tag, f] of [['flat', drawScene], ['39°', drawScene39]]) {
+      setView(tag === 'flat' ? 'flat' : '39'); sceneSize(hall); use(hall);
+      const cs = draw(f);
+      assert.ok(at.every(c => glowAt(c).length === 1), `${tag}: each room computer glows dimly, unlit`);
+      if (tag === 'flat') {
+        const offs = cs.filter(a => a[0] === sprite(MAPS['ROOMCOG.off']));
+        assert.deepEqual(offs.map(a => a.slice(1, 3)).sort(), at.map(c => [c.x, c.y]).sort(), 'flat: each room draws its unlit computer at its place');
+        assert.equal(cs.filter(a => a[0] === sprite(MAPS.ROOMCOG) || a[0] === sprite(MAPS.CONSOLE)).length, 0, 'flat: no lit computer, no adepts\' console');
+      }
+    }
+  } finally { setHallPlan('open'); setView('flat'); if (had) globalThis.document = had; else delete globalThis.document; }
+}

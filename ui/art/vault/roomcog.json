@@ -1,0 +1,31 @@
+{
+  "frames": {
+    "ROOMCOG": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 24
+      }
+    },
+    "ROOMCOG.off": {
+      "frame": {
+        "x": 33,
+        "y": 0,
+        "w": 32,
+        "h": 24
+      }
+    }
+  },
+  "meta": {
+    "app": "tools/sheet_writer.mjs",
+    "image": "roomcog.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 65,
+      "h": 24
+    },
+    "palette": "key.gpl",
+    "anchors": {}
+  }
+}

@@ -628,6 +628,16 @@
     "details": [
      { "name": "sheet", "rect": [0, 0, 8, 10], "kind": "top", "v": 0, "z": 0 }
     ]
+   },
+   "ROOMCOG": {
+    "front": [0, 6, 32, 18],
+    "d": 10,
+    "recess": [
+     { "name": "screen", "rect": [10, 8, 12, 8], "depth": 2, "wall": "k" }
+    ],
+    "details": [
+     { "name": "crest", "rect": [0, 0, 32, 6], "kind": "box", "v": 3, "d": 4 }
+    ]
    }
   }
  }

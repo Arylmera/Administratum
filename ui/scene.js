@@ -5,7 +5,7 @@ import { WIN_Y, wallArt } from './wallart.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
-let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
+let DESK_AT, LECTERN_AT, CONSOLE_AT, ROOMCOG_AT, SK, PAPER;
 import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, lampSpots } from './layout.js';
 import { lampsAt, lampLights, LAMP_SIZE, LENS } from './cilamp.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
@@ -255,14 +255,17 @@ function sanctRail(items) {
     }
   }
 }
-// The rooms' computers (layout.computers: 3 spots a room, where its shells run): one console a room, the world's, over
-// its first spot (the others wait their turn below it); its screen lit while anyone works there.
+// The rooms' computers (layout.computers: 3 spots a room, where its shells run): one room computer a room (ROOMCOG, the
+// world's own, tools/roomcog_art.mjs), centred over its first spot with its foot 3 px above it (the others wait their
+// turn below it); its lit frame while anyone works there, its unlit one else.
+const computerAt = p => ({ x: p.x - 8, y: p.y - 15 });
+const computerLight = (c, lit) => ({ x: c.x + ROOMCOG_AT.light[0], y: c.y + ROOMCOG_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 function drawComputers(layout, all, items, lights) {
   for (const spots of layout.computers?.values() ?? []) {
-    const p = spots[0], c = { x: p.x - 7, y: p.y - 13 };
+    const p = spots[0], c = computerAt(p);
     const lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
-    items.push({ y: p.y - 3, draw: g2 => blit(g2, MAPS.CONSOLE, c.x, c.y) });
-    lights.push(consoleLight(c, lit));
+    items.push({ y: p.y - 3, draw: g2 => blit(g2, MAPS[lit ? 'ROOMCOG' : 'ROOMCOG.off'], c.x, c.y) });
+    lights.push(computerLight(c, lit));
   }
 }
 
@@ -902,6 +905,7 @@ const KIND = {
   desk: { map: 'DESK', at: null, dim: dimDesk }, // at: the sprite's anchors (fromArt)
   lectern: { map: 'LECTERN', at: null, dim: dimDesk },
   console: { map: 'CONSOLE', at: null, dim: dimConsole },
+  roomcog: { map: 'ROOMCOG', at: null, dim: dimConsole }, // the rooms plan's room computer (drawComputers): its own unlit frame
 };
 const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 
@@ -1283,8 +1287,8 @@ function drawBeacon(g, t, on, { x, y }) {
 // The anchors above from the active art (a theme may redraw desks, the skull... with its own anchors). A change drops
 // the paper piles: their sheets were laid out on the old surfaces.
 function fromArt() {
-  DESK_AT = { ...PROP_AT.DESK, scale: 1 }; LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }; CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 };
-  KIND.desk.at = DESK_AT; KIND.lectern.at = LECTERN_AT; KIND.console.at = CONSOLE_AT;
+  DESK_AT = { ...PROP_AT.DESK, scale: 1 }; LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }; CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 }; ROOMCOG_AT = PROP_AT.ROOMCOG;
+  KIND.desk.at = DESK_AT; KIND.lectern.at = LECTERN_AT; KIND.console.at = CONSOLE_AT; KIND.roomcog.at = ROOMCOG_AT;
   SK = PROP_AT.SKULL; // centre (its position), carry (a pushed sheet), beam (the searchlight)
   PAPER = papers();
 }
@@ -1292,4 +1296,4 @@ fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
 export { MAG, KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
-  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, doorFrame, near, skullRed };
+  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, computerAt, computerLight, doorsOf, doorFrame, near, skullRed };
