@@ -112,6 +112,11 @@ fn on_mouse(msg: u32, p: (i32, i32)) {
             if want != now {
                 // SAFETY: the strip's own window; flips one extended-style bit (what tao's set_ignore_cursor_events sets).
                 unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, style(hwnd) ^ WS_EX_TRANSPARENT as isize) };
+                // the strip left meanwhile (place_hall cleared the bit after our ON check): the hall takes clicks again
+                if !super::ON.load(Ordering::SeqCst) {
+                    // SAFETY: as above, clearing the bit only.
+                    unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, style(hwnd) & !(WS_EX_TRANSPARENT as isize)) };
+                }
             }
         }
     }
