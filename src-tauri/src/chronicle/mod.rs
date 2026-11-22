@@ -267,6 +267,24 @@ pub struct Cursor {
     pending: HashMap<String, Pending>,
     msgs: HashMap<String, Tokens>,
     turn: TurnSummary,
+    /// Live pushes read from this transcript, not yet taken by `Chronicle::take_ci`.
+    ci: Vec<CiPush>,
+}
+
+/// A live `git push` of a session, for the CI watcher (ci.rs): who pushed, from where, what the command and git said.
+/// A side record next to `Found`: never serialized, never sent to the UI. Not made for a backfill read, for a failed
+/// call or for `git -C <dir> push` (the repo is not the session's).
+#[derive(Clone, Debug, PartialEq)]
+pub struct CiPush {
+    pub session_id: String,
+    pub name: String,
+    pub dept: String,
+    /// The session's working directory.
+    pub cwd: String,
+    /// The push command line, from `git` to the next `&&`, `;`, `|` or newline.
+    pub command: String,
+    /// What the call printed, as read.
+    pub output: String,
 }
 
 // ponytail: both maps are cleared when full; only orphaned tool_uses (interrupted turns) pile up.
@@ -280,6 +298,11 @@ pub struct Src<'a> {
     /// The session's current git branch, for a live read only (a backfill may predate a checkout): what a
     /// bare `git push` pushed when neither the command nor its output says.
     pub branch: Option<&'a str>,
+    /// The session's working directory (a live push's repo is found from it).
+    pub cwd: &'a str,
+    /// The line was read on a pass that is not the first read of its transcript (not a backfill): only a live push
+    /// starts a CI watch.
+    pub live: bool,
 }
 
 const TEST_RUNNERS: [&str; 9] = ["cargo test", "npm test", "npm run test", "pnpm test", "yarn test", "pytest", "vitest", "jest", "go test"];
@@ -382,6 +405,9 @@ pub fn extract_line(cur: &mut Cursor, line: &str, min_ts: i64, src: &Src, now_ms
                 let p = b["tool_use_id"].as_str().and_then(|id| cur.pending.remove(id));
                 for (kind, detail) in classify(p.as_ref(), b, src.branch) {
                     emit(kind, detail);
+                }
+                if let Some(push) = ci_push(p.as_ref(), b, src).filter(|_| src.live) {
+                    cur.ci.push(push);
                 }
             }
         }
@@ -534,6 +560,21 @@ fn classify(p: Option<&Pending>, b: &Value, branch: Option<&str>) -> Vec<(&'stat
         out.push(("port-in-use", format!("port {port}")));
     }
     out
+}
+
+/// The CI side record of a push result: a successful `git push` in a Bash call, run in the session's own repo.
+/// Detected like `classify_call`'s `push` event (same command rules); the caller keeps it for a live read only.
+fn ci_push(p: Option<&Pending>, b: &Value, src: &Src) -> Option<CiPush> {
+    let p = p.filter(|p| p.name == "Bash")?;
+    if b["is_error"].as_bool() == Some(true) {
+        return None;
+    }
+    let head = p.command.split("<<").next().unwrap_or("");
+    let (i, j) = git_sub(head, "push")?;
+    if head[i..j].contains(" -C") {
+        return None;
+    }
+    Some(CiPush { session_id: src.session_id.into(), name: src.name.into(), dept: src.dept.into(), cwd: src.cwd.into(), command: segment(head, i).into(), output: result_text(&b["content"]) })
 }
 
 fn classify_call(p: Option<&Pending>, b: &Value, branch: Option<&str>) -> Vec<(&'static str, String)> {
@@ -785,6 +826,8 @@ pub struct Chronicle {
     dirty: bool,
     /// Per session id, the absolute paths it (or its subagents) edited in the last 20 min (conflict.rs).
     recent: HashMap<String, Vec<(i64, String)>>,
+    /// Live pushes found since the last `take_ci`.
+    ci: Vec<CiPush>,
 }
 
 /// A file untouched since before today needs no offset: first sight skips it to its end anyway.
@@ -852,7 +895,7 @@ impl Chronicle {
         prune_seqs(&mut seqs, today_start);
         let today = day_of(now_ms);
         let tithe = load_tithe(&dir, &today).unwrap_or_else(|| Tithe::new(&today));
-        Chronicle { dir, offsets, cursors: HashMap::new(), seqs, oc: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false, recent: HashMap::new() }
+        Chronicle { dir, offsets, cursors: HashMap::new(), seqs, oc: HashMap::new(), tithe, last_flush_ms: now_ms, dirty: false, recent: HashMap::new(), ci: vec![] }
     }
 
     pub fn dir(&self) -> &Path {
@@ -887,10 +930,13 @@ impl Chronicle {
                     }
                     if events {
                         let branch = s.branch.as_deref().filter(|_| !today_only);
-                        let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref(), branch };
+                        let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref(), branch, cwd: &s.cwd, live: !today_only };
                         extract_line(cur, line, if today_only { today_start } else { i64::MIN }, &src, now_ms, &mut found);
                     }
                 });
+                if let Some((cur, _)) = self.cursors.get_mut(path) {
+                    self.ci.append(&mut cur.ci);
+                }
                 let Some(offset) = read else { continue };
                 if self.offsets.insert(key, offset) != Some(offset) {
                     self.dirty = true;
@@ -934,6 +980,11 @@ impl Chronicle {
         conflict::pairs(&self.recent, roster, now_ms)
     }
 
+    /// The live pushes found since the last call, for the CI watcher (ci.rs); empties the list.
+    pub fn take_ci(&mut self) -> Vec<CiPush> {
+        std::mem::take(&mut self.ci)
+    }
+
     /// Each live session's current turn (from its main transcript's cursor), by session id; none before a first prompt
     /// or tool call has been read.
     pub fn turns(&self, files: &HashMap<String, Vec<(FileStat, bool)>>) -> HashMap<String, TurnSummary> {
@@ -961,9 +1012,10 @@ impl Chronicle {
             let st = self.oc.entry(id.clone()).or_insert_with(|| OcCursor { backfill: stored.is_none(), ..Default::default() });
             st.main = helper.is_none();
             let min_ts = if st.backfill { today_start } else { i64::MIN };
-            let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref(), branch: s.branch.as_deref().filter(|_| !st.backfill) };
+            let src = Src { session_id: &s.id, name: &s.name, dept: &s.dept, helper: helper.as_deref(), branch: s.branch.as_deref().filter(|_| !st.backfill), cwd: &s.cwd, live: !st.backfill };
             let mut found = Found::default();
             let next = feed_opencode(st, &batch, after, min_ts, &src, &s.cwd, &mut found);
+            self.ci.append(&mut st.cur.ci);
             if batch.len() < OPENCODE_BATCH as usize {
                 st.backfill = false;
             }
@@ -1221,7 +1273,7 @@ mod tests {
         SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
     }
 
-    const SRC: Src = Src { session_id: "s1", name: "terra-77", dept: "Terra", helper: None, branch: None };
+    const SRC: Src = Src { session_id: "s1", name: "terra-77", dept: "Terra", helper: None, branch: None, cwd: r"C:\git\Terra", live: false };
 
     // Real-shape lines (trimmed): Claude Code 2.1.283 transcripts.
     fn bash_use(id: &str, cmd: &str, ts: i64) -> String {
@@ -1329,6 +1381,74 @@ mod tests {
             extract_line(&mut cur, &l, i64::MIN, &live, 0, &mut out);
         }
         assert_eq!(out.0[0].detail, "", "another repo: the session's branch says nothing");
+    }
+
+    const PUSHED: &str = "To github.com:o/r.git\n   1a2b3c4..5d6e7f8  main -> main\n";
+
+    fn ci_of(src: &Src, lines: &[String]) -> Vec<CiPush> {
+        let mut cur = Cursor::default();
+        extract(&mut cur, &lines.join("\n"), i64::MIN, src, 0);
+        cur.ci
+    }
+
+    #[test]
+    fn a_live_push_hands_out_its_ci_record() {
+        let live = Src { live: true, ..SRC };
+        let got = ci_of(&live, &[bash_use("a", "cd x && git push -u origin HEAD && echo done", 0), result("a", PUSHED.into(), Some(false), 0)]);
+        assert_eq!(
+            got,
+            [CiPush { session_id: "s1".into(), name: "terra-77".into(), dept: "Terra".into(), cwd: r"C:\git\Terra".into(), command: "git push -u origin HEAD".into(), output: PUSHED.into() }]
+        );
+        // OpenCode and Claude Code results alike: the content may be an array of text blocks
+        let blocks = serde_json::json!([{"type":"text","text":PUSHED}]);
+        assert_eq!(ci_of(&live, &[bash_use("b", "git push", 0), result("b", blocks, None, 0)])[0].output, PUSHED);
+    }
+
+    #[test]
+    fn a_backfilled_push_hands_out_nothing_but_still_emits_its_event() {
+        let mut cur = Cursor::default();
+        let lines = [bash_use("a", "git push origin main", 0), result("a", PUSHED.into(), Some(false), 0)];
+        let ev = extract(&mut cur, &lines.join("\n"), i64::MIN, &SRC, 0).0;
+        assert_eq!(kinds(&ev), [("push", "origin/main")]);
+        assert!(cur.ci.is_empty(), "not live: no CI record");
+    }
+
+    #[test]
+    fn only_a_successful_push_in_the_sessions_own_repo_hands_out_a_ci_record() {
+        let live = Src { live: true, ..SRC };
+        let ci = |cmd: &str, err: Option<bool>| ci_of(&live, &[bash_use("a", cmd, 0), result("a", PUSHED.into(), err, 0)]).len();
+        assert_eq!(ci("git push", Some(true)), 0, "a failed push");
+        assert_eq!(ci("git -C ../other push", Some(false)), 0, "another repo");
+        assert_eq!(ci("git status", Some(false)), 0);
+        assert_eq!(ci("git log --grep push", Some(false)), 0);
+        assert_eq!(ci("cat <<'EOF'\ngit push\nEOF", Some(false)), 0, "a heredoc body is no command");
+        let read = [
+            serde_json::json!({"type":"assistant","message":{"content":[{"type":"tool_use","id":"r","name":"Read","input":{"command":"git push"}}]}}).to_string(),
+            result("r", PUSHED.into(), Some(false), 0),
+        ];
+        assert!(ci_of(&live, &read).is_empty(), "only Bash");
+    }
+
+    #[test]
+    fn chronicle_takes_ci_pushes_from_live_reads_only() {
+        let root = temp_dir("chronicle-ci");
+        let cwd = r"C:\git\Terra";
+        let base = root.join("projects").join(registry::slug(cwd));
+        fs::create_dir_all(&base).unwrap();
+        let t = now();
+        let file = base.join("s1.jsonl");
+        let push = |id: &str| format!("{}\n{}\n", bash_use(id, "git push origin main", t), result(id, PUSHED.into(), Some(false), t));
+        fs::write(&file, push("a")).unwrap();
+        let mut c = Chronicle::open(root.join("chronicon"), t, true);
+        let s = Session { cwd: cwd.into(), dept: "Terra".into(), name: "terra-77".into(), ..crate::registry::tests_session("s1") };
+        let read = |c: &mut Chronicle| c.read_transcripts(std::slice::from_ref(&s), &HashMap::from([("s1".to_string(), vec![(registry::stat(&file).unwrap(), false)])]), t);
+        assert_eq!(read(&mut c).len(), 1, "the first read finds the push event");
+        assert!(c.take_ci().is_empty(), "first read: a backfill, no CI record");
+        fs::write(&file, format!("{}{}", push("a"), push("b"))).unwrap();
+        assert_eq!(read(&mut c).len(), 1);
+        let got = c.take_ci();
+        assert_eq!(got.iter().map(|p| (p.session_id.as_str(), p.dept.as_str(), p.cwd.as_str(), p.command.as_str())).collect::<Vec<_>>(), [("s1", "Terra", cwd, "git push origin main")]);
+        assert!(c.take_ci().is_empty(), "taken once");
     }
 
     #[test]

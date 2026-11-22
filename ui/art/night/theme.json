@@ -2,7 +2,7 @@
   "format": 1,
   "name": "Ordo Malleus",
   "world": "w40k",
-  "art": ["breakout"],
+  "art": ["breakout", "roomcog", "cimain"],
   "px": {
     "1": "#1e2028",
     "2": "#0c0e12",
@@ -92,7 +92,11 @@
     "--rod": "#7a8494",
     "--rod-lo": "#3a404a",
     "--rod-edge": "#161a20",
-    "--rod-cap": "#e6ecf4"
+    "--rod-cap": "#e6ecf4",
+    "--chart-new": "#a1261b",
+    "--chart-cache": "#0e5f48",
+    "--chart-red": "#9f2919",
+    "--chart-green": "#186040"
   },
   "text": {
     "subtitle": "Ordo Malleus · Night vigil of the Inquisition",

@@ -24,6 +24,7 @@ globalThis.DOMMatrix = class { constructor(m) { this.m = m; } };
 
 const { setTheme } = await import('./theme.js');
 await import('./themes.js');
+await (await import('./sprites.js')).loadAllArt(); // sprites.js loads the active theme's art only: this test visits every world
 const { drawStatic } = await import('./scene.js');
 const { hallOf } = await import('./layout.js');
 

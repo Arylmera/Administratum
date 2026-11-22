@@ -7,6 +7,8 @@ import { hung as hungOn } from './scene.js';
 import { hallOf, WALL, SCENE, MAX_W, WING_W } from './layout.js';
 import { P39 } from './iso.js';
 import { setView, sceneSize, toScreen } from './view.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 // 2 hall sizes (the minimum, a big window), each without and with bays
 // ...and with the west wing (O10c): three rooms, one of two rows

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { install, replies, calls, invoked, tick, flush, emit } from './testdom.mjs';
+import { readFileSync } from 'node:fs';
+import { install, replies, calls, invoked, tick, flush, emit, parse } from './testdom.mjs';
 
 // The host app (not the remote view: bridge.js reads REMOTE once per process). Saved values come from settings.json.
 install();
@@ -23,7 +24,7 @@ replies.theme_packs = () => disk.map(p => ({ ...p }));
 replies.theme_pack_file = ({ path }) => FILES[path] ?? new Error(path === 'mine/broken/theme.json' ? '<b>bad</b> bytes' : 'not found');
 await import('./themes.js'); // every world's styles, as app.js loads them
 const { settings, store, view, quiet, place, initSettings, MONITOR } = await import('./settings.js');
-const { T } = await import('./theme.js');
+const { T, t } = await import('./theme.js');
 
 // Loading: out-of-range values are clamped, unknown choices fall back to the default.
 assert.equal(settings.staleMin, 120);
@@ -264,9 +265,24 @@ assert.equal(field('reportDir').disabled, true);
 change('stuck', false);
 change('reportOn', true);
 
-// Reset: every value back to its default, theme and view included.
+// Reset: every value back to its default, theme and view included. Two clicks: the first only arms (F8).
 seen.length = 0;
-form.querySelector('.reset').click();
+{
+  const reset = form.querySelector('.reset'), label = reset.textContent;
+  assert.ok(settings.staleMin !== 5 && label === 'Reset to defaults');
+  const stale = invoked('set_stale_minutes').length;
+  reset.click();
+  assert.equal(reset.textContent, t('prefs.resetArmed'), 'the first click arms and says so');
+  assert.equal(settings.staleMin, 1, 'one click resets nothing');
+  assert.equal(invoked('set_stale_minutes').length, stale, 'and tells the backend nothing');
+  tick(4000);
+  assert.equal(reset.textContent, label, 'it disarms after the window');
+  reset.click(); // a second click after the window only arms again
+  assert.equal(settings.staleMin, 1);
+  assert.equal(reset.textContent, t('prefs.resetArmed'));
+  tick(3999); reset.click(); // within the window of the arming: resets
+  assert.equal(reset.textContent, label);
+}
 assert.equal(settings.staleMin, 5);
 assert.equal(settings.onTop, true);
 assert.equal(settings.cardOnClick, true);
@@ -277,6 +293,49 @@ assert.equal(T.id, 'tier2');
 assert.equal(store.get('adm.view'), 'flat');
 assert.deepEqual(last('set_stale_minutes'), { minutes: 5 });
 assert.deepEqual(seen.filter(s => s[0] === 'mode' || s[0] === 'muted'), [['mode', 'auto'], ['muted', false]]);
+// F14: every setting key still has exactly one control after the regroup (the shipped markup, not the live form: the
+// panel removes the rows the backend cannot serve).
+{
+  const html = parse(readFileSync(new URL('./index.html', import.meta.url), 'utf8'));
+  const keys = [...Object.keys(settings), ...Object.keys(MONITOR), 'lat', 'lon', 'idleFps', 'pauseHidden', 'questions', 'questionToast',
+    'quietOn', 'quietFrom', 'quietTo', 'vigilDeadline', 'openWith', 'openCmd', 'login', 'updateCheck', 'packCheck', 'world', 'theme', 'view',
+    'mode', 'chime', 'scale', 'scaleAuto', 'remoteOn', 'remoteActions', 'remotePort'];
+  assert.ok(keys.length >= 45 && new Set(keys).size === keys.length, 'the list names each key once');
+  for (const k of keys) assert.equal(html.querySelectorAll(`[name="${k}"]`).length, 1, `${k} has exactly one control`);
+  // the controls the list does not know are the output beside the slider and nothing else
+  const named = new Set(html.querySelectorAll('input, select, output').map(e => e.name).filter(Boolean));
+  assert.deepEqual([...named].filter(n => !keys.includes(n)), ['scaleOut']);
+  // the pair that confused: each says what it picks
+  assert.equal(t('prefs.theme'), 'World');
+  assert.equal(t('prefs.look'), 'Look');
+  assert.equal(form.querySelector('[data-t="prefs.look"]').closest('label').querySelector('select').name, 'theme');
+  assert.equal(form.querySelector('[data-t="prefs.theme"]').closest('label').querySelector('select').name, 'world');
+}
+// F15: the dialog is modal, the categories are a tab list moved by the arrow keys (the move selects), Home and End.
+{
+  const prefs = document.getElementById('prefs');
+  assert.equal(prefs.getAttribute('aria-modal'), 'true');
+  const list = prefs.querySelector('.cats [role="tablist"]'), tabs = list.querySelectorAll('[role="tab"]');
+  assert.ok(tabs.length >= 5 && !list.contains(form.querySelector('.reset')), 'Reset is not one of the tabs');
+  const key = (el, k) => { const seen = {}; el.dispatch('keydown', { key: k, preventDefault() { seen.prevented = true; } }); return seen; };
+  const sel = () => tabs.filter(b => b.getAttribute('aria-selected') === 'true').map(b => b.dataset.cat);
+  cat('hall').click();
+  assert.deepEqual(sel(), ['hall']);
+  assert.deepEqual(tabs.map(b => b.getAttribute('tabindex')), tabs.map(b => (b.dataset.cat === 'hall' ? '0' : '-1')), 'roving tabindex');
+  assert.equal(key(cat('hall'), 'ArrowRight').prevented, true);
+  assert.equal(document.activeElement, cat('petitions'));
+  assert.deepEqual(sel(), ['petitions']);
+  assert.equal(form.querySelector('section[data-cat="petitions"]').hidden, false);
+  assert.equal(cat('petitions').getAttribute('tabindex'), '0');
+  assert.equal(cat('hall').getAttribute('tabindex'), '-1');
+  key(cat('petitions'), 'ArrowLeft'); key(cat('hall'), 'ArrowLeft');
+  assert.equal(document.activeElement, tabs.at(-1), 'wraps from the first to the last');
+  key(document.activeElement, 'Home');
+  assert.equal(document.activeElement, tabs[0]);
+  key(document.activeElement, 'End');
+  assert.equal(document.activeElement, tabs.at(-1));
+  assert.equal(key(document.activeElement, 'a').prevented, undefined, 'other keys are left alone');
+}
 console.log('settings ok');
 
 // Reset restores the Monitoring defaults, and the panel shows them.
@@ -391,7 +450,7 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   add.click();
   assert.equal(rowsNow().length, MAX_ROOMS);
   // Reset to defaults leaves the rooms alone
-  form.querySelector('.reset').click();
+  form.querySelector('.reset').click(); form.querySelector('.reset').click();
   assert.deepEqual(rooms.list.map(r => r.id), [second]);
 }
 
@@ -494,3 +553,123 @@ assert.ok(stuckOpts.every(n => !field(n).disabled) && field('reportDir').disable
   assert.equal(T.id, 'bob/worlds:steam');
 }
 console.log('packs ok');
+
+// L4a: Settings > Status, a refused save, the remote view's states, the update's progress, the test notification, the CI switch.
+{
+  const prefs = document.getElementById('prefs'), opener = document.getElementById('prefs-open');
+  const reopen = async () => { if (!prefs.hidden) { opener.click(); tick(400); } opener.click(); await flush(); };
+  const tab = name => document.querySelector(`#prefs .cats [data-cat="${name}"]`);
+  const NOW = Date.now();
+  replies.integration_status = [
+    { name: 'gh', state: 'warn', message: 'gh not logged in: run gh auth login', timeMs: NOW - 5 * 60000 },
+    { name: 'remote', state: 'error', message: 'port 8765 in use', timeMs: NOW - 30_000 },
+    { name: 'toast', state: 'ok', message: 'ready', timeMs: NOW - 3 * 3600_000 },
+  ];
+  await reopen();
+  assert.equal(invoked('integration_status').length > 0, true, 'opening the panel reads the status');
+  tab('status').click(); await flush();
+  const rows = [...document.querySelectorAll('#prefs .st-row')];
+  assert.deepEqual(rows.map(r => r.querySelector('.st-name').textContent), ['gh', 'remote', 'toast']);
+  const err = rows[1];
+  assert.equal(err.dataset.state, 'error');
+  assert.equal(err.querySelector('.st-state').textContent, 'Error', 'the state is a word, not a colour alone');
+  assert.equal(err.querySelector('.st-mark').textContent, '✕');
+  assert.equal(err.querySelector('.st-mark').getAttribute('aria-hidden'), 'true');
+  assert.equal(err.querySelector('.st-msg').textContent, 'port 8765 in use');
+  assert.equal(err.querySelector('.st-ago').textContent, '<1m ago');
+  assert.equal(rows[0].querySelector('.st-ago').textContent, '5m ago');
+  assert.equal(rows[2].querySelector('.st-ago').textContent, '3h ago');
+  assert.notEqual(rows[0].querySelector('.st-mark').textContent, rows[2].querySelector('.st-mark').textContent, 'warn and ok differ by mark');
+  assert.equal(document.querySelector('#prefs section[data-cat="status"]').hidden, false);
+  // refreshed every few seconds while the panel is open
+  const n = invoked('integration_status').length;
+  tick(4000); await flush();
+  assert.ok(invoked('integration_status').length > n, 'refreshed while open');
+  replies.integration_status = [];
+  tick(4000); await flush();
+  assert.equal(document.querySelectorAll('#prefs .st-row').length, 0);
+  assert.equal(document.querySelector('#prefs .st-empty').textContent, t('prefs.status.empty'), 'an empty list says so');
+  replies.integration_status = new Error('backend down');
+  tick(4000); await flush();
+  assert.equal(document.querySelector('#prefs .st-empty').textContent, 'Status unavailable: backend down');
+
+  // I6: the adm.ci switch saves like the others; the gh line shows the backend's gh entry
+  replies.integration_status = [{ name: 'gh', state: 'warn', message: 'gh not logged in: run gh auth login', timeMs: NOW }];
+  tab('petitions').click();
+  assert.equal(MONITOR.ci, '0');
+  assert.equal(store.get('adm.ci', MONITOR.ci), '0', 'off by default');
+  const reads = invoked('integration_status').length;
+  change('ci', true);
+  assert.equal(store.get('adm.ci'), '1');
+  await flush();
+  assert.equal(last('settings_save').values['adm.ci'], '1', 'saved to the file');
+  assert.ok(invoked('integration_status').length > reads, 'the gh line is read again after the switch');
+  assert.equal(document.querySelector('#prefs .ci-gh').textContent, 'gh not logged in: run gh auth login');
+  assert.equal(field('ci').checked, true);
+  replies.integration_status = [{ name: 'gh', state: 'ok', message: 'gh ready', timeMs: NOW }];
+  tick(2000); await flush();
+  assert.equal(document.querySelector('#prefs .ci-gh').textContent, 'gh ready');
+  change('ci', false);
+  assert.equal(store.get('adm.ci'), '0');
+
+  // F5: a refused settings_save shows an inline line; the next good one clears it
+  const saveErr = document.querySelector('#prefs .save-err');
+  assert.equal(saveErr.hidden, true);
+  replies.settings_save = new Error('disk full');
+  await store.flush();
+  assert.equal(saveErr.hidden, false);
+  assert.equal(saveErr.textContent, 'Not saved: disk full');
+  replies.settings_save = undefined;
+  await store.flush();
+  assert.equal(saveErr.hidden, true);
+  assert.equal(saveErr.textContent, '');
+
+  // F5: remote_status failing keeps the category and says why; the new states are shown
+  replies.remote_status = new Error('settings unreadable');
+  await reopen();
+  assert.equal(tab('remote').hidden, false, 'the remote category stays');
+  const rv = document.getElementById('remote'), rvErr = rv.querySelector('.rv-err'), rvState = rv.querySelector('.rv-state');
+  assert.equal(rv.hidden, false);
+  assert.equal(rvErr.hidden, false);
+  assert.equal(rvErr.textContent, 'The remote view could not be read: settings unreadable');
+  replies.remote_status = { enabled: false, saved: true, loopback: false, error: 'address in use', actions_allowed: false, port: 8765, urls: [], qr_svg: null };
+  await reopen();
+  assert.equal(rvErr.hidden, true);
+  assert.equal(rvState.hidden, false);
+  assert.equal(rvState.textContent, 'Left on, but not listening on the network: address in use');
+  assert.equal(field('remoteOn').checked, true, 'the saved choice stays shown');
+  assert.equal(rv.querySelector('.rv-on').hidden, true, 'no pairing while nothing listens');
+  replies.remote_status = { enabled: false, saved: false, loopback: true, error: null, actions_allowed: false, port: 8765, urls: [], qr_svg: null };
+  await reopen();
+  assert.equal(rvState.textContent, 'The network view is off. This PC still answers on 127.0.0.1 only, with the pairing token, for the local command-line tool.');
+  replies.remote_status = { enabled: true, saved: true, loopback: false, error: null, actions_allowed: false, port: 8765, urls: [], qr_svg: null };
+  await reopen();
+  assert.equal(rvState.hidden, true, 'a healthy view says nothing');
+
+  // F18: the update's progress on its line; a percent when the total is known, bytes otherwise
+  replies.check_update = { current: '0.6.5', available: '0.7.0' };
+  replies.install_update = new Promise(() => {}); // never answers: the download goes on
+  const up = document.getElementById('updates');
+  tab('system').click();
+  up.querySelector('.up-check').click(); await flush();
+  up.querySelector('.up-install').click();
+  emit('update-progress', { downloaded: 250, total: 1000 });
+  assert.equal(up.querySelector('.up-line').textContent, 'Downloading the update… 25%');
+  emit('update-progress', { downloaded: 1000, total: 1000 });
+  assert.equal(up.querySelector('.up-line').textContent, 'Downloading the update… 100%');
+  emit('update-progress', { downloaded: 3 * 1048576, total: null });
+  assert.equal(up.querySelector('.up-line').textContent, 'Downloading the update… 3.0 MB');
+
+  // F18: the test notification button calls the command and says whether it was sent
+  const btn = document.querySelector('#prefs .test-notify'), line = document.querySelector('#prefs .test-line');
+  replies.test_notification = null;
+  btn.click(); await flush();
+  assert.equal(invoked('test_notification').length, 1);
+  assert.equal(line.textContent, 'Test notification sent.');
+  assert.equal(btn.disabled, false);
+  replies.test_notification = new Error('notifications are blocked');
+  btn.click(); await flush();
+  assert.equal(invoked('test_notification').length, 2);
+  assert.equal(line.textContent, 'Not sent: notifications are blocked');
+}
+console.log('status ok');

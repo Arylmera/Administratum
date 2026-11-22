@@ -110,6 +110,16 @@ pub fn build(rows: &[Shown], live: Option<&Live>, now_ms: i64) -> Vec<Session> {
 const TUIS_EVERY: Duration = Duration::from_secs(5);
 
 /// A process that is an OpenCode TUI (or a one-shot `opencode run`): the `opencode` executable, not its service.
+/// An idle session is idle since the later of OpenCode's `time_idle` (what `build` used) and the end of its last
+/// petition (`answered`): after a Deny the database still holds the idle time from before the request.
+fn idle_after_answer(sessions: &mut [Session], answered: &HashMap<String, i64>) {
+    for s in sessions.iter_mut().filter(|s| s.status == "idle") {
+        if let Some(at) = answered.get(&s.id) {
+            s.since_ms = s.since_ms.max(*at);
+        }
+    }
+}
+
 fn is_tui(name: &str, cmd: &[String]) -> bool {
     let name = name.to_ascii_lowercase();
     (name == "opencode" || name == "opencode.exe") && !cmd.iter().skip(1).any(|a| a == "serve")
@@ -179,6 +189,11 @@ pub struct Source {
     rows: Vec<Shown>,
     /// Pending request id -> when it was first seen: the petition's episode (`since_ms`).
     seen: HashMap<String, i64>,
+    /// The sessions that were waiting on a petition at the last tick, and session id -> when a petition of its ended
+    /// (the first tick that found it gone): OpenCode's `time_idle` does not move for an answer, so an idle session
+    /// is idle since the later of the two (`idle_after_answer`).
+    waiting: HashSet<String>,
+    answered: HashMap<String, i64>,
     /// Messages already logged: each is printed once per run.
     logged: HashSet<String>,
     /// The database stamp the Chronicon last read messages at, and whether a batch came back full (more to read).
@@ -213,7 +228,21 @@ impl Source {
     }
 
     fn at(db: PathBuf, registration: PathBuf) -> Self {
-        Source { db, registration, stamp: None, rows: vec![], seen: HashMap::new(), logged: HashSet::new(), fed: None, more: false, tuis: None, sys: System::new(), lister: scan_tuis }
+        Source {
+            db,
+            registration,
+            stamp: None,
+            rows: vec![],
+            seen: HashMap::new(),
+            waiting: HashSet::new(),
+            answered: HashMap::new(),
+            logged: HashSet::new(),
+            fed: None,
+            more: false,
+            tuis: None,
+            sys: System::new(),
+            lister: scan_tuis,
+        }
     }
 
     /// The folders of the running opencode TUIs, re-listed at most every TUIS_EVERY.
@@ -250,6 +279,13 @@ impl Source {
             self.seen.clear();
         }
         let mut out = build(&self.rows, live.as_ref(), now_ms);
+        let waiting: HashSet<String> = out.iter().filter(|s| s.status == "waiting").map(|s| s.id.clone()).collect();
+        for gone in self.waiting.difference(&waiting) {
+            self.answered.insert(gone.clone(), now_ms);
+        }
+        self.waiting = waiting;
+        self.answered.retain(|_, at| *at > now_ms - OPENCODE_IDLE_MS);
+        idle_after_answer(&mut out, &self.answered);
         if out.iter().any(|s| s.status == "idle") {
             keep_idle(&mut out, Some(self.tui_folders()));
         } else {
@@ -260,7 +296,7 @@ impl Source {
 
     fn log(&mut self, msg: String) {
         if self.logged.insert(msg.clone()) {
-            eprintln!("{msg}");
+            crate::status::report("opencode", crate::status::State::Warn, msg);
         }
     }
 
@@ -501,6 +537,37 @@ mod tests {
         drop(c);
         let _ = std::fs::remove_dir_all(&dir);
         assert!(test_source(dir.join("opencode.db"), dir.join("service.json")).roster(NOW).is_empty(), "no OpenCode installed");
+    }
+
+    /// F19: after a Deny the idle line said "idle since 22:43:05", earlier than the petition (22:43:12). OpenCode's
+    /// `time_idle` is from before the request (or is not moved by the answer), so an answered petition must carry the
+    /// idle time forward to when it ended.
+    #[test]
+    fn a_session_whose_permission_was_answered_is_idle_since_the_answer() {
+        let (dir, db_file, c) = wal_db("deny");
+        db::tests::add_session(&c, "ses_run", None, "Fix the card", (Some(NOW - 9_000), Some(NOW - 9_000), None));
+        db::tests::add_message(&c, "ses_run", 1, "user", r#"{"text":"fix the card"}"#);
+        let (port, _) = fake_service(vec![
+            ("/api/session/active", r#"{"data":{"ses_run":{"type":"running"}}}"#),
+            ("/api/session/ses_run/permission", r#"{"data":[{"id":"per_7","sessionID":"ses_run","action":"shell","resources":["cargo test"]}]}"#),
+        ]);
+        let reg = dir.join("service.json");
+        std::fs::write(&reg, format!(r#"{{"id":"svc","version":"2.0.29","url":"http://127.0.0.1:{port}","pid":{},"password":"x"}}"#, std::process::id())).unwrap();
+        let mut src = test_source(db_file, reg);
+        let asked = src.roster(NOW);
+        assert_eq!((asked[0].status.as_str(), asked[0].since_ms), ("waiting", NOW), "the petition, first seen at NOW");
+        // Deny at NOW + 4 s: OpenCode clears its claim and leaves time_idle as it was
+        c.execute("UPDATE session_v2 SET time_suspended = NULL WHERE id = 'ses_run'", []).unwrap();
+        let denied = src.roster(NOW + 4_000);
+        assert_eq!((denied.len(), denied[0].status.as_str()), (1, "idle"));
+        assert!(denied[0].since_ms >= NOW + 4_000, "idle since {} is before the answer at {}", denied[0].since_ms, NOW + 4_000);
+        // later ticks keep that time (it is when the session went idle, not when we looked)
+        assert_eq!(src.roster(NOW + 9_000)[0].since_ms, denied[0].since_ms);
+        // a session that was never asked keeps OpenCode's own idle time
+        c.execute("UPDATE session_v2 SET time_idle = ?1 WHERE id = 'ses_run'", [NOW + 20_000]).unwrap();
+        assert_eq!(src.roster(NOW + 21_000)[0].since_ms, NOW + 20_000, "a later idle time from OpenCode wins");
+        drop(c);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     const NOW: i64 = 50_000_000;

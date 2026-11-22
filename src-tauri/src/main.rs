@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod chronicle;
+mod ci;
+mod ci_main;
 mod demo;
 #[cfg(windows)]
 mod firewall;
@@ -15,6 +17,7 @@ mod registry;
 mod remote;
 mod rooms;
 mod settings;
+mod status;
 mod strip;
 mod toast;
 mod vigil;
@@ -312,7 +315,7 @@ async fn check_packs(app: AppHandle) {
         let archive = match download_pack(&repo, PACK_CHECK).await {
             Ok(a) => a,
             Err(e) => {
-                eprintln!("pack check: {repo}: {e}");
+                status::report("packs", status::State::Warn, format!("pack check: {repo}: {e}"));
                 continue;
             }
         };
@@ -322,7 +325,7 @@ async fn check_packs(app: AppHandle) {
             let c = packs::changed(&r, &d, &archive)?;
             if !c {
                 if let Err(e) = packs::mark_checked(&r, &d, &now_utc()) {
-                    eprintln!("pack check: {d}: {e}");
+                    status::report("packs", status::State::Warn, format!("pack check: {d}: {e}"));
                 }
             }
             Ok::<_, String>((c, archive))
@@ -330,8 +333,8 @@ async fn check_packs(app: AppHandle) {
         match tauri::async_runtime::spawn_blocking(move || on_pack_disk(compare)).await {
             Ok(Ok((true, archive))) => found.push(packs::Checked { dir: pack.dir, repo, archive }),
             Ok(Ok((false, _))) => {}
-            Ok(Err(e)) => eprintln!("pack check: {repo}: {e}"),
-            Err(e) => eprintln!("pack check: {repo}: {e}"),
+            Ok(Err(e)) => status::report("packs", status::State::Warn, format!("pack check: {repo}: {e}")),
+            Err(e) => status::report("packs", status::State::Warn, format!("pack check: {repo}: {e}")),
         }
     }
     if found.is_empty() || quiet::active() {
@@ -361,7 +364,7 @@ async fn update_changed(app: AppHandle, root: PathBuf, found: std::sync::Arc<Vec
         Err(e) => (false, vec![("theme packs".to_string(), e.to_string())]),
     };
     for (repo, e) in &failed {
-        eprintln!("pack update: {repo}: {e}");
+        status::report("packs", status::State::Warn, format!("pack update: {repo}: {e}"));
     }
     match updated(replaced, &failed) {
         Updated::Restart => app.restart(),
@@ -470,14 +473,57 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
     use tauri_plugin_updater::UpdaterExt;
     let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
     let update = update.ok_or("already up to date")?;
-    update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
+    let mut progress = UpdateProgress::default();
+    let events = app.clone();
+    update
+        .download_and_install(
+            move |chunk, total| {
+                let _ = events.emit("update-progress", progress.add(chunk, total));
+                // the PC's own UI only, never the remote view
+            },
+            || {},
+        )
+        .await
+        .map_err(|e| e.to_string())?;
     app.restart();
+}
+
+/// The `update-progress` event's payload while the update downloads: bytes so far, and the total when the server
+/// said it (None: unknown).
+#[derive(serde::Serialize, Clone, Debug, Default, PartialEq)]
+struct UpdateProgress {
+    downloaded: u64,
+    total: Option<u64>,
+}
+
+impl UpdateProgress {
+    /// One more chunk of `chunk` bytes arrived; the payload to emit.
+    fn add(&mut self, chunk: usize, total: Option<u64>) -> UpdateProgress {
+        self.downloaded += chunk as u64;
+        self.total = total;
+        self.clone()
+    }
 }
 
 /// Emit to the webview, and mirror to the remote view's `/events` clients.
 fn emit<S: serde::Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
     remote::publish(event, &payload);
     let _ = app.emit(event, payload);
+}
+
+/// Every department's (main) CI lamp now (ci.rs, ci_main.rs), as the `ci-lamps` event sends it every tick. Host only.
+#[tauri::command]
+fn ci_lamps(hub: State<std::sync::Arc<ci::Hub>>) -> Vec<ci::Lamp> {
+    hub.lamps()
+}
+
+/// A click on a CI lamp or a card's CI line: open that commit's checks page on GitHub. `who` is a session id or a
+/// department name, never a URL: the page is found from the watch, built by `ci::checks_url` and checked by
+/// `ci::valid_checks_url` before `orca::open_url` runs; an unknown name or a failed check opens nothing.
+#[tauri::command]
+fn ci_open(who: String, hub: State<std::sync::Arc<ci::Hub>>) -> Result<(), String> {
+    let url = hub.open_url_for(&who)?;
+    orca::open_url(&url).map(|_| ()).map_err(|e| format!("could not open the checks page: {e}"))
 }
 
 /// A department plaque was clicked: open `path` (a live session's cwd, nothing else) with the program chosen in Settings.
@@ -565,7 +611,11 @@ fn main() {
             strip::set_strip_reserve,
             strip::set_strip_menu,
             window::on_top_supported,
-            window::set_chime_menu
+            window::set_chime_menu,
+            status::integration_status,
+            toast::test_notification,
+            ci_lamps,
+            ci_open
         ])
         .setup(move |app| {
             // No Dock icon or app menu: a widget that lives in the tray (skipTaskbar is ignored on macOS).
@@ -575,6 +625,9 @@ fn main() {
             // no install is running now)
             if let Ok(root) = themes_root(app.handle()) {
                 packs::recover(&root);
+            }
+            if let Ok(dir) = app.path().app_data_dir() {
+                status::init(&dir); // the log file, before the first thing that can fail
             }
             app.manage::<vigil::app::VigilBox>(Mutex::new(vigil::Vigil::default())); // before build_tray: the tray item reads it
             #[cfg(target_os = "linux")]
@@ -596,6 +649,10 @@ fn main() {
             if demo && std::env::var_os("ADMINISTRATUM_TEST_TOAST").is_some() {
                 toast::test_toast(app.handle());
             }
+            // the CI watcher's thread idles until `adm.ci` is on: no `gh` process before that (ci.rs)
+            let hub = std::sync::Arc::new(ci::Hub::default());
+            app.manage(hub.clone());
+            ci::spawn(hub);
             let handle = app.handle().clone();
             thread::spawn(move || poll_loop(handle, demo));
             remote::app::start_saved(app.handle());
@@ -660,6 +717,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
     let mut seen_pairs = std::collections::HashSet::new(); // (a, b, path key) already toasted: one toast per pair and path
     let mut last_tick = Instant::now();
     let mut last_t = 0;
+    let mut tip: Option<usize> = None; // the waiting count the tray tooltip shows
+    let hub = app.state::<std::sync::Arc<ci::Hub>>();
     loop {
         // A panic in one tick (transcripts are untrusted input) is logged and skipped; the next
         // tick runs as usual instead of the widget freezing on stale state.
@@ -679,6 +738,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let limit_events = notify(&app, &mut tracker, &roster, first, now);
             let mut turns = std::collections::HashMap::new();
             let mut pairs = vec![];
+            let mut pushes = vec![]; // live `git push` records, for the CI watcher
             {
                 let elapsed = (last_tick.elapsed().as_millis() as u64).min(5_000); // a sleep/resume gap is not work
                 last_tick = Instant::now();
@@ -700,6 +760,7 @@ fn poll_loop(app: AppHandle, demo: bool) {
                     turns = c.turns(&poller.files);
                     turns.extend(c.opencode_turns());
                     pairs = c.conflicts(&roster, now);
+                    pushes = c.take_ci();
                     ev
                 };
                 let from_transcripts = !demo && !events.is_empty();
@@ -721,7 +782,11 @@ fn poll_loop(app: AppHandle, demo: bool) {
                 fill_tokens_today(&mut roster, &c, now);
             }
             let cfg = monitor::get();
+            // the CI watcher gets the pushes, the folders seen, the scribes done and the setting; it answers on its own
+            // thread (never in demo)
+            hub.submit(cfg.ci && !demo, pushes, roster.iter().map(|s| (s.dept.clone(), s.cwd.clone())).collect(), ci::scribes_done(&prev, &roster));
             for s in roster.iter_mut() {
+                s.ci = hub.card(&s.id);
                 s.turn = turns.remove(&s.id);
                 // Newest write among its transcripts, subagents' included: a working subagent is progress.
                 let last_write = poller.files.get(&s.id).and_then(|fs| fs.iter().map(|(f, _)| f.mtime_ms).max());
@@ -731,6 +796,8 @@ fn poll_loop(app: AppHandle, demo: bool) {
             let mut events = stuck_toasts(&app, &fresh_stuck, cfg.stuck_toast, now);
             let fresh_pairs = same_file(&mut roster, &pairs, &mut seen_pairs, first_stuck);
             events.extend(conflict_toasts(&app, &roster, &fresh_pairs, now));
+            events.extend(hub.take_verdicts().iter().filter_map(|f| ci::verdict_event(f, now)));
+            events.extend(hub.take_main_verdicts().iter().filter_map(|m| ci::main_verdict_event(m, now)));
             for e in events {
                 lock(&app.state::<Chron>()).record(&e);
                 emit(&app, "chronicle", &e);
@@ -742,10 +809,17 @@ fn poll_loop(app: AppHandle, demo: bool) {
             lock(&app.state::<Live>()).clone_from(&roster);
             // ponytail: emit every tick (a late-loading webview never misses state); diff if it ever shows in a profile.
             emit(&app, "roster", &roster);
+            // the same for the departments' CI lamps: a remote client that connects late has them within a second
+            emit(&app, "ci-lamps", hub.lamps());
+            let waiting = window::waiting_count(&roster);
+            if tip != Some(waiting) {
+                tip = Some(waiting);
+                window::set_tray_tooltip(&app, waiting);
+            }
             prev = roster;
         }));
         if tick.is_err() {
-            eprintln!("poll tick panicked, skipped");
+            status::report("poll", status::State::Error, "poll tick panicked, skipped");
             app.state::<Chron>().clear_poison(); // keep the Chronicon commands working
             app.state::<vigil::app::VigilBox>().clear_poison();
         }
@@ -1138,5 +1212,15 @@ mod tests {
         files.insert("b".into(), vec![f(20)]);
         files.insert("c".into(), vec![]);
         assert_eq!(last_write(&files), 30);
+    }
+
+    #[test]
+    fn the_update_progress_payload_adds_up_the_chunks() {
+        let mut p = UpdateProgress::default();
+        assert_eq!(p.add(1000, Some(4000)), UpdateProgress { downloaded: 1000, total: Some(4000) });
+        assert_eq!(p.add(500, Some(4000)), UpdateProgress { downloaded: 1500, total: Some(4000) });
+        assert_eq!(p.add(10, None), UpdateProgress { downloaded: 1510, total: None }, "an unknown total stays unknown");
+        let j = serde_json::to_value(p.add(0, Some(4000))).unwrap();
+        assert_eq!((j["downloaded"].as_u64(), j["total"].as_u64()), (Some(1510), Some(4000)), "the shape the UI reads");
     }
 }

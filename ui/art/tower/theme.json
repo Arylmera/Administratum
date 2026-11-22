@@ -31,7 +31,9 @@
     "suzerain",
     "honours",
     "lift",
-    "enclave"
+    "enclave",
+    "roomcog",
+    "cimain"
   ],
   "px": {
     "0": "#14151f",
@@ -223,15 +225,15 @@
     "--paper-err": "#a03010",
     "--leather": "#3e2614",
     "--leather-deep": "#201206",
-    "--chart-new": "#9a5aff",
-    "--chart-cache": "#3ad8c8",
     "--rod-hi": "#ffd870",
     "--rod": "#d8a83a",
     "--rod-lo": "#8a6418",
     "--rod-edge": "#4a3a10",
     "--rod-cap": "#fff4d0",
     "--display": "'Pirata One', serif",
-    "--paper-accent": "#5a3a9a"
+    "--paper-accent": "#5a3a9a",
+    "--chart-new": "#924dff",
+    "--chart-cache": "#1a857a"
   },
   "text": {
     "watch": {
@@ -262,6 +264,7 @@
       "napping": "Idle · dozing by the fire"
     },
     "petitions": ["{n} plea", "{n} pleas"],
+    "mobile": { "empty": "No plea waits" },
     "petitioning": "{n} pleading",
     "petitionLabel": "{name}, plea: {want}",
     "adeptOf": "{kind} · familiar of {owner}",
@@ -272,7 +275,8 @@
       "title": "Grimoire",
       "open": "Open the Grimoire",
       "close": "Close the Grimoire",
-      "silent": "The Grimoire is blank: no record could be read for this day."
+      "silent": "The Grimoire is blank: no record could be read for this day.",
+      "empty": "Nothing in the Grimoire for this day"
     },
     "tithe": {
       "hint": "Mana spent today: tokens and time",
@@ -283,7 +287,9 @@
       "petition": "Plea",
       "petition-answered": "Plea answered",
       "compaction": "Memory distilled",
-      "limit": "Mana spent"
+      "limit": "Mana spent",
+      "ci-pass": "Ward holds",
+      "ci-fail": "Ward breaks"
     },
     "prefs": {
       "chime": "Plea chime",
@@ -298,7 +304,8 @@
         "petitions": "Pleas",
         "scribes": "Apprentices",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Scrying"
       }
     },
     "limitLabel": "out of mana · back at {time}",

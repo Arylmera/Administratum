@@ -31,7 +31,9 @@
     "suzerain",
     "honours",
     "lift",
-    "enclave"
+    "enclave",
+    "roomcog",
+    "cimain"
   ],
   "px": {
     "0": "#0a0814",
@@ -228,7 +230,8 @@
     "--rod-edge": "#1a0410",
     "--rod-cap": "#ffd0ea",
     "--display": "'VT323', monospace",
-    "--paper-accent": "#ff2e88"
+    "--paper-accent": "#ff2e88",
+    "--chart-red": "#c93420"
   },
   "text": {
     "watch": {
@@ -259,6 +262,7 @@
       "napping": "Idle · crashed in the lounge"
     },
     "petitions": ["{n} request", "{n} requests"],
+    "mobile": { "empty": "No request waits" },
     "petitioning": "{n} pinging",
     "petitionLabel": "{name}, request: {want}",
     "adeptOf": "{kind} · daemon of {owner}",
@@ -269,7 +273,8 @@
       "title": "Netlog",
       "open": "Open the Netlog",
       "close": "Close the Netlog",
-      "silent": "The Netlog is empty: no record could be read for this day."
+      "silent": "The Netlog is empty: no record could be read for this day.",
+      "empty": "Nothing in the Netlog for this day"
     },
     "tithe": {
       "hint": "Bandwidth today: tokens and uptime",
@@ -280,7 +285,9 @@
       "petition": "Request",
       "petition-answered": "Request answered",
       "compaction": "Cache flushed",
-      "limit": "Throttled"
+      "limit": "Throttled",
+      "ci-pass": "Build green",
+      "ci-fail": "Build red"
     },
     "prefs": {
       "chime": "Request ping",
@@ -295,7 +302,8 @@
         "petitions": "Requests",
         "scribes": "Runners",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Diagnostics"
       }
     },
     "limitLabel": "throttled · back at {time}",

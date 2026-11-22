@@ -119,13 +119,19 @@ export const TEXT = {
   sameFile: 'same file: {file} · {other}', portInUse: 'port {port} already in use', // two sessions on one file; a port taken
   cacheWarm: 'cache warm · {min} min left', cacheCold: 'cache cold', // an idle session's prompt cache (O15)
   modes: { full: 'Full light', candles: 'Candles' },
-  log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.' },
+  log: { title: 'Chronicon', open: 'Open the Chronicon', close: 'Close the Chronicon', silent: 'The Chronicon is silent: no record could be read for this day.', empty: 'No events recorded',
+    error: 'The Chronicon could not be read: {error}' },
+  mobile: { empty: 'No petition waits' }, // the phone page with no petition (mobile.js)
+  petition: { armed: 'Approve? click again' }, // a risky Approve, armed by its first click (card.js, overlay.js)
   tithe: { hint: 'Tithe today: tokens and working time', day: 'Tithe today: {tokens} tokens, {time} of work' },
   event: { commit: 'Commit sealed', push: 'Pushed', 'tests-pass': 'Tests pass', 'tests-fail': 'Tests fail', 'tool-error': 'Tool error',
     'task-done': 'Long task done', arrived: 'Arrived', left: 'Left', petition: 'Petition', 'petition-answered': 'Petition answered',
     compaction: 'Context compacted', limit: 'Usage limit', 'token-alert': 'Token alert', stuck: 'Stuck',
-    conflict: 'Same file', 'port-in-use': 'Port in use' },
-  prefs: { theme: 'Theme', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
+    conflict: 'Same file', 'port-in-use': 'Port in use', 'ci-pass': 'CI passed', 'ci-fail': 'CI failed' },
+  // the CI verdict of a push (ci.rs; the card's line, the lamp's tip): {branch} {sha} {done}/{total} {check}
+  ci: { running: 'CI · {branch} · {sha} · running {done}/{total}', pass: 'CI · {branch} · {sha} · passed', fail: 'CI · {branch} · {sha} · failed: {check}',
+    timeout: 'CI · {branch} · {sha} · no verdict after 30 min', error: 'CI · {branch} · {sha} · check failed', open: 'Open the checks on GitHub' },
+  prefs: { theme: 'World', look: 'Look', resetArmed: 'Click again to reset', chime: 'Petition chime', petitions: 'Petitions', questions: 'A question at the end of a turn counts as a petition',
     stale: 'Petition turns stale after', nap: 'Idle to the Refectorium after', cog: 'Stay at the cogitator for',
     pauseHint: 'Near-zero CPU when unseen; petitions still alert.',
     // Settings > Hall > Added themes (settings.js initPacks): theme packs from outside
@@ -137,7 +143,16 @@ export const TEXT = {
       removed: 'Removed {repo}. Restart to apply.', same: '{repo} is up to date.',
       updateAll: 'Update all', updating: 'Updating themes… {i}/{n}', failed: '{repo}: {error}', allSame: 'All up to date.', restSame: 'The others are up to date.',
       allUpdated: ['Updated {n} pack. Restart to apply.', 'Updated {n} packs. Restart to apply.'], check: 'Check added themes for updates at startup' },
-    cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view' } },
+    cat: { hall: 'Hall', petitions: 'Petitions', scribes: 'Scribes', rooms: 'Rooms', system: 'System', remote: 'Remote view', status: 'Status' },
+    // Settings > Status (the backend's integration_status), a save that failed, the remote view's states, the update's progress,
+    // the test notification, the CI switch (settings.js)
+    status: { title: 'Integrations', empty: 'No integration has reported yet.', ago: '{time} ago', ok: 'OK', warn: 'Warning', error: 'Error', failed: 'Status unavailable: {error}' },
+    saveFailed: 'Not saved: {error}',
+    remote: { failed: 'The remote view could not be read: {error}', notListening: 'Left on, but not listening on the network: {error}',
+      notListeningNoError: 'Left on, but not listening on the network.', loopback: 'The network view is off. This PC still answers on 127.0.0.1 only, with the pairing token, for the local command-line tool.' },
+    update: { percent: 'Downloading the update… {percent}%', bytes: 'Downloading the update… {size}' },
+    test: { button: 'Send a test notification', sending: 'Sending…', sent: 'Test notification sent.', failed: 'Not sent: {error}' },
+    ci: { label: 'Show the CI result after a push', hint: 'Asks GitHub, through your own gh, whether a push passes its checks. Off: nothing is asked.', none: 'gh: not checked yet' } },
   // Windows notifications (main.rs, set_toast_text): {name} the session, then the body as today
   toast: { petition: 'Petition from {name}', question: 'Question from {name}', stale: 'Petition still waiting: {name}', needed: 'input needed',
     limit: '{name} sealed until {time}', limitMany: '{n} sessions sealed until {time}', failed: '{name}: answer not sent — answer it in the session',
@@ -213,6 +228,17 @@ export function setTheme(id) {
   Object.assign(T.px, next.px); Object.assign(T.ink, next.ink); Object.assign(T.light, next.light);
   Object.assign(T, { id: next.id, name: next.name, sash: next.sash, rank: next.rank, ui: next.ui, text: next.text, gen: T.gen + 1 });
   for (const f of listeners) f(T);
+}
+// Switches to theme `id` once what it draws with is in: a loader (beforeTheme: sprites.js, its art) returns a promise while
+// it has something to load, else nothing, and then the switch is immediate. The old theme stays until then, so nothing
+// draws half-loaded; of overlapping calls the last wins; a loader that fails sends the hall back to Tier II.
+const loaders = new Set();
+export const beforeTheme = fn => { loaders.add(fn); };
+let wanted = null;
+export function switchTheme(id) {
+  const mine = wanted = {}, pending = [...loaders].map(f => f(id)).filter(Boolean);
+  if (!pending.length) { setTheme(id); return Promise.resolve(); }
+  return Promise.all(pending).catch(e => { console.error(`theme ${id}: ${e?.message ?? e}`); id = 'tier2'; }).then(() => { if (wanted === mine) setTheme(id); });
 }
 // fn(T) after every theme change (drop caches drawn with the old colours).
 export const onTheme = fn => { listeners.add(fn); return () => listeners.delete(fn); };

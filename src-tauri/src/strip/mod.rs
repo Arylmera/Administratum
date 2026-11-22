@@ -303,15 +303,15 @@ pub fn set_strip_hits(window: tauri::WebviewWindow, rects: Vec<[f64; 4]>) -> Res
     Ok(())
 }
 
-/// Prints `msg` through `slot` unless it is the same text as last time through that same slot (a
-/// stuck monitor/taskbar query would otherwise spam the console every tick); a success elsewhere
+/// Reports `msg` (the status store and the log) through `slot` unless it is the same text as last time through that same slot (a
+/// stuck monitor/taskbar query would otherwise spam the log every tick); a success elsewhere
 /// resets `slot` so the next failure, even a repeat of an earlier one, logs again. One slot per
 /// call site (replace, set_always_on_top) so one succeeding never suppresses the other's own repeat.
 #[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))] // the watcher and the cursor poll: Windows and macOS
 fn log_once(slot: &Mutex<Option<String>>, msg: String) {
     let mut last = crate::lock(slot);
     if last.as_deref() != Some(msg.as_str()) {
-        eprintln!("{msg}");
+        crate::status::report("strip", crate::status::State::Warn, &msg);
     }
     *last = Some(msg);
 }

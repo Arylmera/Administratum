@@ -1,11 +1,13 @@
 // The DOM over the canvas, synced each frame: plaques, petition labels, tags, edge arrows, the hover tip.
-import { SCENE, WALL_DY, zonesOf, wingZones } from './layout.js';
+import { SCENE, WALL_DY, zonesOf, wingZones, mainSpots, scribeSpots } from './layout.js';
 import { FLOOR, GAP } from './strip.js';
 import { T, t } from './theme.js';
 import { isStale, isQuestion, asleep } from './actors.js';
 import { invoke, listen, REMOTE } from './bridge.js';
-import { sel, ago, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed } from './card.js';
+import { sel, filesOf, stuckLine, sameFileLine, canAnswer, answer, pick, isArmed, ciLine } from './card.js';
+import { lampOf, LAMP_SIZE, MAIN_SIZE, scribeLampsAt } from './cilamp.js';
 import { riskOfPetition } from './petition.js';
+import { ago, statusOf } from './format.js';
 import { vigil, secondsLeft } from './vigil.js';
 import { stripHit, setThrough } from './stripwin.js';
 import { view } from './view.js';
@@ -19,7 +21,7 @@ import { openWeek, fmtDur } from './chronicon.js';
 import { rooms } from './rooms.js';
 
 // app.js's: hall, layout, roster and mouse are getters (app.js reassigns them) (initOverlay)
-let cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, paused, hhmm;
+let cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, lampAt, paused, hhmm;
 let edges, tip; // the edge arrows and #tip (initOverlay)
 
 // A department's most recently active session: its cwd is what the plaque opens, its branch what the plaque shows.
@@ -182,6 +184,7 @@ export function syncLabels() {
       el.dataset.key = key;
       el.classList.toggle('question', asks);
       el.classList.toggle('risky', !!risk); // red, with the reason under the name; its ✓ arms first (card.js answer)
+      el.classList.toggle('armed', armedNow); // the first click was made: the label says so until the window closes (petition.js ARM_MS)
       el.classList.toggle('sel', sel === a.id);
       el.classList.toggle('stale', isStale(a.s));
       const who = document.createElement('button');
@@ -190,7 +193,7 @@ export function syncLabels() {
       who.setAttribute('aria-label', t('petitionLabel', { name: a.s.name, want }));
       const line = (cls, text) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = text; who.appendChild(s); };
       line('', a.s.name);
-      line('sub', risk ? t('risky', { reason: risk }) : `${want} · ${ago(a.s.sinceMs)}`);
+      line('sub', armedNow ? t('petition.armed') : risk ? t('risky', { reason: risk }) : `${want} · ${ago(a.s.sinceMs)}`);
       el.replaceChildren(who);
       if (canAnswer(a.s)) {
         const ans = document.createElement('div');
@@ -199,6 +202,7 @@ export function syncLabels() {
           const b = document.createElement('button');
           // OpenCode's rule: a deny also refuses the session's other pending requests (as the card says)
           b.textContent = text; b.title = choice === 'no' && a.s.source === 'opencode' ? `${verb}: ${t('rejectAll')}` : choice === 'yes' && armedNow ? 'Approve? click again' : verb;
+          if (choice === 'yes') b.classList.toggle('armed', armedNow);
           b.setAttribute('aria-label', `${verb} ${a.s.name}`);
           b.onclick = () => answer(a.s, choice);
           ans.appendChild(b);
@@ -214,6 +218,110 @@ export function syncLabels() {
     setStyle(el, { left: `${lx * scale}px`, top: `${ly * scale}px` });
   }
   syncTags(sameTags, 'same', sameText, 0, -18); // synced with the labels it yields to (app.js calls syncLabels every frame)
+}
+
+// Scribes are drawn on the canvas, so each live scribe gets a focusable button over it (transparent, the shared focus ring
+// shows on it): Tab reaches it, Enter or Space is a click, which opens its card like a click on the sprite. A petitioner with
+// a label has the label's own button, so it gets none. Tab order: department, then name (re-ordered only when a scribe arrives
+// or leaves, so a focused button is not moved under the user).
+const scribeKeys = new Map();
+let keyBox;
+export function syncScribeKeys() {
+  const live = [...cast.actors.values()].filter(a => !a.h && !a.leaving && !a.watch && a.s && !labels.has(a.id))
+    .sort((p, q) => `${p.s.dept ?? ''}\0${p.s.name}`.localeCompare(`${q.s.dept ?? ''}\0${q.s.name}`) || (p.id < q.id ? -1 : 1));
+  const ids = new Set(live.map(a => a.id));
+  for (const [id, el] of scribeKeys) if (!ids.has(id)) { el.remove(); scribeKeys.delete(id); }
+  for (const a of live) {
+    let el = scribeKeys.get(a.id);
+    if (!el) {
+      el = document.createElement('button'); el.type = 'button'; el.className = 'scribe-key';
+      el.onclick = () => pick(a.id);
+      scribeKeys.set(a.id, el);
+    }
+    const label = `${a.s.name}, ${statusOf(a.s)}`;
+    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
+    const [kx, ky] = at(...feet(a), 14);
+    setStyle(el, { left: `${kx * scale}px`, top: `${ky * scale}px` });
+  }
+  const order = live.map(a => a.id).join('|');
+  if (keyBox.dataset.order !== order) { keyBox.dataset.order = order; keyBox.replaceChildren(...live.map(a => scribeKeys.get(a.id))); }
+}
+
+// The CI lamps' hover, click and keys (I6, I6b; where they stand: layout.js mainSpots / scribeSpots, their state:
+// cilamp.js). Two kinds: a department's main lamp (who: the department, ci: its entry in the ci-lamps list) and a
+// scribe's (who: the session id, ci: its Session.ci). A lamp is lit while its CI runs or has a verdict; an unlit one
+// (none, timeout, error) has no tip, no click and no key.
+const LIT = new Set(['running', 'pass', 'fail']);
+export const litLamps = () => {
+  const L = layout();
+  if (!L) return [];
+  const H = hall(), by = new Map(roster().map(r => [r.id, r]));
+  const mains = mainSpots(L.blocks, H, L.desks ?? []).map(s => ({ kind: 'main', who: s.dept, s, ci: lampOf(s.dept), size: MAIN_SIZE }));
+  // the scribe lamps drawn (cilamp.js scribeLampsAt: none for a push to the department's default branch)
+  const shown = new Set(scribeLampsAt(scribeSpots(L.desks ?? [], H), roster(), 0).map(s => s.id));
+  const scribes = scribeSpots(L.desks ?? [], H).filter(s => shown.has(s.id)).map(s => ({ kind: 'scribe', who: s.id, s, ci: by.get(s.id)?.ci, size: LAMP_SIZE }));
+  return mains.concat(scribes).filter(l => l.ci && LIT.has(l.ci.state));
+};
+// The frontmost lit lamp whose rect (its foot at `at(spot)`, its own size up from it, padded) holds the view point
+// (px, py) in logical px: that lamp's item plus `at`, its foot on the view. app.js lampAt turns a pointer into the point.
+export function lampHit(lit, px, py, at, pad = 2) {
+  let best = null;
+  for (const l of lit) {
+    const [fx, fy] = at(l.s.x, l.s.y), [w, h] = l.size;
+    if (Math.abs(px - fx) <= w / 2 + pad && py >= fy - h - pad && py <= fy + pad && (!best || fy >= best.at[1])) best = { ...l, at: [fx, fy] };
+  }
+  return best;
+}
+// What the tip and the key say: the card's CI line. A scribe's lamp: its session's own push. A main lamp: the default
+// branch's head, joined to a session's Session.ci on that commit for the count (none: ?/?). A failed click's error in
+// its place for 5 s. Read afresh from `item`'s kind and who, so a stale item says what the lamp says now.
+let lampErr = null;
+export function lampTip(item) {
+  if (!item) return '';
+  const { kind, who } = item, ci = kind === 'main' ? lampOf(who) : roster().find(r => r.id === who)?.ci;
+  if (!ci || !LIT.has(ci.state)) return '';
+  if (lampErr?.who === who) return lampErr.text;
+  if (kind !== 'main') return ciLine(ci);
+  const c = roster().filter(r => r.dept === who).map(r => r.ci).find(q => q && q.sha7 === ci.sha7 && q.branch === ci.branch);
+  return ciLine({ done: '?', total: '?', ...c, ...ci }); // no session on that commit: no count
+}
+// A click on a lamp: its session id or its department name, never a URL (the backend finds the checks page). The
+// remote view has no command.
+export function openLamp(who) {
+  if (REMOTE) return;
+  lampErr = null;
+  invoke('ci_open', { who }).catch(err => {
+    lampErr = { who, text: String(err) };
+    setTimeout(() => { if (lampErr?.who === who) lampErr = null; }, 5000);
+  });
+}
+// A focusable button over each lit lamp (like the scribes'): Tab reaches it, Enter or Space opens the checks page.
+// The main lamps by department, then the scribes' by department and session; re-ordered only when a lamp lights or goes
+// out, the DOM written only where it changed (the list comes every second).
+const lampKeys = new Map();
+let lampBox;
+const lampKey = l => `${l.kind}:${l.who}`;
+const lampOrder = (p, q) => (p.kind === q.kind ? 0 : p.kind === 'main' ? -1 : 1) || String(p.s.dept).localeCompare(String(q.s.dept)) || String(p.who).localeCompare(String(q.who));
+export function syncLampKeys() {
+  const lit = REMOTE ? [] : litLamps().sort(lampOrder);
+  const ids = new Set(lit.map(lampKey));
+  for (const [k, el] of lampKeys) if (!ids.has(k)) { el.remove(); lampKeys.delete(k); }
+  for (const l of lit) {
+    const k = lampKey(l);
+    let el = lampKeys.get(k);
+    if (!el) {
+      el = document.createElement('button'); el.type = 'button'; el.className = 'scribe-key lamp-key';
+      el.onclick = () => openLamp(l.who);
+      lampKeys.set(k, el);
+    }
+    const name = l.kind === 'main' ? l.who : roster().find(r => r.id === l.who)?.name ?? l.s.dept;
+    const label = `${name}: ${lampTip(l)}`;
+    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
+    const [kx, ky] = at(l.s.x, l.s.y);
+    setStyle(el, { left: `${kx * scale}px`, top: `${(ky - l.size[1] / 2) * scale}px` });
+  }
+  const order = lit.map(lampKey).join('|');
+  if (lampBox.dataset.order !== order) { lampBox.dataset.order = order; lampBox.replaceChildren(...lit.map(l => lampKeys.get(lampKey(l)))); }
 }
 
 const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
@@ -286,17 +394,26 @@ export const sheetText = a => (!a.h && !a.leaving && a.pose === 'desk' && (a.s.s
 export function syncHover() {
   if (strip() && mouse()) setThrough(!stripHit(mouse().clientX, mouse().clientY)); // re-decided every frame: a still cursor, a walking scribe
   const h = mouse() ? actorAt(mouse()) : coarse.matches && sel ? cast.actors.get(sel) : null;
-  setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h ? 'pointer' : pannable() ? 'grab' : '' });
-  const hide = !h || labels.has(h.id);
+  const lamp = !h && mouse() ? lampAt?.(mouse()) : null; // a character in front of a lamp is the one pointed at
+  setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h || (lamp && !REMOTE) ? 'pointer' : pannable() ? 'grab' : '' });
+  const hide = lamp ? !lampTip(lamp) : !h || labels.has(h.id);
   if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
+  if (lamp) {
+    const text = lampTip(lamp);
+    if (tip.textContent !== text) tip.textContent = text;
+    setStyle(tip, { left: `${lamp.at[0] * scale}px`, top: `${(lamp.at[1] - lamp.size[1] - 3) * scale}px` });
+    return;
+  }
   tip.textContent = h.watch ? t('watch.name') : h.h ? h.h.kind : h.s.name;
   const [tx, ty] = at(...feet(h), h.h ? 15 : 18);
   setStyle(tip, { left: `${tx * scale}px`, top: `${ty * scale}px` });
 }
 
 export function initOverlay(o) {
-  ({ cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, paused, hhmm } = o);
+  ({ cast, canvas, overlay, at, feet, strip, hall, layout, roster, mouse, actorAt, lampAt, paused, hhmm } = o);
+  scribeKeys.clear(); keyBox = document.createElement('div'); keyBox.className = 'scribe-keys'; overlay.appendChild(keyBox);
+  lampKeys.clear(); lampBox = document.createElement('div'); lampBox.className = 'scribe-keys'; overlay.appendChild(lampBox);
   pollUsage(); setInterval(() => paused() || pollUsage(), 60_000);
   refreshHonours();
   listen('chronicle', ({ payload: e }) => { if (HONOUR_KINDS.has(e.kind)) refreshHonours(); });

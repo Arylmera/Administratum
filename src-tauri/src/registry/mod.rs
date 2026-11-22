@@ -91,6 +91,38 @@ pub struct Session {
     /// While waiting: why its pending command is risky (`risk.rs`), read once here from the calls' raw input; every
     /// surface reads this field.
     pub risk: Option<String>,
+    /// The CI verdict of its latest live push (ci.rs), filled by the poll loop; None until it pushed or when CI is off.
+    pub ci: Option<CiState>,
+}
+
+/// The CI of a pushed commit: what the card line and the folder's lamp show (ci.rs).
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CiState {
+    /// `owner/repo`.
+    pub repo: String,
+    pub branch: String,
+    /// The first 7 characters of the commit.
+    pub sha7: String,
+    pub state: CiStatus,
+    /// Checks finished and checks seen, for `running`.
+    pub done: u32,
+    pub total: u32,
+    /// The name of the first failed check, for `fail`.
+    pub failed: Option<String>,
+}
+
+/// `running` (amber), `pass` (green), `fail` (red); `timeout` (30 min without a verdict), `error` (3 failed calls in a
+/// row) and `none` (no CI found) leave the lamp unlit.
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum CiStatus {
+    Running,
+    Pass,
+    Fail,
+    Timeout,
+    Error,
+    None,
 }
 
 /// A prompt cache: cold at `until_ms`, its newest assistant usage line + `ttl_ms` (1 h when that usage wrote
@@ -231,6 +263,17 @@ mod tests {
         let oc = Session { source: Agent::OpenCode, opencode_request: Some("per_1".into()), opencode_asker: Some("ses_asker9".into()), ..tests_session("b") };
         let json = serde_json::to_string(&oc).unwrap();
         assert!(json.contains("per_1") && !json.contains("ses_asker9") && !json.to_lowercase().contains("asker"), "{json}");
+    }
+
+    #[test]
+    fn session_serializes_its_ci_state_as_camel_case() {
+        assert_eq!(serde_json::to_value(tests_session("a")).unwrap()["ci"], serde_json::Value::Null);
+        let ci = CiState { repo: "o/r".into(), branch: "main".into(), sha7: "1a2b3c4".into(), state: CiStatus::Running, done: 3, total: 5, failed: None };
+        let json = serde_json::to_value(Session { ci: Some(ci), ..tests_session("a") }).unwrap();
+        assert_eq!(json["ci"], serde_json::json!({"repo": "o/r", "branch": "main", "sha7": "1a2b3c4", "state": "running", "done": 3, "total": 5, "failed": null}));
+        let fail = CiState { repo: "o/r".into(), branch: "b".into(), sha7: "abcdef0".into(), state: CiStatus::Fail, done: 1, total: 2, failed: Some("build".into()) };
+        let json = serde_json::to_value(fail).unwrap();
+        assert_eq!((&json["state"], &json["failed"]), (&serde_json::json!("fail"), &serde_json::json!("build")));
     }
 
     #[test]

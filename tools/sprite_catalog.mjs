@@ -11,6 +11,7 @@ import {
 import { T } from '../ui/theme.js';
 import { cellFrame, halfOf } from '../ui/room.js';
 import { wallArt } from '../ui/wallart.js';
+import { LENS } from '../ui/cilamp.js'; // the CI lamp's lens keeps its signal colours in every world
 import { sheetOf, FACES, FACE_OBJECTS } from '../ui/faces.js';
 import { ENCLAVE_SIZES } from '../ui/layout.js';
 import { GESTURES } from '../ui/gestures.js';
@@ -49,6 +50,13 @@ const ABOUT = {
   ENCLAVE_SIDE: 'Custom room side rail, seen from above', ENCLAVE_POST: 'Custom room post: corners and beside each gate',
   ENCLAVE_GATE: 'Custom room gate, closed, in the side', ENCLAVE_GATE_OPEN: 'Custom room gate leaf, swung open',
   ENCLAVE_GATE_FRONT: 'Custom room gate facing the viewer (strip, 39° view)', ENCLAVE_GATE_FRONT_OPEN: 'Custom room gate facing the viewer, open',
+  'CILAMP.off': "CI lamp, one per scribe beside its desk (Settings > CI): the verdict of that session's own last push; unlit after a timeout or an error. Not drawn before the session pushes, nor in the desktop strip and column",
+  'CILAMP.amber': "CI lamp while the scribe's last push is still in CI (blinks with `CILAMP.amber_dim`, once a second); in the 39° view the same frame stands upright",
+  'CILAMP.amber_dim': 'CI lamp, the off beat of the blink while CI runs', 'CILAMP.green': "CI lamp, the scribe's last push passed", 'CILAMP.red': "CI lamp, the scribe's last push failed",
+  'CIMAIN.off': "Main lamp, one per department at its block's east end, by its consoles (the strip and the column: on the plaque row): the CI of the head commit of the repository's default branch (`main`); unlit before the first check answers, on a rate-limit pause, after 3 failed checks in a row or a `gh` auth/access error, after a timeout or an error",
+  'CIMAIN.amber': "Main lamp while the default branch's head commit is still in CI (blinks with `CIMAIN.amber_dim`, once a second); in the 39° view the same frame stands upright",
+  'CIMAIN.amber_dim': 'Main lamp, the off beat of the blink while CI runs', 'CIMAIN.green': "Main lamp, the default branch's head passed", 'CIMAIN.red': "Main lamp, the default branch's head failed",
+  ROOMCOG: 'Room computer (rooms plan), one a room on its first computer spot: lit while one of its shells or adepts runs code there', 'ROOMCOG.off': 'Room computer, unlit: nobody runs code in that room',
 };
 const GESTURE_ABOUT = { think: 'thinking, now and then while it works', wonder: 'puzzled, once after a tool error, or now and then while its question waits', stretch: 'stretching, once, as its turn ends and it dozes off' };
 const FILL = { repeat: 'repeats both ways', 'repeat-x': 'repeats along x', 'repeat-y': 'repeats along y', nine: 'nine-slice (corners kept, edges and centre repeat)' };
@@ -121,7 +129,7 @@ export function catalog() {
   // world's own art; false = never drawn in this world.
   const art = wallArt(), drawn = { WINDOW_TALL: art.win === MAPS.WINDOW_TALL, HANGING: art.tallHang, HANGING_B: art.hangB === MAPS.HANGING_B, SHELF_B: art.shelfB === 'SHELF_B' };
   for (const [name, rows] of Object.entries(MAPS)) {
-    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$|^ENCLAVE_/.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
+    if (/_FIRE_\d$|^SHELL_COG_\d+$|^DOZE_Z$|^HONOURS$|^ENCLAVE_|^CILAMP\.|^CIMAIN\.|^ROOMCOG/.test(name) || SHEET_OF[name]?.endsWith('lift') || drawn[name] === false) continue; // fire: drawn over their prop, its '.fire' row below; the effects and the plaque: last (below)
     add(name, 'Props and furniture', SHEET_OF[name], [{ rows, over: {} }], false, ABOUT[name] ?? '?');
     for (const [v, over] of VARIANTS[name] ?? []) add(`${name}.${v}`, 'Props and furniture', SHEET_OF[name], [{ rows, over }], false, `${name}, ${v}`);
   }
@@ -181,5 +189,11 @@ export function catalog() {
   // row: only the ranks the world draws, each walking in its rank's colours.
   for (const [name, F, f, over] of [['SCRIBE39', SCRIBE39, 'scribe39', r => ({ ...theme.rank[r].robe, y: sash })], ['ADEPT39', ADEPT39, 'adept39', r => theme.rank[r].adept]])
     for (const r of RANKS) if (F.rank?.[r]) for (const d of ['E', 'W', 'S', 'N']) add(`${name}.${r}.${d}`, '39° characters', srcOf(f), F.rank[r][d].map(rows => ({ rows, over: over(r) })), true, `${name}, ${theme.text.rank[r]}, 39° view, walking ${d}, 3 frames`);
+  // The CI lamp (I6, ui/cilamp.js), after the rank bodies so every earlier cell ref keeps its row.
+  for (const name of ['CILAMP.off', 'CILAMP.amber', 'CILAMP.amber_dim', 'CILAMP.green', 'CILAMP.red']) add(name, 'CI lamp', SHEET_OF[name], [{ rows: MAPS[name], over: LENS[name] ?? {} }], false, ABOUT[name]);
+  // The department's main lamp (CIMAIN), after the scribe's CI lamp so every earlier cell ref keeps its row.
+  for (const name of ['CIMAIN.off', 'CIMAIN.amber', 'CIMAIN.amber_dim', 'CIMAIN.green', 'CIMAIN.red']) add(name, 'CI lamp', SHEET_OF[name], [{ rows: MAPS[name], over: LENS[name] ?? {} }], false, ABOUT[name]);
+  // The rooms plan's room computer (scene.js drawComputers), after the CI lamps so every earlier cell ref keeps its row.
+  for (const name of ['ROOMCOG', 'ROOMCOG.off']) add(name, 'Props and furniture', SHEET_OF[name], [{ rows: MAPS[name], over: {} }], false, ABOUT[name]);
   return out;
 }

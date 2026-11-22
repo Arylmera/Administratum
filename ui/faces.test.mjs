@@ -7,6 +7,8 @@ import './themes.js';
 import { sheetOf, composeFlat, build39, cols, VS, inEllipse, FACES, FACE_OBJECTS } from './faces.js';
 import { ART } from './sprites.js';
 import { checkFaces } from './artcheck.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const diff = (a, b) => { let n = 0; a.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== b[y]?.[x]) n++; }); return n; };
 

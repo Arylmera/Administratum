@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { install, replies, invoked, tick, flush, emit } from './testdom.mjs';
 
 install(undefined, Date.UTC(2026, 9, 17, 14, 30)); // Saturday 17 Oct 2026, 14:30 (TZ pinned to UTC)
@@ -81,7 +82,7 @@ assert.equal(list.children[0].getAttribute('aria-label'), `11:40 ${say('event.to
 assert.equal(list.children[2].querySelector('.d').textContent, 'fix: x');
 const ico = list.children[0].querySelector('.k');
 assert.equal(ico.title, say('event.tool-error'));
-assert.ok(ico.querySelectorAll('svg.ico rect').some(r => r.getAttribute('fill') === '#e8c050'), "its kind's pixel icon");
+assert.ok(ico.querySelectorAll('svg.ico rect').some(r => r.getAttribute('class') === 'cy'), "its kind's pixel icon");
 assert.deepEqual([...sel.options].map(o => [o.value, o.textContent]), [['', 'All departments'], ['Geneseed', 'Geneseed'], ['Terra', 'Terra']]);
 sel.value = 'Geneseed'; sel.dispatch('change');
 assert.deepEqual(names(), ['10:00 gs-1']);
@@ -227,4 +228,92 @@ assert.deepEqual(sumTithes([day(1)]).bySession, {});
 assert.deepEqual(sumTithes([]), { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, busyMs: 0, byProject: {}, byModel: {}, bySession: {} });
 assert.equal(reportText('---\ndate: 2026-10-16\nsource: Administratum\n---\n\n# Day report — 2026-10-16\n\nx\n'), '# Day report — 2026-10-16\n\nx\n');
 assert.equal(reportText('# no frontmatter'), '# no frontmatter');
+// F16: an empty day says so in the theme's words (log.empty), in a box of its own.
+tab[2].click();
+await flush();
+{
+  const empty = body.querySelector('ol.events li.empty');
+  assert.equal(empty.textContent, say('log.empty'));
+  assert.ok(empty.classList.contains('quiet'));
+  assert.equal(body.querySelectorAll('ol.events li').length, 1);
+  assert.ok(say('log.empty') !== 'log.empty', 'the key exists');
+}
+// F16: no colour is written into the icons or the bars: each icon pixel is a class, and the CSS gives it a --chart-*
+// variable (the theme's), so a world recolours them. The new / cache bars read --chart-new and --chart-cache.
+{
+  tab[0].click();
+  await flush();
+  const rects = body.querySelectorAll('svg.ico rect');
+  assert.ok(rects.length > 20);
+  assert.ok(rects.every(r => !r.hasAttribute('fill') && !r.hasAttribute('style') && /^c[kRrwyogbB]$/.test(r.getAttribute('class'))), 'classes, no colour');
+  const css = readFileSync(new URL('./css/panels.css', import.meta.url), 'utf8'), base = readFileSync(new URL('./css/base.css', import.meta.url), 'utf8');
+  const VAR = { k: 'ink', R: 'red', r: 'red-deep', w: 'light', y: 'gold', o: 'orange', g: 'green', b: 'brown', B: 'brass' };
+  for (const [letter, name] of Object.entries(VAR)) {
+    assert.ok(new RegExp(`#chron \\.ico \\.c${letter}\\s*\\{\\s*fill:\\s*var\\(--chart-${name}\\)`).test(css), `icon colour ${letter} is --chart-${name}`);
+    assert.ok(base.includes(`--chart-${name}:`), `--chart-${name} has a default`);
+  }
+  assert.ok(/--c-new:\s*var\(--chart-new\)/.test(css) && /--c-cache:\s*var\(--chart-cache\)/.test(css));
+  // new against cache is not told by hue alone: the cache part is hatched
+  assert.ok(/#chron \.cache[^{]*\{[^}]*repeating-linear-gradient/.test(css), 'the cache bar carries a pattern');
+  // two worlds: the variables differ, and that is what the page applies (chrome.js, T.ui)
+  const { defineTheme, setTheme, T } = await import('./theme.js');
+  defineTheme({ id: 'chart-a', name: 'A', world: 'w40k', ui: { '--chart-new': '#112233', '--chart-cache': '#445566', '--chart-red': '#aa0000' } });
+  defineTheme({ id: 'chart-b', name: 'B', world: 'w40k', ui: { '--chart-new': '#998877', '--chart-cache': '#665544', '--chart-red': '#00aa00' } });
+  setTheme('chart-a'); const a = { ...T.ui };
+  setTheme('chart-b'); const b = { ...T.ui };
+  for (const k of ['--chart-new', '--chart-cache', '--chart-red']) assert.ok(a[k] && b[k] && a[k] !== b[k], `${k} differs between two themes`);
+  setTheme('tier2');
+}
+// F15: the day tabs are a tab list: arrows, Home and End move the focus, one tab in the tab order, Enter (a click) picks.
+{
+  const key = (el, k) => { const seen = {}; el.dispatch('keydown', { key: k, preventDefault() { seen.prevented = true; } }); return seen; };
+  const list = [...tabs.children], tabindexes = () => list.map(b => b.getAttribute('tabindex'));
+  assert.equal(tabs.getAttribute('role'), 'tablist');
+  assert.equal(root.getAttribute('aria-modal'), 'true');
+  assert.deepEqual(tabindexes(), ['0', ...Array(7).fill('-1')], 'only the selected tab is in the tab order');
+  assert.equal(key(list[0], 'ArrowRight').prevented, true);
+  assert.equal(document.activeElement, list[1]);
+  assert.deepEqual(tabindexes(), ['-1', '0', ...Array(6).fill('-1')], 'roving');
+  assert.equal(list[0].getAttribute('aria-selected'), 'true', 'moving does not pick');
+  key(list[1], 'ArrowLeft'); key(list[0], 'ArrowLeft');
+  assert.equal(document.activeElement, list[7], 'wraps to the Week tab');
+  key(list[7], 'Home');
+  assert.equal(document.activeElement, list[0]);
+  key(list[0], 'End');
+  assert.equal(document.activeElement, list[7]);
+}
+// F5: a load that fails is an error state with its message, never the empty day; a day with nothing recorded stays the silent state.
+{
+  const saved = { c: replies.chronicle_day, t: replies.tithe_day };
+  const showDay = async (n) => { tab[n].click(); await flush(); };
+  replies.chronicle_day = new Error('log file is locked');
+  await showDay(0);
+  assert.equal(body.querySelector('.quiet.err').textContent, say('log.error', { error: 'log file is locked' }));
+  assert.equal(body.querySelector('.quiet.err').getAttribute('role'), 'alert');
+  assert.equal(body.querySelector('ol.events'), null, 'no log list: the empty day is not shown');
+  assert.ok(!body.textContent.includes(say('log.empty')), 'not the empty-day line');
+  assert.ok(body.querySelector('.stats'), 'the Tithe that did load is still shown');
+  replies.tithe_day = new Error('tithe unreadable');
+  await showDay(0);
+  assert.equal(body.textContent, say('log.error', { error: 'log file is locked' }), 'both failed: the error state');
+  assert.notEqual(body.textContent, say('log.silent'));
+  Object.assign(replies, { chronicle_day: null, tithe_day: null });
+  await showDay(4);
+  assert.equal(body.textContent, say('log.silent'), 'nothing recorded is still the silent state');
+  Object.assign(replies, { chronicle_day: saved.c, tithe_day: saved.t });
+  assert.equal(say('event.ci-pass'), 'CI passed');
+  assert.equal(say('event.ci-fail'), 'CI failed');
+}
+// The CI verdict kinds have a label and an icon of their own (not the default dot).
+{
+  replies.chronicle_day = ({ day }) => (day === TODAY ? [ev(at(12, 0), 'ci-pass', 'terra-77', 'Terra'), ev(at(12, 5), 'ci-fail', 'terra-77', 'Terra'), ev(at(12, 6), 'port-in-use', 'gs-1', 'Geneseed')] : []);
+  replies.tithe_day = ({ day }) => (day === TODAY ? tithe : null);
+  tab[0].click(); await flush();
+  const rows = [...body.querySelectorAll('ol.events li')];
+  const svg = r => r.querySelectorAll('svg.ico rect').map(x => `${x.getAttribute('class')}@${x.getAttribute('x')},${x.getAttribute('y')}`).join(' ');
+  assert.ok(rows.some(r => r.getAttribute('aria-label').includes('CI passed')) && rows.some(r => r.getAttribute('aria-label').includes('CI failed')));
+  const ci = rows.filter(r => /CI (passed|failed)/.test(r.getAttribute('aria-label')));
+  assert.equal(ci.length, 2);
+  for (const r of ci) assert.ok(svg(r) && svg(r) !== svg(rows.find(x => /Port in use/.test(x.getAttribute('aria-label')))), 'an icon of its own');
+}
 console.log('chronicon ok');

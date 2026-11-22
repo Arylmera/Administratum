@@ -31,7 +31,9 @@
     "suzerain",
     "honours",
     "lift",
-    "enclave"
+    "enclave",
+    "roomcog",
+    "cimain"
   ],
   "px": {
     "0": "#16181a",
@@ -223,15 +225,15 @@
     "--paper-err": "#a01818",
     "--leather": "#3a3e44",
     "--leather-deep": "#1c1e22",
-    "--chart-new": "#f2c23a",
-    "--chart-cache": "#5aff7a",
     "--rod-hi": "#ffe07a",
     "--rod": "#f2c23a",
     "--rod-lo": "#a07a14",
     "--rod-edge": "#5a4010",
     "--rod-cap": "#fff4d0",
     "--display": "'VT323', monospace",
-    "--paper-accent": "#1e4a8a"
+    "--paper-accent": "#1e4a8a",
+    "--chart-new": "#96710a",
+    "--chart-cache": "#008a1b"
   },
   "text": {
     "watch": {
@@ -262,6 +264,7 @@
       "napping": "Idle · in the bunk"
     },
     "petitions": ["{n} requisition", "{n} requisitions"],
+    "mobile": { "empty": "No requisition waits" },
     "petitioning": "{n} requisitioning",
     "petitionLabel": "{name}, requisition: {want}",
     "adeptOf": "{kind} · robot of {owner}",
@@ -272,7 +275,8 @@
       "title": "Overseer's log",
       "open": "Open the Overseer's log",
       "close": "Close the Overseer's log",
-      "silent": "The Overseer's log is empty: no record could be read for this day."
+      "silent": "The Overseer's log is empty: no record could be read for this day.",
+      "empty": "Nothing in the Overseer's log for this day"
     },
     "tithe": {
       "hint": "Rations today: tokens and shift time",
@@ -283,7 +287,9 @@
       "petition": "Requisition",
       "petition-answered": "Requisition approved",
       "compaction": "Records archived",
-      "limit": "Rations out"
+      "limit": "Rations out",
+      "ci-pass": "Inspection passed",
+      "ci-fail": "Inspection failed"
     },
     "prefs": {
       "chime": "Requisition chime",
@@ -298,7 +304,8 @@
         "petitions": "Requisitions",
         "scribes": "Dwellers",
         "system": "System",
-        "remote": "Remote access"
+        "remote": "Remote access",
+        "status": "Diagnostics"
       }
     },
     "limitLabel": "off shift · back at {time}",

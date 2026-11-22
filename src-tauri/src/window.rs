@@ -1,5 +1,6 @@
 //! The main window: the tray icon and its menu, show / hide, and the watcher that tells the UI when the window is seen.
 use crate::{
+    registry::Session,
     strip,
     vigil::app::{vigil_set, VigilBox, VigilItem},
 };
@@ -113,6 +114,32 @@ pub fn set_chime_menu(item: tauri::State<ChimeItem>, on: bool) -> Result<(), Str
     item.0.set_checked(on).map_err(|e| e.to_string())
 }
 
+/// The tray's id, to find it again for the tooltip.
+const TRAY_ID: &str = "main";
+
+/// Sessions waiting on the user: a petition (`status` waiting) or a question, each session once.
+pub fn waiting_count(roster: &[Session]) -> usize {
+    roster.iter().filter(|s| s.status == "waiting" || s.question.is_some()).count()
+}
+
+/// The tray tooltip: the app's name, and how many sessions wait on a petition or a question.
+pub fn tray_tooltip(waiting: usize) -> String {
+    if waiting == 0 {
+        "Administratum".to_string()
+    } else {
+        format!("Administratum · {waiting} waiting")
+    }
+}
+
+/// Show `tray_tooltip(waiting)` on the tray icon. The poll loop calls it only when the count changes.
+pub fn set_tray_tooltip(app: &AppHandle, waiting: usize) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        if let Err(e) = tray.set_tooltip(Some(tray_tooltip(waiting))) {
+            crate::status::note("tray", format!("tooltip: {e}"));
+        }
+    }
+}
+
 pub fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show / hide", true, None::<&str>)?;
     let mute = CheckMenuItem::with_id(app, "mute", "Chime", true, true, None::<&str>)?; // the UI sets it (set_chime_menu)
@@ -127,7 +154,7 @@ pub fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     app.manage(VigilItem(vigil));
     app.manage(ChimeItem(mute.clone()));
     app.manage(strip::StripItem(strip));
-    TrayIconBuilder::new()
+    TrayIconBuilder::with_id(TRAY_ID)
         .icon(app.default_window_icon().expect("bundle icon").clone())
         .tooltip("Administratum")
         .menu(&menu)
@@ -178,6 +205,23 @@ pub fn on_top_supported() -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_tray_tooltip_counts_the_waiting_sessions() {
+        use super::tray_tooltip;
+        assert_eq!(tray_tooltip(0), "Administratum");
+        assert_eq!(tray_tooltip(1), "Administratum · 1 waiting");
+        assert_eq!(tray_tooltip(7), "Administratum · 7 waiting");
+    }
+
+    #[test]
+    fn a_petition_or_a_question_waits_once_each() {
+        use crate::registry::{tests_session, Session};
+        let s = |id: &str, status: &str, question: Option<&str>| Session { status: status.into(), question: question.map(Into::into), ..tests_session(id) };
+        let roster = [s("a", "waiting", None), s("b", "busy", None), s("c", "idle", Some("Which one?")), s("d", "waiting", Some("both")), s("e", "idle", None)];
+        assert_eq!(super::waiting_count(&roster), 3, "a, c and d; d is one session though it is both");
+        assert_eq!(super::waiting_count(&[]), 0);
+    }
+
     #[test]
     fn wayland_unless_gdk_asks_for_x11() {
         use super::wayland;

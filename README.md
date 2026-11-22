@@ -196,7 +196,7 @@ from Windows:
 
 ## Worlds and themes
 
-Settings → Hall → **Theme** picks the world, **Style** a variant within it. Each world outside Warhammer has its own
+Settings → Hall → **World** picks the world, **Look** a variant within it. Each world outside Warhammer has its own
 art for every character and object, both views (Flat and 2.5D), the desktop strip and its own wording: the
 sessions, the boss who receives petitions, the subagents and the notifications all change name.
 
@@ -236,7 +236,7 @@ a phone can show a different world than the PC.</td>
 
 **Themes from others.** A theme pack is a GitHub repository holding one or more themes made by someone else: a new
 world, or a new style for a world the app ships. To add one, type its `owner/repo` (or paste its GitHub address) in
-Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the Theme and Style lists
+Settings → Hall → **Added themes** → *Add from GitHub*, then *Install*. Its themes appear in the World and Look lists
 after *Restart to apply*. The same list updates or removes a pack; *Update all* updates every pack from GitHub at
 once. At start, the app checks the added packs for changes (*Check added themes for updates at startup*, on by
 default): if one changed, a toast offers *Update*, which updates them and restarts, or *Later*. A pack is data only: colours, wording and pixel
@@ -273,6 +273,9 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 | Scribe walking in through the grand gate / gathering papers and walking out | Session started / session ended |
 | Purity seal stamped on a parchment on the desk (up to 3 stay) | A `git commit` succeeded |
 | Servo-skull picks up a seal and flies out of the gate | A `git push` |
+| A small lamp beside each scribe's desk (in each theme's own art), unlit / amber / green / red | **CI** after a push, opt-in (*Show the CI result after a push*, off by default). The scribe's own lamp: amber while the CI of its last push runs, green when every check passed, red as soon as one failed; it stays until that scribe's next push or its end, and is absent when it has nothing to show or when the push went to the department's default branch (the beacon shows that one), so a lamp marks a scribe working on another branch, a worktree's. No scribe lamp in the desktop strip and column (the card line carries it there). Hover or click it for `<branch> · <sha7> · <state>`; a click opens the commit's checks page on GitHub. A push that printed no ref line (an up-to-date or `-q` push) gets no verdict |
+| A larger beacon at the east end of each department's block (in the rooms plan: in a column beside the room's computer, one per folder of the room; the plaque cell in the desktop strip and column), unlit / amber / green / red | **CI of the main branch** (the GitHub default branch of the folder's repository), same opt-in. Checked every 5 min, and at once (and again 2 min later) when a scribe of the department ends its turn or leaves, so a merge shows quickly; a new head is followed every 30 s until its verdict. Unlit: during a rate-limit pause, after 3 failed calls, or on a `gh` access error. No beacon when the folder is not a GitHub repository or its repository has no default branch. Hover or click it for `main · <sha7> · <state>` (the branch's real name); a click opens that commit's checks page. A verdict on a new head is a `ci-pass` / `ci-fail` event in the Chronicon, once per commit |
+| A line `CI · main · 5d6e7f8 · running 3/5` (or `passed`, `failed: <check>`, `no verdict after 30 min`) on a session's card | The same CI result for the commit that session pushed; it stays until that session's next push or its end. Clicking it opens the checks page. A pass or a fail is also a `ci-pass` / `ci-fail` event in the Chronicon. No toast |
 | Green lamp on the desk (20 s) / blinking red lamp | Test run passed / failed (`cargo test`, `npm test`, `npm run test`, `pnpm test`, `yarn test`, `pytest`, `vitest`, `jest`, `go test`) |
 | Spark and smoke puff on the desk | A tool call returned an error |
 | Scribe raises its scroll, gold glint, soft chime | A turn that took 5 min or more finished |
@@ -426,7 +429,8 @@ Sessions of OpenCode 2.x (the `opencode` TUI) are scribes too, read from OpenCod
 
 Watch the hall from a tablet or phone on the same network, in its browser:
 
-1. Settings > Remote view > **Serve on the local network** (off by default; port 7770).
+1. Settings > Remote view > **Serve on the local network** (off by default; port 7770). Off, the app still listens on
+   `127.0.0.1` only (this PC), with the same pairing token, for `tools/adm.mjs`.
 2. Windows: **Allow this port** adds the Windows Firewall rule (Windows asks for administrator permission). macOS:
    see [macOS](#what-differs-on-macos).
 3. Scan the QR code with the device's camera. It opens `http://<this PC>:7770/?t=<token>` and pairs the device;
@@ -441,7 +445,8 @@ the PC, and questions and other petitions are shown only. Its **Full hall** link
 The remote page shows the same hall, cards and Chronicon, live. It keeps its own lighting, scale, theme, view and
 chime; the PC's settings are shown read only. **Allow remote actions** (off by default) lets a paired device approve
 or deny permission prompts, with the same on-screen check as on the PC; anyone with the link on your network can
-then do it. *Open in Orca* and opening folders never run from a remote device. **Regenerate token** unpairs every
+then do it; the prompt a card shows (`peek_petition`, the question and its options) is read only when this is on.
+*Open in Orca* and opening folders never run from a remote device. **Regenerate token** unpairs every
 device. Only private and local network addresses are answered. The HTTP API is documented in
 [docs/remote-api.md](docs/remote-api.md).
 
@@ -487,15 +492,15 @@ To close the Chronicon, click ✕, press **Escape**, or click outside it.
 
 ![The settings panel](docs/img/settings.png)
 
-Open Settings with the gear in the header. Changes apply immediately. The panel has six tabs.
+Open Settings with the gear in the header. Changes apply immediately. The panel has seven tabs (Hall, Petitions, Scribes, Rooms, System, Remote view and, on the PC, Status), each grouped by what you want to change (the look of the hall, light, view and size; petitions, quiet hours and alerts; and so on). Tab and Shift+Tab stay inside the open panel, the arrow keys move between the tabs, and Esc closes it and returns to the gear.
 
 **Hall**
 
 | Setting | Default | Effect |
 |---|---|---|
 | Lighting | Auto | Auto / Full light / Candles (see *Lighting* above) |
-| Theme | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
-| Style | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
+| World | Warhammer 40k | The world: Warhammer 40k, Cyberpunk, Space, Fantasy, Fallout, Darwin. Each world outside 40k has its own art |
+| Look | Ordo Administratum | A theme within the world: colours of the hall and the window, and the wording. Warhammer 40k: Ordo Administratum, Machinum, Xenos, Malleus, Hereticus. Cyberpunk: Neon Grid, Corpo Tower, Rain City, Green Code, Sunset Drive. Space: Orbital Station. Fantasy: Arcane Tower. Fallout: Vault 111. Darwin: Darwin |
 | Added themes *(PC only)* | none | Theme packs from GitHub: type `owner/repo`, *Install*; each pack with its theme count, *Update* and *Remove* (a pack from GitHub; a local folder you delete yourself). *Update all* updates every pack from GitHub. A change applies after *Restart to apply* (see *Themes from others*) |
 | Check added themes for updates at startup *(PC only)* | on | Downloads each pack from GitHub a few seconds after start and compares it with the installed one (at most every 6 hours a pack). If one changed, a toast: *Update* installs the changed packs as they were compared and restarts, *Later* does nothing. Nothing is installed without that click |
 | View | Flat | Flat / 2.5D (the 39° view) / Desktop strip / Desktop column (Windows and macOS; see *Views*) |
@@ -520,6 +525,7 @@ Open Settings with the gear in the header. Changes apply immediately. The panel 
 | Token alert | off | One toast (and a Chronicon event) the first time a session passes this many new tokens (input, output and cache writes; cache reads left out) in a day. A count you pick: the app cannot see your subscription's quota |
 | Flag stuck sessions | on | A busy session (not one running a shell command) with no transcript written for *Stuck when busy with no writing for* (15 min, 5–120), or whose last *identical tool calls* (5, 3–20) are the same tool with the same input and each got the same error (timestamps, durations, hex, long numbers and temp paths ignored), gets a dashed tag over the scribe and a line on its card. A success (a successful edit included) ends the run; identical calls that succeed are no loop; a failed edit retried with the same error is one. Polling (`BashOutput`, `sleep`, `watch`) never counts as a loop. OpenCode sessions are only checked for loops |
 | Toast when a session gets stuck | on | One toast per stuck episode (quiet hours respected), and a Chronicon event |
+| Show the CI result after a push | off | After a live `git push` from a session to a GitHub repository, asks GitHub for the CI result of the pushed commit through your own [`gh`](https://cli.github.com) CLI and shows it as the scribe's lamp and the session's card line, and follows each department's default branch for the department's main lamp, every 5 min and when a scribe ends its turn (see *What it shows*). Turning it on checks `gh auth status` once and shows `gh ready`, `gh not found` or `gh not logged in: run gh auth login` (also in Settings > Status). Needs `gh` installed and logged in (`gh auth login`); the app never sees your token. Off: no `gh` process, no network call The line under the switch shows what `gh` answered (`gh ready`, `gh not found`, `gh not logged in: run gh auth login`), read again when you flip it; the same entry is in Settings > Status |
 | *(always on)* Watchful pack | — | Read-only, nothing is sent to Claude. **Risky commands**: a petition whose pending command is risky (`rm -r`, `git push --force` or `+ref`, `git reset --hard`, `DROP TABLE`, `terraform destroy`, `curl … \| sh`, `irm … \| iex`, `sudo` and others, `src-tauri/src/registry/risk.rs`; read from the whole command, every line) turns its label and card red with the reason; *Always* is hidden, *Approve* needs a second click 0.4 to 5 s after the first (a double-click never sends), the phone, the remote view and the toast offer Deny only, and the app refuses any other remote answer. **Same file**: two live sessions that edited the same file in the last 20 min get a dotted tag and a card line (`same file: app.js · other`), one toast per pair and file, and a Chronicon event. **Port in use**: a shell's output saying a port is already in use adds a Chronicon event and a card line for that turn. **Secrets masked**: strings shaped like API keys, tokens, private keys, JWTs, `password=` values and Bearer tokens show as `•••` in the hall, the remote view and new Chronicon lines. **Cache clock**: an idle scribe's desk light burns down over its prompt cache's lifetime (5 min, or 1 h when the session writes 1 h cache) and goes out when the cache is cold; the card says `cache warm · 3 min left` or `cache cold` |
 | Also write the day report to a folder | off | When the Night Vigil arms and when it fires, writes the day report as `YYYY-MM-DD-administratum-day.md` into *Folder* (an absolute folder that already exists; never created), replacing that day's file. Armed before 04:00, the report covers the day before |
 
@@ -578,11 +584,14 @@ the flat and 2.5D views; the desktop strip and column are the same in both.
 | Pause when hidden or covered | on | Stops drawing while the window is minimised, hidden to the tray or fully covered (checked every 2 s); toasts still fire |
 | Idle frame rate | 12 fps | 6 / 8 / 12 / 30: redraw rate while nothing moves (anything walking or animating runs at 30 fps). Lower = less CPU/GPU |
 | Open departments with | Explorer (macOS: Finder) | Explorer or Finder / VS Code / Custom command. A custom command gets the folder as one argument (`{path}`, else appended) and never runs through a shell |
-| Check for updates at startup | on | Fetches `latest.json` from GitHub Releases at start. *Check now* checks on demand; an update installs from here |
+| Check for updates at startup | on | Fetches `latest.json` from GitHub Releases at start. *Check now* checks on demand; an update installs from here; while it downloads, the line shows the progress (a percent, or the bytes when the size is unknown) |
+| Send a test notification | button | Sends one plain notification, to see whether notifications reach the desktop (quiet hours do not apply). The line beside it says whether it was sent, or why not |
 
-**Remote view**: see [Remote view](#remote-view).
+**Remote view**: see [Remote view](#remote-view). The tab stays when the status cannot be read and says why; it also says when the view was left on but is not listening on the network (with the reason), and when only this PC can reach it.
 
-**Reset to defaults** restores every value above except *Start at login* and the rooms.
+**Status** *(PC only)*: one row for each integration the app watches (notifications, the remote view, `gh`, and so on): its name, a mark with the state in words (OK, Warning, Error: the colour is never the only sign), the last message and how long ago. It is read when the tab opens and again every few seconds while the panel is open. Nothing listed yet says so. A settings save the backend refuses shows a line at the top of the panel until the next save works; a Chronicon day that cannot be read shows the error instead of an empty day.
+
+**Reset to defaults** restores every value above except *Start at login* and the rooms. It takes two clicks: the first arms the button (its label asks to click again), a second within four seconds resets.
 
 ### Tray menu
 
@@ -635,6 +644,8 @@ configuration, and installs no hooks. It reads:
 | `~/.local/share/opencode/opencode.db` (OpenCode 2.x), read-only, only while OpenCode has it open | OpenCode sessions, their prompts, context, subagents, Chronicon events and tokens |
 | `~/.local/state/opencode/service.json` | OpenCode's local service: its address (accepted only on `127.0.0.1` / `localhost` / `::1`) and password, used to ask which sessions run and wait, and to send an answer you clicked. The password is never stored, logged or shown |
 | `.git/HEAD` in or above each session's working directory (following a worktree's `.git` file) | The branch shown under the department plaque. Read directly, git is never run |
+| `.git/config`, `.git/refs/remotes/<remote>/<branch>` and `.git/packed-refs`, same lookup, only while *Show the CI result after a push* is on | The GitHub repository, the pushed commit's full SHA and the default branch (`refs/remotes/<remote>/HEAD`) for the CI check. Read directly, git is never run |
+| The output of a session's `git push` (in its transcript), only while that setting is on | The branch and commit that were pushed. Nothing else of the output is kept |
 
 **What it writes, and where.** Everything goes under `%APPDATA%\com.arylmera.administratum\`:
 
@@ -643,6 +654,7 @@ configuration, and installs no hooks. It reads:
 | `settings.json` | UI settings (the tables above) and the remote view's port, switches and pairing token. The WebView's local storage holds only a cache |
 | `chronicon\YYYY-MM-DD.jsonl` | That day's events: time, kind, session name, department, short detail (commit subject, test command, tool name...) |
 | `chronicon\YYYY-MM-DD.tithe.json` | That day's token and working-time totals, and its 5-minute token buckets (the usage window) |
+| `administratum.log`, `administratum.log.1`, `.2` | The app's own log: what went wrong (a pack check, the remote view's port, a toast, the strip, OpenCode, the Night Vigil's shutdown) with its time, and nothing else. Each file is cut at 1 MiB and only three are kept; every line is masked like the hall's texts (a token or `password=` value shows as `•••`). The same entries are listed in Settings > Status |
 | `chronicon\offsets.json` | How far each transcript has been read |
 | `chronicon\opencode-seqs.json` | How far each OpenCode session's messages have been read |
 | `themes\<owner>__<repo>\` | A theme pack you installed (Settings > Hall > Added themes): its themes' files only, removed with *Remove* |
@@ -655,14 +667,26 @@ Chronicon files older than 7 days are deleted at startup. Demo mode uses a separ
 which is wiped at each start.
 
 **Nothing about your sessions leaves the machine**, unless you turn on the [remote view](#remote-view), which serves
-the hall to paired devices on your local network only. There is no telemetry. The only network calls are the update
+the hall to paired devices on your local network only. With the remote view off, the app still listens on
+`127.0.0.1` (this PC only; port 7770 unless changed), with the same pairing token and the same checks, so that
+`tools/adm.mjs` works; no other device can reach it. There is no telemetry. The only network calls are the update
 check, which fetches `latest.json` from the project's GitHub Releases at startup (Settings > System > Updates, can be
 turned off) and when you click *Check now*, and a theme pack's download from GitHub when you click *Install* or
 *Update* (or *Update all*) in Settings > Hall > Added themes. When *Check added themes for updates at startup* is on
 (the default), the app also downloads each added pack from its GitHub repository at start, to compare it with the
 installed one; nothing is installed unless you click *Update* on the toast. Each of these requests goes to GitHub
 like any download, so GitHub sees your IP address and the app's user agent, and it names the repository; no session
-data is sent. The only other outbound
+data is sent.
+**CI after a push is a separate case: opt-in, off by default.** Only while *Show the CI result after a push* is on, the
+app runs your own `gh` CLI: `gh auth status` once when you turn it on, then `gh api repos/<owner>/<repo>/commits/<sha>/check-runs`
+and `.../status` for the commit a session just pushed, and `.../commits/<default branch>/status` and `.../commits/<sha>/check-runs` for each department's default branch (when `refs/remotes/<remote>/HEAD` is missing, one `gh api repos/<owner>/<repo>` for its name), one `gh` process at a time.
+`gh` makes those network calls to GitHub with **your** credentials, so GitHub sees your IP address, your account, the
+repository and the commit. Calls happen after a push (the first 20 s after it, then every 30 s while that CI runs, for 30 min at most) and, for the default branch, every 5 min per department, at once when a scribe ends its turn, and every 30 s while a new head's CI runs. The app never stores, reads or logs a GitHub token:
+authentication is `gh`'s own. Its arguments go straight to the process, never through a shell, and its output is only
+parsed as JSON. A quiet push (`-q`, or already up to date), a `git -C <dir> push` and a push from your own terminal
+get no verdict. A `gh` failure (not installed, not logged in, no access, a rate limit) shows in Settings > Status, never
+as a toast. The checks page opens in your browser only when you click a lamp or a card's CI line; the app builds its
+address from the commit and checks it (`https://github.com/<owner>/<repo>/commit/<40 hex>/checks`) before it opens it. The only other outbound
 action is opening a `https://claude.ai/code/<id>` link in your browser when you click *Open on claude.ai* (or its
 `claude://code/<id>` form in the Claude desktop app, *Open in Claude*). That URL is validated (fixed prefix, id limited to letters, digits, `_` and `-`) before it is passed to the shell.
 To know whether the desktop app runs, the app lists this PC's processes and their executable paths, every 5 s and only while a session has a claude.ai link; nothing of it leaves the PC.

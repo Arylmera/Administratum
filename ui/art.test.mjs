@@ -10,6 +10,8 @@ import { BREAKOUT_SIZES, ENCLAVE_SIZES } from './layout.js';
 import { markOf, bodyOf, bodyOf39, liftOf } from './actors.js';
 import { catalog } from '../tools/sprite_catalog.mjs';
 import { checkSheet } from './artcheck.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 // A PNG as an editor might write it: any colour type / depth, a chosen filter per row.
 function encode(w, h, type, depth, rows, filters, { plte, trns } = {}) {
@@ -273,6 +275,28 @@ setTheme('tier2');
     setTheme(id);
     const world = ART.dirOf(id);
     assert.equal(SHEET_OF.ENCLAVE_FLOOR, WORLD_ART.includes(world) ? `${world}/enclave` : 'enclave', `${id}: its world's room`);
+  }
+  setTheme('tier2');
+}
+
+// The rooms plan's room computer (tools/roomcog_art.mjs): each of the 14 worlds draws its own, lit and unlit. No world's
+// frame is the base frame's rows (a recolour keeps the rows), no two worlds share a silhouette, its lit frame is not its
+// unlit one, and every theme draws its world's.
+{
+  const RC = ['ROOMCOG', 'ROOMCOG.off'], base = ART.base.roomcog.frames, shapes = new Map([['tier2', mask(base['ROOMCOG.off'])]]);
+  assert.notDeepEqual(base.ROOMCOG, base['ROOMCOG.off'], 'base: the room computer lit is its unlit frame');
+  for (const id of Object.keys(THEMES).filter(id => id !== 'tier2')) {
+    const own = ART.themed[id]?.roomcog?.frames;
+    assert.deepEqual(Object.keys(own ?? {}).sort(), [...RC].sort(), `${id}: both room computer frames of its own`);
+    for (const n of RC) assert.notDeepEqual(own[n], base[n], `${id} ${n}: the base frame's rows`);
+    assert.notDeepEqual(own.ROOMCOG, own['ROOMCOG.off'], `${id}: the room computer lit is its unlit frame`);
+    const twin = [...shapes].find(([, s]) => s === mask(own['ROOMCOG.off']));
+    assert.ok(!twin, `${id}: the room computer has ${twin?.[0]}'s silhouette`);
+    shapes.set(id, mask(own['ROOMCOG.off']));
+  }
+  for (const id of Object.keys(THEMES)) {
+    setTheme(id);
+    for (const n of RC) assert.equal(SHEET_OF[n], id === 'tier2' ? 'roomcog' : `${id}/roomcog`, `${id} ${n}: its world's room computer`);
   }
   setTheme('tier2');
 }

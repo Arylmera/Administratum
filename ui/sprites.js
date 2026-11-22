@@ -1,7 +1,7 @@
 // Sprites: the art files in ui/art/ (PNG sheets drawn in the key palette, see art.js), loaded at startup into text
 // rows, one char per colour of the active theme's px palette (theme.js), '.' transparent. The art started as the
 // Claude Design board "Tier II — Data-Shrine".
-import { BASE, T, THEMES, onTheme } from './theme.js';
+import { BASE, T, THEMES, onTheme, beforeTheme } from './theme.js';
 import { artRootOf, dropTheme, packOf, warnTheme } from './themes.js'; // the themes, and the art they bring (ui/art/<theme>/)
 import { loadSheet } from './art.js';
 import { checkSheet, knownFrames } from './artcheck.js';
@@ -70,7 +70,7 @@ export function marked(map, F, A, face, mark) {
 const mirror = map => map.map(row => row.split('').reverse().join(''));
 
 // Prop families, one sheet each (as the sprite discussion issues group them); frames named as in MAPS.
-const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits', 'breakout', 'suzerain', 'honours', 'lift', 'enclave'];
+const PROP_SHEETS = ['workstations', 'cogitator', 'sanctum', 'gate', 'refectorium', 'walls', 'clutter', 'skull', 'petitions', 'fire', 'commits', 'breakout', 'suzerain', 'honours', 'lift', 'enclave', 'cilamp', 'cimain', 'roomcog'];
 // The room's structure: tiles with fill rules (room.js).
 const ROOM_SHEETS = ['room-floor', 'room-walls', 'room-pipes', 'room-doors'];
 // The 39° character families (wave 2): optional, drawn by separate art agents one world at a time. A missing base
@@ -93,9 +93,17 @@ Object.keys(base).forEach((f, i) => { base[f] = loaded[i]; });
 // warning (warnTheme): the theme loads without it. Its rect and pixels were still read and held to the limits (art.js).
 const themed = {}; // art folder (theme id) -> family -> sheet
 const dirOf = id => THEMES[id]?.artOf ?? id;
-await Promise.all(Object.values(THEMES).filter(th => th.art?.length).map(async th => {
+// Only the active theme's art (and its base's, artOf) loads at start, with every pack theme (checked at start, so a
+// broken one is left out before it can be picked). Any other theme's loads when it is needed: switchTheme (the picker),
+// loadAllArt (the art tools, the gallery, the tests). The family names are checked for every theme at once (no read).
+for (const th of Object.values(THEMES)) for (const f of th.art ?? []) if (!packOf(th.id) && !FAMILIES.includes(f)) throw new Error(`theme ${th.id}: no art family '${f}'`); // the name ends up in a file path
+const loading = new Map(); // theme id -> the promise of its own sheets
+function loadTheme(th) {
+  if (!loading.has(th.id)) loading.set(th.id, readTheme(th).catch(e => { loading.delete(th.id); throw e; }));
+  return loading.get(th.id);
+}
+async function readTheme(th) {
   const pack = packOf(th.id), sheets = {};
-  if (!pack) themed[th.id] = sheets;
   try {
     await Promise.all(th.art.map(async f => {
       // the name ends up in a file path
@@ -119,8 +127,24 @@ await Promise.all(Object.values(THEMES).filter(th => th.art?.length).map(async t
     if (!pack) throw e;
     return dropTheme(th.id, `${pack.folder}/${e.message}`);
   }
-  if (pack && THEMES[th.id]) themed[th.id] = sheets;
-}));
+  if (!pack || THEMES[th.id]) themed[th.id] = sheets;
+}
+// What the art of theme `id` needs: its own folder's sheets, and the folder it borrows (artOf).
+const needs = id => [...new Set([id, dirOf(id)])].map(i => THEMES[i]).filter(th => th?.art?.length);
+const hooks = []; // faces.js: its own sheets, by theme id
+export const onLoadArt = fn => { hooks.push(fn); };
+const ready = new Set(); // theme ids whose art (here and in the hooks) is in
+// Loads the art of theme `id` (its sheets, then the hooks': faces.js reads the frames of these). Resolves once it is in.
+export async function loadArt(id) {
+  if (ready.has(id)) return;
+  await Promise.all(needs(id).map(loadTheme));
+  for (const hook of hooks) await hook(id);
+  ready.add(id);
+}
+// Loads every theme's art: the art tools and the gallery draw every world, the tests visit them.
+export const loadAllArt = () => Promise.all(Object.keys(THEMES).map(loadArt)).then(() => {});
+beforeTheme(id => (ready.has(id) ? null : loadArt(id))); // theme.js switchTheme waits for the art
+await Promise.all([T.id, ...Object.keys(THEMES).filter(packOf)].map(loadArt));
 // The sheet of a family as the theme sees it: the default with the theme's frames, anchors and tiles laid over (its
 // own folder's first, else the folder it borrows, artOf).
 function sheetOf(id, f) {
@@ -289,7 +313,11 @@ function useArt(id) {
   for (const [n, t] of Object.entries(ROOM.tiles)) if (t.mix) ROOM.tiles[n] = { ...t, mix: t.mix.filter(v => ROOM_SHEET_OF[v] === ROOM_SHEET_OF[n]) };
 }
 useArt(T.id);
-onTheme(t => useArt(t.id));
+// A theme set without switchTheme (setTheme) draws with the default's art until its own is in, then with it.
+onTheme(t => {
+  useArt(t.id);
+  if (!ready.has(t.id)) loadArt(t.id).then(() => { if (T.id === t.id) useArt(t.id); }, e => console.error(`theme ${t.id}: ${e.message}`));
+});
 // For the tests and the art tools: the default sheets, and each theme's own.
 export const ART = { base, themed, dirOf };
 // The prop frames (MAPS) as theme `id` draws them, without switching to it (faces.js checks a pack's faces against them).

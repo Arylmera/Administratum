@@ -12,6 +12,8 @@ import { settings, questions } from './settings.js';
 import { t, setTheme } from './theme.js';
 import './themes.js';
 import { sleepText } from './overlay.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const ids = (p, n) => Array.from({ length: n }, (_, i) => `${p}-${i}`);
 
@@ -78,6 +80,9 @@ for (const S of [SCENE, { w: 700, h: 500 }, { w: MAX_W, h: SCENE.h }, { w: 960, 
       for (const b of P.blocks.filter(b => (b.room ?? 'hors') === Z.id && !b.temp)) assert.ok(inside(b, Z), `${tag}: ${b.name} inside ${Z.id}`);
       const C = P.computers.get(Z.id), left = Z.x < H.entry.x;
       assert.equal(C?.length, 3, `${tag}: ${Z.id} has its computer`);
+      // the room computer's art (scene.js computerAt: 16 x 12 over its first spot, foot 1 px above it) inside the room, 2 px in
+      const cog = { x: C[0].x - 8, y: C[0].y - 13, w: 16, h: 12 };
+      assert.ok(cog.x >= Z.x + 1 && cog.x + cog.w <= Z.x + Z.w - 1 && cog.y >= Z.y + 2, `${tag}: ${Z.id} computer art inside its room`);
       for (const c of C) {
         assert.ok(c.x > Z.x && c.x < Z.x + Z.w && c.y > Z.y && c.y < Z.y + Z.h, `${tag}: ${Z.id} computer in its cell`);
         assert.ok(left ? c.x > Z.x + Z.w / 2 : c.x < Z.x + Z.w / 2, `${tag}: ${Z.id} computer on its Sanctum side`);

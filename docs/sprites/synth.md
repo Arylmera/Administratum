@@ -148,6 +148,8 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="doze_z"></a>`DOZE_Z` | 3.5×3.5 | The Z drifting up over a dozing scribe (on the bench, or idle at the desk), drawn twice, fading. Source: `ui/art/cyber/refectorium.png`, drawn by actors.js | <img src="synth/DOZE_Z.png" height="28"> |
 | <a id="shell_cog"></a>`SHELL_COG` | 6×6 | Cog turning on a desk corner while a background shell runs, 16 frames a revolution (~3 s). Source: `ui/art/cyber/workstations.png`, drawn by (not referenced by name) | <img src="synth/SHELL_COG.png" height="48"> |
 | <a id="honours"></a>`HONOURS` | 36×48 | Hall of Honours plaque in the scriptorium's first back-wall alcove (a wide hall): the week's four marks are written over it. Source: `ui/art/cyber/honours.png`, drawn by scene.js | <img src="synth/HONOURS.png" height="160"> |
+| <a id="roomcog"></a>`ROOMCOG` | 16×12 | Room computer (rooms plan), one a room on its first computer spot: lit while one of its shells or adepts runs code there. Source: `ui/art/synth/roomcog.png`, drawn by scene.js, scene39.js | <img src="synth/ROOMCOG.png" height="96"> |
+| <a id="roomcog-off"></a>`ROOMCOG.off` | 16×12 | Room computer, unlit: nobody runs code in that room. Source: `ui/art/synth/roomcog.png` | <img src="synth/ROOMCOG.off.png" height="96"> |
 
 ## Room tiles
 
@@ -240,3 +242,18 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="enclave_gate_open"></a>`ENCLAVE_GATE_OPEN` | 8×5 | Custom room gate leaf, swung open. Source: `ui/art/cyber/enclave.png` | <img src="synth/ENCLAVE_GATE_OPEN.png" height="40"> |
 | <a id="enclave_gate_front"></a>`ENCLAVE_GATE_FRONT` | 8×10 | Custom room gate facing the viewer (strip, 39° view). Source: `ui/art/cyber/enclave.png` | <img src="synth/ENCLAVE_GATE_FRONT.png" height="80"> |
 | <a id="enclave_gate_front_open"></a>`ENCLAVE_GATE_FRONT_OPEN` | 8×10 | Custom room gate facing the viewer, open. Source: `ui/art/cyber/enclave.png` | <img src="synth/ENCLAVE_GATE_FRONT_OPEN.png" height="80"> |
+
+## CI lamp
+
+| Sprite | Logical size | Notes | Image |
+|---|---|---|---|
+| <a id="cilamp-off"></a>`CILAMP.off` | 5×10 | CI lamp, one per scribe beside its desk (Settings > CI): the verdict of that session's own last push; unlit after a timeout or an error. Not drawn before the session pushes, nor in the desktop strip and column. Source: `ui/art/cilamp.png` | <img src="synth/CILAMP.off.png" height="80"> |
+| <a id="cilamp-amber"></a>`CILAMP.amber` | 5×10 | CI lamp while the scribe's last push is still in CI (blinks with `CILAMP.amber_dim`, once a second); in the 39° view the same frame stands upright. Source: `ui/art/cilamp.png` | <img src="synth/CILAMP.amber.png" height="80"> |
+| <a id="cilamp-amber_dim"></a>`CILAMP.amber_dim` | 5×10 | CI lamp, the off beat of the blink while CI runs. Source: `ui/art/cilamp.png` | <img src="synth/CILAMP.amber_dim.png" height="80"> |
+| <a id="cilamp-green"></a>`CILAMP.green` | 5×10 | CI lamp, the scribe's last push passed. Source: `ui/art/cilamp.png` | <img src="synth/CILAMP.green.png" height="80"> |
+| <a id="cilamp-red"></a>`CILAMP.red` | 5×10 | CI lamp, the scribe's last push failed. Source: `ui/art/cilamp.png` | <img src="synth/CILAMP.red.png" height="80"> |
+| <a id="cimain-off"></a>`CIMAIN.off` | 7×14 | Main lamp, one per department at its block's east end, by its consoles (the strip and the column: on the plaque row): the CI of the head commit of the repository's default branch (`main`); unlit before the first check answers, on a rate-limit pause, after 3 failed checks in a row or a `gh` auth/access error, after a timeout or an error. Source: `ui/art/synth/cimain.png` | <img src="synth/CIMAIN.off.png" height="112"> |
+| <a id="cimain-amber"></a>`CIMAIN.amber` | 7×14 | Main lamp while the default branch's head commit is still in CI (blinks with `CIMAIN.amber_dim`, once a second); in the 39° view the same frame stands upright. Source: `ui/art/synth/cimain.png` | <img src="synth/CIMAIN.amber.png" height="112"> |
+| <a id="cimain-amber_dim"></a>`CIMAIN.amber_dim` | 7×14 | Main lamp, the off beat of the blink while CI runs. Source: `ui/art/synth/cimain.png` | <img src="synth/CIMAIN.amber_dim.png" height="112"> |
+| <a id="cimain-green"></a>`CIMAIN.green` | 7×14 | Main lamp, the default branch's head passed. Source: `ui/art/synth/cimain.png` | <img src="synth/CIMAIN.green.png" height="112"> |
+| <a id="cimain-red"></a>`CIMAIN.red` | 7×14 | Main lamp, the default branch's head failed. Source: `ui/art/synth/cimain.png` | <img src="synth/CIMAIN.red.png" height="112"> |

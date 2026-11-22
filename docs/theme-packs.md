@@ -118,9 +118,30 @@ Every key but `format`, `name` and one of `world` / `base` is optional: a theme 
 A colour is `#rrggbb`, `rgb(r, g, b)`, `rgba(r, g, b, a)` or `r,g,b`; `px`, `sash` and `rank` take `#rrggbb` only. In a
 style, every part you give is laid over the recoloured base.
 
+Some `ui` keys are optional, because the page has a default for each (`ui/css/base.css`): a pack written before them, or one
+that leaves them out, loads as it did and takes the default.
+
+| `ui` key | What it colours | Default |
+|---|---|---|
+| `--focus` | The keyboard focus ring on the dark chrome: the header, the labels, the page. At least 3:1 on `--bar`, `--label` and `--bg` | `--green` |
+| `--focus-paper` | The same ring on parchment (the card, the Chronicon, Settings). At least 3:1 on `--card`, `--paper`, `--paper-tab`, `--paper-hi`, `--paper-q` and `--paper-edge` | `--paper-accent` |
+| `--em`, `--em-paper` | The emphasis colour (the card's name and question, an alert's underline) on the chrome and on parchment. VT323 has one weight, so emphasis is colour, spacing and underline, never bold or italic | `--light`, `--paper-accent` |
+| `--chart-new`, `--chart-cache` | The Chronicon's bars and plots (new and cached tokens; the cached part is also hatched). At least 3:1 on `--paper` | red, green |
+| `--chart-red`, `--chart-green` | The Chronicon's "tests fail" cross and "tests pass" tick. At least 3:1 on `--paper` | red, green |
+| `--chart-ink`, `--chart-red-deep`, `--chart-light`, `--chart-gold`, `--chart-orange`, `--chart-brown`, `--chart-brass` | The rest of the Chronicon's event icons (ink, deep red, light, gold, orange, brown, brass) | the Tier II colours |
+
+The repository's `ui/theme.test.mjs` checks every shipped theme against these minimums; `node tools/theme_pack.mjs check` checks a pack's format, not its contrast.
+
 The names `px`, `ink`, `light` and `text` accept are the app's own: an unknown one is refused, by name. To see them
 all with their values, open a world theme of the Administratum repository: `ui/art/vault/theme.json` has a full set
 of wording, `ui/art/forge/theme.json` a short world. `ui/theme.js` holds the defaults (Ordo Administratum) they all start from.
+
+Wording keys added for the panels (a pack that lacks them keeps the defaults, so an older pack still loads): `prefs.theme`
+(the Settings label of the world list, "World") and `prefs.look` (of the style list, "Look"), `prefs.resetArmed` (the
+*Reset to defaults* button after its first click), `log.empty` (a Chronicon day with no events), `mobile.empty` (the phone
+page with no petition waiting; reword it where your world renames petitions) and `petition.armed` (a risky *Approve* after
+its first click). Added with the CI verdict and Settings > Status, all optional: `ci.running`, `ci.pass`, `ci.fail`, `ci.timeout`, `ci.error` (the card's CI line; they keep their `{branch}`, `{sha}`, `{done}`, `{total}` and `{check}` placeholders, which are filled by name), `ci.open` (the title of the click that opens the checks), `event.ci-pass` and `event.ci-fail` (the Chronicon's labels), `log.error` (a Chronicon day that could not be read, with `{error}`), `prefs.cat.status` (the Settings tab) and the wording of that tab under `prefs.status`, `prefs.saveFailed`, `prefs.remote`, `prefs.update`, `prefs.test` and `prefs.ci`. A world rewords the CI events and the Status tab where it rewords their neighbours; the rest keeps the defaults. The new/cache bars of the Chronicon are told apart by a hatch as well as by `--chart-new` and
+`--chart-cache`, so the two colours may be close in hue.
 
 **A style** (the template's `vault-pink/theme.json`):
 
@@ -248,6 +269,9 @@ gestures (below): the default art does not draw them.
 | `honours` | `HONOURS` 72x96 |
 | `lift` | `SHAFT` 56x16, `SHAFT_TOP` 56x12, `SHAFT_PIT` 56x8, `CABLE` 2x4, `CAR_BACK` 52x40, `CAR_FRONT.shut` 52x40, `CAR_FRONT.half` 52x40, `CAR_FRONT.open` 52x40, `SLAB` 16x12, `SLAB_L` 8x12, `SLAB_R` 8x12, `LAMP.off` 6x6, `LAMP.on` 6x6 |
 | `enclave` | `ENCLAVE_FLOOR` 16x16, `ENCLAVE_RAIL` 16x10, `ENCLAVE_SIDE` 4x16, `ENCLAVE_POST` 6x14, `ENCLAVE_GATE` 4x16, `ENCLAVE_GATE_OPEN` 16x10, `ENCLAVE_GATE_FRONT` 16x20, `ENCLAVE_GATE_FRONT_OPEN` 16x20 |
+| `cilamp` | `CILAMP.off` 10x20, `CILAMP.amber` 10x20, `CILAMP.amber_dim` 10x20, `CILAMP.green` 10x20, `CILAMP.red` 10x20 |
+| `cimain` | `CIMAIN.off` 14x28, `CIMAIN.amber` 14x28, `CIMAIN.amber_dim` 14x28, `CIMAIN.green` 14x28, `CIMAIN.red` 14x28 |
+| `roomcog` | `ROOMCOG` 32x24, `ROOMCOG.off` 32x24 |
 | `room-floor` | `floor` 8x8, `channel h` 8x4, `channel v` 4x8, `sanctum passage` 4x4, `sill` 24x4, `floor vent` 8x8, `floor bolts` 8x8, `sanctum floor` 40x40 |
 | `room-walls` | `wall top` 24x20, `wall` 24x20, `wall east top` 24x20, `wall east` 24x20, `wall sanctum top` 24x20, `wall sanctum` 24x20, `wall foot` 4x4, `wall dark` 4x4, `wall base` 4x6, `sanctum base` 4x6, `pillar` 20x8, `pilaster` 8x39, `beacon off` 14x20, `beacon on` 14x20, `beacon cage` 14x20 |
 | `room-pipes` | `pipe h` 8x6, `pipe v` 6x8, `fitting h` 6x10, `fitting v` 10x6, `fitting wide` 20x4 |

@@ -8,9 +8,14 @@
     { "hue": [210, 260], "to": 0, "sat": 0.12 },
     { "hue": [165, 210], "to": 210, "sat": 0.1, "light": 0.2 }
   ],
-  "art": ["breakout"],
+  "art": ["breakout", "roomcog", "cimain"],
   "px": { "7": "#302d2b", "8": "#342f2e", "9": "#3d3835", "H": "#231718", "K": "#2f2b28" },
   "ink": { "lampDead": "#1c1d20" },
+  "ui": {
+    "--focus-paper": "#ff3e4a",
+    "--chart-red": "#dd3d28",
+    "--chart-green": "#23885c"
+  },
   "text": {
     "subtitle": "Tower 42 · Corporate netsec floor",
     "motto": "The company owns the night",

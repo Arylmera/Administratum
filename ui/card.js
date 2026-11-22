@@ -1,5 +1,5 @@
 // The selected character's card: status, context, turn, links, and answering permission petitions.
-import { T, t } from './theme.js';
+import { t } from './theme.js';
 import { rankOf } from './sprites.js';
 import { candleOf } from './scene.js';
 import { isQuestion, asleep } from './actors.js';
@@ -8,6 +8,7 @@ import { vigil, secondsLeft } from './vigil.js';
 import { pad2 } from './quiet.js';
 import { invoke, REMOTE, remoteActions } from './bridge.js';
 import { answerable, answerCall, riskOfPetition, allowed, armStep, ARM_MS } from './petition.js';
+import { ago, statusOf, hhmmLocale } from './format.js';
 
 let cast, rosterOf; // app.js's cast, and a getter for its roster (reassigned on each roster tick) (initCard)
 export function initCard(o) { ({ cast, roster: rosterOf } = o); }
@@ -19,14 +20,7 @@ const contextLine = ctx => `Context · ${ctx ? `${kM(ctx.tokens)} / ${kM(windowO
 const modelName = model => { const m = /opus|sonnet|haiku|fable/i.exec(model ?? '')?.[0].toLowerCase(); return m ? m[0].toUpperCase() + m.slice(1) : model ?? 'unrecorded'; };
 const rankLine = model => `${modelName(model)} · ${t(`rank.${rankOf(model)}`)}`;
 
-const statusOf = s => (s.background ? t('status.background') : T.text.status[s.status] ? t(`status.${s.status}`) : s.status);
-
 export let sel = null;
-export const ago = ms => {
-  if (!ms) return '—'; // missing statusUpdatedAt, not a huge elapsed time
-  const m = Math.max(0, Math.floor((Date.now() - ms) / 60000));
-  return m < 1 ? '<1m' : m < 60 ? `${m}m` : `${Math.floor(m / 60)}h`;
-};
 
 export function renderCard() {
   const card = document.getElementById('card');
@@ -40,13 +34,14 @@ export function renderCard() {
     card.querySelector('.name').textContent = t('watch.name');
     card.querySelector('.title').hidden = true;
     card.querySelector('.meta').textContent = left != null ? `Shutdown in ${left} s` : vigil.deadline != null
-      ? `Deadline ${new Date(vigil.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}` : 'Armed';
+      ? `Deadline ${hhmmLocale(new Date(vigil.deadline))}` : 'Armed';
     for (const k of ['.ctx', '.task', '.path']) card.querySelector(k).textContent = '';
     renderAsks(card, null);
     renderTurn(card, null);
     renderAnswer(card, null);
     card.querySelector('.noact').hidden = actions; // remote, actions off: no Cancel, the note says why
     renderLinks(card, null);
+    renderCi(card, null);
     card.querySelector('.kin').hidden = true;
     return;
   }
@@ -63,6 +58,7 @@ export function renderCard() {
     renderTurn(card, null);
     renderAnswer(card, null);
     renderLinks(card, owner);
+    renderCi(card, null);
     card.querySelector('.kin').hidden = true;
     return;
   }
@@ -89,6 +85,7 @@ export function renderCard() {
   renderTurn(card, s);
   renderAnswer(card, s);
   renderLinks(card, s);
+  renderCi(card, s);
   renderKin(card, s);
 }
 
@@ -234,12 +231,18 @@ function peek(s) {
   if (cur.busy || Date.now() - cur.at < 3000) return cur.p;
   cur.busy = true; cur.at = Date.now();
   invoke('peek_petition', { handle: s.orca })
-    .then(p => { cur.p = p; }, () => { cur.p = null; })
+    .then(p => { cur.p = p; }, err => { // a remote view the PC refuses (bridge.js: 403): the card says so and offers no answer
+      cur.p = null;
+      if (err === 'remote actions disabled') actions = false;
+    })
     .finally(() => { cur.busy = false; if (sel === s.id) renderCard(); });
   return cur.p;
 }
+// The card's answer buttons in DOM order: Deny sits between Approve and Always, so a slip off Approve cannot hit Always (F7).
+export const ANSWER_ORDER = ['yes', 'no', 'always'];
 function renderAnswer(card, s) {
   const row = card.querySelector('.answer'), err = card.querySelector('.err'), q = card.querySelector('.q');
+  if (row.dataset.order !== ANSWER_ORDER.join()) { row.dataset.order = ANSWER_ORDER.join(); row.append(...ANSWER_ORDER.map(c => row.querySelector(`[data-choice="${c}"]`))); }
   row.hidden = q.hidden = !canAnswer(s);
   const p = row.hidden ? undefined : s.source === 'opencode' ? OPENCODE : peek(s);
   card.querySelector('.reject').hidden = row.hidden || s.source !== 'opencode'; // OpenCode's rule: a reject is for all
@@ -263,6 +266,44 @@ function renderAnswer(card, s) {
   }
 }
 
+// What a card (or a lamp's tip) says of a CI state (I6; the words are theme.js `ci.*`, placeholders {branch} {sha} {done}
+// {total} {check}): '' for no state or none. `ci` is Session.ci, or a lamp's { state, branch, sha7, failed }.
+export const ciLine = ci => (!ci || !ci.state || ci.state === 'none' ? ''
+  : t(`ci.${ci.state}`, { branch: ci.branch ?? '', sha: ci.sha7 ?? '', done: ci.done ?? '', total: ci.total ?? '', check: ci.failed ?? '' }));
+// The CI line of a card: one button (the remote view: plain text, it has no command) that opens the commit's checks page
+// from the session id; the backend finds the page, a rejection shows on the card like a failed open. After the links.
+function renderCi(card, s) {
+  let row = card.querySelector('.ci');
+  if (!row) {
+    row = document.createElement('div'); row.className = 'ci';
+    card.querySelector('.links').after(row);
+    const err = document.createElement('div'); err.className = 'open-err'; err.hidden = true;
+    row.after(err);
+  }
+  const text = ciLine(s?.ci), err = card.querySelector('.open-err');
+  row.hidden = !text;
+  if (text && row.dataset.text !== `${REMOTE}|${text}`) {
+    row.dataset.text = `${REMOTE}|${text}`;
+    if (REMOTE) row.replaceChildren(text);
+    else {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ci-line'; b.textContent = text; b.title = t('ci.open');
+      row.replaceChildren(b);
+    }
+  }
+  const b = row.querySelector('.ci-line');
+  if (b && s) b.onclick = () => { clearOpenErr(); invoke('ci_open', { who: s.id }).catch(e => showOpenErr(s.id, e)); };
+  err.textContent = s && openErr?.id === s.id ? openErr.text : '';
+  err.hidden = !err.textContent;
+}
+// A failed open (the terminal, the claude.ai session, the checks page): its error on the card, until the next action or
+// pick. The links close the card on a click, so a failure selects that session's card again.
+let openErr = null;
+const clearOpenErr = () => { openErr = null; };
+function showOpenErr(id, e) {
+  openErr = { id, text: String(e) };
+  sel = id; renderCard();
+}
+
 function renderLinks(card, s) {
   const [orca, web] = card.querySelectorAll('.links button'), note = card.querySelector('.links .note');
   // the click that opened this card already opened the terminal (pick): no button for it, unless an answer failed
@@ -276,11 +317,12 @@ function renderLinks(card, s) {
   // link opens on its own device, so it stays the web page
   const app = !REMOTE && !!s?.app;
   web.textContent = app ? 'Open in Claude' : 'Open on claude.ai';
-  orca.onclick = () => { openTarget(`orca:${s.orca}`); closeCard(); };
-  web.onclick = () => { openTarget(`${app ? 'app' : 'web'}:${s.web}`); closeCard(); };
+  orca.onclick = () => { clearOpenErr(); openTarget(`orca:${s.orca}`, e => showOpenErr(s.id, e)); closeCard(); };
+  web.onclick = () => { clearOpenErr(); openTarget(`${app ? 'app' : 'web'}:${s.web}`, e => showOpenErr(s.id, e)); closeCard(); };
 }
 
 function select(id) {
+  clearOpenErr();
   sel = sel === id ? null : id;
   if (sel !== opened) opened = null; // another card (a kin link): its terminal was not opened
   const s = rosterOf().find(r => r.id === id);
@@ -306,7 +348,7 @@ export function pick(id) {
   // the terminal did not open: Open in Orca comes back on its card; with no card for this click (the setting off), a
   // toast says so (main.rs open_failed), or the click would seem to do nothing
   if (s?.orca) openTarget(`orca:${s.orca}`, err => {
-    if (opened === id) { opened = null; renderCard(); } else if (!shown) invoke('open_failed', { name: String(s.name ?? ''), error: String(err) }).catch(() => {});
+    if (opened === id) { opened = null; showOpenErr(id, err); } else if (!shown) invoke('open_failed', { name: String(s.name ?? ''), error: String(err) }).catch(() => {});
   });
   if (!shown) { closeCard(); return; }
   opened = orca && sel !== id ? id : null; // the card about to open (select toggles a second click shut)

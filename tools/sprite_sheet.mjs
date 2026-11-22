@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RES } from '../ui/sprites.js';
+import { RES, loadAllArt } from '../ui/sprites.js';
 import { THEMES, T, setTheme } from '../ui/theme.js';
 import '../ui/themes.js';
 import { catalog } from './sprite_catalog.mjs';
@@ -17,6 +17,7 @@ const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); retur
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const themeId = arg('theme', 'tier2'), scale = Number(arg('scale', 4)), outRoot = path.resolve(root, arg('out', 'docs/sprites'));
 if (!THEMES[themeId]) throw new Error(`unknown theme ${themeId}: ${Object.keys(THEMES).join(', ')}`);
+await loadAllArt(); // sprites.js loads the active theme's art only; the gallery and --list draw every world
 setTheme(themeId); // the theme's palette and its own art (sprites.js), where it has some
 
 if (process.argv.includes('--list')) { // "C12" -> theme C, sprite 12, numbered over the default theme's list as in the viewer

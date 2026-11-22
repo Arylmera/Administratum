@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import { BASE, TIER_II, THEMES, WORLDS, T, TEXT, resolve, defineTheme, setTheme, onTheme, themed, hexA, t } from './theme.js';
 import './themes.js';
 import { MAPS, SCRIBE, ADEPT } from './sprites.js';
+import { loadAllArt } from './sprites.js';
+await loadAllArt(); // sprites.js loads the active theme's art only: these tests visit every world
 
 const COLOR = /^(#[0-9a-f]{6}|rgba\(\d+,\d+,\d+,[\d.]+\))$/;
 const RGB = /^\d+,\d+,\d+$/;
@@ -100,7 +102,9 @@ const LIGHT_CHROME = {
 const CHROMES = [...Object.keys(THEMES).map(id => [id, resolve(THEMES[id]).ui]), ['light chrome', LIGHT_CHROME]];
 // Chrome colours: a theme's ui keys are CSS variables index.html declares.
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-const cssVars = new Set([...html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
+const base = fs.readFileSync(new URL('./css/base.css', import.meta.url), 'utf8'); // the :root defaults
+const styles = ['base', 'hall', 'panels'].map(f => fs.readFileSync(new URL(`./css/${f}.css`, import.meta.url), 'utf8')).join('\n');
+const cssVars = new Set([...base.slice(base.indexOf(':root {'), base.indexOf('}', base.indexOf(':root {'))).matchAll(/(--[a-z0-9-]+):/g)].map(m => m[1]));
 assert.ok(cssVars.size > 40, 'found the :root variables');
 for (const [id, chrome] of CHROMES) for (const [k, v] of Object.entries(chrome)) {
   assert.ok(cssVars.has(k), `${id}: ui ${k} is not a :root variable`);
@@ -120,7 +124,7 @@ for (const id of Object.keys(THEMES)) {
   }
 }
 const asked = new Set([...html.matchAll(/data-t(?:-title|-aria)?="([^"]+)"/g)].map(m => m[1]));
-for (const f of ['app.js', 'chrome.js', 'card.js', 'chronicon.js', 'overlay.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
+for (const f of ['app.js', 'chrome.js', 'card.js', 'chronicon.js', 'overlay.js', 'settings.js']) for (const m of fs.readFileSync(new URL(`./${f}`, import.meta.url), 'utf8').matchAll(/\b(?:t|say)\('([a-zA-Z.-]+)'/g)) asked.add(m[1]);
 assert.ok(asked.size > 25, 'found the texts asked for');
 for (const k of asked) assert.ok(all.has(k), `text key '${k}' is asked for but not in TEXT`);
 for (const k of ['busy', 'shell', 'idle', 'waiting']) assert.ok(all.has(`status.${k}`), `status.${k}`); // card.js: status.${s.status}
@@ -141,9 +145,9 @@ assert.deepEqual(['high', 'novice'].map(r => ['t', 'T', 'z'].map(k => ({ ...T.px
 setTheme('tier2');
 
 // Chrome contrast (WCAG ratio), every theme: each foreground the page draws over a fill (index.html), text >= 4.5,
-// icons and borders >= 3. A theme's ui over index.html's :root, var() resolved.
+// icons and borders >= 3. A theme's ui over base.css's :root, var() resolved.
 {
-  const css = html.slice(html.indexOf(':root {'), html.indexOf('}', html.indexOf(':root {')));
+  const css = base.slice(base.indexOf(':root {'), base.indexOf('}', base.indexOf(':root {')));
   const ROOT = Object.fromEntries([...css.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
   const lum = c => { const v = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16) / 255).map(u => (u <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
@@ -155,6 +159,21 @@ setTheme('tier2');
     ['--copper', '--bar', 3, 'header .icon'], ['--paper-ink-3', '--paper-tab', 4.5, 'Chronicon tabs'], ['--wax', '--card', 4.5, '#card .err'], ['--paper-accent', '--card', 4.5, '#card .files .more'], ['--flame', '--label', 4.5, '.edge.alarm, .lbl.stuck border'],
     ['--pink', '--bar', 4.5, '.count.on'], ['--pink', '--bg', 4.5, 'pink on the page'], ['--pink', '--label', 4.5, '.lbl .sub'],
     ['--dim', '--bar', 4.5, '.motto, .count'], ['--ink', '--label', 4.5, '.lbl'], ['--green', '--label-btn', 4.5, '.lbl .ans button'],
+    // F13: the phone page's --dim over its page (mobile.css .dim, .task; its .count is on --bar, above)
+    ['--dim', '--bg', 4.5, 'mobile .dim, .task'],
+    // F13: --paper-ink-2 (the card's meta lines, Settings hints and units) over every parchment fill it is drawn on
+    ['--paper-ink-2', '--paper', 4.5, 'Settings hints'], ['--paper-ink-2', '--card', 4.5, '#card .turn, .meta, .watch'], ['--paper-ink-2', '--paper-hi', 4.5, 'Settings labels'],
+    ['--paper-ink-2', '--paper-q', 4.5, '.lbl.question .sub'],
+    // F10: the focus ring (>= 3, a non-text mark) over every surface it is drawn on. The ring is an outline, so it lies outside
+    // the element it rings, on what is behind it: --focus on the chrome (the header, the page, the scene behind a label: --label),
+    // --focus-paper (a parchment surface's --focus) on parchment
+    ['--focus', '--bar', 3, 'focus ring: header'], ['--focus', '--label', 3, 'focus ring: label'], ['--focus', '--bg', 3, 'focus ring: page'],
+    ['--focus-paper', '--card', 3, 'focus ring: card'], ['--focus-paper', '--paper', 3, 'focus ring: panels'], ['--focus-paper', '--paper-tab', 3, 'focus ring: Chronicon tabs'],
+    ['--focus-paper', '--paper-hi', 3, 'focus ring: Settings fields'], ['--focus-paper', '--paper-q', 3, 'focus ring: question label'], ['--focus-paper', '--paper-edge', 3, 'focus ring: the sheet edge'],
+    // F13: the Chronicon's chart colours over its sheet (>= 3, graphical marks): the bars, and the icon glyphs that stand alone (the
+    // pass tick, the fail cross); the gold, orange, light and ink of PAL sit inside a darker outline or beside a darker colour
+    ['--chart-new', '--paper', 3, 'Chronicon bars'], ['--chart-cache', '--paper', 3, 'Chronicon bars'],
+    ['--chart-red', '--paper', 3, 'Chronicon icons: tests fail'], ['--chart-green', '--paper', 3, 'Chronicon icons: tests pass'],
   ];
   // Known shortfalls in themes this check found already shipped: each must still fail, so fixing one forces its removal here.
   const KNOWN = new Set(['night --dim/--bar', 'cyber --dim/--bar', 'synth --dim/--bar',
@@ -162,22 +181,35 @@ setTheme('tier2');
     'darwin --green-on-blood/--blood', 'orbital --copper/--bar',
     'cyber --paper-ink-3/--paper-tab', 'orbital --paper-ink-3/--paper-tab', 'synth --paper-ink-3/--paper-tab', 'tower --paper-ink-3/--paper-tab', 'vault --paper-ink-3/--paper-tab', 'darwin --paper-ink-3/--paper-tab',
     'xenos --wax/--card', 'night --wax/--card', 'cyber --wax/--card', 'orbital --wax/--card', 'corpo --wax/--card', 'rain --wax/--card', 'synth --wax/--card', 'tower --wax/--card', 'vault --wax/--card',
-    'corpo --paper-accent/--card']);
+    'corpo --paper-accent/--card',
+    'night --paper-ink-2/--paper', 'night --paper-ink-2/--card', 'night --dim/--bg', 'cyber --dim/--bg', 'synth --dim/--bg']);
   // the on-blood colours apply only while the label's fill is --blood: never to a selected label (on --label-sel)
-  for (const m of html.matchAll(/([^{}]*)\{[^}]*color: var\(--(?:ink|pink)-on-blood\)/g)) {
-    if (/\.lbl\.(stale|risky)/.test(m[1])) assert.ok(m[1].includes(':where(:not(.sel))'), `index.html: '${m[1].trim()}' colours a selected label for --blood`);
+  for (const m of styles.matchAll(/([^{}]*)\{[^}]*color: var\(--(?:ink|pink)-on-blood\)/g)) {
+    if (/\.lbl\.(stale|risky)/.test(m[1])) assert.ok(m[1].includes(':where(:not(.sel))'), `css: '${m[1].trim()}' colours a selected label for --blood`);
   }
-  const seenKnown = new Set();
-  for (const [id, chrome] of CHROMES) {
-    const ui = { ...ROOT, ...chrome };
-    const val = k => { let v = ui[k]; for (let i = 0; i < 4 && v?.startsWith('var('); i++) v = ui[v.slice(4, -1).trim()]; return v; };
-    for (const [f, b, min, where] of PAIRS) {
-      const r = ratio(val(f), val(b)), key = `${id} ${f}/${b}`;
-      if (KNOWN.has(key)) { seenKnown.add(key); assert.ok(r < min, `${key} now passes (${r.toFixed(2)}): drop it from KNOWN`); }
-      else assert.ok(r >= min, `${id}: ${f} on ${b} (${where}) contrast ${r.toFixed(2)} < ${min}`);
+  // The check as a function, so a fixture can prove it goes red: the problems of `chromes` ([id, ui] pairs) over PAIRS, and the
+  // KNOWN pairs it met. A pair below its minimum is a problem unless KNOWN; a KNOWN pair that passes is one too.
+  const verdict = (chromes, known = new Set()) => {
+    const problems = [], seen = new Set();
+    for (const [id, chrome] of chromes) {
+      const ui = { ...ROOT, ...chrome };
+      const val = k => { let v = ui[k]; for (let i = 0; i < 4 && v?.startsWith('var('); i++) v = ui[v.slice(4, -1).trim()]; return v; };
+      for (const [f, b, min, where] of PAIRS) {
+        const r = ratio(val(f), val(b)), key = `${id} ${f}/${b}`;
+        if (known.has(key)) { seen.add(key); if (r >= min) problems.push(`${key} now passes (${r.toFixed(2)}): drop it from KNOWN`); }
+        else if (r < min) problems.push(`${id}: ${f} on ${b} (${where}) contrast ${r.toFixed(2)} < ${min}`);
+      }
     }
-  }
-  assert.deepEqual([...seenKnown].sort(), [...KNOWN].sort(), 'every KNOWN shortfall names a real theme and pair');
+    return { problems, seen };
+  };
+  const real = verdict(CHROMES, KNOWN);
+  assert.deepEqual(real.problems, [], 'chrome contrast');
+  assert.deepEqual([...real.seen].sort(), [...KNOWN].sort(), 'every KNOWN shortfall names a real theme and pair');
+  // A deliberately low fixture turns the check red: a focus ring the colour of the bar, bars the colour of the sheet, hints
+  // and the phone's dim words the colour of their fill; and a theme pack that lists none of the new keys is fine (the defaults).
+  const fixture = verdict([['low-fixture', { '--focus': ROOT['--bar'], '--chart-new': ROOT['--paper'], '--paper-ink-2': ROOT['--paper'], '--dim': ROOT['--bg'] }]]);
+  for (const need of ['--focus on --bar', '--chart-new on --paper', '--paper-ink-2 on --paper', '--dim on --bg']) assert.ok(fixture.problems.some(p => p.includes(need)), `the low fixture is caught: ${need}`);
+  assert.deepEqual(verdict([['pack without the new keys', {}]]).problems, [], 'the defaults hold on their own');
   // the Hall of Honours' words (--honours-ink) over the fill of each of the plaque's title and mark fields (its most
   // common colour inside the border; a world's texture specks aside)
   const { TITLE, ROW } = await import('../tools/honours_art/kit.mjs');
@@ -230,5 +262,35 @@ setTheme('tier2');
   assert.deepEqual(outside.rank, before.tower ? resolve({ id: 'pack-y', world: 'arcane', name: 'Y' }).rank : outside.rank);
   assert.notEqual(outside.rank.high.adept.q, TIER_II.rank.high.adept.q, 'a theme from outside: not the 40k ivory');
   assert.equal(resolve(THEMES.xenos).rank.high.adept.q, TIER_II.rank.high.adept.q, 'a 40k Ordo: the ladder');
+}
+// The panels' wording (L3b): the keys exist in Tier II, and a world that renames petitions renames the phone's empty line too.
+{
+  for (const k of ['prefs.theme', 'prefs.look', 'prefs.resetArmed', 'log.empty', 'mobile.empty', 'petition.armed']) assert.ok(t(k) !== k, `${k} is a wording key`);
+  assert.equal(t('petition.armed'), 'Approve? click again');
+  for (const id of ['cyber', 'darwin', 'orbital', 'tower', 'vault']) {
+    const own = resolve(THEMES[id]).text;
+    assert.notEqual(own.mobile.empty, TEXT.mobile.empty, `${id}: the phone's empty line follows its word for a petition`);
+    assert.notEqual(own.log.empty, TEXT.log.empty, `${id}: its own book`);
+  }
+}
+// L4a: the CI verdict's wording (lane L4b codes against these names and {placeholders}), its Chronicon kinds, Settings > Status.
+{
+  const PLACEHOLDERS = { running: ['branch', 'sha', 'done', 'total'], pass: ['branch', 'sha'], fail: ['branch', 'sha', 'check'], timeout: ['branch', 'sha'], error: ['branch', 'sha'], open: [] };
+  for (const id of Object.keys(THEMES)) {
+    const text = resolve(THEMES[id]).text;
+    for (const [k, names] of Object.entries(PLACEHOLDERS)) {
+      assert.deepEqual([...new Set([...text.ci[k].matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort(), [...names].sort(), `${id}: ci.${k} keeps its placeholders`);
+    }
+    for (const k of ['ci-pass', 'ci-fail']) assert.equal(typeof text.event[k], 'string', `${id}: event.${k}`);
+    assert.equal(typeof text.prefs.cat.status, 'string', `${id}: the Status category`);
+  }
+  assert.equal(t('ci.running', { branch: 'main', sha: 'abc1234', done: 2, total: 5 }), 'CI · main · abc1234 · running 2/5');
+  assert.equal(t('ci.fail', { branch: 'main', sha: 'abc1234', check: 'build' }), 'CI · main · abc1234 · failed: build');
+  assert.equal(t('ci.timeout', { branch: 'main', sha: 'abc1234' }), 'CI · main · abc1234 · no verdict after 30 min');
+  for (const id of ['cyber', 'darwin', 'orbital', 'tower', 'vault']) {
+    const own = resolve(THEMES[id]).text;
+    assert.notEqual(own.event['ci-pass'], TEXT.event['ci-pass'], `${id}: rewords the CI events like its neighbours`);
+    assert.notEqual(own.prefs.cat.status, TEXT.prefs.cat.status, `${id}: its own Status tab`);
+  }
 }
 console.log('theme ok');

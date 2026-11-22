@@ -164,7 +164,7 @@ pub fn with_buttons(app: &AppHandle, title: &str, body: &str, buttons: &[(&str, 
     #[cfg(not(windows))]
     match actions::show(app, title, body, buttons, on_click) {
         Ok(()) => return,
-        Err(e) => eprintln!("toast with buttons: {e}"),
+        Err(e) => crate::status::report("toast", crate::status::State::Warn, format!("toast with buttons: {e}")),
     }
     let _ = app.notification().builder().title(title).body(body).show();
 }
@@ -229,7 +229,7 @@ pub mod actions {
         let handle = app.clone();
         let _ = app.notification().on_action(move |p| {
             let id = p.notification().map(|n| n.id());
-            eprintln!("toast click: {} on toast {id:?}", p.action_id()); // before routing: a click that arrives is seen
+            crate::status::note("toast", format!("click: {} on toast {id:?}", p.action_id())); // before routing: a click that arrives is seen
             #[cfg(not(target_os = "macos"))]
             if p.action_id() == "tap" {
                 crate::window::reveal(&handle);
@@ -275,8 +275,18 @@ pub fn test_toast(app: &AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(3));
         let buttons = petition_buttons(cfg!(target_os = "macos"), false, "yes:0:test", "no:0:test");
-        with_buttons(&app, "Test petition", "A click is only logged", &buttons, |arg| eprintln!("test toast click: {arg:?}"));
+        with_buttons(&app, "Test petition", "A click is only logged", &buttons, |arg| crate::status::note("toast", format!("test toast click: {arg:?}")));
     });
+}
+
+/// Settings > Status: one plain toast with fixed text, to see whether notifications reach the desktop (quiet hours do
+/// not apply: the user asked for it).
+#[tauri::command]
+pub fn test_notification(app: AppHandle) -> Result<(), String> {
+    app.notification().builder().title("Administratum").body("A test notification: notifications work.").show().map_err(|e| {
+        crate::status::report("toast", crate::status::State::Error, format!("test notification: {e}"));
+        e.to_string()
+    })
 }
 
 /// A petition toast. A permission prompt in an Orca terminal or from OpenCode gets Approve / Deny: a click answers
@@ -298,7 +308,7 @@ pub fn petition_toast(app: &AppHandle, s: &Session, title: String, body: String)
                 Agent::Claude => answer_petition(s.orca.clone().unwrap_or_default(), choice.to_string()),
             };
             if let Err(e) = answered {
-                eprintln!("toast answer: {e}");
+                crate::status::report("toast", crate::status::State::Warn, format!("toast answer: {e}"));
                 let _ = handle.notification().builder().title(fill(&get().failed, &name)).show();
             }
         }

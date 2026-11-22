@@ -122,7 +122,7 @@ pub fn enter(window: &tauri::WebviewWindow, shape: Shape, base: f64) -> Result<O
     let app2 = app.clone();
     app.run_on_main_thread(move || {
         if let Err(e) = open(&app2, &w, shape, base) {
-            eprintln!("strip: {e}");
+            crate::status::report("strip", crate::status::State::Warn, format!("strip: {e}"));
         }
     })
     .map_err(|e| e.to_string())?;
@@ -146,7 +146,7 @@ pub fn leave(window: &tauri::WebviewWindow) -> Result<(), String> {
             Ok(_) => {
                 let _ = w.destroy();
             }
-            Err(e) => eprintln!("strip: back to the hall: {e}"),
+            Err(e) => crate::status::report("strip", crate::status::State::Warn, format!("strip: back to the hall: {e}")),
         }
     })
     .map_err(|e| e.to_string())

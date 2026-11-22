@@ -128,4 +128,17 @@ for (const c of Object.keys(rb)) for (const p of ['robe', 'adept'])
 const base = { ...TIER_II, text: { motto: 'base motto', prefs: { a: 'A', b: 'B' } } };
 const tx = themeOf('s', { ...j, text: { subtitle: 'own', prefs: { a: 'own A' } } }, base).text;
 assert.deepEqual(tx, { motto: 'base motto', subtitle: 'own', prefs: { a: 'own A' } });
+// The chrome keys W2 added (the focus ring, the emphasis colour, the Chronicon's icon colours): a pack may set them, and a pack
+// written before them (no such key) is as valid as ever: base.css :root holds the defaults, so nothing is filled in here.
+const NEW_KEYS = ['--focus', '--focus-paper', '--em', '--em-paper', '--chart-new', '--chart-cache', '--chart-ink', '--chart-red', '--chart-red-deep',
+  '--chart-light', '--chart-gold', '--chart-orange', '--chart-green', '--chart-brown', '--chart-brass'];
+assert.deepEqual(checkTheme({ ...ok, ui: Object.fromEntries(NEW_KEYS.map(k => [k, '#336699'])) }, { bases }), [], 'a pack that sets the new keys');
+assert.deepEqual(checkTheme({ ...ok, ui: { '--bg': '#000000' } }, { bases }), [], 'an old pack without them');
+one({ ui: { '--focus': 'url(http://x)' } }, 'ui.--focus');
+one({ ui: { '--em-track': '.2em' } }, 'ui.--em-track'); // the emphasis track is a size, not a colour: not a pack's to set
+// a style (a base and bands) with no ui of its own keeps the base's, and takes the new keys over it key by key
+const sty = themeOf('s', { format: 1, name: 'S', base: 'tier2', bands: [], ui: { '--focus': '#123456' } }, { ...TIER_II, ui: { '--bg': '#010203', '--focus': '#abcdef' } });
+assert.equal(sty.ui['--focus'], '#123456');
+assert.equal(sty.ui['--bg'], '#010203');
+assert.equal(themeOf('s', { format: 1, name: 'S', base: 'tier2', bands: [] }, { ...TIER_II, ui: { '--focus': '#abcdef' } }).ui['--focus'], '#abcdef');
 console.log('themepack ok');

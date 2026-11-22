@@ -5,8 +5,9 @@ import { WIN_Y, wallArt } from './wallart.js';
 
 const I = T.ink; // every colour drawn here, by name (theme.js)
 // Anchors of the active theme's art (sprites.js PROP_AT), rebuilt on a theme change: fromArt() at the end.
-let DESK_AT, LECTERN_AT, CONSOLE_AT, SK, PAPER;
-import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf } from './layout.js';
+let DESK_AT, LECTERN_AT, CONSOLE_AT, ROOMCOG_AT, SK, PAPER;
+import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, mainSpots, scribeSpots } from './layout.js';
+import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
 import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
@@ -254,14 +255,17 @@ function sanctRail(items) {
     }
   }
 }
-// The rooms' computers (layout.computers: 3 spots a room, where its shells run): one console a room, the world's, over
-// its first spot (the others wait their turn below it); its screen lit while anyone works there.
+// The rooms' computers (layout.computers: 3 spots a room, where its shells run): one room computer a room (ROOMCOG, the
+// world's own, tools/roomcog_art.mjs), centred over its first spot with its foot 1 px above it (the others wait their
+// turn below it), its top 3 px inside the room's top line; its lit frame while anyone works there, its unlit one else.
+const computerAt = p => ({ x: p.x - 8, y: p.y - 13 });
+const computerLight = (c, lit) => ({ x: c.x + ROOMCOG_AT.light[0], y: c.y + ROOMCOG_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 function drawComputers(layout, all, items, lights) {
   for (const spots of layout.computers?.values() ?? []) {
-    const p = spots[0], c = { x: p.x - 7, y: p.y - 13 };
+    const p = spots[0], c = computerAt(p);
     const lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
-    items.push({ y: p.y - 3, draw: g2 => blit(g2, MAPS.CONSOLE, c.x, c.y) });
-    lights.push(consoleLight(c, lit));
+    items.push({ y: p.y - 3, draw: g2 => blit(g2, MAPS[lit ? 'ROOMCOG' : 'ROOMCOG.off'], c.x, c.y) });
+    lights.push(computerLight(c, lit));
   }
 }
 
@@ -381,6 +385,15 @@ export function drawScene(g, layout, actors, fillOf, now) {
     floor.push(() => footShadow(g, shadowOf(MAPS.CONSOLE, c.x, c.y), shade));
     lights.push(consoleLight(c, lit));
     if (a) reactions(a, c, CONSOLE_AT, over, lights, now, floor);
+  }
+  // the CI lamps (cilamp.js): a department's main lamp at its block's east end (none while the list is empty), a scribe's
+  // beside its desk (while its session has a CI of its own: layout.roster's Session.ci); each at its own size
+  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
+  lights.push(...lampLights(lamps)); // the lenses glow
+  for (const s of lamps) {
+    const map = MAPS[s.frame], x = half(s.x - s.size[0] / 2), y = s.y - s.size[1];
+    items.push({ y: s.y, draw: g2 => blit(g2, map, x, y, LENS[s.frame]) });
+    floor.push(() => footShadow(g, shadowOf(map, x, y), shade));
   }
   for (const a of all) items.push({ y: a.y, draw: g2 => { drawActor(g2, a); if (a.burn) bundle(g2, a, fillOf(a.burn.old)); } });
   const lit = staticLights(H).concat(lights); // the lights known so far: the room's and the desks'
@@ -894,6 +907,7 @@ const KIND = {
   desk: { map: 'DESK', at: null, dim: dimDesk }, // at: the sprite's anchors (fromArt)
   lectern: { map: 'LECTERN', at: null, dim: dimDesk },
   console: { map: 'CONSOLE', at: null, dim: dimConsole },
+  roomcog: { map: 'ROOMCOG', at: null, dim: dimConsole }, // the rooms plan's room computer (drawComputers): its own unlit frame
 };
 const consoleLight = (con, lit) => ({ x: con.x + CONSOLE_AT.light[0], y: con.y + CONSOLE_AT.light[1], r: lit ? 10 : 5, color: T.light.green });
 
@@ -1275,8 +1289,8 @@ function drawBeacon(g, t, on, { x, y }) {
 // The anchors above from the active art (a theme may redraw desks, the skull... with its own anchors). A change drops
 // the paper piles: their sheets were laid out on the old surfaces.
 function fromArt() {
-  DESK_AT = { ...PROP_AT.DESK, scale: 1 }; LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }; CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 };
-  KIND.desk.at = DESK_AT; KIND.lectern.at = LECTERN_AT; KIND.console.at = CONSOLE_AT;
+  DESK_AT = { ...PROP_AT.DESK, scale: 1 }; LECTERN_AT = { ...PROP_AT.LECTERN, scale: 1 }; CONSOLE_AT = { ...PROP_AT.CONSOLE, scale: 0.6 }; ROOMCOG_AT = PROP_AT.ROOMCOG;
+  KIND.desk.at = DESK_AT; KIND.lectern.at = LECTERN_AT; KIND.console.at = CONSOLE_AT; KIND.roomcog.at = ROOMCOG_AT;
   SK = PROP_AT.SKULL; // centre (its position), carry (a pushed sheet), beam (the searchlight)
   PAPER = papers();
 }
@@ -1284,4 +1298,4 @@ fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
 export { MAG, KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
-  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, doorsOf, doorFrame, near, skullRed };
+  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, computerAt, computerLight, doorsOf, doorFrame, near, skullRed };

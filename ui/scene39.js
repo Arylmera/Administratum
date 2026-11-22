@@ -7,7 +7,8 @@
 // the cogitator's animation) through that face's plane, what stands upright (actors, flames, skulls) translated onto
 // its projected foot. Positions stay in the hall's logical px (x, y); world art px: u = 2x, v = 2(y - WALL), z up.
 import { P39, IsoBuf, VS39, TAN39 as K, depthSort } from './iso.js';
-import { WALL, WALL_DY, zonesOf, wingZones } from './layout.js';
+import { WALL, WALL_DY, zonesOf, wingZones, mainSpots, scribeSpots } from './layout.js';
+import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
 import { toFloor } from './view.js';
 import { bounds, placeProps, gateOf, fx, fy } from './isohall.js';
 import { build39, sheetOf } from './faces.js';
@@ -74,13 +75,14 @@ function paint(buf, over) {
 }
 const drawBuf = (g, buf, cv, u, v, z = 0) => { const [X, Y] = exact(u, v, z); g.drawImage(cv, X - buf.ox / RES, Y - buf.oy / RES, cv.width / RES, cv.height / RES); };
 
-// Desks, lecterns, consoles: their face sheet's sizes, and (art(), on first draw) the sprite lit (candle, screen) and
-// dim (scene.js KIND dim palettes), anchor: world (0, 0, 0).
+// Desks, lecterns, consoles, the room computer: their face sheet's sizes, and (art(), on first draw) the sprite lit
+// (candle, screen) and dim (scene.js KIND dim palettes), anchor: world (0, 0, 0); a piece with its own unlit frame (the
+// room computer's ROOMCOG.off) also that frame's volume, painted as drawn (off).
 let kit = null;
 function furnitureKit() {
   if (kit) return kit;
   kit = {};
-  for (const kind of ['desk', 'lectern', 'console']) {
+  for (const kind of ['desk', 'lectern', 'console', 'roomcog']) {
     const name = S.KIND[kind].map, s = sheetOf(name);
     kit[kind] = { kind, name, s, d: s.d, x0: s.x0, w: s.w, fh: s.fh, top: s.h };
   }
@@ -88,9 +90,10 @@ function furnitureKit() {
 }
 function art(k) {
   if (!k.buf) {
-    const { s } = k;
-    k.buf = bake(box(0, s.fw, 0, s.d, 0, s.fh + 4), b => build39(b, s, 0, 0, 1));
+    const vol = s => bake(box(0, s.fw, 0, s.d, 0, s.fh + 4), b => build39(b, s, 0, 0, 1)), off = MAPS[`${k.name}.off`];
+    k.buf = vol(k.s);
     k.lit = paint(k.buf); k.dim = paint(k.buf, S.KIND[k.kind].dim());
+    if (off) { k.offBuf = vol(sheetOf(k.name, off)); k.off = paint(k.offBuf); }
   }
   return k;
 }
@@ -100,6 +103,14 @@ export function placeOf(kind, at) {
   const k = furnitureKit()[kind], yb = at.y + k.fh / RES, u0 = fx(at.x), v0 = fy(yb) - k.d;
   return { k, u0, v0, yb, foot: { u0: u0 + k.x0, u1: u0 + k.x0 + k.w, v0, v1: v0 + k.d } };
 }
+// A CI lamp's floor footprint (depthSort), a thin box at its foot. A main lamp (CIMAIN, layout.js mainSpots) keeps its
+// spot at its block's east end even where a console of the first row stands over it (the console's footprint begins
+// 2 px north of the lamp's foot): its box ends 2 px north of its foot, on the consoles' back edge, so every console
+// there is drawn in front of it, as in the flat view (the console's depth line is south of the lamp's foot).
+export const lampFoot = s => {
+  const v = 2 * (s.y - WALL), u = (s.size[0] + 1) / 2, back = s.frame?.startsWith('CIMAIN') ? 4 : 0;
+  return { u0: 2 * s.x - u, u1: 2 * s.x + u, v0: v - 2 - back, v1: v - back };
+};
 // An actor's floor footprint: a small box at its feet.
 export const actorFoot = a => { const x = Math.round(a.x), v = 2 * (Math.round(a.y) - WALL); return { u0: 2 * x - 4, u1: 2 * x + 4, v0: v - 3, v1: v + 1 }; };
 
@@ -244,11 +255,14 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     if (lit) sit(a, p);
     lights.push(S.consoleLight(c, lit));
   }
-  // the mirror hall's room computers (layout.computers, scene.js drawComputers): one console a room over its first spot
-  for (const [key, spots] of layout.computers ?? []) {
-    const c = { x: spots[0].x - 7, y: spots[0].y - 13 }, lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
-    furniture('console', c, `pc:${key}`, lit, 0, null, false, undefined);
-    lights.push(S.consoleLight(c, lit));
+  // the mirror hall's room computers (layout.computers, scene.js drawComputers): one room computer a room over its first
+  // spot, its lit or its unlit frame's volume
+  for (const spots of layout.computers?.values() ?? []) {
+    const c = S.computerAt(spots[0]), lit = all.some(a => a.pose === 'cog' && spots.some(q => Math.abs(a.x - q.x) < 1 && Math.abs(a.y - q.y) < 1));
+    const p = placeOf('roomcog', c);
+    floor.push(g2 => { const e = shadowOf(MAPS.ROOMCOG, c.x, c.y); if (e) e.cy -= p.k.d / 4; contactShadow(g2, e, shade); });
+    items.push({ foot: p.foot, draw(g2) { const k = art(p.k); drawBuf(g2, lit ? k.buf : k.offBuf, lit ? k.lit : k.off, p.u0, p.v0); } });
+    lights.push(S.computerLight(c, lit));
   }
   for (const [id, e] of sits) {
     const a = actors.get(id), k = a ? sitLevel(e, e.seen, now) : 0;
@@ -256,6 +270,17 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     e.seen = false;
     // a scribe getting up walks off while it eases: never drawn into the desk it leaves (feet kept south of its front)
     seated.set(id, Math.min(e.shift * k, Math.max(0, Math.round(a.y) - e.yb - FRONT_GAP)));
+  }
+
+  // the CI lamps (cilamp.js): a department's main lamp (none while the list is empty) and a scribe's (while its session
+  // has a CI of its own), upright on the projected foot like the skull and the flames (a flat billboard, no 39° volume),
+  // depth sorted by its small footprint, each at its own size
+  const lamps = lampsAt(mainSpots(layout.blocks, H, layout.desks), now).concat(scribeLampsAt(scribeSpots(layout.desks, H), layout.roster, now));
+  lights.push(...lampLights(lamps)); // the lenses glow
+  for (const s of lamps) {
+    const [w, h] = s.size, map = MAPS[s.frame], x = half(s.x - w / 2), y = s.y - h;
+    items.push({ foot: lampFoot(s), draw: g2 => save(g2, g3 => upright(g3, s.x, s.y, pin(s.x, s.y)), g3 => blit(g3, map, x, y, LENS[s.frame])) });
+    floor.push(g2 => contactShadow(g2, shadowOf(map, x, y), shade));
   }
 
   // actors, their contact and cast shadows

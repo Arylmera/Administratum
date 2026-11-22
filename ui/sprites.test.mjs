@@ -15,6 +15,12 @@ const LOW = {
   // the desktop column's lift (tools/lift_art/kit.mjs, in art px there)
   SHAFT: [28, 8], SHAFT_TOP: [28, 6], SHAFT_PIT: [28, 4], CABLE: [1, 2], CAR_BACK: [26, 20], 'CAR_FRONT.shut': [26, 20], 'CAR_FRONT.half': [26, 20], 'CAR_FRONT.open': [26, 20],
   SLAB: [8, 6], SLAB_L: [4, 6], SLAB_R: [4, 6], 'LAMP.off': [3, 3], 'LAMP.on': [3, 3],
+  // the CI lamp (tools/cilamp_art/kit.mjs, in art px there)
+  'CILAMP.off': [5, 10], 'CILAMP.amber': [5, 10], 'CILAMP.amber_dim': [5, 10], 'CILAMP.green': [5, 10], 'CILAMP.red': [5, 10],
+  // the department's main lamp (tools/cimain_art/kit.mjs, in art px there)
+  'CIMAIN.off': [7, 14], 'CIMAIN.amber': [7, 14], 'CIMAIN.amber_dim': [7, 14], 'CIMAIN.green': [7, 14], 'CIMAIN.red': [7, 14],
+  // the rooms plan's room computer (tools/roomcog_art/kit.mjs, in art px there)
+  ROOMCOG: [16, 12], 'ROOMCOG.off': [16, 12],
   SCROLL_PILE: [18, 7], BOOKS: [10, 9], LOOSE_A: [5, 4], LOOSE_B: [4, 5], GAUGE: [6, 6], CENSER: [5, 10],
   GATE: [32, 30], GATE_L: [8, 22], GATE_R: [8, 22], GATE_VOID: [16, 22], COMMIT_SEAL: [4, 7.5], COMMIT_TAG: [4, 7.5], COMMIT_STAMP: [4, 6], SCROLL_HELD: [14, 7], TABLE: [46, 8], BENCH: [46, 4], DOZE_Z: [3.5, 3.5],
   ...Object.fromEntries(Array.from({ length: 16 }, (_, k) => [`SHELL_COG_${k}`, [6, 6]])), // the shell cog's turn (scene.js spinCog), centred on its anchor
