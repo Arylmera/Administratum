@@ -220,7 +220,7 @@ impl Target {
 
     /// The real `repos/<owner>/<repo>/commits/<sha>/<what>` path, never the `{owner}/{repo}` placeholders (which
     /// `gh` would fill from its own cwd).
-    fn api(&self, what: &str) -> String {
+    pub(crate) fn api(&self, what: &str) -> String {
         format!("repos/{}/{}/commits/{}/{what}", self.repo.owner, self.repo.name, self.sha)
     }
 }
@@ -264,6 +264,56 @@ pub fn start_target(cwd: &Path) -> Option<Target> {
     let repo = parse_remote_url(&config_get(&config, &format!("remote \"{remote}\""), "url")?)?;
     let sha = read_ref(&dirs.common, &format!("refs/remotes/{remote}/{branch}"))?;
     Some(Target { repo, branch, sha })
+}
+
+/// A repository and its default branch.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MainRef {
+    pub repo: Repo,
+    /// From `refs/remotes/<remote>/HEAD`; None when that file is absent (the caller asks `gh`).
+    pub branch: Option<String>,
+}
+
+/// The default branch of the repository a folder belongs to: the remote of the current branch (its `branch.<b>.remote`
+/// unless that is `.`, else `origin`), the repository from that remote's `url`, the branch from the loose
+/// `refs/remotes/<remote>/HEAD` (`ref: refs/remotes/<remote>/<branch>`). None: no git dir, no such remote, not GitHub.
+/// Works from a linked worktree (config and refs come from the main repo's `.git`).
+pub fn default_branch_of(cwd: &Path) -> Option<MainRef> {
+    let dirs = git_dirs(cwd)?;
+    let config = read_config(&dirs.common);
+    let current = fs::read_to_string(&dirs.head).ok().and_then(|h| h.trim().strip_prefix("ref:")?.trim().strip_prefix("refs/heads/").map(String::from));
+    let remote = current
+        .and_then(|b| config_get(&config, &format!("branch \"{b}\""), "remote"))
+        .filter(|r| r != ".")
+        .unwrap_or_else(|| "origin".into());
+    if !valid_ref_name(&remote) {
+        return None;
+    }
+    let repo = parse_remote_url(&config_get(&config, &format!("remote \"{remote}\""), "url")?)?;
+    let prefix = format!("refs/remotes/{remote}/");
+    let branch = fs::read_to_string(dirs.common.join(&prefix).join("HEAD"))
+        .ok()
+        .and_then(|t| t.trim().strip_prefix("ref:")?.trim().strip_prefix(prefix.as_str()).map(String::from))
+        .filter(|b| valid_ref_name(b));
+    Some(MainRef { repo, branch })
+}
+
+/// `default_branch` of `gh api repos/<o>/<r>`, if it is a safe ref name.
+pub fn parse_default_branch(repo_json: &str) -> Option<String> {
+    let v: Value = serde_json::from_str(repo_json).ok()?;
+    v.get("default_branch")?.as_str().filter(|b| valid_ref_name(b)).map(String::from)
+}
+
+/// The commit a combined status answers for: its `sha`, 40 lowercase hex only.
+pub fn status_sha(status_json: &str) -> Option<String> {
+    let v: Value = serde_json::from_str(status_json).ok()?;
+    v.get("sha")?.as_str().filter(|s| s.len() == 40 && s.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f'))).map(String::from)
+}
+
+/// `repos/<owner>/<repo>/commits/<branch>/<what>`: a call by branch name, GitHub resolves it to the tip. `branch` must
+/// have passed `valid_ref_name`.
+pub(crate) fn branch_api(repo: &Repo, branch: &str, what: &str) -> String {
+    format!("repos/{}/{}/commits/{branch}/{what}", repo.owner, repo.name)
 }
 
 // ---- the verdict ------------------------------------------------------------------------------------------------
@@ -1368,6 +1418,85 @@ mod tests {
         fs::write(r.join(".git/packed-refs"), format!("{SHA} refs/remotes/fork/feat\n")).unwrap();
         assert_eq!(start_target(&r).map(|t| (t.repo.slug(), t.branch)), Some(("me/r".to_string(), "feat".to_string())));
         let _ = fs::remove_dir_all(&d);
+    }
+
+    // ---- the default branch ----
+
+    fn origin_head(r: &Path, text: &str) {
+        fs::write(r.join(".git/refs/remotes/origin/HEAD"), text).unwrap();
+    }
+
+    fn o_r() -> Repo {
+        Repo { owner: "o".into(), name: "r".into() }
+    }
+
+    #[test]
+    fn default_branch_from_origin_head() {
+        let d = temp("defbranch");
+        let r = repo(&d, "feat", "git@github.com:o/r.git", None);
+        origin_head(&r, "ref: refs/remotes/origin/main\n");
+        assert_eq!(default_branch_of(&r), Some(MainRef { repo: o_r(), branch: Some("main".into()) }));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn default_branch_without_origin_head() {
+        let d = temp("defnohead");
+        let r = repo(&d, "feat", "git@github.com:o/r.git", None);
+        let m = default_branch_of(&r).unwrap();
+        assert_eq!((m.branch, m.repo.slug()), (None, "o/r".to_string()));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn default_branch_in_a_worktree() {
+        let d = temp("defworktree");
+        let r = repo(&d, "main", "git@github.com:o/r.git", None);
+        origin_head(&r, "ref: refs/remotes/origin/main\n");
+        let admin = r.join(".git/worktrees/wt");
+        fs::create_dir_all(&admin).unwrap();
+        fs::write(admin.join("HEAD"), "ref: refs/heads/wt-branch\n").unwrap();
+        let wt = d.join("wt");
+        fs::create_dir_all(&wt).unwrap();
+        fs::write(wt.join(".git"), format!("gitdir: {}\n", admin.display())).unwrap();
+        assert_eq!(default_branch_of(&wt), Some(MainRef { repo: o_r(), branch: Some("main".into()) }));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn default_branch_not_github() {
+        let d = temp("defgitlab");
+        let r = repo(&d, "feat", "git@gitlab.com:o/r.git", None);
+        origin_head(&r, "ref: refs/remotes/origin/main\n");
+        assert_eq!(default_branch_of(&r), None);
+        let _ = fs::remove_dir_all(&d);
+        let d = temp("deftricks");
+        let r = repo(&d, "feat", "git@github.com:o/r.git", None);
+        origin_head(&r, "ref: refs/remotes/origin/../../etc\n");
+        assert_eq!(default_branch_of(&r).map(|m| m.branch), Some(None), "a crafted HEAD names no branch");
+        assert_eq!(default_branch_of(&d), None, "no repo at all");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn parse_default_branch_cases() {
+        assert_eq!(parse_default_branch(r#"{"default_branch":"trunk"}"#).as_deref(), Some("trunk"));
+        assert_eq!(parse_default_branch("{}"), None);
+        assert_eq!(parse_default_branch("not json"), None);
+        assert_eq!(parse_default_branch(r#"{"default_branch":"a/../b"}"#), None);
+    }
+
+    #[test]
+    fn status_sha_cases() {
+        assert_eq!(status_sha(&format!(r#"{{"sha":"{SHA}","statuses":[]}}"#)).as_deref(), Some(SHA));
+        assert_eq!(status_sha(r#"{"sha":"5d6e7f8"}"#), None, "short");
+        assert_eq!(status_sha(&format!(r#"{{"sha":"{}"}}"#, SHA.to_uppercase())), None, "uppercase");
+        assert_eq!(status_sha(r#"{"statuses":[]}"#), None);
+    }
+
+    #[test]
+    fn branch_api_path() {
+        assert_eq!(branch_api(&o_r(), "main", "status"), "repos/o/r/commits/main/status");
     }
 
     // ---- the checks URL ----
