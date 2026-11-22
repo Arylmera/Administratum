@@ -662,6 +662,8 @@ mod tests {
         let e = at(&mut m, &gh, &cwd, T0);
         assert_eq!(ended(&e), vec![Ended::Skipped("gh not found".into())]);
         assert_eq!(e[0].dept, "Terra");
+        // no head yet: the target has no commit, and formatting it as a Chronicon detail must not panic
+        assert_eq!((e[0].target.sha.as_str(), e[0].target.sha7()), ("", ""));
         assert_eq!(gh.log().len(), 1);
         for k in 1..20 {
             assert!(at(&mut m, &gh, &cwd, T0 + k * IDLE_MS).is_empty());
@@ -740,6 +742,21 @@ mod tests {
         let e = at(&mut m, &gh, &cwd, T0 + POLL_MS + IDLE_MS);
         assert_eq!(ended(&e), vec![Ended::Skipped("gh not logged in".into())]);
         assert_eq!(lamp(&m), terra(CiStatus::None));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn gh_missing_at_the_first_poll_is_a_note_without_a_commit() {
+        let (d, cwd) = main_repo("nogh", true);
+        let gh = Stub::always(Err(GhError::Missing));
+        let mut m = Mains::default();
+        let e = at(&mut m, &gh, &cwd, T0);
+        assert_eq!(ended(&e), vec![Ended::Skipped("gh not found".into())]);
+        assert_eq!(gh.log(), vec![STATUS.to_string()]);
+        let detail = format!("{} · {}", e[0].target.branch, e[0].target.sha7());
+        assert_eq!(detail, "main · ");
+        assert_eq!(lamp(&m), terra(CiStatus::None));
+        assert!(m.links().is_empty());
         let _ = fs::remove_dir_all(&d);
     }
 

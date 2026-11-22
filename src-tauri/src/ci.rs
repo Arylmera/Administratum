@@ -214,8 +214,9 @@ pub struct Target {
 }
 
 impl Target {
+    /// The first 7 characters; the whole `sha` when shorter (empty for a main tracker's ending before any head).
     pub fn sha7(&self) -> &str {
-        &self.sha[..7]
+        self.sha.get(..7).unwrap_or(&self.sha)
     }
 
     /// The real `repos/<owner>/<repo>/commits/<sha>/<what>` path, never the `{owner}/{repo}` placeholders (which
@@ -1532,6 +1533,14 @@ mod tests {
     #[test]
     fn branch_api_path() {
         assert_eq!(branch_api(&o_r(), "main", "status"), "repos/o/r/commits/main/status");
+    }
+
+    #[test]
+    fn sha7_is_total() {
+        let t = |sha: &str| Target { repo: o_r(), branch: "main".into(), sha: sha.into() };
+        assert_eq!(t(SHA).sha7(), "5d6e7f8");
+        assert_eq!(t("").sha7(), ""); // a main tracker's ending before any head: no commit, no panic
+        assert_eq!(t("abc").sha7(), "abc");
     }
 
     // ---- the checks URL ----
