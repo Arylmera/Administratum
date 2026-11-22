@@ -328,6 +328,10 @@ impl Mains {
         // what the lamp showed for this head before this poll (unlit on a head just taken)
         let (was, was_failed) = (t.shown.state, t.shown.failed.clone());
         let h = t.head.as_mut().expect("a head was just taken");
+        // a head with its verdict whose CI runs again (a re-run): its 30-min cap counts from now
+        if matches!(snap.verdict, Verdict::Running) && matches!(was, CiStatus::Pass | CiStatus::Fail) {
+            h.started_ms = now_ms;
+        }
         h.seen |= snap.total > 0;
         let stable = h.prev_ids.as_ref() == Some(&snap.ids);
         h.prev_ids = Some(snap.ids.clone());
@@ -563,6 +567,26 @@ mod tests {
         assert_eq!(lamp(&m), terra(CiStatus::None));
         at(&mut m, &gh, &cwd, T0 + POLL_MS);
         assert_eq!(lamp(&m), terra(CiStatus::Pass));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_rerun_on_an_old_head_runs_again_from_its_start() {
+        let (d, cwd) = main_repo("rerun", true);
+        let running = [("build", "in_progress", None)];
+        let gh = Stub::new([polls_of(2, A, &[ok("build")]), polls_of(2, A, &running)].concat());
+        let mut m = Mains::default();
+        at(&mut m, &gh, &cwd, T0);
+        at(&mut m, &gh, &cwd, T0 + POLL_MS);
+        assert_eq!(lamp(&m), terra(CiStatus::Pass));
+        // the same head, long after it was first seen, has its CI re-run: amber, not a timeout at once
+        let t = T0 + CAP_MS + IDLE_MS;
+        at(&mut m, &gh, &cwd, t);
+        assert_eq!(gh.log().len(), 6);
+        assert_eq!(lamp(&m), terra(CiStatus::Running));
+        at(&mut m, &gh, &cwd, t + POLL_MS);
+        assert_eq!(gh.log().len(), 8);
+        assert_eq!(lamp(&m), terra(CiStatus::Running));
         let _ = fs::remove_dir_all(&d);
     }
 
