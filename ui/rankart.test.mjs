@@ -131,7 +131,7 @@ drawnRanks('scribe39', ['E', 'W', 'S', 'N'], 'N');
 assert.ok(checkComplete39('scribe39', ART.base.scribe39), 'scribe39 still complete with its rank frames');
 drawnRanks('adept39', ['E', 'W', 'S', 'N'], null);
 assert.ok(checkComplete39('adept39', ART.base.adept39), 'adept39 still complete with its rank frames');
-for (const r of ['high', 'novice']) for (const [face, [gx, gy]] of Object.entries({ S: [5, 14], E: [11, 14], N: [8, 14], W: [9, 14] })) {
+for (const r of ['high', 'novice']) for (const [face, [gx, gy]] of Object.entries({ S: [5, 14], E: [11, 14], N: [8, 14], W: [3, 14] })) {
   const fr = ART.base.adept39.frames, f = fr[`${r} ${face} 0`], p = fr[`${face} 0`];
   for (let y = gy; y < gy + 5; y++) assert.equal(f[y].slice(gx, gx + 10), p[y].slice(gx, gx + 10), `adept39 '${r} ${face} 0': the glyph's place kept, row ${y}`);
 }

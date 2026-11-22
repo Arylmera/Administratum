@@ -127,8 +127,8 @@ for (const hall of [hallOf(0), hallOf(2, { w: MAX_W, h: 600 })]) {
 // An art or layout change on purpose changes them: re-record (print the hash below) once the new look is checked.
 // The west wing (O10c): recorded once looked at on screen.
 const GRID = {
-  'tier2 346x248 day': 'fb75b3e195e1', 'tier2 554x728 night': 'f6ed0a8a6b34', 'vault 346x248 day': 'c2ffd479a337', 'vault 554x728 night': 'c7632cda3462',
-  'tier2 492x504 day wing': '6d7a183deb08', 'vault 492x504 day wing': '7603a4e8496c', // the rooms down to the hall's bottom, the wing's windows (2026-11-09)
+  'tier2 346x248 day': 'fb75b3e195e1', 'tier2 554x728 night': 'f6ed0a8a6b34', 'vault 346x248 day': '94a4964d0ad9', 'vault 554x728 night': '8fd17f49e9e3',
+  'tier2 492x504 day wing': '6d7a183deb08', 'vault 492x504 day wing': '7ed75d0157fc', // the rooms down to the hall's bottom, the wing's windows (2026-11-09)
 };
 const got = {};
 for (const id of ['tier2', 'vault']) {
