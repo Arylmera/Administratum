@@ -1,5 +1,5 @@
 // Ordo Hereticus: a gibbet lantern, an iron cage round the lens like a pyre's eye, on a squat post with a short crossbar, a bone skull at its foot; bold black outlines.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '.....kkkk.....',

@@ -1,5 +1,5 @@
 // Ordo Xenos: a stasis pylon, two prongs holding the lens in a ring with no hood over it, a slim obelisk with cold field lines, widening to its foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '.k..........k.',

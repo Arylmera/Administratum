@@ -1,5 +1,5 @@
 // Vault 111: an alarm beacon post, the lens in a round dome under a wire cage, a blue and yellow stripe band, a riveted steel post, a gear-shaped plate bolted at its foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '.....kkkk.....',

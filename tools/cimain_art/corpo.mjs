@@ -1,5 +1,5 @@
 // Corpo Tower: a black-glass totem, a sharp monolith with a white chrome edge and a glass glint, the lens a square LED near its top, a red neon underline at its foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '..........kk..',

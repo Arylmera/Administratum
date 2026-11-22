@@ -1,5 +1,5 @@
 // Sunset Drive: a retro roadside sign pole, the lens a ball in a neon ring at the heart of a four-point starburst, a chrome pole, a striped sunset collar above its foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '......hh......',

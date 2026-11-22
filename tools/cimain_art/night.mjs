@@ -1,5 +1,5 @@
 // Ordo Malleus: a warded witch-lantern, a hexagonal silver cage round the lens under a small sigil spike, purity seals hanging from the cage on red ribbons, a slim pillar with silver bands.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '......hh......',

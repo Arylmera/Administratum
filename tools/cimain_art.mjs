@@ -1,7 +1,7 @@
 // Writes a world's main lamp (Settings > CI: the CI of each department's default branch, beside its consoles):
 // node tools/cimain_art.mjs <theme id>. Its frames come from tools/cimain_art/<id>.mjs (default export: () => { <frame
 // name>: rows of key.gpl chars }); tier2's is the base family (ui/art/cimain.*), every other world's is
-// ui/art/<id>/cimain.* (every shipped world draws its own, from a shape: tools/cimain_art/shape.mjs). Sizes and anchors:
+// ui/art/<id>/cimain.* (every shipped world draws its own, from a shape: tools/cimain_art/kit.mjs). Sizes and anchors:
 // tools/cimain_art/kit.mjs.
 import { writeSheet } from './sheet_writer.mjs';
 import { SIZES, NAMES, ANCHORS } from './cimain_art/kit.mjs';

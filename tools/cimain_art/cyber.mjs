@@ -1,5 +1,5 @@
 // Neon Grid: an antenna mast, a whip antenna with a magenta tip over a hex-chip head holding the round LED, a neon tube round the head, an open lattice mast, a cable at its foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '......oo......',

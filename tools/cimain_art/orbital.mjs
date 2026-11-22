@@ -1,5 +1,5 @@
 // Orbital Station: a status column, a small dish antenna on top, the lens in a porthole bezel, a white hull pillar with a blue and an orange stripe, a footed base plate.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '....kbbbbk....',

@@ -1,5 +1,5 @@
 // Ordo Machinum: a forge hazard beacon, the lens in a dark dome behind two cage bars, a chevron hazard band, a riveted pipe stanchion with a cog collar, a wide bolted foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '......kk......',

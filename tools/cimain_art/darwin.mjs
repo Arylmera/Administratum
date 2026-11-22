@@ -1,5 +1,5 @@
 // Darwin: a Victorian gas lamp, the lens a glass globe under a brass crown and finial, a fluted walnut pedestal with a brass band, scrolled brass feet.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '......hh......',

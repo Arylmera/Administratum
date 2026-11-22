@@ -1,5 +1,5 @@
 // Arcane Tower: a rune obelisk, the lens a gem held in a gold ring floating above the stone, rune notches glowing down the obelisk, which widens to a carved foot.
-import { frames } from './shape.mjs';
+import { frames } from './kit.mjs';
 
 const SHAPE = [
   '..............',
