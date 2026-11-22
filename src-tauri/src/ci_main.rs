@@ -64,8 +64,8 @@ struct Tracker {
     again_ms: Option<i64>,
     /// The last early check trigger that counted.
     trigger_ms: Option<i64>,
-    /// The lamp mirrors a live push watch.
-    mirroring: bool,
+    /// The lamp mirrors a live push watch: its commit, the one a click opens.
+    mirroring: Option<Target>,
     /// A push watch ended (`adopt`): the next tick sets the idle time.
     adopted: bool,
 }
@@ -111,9 +111,9 @@ impl Tracker {
         self.head = Some(Head { target, started_ms: now_ms, prev_ids: None, seen: false, given: first });
     }
 
-    fn mirror(&mut self, ci: CiState) {
+    fn mirror(&mut self, (target, ci): (Target, CiState)) {
         self.shown = ci;
-        self.mirroring = true;
+        self.mirroring = Some(target);
     }
 }
 
@@ -178,7 +178,7 @@ impl Mains {
             last_seen_ms: now_ms,
             again_ms: None,
             trigger_ms: None,
-            mirroring: false,
+            mirroring: None,
             adopted: false,
         });
     }
@@ -198,7 +198,7 @@ impl Mains {
     /// Drops the departments gone from the roster, then runs every due check, one `gh` call at a time. A tracker whose
     /// branch `live` reports (a running push watch) shows that and makes no call. While a rate limit pauses, nothing
     /// runs. Returns the verdicts on new heads and the endings Settings > Status names.
-    pub fn tick(&mut self, gh: &dyn Gh, now_ms: i64, live: &dyn Fn(&Repo, &str) -> Option<CiState>) -> Vec<MainEnded> {
+    pub fn tick(&mut self, gh: &dyn Gh, now_ms: i64, live: &dyn Fn(&Repo, &str) -> Option<(Target, CiState)>) -> Vec<MainEnded> {
         self.now_ms = now_ms;
         self.trackers.retain(|t| now_ms - t.last_seen_ms < GONE_MS);
         let mut out = vec![];
@@ -223,7 +223,7 @@ impl Mains {
     }
 
     /// Tracker `i`'s part of a tick: an adopted ending, the live mirror, the branch lookup, the due check.
-    fn step(&mut self, i: usize, gh: &dyn Gh, now_ms: i64, live: &dyn Fn(&Repo, &str) -> Option<CiState>, out: &mut Vec<MainEnded>) -> Step {
+    fn step(&mut self, i: usize, gh: &dyn Gh, now_ms: i64, live: &dyn Fn(&Repo, &str) -> Option<(Target, CiState)>, out: &mut Vec<MainEnded>) -> Step {
         let t = &mut self.trackers[i];
         if t.adopted {
             t.adopted = false;
@@ -236,8 +236,8 @@ impl Mains {
                     return Step::Keep;
                 }
                 // the watch went without ending here (replaced, dropped): check the branch now
-                None if t.mirroring => {
-                    t.mirroring = false;
+                None if t.mirroring.is_some() => {
+                    t.mirroring = None;
                     t.next_ms = t.next_ms.min(now_ms);
                 }
                 None => {}
@@ -382,7 +382,7 @@ impl Mains {
             };
             t.set_shown(state, failed);
             (t.shown.branch, t.shown.sha7) = (f.target.branch.clone(), f.target.sha7().into());
-            t.mirroring = false;
+            t.mirroring = None;
             t.adopted = true;
         }
     }
@@ -410,14 +410,14 @@ impl Mains {
         rows
     }
 
-    /// What `ci_open` may open for a department: its tracker's head (no session).
+    /// What `ci_open` may open for a department: the push it mirrors, else its tracker's head (no session).
     pub fn links(&self) -> Vec<Link> {
         let paused = self.paused();
         self.trackers
             .iter()
             .filter_map(|t| {
-                let h = t.head.as_ref()?;
-                Some(Link { id: t.id, session_id: None, dept: t.dept.clone(), state: if paused { CiStatus::None } else { t.shown.state }, target: h.target.clone() })
+                let target = t.mirroring.clone().or_else(|| t.head.as_ref().map(|h| h.target.clone()))?;
+                Some(Link { id: t.id, session_id: None, dept: t.dept.clone(), state: if paused { CiStatus::None } else { t.shown.state }, target })
             })
             .collect()
     }
@@ -482,8 +482,14 @@ mod tests {
         (d, r.to_string_lossy().into_owned())
     }
 
-    fn no_live(_: &Repo, _: &str) -> Option<CiState> {
+    fn no_live(_: &Repo, _: &str) -> Option<(Target, CiState)> {
         None
+    }
+
+    /// A running push watch of B on `o/r`'s `main`.
+    fn live_b(r: &Repo, b: &str) -> Option<(Target, CiState)> {
+        let target = Target { repo: Repo { owner: "o".into(), name: "r".into() }, branch: "main".into(), sha: B.into() };
+        (r.slug() == "o/r" && b == "main").then(|| (target, CiState { repo: "o/r".into(), branch: "main".into(), sha7: B[..7].into(), state: CiStatus::Running, done: 1, total: 3, failed: None }))
     }
 
     /// The department is in the roster at `now`, then the tick.
@@ -640,9 +646,7 @@ mod tests {
     fn a_push_watch_on_main_is_reused() {
         let (d, cwd) = main_repo("reuse", true);
         let gh = Stub::new(poll(B, &[ok("build")]));
-        let live = |r: &Repo, b: &str| {
-            (r.slug() == "o/r" && b == "main").then(|| CiState { repo: "o/r".into(), branch: "main".into(), sha7: B[..7].into(), state: CiStatus::Running, done: 1, total: 3, failed: None })
-        };
+        let live = live_b;
         let mut m = Mains::default();
         m.see("Terra", &cwd, T0);
         assert!(m.tick(&gh, T0, &live).is_empty());
@@ -665,6 +669,23 @@ mod tests {
         assert!(at(&mut m, &gh, &cwd, t + IDLE_MS).is_empty());
         assert_eq!(gh.log(), vec![STATUS.to_string(), runs_call(B)]);
         assert_eq!(lamp(&m), terra(CiStatus::Pass));
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_mirrored_push_is_the_commit_the_lamp_opens() {
+        let (d, cwd) = main_repo("mirrorlink", true);
+        let gh = Stub::new(poll(A, &[ok("build")]));
+        let mut m = Mains::default();
+        at(&mut m, &gh, &cwd, T0);
+        assert_eq!(m.links()[0].target.sha, A);
+        // a session pushes B to main: the lamp shows B, and its click opens B, not the head polled before
+        let live = live_b;
+        m.see("Terra", &cwd, T0 + 1_000);
+        m.tick(&gh, T0 + 1_000, &live);
+        assert_eq!(m.lamp_rows()[0].sha7, &B[..7]);
+        let links = m.links();
+        assert_eq!((links[0].target.sha.as_str(), links[0].state), (B, CiStatus::Running));
         let _ = fs::remove_dir_all(&d);
     }
 

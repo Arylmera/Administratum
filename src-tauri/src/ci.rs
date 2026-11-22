@@ -771,11 +771,12 @@ impl Watcher {
     }
 
     /// The CI of a running watch on `repo`'s `branch`, from the moment its push started it (state `running`, before its
-    /// first call): a main tracker on that branch shows it and makes no call of its own. None once the watch ended.
-    pub fn live_on(&self, repo: &Repo, branch: &str) -> Option<CiState> {
+    /// first call), with its commit: a main tracker on that branch shows it, opens that commit, and makes no call of its
+    /// own. None once the watch ended.
+    pub fn live_on(&self, repo: &Repo, branch: &str) -> Option<(Target, CiState)> {
         let slug = repo.slug();
         let w = self.watches.iter().find(|w| w.target.branch == branch && w.target.repo.slug().eq_ignore_ascii_case(&slug))?;
-        self.entries.iter().find(|e| e.id == w.id).map(|e| e.ci.clone())
+        self.entries.iter().find(|e| e.id == w.id).map(|e| (w.target.clone(), e.ci.clone()))
     }
 
     /// Every session's card line (a session id and its CI), the ones with something to show.
@@ -2131,8 +2132,8 @@ mod tests {
         let mut w = Watcher::default();
         assert_eq!(w.live_on(&o_r(), "main"), None);
         w.on_push(true, &push, T0);
-        let live = w.live_on(&Repo { owner: "O".into(), name: "R".into() }, "main").expect("before its first call");
-        assert_eq!((live.state, live.sha7.as_str()), (CiStatus::Running, "5d6e7f8"));
+        let (target, live) = w.live_on(&Repo { owner: "O".into(), name: "R".into() }, "main").expect("before its first call");
+        assert_eq!((live.state, live.sha7.as_str(), target.sha.as_str()), (CiStatus::Running, "5d6e7f8", SHA));
         assert_eq!(w.live_on(&o_r(), "dev"), None, "another branch");
         let gh = Stub::new(poll_answers(FAILED, &[]));
         w.tick(&gh, T0 + 20_000, true);
