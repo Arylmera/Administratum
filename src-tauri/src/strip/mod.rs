@@ -275,8 +275,14 @@ pub fn set_click_through(window: tauri::WebviewWindow, on: bool) -> Result<bool,
         return Ok(true);
     }
     window.set_ignore_cursor_events(on).map_err(|e| e.to_string())?;
+    // false if the window or the hook cannot be had: the cursor poll decides, as on macOS. The hook flips the bit behind
+    // tao's back: tao's own flag stays true for the strip's life (enterStrip asks for click-through first), so
+    // place_hall's set_ignore_cursor_events(false) is a real change and rewrites the style, clearing the bit.
     #[cfg(windows)]
-    return Ok(os::ensure_hook()); // false if the hook cannot be set: the cursor poll decides, as on macOS
+    return Ok(window.hwnd().is_ok_and(|h| {
+        os::set_window(h.0 as isize);
+        os::ensure_hook()
+    }));
     #[cfg(not(windows))]
     Ok(false)
 }

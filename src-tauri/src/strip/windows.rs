@@ -2,6 +2,7 @@
 use super::Edge;
 use std::sync::atomic::{AtomicIsize, AtomicU8, Ordering};
 use std::sync::{Mutex, OnceLock};
+use std::thread::Thread;
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, POINT, WPARAM};
 use windows_sys::Win32::UI::Shell::{SHAppBarMessage, ABE_BOTTOM, ABE_LEFT, ABE_RIGHT, ABE_TOP, ABM_GETSTATE, ABM_GETTASKBARPOS, ABS_AUTOHIDE, APPBARDATA};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -51,18 +52,33 @@ static HWND: AtomicIsize = AtomicIsize::new(0);
 static HITS: Mutex<(Vec<[f64; 4]>, f64)> = Mutex::new((Vec::new(), 1.0));
 /// The buttons held (bit 0 left, 1 right, 2 middle).
 static HELD: AtomicU8 = AtomicU8::new(0);
+/// What the hook wants the window to be (0 nothing new, 1 take clicks, 2 click-through), applied by `FLIPPER`.
+static WANT: AtomicU8 = AtomicU8::new(0);
+/// The thread that applies `WANT`: a style change sends WM_STYLECHANGING/CHANGED to the window's own (main) thread and
+/// waits for it, so the hook never makes it itself (a busy main thread would stall every mouse in the system).
+static FLIPPER: OnceLock<Thread> = OnceLock::new();
 
+/// The strip's window, set by `set_click_through` before the hook decides anything for it.
+pub fn set_window(hwnd: isize) {
+    HWND.store(hwnd, Ordering::Relaxed);
+}
 pub fn set_hits(hwnd: isize, rects: Vec<[f64; 4]>, scale: f64) {
     HWND.store(hwnd, Ordering::Relaxed);
     *crate::lock(&HITS) = (rects, scale);
 }
 
-/// Installs the low-level mouse hook (once, on a thread of its own with the message loop it needs). It decides the
-/// strip's click-through on each mouse event, before the system routes it, so a click lands at once with no
-/// poll in between. False if it could not be set. Idle (a few loads) while the strip is off.
+/// Installs the low-level mouse hook (once, on a thread of its own with the message loop it needs) and the thread
+/// that applies its decisions. It decides the strip's click-through on each mouse move, so the window is set before
+/// the click that follows, with no poll in between. False if it could not be set. Idle (a few loads) while the strip
+/// is off.
 pub fn ensure_hook() -> bool {
     static HOOK: OnceLock<bool> = OnceLock::new();
     *HOOK.get_or_init(|| {
+        let flipper = std::thread::spawn(|| loop {
+            std::thread::park();
+            apply(WANT.swap(0, Ordering::SeqCst));
+        });
+        let _ = FLIPPER.set(flipper.thread().clone());
         let (tx, rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
             // SAFETY: a plain hook install (no module: a low-level hook of this process) and its message loop.
@@ -110,17 +126,34 @@ fn on_mouse(msg: u32, p: (i32, i32)) {
             let now = style(hwnd) & WS_EX_TRANSPARENT as isize != 0;
             let want = super::pass_through(held, now, super::over_hit(r, &hits.0, p, hits.1));
             if want != now {
-                // SAFETY: the strip's own window; flips one extended-style bit (what tao's set_ignore_cursor_events sets).
-                unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, style(hwnd) ^ WS_EX_TRANSPARENT as isize) };
-                // the strip left meanwhile (place_hall cleared the bit after our ON check): the hall takes clicks again
-                if !super::ON.load(Ordering::SeqCst) {
-                    // SAFETY: as above, clearing the bit only.
-                    unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, style(hwnd) & !(WS_EX_TRANSPARENT as isize)) };
+                WANT.store(if want { 2 } else { 1 }, Ordering::SeqCst);
+                if let Some(t) = FLIPPER.get() {
+                    t.unpark(); // never blocks
                 }
             }
         }
     }
     HELD.fetch_or(bit, Ordering::Relaxed);
+}
+
+/// On the flipper thread: the strip window's click-through bit set (2) or cleared (1), only while the strip is on.
+fn apply(want: u8) {
+    let hwnd = HWND.load(Ordering::Relaxed);
+    if want == 0 || hwnd == 0 || !super::ON.load(Ordering::SeqCst) {
+        return;
+    }
+    let (s, t) = (style(hwnd), WS_EX_TRANSPARENT as isize);
+    let next = if want == 2 { s | t } else { s & !t };
+    if next != s {
+        // SAFETY: the strip's own window; one extended-style bit (what tao's set_ignore_cursor_events sets). This thread
+        // may wait on the main thread here; the hook does not.
+        unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, next) };
+    }
+    // the strip left meanwhile (place_hall cleared the bit after our ON check): the hall takes clicks again
+    if !super::ON.load(Ordering::SeqCst) {
+        // SAFETY: as above, clearing the bit only.
+        unsafe { SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, style(hwnd) & !t) };
+    }
 }
 
 fn style(hwnd: isize) -> isize {
