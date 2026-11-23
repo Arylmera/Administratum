@@ -132,7 +132,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="contrast/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="contrast/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="contrast/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="contrast/WINDOW.png" height="136"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by backwall.js, scene.js, theme.js, wallart.js | <img src="contrast/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/walls.png` | <img src="contrast/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/walls.png` | <img src="contrast/WINDOW.night.png" height="136"> |
 | <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="contrast/BANNER.png" height="120"> |
@@ -142,7 +142,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="contrast/WINDOW_TALL.png" height="160"> |
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="contrast/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="contrast/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="contrast/HANGING.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by backwall.js, isohall.js, scene.js, wallart.js | <img src="contrast/HANGING.png" height="160"> |
 | <a id="hanging_b"></a>`HANGING_B` | 13×50 | Second full-height hanging (aquila and litany scroll), every other one on the back walls. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="contrast/HANGING_B.png" height="160"> |
 | <a id="shelf_b"></a>`SHELF_B` | 32×21 | Second back-wall shelf (scroll cubbies, a skull niche, reliquary caskets), every other one on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="contrast/SHELF_B.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="contrast/PAPER_STACK.png" height="96"> |

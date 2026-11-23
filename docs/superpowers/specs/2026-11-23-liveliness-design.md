@@ -36,5 +36,6 @@ first roster.
 
 **O4 second pass.** The back wall's hangings sway an art px; a cloud's light drifts over the window glass, day and night.
 Approaches: (a) take them out of the cached background; (b) draw the moved cloth over the still one. (b) chosen: the
-background stays cached, and an art px of the still cloth showing at an edge reads as its outline. A hanging that another
-prop overlaps stays still. In 2.5D both lie on the back wall's plane.
+background stays cached, and an art px of the still cloth showing at an edge reads as its outline. Only cloth sways
+(the Imperium's, Arcane Tower's) and only a window on a sky has clouds (not Orbital Station, not Vault 111). A hanging
+that another prop overlaps stays still in 2.5D. In 2.5D both lie on the back wall's plane.
