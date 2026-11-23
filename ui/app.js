@@ -273,7 +273,7 @@ const draw = guarded(now => {
   const k = AMOUNT[settings.liveliness];
   stepMood(mood, dt, moodOf(roster), k);
   view.greet = Date.now() - (cast.greetAt ?? 0) < GREET_MS;
-  view.magosT = mood.clock; // the Magos's tempo (scene.js, scene39.js)
+  view.magosT = k ? mood.clock : undefined; // the Magos's tempo (scene.js, scene39.js)
   view.mode = viewMode.mode;
   view.anchors = back?.anchors;
   view.lift = cast.lift; // the column's car (scene.js drawColumnProps)

@@ -26,12 +26,13 @@ function maskOf(win) {
   return masks.get(win);
 }
 let pane = null;
+export const freshPane = () => { pane = null; }; // the tests' own canvas
 export function drawClouds(g, windows, t, day, k) {
   const { win, winDx } = wallArt(), mask = k && SKY.includes(drawnBy('WINDOW')) ? maskOf(win) : null;
   if (!mask) return;
   const w = mask.width, h = mask.height;
   if (pane?.width !== w || pane?.height !== h) { pane = document.createElement('canvas'); pane.width = w; pane.height = h; }
-  const p = pane.getContext('2d'), ink = T.ink.windowDay.u ?? T.px.u;
+  const p = pane.getContext('2d'), ink = /^#[0-9a-f]{6}$/i.test(T.ink.windowDay?.u) ? T.ink.windowDay.u : '#ffffff'; // a pack may write rgb(...): a white cloud
   for (const x of windows) {
     const c = cloudAt(x, t) * w, r = 0.7 * w, grad = p.createLinearGradient(c - r, 0, c + r, h * 0.35);
     grad.addColorStop(0, hexA(ink, 0)); grad.addColorStop(0.5, day ? `rgba(255,255,255,${0.4 * k})` : hexA(ink, 0.55 * k)); grad.addColorStop(1, hexA(ink, 0));

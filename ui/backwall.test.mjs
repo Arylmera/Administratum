@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 const ctx = log => new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { log.push([k, ...a]); return { addColorStop() {}, data: new Uint8ClampedArray(1e6) }; }), set: (t, k, v) => { t[k] = v; return true; } });
 globalThis.document = { createElement: () => { const log = [], c = { width: 0, height: 0, log }; c.getContext = () => ctx(log); return c; } };
-const { drawClouds, cloudAt } = await import('./backwall.js');
+const { drawClouds, cloudAt, freshPane } = await import('./backwall.js');
 const { loadAllArt } = await import('./sprites.js');
-const { THEMES, setTheme } = await import('./theme.js');
+const { T, THEMES, setTheme } = await import('./theme.js');
 await import('./themes.js');
 await loadAllArt();
 const { wallArt } = await import('./wallart.js');
@@ -27,4 +27,18 @@ const panes = (k, day = true) => { const log = []; drawClouds(ctx(log), [78, 292
 assert.deepEqual(panes(0), []);
 assert.deepEqual(panes(1), [[78 + wallArt().winDx, 10], [292 + wallArt().winDx, 10]]);
 assert.equal(panes(1, false).length, 2, 'by night too');
+// a pack's glass may be any CSS colour form: the gradient's stops stay colours
+{
+  const was = T.ink.windowDay, stops = [];
+  for (const u of ['rgb(10,20,30)', 'rgba(1,2,3,.5)', '10,20,30', '#123', undefined]) {
+    T.ink.windowDay = { ...was, u };
+    const create = document.createElement;
+    globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => ({ addColorStop: (o, c) => stops.push(c) })), set: (t, k, v) => { t[k] = v; return true; } }) }) };
+    freshPane();
+    for (const day of [true, false]) drawClouds(ctx([]), [78], 5, day, 1);
+    globalThis.document = { createElement: create };
+  }
+  T.ink.windowDay = was;
+  assert.ok(stops.length >= 30 && stops.every(c => !/NaN|undefined/.test(c)), `no broken colour: ${stops.find(c => /NaN|undefined/.test(c))}`);
+}
 console.log('backwall ok');
