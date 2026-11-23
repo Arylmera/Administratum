@@ -14,7 +14,7 @@ higher frame rate at rest.
 | | What | Where it shows |
 |---|---|---|
 | O1 | Arms type in bursts (the body never moves); the desk screen scrolls while its scribe works; think, wonder and stretch frames for the 40k scribe, its three ranks, both views | Arms, gestures: the 40k robe. Screen: every desk whose `screen` anchor is glass in the art (not Arcane Tower, not Darwin) |
-| O4 | Dust in the window beams by day; sparks over the braziers; pulses of light along the floor channels (open space) | Flat and 2.5D, not the strip |
+| O4 | The window beams breathe and drift by day (first dust in them, dropped: it read as snow); sparks over the braziers; pulses of light along the floor channels (open space) | Flat and 2.5D, not the strip |
 | O5 | Number of working sessions (four is full), eased over seconds: pulse pace, the Magos's tempo, a slightly brighter or dimmer hall. A stale petition dims the room a little so the beacon stands out | Flat and 2.5D |
 
 **Approaches.** (a) particles and lights drawn each frame over the cached background, positions from pure functions of

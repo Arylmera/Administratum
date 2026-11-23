@@ -287,8 +287,8 @@ const draw = guarded(now => {
   }
   if (back) {
     const windows = propsOf(hall).windows; // the room's air (ambience.js)
-    drawLighting(g, lights.concat(flowLights(hall, mood.flow, k)), moodLevel(level, mood, k), now / 1000, S.w, S.h, windows);
-    drawAmbience(g, { lights, level, windows, t: now / 1000, k });
+    drawLighting(g, lights.concat(flowLights(hall, mood.flow, k)), moodLevel(level, mood, k), now / 1000, S.w, S.h, windows, k);
+    drawAmbience(g, { lights, t: now / 1000, k });
   }
   if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
   renderPlaques(view.blocks);

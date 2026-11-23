@@ -69,3 +69,11 @@ export function isGlass(map, rect) {
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (map[j]?.[i] === 'C' || map[j]?.[i] === 'c') lit++;
   return lit >= 0.75 * w * h;
 }
+
+// A window beam's life at t: a its strength (an alpha: 1 as it stands still), dx its foot's drift, px. Two slow waves, so
+// it never reads as a beat; each window its own. k: the setting's amount.
+export function beamLife(x, t, k) {
+  if (!k) return { a: 1, dx: 0 };
+  const p = 60 * rnd(`beam ${x}`), wave = (s, o) => Math.sin(2 * Math.PI * (t + p + o) / s);
+  return { a: 1 - k * (0.3 + 0.18 * wave(11, 0) + 0.12 * wave(4.7, 3)), dx: k * (2.2 * wave(17, 5) + 0.8 * wave(7.3, 1)) };
+}

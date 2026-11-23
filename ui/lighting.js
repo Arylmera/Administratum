@@ -3,6 +3,7 @@ import { T, onTheme } from './theme.js';
 import { WALL } from './layout.js';
 import { wallArt } from './wallart.js';
 import { view, toScreen } from './view.js';
+import { beamLife } from './liveliness.js';
 
 // Depth: a light's height z (0 floor, 1 desk, 2 wall; unset: wall above the wall foot, desk below) flattens its
 // pool into an ellipse lying on the floor in perspective, the lower the flatter.
@@ -25,7 +26,7 @@ const project = l => {
 };
 // A beam's trapezoid for the window slot x: its top spans the glass inside the frame (wallArt), its foot is 7 px
 // wider each side, 76 px out on the floor; c is its centre line.
-export function beamOf(x) {
+function beamOf(x) {
   const { win, winDx, winBottom } = wallArt(), gl = x + winDx + 1, gr = x + winDx + win[0].length / RES - 1;
   const y0 = winBottom - 1, y1 = WALL + 76;
   return { y0, y1, c: (gl + gr) / 2, pts: [[gl, y0], [gr, y0], [gr + 7, y1], [gl - 7, y1]] };
@@ -92,23 +93,27 @@ onTheme(() => beams.clear());
 // By day, a beam from each window: beamOf through the projection (view.js toScreen: as is in Flat), fading from the
 // glass to the floor, and a brighter patch where it meets the floor, flat as the floor (thinner in 39°, the floor
 // foreshortened). windows: the x of each window slot (scene.js propsOf).
-function drawBeams(g, windows) {
+// The light moves (liveliness.js beamLife; k: the setting's amount, 0: still): it breathes and its foot drifts.
+function drawBeams(g, windows, t, k) {
   const patch = glowOf(`rgba(${T.light.beam},1)`), ph = view.mode === '39' ? 5 : 10;
   for (const x of windows) {
-    const b = beamOf(x), [ax, ay] = toScreen(b.c, b.y0), [ex, ey] = toScreen(b.c, b.y1), k = `${ax},${ay},${ex},${ey}`;
-    let grad = beams.get(k);
+    const b = beamOf(x), M = beamLife(x, t, k), [ax, ay] = toScreen(b.c, b.y0), [ex0, ey0] = toScreen(b.c, b.y1), key = `${ax},${ay},${ex0},${ey0}`;
+    const [ex, ey] = toScreen(b.c + M.dx, b.y1);
+    let grad = beams.get(key);
     if (!grad) {
       if (beams.size > 32) beams.clear();
-      grad = g.createLinearGradient(ax, ay, ex, ey);
+      grad = g.createLinearGradient(ax, ay, ex0, ey0);
       grad.addColorStop(0, `rgba(${T.light.beam},.16)`);
       grad.addColorStop(1, `rgba(${T.light.beam},0)`);
-      beams.set(k, grad);
+      beams.set(key, grad);
     }
     g.fillStyle = grad;
-    g.beginPath(); b.pts.forEach(([px, py], i) => (i ? g.lineTo : g.moveTo).call(g, ...toScreen(px, py))); g.closePath(); g.fill();
+    if (k) { g.save(); g.globalAlpha = M.a; }
+    g.beginPath(); b.pts.forEach(([px, py], i) => (i ? g.lineTo : g.moveTo).call(g, ...toScreen(px + (i > 1 ? M.dx : 0), py))); g.closePath(); g.fill();
+    if (k) g.restore();
     const fw = b.pts[2][0] - b.pts[3][0]; // the foot's width
     g.save();
-    g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.imageSmoothingEnabled = true;
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 * M.a; g.imageSmoothingEnabled = true;
     g.drawImage(patch, ex - fw / 2, ey - ph * 0.75, fw, ph);
     g.restore();
   }
@@ -116,8 +121,8 @@ function drawBeams(g, windows) {
 
 // Darkness with light holes (destination-out), then additive glows, beams by day, vignette. w, h: the scene's
 // logical size (hallOf); windows: the x of each window (scene.js propsOf).
-export function drawLighting(g, lights, level, t, w, h, windows = []) {
-  if (level.beams) drawBeams(g, windows);
+export function drawLighting(g, lights, level, t, w, h, windows = [], k = 0) {
+  if (level.beams) drawBeams(g, windows, t, k);
   if (view.mode === '39') lights = lights.map(project);
   if (!layer || layer.width !== w * RES || layer.height !== h * RES) {
     layer = document.createElement('canvas');

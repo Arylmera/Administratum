@@ -306,7 +306,7 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
 
 **Liveliness.** Settings > Appearance > Liveliness: *Off* (the hall as it was: no typing arms, running screens or
 gestures, nothing below), *Subtle* (less of it) or *Full* (the default). Pulses of light run along the floor channels
-(open space plan), dust drifts in the window beams by day, sparks rise over the braziers. Cloth hangings sway in gusts (the
+(open space plan), the window beams breathe and drift by day, sparks rise over the braziers. Cloth hangings sway in gusts (the
 Imperium's, Arcane Tower's) and a cloud's light drifts over the window glass (not in orbit or the vault). The hall follows the load: the more sessions work (four is full), the faster the pulses and the Magos and the brighter the room;
 a stale petition dims it a little. A finished adept reports
 at its owner's desk before it leaves; a newly forked session gets its order by servo-skull from its Suzerain; the Magos

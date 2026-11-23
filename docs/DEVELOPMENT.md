@@ -86,8 +86,8 @@ do not know which.
 | `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
 | `iso.js`, `isohall.js`, `scene39.js` | The 39° view: z-buffer engine, its static hall (with a west wing, `wingPlan`: the hall's plan moved east, the wing's floor and walls, the west wall's doorways), its per-frame layer |
 | `faces.js` | Face sheets: one art source split into faces, drawn flat or built into 39° volumes |
-| `liveliness.js` | Pure: a busy scribe's typing arms (`typing`) and its desk screen (`screenRows`, by the kind of tool its task line names, `workKind`; `isGlass`: only where the world's desk art has a screen) |
-| `ambience.js` | The room's air, both views: the floor channels' pulses (`flowLights`, lights), the dust in the beams and the sparks over the braziers (`drawAmbience`, after the lighting) |
+| `liveliness.js` | Pure: a busy scribe's typing arms (`typing`) and its desk screen (`screenRows`, by the kind of tool its task line names, `workKind`; `isGlass`: only where the world's desk art has a screen), and a window beam's movement (`beamLife`, drawn by `lighting.js`) |
+| `ambience.js` | The room's air, both views: the floor channels' pulses (`flowLights`, lights), the sparks over the braziers (`drawAmbience`, after the lighting) |
 | `mood.js` | The hall's mood, eased: working sessions and stale petitions (`moodOf`, `stepMood`) set the pulses' and the Magos's pace and shift the darkness a little (`moodLevel`) |
 | `backwall.js` | The back wall's slow life over the cached background: the tall hangings' sway (`swayMap`, `poseAt`), the cloud's light on the window glass (`drawClouds`) |
 | `depth.js` | Shadows, cast shadows and ambient occlusion computed from the sprites |
@@ -185,7 +185,7 @@ when it loads. One file per module:
 | `rankart.test.mjs` | Rank art: the rank layer (a rank's own frame, the plain one where it drew none, left mirrored, its gestures only with its own seat, 39°), the same-source rule, per-rank anchors, the actors' body, feet and glyph at their rank, the viewer's rank rows; no shipped world outside the 40k Ordos with a rank frame |
 | `interact.test.mjs` | Interactions: a finished adept's report (once, over resyncs, never stuck), a forked child's order, the Magos's greeting |
 | `liveliness.test.mjs` | Liveliness at the desk: the typing arms, the desk screen, which worlds have glass, the wiring and the Off setting |
-| `ambience.test.mjs` | Ambience: pulses on the channels' lines and faded at the walls, dust and sparks in bounds and faded at both ends, drawn only where they belong, the setting's amounts |
+| `ambience.test.mjs` | Ambience: pulses on the channels' lines and faded at the walls, sparks in bounds and faded at both ends, drawn only where they belong, the setting's amounts |
 | `mood.test.mjs` | Mood: its target from the roster, the easing at any frame rate, the clocks, the light within bounds, nothing when off |
 | `backwall.test.mjs` | Back wall: the sway loses no pixel in any world, the gusts, covered hangings, the clouds |
 | `gestures.test.mjs` | Scribe gestures: the chooser (think and wonder recur at their pace, each scribe out of step, the stretch, the puzzled wonder after a tool error, nothing away from the desk or for a frame the world lacks), every shipped world without them, a pack's gesture frames accepted at the seated size and the warning for one without its seated frame, the frame replacing `up 0` / `N 0`; over `Cast.sync` / `update`: no stretch for a scribe first seen idle, on arriving, after `settle` or a reset, or on a walk back while idle; once at a turn's end, at the desk or on sitting after walking back; one wonder per tool error at the desk |

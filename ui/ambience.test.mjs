@@ -1,6 +1,6 @@
-// Room ambience (ambience.js): the channels' pulses, the dust, the sparks. Run: node ui/ambience.test.mjs
+// Room ambience (ambience.js): the channels' pulses, the sparks. Run: node ui/ambience.test.mjs
 import assert from 'node:assert/strict';
-import { AMOUNT, flowLights, dust, sparks, drawAmbience, isFire } from './ambience.js';
+import { AMOUNT, flowLights, sparks, drawAmbience, isFire } from './ambience.js';
 import { hallOf, WALL_DY } from './layout.js';
 import { setView } from './view.js';
 
@@ -25,8 +25,8 @@ assert.ok(at(hall.sw / 2).every(l => l.r <= 10) && at(0).some((l, i) => Math.abs
 // no jump: a pulse is faded out where it wraps round
 for (let f = 0; f < 2 * hall.sw; f += 1) for (const l of at(f)) if (l.x < 1 || l.x > hall.sw - 1) assert.ok(l.r < 1.5, `faded at the wall: ${l.r}`);
 
-// ---- dust and sparks: inside their unit box, faded at both ends, moving ----
-for (const f of [dust, sparks]) {
+// ---- sparks: inside their unit box, faded at both ends, moving ----
+for (const f of [sparks]) {
   for (const t of [0, 3.21, 999]) for (const p of f('w1', t, 10)) assert.ok(p.u >= 0 && p.u <= 1 && p.v >= 0 && p.v <= 1 && p.a >= 0 && p.a <= 1, JSON.stringify(p));
   assert.equal(f('w1', 1, 10).length, 10);
   assert.deepEqual(f('w1', 1, 0), []);
@@ -35,23 +35,22 @@ for (const f of [dust, sparks]) {
   for (let t = 0; t < 30; t += 0.05) for (const p of f('w1', t, 6)) if (p.v < 0.02 || p.v > 0.98) assert.ok(p.a < 0.15, 'born and gone unseen');
 }
 
-// ---- drawing: dust only in the day's beams, sparks at fires only, nothing when off ----
+// ---- drawing: sparks at fires only, nothing when off ----
 const log = () => { const g = { n: 0, at: [], save() {}, restore() {}, fillRect(x, y, w, h) { g.n++; g.at.push([x, y, w, h]); } }; return g; };
 const fire = { x: 100, y: 200, r: 26, flicker: true, color: 'rgba(1,2,3,.4)' }, lamp = { x: 50, y: 60, r: 14, color: 'x' };
 assert.equal(isFire(fire), true);
 assert.equal(isFire(lamp), false);
 assert.equal(isFire({ ...fire, h: 20 }), false, 'a desk candle');
 assert.equal(isFire({ ...fire, r: 60 }), false, 'the compaction flare has its own sparks');
-const run = (lights, beams, windows, k) => { const g = log(); drawAmbience(g, { lights, level: { beams }, windows, t: 5, k }); return g; };
+const run = (lights, k) => { const g = log(); drawAmbience(g, { lights, t: 5, k }); return g; };
 for (const v of ['flat', '39']) {
   setView(v);
-  assert.equal(run([lamp], false, [78], 1).n, 0, `${v}: night, no fire: nothing`);
-  assert.ok(run([lamp], true, [78], 1).n > 0, `${v}: dust in the beam`);
-  assert.ok(run([fire], false, [], 1).n > 0, `${v}: sparks`);
-  assert.equal(run([fire], true, [78], 0).n, 0, `${v}: off`);
-  const full = run([fire], true, [78], 1).n, half = run([fire], true, [78], 0.5).n;
+  assert.equal(run([lamp], 1).n, 0, `${v}: no fire: nothing`);
+  assert.ok(run([fire], 1).n > 0, `${v}: sparks`);
+  assert.equal(run([fire], 0).n, 0, `${v}: off`);
+  const full = run([fire], 1).n, half = run([fire], 0.5).n;
   assert.ok(half > 0 && half < full, `${v}: subtle is less`);
 }
 setView('flat');
-for (const [x, y] of run([fire], false, [], 1).at) assert.ok(Math.abs(x - 100) < 12 && y <= 202 && y > 160, `sparks rise from the fire: ${x},${y}`);
+for (const [x, y] of run([fire], 1).at) assert.ok(Math.abs(x - 100) < 12 && y <= 202 && y > 160, `sparks rise from the fire: ${x},${y}`);
 console.log('ambience ok');

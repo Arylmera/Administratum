@@ -1,6 +1,6 @@
 // Liveliness (liveliness.js): typing arms, the live desk screen, their wiring. Run: node ui/liveliness.test.mjs
 import assert from 'node:assert/strict';
-import { rnd, typing, screenRows, isGlass, workKind } from './liveliness.js';
+import { rnd, typing, screenRows, isGlass, workKind, beamLife } from './liveliness.js';
 import { drawCarried, gestureNow } from './actors.js';
 import { settings } from './settings.js';
 import { MAPS, SCRIBE, SCRIBE39, loadAllArt } from './sprites.js';
@@ -73,4 +73,13 @@ const busy = t => ({ id: 's1', pose: 'desk', t, s: { status: 'busy' } });
 assert.ok(span(t => gestureNow(busy(t), () => true)).every(g => g === null), 'off: no gesture');
 settings.liveliness = 'full';
 assert.ok(span(t => gestureNow(busy(t), () => true)).includes('think'));
+// ---- the beams: breathe and drift, slowly, within bounds, each its own; off: as they stood ----
+assert.deepEqual(beamLife(78, 5, 0), { a: 1, dx: 0 });
+const bl = span(t => beamLife(78, t, 1), 120);
+assert.ok(bl.every(b => b.a > 0.35 && b.a <= 1 && Math.abs(b.dx) <= 3), 'bounded, an alpha never past 1 (a canvas ignores it)');
+const rangeOf = k => Math.max(...bl.map(b => b[k])) - Math.min(...bl.map(b => b[k]));
+assert.ok(rangeOf('a') > 0.4 && rangeOf('dx') > 4, 'it can be seen');
+assert.ok(bl.slice(1).every((b, i) => Math.abs(b.a - bl[i].a) < 0.03 && Math.abs(b.dx - bl[i].dx) < 0.15), 'slow');
+assert.notDeepEqual(beamLife(78, 5, 1), beamLife(292, 5, 1));
+assert.ok(Math.abs(beamLife(78, 5, 0.5).dx) < Math.abs(beamLife(78, 5, 1).dx));
 console.log('liveliness ok');
