@@ -11,7 +11,7 @@ import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
 import { drawActor, bodyOf, isWorking, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
 import { screenRows, isGlass, workKind } from './liveliness.js';
 import { AMOUNT } from './ambience.js';
-import { drawHangings, drawClouds } from './backwall.js';
+import { drawClouds } from './backwall.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
 import { COL_W } from './column.js';
@@ -351,11 +351,9 @@ export function beginFrame(layout, now) {
   prunePiles(now, layout);
   return frameDt;
 }
-// The back wall's slow life, over the background (backwall.js; 39°: on the wall's plane, a covered hanging still).
-export function backWall(g, layout, now, covered = true) {
-  const k = AMOUNT[settings.liveliness], { props, windows } = propsOf(H);
-  drawClouds(g, windows, now / 1000, !!layout.level?.beams, k);
-  drawHangings(g, props, now / 1000, k, covered);
+// The back wall's slow life, over the background (backwall.js; 39°: on the wall's plane).
+export function backWall(g, layout, now) {
+  drawClouds(g, propsOf(H).windows, now / 1000, !!layout.level?.beams, AMOUNT[settings.liveliness]);
 }
 export function drawScene(g, layout, actors, fillOf, now) {
   beginFrame(layout, now);

@@ -39,3 +39,5 @@ Approaches: (a) take them out of the cached background; (b) draw the moved cloth
 background stays cached, and an art px of the still cloth showing at an edge reads as its outline. Only cloth sways
 (the Imperium's, Arcane Tower's) and only a window on a sky has clouds (not Orbital Station, not Vault 111). A hanging
 that another prop overlaps stays still in 2.5D. In 2.5D both lie on the back wall's plane.
+
+**After seeing it (2026-11-23).** The hangings' sway is removed: an art px of shear looks ugly on the cloth. The clouds stay.

@@ -142,7 +142,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="window_tall"></a>`WINDOW_TALL` | 18×42 | Tall gothic window on the back walls: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="contrast/WINDOW_TALL.png" height="160"> |
 | <a id="window_tall-day"></a>`WINDOW_TALL.day` | 18×42 | WINDOW_TALL, day. Source: `ui/art/walls.png` | <img src="contrast/WINDOW_TALL.day.png" height="160"> |
 | <a id="window_tall-night"></a>`WINDOW_TALL.night` | 18×42 | WINDOW_TALL, night. Source: `ui/art/walls.png` | <img src="contrast/WINDOW_TALL.night.png" height="160"> |
-| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by backwall.js, isohall.js, scene.js, wallart.js | <img src="contrast/HANGING.png" height="160"> |
+| <a id="hanging"></a>`HANGING` | 13×50 | Full-height hanging on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="contrast/HANGING.png" height="160"> |
 | <a id="hanging_b"></a>`HANGING_B` | 13×50 | Second full-height hanging (aquila and litany scroll), every other one on the back walls. Source: `ui/art/walls.png`, drawn by wallart.js | <img src="contrast/HANGING_B.png" height="160"> |
 | <a id="shelf_b"></a>`SHELF_B` | 32×21 | Second back-wall shelf (scroll cubbies, a skull niche, reliquary caskets), every other one on the back walls. Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="contrast/SHELF_B.png" height="160"> |
 | <a id="paper_stack"></a>`PAPER_STACK` | 8×12 | Paper tower (decor). Source: `ui/art/clutter.png`, drawn by scene.js | <img src="contrast/PAPER_STACK.png" height="96"> |
