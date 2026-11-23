@@ -1,6 +1,6 @@
 // Liveliness (liveliness.js): typing arms, the live desk screen, their wiring. Run: node ui/liveliness.test.mjs
 import assert from 'node:assert/strict';
-import { rnd, typing, screenRows, isGlass } from './liveliness.js';
+import { rnd, typing, screenRows, isGlass, workKind } from './liveliness.js';
 import { drawCarried, gestureNow } from './actors.js';
 import { settings } from './settings.js';
 import { MAPS, SCRIBE, SCRIBE39, loadAllArt } from './sprites.js';
@@ -31,6 +31,20 @@ const frames = span(t => JSON.stringify(screenRows('s1', t, 14, 9)), 10);
 assert.ok(new Set(frames).size > 15, 'it moves');
 assert.notEqual(frames[5], JSON.stringify(screenRows('s2', 5 / 12, 14, 9)));
 assert.deepEqual(screenRows('s1', 1, 0, 0), []);
+
+// ---- kinds: the tool the task line names, each its own screen ----
+for (const [task, kind] of [['Edit · app.js', 'write'], ['Write · a', 'write'], ['Read · main.rs', 'read'], ['Grep · fn x', 'search'], ['Glob', 'search'], ['WebFetch · docs.rs', 'web'],
+  ['Bash · ls', null], ['“Read the docs”', null], ['Reader · x', null], ['—', null], [undefined, null]]) assert.equal(workKind(task), kind, String(task));
+const shown = {};
+for (const kind of [null, 'write', 'read', 'search', 'web']) {
+  const at = t => screenRows('s1', t, 14, 9, kind);
+  for (let t = 0; t < 20; t += 0.1) for (const r of at(t)) assert.ok([r.x, r.y, r.w].every(Number.isInteger) && r.x >= 0 && r.y >= 0 && r.w > 0 && r.x + r.w <= 14 && r.y < 9, `${kind}: ${JSON.stringify(r)}`);
+  shown[kind] = JSON.stringify(span(at, 10));
+  assert.ok(new Set(span(t => JSON.stringify(at(t)), 10)).size >= (kind === 'web' ? 4 : 9), `${kind}: it moves`);
+}
+assert.equal(new Set(Object.values(shown)).size, 5, 'each kind its own screen');
+assert.ok(span(t => screenRows('s1', t, 14, 9, 'search').filter(r => r.w === 14).length, 5).every(k => k === 1), 'search: one bar');
+for (const kind of ['write', 'search', 'web']) assert.ok(Array.isArray(screenRows('s1', 1, 0, 0, kind)));
 
 // ---- glass: only an anchor that covers screen colours in the art ----
 assert.equal(isGlass(['kCCk', 'kcCk'], [0.5, 0, 1, 1]), true);

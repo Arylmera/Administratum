@@ -9,7 +9,7 @@ let DESK_AT, LECTERN_AT, CONSOLE_AT, ROOMCOG_AT, SK, PAPER;
 import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, mainSpots, scribeSpots } from './layout.js';
 import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
 import { drawActor, bodyOf, isWorking, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
-import { screenRows, isGlass } from './liveliness.js';
+import { screenRows, isGlass, workKind } from './liveliness.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
 import { COL_W } from './column.js';
@@ -558,7 +558,7 @@ function deskScreen(g, a, at, K) {
   if (!glass.get(map)) return;
   const x = at.x + R[0], y = at.y + R[1];
   rect(g, x, y, R[2], R[3], T.px.C);
-  for (const r of screenRows(a.id, a.t, R[2] * RES, R[3] * RES)) rect(g, x + r.x / RES, y + r.y / RES, r.w / RES, 1 / RES, T.px.c);
+  for (const r of screenRows(a.id, a.t, R[2] * RES, R[3] * RES, workKind(a.s.task))) rect(g, x + r.x / RES, y + r.y / RES, r.w / RES, 1 / RES, T.px.c);
 }
 // Desks, lecterns and the adepts' consoles. lit: candle/screen on (else the dimmed palette); pile: its paper's id.
 const kindOf = d => (d.compact ? 'lectern' : 'desk');

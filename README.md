@@ -255,7 +255,7 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 
 | You see | It means |
 |---|---|
-| Scribe at its desk, screen and candle lit; its screen runs (where the world's desk has one) and its arms type (the Imperium's robe) | Session is working (`busy`) |
+| Scribe at its desk, screen and candle lit; its screen runs (where the world's desk has one): a line typed for an edit, a page scrolling for a read, a bar sweeping for a search, rings for the web and its arms type (the Imperium's robe) | Session is working (`busy`) |
 | Scribe at the cogitator bank (back wall) | Session is running a shell command. It stays there 10 s after the last one so quick Bash calls don't send it back and forth |
 | Scribe dozing at the desk (`z z`), candle out | Turn done, waiting for your next prompt (`idle`) |
 | Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (the Imperium's do, a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Alerts) |

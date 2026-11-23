@@ -17,19 +17,46 @@ export function typing(id, t) {
   return { l: up === 0 ? 0.5 : 0, r: up === 1 ? 0.5 : 0 };
 }
 
-// A desk screen's text at t: rows of words every second art px, the last one being written, the page moving up a row
-// every LINE_S. { x, y, w } in art px from the screen's top-left, inside w x h.
-const LINE_S = 1.6;
-export function screenRows(id, t, w, h) {
-  const n = Math.floor(h / 2), u = t / LINE_S + 100 * rnd(`${id}:screen`), first = Math.floor(u), out = [];
+// What a session is doing, by the tool its task line names (tail.rs task_line: "Edit · app.js"), or null: a prompt
+// (quoted), a tool of no kind.
+const KINDS = { write: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'], read: ['Read', 'NotebookRead'], search: ['Grep', 'Glob', 'LS', 'ToolSearch'], web: ['WebFetch', 'WebSearch'] };
+const KIND_OF = new Map(Object.entries(KINDS).flatMap(([k, tools]) => tools.map(n => [n, k])));
+export const workKind = task => KIND_OF.get(String(task ?? '').split(' · ')[0]) ?? null;
+
+// A desk screen at t, by kind of work: runs of lit art px, { x, y, w } from the screen's top-left, inside w x h.
+//   null    rows of words every second art px, the last one being written, the page up a row every LINE_S
+//   write   the same, faster, with a caret
+//   read    full rows scrolling past
+//   search  a still page, a bar sweeping down it
+//   web     square rings spreading from the middle
+const LINE_S = 1.6, WRITE_S = 0.8, READ_S = 0.4, SWEEP = 6, RING_PX = 4; // SWEEP: rows a second; RING_PX: px a second
+export function screenRows(id, t, w, h, kind = null) {
+  const n = Math.floor(h / 2), out = [];
+  if (kind === 'web') {
+    const m = [(w - 1) / 2, (h - 1) / 2];
+    for (let i = 0; i < 2; i++) {
+      const r = Math.floor((t * RING_PX + i * 4 + 8 * rnd(`${id}:screen`)) % 8);
+      const x0 = Math.ceil(m[0] - r), x1 = Math.floor(m[0] + r), y0 = Math.ceil(m[1] - r), y1 = Math.floor(m[1] + r);
+      for (let y = Math.max(0, y0); y <= Math.min(h - 1, y1); y++) {
+        if (y === y0 || y === y1) { const a = Math.max(0, x0), b = Math.min(w - 1, x1); if (b >= a) out.push({ x: a, y, w: b - a + 1 }); }
+        else for (const x of new Set([x0, x1])) if (x >= 0 && x < w) out.push({ x, y, w: 1 });
+      }
+    }
+    return out;
+  }
+  const line = { write: WRITE_S, read: READ_S }[kind] ?? LINE_S;
+  const u = (kind === 'search' ? 0 : t / line) + 100 * rnd(`${id}:screen`), first = Math.floor(u);
   for (let i = 0; i < n; i++) {
-    const row = first + i, end = i === n - 1 ? 1 + Math.floor((u - first) * (w - 1)) : w - Math.floor(3 * rnd(`${id}:${row}`));
+    const row = first + i, writing = i === n - 1 && kind !== 'read' && kind !== 'search';
+    const end = writing ? 1 + Math.floor((u - first) * (w - 1)) : w - Math.floor(3 * rnd(`${id}:${row}`));
     for (let x = 1, k = 0; x < end; k++) {
       const word = Math.min(end - x, 1 + Math.floor(4 * rnd(`${id}:${row}:${k}`)));
       out.push({ x, y: 1 + 2 * i, w: word });
       x += word + 1;
     }
+    if (writing && kind === 'write' && Math.floor(t * 3) % 2) out.push({ x: Math.min(w - 1, end), y: 2 * i, w: 1 }, { x: Math.min(w - 1, end), y: 1 + 2 * i, w: 1 });
   }
+  if (kind === 'search' && w > 0 && h > 0) out.push({ x: 0, y: Math.floor(t * SWEEP + h * rnd(`${id}:screen`)) % h, w });
   return out;
 }
 

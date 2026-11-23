@@ -22,3 +22,19 @@ time; (b) animated props taken out of the background. (a) chosen: both views sha
 own projection, and it costs no art. (b) is needed for banners, kept for the next round.
 
 **Constraints.** Nothing is added to `app.js` `busy()`: it all runs at the idle rate. No theme key is added (packs stay valid).
+
+## Round two (approved 2026-11-23): O2, O3, O4 second pass
+
+**O2 work has a shape.** The desk screen shows the kind of tool the session last called, read from the task line's tool
+name: write (a line being typed, a caret), read (the page scrolls), search (a bar sweeps the page), web (rings spread).
+Any other tool, or a prompt, keeps round one's screen. No backend change.
+
+**O3 interactions.** Only true events move anything. An adept that finishes walks to its owner's desk, then leaves. A
+session's newly forked child gets its order by servo-skull, from the Suzerain's desk to its own. The Magos leans and
+lights its optics for a few seconds when someone joins the petition line. Not in the strip or the column, not on the
+first roster.
+
+**O4 second pass.** The back wall's hangings sway an art px; a cloud's light drifts over the window glass, day and night.
+Approaches: (a) take them out of the cached background; (b) draw the moved cloth over the still one. (b) chosen: the
+background stays cached, and an art px of the still cloth showing at an edge reads as its outline. A hanging that another
+prop overlaps stays still. In 2.5D both lie on the back wall's plane.

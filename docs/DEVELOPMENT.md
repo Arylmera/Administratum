@@ -86,7 +86,7 @@ do not know which.
 | `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
 | `iso.js`, `isohall.js`, `scene39.js` | The 39° view: z-buffer engine, its static hall (with a west wing, `wingPlan`: the hall's plan moved east, the wing's floor and walls, the west wall's doorways), its per-frame layer |
 | `faces.js` | Face sheets: one art source split into faces, drawn flat or built into 39° volumes |
-| `liveliness.js` | Pure: a busy scribe's typing arms (`typing`) and its desk screen's running text (`screenRows`; `isGlass`: only where the world's desk art has a screen) |
+| `liveliness.js` | Pure: a busy scribe's typing arms (`typing`) and its desk screen (`screenRows`, by the kind of tool its task line names, `workKind`; `isGlass`: only where the world's desk art has a screen) |
 | `ambience.js` | The room's air, both views: the floor channels' pulses (`flowLights`, lights), the dust in the beams and the sparks over the braziers (`drawAmbience`, after the lighting) |
 | `mood.js` | The hall's mood, eased: working sessions and stale petitions (`moodOf`, `stepMood`) set the pulses' and the Magos's pace and shift the darkness a little (`moodLevel`) |
 | `depth.js` | Shadows, cast shadows and ambient occlusion computed from the sprites |
