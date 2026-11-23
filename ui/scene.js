@@ -423,7 +423,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: T.light.burn, flicker: true });
   }
   if (H.strip) return lights.concat(drawStripAlarm(g, H, all, now));
-  drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length);
+  drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length, layout.magosT);
   return staticLights(H).concat(lights, drawAlarm(g, all, now));
 }
 
@@ -960,11 +960,11 @@ function flameOf(name, x, t) {
 
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, steam) and its lamp row tallies them.
 // Drawn in the minimum scene's coordinates, moved with their room.
-function drawDecorFrame(g, t, cog = 0) {
+function drawDecorFrame(g, t, cog = 0, magosT = t) { // magosT: the Magos's own time (mood.js)
   const sy = 50 + WALL_DY + Math.round(2 * Math.sin(t * 4));
   flyShadow(g, 244 + H.ox + SK.centre[0], 50 + WALL_DY + SK.centre[1]);
   blit(g, MAPS.SKULL, 244 + H.ox, sy);
-  g.save(); g.translate(H.ox, H.sd); drawMagos(g, MAG.x, MAG.y, t); g.restore();
+  g.save(); g.translate(H.ox, H.sd); drawMagos(g, MAG.x, MAG.y, magosT); g.restore();
   if (!H.sanct) { g.save(); g.translate(H.dx, WALL_DY); drawCogitator(g, t, cog); g.restore(); } // the mirror hall has no bank
 }
 

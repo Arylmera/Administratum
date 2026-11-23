@@ -4,6 +4,7 @@ import { columnOf, layoutColumn, columnPlaced } from './column.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
+import { moodOf, makeMood, stepMood, moodLevel } from './mood.js';
 import { AMOUNT, flowLights, drawAmbience } from './ambience.js';
 import { RES } from './sprites.js';
 import { T, onTheme, switchTheme, t, hexA } from './theme.js';
@@ -269,6 +270,9 @@ const draw = guarded(now => {
   view.hall = hall;
   view.roster = roster; // the scribe lamps' Session.ci (scene.js, scene39.js)
   view.level = level;
+  const k = AMOUNT[settings.liveliness];
+  stepMood(mood, dt, moodOf(roster), k);
+  view.magosT = mood.clock; // the Magos's tempo (scene.js, scene39.js)
   view.mode = viewMode.mode;
   view.anchors = back?.anchors;
   view.lift = cast.lift; // the column's car (scene.js drawColumnProps)
@@ -281,8 +285,8 @@ const draw = guarded(now => {
     lights.push({ ...l, ...(iso() && { y: w.y, z: 0 }), r: 20, color: T.light.amber, flicker: true });
   }
   if (back) {
-    const k = AMOUNT[settings.liveliness], windows = propsOf(hall).windows; // the room's air (ambience.js)
-    drawLighting(g, lights.concat(flowLights(hall, now / 1000 * 14, k)), level, now / 1000, S.w, S.h, windows);
+    const windows = propsOf(hall).windows; // the room's air (ambience.js)
+    drawLighting(g, lights.concat(flowLights(hall, mood.flow, k)), moodLevel(level, mood, k), now / 1000, S.w, S.h, windows);
     drawAmbience(g, { lights, level, windows, t: now / 1000, k });
   }
   if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
@@ -315,6 +319,7 @@ function resetCast() {
 const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3, shrink: s * 1000 } : {}))(+new URLSearchParams(location.search).get('grace'));
 const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
 let roster = [];
+const mood = makeMood(); // the hall's pace and light follow the load (mood.js)
 initCard({ cast, roster: () => roster });
 const colorOf = dept => T.sash[deptOrder.indexOf(dept) % T.sash.length];
 

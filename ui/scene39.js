@@ -304,7 +304,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     }
   }
   for (const Z of Zs) if (!Z.open) items.push(...fenceItems(Z, all)); // a custom room is an open floor
-  items.push(...gateItems(all, dt), magos(t, dt));
+  items.push(...gateItems(all, dt), magos(layout.magosT ?? t, dt));
 
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
   cogitator(g, t, all.filter(a => a.pose === 'cog').length);
