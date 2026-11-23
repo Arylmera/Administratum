@@ -86,6 +86,7 @@ do not know which.
 | `view.js` | The view switch: Flat (identity) or the 39° projection; the strip kinds (`view.strip`, `view.column`) |
 | `iso.js`, `isohall.js`, `scene39.js` | The 39° view: z-buffer engine, its static hall (with a west wing, `wingPlan`: the hall's plan moved east, the wing's floor and walls, the west wall's doorways), its per-frame layer |
 | `faces.js` | Face sheets: one art source split into faces, drawn flat or built into 39° volumes |
+| `liveliness.js` | Pure: a busy scribe's typing arms (`typing`) and its desk screen's running text (`screenRows`; `isGlass`: only where the world's desk art has a screen) |
 | `depth.js` | Shadows, cast shadows and ambient occlusion computed from the sprites |
 | `lighting.js`, `sun.js` | Darkness, light pools and glows; sunrise and sunset (NOAA) for *Auto* lighting. In the 39° view a desk-level light may carry its own `h` (glow height) and `d` (px south of its flat point), else `lift39` (18, 10); `scene.js` sets them on the candle (20), slate (16), console screen (7) and flying skull (12) |
 | `strip.js`, `stripwin.js`, `outline.js` | Desktop strip: its geometry, its window (the bar or the column, `adm.stripKind`), the 1 px outline around sprites |
@@ -179,6 +180,7 @@ when it loads. One file per module:
 | `outline.test.mjs` | Strip sprite outline |
 | `vigil.test.mjs` | Night Vigil state, seconds left, the 30 s bell rule |
 | `rankart.test.mjs` | Rank art: the rank layer (a rank's own frame, the plain one where it drew none, left mirrored, its gestures only with its own seat, 39°), the same-source rule, per-rank anchors, the actors' body, feet and glyph at their rank, the viewer's rank rows; no shipped world outside the 40k Ordos with a rank frame |
+| `liveliness.test.mjs` | Liveliness at the desk: the typing arms, the desk screen, which worlds have glass, the wiring and the Off setting |
 | `gestures.test.mjs` | Scribe gestures: the chooser (think and wonder recur at their pace, each scribe out of step, the stretch, the puzzled wonder after a tool error, nothing away from the desk or for a frame the world lacks), every shipped world without them, a pack's gesture frames accepted at the seated size and the warning for one without its seated frame, the frame replacing `up 0` / `N 0`; over `Cast.sync` / `update`: no stretch for a scribe first seen idle, on arriving, after `settle` or a reset, or on a walk back while idle; once at a turn's end, at the desk or on sitting after walking back; one wonder per tool error at the desk |
 | `chronicon.test.mjs` | Chronicon: header plaque, day tabs, summary (totals, bars, hourly), log filter, live rows, stale replies dropped; `openWeek` (open or closed panel, an open that fails); the Week tab's sum of day Tithes, older day files included; the day report without its frontmatter, present or absent; the by-session bars; the usage-window bar (no window, empty frame, ticks with the lowest marked, clamped fill, "estimate" tooltip) and today's window line; the empty-day box (`log.empty`), event icons coloured by `--chart-*` classes (no hex in the markup, the cache bar hatched), the day tabs moved by the arrow keys |
 | `overlay.test.mjs` | Tags over characters: the stuck tag yields to the sealed tag and to a petition label; the same-file tag yields to them all; a risky petition through `card.js` `answer` (no *Always*, two clicks within 5 s); a click whose terminal does not open (the card up with the card on a click, else the `open_failed` toast); the Hall of Honours: when it is asked again, its lines and dashes |
@@ -254,10 +256,11 @@ draw its own body: frames `<rank> <frame>` in the scribe and adept sheets, used 
 - A scribe's gestures at its desk (`gestures.js`, [theme-packs.md](theme-packs.md#gestures)): optional frames of the
   scribe sheets, `up think` / `wonder` / `stretch` instead of `up 0`, `N ...` instead of `N 0`. `sprites.js` takes a
   flat one only from the sheet that draws the world's `up 0` (`SCRIBE.gesture`, `SCRIBE39.gesture`); `artcheck.js`
-  accepts them in a pack's sheet at the seated frame's size though the default draws none, and `gestureWarnings`
+  accepts them in a pack's sheet at the seated frame's size, and `gestureWarnings`
   (a `theme_pack.mjs check` warning) names one in a sheet without its own seated frame. Drawn as the body, they take
   no arms overlay, no Zs and no pipe. In the viewer and `--list`, a sprite only other worlds draw gets a row after
-  column A's list.
+  column A's list. The 40k robe's are generated (`tools/gesture_art.mjs scribe` and `scribe39`: the seated frame, hood
+  and arms moved, for the plain body and each rank; `rank_art.mjs` runs it).
 
 **Live viewer.** Every sprite of every theme side by side, read straight from `ui/art/`, walk cycles animated,
 zoom, pixel grid, backgrounds and a filter:

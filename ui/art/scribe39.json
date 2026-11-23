@@ -311,6 +311,78 @@
         "w": 32,
         "h": 34
       }
+    },
+    "N think": {
+      "frame": {
+        "x": 0,
+        "y": 105,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "N wonder": {
+      "frame": {
+        "x": 33,
+        "y": 105,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "N stretch": {
+      "frame": {
+        "x": 66,
+        "y": 105,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high N think": {
+      "frame": {
+        "x": 0,
+        "y": 140,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high N wonder": {
+      "frame": {
+        "x": 33,
+        "y": 140,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high N stretch": {
+      "frame": {
+        "x": 66,
+        "y": 140,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice N think": {
+      "frame": {
+        "x": 0,
+        "y": 175,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice N wonder": {
+      "frame": {
+        "x": 33,
+        "y": 175,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice N stretch": {
+      "frame": {
+        "x": 66,
+        "y": 175,
+        "w": 32,
+        "h": 34
+      }
     }
   },
   "meta": {
@@ -319,7 +391,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 426,
-      "h": 104
+      "h": 209
     },
     "palette": "key.gpl",
     "anchors": {

@@ -8,7 +8,8 @@ const I = T.ink; // every colour drawn here, by name (theme.js)
 let DESK_AT, LECTERN_AT, CONSOLE_AT, ROOMCOG_AT, SK, PAPER;
 import { hallOf, WALL, WALL_DY, zonesOf, wingZones, WING_W, WING_DIV, channelsOf, mainSpots, scribeSpots } from './layout.js';
 import { lampsAt, scribeLampsAt, lampLights, LENS } from './cilamp.js';
-import { drawActor, bodyOf, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
+import { drawActor, bodyOf, isWorking, isStale, BURN_S, PUFF_S, FX_S, PICK_S, LAMP_S } from './actors.js';
+import { screenRows, isGlass } from './liveliness.js';
 import { FLOOR, zonesOfStrip } from './strip.js';
 import { tintOf } from './rooms.js';
 import { COL_W } from './column.js';
@@ -547,6 +548,18 @@ export function drawLinks(g, desks, actors, now) {
 
 // A full desk or, in a crowded hall, a compact lectern (layout.js GRID.compact): sprite, width, and where its
 // centre, slate and candle are, from its top-left.
+// A working scribe's desk screen: its text running (liveliness.js), over the sheet's own still text. Nothing where the
+// world's desk has no glass (isGlass, kept per art map). g: flat coords (39°: the glass's plane).
+const glass = new WeakMap();
+function deskScreen(g, a, at, K) {
+  if (!isWorking(a)) return;
+  const map = MAPS[K.map], R = K.at.screen;
+  if (!glass.has(map)) glass.set(map, isGlass(map, R));
+  if (!glass.get(map)) return;
+  const x = at.x + R[0], y = at.y + R[1];
+  rect(g, x, y, R[2], R[3], T.px.C);
+  for (const r of screenRows(a.id, a.t, R[2] * RES, R[3] * RES)) rect(g, x + r.x / RES, y + r.y / RES, r.w / RES, 1 / RES, T.px.c);
+}
 // Desks, lecterns and the adepts' consoles. lit: candle/screen on (else the dimmed palette); pile: its paper's id.
 const kindOf = d => (d.compact ? 'lectern' : 'desk');
 function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
@@ -556,6 +569,7 @@ function furniture(kind, at, pile, lit, fill, a, bgShell, now) {
     draw(g) {
       rect(g, at.x + sx, at.y + sy, sw, sh, I.shadow);
       blit(g, MAPS[K.map], at.x, at.y, lit ? undefined : K.dim());
+      if (a) deskScreen(g, a, at, K);
       paperTop(g, pile, kind, fill, at);
       if (bgShell) spinCog(g, at.x + K.at.cog[0], at.y + K.at.cog[1], now / 1000);
       if (a) furnitureFx(g, a, at, K.at);
@@ -1298,4 +1312,4 @@ fromArt();
 onTheme(() => { fromArt(); piles.clear(); });
 // What the 39° layer (scene39.js) draws with: the same paper, effects, animations and lights, projected there.
 export { MAG, KIND, kindOf, paperTop, paperFloor, seal, stamp, spark, glint, puff, flare, bundle, flyShadow, spinCog,
-  newest, stamping, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, computerAt, computerLight, doorsOf, doorFrame, near, skullRed };
+  newest, stamping, deskScreen, flameOf, drawCogitator, drawBeacon, staticLights, deskLight, consoleLight, computerAt, computerLight, doorsOf, doorFrame, near, skullRed };

@@ -225,6 +225,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     items.push({ foot: p.foot, draw(g2) {
       const k = art(p.k);
       drawBuf(g2, k.buf, lit ? k.lit : k.dim, p.u0, p.v0);
+      if (a && !a.h) save(g2, slate, g3 => S.deskScreen(g3, a, at, S.KIND[kind]));
       if (kind !== 'console') save(g2, top, g3 => S.paperTop(g3, pile, kind, fill, at, face));
       if (bgShell) save(g2, front, g3 => S.spinCog(g3, at.x + AT.cog[0], at.y + AT.cog[1], t));
       if (!a) return;

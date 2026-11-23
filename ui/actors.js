@@ -8,6 +8,7 @@ import { vigil } from './vigil.js';
 import { makeLift, setStops, call, cancel, retarget, step as liftStep, carY, slotOf, lineOf } from './lift.js';
 import { floorAt } from './column.js';
 import { gestureOf } from './gestures.js';
+import { typing } from './liveliness.js';
 
 const SPEED = 80; // logical px per second
 // The strip spans the whole screen, so a walk there takes twice the hall's speed (a wide screen's crossing stays short).
@@ -348,10 +349,13 @@ const dozes = a => a.pose === 'desk' && a.s.status === 'idle' && !a.s.background
 // stretch is timed from when it dozed off after its turn ended (Cast.sync a.turnEnded, Cast.update a.dozeAt), the
 // puzzled wonder from a tool error at its desk (chronicle: a.puzzleAt).
 export function gestureNow(a, has) {
-  if (a.h || a.watch || !a.s || a.pose !== 'desk') return null;
+  if (a.h || a.watch || !a.s || a.pose !== 'desk' || settings.liveliness === 'off') return null;
   return gestureOf({ id: a.id, desk: true, busy: a.s.status === 'busy', question: !!a.s.question && a.s.status !== 'waiting', done: !!liftOf(a).done,
     dozedFor: a.dozing && a.dozeAt != null ? a.t - a.dozeAt : null, puzzledFor: a.puzzleAt != null ? a.t - a.puzzleAt : null }, a.t, has);
 }
+// A scribe working at its desk, drawn alive (Liveliness not off): it types, its screen runs (scene.js deskScreen).
+export const isWorking = a => settings.liveliness !== 'off' && !a.h && !a.watch && a.pose === 'desk' && a.s?.status === 'busy';
+const REST = { l: 0, r: 0 };
 // What a scribe carries over its body, in either view (V: its art, CARRIED / CARRIED39): its arms when its body has
 // none of its own (the 40k robe: two mechadendrites raised over the desk, lifted with a finished turn's scroll), in
 // the body's colours; the petition scroll on its way to and in the queue; that scroll held up; the dozing Z.
@@ -361,7 +365,10 @@ export function drawCarried(g, a, V, fx, fy, over, gesture = null) {
   const A = V.at.rank?.[rankOf(a.s?.context?.model)] ?? V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll; // its rank's anchors (rankAnchors)
   if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); return; }
   const { done, lift } = liftOf(a);
-  if (V.arm && !gesture) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift, over); }
+  if (V.arm && !gesture) {
+    const tap = isWorking(a) && !done ? typing(a.id, a.t) : REST;
+    blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift - tap.r, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift - tap.l, over);
+  }
   if (done) V.held(g, fx, fy - lift);
   if (a.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y);
   if (!gesture && (a.pose === 'nap' || dozes(a))) dozing(g, fx + 11, fy - 2, a.t);

@@ -223,6 +223,78 @@
         "w": 32,
         "h": 34
       }
+    },
+    "up think": {
+      "frame": {
+        "x": 0,
+        "y": 122,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "up wonder": {
+      "frame": {
+        "x": 33,
+        "y": 122,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "up stretch": {
+      "frame": {
+        "x": 66,
+        "y": 122,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high up think": {
+      "frame": {
+        "x": 0,
+        "y": 157,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high up wonder": {
+      "frame": {
+        "x": 33,
+        "y": 157,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "high up stretch": {
+      "frame": {
+        "x": 66,
+        "y": 157,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice up think": {
+      "frame": {
+        "x": 0,
+        "y": 192,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice up wonder": {
+      "frame": {
+        "x": 33,
+        "y": 192,
+        "w": 32,
+        "h": 34
+      }
+    },
+    "novice up stretch": {
+      "frame": {
+        "x": 66,
+        "y": 192,
+        "w": 32,
+        "h": 34
+      }
     }
   },
   "meta": {
@@ -231,7 +303,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 296,
-      "h": 121
+      "h": 226
     },
     "palette": "key.gpl",
     "anchors": {

@@ -7,9 +7,12 @@
 // rows as they were, then one row per rank. tools/map_to_art.mjs repacks only the plain frames: rerun this after it.
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { writeSheet, keyPalette, artDir } from './sheet_writer.mjs';
 import { ART } from '../ui/sprites.js';
 import { RANKS, RANK_FAMILIES, rankPart } from '../ui/ranks.js';
+import { SEATED_FRAME } from '../ui/gestures.js';
 
 const family = process.argv[2];
 if (!RANK_FAMILIES.includes(family)) throw new Error(`usage: rank_art.mjs <${RANK_FAMILIES.join('|')}>`);
@@ -31,3 +34,5 @@ const rankRows = RANKS.map(r => plainNames.map(n => `${r} ${n}`).filter(n => dra
 const anchors = { ...Object.fromEntries(Object.entries(json.meta.anchors).filter(([k]) => !RANKS.includes(k))), ...rankAnchors };
 const { W, H } = writeSheet(family, { ...plain, ...drawn }, [...plainRows, ...rankRows], { app: 'tools/rank_art.mjs', anchors, tiles: json.meta.tiles });
 console.log(`wrote ui/art/${family}.png (${W}x${H}): ${plainNames.length} plain frames, ${Object.keys(drawn).length} rank frames`);
+// the scribe's gestures are drawn from the bodies just written (a rank's own dropped above): gesture_art.mjs adds them back
+if (SEATED_FRAME[family]) execFileSync(process.execPath, [fileURLToPath(new URL('./gesture_art.mjs', import.meta.url)), family], { stdio: 'inherit' });
