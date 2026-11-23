@@ -4,10 +4,12 @@ import { columnOf, layoutColumn, columnPlaced } from './column.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
+import { moodOf, makeMood, stepMood, moodLevel } from './mood.js';
+import { AMOUNT, flowLights, drawAmbience } from './ambience.js';
 import { RES } from './sprites.js';
 import { T, onTheme, switchTheme, t, hexA } from './theme.js';
 import { guarded } from './themes.js'; // registers the themes beyond Tier II
-import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
+import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S, GREET_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView, stripKind } from './view.js';
@@ -268,6 +270,10 @@ const draw = guarded(now => {
   view.hall = hall;
   view.roster = roster; // the scribe lamps' Session.ci (scene.js, scene39.js)
   view.level = level;
+  const k = AMOUNT[settings.liveliness];
+  stepMood(mood, dt, moodOf(roster), k);
+  view.greet = Date.now() - (cast.greetAt ?? 0) < GREET_MS;
+  view.magosT = k ? mood.clock : undefined; // the Magos's tempo (scene.js, scene39.js)
   view.mode = viewMode.mode;
   view.anchors = back?.anchors;
   view.lift = cast.lift; // the column's car (scene.js drawColumnProps)
@@ -279,7 +285,11 @@ const draw = guarded(now => {
     const l = lanternOf(w);
     lights.push({ ...l, ...(iso() && { y: w.y, z: 0 }), r: 20, color: T.light.amber, flicker: true });
   }
-  if (back) drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
+  if (back) {
+    const windows = propsOf(hall).windows; // the room's air (ambience.js)
+    drawLighting(g, lights.concat(flowLights(hall, mood.flow, k)), moodLevel(level, mood, k), now / 1000, S.w, S.h, windows, k);
+    drawAmbience(g, { lights, t: now / 1000, k });
+  }
   if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
   renderPlaques(view.blocks);
   syncLabels();
@@ -310,6 +320,7 @@ function resetCast() {
 const GRACE = (s => (s > 0 ? { desk: s * 1000, dept: s * 5000 / 3, shrink: s * 1000 } : {}))(+new URLSearchParams(location.search).get('grace'));
 const consoleOrder = new Map(); // dept -> helper ids by console, null = free; a helper keeps its console while it lives
 let roster = [];
+const mood = makeMood(); // the hall's pace and light follow the load (mood.js)
 initCard({ cast, roster: () => roster });
 const colorOf = dept => T.sash[deptOrder.indexOf(dept) % T.sash.length];
 

@@ -24,6 +24,9 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="scribe-novice-right"></a>`SCRIBE.novice.right` | 16×17 | Novice (haiku), walking right, 3 frames. Source: `ui/art/scribe.png` | <img src="xenos/SCRIBE.novice.right.png" height="136"> |
 | <a id="scribe-novice-left"></a>`SCRIBE.novice.left` | 16×17 | Novice (haiku), walking left, 3 frames. Source: `ui/art/scribe.png` | <img src="xenos/SCRIBE.novice.left.png" height="136"> |
 | <a id="scribe-sashes"></a>`SCRIBE.sashes` | 16×17 | Department colours (theme sash), one per project. Source: `ui/art/scribe.png` | <img src="xenos/SCRIBE.sashes.png" height="136"> |
+| <a id="scribe-up-think"></a>`SCRIBE.up.think` | 16×17 | Gesture at the desk, seen from behind (`up think`, instead of `up 0`): thinking, now and then while it works; high, standard, novice. Source: `ui/art/scribe.png` | <img src="xenos/SCRIBE.up.think.png" height="136"> |
+| <a id="scribe-up-wonder"></a>`SCRIBE.up.wonder` | 16×17 | Gesture at the desk, seen from behind (`up wonder`, instead of `up 0`): puzzled, once after a tool error, or now and then while its question waits; high, standard, novice. Source: `ui/art/scribe.png` | <img src="xenos/SCRIBE.up.wonder.png" height="136"> |
+| <a id="scribe-up-stretch"></a>`SCRIBE.up.stretch` | 16×17 | Gesture at the desk, seen from behind (`up stretch`, instead of `up 0`): stretching, once, as its turn ends and it dozes off; high, standard, novice. Source: `ui/art/scribe.png` | <img src="xenos/SCRIBE.up.stretch.png" height="136"> |
 
 ## Adept (one per subagent)
 
@@ -85,6 +88,9 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="watch39-s"></a>`WATCH39.S` | 16×18 | WATCH39, 39° view, walking S, 3 frames. Source: `ui/art/watch39.png` | <img src="xenos/WATCH39.S.png" height="144"> |
 | <a id="watch39-n"></a>`WATCH39.N` | 16×18 | WATCH39, 39° view, walking N, 3 frames. Source: `ui/art/watch39.png` | <img src="xenos/WATCH39.N.png" height="144"> |
 | <a id="watch39-ring"></a>`WATCH39.ring` | 16×18 | WATCH39, ring. Source: `ui/art/watch39.png` | <img src="xenos/WATCH39.ring.png" height="144"> |
+| <a id="scribe39-n-think"></a>`SCRIBE39.N.think` | 16×17 | SCRIBE39, gesture at the desk (`N think`, instead of `N 0`): thinking, now and then while it works. Source: `ui/art/scribe39.png` | <img src="xenos/SCRIBE39.N.think.png" height="136"> |
+| <a id="scribe39-n-wonder"></a>`SCRIBE39.N.wonder` | 16×17 | SCRIBE39, gesture at the desk (`N wonder`, instead of `N 0`): puzzled, once after a tool error, or now and then while its question waits. Source: `ui/art/scribe39.png` | <img src="xenos/SCRIBE39.N.wonder.png" height="136"> |
+| <a id="scribe39-n-stretch"></a>`SCRIBE39.N.stretch` | 16×17 | SCRIBE39, gesture at the desk (`N stretch`, instead of `N 0`): stretching, once, as its turn ends and it dozes off. Source: `ui/art/scribe39.png` | <img src="xenos/SCRIBE39.N.stretch.png" height="136"> |
 | <a id="scribe39-high-e"></a>`SCRIBE39.high.E` | 16×17 | SCRIBE39, Magos, 39° view, walking E, 3 frames. Source: `ui/art/scribe39.png` | <img src="xenos/SCRIBE39.high.E.png" height="136"> |
 | <a id="scribe39-high-w"></a>`SCRIBE39.high.W` | 16×17 | SCRIBE39, Magos, 39° view, walking W, 3 frames. Source: `ui/art/scribe39.png` | <img src="xenos/SCRIBE39.high.W.png" height="136"> |
 | <a id="scribe39-high-s"></a>`SCRIBE39.high.S` | 16×17 | SCRIBE39, Magos, 39° view, walking S, 3 frames. Source: `ui/art/scribe39.png` | <img src="xenos/SCRIBE39.high.S.png" height="136"> |
@@ -126,7 +132,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="xenos/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="xenos/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/refectorium.png`, drawn by scene.js | <img src="xenos/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="xenos/WINDOW.png" height="136"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/walls.png`, drawn by backwall.js, scene.js, theme.js, wallart.js | <img src="xenos/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/walls.png` | <img src="xenos/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/walls.png` | <img src="xenos/WINDOW.night.png" height="136"> |
 | <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="xenos/BANNER.png" height="120"> |

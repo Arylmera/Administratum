@@ -55,7 +55,8 @@ export const store = {
 const NUM = { staleMin: [5, 1, 120], napMin: [2, 1, 120], cogHoldS: [10, 0, 120], ctxHaiku: [200, 8, 10_000], ctxOther: [1000, 8, 10_000] };
 const STRIP_SIZES = ['S', 'M', 'L']; // the strip's pixel size (stripwin.js stripScale)
 const SIDES = ['left', 'right']; // the desktop column's screen edge (stripwin.js); right by default: desktop icons sit on the left
-const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, stripReserve: false, isoBackdrop: true, roomTint: true, cardOnClick: true, hallPlan: 'open', ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const DEFAULTS = { onTop: true, stripSize: 'M', stripSide: 'right', stripBackdrop: false, stripReserve: false, isoBackdrop: true, roomTint: true, cardOnClick: true, hallPlan: 'open', liveliness: 'full', ...Object.fromEntries(Object.entries(NUM).map(([k, [d]]) => [k, d])) };
+const LIVELINESS = ['off', 'subtle', 'full']; // liveliness.js
 const clamp = (k, v) => { const [d, lo, hi] = NUM[k]; v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 function load() {
   let saved = {};
@@ -70,6 +71,7 @@ function load() {
   if (PLANS.includes(saved.hallPlan)) s.hallPlan = saved.hallPlan; // open space, or rooms round the Sanctum (hallplan.js)
   if (typeof saved.roomTint === 'boolean') s.roomTint = saved.roomTint; // a room's floor: a soft tint of its colour (else its tiles)
   if (typeof saved.cardOnClick === 'boolean') s.cardOnClick = saved.cardOnClick; // off: a click only opens the terminal (card.js cardOnPick)
+  if (LIVELINESS.includes(saved.liveliness)) s.liveliness = saved.liveliness;
   for (const k in NUM) if (k in saved) s[k] = clamp(k, saved[k]);
   return s;
 }
@@ -512,6 +514,7 @@ function syncForm(form, field, hooks, login) {
   field('stripBackdrop').checked = settings.stripBackdrop;
   if (field('stripReserve')) field('stripReserve').checked = settings.stripReserve;
   for (const e of form.querySelectorAll('.iso-only')) e.hidden = viewMode.mode !== '39';
+  field('liveliness').value = settings.liveliness;
   field('isoBackdrop').checked = settings.isoBackdrop;
   field('cardOnClick').checked = settings.cardOnClick;
   field('hallPlan').value = settings.hallPlan;
@@ -564,6 +567,7 @@ function onChange(e, { field, hooks, setPlace, readLogin, applyRemote, readStatu
   else if (k === 'stripReserve') { settings.stripReserve = el.checked; save(); invoke('set_strip_reserve', { on: el.checked }).catch(() => {}); }
   else if (k === 'hallPlan') { settings.hallPlan = PLANS.includes(el.value) ? el.value : 'open'; save(); setHallPlan(settings.hallPlan); hooks.planChanged?.(); field('roomTint').closest('label').hidden = settings.hallPlan !== 'rooms'; }
   else if (k === 'roomTint') { settings.roomTint = el.checked; save(); hooks.roomsChanged?.(); }
+  else if (k === 'liveliness') { settings.liveliness = LIVELINESS.includes(el.value) ? el.value : 'full'; save(); }
   else if (k === 'isoBackdrop') { settings.isoBackdrop = el.checked; save(); applyBackdrop(); }
   else if (k === 'cardOnClick') { settings.cardOnClick = el.checked; save(); }
   else if (k === 'chime') hooks.setMuted(!el.checked);

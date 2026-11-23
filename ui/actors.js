@@ -8,6 +8,7 @@ import { vigil } from './vigil.js';
 import { makeLift, setStops, call, cancel, retarget, step as liftStep, carY, slotOf, lineOf } from './lift.js';
 import { floorAt } from './column.js';
 import { gestureOf } from './gestures.js';
+import { typing } from './liveliness.js';
 
 const SPEED = 80; // logical px per second
 // The strip spans the whole screen, so a walk there takes twice the hall's speed (a wide screen's crossing stays short).
@@ -32,7 +33,12 @@ export const PUFF_S = 0.8; // ...or goes up in a puff on the desk when its scrib
 // Fire points of the grand gate's two braziers (DECOR in scene.js); the burner stands on the aisle just north.
 const braziers = entry => [entry.x - 23, entry.x + 23].map(x => ({ x, y: entry.y - 11 }));
 // Chronicle reactions (scene.js draws them): seconds each plays. Test lamps are a.lamp, not an fx.
-export const FX_S = { commit: 3, push: 4.4, 'tool-error': 1, 'task-done': 1.5 };
+export const FX_S = { commit: 3, push: 4.4, 'tool-error': 1, 'task-done': 1.5, order: 3.6 };
+// Interactions (Liveliness not off, never in the strip or the column; spec 2026-11-23-liveliness, round two), true events
+// only: a finished adept reports at its owner's desk for REPORT_S before it leaves; a newly forked child's order flies in
+// by servo-skull ('order', from the Suzerain's desk); the Magos greets a new petitioner for GREET_MS (Cast.greetAt).
+export const REPORT_S = 1.5, GREET_MS = 3000;
+const interacts = hall => settings.liveliness !== 'off' && !hall.strip && !hall.column;
 export const PICK_S = 1.6; // the push courier reaches the desk and takes the newest seal
 export const LAMP_S = 20;
 export const FRESH_MS = 120_000; // older events (history, a first scan's backlog) play nothing
@@ -57,7 +63,8 @@ export class Cast {
     if (!hall.column && (hall.w !== this.hall.w || hall.baseH !== this.hall.baseH || hall.rooms !== this.hall.rooms)) this.resized(this.hall, hall);
     this.hall = hall;
     const ENTRY = hall.entry;
-    const live = new Set(roster.map(s => s.id));
+    const live = new Set(roster.map(s => s.id)), first = !this.last, kin = interacts(hall);
+    const wasChild = new Set([...this.actors.values()].filter(a => a.s?.parent).map(a => a.id));
     // New actors walk in through the gate; known ones take the fresh data (and stop leaving if they were).
     const upsert = (id, fields, at = ENTRY) => {
       const a = this.actors.get(id);
@@ -80,6 +87,14 @@ export class Cast {
     }
     if (this.watchOn()) live.add(WATCH_ID);
     for (const a of this.actors.values()) if (!live.has(a.id)) a.leaving = true;
+    // a child newly forked (or newly adopted): its order flies from its Suzerain's desk to its own
+    if (kin) for (const s of roster) {
+      const from = s.parent && !wasChild.has(s.id) && this.actors.get(s.parent)?.pose === 'desk' && seats.get(s.parent);
+      if (from && seats.has(s.id)) (this.actors.get(s.id).fx ??= []).push({ kind: 'order', t: 0, slot: 0, from: { x: from.x, y: from.y - 14 } });
+    }
+    const queued = this.queued;
+    this.queued = new Set(roster.filter(isPetitioner).map(s => s.id));
+    if (kin && !first && [...this.queued].some(id => !queued?.has(id))) this.greetAt = Date.now();
     const waiting = roster.filter(isPetitioner).sort((p, q) => isQuestion(p) - isQuestion(q) || p.sinceMs - q.sinceMs).map(s => s.id);
     // Hysteresis: Bash calls flip a session busy<->shell every few seconds; don't walk back and forth for each one.
     const now = Date.now();
@@ -90,7 +105,7 @@ export class Cast {
     // Scribes first (Map order is insertion order, adepts may predate a re-added owner), then their adepts.
     const all = [...this.actors.values()];
     for (const a of all.filter(a => !a.h).concat(all.filter(a => a.h))) {
-      this.go(a, a.h ? this.atConsole(a, consoleSeats) : this.destination(a, seats, waiting, shell), blocks);
+      this.go(a, a.h ? this.atConsole(a, consoleSeats, seats) : this.destination(a, seats, waiting, shell), blocks);
     }
   }
 
@@ -245,8 +260,12 @@ export class Cast {
   }
 
   // Adepts work at their own console in the owner's department block, whatever the owner is doing.
-  atConsole(a, consoleSeats) {
+  atConsole(a, consoleSeats, seats) {
     const seat = consoleSeats.get(a.id);
+    // just finished: to its owner's desk first, beside its seat (its owner there and staying); then out
+    const owner = this.actors.get(a.owner), desk = seats?.get(a.owner);
+    if (a.leaving && a.pose === 'console' && interacts(this.hall) && desk && owner?.pose === 'desk' && !owner.leaving) a.report = { left: REPORT_S };
+    if (a.report?.left > 0 && a.leaving && desk && owner && !owner.leaving) return { x: desk.x + 9, y: desk.y + 8, pose: 'report', dir: 'up' };
     const H = this.hall, out = H.column ? H.landing(floorAt(H, a.y) ?? 'ref') : H.entry; // the column's adepts leave at their landing
     return a.leaving || !seat ? { ...out, pose: 'gone' } : { x: seat.x, y: seat.y, via: seat.via, pose: 'console', dir: 'up' };
   }
@@ -310,6 +329,7 @@ export class Cast {
         if (!d) a.dozeAt = null;
         a.dozing = d;
       }
+      if (a.pose === 'report' && a.report && (a.report.left -= dt) <= 0) this.go(a, this.atConsole(a, new Map(), this.last.seats), this.last.blocks); // told: out
       if (a.puff > 0) a.puff -= dt;
       if (a.lamp) a.lamp.t += dt;
       if (a.fx?.length) a.fx = a.fx.filter(f => {
@@ -348,10 +368,13 @@ const dozes = a => a.pose === 'desk' && a.s.status === 'idle' && !a.s.background
 // stretch is timed from when it dozed off after its turn ended (Cast.sync a.turnEnded, Cast.update a.dozeAt), the
 // puzzled wonder from a tool error at its desk (chronicle: a.puzzleAt).
 export function gestureNow(a, has) {
-  if (a.h || a.watch || !a.s || a.pose !== 'desk') return null;
+  if (a.h || a.watch || !a.s || a.pose !== 'desk' || settings.liveliness === 'off') return null;
   return gestureOf({ id: a.id, desk: true, busy: a.s.status === 'busy', question: !!a.s.question && a.s.status !== 'waiting', done: !!liftOf(a).done,
     dozedFor: a.dozing && a.dozeAt != null ? a.t - a.dozeAt : null, puzzledFor: a.puzzleAt != null ? a.t - a.puzzleAt : null }, a.t, has);
 }
+// A scribe working at its desk, drawn alive (Liveliness not off): it types, its screen runs (scene.js deskScreen).
+export const isWorking = a => settings.liveliness !== 'off' && !a.h && !a.watch && a.pose === 'desk' && a.s?.status === 'busy';
+const REST = { l: 0, r: 0 };
 // What a scribe carries over its body, in either view (V: its art, CARRIED / CARRIED39): its arms when its body has
 // none of its own (the 40k robe: two mechadendrites raised over the desk, lifted with a finished turn's scroll), in
 // the body's colours; the petition scroll on its way to and in the queue; that scroll held up; the dozing Z.
@@ -361,7 +384,10 @@ export function drawCarried(g, a, V, fx, fy, over, gesture = null) {
   const A = V.at.rank?.[rankOf(a.s?.context?.model)] ?? V.at, scroll = isQuestion(a.s) ? MAPS.QSCROLL : V.scroll; // its rank's anchors (rankAnchors)
   if (a.pose === 'walk') { if (a.target?.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y); return; }
   const { done, lift } = liftOf(a);
-  if (V.arm && !gesture) { blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift, over); }
+  if (V.arm && !gesture) {
+    const tap = isWorking(a) && !done ? typing(a.id, a.t) : REST;
+    blit(g, V.arm, fx + A.arm.x, fy + A.arm.y - lift - tap.r, over); blit(g, V.armL, fx + A.armL.x, fy + A.armL.y - lift - tap.l, over);
+  }
   if (done) V.held(g, fx, fy - lift);
   if (a.pose === 'queue') blit(g, scroll, fx + A.scroll.x, fy + A.scroll.y);
   if (!gesture && (a.pose === 'nap' || dozes(a))) dozing(g, fx + 11, fy - 2, a.t);

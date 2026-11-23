@@ -142,9 +142,9 @@ async function families() {
   for (const [f, sheet] of Object.entries(ART.base)) {
     const size = rows => `${rows[0].length}x${rows.length}`, seated = sheet.frames[SEATED_FRAME[f]];
     const { rankPart, RANK_FAMILIES } = await import('../ui/ranks.js');
-    const frames = Object.entries(sheet.frames).filter(([n]) => !rankPart(n)).map(([n, rows]) => `\`${n}\` ${size(rows)}`);
-    // the optional gestures (gestures.js) the default does not draw, at its seated frame's size
-    const optional = seated ? (GESTURE_FRAMES[f] ?? []).filter(n => !sheet.frames[n]).map(n => `\`${n}\` ${size(seated)}`) : [];
+    const frames = Object.entries(sheet.frames).filter(([n]) => !rankPart(n) && !GESTURE_FRAMES[f]?.includes(n)).map(([n, rows]) => `\`${n}\` ${size(rows)}`);
+    // the gestures (gestures.js), optional in any sheet, at its seated frame's size
+    const optional = seated ? (GESTURE_FRAMES[f] ?? []).map(n => `\`${n}\` ${size(seated)}`) : [];
     const ranks = RANK_FAMILIES.includes(f) ? '; ranks: `<rank> <frame>` at its frame size (see Ranks)' : '';
     console.log(`| \`${f}\`${FAMILIES39.includes(f) ? ' (2.5D)' : ''} | ${frames.join(', ') || '(none yet)'}${optional.length ? `; optional: ${optional.join(', ')}` : ''}${ranks} |`);
   }

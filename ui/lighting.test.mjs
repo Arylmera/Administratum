@@ -52,6 +52,16 @@ assert.ok(wall.y < WALL);
 // neither lands where lift39 puts it
 log.length = 0;
 const own = { x: 60, y: 90, r: 20, color: '#ffaa44', h: 7, d: 3 }, plain = { x: 120, y: 90, r: 20, color: '#ffaa44' };
+// the moving beams (Liveliness): k 0 the still frame (as the hashes above), k 1 another, changing with time
+{
+  const at = (t, k) => { log.length = 0; drawLighting(ctx('g'), [], { ...level, beams: true }, t, 346, 248, [40, 140], k); return JSON.stringify(log); };
+  at(1, 0);
+  assert.equal(at(1, 0), at(9, 0), 'still');
+  assert.notEqual(at(1, 1), at(1, 0), 'alive');
+  assert.notEqual(at(1, 1), at(4, 1), 'moving');
+  assert.notEqual(at(1, 1), at(1, 0.5), 'subtle is less');
+  log.length = 0;
+}
 drawLighting(ctx('g'), [own, plain], level, 12.5, 346, 248, []);
 const gl2 = log.filter(c => c[0] === 'g' && c[1] === 'drawImage'), ho2 = log.filter(c => c[0] !== 'g' && c[1] === 'drawImage');
 const ownSrc = toScreen(own.x, own.y + own.d, own.h), ownFoot = toScreen(own.x, own.y + own.d);

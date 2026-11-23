@@ -105,7 +105,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="corpo/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="corpo/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/cyber/refectorium.png`, drawn by scene.js | <img src="corpo/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/cyber/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="corpo/WINDOW.png" height="136"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/cyber/walls.png`, drawn by backwall.js, scene.js, theme.js, wallart.js | <img src="corpo/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/cyber/walls.png` | <img src="corpo/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/cyber/walls.png` | <img src="corpo/WINDOW.night.png" height="136"> |
 | <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/cyber/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="corpo/BANNER.png" height="120"> |

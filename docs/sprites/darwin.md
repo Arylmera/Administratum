@@ -105,7 +105,7 @@ To discuss a sprite, open a **Sprite** issue (New issue → Sprite) and paste th
 | <a id="recaff"></a>`RECAFF` | 16×18 | Recaff dispenser (Refectorium), first stop of an idle scribe. Source: `ui/art/darwin/refectorium.png`, drawn by scene.js | <img src="darwin/RECAFF.png" height="144"> |
 | <a id="table"></a>`TABLE` | 46×8 | Refectorium table. Source: `ui/art/darwin/refectorium.png`, drawn by scene.js | <img src="darwin/TABLE.png" height="64"> |
 | <a id="bench"></a>`BENCH` | 46×4 | Refectorium bench: long-idle scribes sleep here. Source: `ui/art/darwin/refectorium.png`, drawn by scene.js | <img src="darwin/BENCH.png" height="32"> |
-| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/darwin/walls.png`, drawn by scene.js, theme.js, wallart.js | <img src="darwin/WINDOW.png" height="136"> |
+| <a id="window"></a>`WINDOW` | 16×17 | Window: day or night glass, casts a beam by day. Source: `ui/art/darwin/walls.png`, drawn by backwall.js, scene.js, theme.js, wallart.js | <img src="darwin/WINDOW.png" height="136"> |
 | <a id="window-day"></a>`WINDOW.day` | 16×17 | WINDOW, day. Source: `ui/art/darwin/walls.png` | <img src="darwin/WINDOW.day.png" height="136"> |
 | <a id="window-night"></a>`WINDOW.night` | 16×17 | WINDOW, night. Source: `ui/art/darwin/walls.png` | <img src="darwin/WINDOW.night.png" height="136"> |
 | <a id="banner"></a>`BANNER` | 12×15 | Wall banner (the Sanctum wall; the back walls of a world without its own hangings). Source: `ui/art/darwin/walls.png`, drawn by isohall.js, scene.js, wallart.js | <img src="darwin/BANNER.png" height="120"> |

@@ -62,13 +62,18 @@ for (let t = 0; t < 120; t += 0.05) assert.equal(at({ busy: true }, t, n => n !=
 assert.equal(at({ dozedFor: 0 }, 5, () => false), null, 'no stretch frame: no stretch');
 assert.equal(recurs(THINK, 'x', 1), recurs(THINK, 'x', 1));
 
-// ---- the frames: the closed list, and every shipped world loads without any of them ----
+// ---- the frames: the closed list; the 40k robe (and the worlds that wear it) draws all three, a rank included ----
 assert.deepEqual(GESTURES, ['think', 'wonder', 'stretch']);
 assert.deepEqual(GESTURE_FRAMES, { scribe: ['up think', 'up wonder', 'up stretch'], scribe39: ['N think', 'N wonder', 'N stretch'] });
 for (const id of Object.keys(THEMES)) {
   setTheme(id);
-  assert.deepEqual(SCRIBE.gesture, {}, `${id}: draws no flat gesture yet`);
-  if (SCRIBE39.E) assert.deepEqual(SCRIBE39.gesture, {}, `${id}: draws no 2.5D gesture yet`);
+  const robe = ['tier2', 'forge', 'xenos', 'night', 'contrast'].includes(id), want = robe ? GESTURES : [];
+  assert.deepEqual(Object.keys(SCRIBE.gesture), want, `${id}: flat gestures`);
+  if (SCRIBE39.E) assert.deepEqual(Object.keys(SCRIBE39.gesture), want, `${id}: 2.5D gestures`);
+  if (robe) for (const [B, seat] of [[SCRIBE, 'up'], [SCRIBE39, 'N']]) for (const L of [B, B.rank.high, B.rank.novice]) {
+    const f = [L[seat][0], ...GESTURES.map(g => L.gesture[g])].map(m => m.join());
+    assert.equal(new Set(f).size, 4, `${id} ${seat}: each gesture its own drawing`);
+  }
 }
 setTheme('tier2');
 

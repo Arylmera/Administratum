@@ -255,10 +255,10 @@ directory) is a **department**, a coloured rug with its name on a plaque. A sess
 
 | You see | It means |
 |---|---|
-| Scribe at its desk, screen and candle lit | Session is working (`busy`) |
+| Scribe at its desk, screen and candle lit; its screen runs (where the world's desk has one): a line typed for an edit, a page scrolling for a read, a bar sweeping for a search, rings for the web and its arms type (the Imperium's robe) | Session is working (`busy`) |
 | Scribe at the cogitator bank (back wall) | Session is running a shell command. It stays there 10 s after the last one so quick Bash calls don't send it back and forth |
 | Scribe dozing at the desk (`z z`), candle out | Turn done, waiting for your next prompt (`idle`) |
-| Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Alerts) |
+| Scribe at its desk thinking now and then, stretching as it dozes off, puzzled for a moment | Gestures, in a world that draws them (the Imperium's do, a theme pack can: [docs/theme-packs.md](docs/theme-packs.md#gestures)). Think: working. Stretch: the turn just ended. Puzzled (wonder): a tool error, or a question waiting at the desk (questions turned off in Settings > Alerts) |
 | Small brass cog turning on the desk corner | Idle, but a background shell it started is still running. The scribe stays at its desk |
 | Scribe at the recaff dispenser, then asleep on a Refectorium bench | Idle for more than 2 min with no background shell. If every bench is taken, it dozes at its desk |
 | Scribe queued in the Sanctum holding a sealed scroll, red label above it | **Petition**: the session is waiting on you. The label says what it wants (`approve Bash`, `input needed`...) and for how long |
@@ -303,6 +303,14 @@ floor, the floor darkened along the wall feet, shadows cast by the nearest lamp 
 light pools lying flat on the floor, a bright patch where each window beam meets the floor, walkers that bob,
 servo-skulls with a shadow below them, a back wall that trails a little behind a pan, and the far end of the hall
 slightly darker and greyer. No art changes: every effect is computed from the existing sprites.
+
+**Liveliness.** Settings > Appearance > Liveliness: *Off* (the hall as it was: no typing arms, running screens or
+gestures, nothing below), *Subtle* (less of it) or *Full* (the default). Pulses of light run along the floor channels
+(open space plan), the window beams breathe and drift by day, sparks rise over the braziers. A cloud's light drifts over
+the window glass (not in orbit or the vault). The hall follows the load: the more sessions work (four is full), the faster the pulses and the Magos and the brighter the room;
+a stale petition dims it a little. A finished adept reports
+at its owner's desk before it leaves; a newly forked session gets its order by servo-skull from its Suzerain; the Magos
+leans toward a new petitioner. The ambient motion never raises the frame rate at rest.
 
 **Views.** Settings > Appearance > View switches the hall between three views, live:
 

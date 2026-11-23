@@ -248,7 +248,7 @@ your own you see in the app.
 **The families and their frames**, from the default art. Regenerate this table with
 `node tools/theme_pack.mjs families`. A frame you redraw keeps the size given here (width x height, in art pixels);
 the families marked 2.5D are the characters of the 2.5D view. The frames listed as optional are the scribe's
-gestures (below): the default art does not draw them.
+gestures (below): the default art draws them for its own scribe, never for yours.
 
 | Family | Frames (name width x height, in art pixels) |
 |---|---|
