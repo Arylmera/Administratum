@@ -25,7 +25,7 @@ const project = l => {
 };
 // A beam's trapezoid for the window slot x: its top spans the glass inside the frame (wallArt), its foot is 7 px
 // wider each side, 76 px out on the floor; c is its centre line.
-function beamOf(x) {
+export function beamOf(x) {
   const { win, winDx, winBottom } = wallArt(), gl = x + winDx + 1, gr = x + winDx + win[0].length / RES - 1;
   const y0 = winBottom - 1, y1 = WALL + 76;
   return { y0, y1, c: (gl + gr) / 2, pts: [[gl, y0], [gr, y0], [gr + 7, y1], [gl - 7, y1]] };

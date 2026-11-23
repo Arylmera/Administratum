@@ -4,6 +4,7 @@ import { columnOf, layoutColumn, columnPlaced } from './column.js';
 import { outline } from './outline.js';
 import { drawStatic, drawScene, sceneBusy, propsOf } from './scene.js';
 import { drawLighting } from './lighting.js';
+import { AMOUNT, flowLights, drawAmbience } from './ambience.js';
 import { RES } from './sprites.js';
 import { T, onTheme, switchTheme, t, hexA } from './theme.js';
 import { guarded } from './themes.js'; // registers the themes beyond Tier II
@@ -279,7 +280,11 @@ const draw = guarded(now => {
     const l = lanternOf(w);
     lights.push({ ...l, ...(iso() && { y: w.y, z: 0 }), r: 20, color: T.light.amber, flicker: true });
   }
-  if (back) drawLighting(g, lights, level, now / 1000, S.w, S.h, propsOf(hall).windows);
+  if (back) {
+    const k = AMOUNT[settings.liveliness], windows = propsOf(hall).windows; // the room's air (ambience.js)
+    drawLighting(g, lights.concat(flowLights(hall, now / 1000 * 14, k)), level, now / 1000, S.w, S.h, windows);
+    drawAmbience(g, { lights, level, windows, t: now / 1000, k });
+  }
   if (back && iso()) { g.globalCompositeOperation = 'destination-in'; g.drawImage(back, 0, 0, S.w, S.h); g.globalCompositeOperation = 'source-over'; } // keep only the hall's shape
   renderPlaques(view.blocks);
   syncLabels();

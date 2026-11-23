@@ -305,7 +305,9 @@ servo-skulls with a shadow below them, a back wall that trails a little behind a
 slightly darker and greyer. No art changes: every effect is computed from the existing sprites.
 
 **Liveliness.** Settings > Appearance > Liveliness: *Off* (the hall as it was: no typing arms, running screens or
-gestures), *Subtle* or *Full* (the default). None of it raises the frame rate at rest.
+gestures, nothing below), *Subtle* (less of it) or *Full* (the default). Pulses of light run along the floor channels
+(open space plan), dust drifts in the window beams by day, sparks rise over the braziers. None of it raises the frame
+rate at rest.
 
 **Views.** Settings > Appearance > View switches the hall between three views, live:
 
