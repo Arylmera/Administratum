@@ -43,6 +43,7 @@ for (const kind of [null, 'write', 'read', 'search', 'web']) {
   assert.ok(new Set(span(t => JSON.stringify(at(t)), 10)).size >= (kind === 'web' ? 4 : 9), `${kind}: it moves`);
 }
 assert.equal(new Set(Object.values(shown)).size, 5, 'each kind its own screen');
+assert.equal(new Set(span(t => JSON.stringify(screenRows('s1', t, 14, 9, 'search').filter(r => r.w < 14)), 5)).size, 1, 'search: the page stays');
 assert.ok(span(t => screenRows('s1', t, 14, 9, 'search').filter(r => r.w === 14).length, 5).every(k => k === 1), 'search: one bar');
 for (const kind of ['write', 'search', 'web']) assert.ok(Array.isArray(screenRows('s1', 1, 0, 0, kind)));
 

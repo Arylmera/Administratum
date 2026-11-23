@@ -423,7 +423,7 @@ export function drawScene(g, layout, actors, fillOf, now) {
     lights.push({ x: f.x, y: f.y - 2, r: 26 + 44 * heat, color: T.light.burn, flicker: true });
   }
   if (H.strip) return lights.concat(drawStripAlarm(g, H, all, now));
-  drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length, layout.magosT);
+  drawDecorFrame(g, now / 1000, all.filter(a => a.pose === 'cog').length, layout.magosT, layout.greet);
   return staticLights(H).concat(lights, drawAlarm(g, all, now));
 }
 
@@ -814,6 +814,11 @@ function reactions(a, at, AT, over, lights, now, floor) {
       floor.push(g => flyShadow(g, p.x, p.y));
       over.push(g => { const [cx, cy] = SK.centre, [kx, ky] = SK.carry; blit(g, MAPS.SKULL, half(p.x) - cx, half(p.y) - cy); if (f.t >= PICK_S) seal(g, half(p.x) - cx + kx, half(p.y) - cy + ky, 1); });
     }
+    if (f.kind === 'order') {
+      const p = orderOf(f, at, AT, t);
+      floor.push(g => flyShadow(g, p.x, p.y));
+      over.push(g => { const [cx, cy] = SK.centre, [kx, ky] = SK.carry; blit(g, MAPS.SKULL, half(p.x) - cx, half(p.y) - cy); if (p.carry) seal(g, half(p.x) - cx + kx, half(p.y) - cy + ky, 1); });
+    }
     if (f.kind === 'tool-error') {
       const [sx, sy, sw, sh] = AT.screen, x = at.x + sx, y = at.y + sy;
       over.push(g => spark(g, x, y, sw, sh, k, AT.scale, t));
@@ -826,6 +831,12 @@ function reactions(a, at, AT, over, lights, now, floor) {
 }
 // Where a push's courier skull is (t: s), and a finished task's glint over its scribe (flat coords; both views).
 export const courierOf = (a, f, at, AT, t) => { const [sx, sy] = AT.seals[a.h ? 0 : f.slot]; return courier(f.t, at.x + sx + 1.5, at.y + sy - 6, t); };
+// A new child's order (actors.js): the skull from its Suzerain's desk to its own, a dip to set the seal down, and back.
+export function orderOf(f, at, AT, t) {
+  const [sx, sy] = AT.seals[0], to = { x: at.x + sx + 1.5, y: at.y + sy - 6 }, leg = FX_S.order * 0.42, e = k => k * k * (3 - 2 * k);
+  const k = f.t < leg ? e(f.t / leg) : f.t < FX_S.order - leg ? 1 : e(Math.max(0, (FX_S.order - f.t) / leg));
+  return { x: f.from.x + (to.x - f.from.x) * k, y: f.from.y + (to.y - f.from.y) * k + Math.round(2 * Math.sin(t * 6)) / 2, carry: f.t < FX_S.order / 2 };
+}
 export const glintAt = a => [a.h || a.pose !== 'desk' ? a.x : a.x + 6, a.h ? a.y - 17 : a.pose === 'desk' ? a.y - 25 : a.y - 20];
 // The lights of an actor's reactions at its desk/console (both views): its test lamp, then each effect's, in order.
 export function reactionLights(a, at, AT, now) {
@@ -842,6 +853,7 @@ export function reactionLights(a, at, AT, now) {
       const [sx, sy] = AT.seals[a.h ? 0 : newest(a)], x = at.x + sx, y = at.y + sy;
       if (f.t > STAMP_HIT && f.t < STAMP_HIT + 0.6) lights.push({ x: x + 1.5, y: y + 1.5, r: 18 * (1 - (f.t - STAMP_HIT) / 0.6), color: T.light.stamp });
     }
+    if (f.kind === 'order') { const p = orderOf(f, at, AT, t); lights.push({ x: p.x, y: p.y, r: 10, color: T.light.green, h: 12 }); }
     if (f.kind === 'push') { const p = courierOf(a, f, at, AT, t); lights.push({ x: p.x, y: p.y, r: 10, color: T.light.green }); }
     if (f.kind === 'tool-error') {
       const [sx, sy, sw, sh] = AT.screen, x = at.x + sx, y = at.y + sy;
@@ -960,11 +972,11 @@ function flameOf(name, x, t) {
 
 // cog = scribes standing at the cogitator: the bank works harder (faster scroll, steam) and its lamp row tallies them.
 // Drawn in the minimum scene's coordinates, moved with their room.
-function drawDecorFrame(g, t, cog = 0, magosT = t) { // magosT: the Magos's own time (mood.js)
+function drawDecorFrame(g, t, cog = 0, magosT = t, greet = false) { // magosT: the Magos's own time (mood.js); greet: a new petitioner (actors.js GREET_MS)
   const sy = 50 + WALL_DY + Math.round(2 * Math.sin(t * 4));
   flyShadow(g, 244 + H.ox + SK.centre[0], 50 + WALL_DY + SK.centre[1]);
   blit(g, MAPS.SKULL, 244 + H.ox, sy);
-  g.save(); g.translate(H.ox, H.sd); drawMagos(g, MAG.x, MAG.y, magosT); g.restore();
+  g.save(); g.translate(H.ox, H.sd); drawMagos(g, MAG.x, MAG.y, magosT, greet); g.restore();
   if (!H.sanct) { g.save(); g.translate(H.dx, WALL_DY); drawCogitator(g, t, cog); g.restore(); } // the mirror hall has no bank
 }
 
@@ -1026,13 +1038,15 @@ function drawCogitator(g, t, cog) {
 // The Magos on the throne: the hanging drill forearm swings 1 art px, the claw snaps, chest screen scans, optics pulse (anchors: MAGOS_AT).
 const MAG = { x: 264, y: 120 };
 // (x, y): the body's top-left (the throne, drawn by drawStatic in the hall, sits 4 px right and down of it).
-function drawMagos(g, x, y, t) {
+// greet: he leans forward, his optics held lit, the claw shut.
+function drawMagos(g, x, y, t, greet = false) {
   const A = MAGOS_AT, sway = Math.sin(t * 0.7) > 0 ? 0.5 : 0;
+  if (greet) y += 0.5;
   blit(g, MAGOS.body, x, y);
   blit(g, MAGOS.arm, x + A.arm.x + sway, y + A.arm.y);
-  if (MAGOS.claw && Math.sin(t * 1.3) > 0.85) blit(g, MAGOS.claw, x + A.claw.x, y + A.claw.y); // the right pincer snaps shut now and then
+  if (MAGOS.claw && (greet || Math.sin(t * 1.3) > 0.85)) blit(g, MAGOS.claw, x + A.claw.x, y + A.claw.y); // the right pincer snaps shut now and then
   rect(g, x + A.chest.x, y + A.chest.y + (Math.floor(t * 5) % 3) / 2, 2, 0.5, Math.random() < perFrame(0.1) ? I.phosphorDark : I.screenHot);
-  if (Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, x + e.x, y + e.y, 0.5, 0.5, I.glint);
+  if (greet || Math.sin(t * 2.2) > 0.4) for (const e of [A.eyeL, A.eyeR]) rect(g, x + e.x, y + e.y, 0.5, 0.5, I.glint);
 }
 
 // The strip's props (stripOf): the cogitator, the recaff left of its spot, the bench under the nappers, the Magos on

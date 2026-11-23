@@ -9,7 +9,7 @@ import { AMOUNT, flowLights, drawAmbience } from './ambience.js';
 import { RES } from './sprites.js';
 import { T, onTheme, switchTheme, t, hexA } from './theme.js';
 import { guarded } from './themes.js'; // registers the themes beyond Tier II
-import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S } from './actors.js';
+import { Cast, isStale, isQuestion, lanternOf, LAMP_S, FRESH_MS, WATCH_ID, RING_S, GREET_MS } from './actors.js';
 import { initChronicon } from './chronicon.js';
 import { settings, store, place, perf, quiet, initSettings, renderSettings } from './settings.js';
 import { view as viewMode, setView, onView, sceneSize, toScreen, toFloor, hallView, stripKind } from './view.js';
@@ -272,6 +272,7 @@ const draw = guarded(now => {
   view.level = level;
   const k = AMOUNT[settings.liveliness];
   stepMood(mood, dt, moodOf(roster), k);
+  view.greet = Date.now() - (cast.greetAt ?? 0) < GREET_MS;
   view.magosT = mood.clock; // the Magos's tempo (scene.js, scene39.js)
   view.mode = viewMode.mode;
   view.anchors = back?.anchors;

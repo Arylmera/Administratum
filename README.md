@@ -308,7 +308,9 @@ slightly darker and greyer. No art changes: every effect is computed from the ex
 gestures, nothing below), *Subtle* (less of it) or *Full* (the default). Pulses of light run along the floor channels
 (open space plan), dust drifts in the window beams by day, sparks rise over the braziers. The hall
 follows the load: the more sessions work (four is full), the faster the pulses and the Magos and the brighter the room;
-a stale petition dims it a little. None of it raises the frame rate at rest.
+a stale petition dims it a little. A finished adept reports
+at its owner's desk before it leaves; a newly forked session gets its order by servo-skull from its Suzerain; the Magos
+leans toward a new petitioner. The ambient motion never raises the frame rate at rest.
 
 **Views.** Settings > Appearance > View switches the hall between three views, live:
 

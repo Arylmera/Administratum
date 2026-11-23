@@ -54,7 +54,7 @@ export function screenRows(id, t, w, h, kind = null) {
       out.push({ x, y: 1 + 2 * i, w: word });
       x += word + 1;
     }
-    if (writing && kind === 'write' && Math.floor(t * 3) % 2) out.push({ x: Math.min(w - 1, end), y: 2 * i, w: 1 }, { x: Math.min(w - 1, end), y: 1 + 2 * i, w: 1 });
+    if (writing && kind === 'write' && Math.floor(t * 3) % 2) out.push({ x: end, y: 2 * i, w: 1 }, { x: end, y: 1 + 2 * i, w: 1 }); // end <= w - 1
   }
   if (kind === 'search' && w > 0 && h > 0) out.push({ x: 0, y: Math.floor(t * SWEEP + h * rnd(`${id}:screen`)) % h, w });
   return out;
