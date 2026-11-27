@@ -131,6 +131,17 @@ python -m http.server 8123        # from the repo root
 # http://localhost:8123/tools/preview.html?mode=candles&theme=vault&n=12&view=39
 ```
 
+Where a frame's time goes: `tools/perf_profile.mjs` loads the preview in a headless Chromium over CDP and prints the
+main thread's load, the CPU profile's self time by function and by module, and the canvas's native calls charged to
+their JS caller; `--ops` also times each large draw (a quarter of the canvas or more) by caller and blend mode, `--skip
+'lighting.js:156,...'` leaves those draws out (an experiment), `--q 'theme=vault'` adds to the preview's query. It runs
+without a GPU: the canvas rasters on the CPU, and the full-canvas compositing passes do not show on the main thread.
+Compare runs of 20 s or more, alternated, without `--ops` (it costs about 30 ms/s itself).
+
+```sh
+node tools/perf_profile.mjs --port 8123 [--view 39|flat] [--plan rooms|open] [--n 28] [--seconds 20] [--ops]
+```
+
 ---
 
 ## Tests
@@ -303,7 +314,7 @@ board), each sprite linking to a prefilled new issue. Design notes:
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` / `enclave_art.mjs` /
 `watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` / `lift_art.mjs` / `cilamp_art.mjs` / `roomcog_art.mjs` (one module per theme or world under `breakout_art/`, `enclave_art/` (on `breakout_art/kit.mjs`), `watch_art/`,
 `suzerain_art/`, `honours_art/`, `lift_art/`, `cilamp_art/` (the CI lamp: `tier2` only, every world uses it) and `roomcog_art/` (the rooms plan's room computer, `ROOMCOG` lit and `ROOMCOG.off`: every world its own; `all` writes the 14), each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, custom room, Watchman, Suzerain (dais and link), Hall of Honours plaque, desktop column lift and room computer art, `theme_pack.mjs` the theme pack check and the guide's families table, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
-command-line client of the running app, `make_icon.py` the app icon.
+command-line client of the running app, `perf_profile.mjs` where a frame's time goes (below), `make_icon.py` the app icon.
 
 ---
 
