@@ -74,9 +74,10 @@ export function roomPlan(hall) {
 // The mirror hall (the rooms plan, layout.js mirrorHall): one floor the window's width, the Sanctum's floor a strip
 // down the middle column to the bottom aisle, a low rail (a slab half a cutaway wall's height) down both its long sides
 // with an opening at every lane (layout.js mirrorRoute crosses there); the east edge a dark cutaway wall; no floor
-// channel (nothing runs through a room); the pipe run along the north wall.
+// channel (nothing runs through a room) and no bay sill (bays only lengthen the one floor); the pipe run along the north
+// wall.
 function mirrorPlan(hall) {
-  const { w, h, sw, sanct, lanes, aisleY, rows, bays } = hall, D = WALL_DY;
+  const { w, h, sw, sanct, lanes, aisleY } = hall;
   const U = 2 * w, V = fy(h), Z = 2 * WALL, S = [];
   const add = (kind, name, tex, u0, u1, v0, v1, z0, z1, more) => S.push({ kind, name, tex, u0, u1, v0, v1, z0, z1, ...more });
   const strip = (name, tex, u0, u1, v0, v1) => add('strip', name, tex, u0, u1, v0, v1, 0, 0);
@@ -95,7 +96,6 @@ function mirrorPlan(hall) {
       y = l + 5;
     }
   }
-  for (let k = 1; k <= bays; k++) { const v = fy(56 + D + 64 * (rows - bays + k - 1)); strip('sill', 'sill', 0, fx(sw), v, v + STRIP); }
   const pz = 2 * (WALL - 7);
   add('box', 'pipe', 'pipe h', 0, fx(sw), 1, 4, pz, pz + 6);
   for (let x = 20; x < sw - 6; x += 40) add('box', 'fitting', 'fitting h', fx(x), fx(x) + 6, 1, 5, pz - 2, pz + 8);
