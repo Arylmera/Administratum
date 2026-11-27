@@ -153,6 +153,16 @@ for (const k in GRID) assert.equal(got[k], GRID[k], `${k}: the 39° background c
   assert.deepEqual([...D.slice(4 * i, 4 * i + 3)], want, `glass '${buf.ch[i]}' in the night colour`);
   delete globalThis.document;
 }
+// The rooms plan's floor is one floor: bays only lengthen it, no bay sill drawn through the rooms and the Sanctum.
+{
+  const { setHallPlan } = await import('./hallplan.js');
+  setHallPlan('rooms');
+  for (const bays of [0, 2, 4]) {
+    const { surfaces } = roomPlan(hallOf(bays));
+    assert.ok(!surfaces.some(s => s.name === 'sill'), `rooms plan, ${bays} bays: no bay sill`);
+  }
+  setHallPlan('open');
+}
 setTheme('tier2');
 setView('flat');
 assert.equal(SCENE.w, hallOf(0).w);
