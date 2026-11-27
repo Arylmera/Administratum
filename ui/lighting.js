@@ -88,6 +88,9 @@ function greyOf(w, h) {
   return grey;
 }
 let layer = null;
+// The darkness layer's downscale: a soft mask, drawn at a quarter of the scene's resolution and scaled up smoothly, 16
+// times fewer pixels to clear, fill and stamp every frame (the lights move every frame: it cannot be cached).
+const DARK_DS = 4;
 onTheme(() => beams.clear());
 
 // By day, a beam from each window: beamOf through the projection (view.js toScreen: as is in Flat), fading from the
@@ -124,10 +127,11 @@ function drawBeams(g, windows, t, k) {
 export function drawLighting(g, lights, level, t, w, h, windows = [], k = 0) {
   if (level.beams) drawBeams(g, windows, t, k);
   if (view.mode === '39') lights = lights.map(project);
-  if (!layer || layer.width !== w * RES || layer.height !== h * RES) {
+  const LW = Math.ceil(w * RES / DARK_DS), LH = Math.ceil(h * RES / DARK_DS);
+  if (!layer || layer.width !== LW || layer.height !== LH) {
     layer = document.createElement('canvas');
-    layer.width = w * RES; layer.height = h * RES;
-    layer.getContext('2d').setTransform(RES, 0, 0, RES, 0, 0);
+    layer.width = LW; layer.height = LH;
+    layer.getContext('2d').setTransform(RES / DARK_DS, 0, 0, RES / DARK_DS, 0, 0);
   }
   hole ??= stamp([[0, 'rgba(0,0,0,1)'], [0.45, 'rgba(0,0,0,1)'], [1, 'rgba(0,0,0,0)']]);
   const d = layer.getContext('2d');
@@ -140,7 +144,7 @@ export function drawLighting(g, lights, level, t, w, h, windows = [], k = 0) {
     const r = l.r * (l.flicker ? 0.94 + 0.06 * Math.sin(t * 9 + l.x) : 1), f = flatOf(l);
     if (r > 0) d.drawImage(hole, (l.px ?? l.x) - r, (l.py ?? l.y) - r * f, 2 * r, 2 * r * f); // px, py: 39° pool
   }
-  g.drawImage(layer, 0, 0, w, h);
+  g.save(); g.imageSmoothingEnabled = true; g.drawImage(layer, 0, 0, w, h); g.restore();
 
   g.save();
   g.globalCompositeOperation = 'lighter';
