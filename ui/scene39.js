@@ -304,7 +304,7 @@ export function drawScene39(g, layout, actors, fillOf, now) {
     }
   }
   for (const Z of Zs) if (!Z.open) items.push(...fenceItems(Z, all)); // a custom room is an open floor
-  items.push(...gateItems(all, dt), magos(layout.magosT ?? t, dt, layout.greet));
+  items.push(...gateItems(all, dt, t), magos(layout.magosT ?? t, dt, layout.greet));
 
   save(g, g2 => onFace(g2, 0, WALL), g2 => S.backWall(g2, layout, now));
   save(g, onFloor, g2 => floor.forEach(f => f(g2)));
@@ -408,21 +408,39 @@ export function gateFeet(hall) {
   const front = Math.max(G.leaves.v + G.leaves.d, ...sh.details.filter(p => p.rect[3] > 8).map(p => p.v + (p.d ?? p.t ?? 2)));
   return { G, back: { u0, u1: u0 + 2 * PROP_AT.GATE.opening[2], v0: G.v0, v1: vf }, frame: { u0: G.u0, u1: G.u0 + sh.fw, v0: vf, v1: G.v0 + front } };
 }
-function gateItems(all, dt) {
+function gateItems(all, dt, t) {
   const A = PROP_AT.GATE, GX = H.entry.x - A.entry[0], GY = H.entry.y - A.entry[1], [ow, oh] = A.opening.slice(2), ox = GX + A.opening[0], oy = GY + A.opening[1];
   const s = S.stepGate(all, dt);
   if (gateKit?.key !== key) {
     const F = gateFeet(H), sh = F.G.sheet, buf = bake(box(0, sh.fw, 0, 2 * (H.h - WALL) - F.G.v0, 0, sh.fh + 4), b => build39(b, sh, 0, 0, 1));
-    gateKit = { key, ...F, buf, cv: paint(buf) };
+    gateKit = { key, ...F, buf, cv: paint(buf), fronts: frontProps(F.frame, buf, F.G.u0, F.G.v0).map(f => ({ ...f, cv: paint(f.buf) })) };
   }
-  const { G, back, frame } = gateKit, sh = G.sheet, yb = GY + sh.fh / RES, vl = G.v0 + G.leaves.v;
+  const { G, back, frame, fronts } = gateKit, sh = G.sheet, yb = GY + sh.fh / RES, vl = G.v0 + G.leaves.v;
   return [{ foot: back, draw(g) {
     save(g, g2 => onFace(g2, vl, yb), g2 => blit(g2, MAPS.GATE_VOID, ox, oy));
     save(g, g2 => onFace(g2, vl + G.leaves.d - 1, yb), g2 => {
       g2.beginPath(); g2.rect(ox, oy, ow, oh); g2.clip();
       blit(g2, MAPS.GATE_L, GX + A.leafL[0] - s, GY + A.leafL[1]); blit(g2, MAPS.GATE_R, GX + A.leafR[0] + s, GY + A.leafR[1]);
     });
-  } }, { foot: frame, draw: g => drawBuf(g, gateKit.buf, gateKit.cv, G.u0, G.v0) }];
+  } }, { foot: frame, draw(g) {
+    drawBuf(g, gateKit.buf, gateKit.cv, G.u0, G.v0);
+    for (const f of fronts) { drawBuf(g, f.buf, f.cv, f.p.u0, f.p.v0, f.p.z0); flame(g, f.p, t); }
+  } }];
+}
+// The hall's still props (baked in the background) standing in front of the gate's frame where it would overdraw them
+// (the east brazier, whose bowl its east pier's side face hid): rebuilt alone, drawn again right after the frame.
+// The frame's buffer at (gu, gv), its footprint frame; a prop is in front when the frame is wholly behind it along u or v.
+// -> [{ p (placeProps), buf (its volume, unpainted) }]
+export function frontProps(frame, gbuf, gu, gv) {
+  const rect = (buf, u, v, z = 0) => { const [X, Y] = P39(u, v, z); return [X - buf.ox, Y - buf.oy, X - buf.ox + buf.w, Y - buf.oy + buf.h]; };
+  const [a0, b0, a1, b1] = rect(gbuf, gu, gv), out = [];
+  for (const p of placed) {
+    if (p.on !== 'floor' || !p.sheet || !(frame.u1 <= p.foot.u0 || frame.v1 <= p.foot.v0)) continue;
+    const s = p.sheet, buf = bake(box(0, s.fw, 0, p.foot.v1 - p.v0, 0, s.fh + 4), b => build39(b, s, 0, 0, 1));
+    const [x0, y0, x1, y1] = rect(buf, p.u0, p.v0, p.z0);
+    if (x0 < a1 && a0 < x1 && y0 < b1 && b0 < y1) out.push({ p, buf });
+  }
+  return out;
 }
 
 // The Magos on the throne (scene.js drawMagos), its 39° art if the theme has one: the drill arm swings, the claw snaps, the chest
@@ -452,15 +470,16 @@ function cogitator(g, t, cog) {
 // bill) and stood where the hall built that part, so each candle flame keeps its own depth. Cuts kept per frame.
 const cuts = new WeakMap();
 function flames(g, t) {
-  for (const p of placed) {
-    const m = p.sheet && S.flameOf(p.name, p.x, t);
-    if (!m) continue;
-    const [ax, ay] = PROP_AT[p.name].fire.map(v => v * RES), byPart = cuts.get(m) ?? cuts.set(m, new Map()).get(m);
-    for (const d of p.sheet.details) if (d.kind === 'bill') {
-      const [x, y, w, h] = d.rect, [X, Y] = exact(p.u0 + d.u, p.v0 + d.v, p.z0 + d.z); // the part's bottom centre (iso.js bill)
-      const cut = byPart.get(d.name) ?? byPart.set(d.name, m.slice(0, y + h - ay).map(r => r.slice(x - ax, x - ax + w))).get(d.name);
-      blit(g, cut, X - (w >> 1) / RES, Y - (h - 1 + y - ay) / RES); // the frame's row 0 is the part's row ay - y
-    }
+  for (const p of placed) flame(g, p, t);
+}
+function flame(g, p, t) {
+  const m = p.sheet && S.flameOf(p.name, p.x, t);
+  if (!m) return;
+  const [ax, ay] = PROP_AT[p.name].fire.map(v => v * RES), byPart = cuts.get(m) ?? cuts.set(m, new Map()).get(m);
+  for (const d of p.sheet.details) if (d.kind === 'bill') {
+    const [x, y, w, h] = d.rect, [X, Y] = exact(p.u0 + d.u, p.v0 + d.v, p.z0 + d.z); // the part's bottom centre (iso.js bill)
+    const cut = byPart.get(d.name) ?? byPart.set(d.name, m.slice(0, y + h - ay).map(r => r.slice(x - ax, x - ax + w))).get(d.name);
+    blit(g, cut, X - (w >> 1) / RES, Y - (h - 1 + y - ay) / RES); // the frame's row 0 is the part's row ay - y
   }
 }
 

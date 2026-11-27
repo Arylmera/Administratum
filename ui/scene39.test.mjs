@@ -4,7 +4,7 @@ import { hallOf, MAX_W, WALL, layoutDepartments, mainSpots } from './layout.js';
 import { LAMP_SIZE, MAIN_SIZE } from './cilamp.js';
 import { setView, sceneSize, toScreen, toFloor } from './view.js';
 import { Cast, face39, pipeOf } from './actors.js';
-import { use, pin, placeOf, lampFoot, actorFoot, actorAt39, frontShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet } from './scene39.js';
+import { use, pin, placeOf, lampFoot, actorFoot, actorAt39, frontShift, sitLevel, spriteOf, feetOf, actorShadow, gateFeet, frontProps } from './scene39.js';
 import { setTheme } from './theme.js';
 import { beginFrame, stepGate, stepAlarm, sceneBusy, deskFill, reactionLights, KIND, flameOf, doorFrame } from './scene.js';
 import { SCRIBE, SCRIBE39 } from './sprites.js';
@@ -157,6 +157,17 @@ for (const id of ['tier2', 'cyber', 'orbital', 'tower', 'vault']) {
     assert.equal(ks, 'nbfe', `${id}: gate order ${ks}`);
   }
 }
+// the gate's frame is drawn over the baked hall: the brazier east of it (in front of its east pier's side face) is drawn
+// again over the frame, the west one (behind its hidden west side) is not
+for (const plan of ['open', 'rooms']) {
+  (await import('./hallplan.js')).setHallPlan(plan);
+  const hall = hallOf(0), F = gateFeet(hall);
+  use(hall);
+  const gate = { ox: 0, oy: 0, w: 4000, h: 4000 }, fronts = frontProps(F.frame, gate, -2000, -2000); // a frame canvas over everything: the in-front rule alone
+  assert.ok(fronts.some(f => f.p.name === 'BRAZIER' && f.p.x > hall.entry.x), `${plan}: the east brazier is redrawn over the gate`);
+  assert.ok(!fronts.some(f => f.p.name === 'BRAZIER' && f.p.x < hall.entry.x), `${plan}: the west brazier stays behind it`);
+}
+(await import('./hallplan.js')).setHallPlan('open');
 setTheme('tier2');
 console.log('scene39 ok');
 
