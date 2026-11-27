@@ -65,6 +65,21 @@ for (const id of ['tier2', 'vault']) {
     got[`${id} rooms ${day ? 'day' : 'night'}`] = sha(cv.log.join('\n'));
   }
 }
+// The rooms plan's floor is one floor: bays only lengthen it, no bay arch (its sill and pilasters) drawn through the
+// rooms and the Sanctum. The recording canvas names every sprite by its content: neither may appear.
+{
+  const { sprite, ROOM } = await import('./sprites.js');
+  for (const id of ['tier2', 'vault']) {
+    setTheme(id);
+    const arch = ['sill', 'pilaster'].map(n => { const s = sprite(ROOM.frames[n]); return `cv:${s.width}x${s.height}:${sha(s.log.join('\n'))}`; });
+    for (const bays of [2, 4]) {
+      const cv = fakeCanvas();
+      drawStatic(cv.getContext('2d'), true, hallOf(bays), CELLS);
+      const drawn = cv.log.join('\n');
+      for (const [i, key] of arch.entries()) assert.ok(!drawn.includes(key), `${id} rooms plan, ${bays} bays: no ${['sill', 'pilaster'][i]}`);
+    }
+  }
+}
 setHallPlan('open');
 if (process.env.RECORD) console.log(got);
 for (const k in FLAT) assert.equal(got[k], FLAT[k], `${k}: the flat background changed`);
