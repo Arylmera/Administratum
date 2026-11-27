@@ -67,7 +67,7 @@ do not know which.
 | `dom.js`, `format.js` | `el(tag, cls, text)`; `ago`, `hhmm`, `hhmmLocale`, `statusOf`. The shared forms of helpers written two or three times; the callers move onto them with the lanes that own their files |
 | `app.js` | Wiring: roster → layout → cast, render loop, hit tests (`actorAt`, `lampAt` for the lit CI lamps, its rect also passes clicks through in the strip), header buttons, chime |
 | `viewport.js` | The view: scale and scene size for the window, pan (drag, glide, coast, arrow keys), parallax lag. 39° at Auto: shrinks to fit, never below the flat Auto scale (the flat view's wing and rooms-plan floors included) or `READABLE` (2), whichever is lower, so a big window shows the whole hall and a hall bigger still pans (`viewport.test.mjs`) |
-| `overlay.js` | DOM over the canvas, synced each frame: plaques, the Hall of Honours' marks over its plaque, petition labels (a risky one armed by its first Approve click wears the `armed` class and the `petition.armed` text for 5 s; Approve / Deny at least 24 px), a focusable button over each live scribe (`syncScribeKeys`: Enter or Space opens its card), tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip; the CI lamps' hover and click (`litLamps` the lit lamps on `scribeSpots` and `mainSpots`, `lampHit` the pure hit test, `lampTip` the card's CI line for a lamp, `openLamp` calls `ci_open` with the department, `syncLampKeys` a focusable button per lit lamp; an unlit lamp has none of them) |
+| `overlay.js` | DOM over the canvas, synced each frame: plaques, the Hall of Honours' marks over its plaque, petition labels (a risky one armed by its first Approve click wears the `armed` class and the `petition.armed` text for 5 s; Approve / Deny at least 24 px), a focusable button over each live scribe (`syncScribeKeys`: Enter or Space opens its card), tags (a sealed or stuck scribe, its sheets), edge arrows, hover tip (each frame's styles go through `setStyle`, which compares with what it last wrote rather than reading `el.style` back); the CI lamps' hover and click (`litLamps` the lit lamps on `scribeSpots` and `mainSpots`, `lampHit` the pure hit test, `lampTip` the card's CI line for a lamp, `openLamp` calls `ci_open` with the department, `syncLampKeys` a focusable button per lit lamp; an unlit lamp has none of them) |
 | `bridge.js` | `invoke` / `listen`, to Tauri or to the remote server (a 403 on an answer, the vigil or the peek is `remote actions disabled`) |
 | `card.js` | The selected character's card (`pick`: a click; `cardOnPick`, whether it shows, *Show the card when I click a character*; *Open in Orca* hidden when the click opened the terminal, back if it failed; with no card for the click, a failure is a toast, `open_failed`), and answering permission petitions (a risky one: red, no *Always*, *Approve* armed by a first click, sent by a second within 5 s; the buttons run Approve, Deny, Always, so Always is never next to Approve; a refused remote peek shows the *Remote actions are disabled* note and no button); a Suzerain's lineage (`lineageOf`); the watch lines (`same file`, a port in use, the cache clock); a failed open from the card (the terminal, *Open on claude.ai*, the checks page) is its error line `.open-err` (the links close the card, so a failure shows it again; cleared on the next action or pick); the CI line (`ciLine(ci)`, words `ci.*`, `''` for no `ci` or `none`): a button `.ci-line` that calls `ci_open` with the session id (plain text in the remote view) |
 | `petition.js` | Pure: which petitions can be answered and how; `riskOfPetition` (the backend's `risk` field), `allowed` (which answers each surface offers; a remote client gets the phone's rule), `armStep` (the two-click Approve: 400 ms to 5 s apart, a double-click holds) |
@@ -91,7 +91,7 @@ do not know which.
 | `mood.js` | The hall's mood, eased: working sessions and stale petitions (`moodOf`, `stepMood`) set the pulses' and the Magos's pace and shift the darkness a little (`moodLevel`) |
 | `backwall.js` | The back wall's slow life over the cached background: the cloud's light on the window glass (`drawClouds`) |
 | `depth.js` | Shadows, cast shadows and ambient occlusion computed from the sprites |
-| `lighting.js`, `sun.js` | Darkness, light pools and glows; sunrise and sunset (NOAA) for *Auto* lighting. In the 39° view a desk-level light may carry its own `h` (glow height) and `d` (px south of its flat point), else `lift39` (18, 10); `scene.js` sets them on the candle (20), slate (16), console screen (7) and flying skull (12) |
+| `lighting.js`, `sun.js` | Darkness, light pools and glows; sunrise and sunset (NOAA) for *Auto* lighting. The darkness layer is redrawn every frame (the lights flicker and the floor channels' pulses move) at a quarter of the scene's resolution (`DARK_DS`) and drawn back smoothed: a soft mask, 16 times fewer pixels. In the 39° view a desk-level light may carry its own `h` (glow height) and `d` (px south of its flat point), else `lift39` (18, 10); `scene.js` sets them on the candle (20), slate (16), console screen (7) and flying skull (12) |
 | `strip.js`, `stripwin.js`, `outline.js` | Desktop strip: its geometry, its window (the bar or the column, `adm.stripKind`), the 1 px outline around sprites |
 | `column.js`, `lift.js` | Desktop column: its floors, layout and routes (a cross-floor walk has one lift waypoint); the lift, a pure SCAN scheduler (FIFO calls, 3 riders, event-exact `step`) the cast rides (`actors.js`) |
 | `sprites.js`, `art.js`, `png.js` | Sprite loading: art files (PNG + JSON) into palette rows, PNG decoder. At start only the base art, the active theme's and the packs' load; another theme's loads when `theme.js` `switchTheme` asks (the old theme stays until it is in), and `loadAllArt()` loads every world (the art tools, the gallery, the tests that visit every theme). `faces.js` follows the same split |
@@ -129,6 +129,17 @@ card answers petitions, a click takes the Orca path).
 ```sh
 python -m http.server 8123        # from the repo root
 # http://localhost:8123/tools/preview.html?mode=candles&theme=vault&n=12&view=39
+```
+
+Where a frame's time goes: `tools/perf_profile.mjs` loads the preview in a headless Chromium over CDP and prints the
+main thread's load, the CPU profile's self time by function and by module, and the canvas's native calls charged to
+their JS caller; `--ops` also times each large draw (a quarter of the canvas or more) by caller and blend mode, `--skip
+'lighting.js:156,...'` leaves those draws out (an experiment), `--q 'theme=vault'` adds to the preview's query. It runs
+without a GPU: the canvas rasters on the CPU, and the full-canvas compositing passes do not show on the main thread.
+Compare runs of 20 s or more, alternated, without `--ops` (it costs about 30 ms/s itself).
+
+```sh
+node tools/perf_profile.mjs --port 8123 [--view 39|flat] [--plan rooms|open] [--n 28] [--seconds 20] [--ops]
 ```
 
 ---
@@ -303,7 +314,7 @@ board), each sprite linking to a prefilled new issue. Design notes:
 sprite list shared by both and by the gallery, `sprite_sheet.mjs` the gallery generator, `breakout_art.mjs` / `enclave_art.mjs` /
 `watch_art.mjs` / `suzerain_art.mjs` / `honours_art.mjs` / `lift_art.mjs` / `cilamp_art.mjs` / `roomcog_art.mjs` (one module per theme or world under `breakout_art/`, `enclave_art/` (on `breakout_art/kit.mjs`), `watch_art/`,
 `suzerain_art/`, `honours_art/`, `lift_art/`, `cilamp_art/` (the CI lamp: `tier2` only, every world uses it) and `roomcog_art/` (the rooms plan's room computer, `ROOMCOG` lit and `ROOMCOG.off`: every world its own; `all` writes the 14), each with a shared `kit.mjs` of the drawing helpers; `honours_art/kit.mjs` also holds the plaque's text anchors) the generators of the break-out room, custom room, Watchman, Suzerain (dais and link), Hall of Honours plaque, desktop column lift and room computer art, `theme_pack.mjs` the theme pack check and the guide's families table, `map_to_art.mjs` / `sheet_writer.mjs` (`sizedSheet`, the sheet writer of the break-out and Suzerain generators) / `png_write.mjs` art conversion helpers, `adm.mjs` the
-command-line client of the running app, `make_icon.py` the app icon.
+command-line client of the running app, `perf_profile.mjs` where a frame's time goes (below), `make_icon.py` the app icon.
 
 ---
 

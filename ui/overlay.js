@@ -110,7 +110,7 @@ export function renderPlaques(blocks) {
       const sub = document.createElement('span'); sub.className = 'branch'; sub.textContent = branch;
       el.replaceChildren(text, ...(branch ? [sub] : []));
     }
-    for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p];
+    setStyle(el, css);
   }
 }
 
@@ -324,7 +324,16 @@ export function syncLampKeys() {
   if (lampBox.dataset.order !== order) { lampBox.dataset.order = order; lampBox.replaceChildren(...lit.map(l => lampKeys.get(lampKey(l)))); }
 }
 
-const setStyle = (el, css) => { for (const p in css) if (el.style[p] !== css[p]) el.style[p] = css[p]; };
+// What this module last wrote to each element's style, compared instead of reading el.style back (a getter into the
+// DOM, per property, per element, per frame). Only for the elements this module creates and alone styles (plaques,
+// labels, keys, tags, edge arrows, the tip): the canvas's cursor is also set by viewport.js, so it is compared with the
+// DOM (syncHover).
+const written = new WeakMap();
+function setStyle(el, css) {
+  let w = written.get(el);
+  if (!w) written.set(el, (w = {}));
+  for (const p in css) if (w[p] !== css[p]) { el.style[p] = css[p]; w[p] = css[p]; }
+}
 export function syncEdges() {
   const beyond = { up: [], down: [], left: [], right: [] };
   if (pannable()) for (const a of cast.actors.values()) {
@@ -395,7 +404,8 @@ export function syncHover() {
   if (strip() && mouse()) setThrough(!stripHit(mouse().clientX, mouse().clientY)); // re-decided every frame: a still cursor, a walking scribe
   const h = mouse() ? actorAt(mouse()) : coarse.matches && sel ? cast.actors.get(sel) : null;
   const lamp = !h && mouse() ? lampAt?.(mouse()) : null; // a character in front of a lamp is the one pointed at
-  setStyle(canvas, { cursor: drag?.on ? 'grabbing' : h || (lamp && !REMOTE) ? 'pointer' : pannable() ? 'grab' : '' });
+  const cursor = drag?.on ? 'grabbing' : h || (lamp && !REMOTE) ? 'pointer' : pannable() ? 'grab' : '';
+  if (canvas.style.cursor !== cursor) canvas.style.cursor = cursor; // viewport.js writes it too: not through setStyle's cache
   const hide = lamp ? !lampTip(lamp) : !h || labels.has(h.id);
   if (tip.hidden !== hide) tip.hidden = hide;
   if (tip.hidden) return;
