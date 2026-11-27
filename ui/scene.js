@@ -215,7 +215,8 @@ export function drawStatic(g, daylight, hall = hallOf(0), rooms = []) {
 
 // The mirror hall's background (hallOf sanct): the scriptorium the window's width, its east wall a dark one; the rooms'
 // floors (lowest), the Sanctum's floor down the middle column (its rail is drawScene's, depth sorted), no floor
-// channel (they are the open space's: nothing runs through a room), the back wall and its props.
+// channel (they are the open space's: nothing runs through a room), no bay arch (bays only lengthen the one floor), the
+// back wall and its props.
 function drawMirror(g, daylight, hall, rooms) {
   const { w, h, sw, dx, hy, sanct, aisleY } = hall, D = WALL_DY, { props, windows } = propsOf(hall);
   tile(g, 'wall', 0, 0, sw, WALL); tile(g, 'wall foot', 0, WALL - 4, sw, 4);
@@ -225,7 +226,6 @@ function drawMirror(g, daylight, hall, rooms) {
   tile(g, 'wall dark', sw, 0, w - sw, h); tile(g, 'pipe v', sw + 3, 0, 3, h);
   for (let y = 36 + D; y < h - 10; y += 38) tile(g, 'fitting v', sw + 2, y);
   for (const Z of rooms) zoneName(g, Z);
-  for (let k = 1; k <= hall.bays; k++) bayArch(g, 56 + D + 64 * (hall.rows - hall.bays + k - 1), sw);
   tile(g, 'pipe h', 0, 4, sw);
   for (let x = 20; x < sw - 6; x += 40) tile(g, 'fitting h', x, 3);
   g.fillStyle = I.cant;
