@@ -323,7 +323,8 @@ leans toward a new petitioner. The ambient motion never raises the frame rate at
   depth sorted by its floor footprint, with contact shadows, cast shadows at night and lights lifted off the floor
   (each desk-level glow at its own source's height: candle flame, slate, console screen, flying skull; its pool on the
   floor under it). At Auto scale the turned hall shrinks to fit the window, but never below the flat view's Auto pixel
-  size: a bigger hall keeps those pixels and pans (drag, arrow keys, edge arrows); an explicit Scale pans, as in the flat view.
+  size, or below 2 CSS px per pixel on a big screen (whose flat pixels are bigger): a bigger hall keeps those pixels and
+  pans (drag, arrow keys, edge arrows); an explicit Scale pans, as in the flat view.
 
   ![The 2.5D view: the same hall turned 39°, with real volumes, cutaway walls and a petition in the Sanctum](docs/img/hall39.png)
 

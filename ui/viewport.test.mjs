@@ -52,4 +52,28 @@ assert.ok(wing < flat && Math.abs(wing - (win.w - 24) / (SCENE.w + WING_X)) < 1e
 isoOn = true; S = { w: 2000, h: 2000 }; fit();
 assert.equal(V.scale, wing, 'the 39° view floors at the flat scale, wing included');
 assert.ok(pannable());
+
+// A big window (a 4K screen at 125 %: about 3048 x 1669 CSS px): its flat Auto pixels are big, so a big hall shrinks to
+// fit down to READABLE (2) instead of panning at those big pixels; a hall too big even at 2 stops there and pans.
+rooms.list = [];
+win = { w: 3048, h: 1669 };
+isoOn = false; S = { w: 554, h: 300 }; fit();
+const big = V.scale;
+assert.ok(big > 3, 'a big window: big flat auto pixels');
+isoOn = true; S = { w: 500, h: 250 }; fit();
+assert.equal(V.scale, big, 'a hall that fits keeps the flat auto scale');
+S = { w: 1000, h: 700 }; fit();
+assert.ok(Math.abs(V.scale - Math.min((win.w - 24) / S.w, (win.h - 40 - 24) / S.h)) < 1e-9 && V.scale > 2, 'a bigger hall shrinks to fit');
+assert.ok(!pannable(), 'and is all in view');
+S = { w: 2000, h: 2000 }; fit();
+assert.equal(V.scale, 2, 'never below READABLE');
+assert.ok(pannable(), 'past it the hall pans');
+// The rooms plan: the same floor, whatever its own (window-relative) one.
+const { hallPlan } = await import('./hallplan.js');
+hallPlan.rooms = true;
+S = { w: 1000, h: 700 }; fit();
+assert.ok(V.scale > 2 && !pannable(), 'rooms plan: a big hall is all in view on a big window');
+S = { w: 2000, h: 2000 }; fit();
+assert.equal(V.scale, 2, 'rooms plan: never below READABLE');
+hallPlan.rooms = false;
 console.log('viewport ok');
